@@ -39,8 +39,8 @@ matches the layout of one or more projects in a Mercurial repository.
 The configuration information for a suite lives in an 'mx' sub-directory
 at the top level of the suite. A suite is given a name by a 'suite=name'
 property in the 'mx/projects' file (if omitted the name is suite directory).
-An 'mx' subdirectory can be named as plain 'mx' or 'mxbasename', where
-'basename' is the os.path.basename of the suite directory.
+An 'mx' subdirectory can be named as plain 'mx' or 'mx.name', where
+'name' is typically the name as the suite name.
 The latter is useful to avoid clashes in IDE project names.
 
 When launched, mx treats the current working directory as a suite.
@@ -158,6 +158,8 @@ _annotationProcessors = None
 _mainSuite = None
 _opts = None
 _java = None
+_check_global_structures = True # can be set False to allow suites with duplicate definitions to load without aborting
+
 
 """
 A distribution is a jar or zip file containing the output from one or more Java projects.
@@ -516,6 +518,13 @@ class Suite:
         projectsFile = join(mxDir, 'projects')
         if not exists(projectsFile):
             return
+        
+        def _find_suite_key():
+            for items in _suites.items():
+                if items[1].dir == self.dir:
+                    return items[0]
+            raise KeyError
+        
         with open(projectsFile) as f:
             for line in f:
                 line = line.strip()
@@ -527,7 +536,11 @@ class Suite:
                     if len(parts) == 1:
                         if parts[0] != 'suite':
                             abort('Single part property must be "suite": ' + key)
-                        self.name = value
+                        if self.name != value:
+                            currentKey = _find_suite_key()
+                            _suites.pop(currentKey)
+                            self.name = value
+                            _suites[value] = self
                         continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
@@ -639,24 +652,29 @@ class Suite:
                             abort(e + ':' + str(lineNum) + ': line does not match pattern "key=value"')
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
+
     def _post_init(self, opts):
         self._load_projects(self.mxDir)
+        # set the global data structures, checking for conflicts unless _global_structures is False
         for p in self.projects:
             existing = _projects.get(p.name)
-            if existing is not None:
+            if existing is not None and _check_global_structures:
                 abort('cannot override project  ' + p.name + ' in ' + p.dir + " with project of the same name in  " + existing.dir)
             if not p.name in _opts.ignored_projects:
                 _projects[p.name] = p
         for l in self.libs:
             existing = _libs.get(l.name)
             # Check that suites that define same library are consistent
-            if existing is not None and existing != l:
+            if existing is not None and existing != l and _check_global_structures:
                 abort('inconsistent library redefinition of ' + l.name + ' in ' + existing.suite.dir + ' and ' + l.suite.dir)
             _libs[l.name] = l
         for d in self.dists:
             existing = _dists.get(d.name)
-            if existing is not None:
-                abort('cannot redefine distribution  ' + d.name)
+            if existing is not None and _check_global_structures:
+                # allow redefinition, so use path from existing
+                # abort('cannot redefine distribution  ' + d.name)
+                print('WARNING: distribution ' + d.name + ' redefined')
+                d.path = existing.path
             _dists[d.name] = d
         if hasattr(self, 'mx_post_parse_cmd_line'):
             self.mx_post_parse_cmd_line(opts)
@@ -751,14 +769,14 @@ def get_os():
         return 'windows'
     else:
         abort('Unknown operating system ' + sys.platform)
-
+        
 def _loadSuite(d, primary=False):
     """
-    Load a suite from the 'mx' or 'mxbbb' subdirectory of d, where 'bbb' is basename of d
+    Load a suite from the 'mx' or 'mx.bbb' subdirectory of d, where 'bbb' is basename of d
     """
     mxDefaultDir = join(d, 'mx')
     name = os.path.basename(d)
-    mxTaggedDir = mxDefaultDir + name
+    mxTaggedDir = mxDefaultDir + '.' + name
     mxDir = None
     if exists(mxTaggedDir) and isdir(mxTaggedDir):
         mxDir = mxTaggedDir
@@ -771,14 +789,22 @@ def _loadSuite(d, primary=False):
         return None
     if len([s for s in _suites.itervalues() if s.dir == d]) == 0:
         s = Suite(d, mxDir, primary)
+        # N.B. this will be updated once the projects file has been read
         _suites[name] = s
         return s
 
-def suites():
+def suites(opt_limit_to_suite=False):
     """
     Get the list of all loaded suites.
     """
-    return _suites.values()
+    if opt_limit_to_suite and _opts.specific_suites:
+        result = []
+        for s in _suites:
+            if s.name in _opts.specific_suites:
+                result.append(s)
+        return result
+    else:
+        return _suites.values()
 
 def suite(name, fatalIfMissing=True):
     """
@@ -789,11 +815,41 @@ def suite(name, fatalIfMissing=True):
         abort('suite named ' + name + ' not found')
     return s
 
-def projects():
+def projects_from_names(projectNames):
     """
-    Get the list of all loaded projects.
+    Get the list of projects corresponding to projectNames; all projects if None
     """
-    return _projects.values()
+    if projectNames is None:
+        return projects()
+    else:
+        return [project(name) for name in projectNames]
+
+def projects(opt_limit_to_suite=False):
+    """
+    Get the list of all loaded projects limited by --suite option if opt_limit_to_suite == True
+    """
+    
+    if opt_limit_to_suite:
+        return _projects_opt_limit_to_suites(_projects.values())
+    else:
+        return _projects.values()
+
+def projects_opt_limit_to_suites():
+    """
+    Get the list of all loaded projects optionally limited by --suite option
+    """
+    return projects(True)
+
+def _projects_opt_limit_to_suites(projects):
+    if not _opts.specific_suites:
+        return projects
+    else:
+        result = []
+        for p in projects:
+            s = p.suite
+            if s.name in _opts.specific_suites:
+                result.append(p)
+        return result
 
 def annotation_processors():
     """
@@ -914,26 +970,15 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
     are before the projects that depend on them. Unless 'includeLibs' is
     true, libraries are omitted from the result.
     """
-    deps = []
-    if projectNames is None:
-        projects = opt_limit_to_suite(_projects.values())
-    else:
-        projects = [project(name) for name in projectNames]
+    projects = projects_from_names(projectNames)
+        
+    return sorted_project_deps(projects, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
 
+def sorted_project_deps(projects, includeLibs=False, includeAnnotationProcessors=False):
+    deps = []
     for p in projects:
         p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
-
-def opt_limit_to_suite(projects):
-    if _opts.specific_suite is None:
-        return projects
-    else:
-        result = []
-        for p in projects:
-            s = p.suite
-            if s.name == _opts.specific_suite:
-                result.append(p)
-        return result
 
 def _handle_missing_java_home():
     if not sys.stdout.isatty():
@@ -999,7 +1044,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
-        self.add_argument('--suite', dest='specific_suite', help='limit command to given suite', default=None)
+        self.add_argument('--suite', action='append', dest='specific_suites', help='limit command to given suite', default=[])
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -1553,14 +1598,18 @@ def build(args, parser=None):
 
     built = set()
 
-    projects = None
-    if args.projects is not None:
-        projects = args.projects.split(',')
-
     if args.only is not None:
+        # N.B. This build will not include dependencies including annotation processor dependencies
         sortedProjects = [project(name) for name in args.only.split(',')]
-    else:
-        sortedProjects = sorted_deps(projects, includeAnnotationProcessors=True)
+    else:       
+        if args.projects is not None:
+            projectNames = args.projects.split(',')
+        else:
+            projectNames = None
+        
+        projects = _projects_opt_limit_to_suites(projects_from_names(projectNames))
+        # N.B. Limiting to a suite only affects the starting set of projects. Dependencies in other suites will still be compiled
+        sortedProjects = sorted_project_deps(projects, includeAnnotationProcessors=True)
 
     if args.java:
         ideinit([], refreshOnly=True, buildProcessorJars=False)
@@ -2060,7 +2109,7 @@ def checkstyle(args):
     args = parser.parse_args(args)
 
     totalErrors = 0
-    for p in sorted_deps():
+    for p in projects_opt_limit_to_suites():
         if p.native:
             continue
         sourceDirs = p.source_dirs()
@@ -2191,7 +2240,7 @@ def clean(args, parser=None):
 
     args = parser.parse_args(args)
 
-    for p in projects():
+    for p in projects_opt_limit_to_suites():
         if p.native:
             if args.native:
                 run([gmake_cmd(), '-C', p.dir, 'clean'])
@@ -2283,7 +2332,7 @@ def _source_locator_memento(deps):
     slm.close('sourceLookupDirector')
     return slm
 
-def make_eclipse_attach(hostname, port, name=None, deps=None):
+def make_eclipse_attach(suite, hostname, port, name=None, deps=None):
     """
     Creates an Eclipse launch configuration file for attaching to a Java process.
     """
@@ -2305,8 +2354,12 @@ def make_eclipse_attach(hostname, port, name=None, deps=None):
     launch = launch.xml(newl='\n', standalone='no') % slm.xml(escape=True, standalone='no')
 
     if name is None:
-        name = 'attach-' + hostname + '-' + port
-    eclipseLaunches = join('mx', 'eclipse-launches')
+        if len(suites()) == 1:
+            suitePrefix =''
+        else:
+            suitePrefix = suite.name + '-'
+        name = suitePrefix + 'attach-' + hostname + '-' + port
+    eclipseLaunches = join(suite.mxDir, 'eclipse-launches')
     if not exists(eclipseLaunches):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
@@ -2378,12 +2431,15 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=None):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
+def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
     """(re)generate Eclipse project configurations and working sets"""
+    for s in suites(True):
+        _eclipseinit_suite(args, s, buildProcessorJars, refreshOnly)
+    
+    generate_eclipse_workingsets()
 
-    if suite is None:
-        suite = _mainSuite
 
+def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
     if refreshOnly and not timestamp.exists():
@@ -2394,6 +2450,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
         return
 
     if buildProcessorJars:
+        ## todo suite specific
         processorjars()
 
     projToDist = dict()
@@ -2402,7 +2459,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
         for p in distDeps:
             projToDist[p.name] = (dist, [dep.name for dep in distDeps])
 
-    for p in projects():
+    for p in suite.projects:
         if p.native:
             continue
 
@@ -2577,10 +2634,9 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
             out.close('factorypath')
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
 
-    make_eclipse_attach('localhost', '8000', deps=projects())
-    generate_eclipse_workingsets(suite)
+    make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
     timestamp.touch()
-
+ 
 def _isAnnotationProcessorDependency(p):
     """
     Determines if a given project is part of an annotation processor.
@@ -2636,20 +2692,27 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.close('arguments')
     dotProjectDoc.close('buildCommand')
 
-def generate_eclipse_workingsets(suite):
+def generate_eclipse_workingsets():
     """
-    Populate the workspace's working set configuration with working sets generated from project data.
+    Populate the workspace's working set configuration with working sets generated from project data for the primary suite
     If the workspace already contains working set definitions, the existing ones will be retained and extended.
-    In case mx/env does not contain a WORKSPACE definition pointing to the workspace root directory, the Graal project root directory will be assumed.
-    If no workspace root directory can be identified, the Graal project root directory is used and the user has to place the workingsets.xml file by hand.
+    In case mx/env does not contain a WORKSPACE definition pointing to the workspace root directory, a parent search from the primary suite directory is performed.
+    If no workspace root directory can be identified, the primary suite directory is used and the user has to place the workingsets.xml file by hand.
     """
 
     # identify the location where to look for workingsets.xml
     wsfilename = 'workingsets.xml'
     wsloc = '.metadata/.plugins/org.eclipse.ui.workbench'
-    wsroot = suite.dir
     if os.environ.has_key('WORKSPACE'):
-        wsroot = os.environ['WORKSPACE']
+        expected_wsroot = os.environ['WORKSPACE']
+    else:
+        expected_wsroot = _mainSuite.dir
+        
+    wsroot =_find_eclipse_wsroot(expected_wsroot)
+    if wsroot is None:
+        # failed to find it
+        wsroot = expected_wsroot
+    
     wsdir = join(wsroot, wsloc)
     if not exists(wsdir):
         wsdir = wsroot
@@ -2673,6 +2736,20 @@ def generate_eclipse_workingsets(suite):
         wsdoc = _make_workingset_xml(workingSets)
 
     update_file(wspath, wsdoc.xml(newl='\n'))
+    
+def _find_eclipse_wsroot(wsdir):
+    md = join(wsdir, '.metadata')
+    if exists(md):
+        return wsdir
+    split = os.path.split(wsdir)
+    # How to do this for Windows?
+    if split[0] == '/':
+        return None
+    else:
+        return _find_eclipse_wsroot(split[0])
+
+def _foobar(val):
+    print(val)
 
 def _make_workingset_xml(workingSets):
     wsdoc = XMLDoc()
@@ -2756,12 +2833,13 @@ def _workingset_open(wsdoc, ws):
 def _workingset_element(wsdoc, p):
     wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
 
-def netbeansinit(args, suite=None, refreshOnly=False, buildProcessorJars=True):
+def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate NetBeans project configurations"""
 
-    if suite is None:
-        suite = _mainSuite
+    for suite in suites(True):
+        _netbeansinit_suite(args, suite, refreshOnly, buildProcessorJars)
 
+def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
     projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'netbeansinit.timestamp'))
     if refreshOnly and not timestamp.exists():
@@ -2772,7 +2850,7 @@ def netbeansinit(args, suite=None, refreshOnly=False, buildProcessorJars=True):
         return
 
     updated = False
-    for p in projects():
+    for p in suite.projects:
         if p.native:
             continue
 
@@ -2988,7 +3066,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     timestamp.touch()
 
-def ideclean(args, suite=None):
+def ideclean(args):
     """remove all Eclipse and NetBeans project configurations"""
     def rm(path):
         if exists(path):
@@ -3016,16 +3094,16 @@ def ideclean(args, suite=None):
             log("Error removing {0}".format(p.name + '.jar'))
 
 
-def ideinit(args, suite=None, refreshOnly=False, buildProcessorJars=True):
+def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse and NetBeans project configurations"""
-    eclipseinit(args, suite, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
-    netbeansinit(args, suite, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     if not refreshOnly:
         fsckprojects([])
 
 def fsckprojects(args):
     """find directories corresponding to deleted Java projects and delete them"""
-    for suite in suites():
+    for suite in suites(True):
         projectDirs = [p.dir for p in suite.projects]
         for root, dirnames, files in os.walk(suite.dir):
             currentDir = join(suite.dir, root)
@@ -3058,9 +3136,10 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
     args = parser.parse_args(args)
 
     # build list of projects to be processed
-    candidates = sorted_deps()
     if args.projects is not None:
         candidates = [project(name) for name in args.projects.split(',')]
+    else:
+        candidates = projects_opt_limit_to_suites()
 
     # optionally restrict packages within a project
     packages = []
@@ -3524,7 +3603,7 @@ def show_projects(args):
             log(projectsFile)
             for p in s.projects:
                 log('\t' + p.name)
-
+                
 def ask_yes_no(question, default=None):
     """"""
     assert not default or default == 'y' or default == 'n'
@@ -3588,7 +3667,7 @@ _argParser = ArgParser()
 def _findPrimarySuite():
     def is_suite_dir(d):
         for f in os.listdir(d):
-            if fnmatch.fnmatch(f, 'mx*'):
+            if f == 'mx' or fnmatch.fnmatch(f, 'mx.*'):
                 mxDir = join(d, f)
                 if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
                     return dirname(mxDir)

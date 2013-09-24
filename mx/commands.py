@@ -945,30 +945,101 @@ def buildvms(args):
     allDuration = datetime.timedelta(seconds=time.time() - allStart)
     mx.log('TOTAL TIME:   ' + '[' + str(allDuration) + ']')
 
-def gate(args):
+class Task:
+    def __init__(self, title):
+        self.start = time.time()
+        self.title = title
+        self.end = None
+        self.duration = None
+        mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: BEGIN: ') + title)
+    def stop(self):
+        self.end = time.time()
+        self.duration = datetime.timedelta(seconds=self.end - self.start)
+        mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: END:   ') + self.title + ' [' + str(self.duration) + ']')
+        return self
+    def abort(self, codeOrMessage):
+        self.end = time.time()
+        self.duration = datetime.timedelta(seconds=self.end - self.start)
+        mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(self.duration) + ']')
+        mx.abort(codeOrMessage)
+        return self
+
+def _basic_gate_body(args, tasks):
+    t = Task('BuildHotSpotGraal: fastdebug,product')
+    buildvms(['--vms', 'graal,server', '--builds', 'fastdebug,product'])
+    tasks.append(t.stop())
+
+    with VM('graal', 'fastdebug'):
+        t = Task('BootstrapWithSystemAssertions:fastdebug')
+        vm(['-esa', '-version'])
+        tasks.append(t.stop())
+
+    with VM('graal', 'product'):
+        t = Task('BootstrapWithGCVerification:product')
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        tasks.append(t.stop())
+
+    with VM('graal', 'product'):
+        t = Task('BootstrapWithG1GCVerification:product')
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        tasks.append(t.stop())
+
+    with VM('graal', 'product'):
+        t = Task('BootstrapWithRegisterPressure:product')
+        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        tasks.append(t.stop())
+
+    with VM('graal', 'product'):
+        t = Task('BootstrapWithAOTConfiguration:product')
+        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
+        tasks.append(t.stop())
+
+    with VM('server', 'product'):  # hosted mode
+        t = Task('UnitTests:hosted-product')
+        unittest([])
+        tasks.append(t.stop())
+
+    for vmbuild in ['fastdebug', 'product']:
+        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
+            t = Task(str(test) + ':' + vmbuild)
+            if not test.test('graal'):
+                t.abort(test.name + ' Failed')
+            tasks.append(t.stop())
+
+    if args.jacocout is not None:
+        jacocoreport([args.jacocout])
+
+    _jacoco = 'off'
+
+    t = Task('CleanAndBuildGraalVisualizer')
+    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+    tasks.append(t.stop())
+
+    # Prevent Graal modifications from breaking the standard builds
+    if args.buildNonGraal:
+        t = Task('BuildHotSpotVarieties')
+        buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
+        buildvms(['--vms', 'server-nograal', '--builds', 'product'])
+        buildvms(['--vms', 'server-nograal', '--builds', 'optimized'])
+        tasks.append(t.stop())
+
+        for vmbuild in ['product', 'fastdebug']:
+            for theVm in ['client', 'server']:
+                with VM(theVm, vmbuild):
+                    t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
+                    dacapo(['pmd'])
+                    tasks.append(t.stop())
+
+                    t = Task('UnitTests:' + theVm + ':' + vmbuild)
+                    unittest(['-XX:CompileCommand=exclude,*::run*', 'graal.api'])
+                    tasks.append(t.stop())
+
+
+def gate(args, gate_body=_basic_gate_body):
     """run the tests used to validate a push
 
     If this command exits with a 0 exit code, then the source code is in
     a state that would be accepted for integration into the main repository."""
-
-    class Task:
-        def __init__(self, title):
-            self.start = time.time()
-            self.title = title
-            self.end = None
-            self.duration = None
-            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: BEGIN: ') + title)
-        def stop(self):
-            self.end = time.time()
-            self.duration = datetime.timedelta(seconds=self.end - self.start)
-            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: END:   ') + self.title + ' [' + str(self.duration) + ']')
-            return self
-        def abort(self, codeOrMessage):
-            self.end = time.time()
-            self.duration = datetime.timedelta(seconds=self.end - self.start)
-            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(self.duration) + ']')
-            mx.abort(codeOrMessage)
-            return self
 
     parser = ArgumentParser(prog='mx gate')
     parser.add_argument('-j', '--omit-java-clean', action='store_false', dest='cleanJava', help='omit cleaning Java native code')
@@ -1031,75 +1102,8 @@ def gate(args):
             _jacoco = 'append'
         else:
             _jacoco = 'off'
-
-        t = Task('BuildHotSpotGraal: fastdebug,product')
-        buildvms(['--vms', 'graal,server', '--builds', 'fastdebug,product'])
-        tasks.append(t.stop())
-
-        with VM('graal', 'fastdebug'):
-            t = Task('BootstrapWithSystemAssertions:fastdebug')
-            vm(['-esa', '-version'])
-            tasks.append(t.stop())
-
-        with VM('graal', 'product'):
-            t = Task('BootstrapWithGCVerification:product')
-            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
-            tasks.append(t.stop())
-
-        with VM('graal', 'product'):
-            t = Task('BootstrapWithG1GCVerification:product')
-            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
-            tasks.append(t.stop())
-
-        with VM('graal', 'product'):
-            t = Task('BootstrapWithRegisterPressure:product')
-            vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
-            tasks.append(t.stop())
-
-        with VM('graal', 'product'):
-            t = Task('BootstrapWithAOTConfiguration:product')
-            vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
-            tasks.append(t.stop())
-
-        with VM('server', 'product'):  # hosted mode
-            t = Task('UnitTests:hosted-product')
-            unittest([])
-            tasks.append(t.stop())
-
-        for vmbuild in ['fastdebug', 'product']:
-            for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-                t = Task(str(test) + ':' + vmbuild)
-                if not test.test('graal'):
-                    t.abort(test.name + ' Failed')
-                tasks.append(t.stop())
-
-        if args.jacocout is not None:
-            jacocoreport([args.jacocout])
-
-        _jacoco = 'off'
-
-        t = Task('CleanAndBuildGraalVisualizer')
-        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
-        tasks.append(t.stop())
-
-        # Prevent Graal modifications from breaking the standard builds
-        if args.buildNonGraal:
-            t = Task('BuildHotSpotVarieties')
-            buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
-            buildvms(['--vms', 'server-nograal', '--builds', 'product'])
-            buildvms(['--vms', 'server-nograal', '--builds', 'optimized'])
-            tasks.append(t.stop())
-
-            for vmbuild in ['product', 'fastdebug']:
-                for theVm in ['client', 'server']:
-                    with VM(theVm, vmbuild):
-                        t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
-                        dacapo(['pmd'])
-                        tasks.append(t.stop())
-
-                        t = Task('UnitTests:' + theVm + ':' + vmbuild)
-                        unittest(['-XX:CompileCommand=exclude,*::run*', 'graal.api'])
-                        tasks.append(t.stop())
+            
+        gate_body(args, tasks)
 
     except KeyboardInterrupt:
         total.abort(1)
@@ -1116,7 +1120,7 @@ def gate(args):
         mx.log('  ' + str(t.duration) + '\t' + t.title)
     mx.log('  =======')
     mx.log('  ' + str(total.duration))
-
+    
 def deoptalot(args):
     """bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
 
