@@ -1098,11 +1098,12 @@ def gate(args, gate_body=_basic_gate_body):
         if exists('jacoco.exec'):
             os.unlink('jacoco.exec')
 
+        global _jacoco
         if args.jacocout is not None:
             _jacoco = 'append'
         else:
             _jacoco = 'off'
-            
+
         gate_body(args, tasks)
 
     except KeyboardInterrupt:
@@ -1120,7 +1121,7 @@ def gate(args, gate_body=_basic_gate_body):
         mx.log('  ' + str(t.duration) + '\t' + t.title)
     mx.log('  =======')
     mx.log('  ' + str(total.duration))
-    
+
 def deoptalot(args):
     """bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
 
