@@ -1009,6 +1009,7 @@ def _basic_gate_body(args, tasks):
     if args.jacocout is not None:
         jacocoreport([args.jacocout])
 
+    global _jacoco
     _jacoco = 'off'
 
     t = Task('CleanAndBuildGraalVisualizer')
@@ -1098,7 +1099,6 @@ def gate(args, gate_body=_basic_gate_body):
         if exists('jacoco.exec'):
             os.unlink('jacoco.exec')
 
-        global _jacoco
         if args.jacocout is not None:
             _jacoco = 'append'
         else:
