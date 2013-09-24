@@ -810,27 +810,11 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = pc;
         break;
-      case MARK_POLL_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(pc);
-        int32_t* disp = (int32_t*) pd_locate_operand(pc);
-        // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
-        intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
-        *disp = (int32_t)new_disp;
-      }
+      case MARK_POLL_NEAR:
       case MARK_POLL_FAR:
-        _instructions->relocate(pc, relocInfo::poll_type);
-        break;
-      case MARK_POLL_RETURN_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(pc);
-        int32_t* disp = (int32_t*) pd_locate_operand(pc);
-        // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
-        intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
-        *disp = (int32_t)new_disp;
-      }
+      case MARK_POLL_RETURN_NEAR:
       case MARK_POLL_RETURN_FAR:
-        _instructions->relocate(pc, relocInfo::poll_return_type);
+        pd_relocate_poll(pc, id);
         break;
       default:
         ShouldNotReachHere();

@@ -182,9 +182,4 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 }
 
-inline int32_t* CodeInstaller::pd_locate_operand(address instruction) {
-  fatal("CodeInstaller::pd_locate_operand - sparc unimp");
-  return (int32_t*)0;
-}
-
 #endif // CPU_SPARC_VM_CODEINSTALLER_SPARC_HPP
