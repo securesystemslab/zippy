@@ -22,33 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.objects;
 
-import edu.uci.python.runtime.modules.annotations.*;
+import java.lang.reflect.*;
 
-public class TimeModule extends PythonModule {
+import sun.misc.*;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
-    }
+/**
+ * Access the the {@link Unsafe} class.
+ */
+public abstract class PythonUnsafe {
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    public static final Unsafe UNSAFE = getUnsafe();
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    private static Unsafe getUnsafe() {
+        try {
+            return Unsafe.getUnsafe();
+        } catch (SecurityException e) {
+        }
 
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
+        try {
+            Field theUnsafeInstance = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafeInstance.setAccessible(true);
+            return (Unsafe) theUnsafeInstance.get(Unsafe.class);
+        } catch (Exception e) {
+            throw new RuntimeException("exception while trying to get Unsafe.theUnsafe via reflection:", e);
+        }
     }
 
 }

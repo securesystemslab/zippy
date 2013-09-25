@@ -29,6 +29,8 @@ public class Options {
     // Debug flags
     public static boolean PrintAST = false;
 
-    public static boolean OptimizeNode = true;
+    public static final boolean OptimizeNode = true;
+
+    public static final boolean UseUnsafe = true;
 
 }

@@ -22,33 +22,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.objects;
 
-import edu.uci.python.runtime.modules.annotations.*;
+/**
+ * Indicates that a storage location cannot store the type of value that you asked it to.
+ */
+public class GeneralizeStorageLocationException extends Exception {
 
-public class TimeModule extends PythonModule {
-
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
-    }
-
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    private static final long serialVersionUID = 3607506078153063652L;
 
 }

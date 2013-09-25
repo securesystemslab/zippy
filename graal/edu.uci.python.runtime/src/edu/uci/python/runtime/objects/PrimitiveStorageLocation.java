@@ -22,33 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.objects;
 
-import edu.uci.python.runtime.modules.annotations.*;
+/**
+ * A storage location that uses one of the primitive fields in <code>PythonObject</code>.
+ */
+public abstract class PrimitiveStorageLocation extends StorageLocation {
 
-public class TimeModule extends PythonModule {
+    protected final int mask;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
+    protected PrimitiveStorageLocation(ObjectLayout objectLayout, int index) {
+        super(objectLayout);
+        mask = 1 << index;
     }
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
+    @Override
+    public boolean isSet(PythonBasicObject object) {
+        return (object.primitiveSetMap & mask) != 0;
     }
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
+    protected void markAsSet(PythonBasicObject object) {
+        object.primitiveSetMap |= mask;
     }
 
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
+    protected void markAsUnset(PythonBasicObject object) {
+        object.primitiveSetMap &= ~mask;
     }
 
 }

@@ -40,6 +40,7 @@ public class BuiltInModule extends PythonModule {
     private static final long MASK_NON_SIGN_LONG = 0x7fffffffffffffffL;
 
     public BuiltInModule() {
+        super("builtin");
         addBuiltInMethods();
         addConstants();
     }

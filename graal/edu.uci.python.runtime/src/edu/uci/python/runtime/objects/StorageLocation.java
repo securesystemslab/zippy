@@ -22,33 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.objects;
 
-import edu.uci.python.runtime.modules.annotations.*;
+/**
+ * A storage location that abstracts the method for reading and writing values.
+ */
+public abstract class StorageLocation {
 
-public class TimeModule extends PythonModule {
+    private ObjectLayout objectLayout;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
+    protected StorageLocation(ObjectLayout objectLayout) {
+        this.objectLayout = objectLayout;
     }
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    public abstract boolean isSet(PythonBasicObject object);
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    public abstract Object read(PythonBasicObject object);
 
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
+    public abstract void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException;
+
+    public abstract Class getStoredClass();
+
+    public ObjectLayout getObjectLayout() {
+        return objectLayout;
     }
 
 }

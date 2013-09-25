@@ -28,13 +28,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
 public class BisectModule extends PythonModule {
 
     public BisectModule() {
+        super("bisect");
         addBuiltInMethods();
     }
 

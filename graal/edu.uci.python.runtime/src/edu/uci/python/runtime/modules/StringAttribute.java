@@ -24,13 +24,13 @@
  */
 package edu.uci.python.runtime.modules;
 
-
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
 public class StringAttribute extends PythonModule {
 
     public StringAttribute() {
+        super("str");
         try {
             addAttributeMethods();
         } catch (NoSuchMethodException | SecurityException e) {

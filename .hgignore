@@ -79,3 +79,4 @@ jacoco.exec
 workingsets.xml
 .buildbot/
 graal.options
+*.pydevproject

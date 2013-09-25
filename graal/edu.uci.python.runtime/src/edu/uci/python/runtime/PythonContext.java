@@ -22,33 +22,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime;
 
-import edu.uci.python.runtime.modules.annotations.*;
+public class PythonContext {
 
-public class TimeModule extends PythonModule {
-
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
+    public boolean getUseUnsafe() {
+        return Options.UseUnsafe;
     }
-
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
 }

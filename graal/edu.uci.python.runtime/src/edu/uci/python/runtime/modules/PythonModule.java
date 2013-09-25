@@ -30,6 +30,7 @@ import java.util.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.PackedFrame;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
@@ -38,8 +39,31 @@ import edu.uci.python.runtime.modules.annotations.*;
  */
 public class PythonModule extends PObject {
 
+    private final String name;
+
     private final Map<String, PCallable> methods = new HashMap<>();
     private final Map<String, Object> constants = new HashMap<>();
+
+    // The context is stored here - objects can obtain it via their class (which is a module)
+    private final PythonContext context;
+
+    public PythonModule(PythonContext context, String name) {
+        this.name = name;
+        this.context = context;
+    }
+
+    public PythonModule(String name) {
+        this.name = name;
+        this.context = null;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public PythonContext getContext() {
+        return context;
+    }
 
     /**
      * Set the value of a constant, possibly redefining it.
@@ -77,14 +101,14 @@ public class PythonModule extends PObject {
         return null;
     }
 
-    public Object lookup(String name) {
-        PCallable method = lookupMethod(name);
+    public Object lookup(String methodName) {
+        PCallable method = lookupMethod(methodName);
 
         if (method != null) {
             return method;
         }
 
-        return lookupConstant(name);
+        return lookupConstant(methodName);
     }
 
     public PCallable lookupMethod(String methodName) {
@@ -152,9 +176,9 @@ public class PythonModule extends PObject {
                 final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class});
                 final Method method2 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
 
-                final String name = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
+                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
-                final PCallable pythonMethod = new PCallable(name) {
+                final PCallable pythonMethod = new PCallable(methodName) {
 
                     @SlowPath
                     @Override
@@ -214,9 +238,9 @@ public class PythonModule extends PObject {
                 final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
                 final Method method2 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class, Object.class});
 
-                final String name = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
+                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
-                final PCallable pythonMethod = new PCallable(name) {
+                final PCallable pythonMethod = new PCallable(methodName) {
 
                     @Override
                     public Object call(PackedFrame caller, Object arg) {
@@ -273,8 +297,8 @@ public class PythonModule extends PObject {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
-        return lookupMethod(name);
+    public PCallable findAttribute(String attrName) {
+        return lookupMethod(attrName);
     }
 
 }
