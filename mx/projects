@@ -378,7 +378,7 @@ project@com.oracle.graal.compiler.ptx@workingSets=Graal,PTX
 # graal.compiler.ptx.test
 project@com.oracle.graal.compiler.ptx.test@subDir=graal
 project@com.oracle.graal.compiler.ptx.test@sourceDirs=src
-project@com.oracle.graal.compiler.ptx.test@dependencies=com.oracle.graal.compiler.ptx,com.oracle.graal.compiler.test,com.oracle.graal.ptx
+project@com.oracle.graal.compiler.ptx.test@dependencies=com.oracle.graal.hotspot.ptx,com.oracle.graal.compiler.ptx,com.oracle.graal.compiler.test
 project@com.oracle.graal.compiler.ptx.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.ptx.test@javaCompliance=1.7
 project@com.oracle.graal.compiler.ptx.test@workingSets=Graal,PTX,Test
