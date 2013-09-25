@@ -182,4 +182,24 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 }
 
+inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
+  switch (mark) {
+    case MARK_POLL_NEAR: {
+      fatal("unimplemented");
+    }
+    case MARK_POLL_FAR:
+      _instructions->relocate(pc, relocInfo::poll_type);
+      break;
+    case MARK_POLL_RETURN_NEAR: {
+      fatal("unimplemented");
+    }
+    case MARK_POLL_RETURN_FAR:
+      _instructions->relocate(pc, relocInfo::poll_return_type);
+      break;
+    default:
+      fatal("invalid mark value");
+      break;
+  }
+}
+
 #endif // CPU_SPARC_VM_CODEINSTALLER_SPARC_HPP

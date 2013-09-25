@@ -232,7 +232,7 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       _instructions->relocate(pc, relocInfo::poll_return_type);
       break;
     default:
-      ShouldNotReachHere();
+      fatal("invalid mark value");
       break;
   }
 }
