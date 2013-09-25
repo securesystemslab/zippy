@@ -345,8 +345,8 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 pass
     else:
         if not exists(jdk):
-            if _installed_jdks and mx._opts.verbose:
-                mx.log("Could not find JDK directory at " + jdk)
+            if _installed_jdks:
+                mx.log("The selected JDK directory does not (yet) exist: " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
     if installGraalJar:
