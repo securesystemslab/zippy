@@ -442,38 +442,6 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log.close()
     return ret
 
-def pylint(args):
-    """run pylint (if available) over Python source files"""
-    rcfile = join(_graal_home, 'mx', '.pylintrc')
-    if not exists(rcfile):
-        mx.log('pylint configuration file does not exist: ' + rcfile)
-        return
-
-    try:
-        output = subprocess.check_output(['pylint', '--version'], stderr=subprocess.STDOUT)
-        m = re.match(r'.*pylint (\d+)\.(\d+)\.(\d+).*', output, re.DOTALL)
-        if not m:
-            mx.log('could not determine pylint version from ' + output)
-            return
-        major, minor, micro = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-        if major < 1:
-            mx.log('require pylint version >= 1 (got {0}.{1}.{2})'.format(major, minor, micro))
-            return
-    except BaseException:
-        mx.log('pylint is not available')
-        return
-
-
-    env = os.environ.copy()
-    env['PYTHONPATH'] = dirname(mx.__file__)
-
-    versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT).split(os.linesep)
-    for f in versioned:
-        if f.endswith('.py'):
-            pyfile = f
-            mx.log('Running pylint on ' + pyfile + '...')
-            mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
-
 def jdkhome(vm=None):
     """return the JDK directory selected for the 'vm' command"""
     build = _vmbuild if _vmSourcesAvailable else 'product'
@@ -803,7 +771,7 @@ def _run_tests(args, harness, annotations, testfile):
             mx.abort('VM option ' + t + ' must precede ' + tests[0])
 
     candidates = []
-    for p in mx.projects():
+    for p in mx.projects_opt_limit_to_suites():
         if mx.java().javaCompliance < p.javaCompliance:
             continue
         candidates += _find_classes_with_annotations(p, None, annotations).keys()
@@ -821,7 +789,7 @@ def _run_tests(args, harness, annotations, testfile):
             if not found:
                 mx.log('warning: no tests matched by substring "' + t)
 
-    projectscp = mx.classpath([pcp.name for pcp in mx.projects() if pcp.javaCompliance <= mx.java().javaCompliance])
+    projectscp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -1057,7 +1025,7 @@ def gate(args, gate_body=_basic_gate_body):
     try:
 
         t = Task('Pylint')
-        pylint([])
+        mx.pylint([])
         tasks.append(t.stop())
 
         t = Task('Clean')
@@ -1376,7 +1344,6 @@ def mx_init(suite):
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [print_jdkhome, ''],
-        'pylint': [pylint, ''],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
