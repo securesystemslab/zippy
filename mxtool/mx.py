@@ -799,7 +799,7 @@ def suites(opt_limit_to_suite=False):
     """
     if opt_limit_to_suite and _opts.specific_suites:
         result = []
-        for s in _suites:
+        for s in _suites.values():
             if s.name in _opts.specific_suites:
                 result.append(s)
         return result
@@ -1911,6 +1911,74 @@ def processorjars():
     pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
     archive(pnames)
+
+def pylint(args):
+    """run pylint (if available) over Python source files (found by 'hg locate' or by tree walk with -walk)"""
+
+    parser = ArgumentParser(prog='mx pylint')
+    parser.add_argument('--walk', action='store_true', help='use tree walk find .py files')
+    args = parser.parse_args(args)
+
+    rcfile = join(dirname(__file__), '.pylintrc')
+    if not exists(rcfile):
+        log('pylint configuration file does not exist: ' + rcfile)
+        return
+
+    try:
+        output = subprocess.check_output(['pylint', '--version'], stderr=subprocess.STDOUT)
+        m = re.match(r'.*pylint (\d+)\.(\d+)\.(\d+).*', output, re.DOTALL)
+        if not m:
+            log('could not determine pylint version from ' + output)
+            return
+        major, minor, micro = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if major < 1:
+            log('require pylint version >= 1 (got {0}.{1}.{2})'.format(major, minor, micro))
+            return
+    except BaseException:
+        log('pylint is not available')
+        return
+
+    def findfiles_by_walk():
+        result = []
+        for suite in suites(True):
+            for root, dirs, files in os.walk(suite.dir):
+                for f in files:
+                    if f.endswith('.py'):
+                        pyfile = join(root, f)
+                        result.append(pyfile)
+                if 'bin' in dirs:
+                    dirs.remove('bin')
+                if 'lib' in dirs:
+                    # avoids downloaded .py files
+                    dirs.remove('lib')
+        return result
+
+    def findfiles_by_hg():
+        result = []
+        for suite in suites(True):
+            versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT, cwd=suite.dir).split(os.linesep)
+            for f in versioned:
+                if f.endswith('.py') and exists(f):
+                    result.append(f)
+        return result
+
+    # Perhaps we should just look in suite.mxDir directories for .py files?
+    if args.walk:
+        pyfiles = findfiles_by_walk()
+    else:
+        pyfiles = findfiles_by_hg()
+
+    env = os.environ.copy()
+
+    pythonpath = dirname(__file__)
+    for suite in suites(True):
+        pythonpath = os.pathsep.join([pythonpath, suite.mxDir])
+
+    env['PYTHONPATH'] = pythonpath
+
+    for pyfile in pyfiles:
+        log('Running pylint on ' + pyfile + '...')
+        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env, nonZeroIsFatal=False)
 
 def archive(args):
     """create jar files for projects and distributions"""
@@ -3655,6 +3723,7 @@ _commands = {
     'ideinit': [ideinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
+    'pylint': [pylint, ''],
     'javap': [javap, '<class name patterns>'],
     'javadoc': [javadoc, '[options]'],
     'site': [site, '[options]'],
