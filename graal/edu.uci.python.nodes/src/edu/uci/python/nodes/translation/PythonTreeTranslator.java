@@ -43,10 +43,13 @@ import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.Options;
 import edu.uci.python.runtime.datatypes.*;
 
 public class PythonTreeTranslator extends Visitor {
+
+    private final PythonContext context;
 
     private final NodeFactory factory;
 
@@ -58,7 +61,8 @@ public class PythonTreeTranslator extends Visitor {
 
     private static final String TEMP_LOCAL_PREFIX = "temp_";
 
-    public PythonTreeTranslator(TranslationEnvironment environment) {
+    public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
+        this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.resetScopeLevel();
     }
@@ -222,6 +226,11 @@ public class PythonTreeTranslator extends Visitor {
     protected PNode visitKeyword(keyword node) throws Exception {
         PNode value = (PNode) visit(node.getInternalValue());
         return factory.createKeywordLiteral(value, node.getInternalArg());
+    }
+
+    @Override
+    public Object visitClassDef(ClassDef node) throws Exception {
+        return null;
     }
 
     @Override
@@ -796,10 +805,10 @@ public class PythonTreeTranslator extends Visitor {
         if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {
             Tuple tuple = (Tuple) exprs.get(0);
             List<PNode> values = walkExprList(tuple.getInternalElts());
-            return factory.createPrint(values, node.getInternalNl());
+            return factory.createPrint(values, node.getInternalNl(), context);
         } else {
             List<PNode> values = walkExprList(node.getInternalValues());
-            StatementNode newNode = factory.createPrint(values, node.getInternalNl());
+            StatementNode newNode = factory.createPrint(values, node.getInternalNl(), context);
             return newNode;
         }
     }

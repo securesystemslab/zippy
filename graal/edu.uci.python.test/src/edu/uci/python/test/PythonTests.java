@@ -22,27 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.test;
 
 import java.io.*;
+import static org.junit.Assert.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.shell.*;
 
-public class Options {
+public class PythonTests {
 
-    // Debug flags
-    public static boolean PrintAST = false;
+    public static void assertPrints(String expected, String source) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
 
-    public static final boolean OptimizeNode = true;
-
-    public static final boolean UseUnsafe = true;
-
-    private PrintStream standardOut = System.out;
-
-    public void setStandardOut(PrintStream stdout) {
-        standardOut = stdout;
+        RunScript.runScript(new String[0], source, getContext(printStream));
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertEquals(expected, result);
     }
 
-    public PrintStream getStandardOut() {
-        return standardOut;
+    private static PythonContext getContext(PrintStream printStream) {
+        Options opts = new Options();
+        opts.setStandardOut(printStream);
+        return new PythonContext(opts);
     }
-
 }

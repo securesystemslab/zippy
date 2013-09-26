@@ -22,27 +22,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.test;
 
-import java.io.*;
+import org.junit.*;
+import static edu.uci.python.test.PythonTests.*;
 
-public class Options {
+public class HelloWorld {
 
-    // Debug flags
-    public static boolean PrintAST = false;
-
-    public static final boolean OptimizeNode = true;
-
-    public static final boolean UseUnsafe = true;
-
-    private PrintStream standardOut = System.out;
-
-    public void setStandardOut(PrintStream stdout) {
-        standardOut = stdout;
+    @Test
+    public void helloworld() {
+        assertPrints("hello world\n", "print(\"hello world\")");
     }
-
-    public PrintStream getStandardOut() {
-        return standardOut;
-    }
-
 }

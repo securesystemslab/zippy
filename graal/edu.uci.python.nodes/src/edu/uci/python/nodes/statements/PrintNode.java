@@ -27,16 +27,19 @@ package edu.uci.python.nodes.statements;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 
 public class PrintNode extends StatementNode {
 
     @Child PNode[] values;
 
     private final boolean nl;
+    private final PythonContext context;
 
-    public PrintNode(PNode[] values, boolean nl) {
+    public PrintNode(PNode[] values, boolean nl, PythonContext context) {
         this.values = adoptChildren(values);
         this.nl = nl;
+        this.context = context;
     }
 
     @Override
@@ -45,14 +48,19 @@ public class PrintNode extends StatementNode {
 
         for (int i = 0; i < values.length; i++) {
             PNode e = values[i];
-            sb.append(e.execute(frame) + " ");
+
+            if (i == values.length - 1) {
+                sb.append(e.execute(frame));
+            } else {
+                sb.append(e.execute(frame) + " ");
+            }
         }
 
         if (nl) {
             sb.append(System.getProperty("line.separator"));
         }
         // CheckStyle: stop system..print check
-        System.out.print(sb.toString());
+        context.getStandardOut().print(sb.toString());
         // CheckStyle: resume system..print check
     }
 
@@ -62,14 +70,19 @@ public class PrintNode extends StatementNode {
 
         for (int i = 0; i < values.length; i++) {
             PNode e = values[i];
-            sb.append(e.execute(frame) + " ");
+
+            if (i == values.length - 1) {
+                sb.append(e.execute(frame));
+            } else {
+                sb.append(e.execute(frame) + " ");
+            }
         }
 
         if (nl) {
             sb.append(System.getProperty("line.separator"));
         }
         // CheckStyle: stop system..print check
-        System.out.print(sb.toString());
+        context.getStandardOut().print(sb.toString());
         // CheckStyle: resume system..print check
         return null;
     }

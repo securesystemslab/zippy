@@ -49,6 +49,7 @@ import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
 import edu.uci.python.nodes.expressions.ComprehensionNodeFactory.*;
 import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class NodeFactory {
@@ -158,8 +159,8 @@ public class NodeFactory {
         return new YieldNode(right);
     }
 
-    public StatementNode createPrint(List<PNode> values, boolean nl) {
-        return new PrintNode(values.toArray(new PNode[values.size()]), nl);
+    public StatementNode createPrint(List<PNode> values, boolean nl, PythonContext context) {
+        return new PrintNode(values.toArray(new PNode[values.size()]), nl, context);
     }
 
     public PNode createIntegerLiteral(int value) {

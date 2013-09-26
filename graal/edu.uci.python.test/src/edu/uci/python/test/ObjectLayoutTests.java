@@ -37,7 +37,7 @@ public class ObjectLayoutTests {
 
     @Test
     public void testNewInstanceVariable() {
-        final PythonContext context = new PythonContext();
+        final PythonContext context = new PythonContext(new Options());
 
         // Create a class and an instance
         final PythonClass classA = new PythonClass(context, null, "A");
@@ -65,7 +65,7 @@ public class ObjectLayoutTests {
 
     @Test
     public void testOverflowPrimitives() {
-        final PythonContext context = new PythonContext();
+        final PythonContext context = new PythonContext(new Options());
 
         // Create a class and an instance
         final PythonClass classA = new PythonClass(context, null, "A");
@@ -86,7 +86,7 @@ public class ObjectLayoutTests {
 
     @Test
     public void testGeneralisation() {
-        final PythonContext context = new PythonContext();
+        final PythonContext context = new PythonContext(new Options());
 
         // Create a class and two instances
         final PythonClass classA = new PythonClass(context, null, "A");
@@ -136,7 +136,7 @@ public class ObjectLayoutTests {
 
     @Test
     public void testSubclasses() {
-        final PythonContext context = new PythonContext();
+        final PythonContext context = new PythonContext(new Options());
 
         // Create two classes, A, and a subclass, B, and an instance of each
 
@@ -214,7 +214,7 @@ public class ObjectLayoutTests {
      */
     @Test
     public void testPerObjectInstanceVariables() {
-        final PythonContext context = new PythonContext();
+        final PythonContext context = new PythonContext(new Options());
 
         // Create a class and an instance
         final PythonClass classA = new PythonClass(context, null, "A");

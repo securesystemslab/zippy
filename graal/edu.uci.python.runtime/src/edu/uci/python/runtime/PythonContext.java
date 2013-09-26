@@ -24,7 +24,19 @@
  */
 package edu.uci.python.runtime;
 
+import java.io.*;
+
 public class PythonContext {
+
+    private final Options options;
+
+    public PythonContext(Options opts) {
+        options = opts;
+    }
+
+    public PrintStream getStandardOut() {
+        return options.getStandardOut();
+    }
 
     public boolean getUseUnsafe() {
         return Options.UseUnsafe;

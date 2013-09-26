@@ -32,6 +32,7 @@ import org.python.util.*;
 
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.Options;
 
 import com.oracle.truffle.api.nodes.*;
@@ -40,10 +41,15 @@ public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
+        PythonContext context = new PythonContext(new Options());
+        execfile(s, name, context);
+    }
+
+    public void execfile(java.io.InputStream s, String name, PythonContext context) {
         setSystemState();
 
         ASTInterpreter.init((PyStringMap) getLocals(), false);
-        RootNode root = parseToAST(s, name, CompileMode.exec, cflags);
+        RootNode root = parseToAST(s, name, CompileMode.exec, cflags, context);
 
         if (Options.PrintAST) {
             printAST(root, "Before Specialization");
@@ -61,13 +67,13 @@ public class CustomConsole extends JLineConsole {
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
-    public static RootNode parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags) {
+    public static RootNode parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
         mod node = ParserFacade.parse(istream, kind, filename, cflags);
         TranslationEnvironment environment = new TranslationEnvironment(node);
         PythonTreeProcessor ptp = new PythonTreeProcessor(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
         RootNode rootNode = ptt.translate(node);
         return rootNode;
     }
