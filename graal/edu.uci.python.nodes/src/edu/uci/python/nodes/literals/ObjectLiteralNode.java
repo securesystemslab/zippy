@@ -22,32 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.nodes.literals;
 
-import java.io.*;
+import java.math.*;
 
-import edu.uci.python.runtime.modules.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-public class PythonContext {
+@NodeInfo(shortName = "object")
+public class ObjectLiteralNode extends LiteralNode {
 
-    private final Options options;
+    private final Object object;
 
-    private final PythonClass objectClass;
-
-    public PythonContext(Options opts) {
-        options = opts;
-        objectClass = new PythonClass(this, null, "object");
+    public ObjectLiteralNode(Object object) {
+        this.object = object;
+        assert !(object instanceof Integer);
+        assert !(object instanceof Double);
+        assert !(object instanceof BigInteger);
+        assert !(object instanceof String);
     }
 
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return object;
     }
 
-    public boolean getUseUnsafe() {
-        return Options.UseUnsafe;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
-    }
 }

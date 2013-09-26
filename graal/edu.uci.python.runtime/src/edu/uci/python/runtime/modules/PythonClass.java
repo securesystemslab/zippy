@@ -53,7 +53,7 @@ public class PythonClass extends PythonBasicObject {
      * normally be used from outside this class.
      */
     public PythonClass(PythonContext context, PythonClass superClass, String name) {
-        super(null); // should really pass the class class
+        super(null); // TODO: should really pass the class class
         this.context = context;
         this.name = name;
 
@@ -111,6 +111,11 @@ public class PythonClass extends PythonBasicObject {
         superClass = newSuperClass;
         superClass.subClasses.add(this);
         objectLayoutForInstances = new ObjectLayout(getName(), getContext(), superClass.objectLayoutForInstances);
+    }
+
+    @Override
+    public String toString() {
+        return "<class \'" + name + "\'>";
     }
 
 }

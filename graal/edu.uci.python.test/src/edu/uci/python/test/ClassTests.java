@@ -22,32 +22,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.test;
 
-import java.io.*;
+import org.junit.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.runtime.modules.*;
+public class ClassTests {
 
-public class PythonContext {
+    @Test
+    public void emptyClass() {
+        String source = "class Foo:\n" + //
+                        "    pass\n";
 
-    private final Options options;
-
-    private final PythonClass objectClass;
-
-    public PythonContext(Options opts) {
-        options = opts;
-        objectClass = new PythonClass(this, null, "object");
-    }
-
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
-    }
-
-    public boolean getUseUnsafe() {
-        return Options.UseUnsafe;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
+        assertPrints("", source);
     }
 }

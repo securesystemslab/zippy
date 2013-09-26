@@ -32,6 +32,7 @@ import org.python.antlr.PythonTree;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
 import org.python.core.*;
@@ -108,6 +109,10 @@ public class NodeFactory {
 
     public ParametersNode createParametersWithNoDefaults(List<PNode> parameters, List<String> paramNames) {
         return new ParametersWithNoDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames);
+    }
+
+    public ClassDefinitionNode createClassDef(FrameSlot slot, String name, PNode superclass, BlockNode body) {
+        return new ClassDefinitionNode(slot, name, superclass, body);
     }
 
     public BlockNode createBlock(List<PNode> statements) {
@@ -390,6 +395,10 @@ public class NodeFactory {
 
     public PNode createNoneLiteral() {
         return NoneLiteralNodeFactory.create();
+    }
+
+    public PNode createObjectLiteral(Object obj) {
+        return new ObjectLiteralNode(obj);
     }
 
     public PNode createCall(PNode callee, PNode[] arguments, PNode[] keywords) {

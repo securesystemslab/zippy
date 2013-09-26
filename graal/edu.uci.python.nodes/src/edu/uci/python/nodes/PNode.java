@@ -151,11 +151,11 @@ public abstract class PNode extends Node {
         execute(frame);
     }
 
-    public static final PNode DUMMY_NODE = new PNode() {
+    public static final PNode EMPTYNODE = new PNode() {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            throw new RuntimeException("This is a dummy node");
+            return PNone.NONE;
         }
 
     };

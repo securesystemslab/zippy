@@ -22,32 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.nodes.objects;
 
-import java.io.*;
+import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 
-public class PythonContext {
+public class ClassDefinitionNode extends StatementNode {
 
-    private final Options options;
+    private final String name;
 
-    private final PythonClass objectClass;
+    private final FrameSlot slot;
 
-    public PythonContext(Options opts) {
-        options = opts;
-        objectClass = new PythonClass(this, null, "object");
+    @Child protected PNode superClass;
+
+    @Child protected PNode body;
+
+    public ClassDefinitionNode(FrameSlot slot, String name, PNode superClass, BlockNode body) {
+        this.slot = slot;
+        this.name = name;
+        this.superClass = adoptChild(superClass);
+        this.body = adoptChild(body);
     }
 
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
-    }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PythonClass base = (PythonClass) superClass.execute(frame);
+        PythonClass newClass = new PythonClass(base, name);
+        frame.setObject(slot, newClass);
 
-    public boolean getUseUnsafe() {
-        return Options.UseUnsafe;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
+        body.execute(frame);
+        return PNone.NONE;
     }
 }

@@ -27,7 +27,7 @@ package edu.uci.python.test;
 import org.junit.*;
 import static edu.uci.python.test.PythonTests.*;
 
-public class HelloWorld {
+public class HelloWorldTests {
 
     @Test
     public void helloworld() {

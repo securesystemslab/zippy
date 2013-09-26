@@ -230,7 +230,22 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitClassDef(ClassDef node) throws Exception {
-        return null;
+        String name = node.getInternalName();
+        List<PNode> bases = walkExprList(node.getInternalBases());
+        assert bases.size() <= 1 : "Multiple super class is not supported yet!";
+
+        List<PNode> statements = visitStatements(node.getInternalBody());
+        BlockNode body = factory.createBlock(statements);
+
+        // The default super class is the <class 'object'>.
+        PNode base;
+        if (bases.size() == 0 || bases.get(0) == null) {
+            base = factory.createObjectLiteral(context.getObjectClass());
+        } else {
+            base = bases.get(0);
+        }
+
+        return factory.createClassDef(environment.findSlot(name), name, base, body);
     }
 
     @Override
@@ -330,10 +345,10 @@ public class PythonTreeTranslator extends Visitor {
         FrameSlot slot = environment.findSlot(node.getInternalId());
 
         if (slot != null) {
-            return factory.createWriteLocal(PNode.DUMMY_NODE, slot);
+            return factory.createWriteLocal(PNode.EMPTYNODE, slot);
         } else {
             String name = node.getInternalId();
-            return factory.createWriteGlobal(name, PNode.DUMMY_NODE);
+            return factory.createWriteGlobal(name, PNode.EMPTYNODE);
         }
     }
 
@@ -555,7 +570,7 @@ public class PythonTreeTranslator extends Visitor {
     private PNode makeTemporaryWrite() {
         String tempName = TEMP_LOCAL_PREFIX + environment.getCurrentFrameSize();
         FrameSlot tempSlot = environment.createLocal(tempName);
-        PNode tempWrite = factory.createWriteLocal(PNode.DUMMY_NODE, tempSlot);
+        PNode tempWrite = factory.createWriteLocal(PNode.EMPTYNODE, tempSlot);
         return tempWrite;
     }
 
@@ -612,7 +627,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode primary = (PNode) visit(node.getInternalValue());
 
         if (isLeftHandSide) {
-            return factory.createAttributeUpdate(primary, node.getInternalAttr(), PNode.DUMMY_NODE);
+            return factory.createAttributeUpdate(primary, node.getInternalAttr(), PNode.EMPTYNODE);
         } else {
             return factory.createAttributeRef(primary, node.getInternalAttr());
         }
@@ -651,7 +666,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createSubscriptLoad(primary, slice);
         } else if (node.getInternalCtx() == expr_contextType.Store) {
             assert isLeftHandSide;
-            return factory.createSubscriptStore(primary, slice, PNode.DUMMY_NODE);
+            return factory.createSubscriptStore(primary, slice, PNode.EMPTYNODE);
         } else {
             return factory.createSubscriptLoad(primary, slice);
         }
@@ -857,6 +872,11 @@ public class PythonTreeTranslator extends Visitor {
         PNode orelse = (PNode) visit(node.getInternalOrelse());
 
         return factory.createIfExpNode(test, body, orelse);
+    }
+
+    @Override
+    public Object visitPass(Pass node) throws Exception {
+        return null;
     }
 
     // Checkstyle: stop
