@@ -60,12 +60,14 @@ public final class TruffleCache {
 
     private final HashMap<List<Object>, StructuredGraph> cache = new HashMap<>();
     private final StructuredGraph markerGraph = new StructuredGraph();
+    private final ResolvedJavaType stringBuilderClass;
 
     public TruffleCache(MetaAccessProvider metaAccessProvider, GraphBuilderConfiguration config, OptimisticOptimizations optimisticOptimizations, Replacements replacements) {
         this.metaAccessProvider = metaAccessProvider;
         this.config = config;
         this.optimisticOptimizations = optimisticOptimizations;
         this.replacements = replacements;
+        this.stringBuilderClass = metaAccessProvider.lookupJavaType(StringBuilder.class);
     }
 
     @SuppressWarnings("unused")
@@ -192,7 +194,8 @@ public final class TruffleCache {
         }
         if (inlineGraph == this.markerGraph) {
             // Can happen for recursive calls.
-            throw new IllegalStateException("Found illegal recursive call to " + methodCallTargetNode.targetMethod() + ", must annotate such calls with @CompilerDirectives.Slowpath!");
+            throw GraphUtil.approxSourceException(methodCallTargetNode, new IllegalStateException("Found illegal recursive call to " + methodCallTargetNode.targetMethod() +
+                            ", must annotate such calls with @CompilerDirectives.SlowPath!"));
         }
         Invoke invoke = methodCallTargetNode.invoke();
         InliningUtil.inline(invoke, inlineGraph, true);
@@ -214,9 +217,9 @@ public final class TruffleCache {
         return false;
     }
 
-    private static boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
+    private boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
         return (methodCallTargetNode.invokeKind() == InvokeKind.Special || methodCallTargetNode.invokeKind() == InvokeKind.Static) &&
                         !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) && methodCallTargetNode.targetMethod().getAnnotation(ExplodeLoop.class) == null &&
-                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null;
+                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null && methodCallTargetNode.targetMethod().getDeclaringClass() != stringBuilderClass;
     }
 }
