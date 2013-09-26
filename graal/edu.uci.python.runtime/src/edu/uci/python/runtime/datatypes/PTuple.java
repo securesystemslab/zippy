@@ -78,10 +78,13 @@ public class PTuple extends PSequence {
 
     @Override
     public Object getItem(int idx) {
+        int checkedIdx = idx;
+
         if (idx < 0) {
-            idx += array.length;
+            checkedIdx += array.length;
         }
-        return array[idx];
+
+        return array[checkedIdx];
     }
 
     @Override

@@ -61,7 +61,7 @@ public class NodeFactory {
     }
 
     public StatementNode createFunctionDef(FrameSlot slot, String name, ParametersNode parameters, CallTarget callTarget, RootNode funcRoot) {
-        return new FunctionDefNode(slot, name, parameters, callTarget, funcRoot);
+        return new FunctionDefinitionNode(slot, name, parameters, callTarget, funcRoot);
     }
 
     public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {

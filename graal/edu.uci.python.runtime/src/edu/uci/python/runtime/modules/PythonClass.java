@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
 public class PythonClass extends PythonBasicObject {
@@ -43,6 +44,8 @@ public class PythonClass extends PythonBasicObject {
 
     // The context is stored here - objects can obtain it via their class (which is a module)
     private final PythonContext context;
+
+    private final Map<String, PFunction> methods = new HashMap<>();
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
@@ -75,6 +78,16 @@ public class PythonClass extends PythonBasicObject {
 
     public PythonContext getContext() {
         return context;
+    }
+
+    public PFunction lookUpMethod(String methodName) {
+        final PFunction method = methods.get(methodName);
+        assert method != null;
+        return method;
+    }
+
+    public void addMethod(PFunction method) {
+        methods.put(method.getName(), method);
     }
 
     /**
