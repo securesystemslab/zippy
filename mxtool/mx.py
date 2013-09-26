@@ -2810,8 +2810,7 @@ def _find_eclipse_wsroot(wsdir):
     if exists(md):
         return wsdir
     split = os.path.split(wsdir)
-    # How to do this for Windows?
-    if split[0] == '/':
+    if split[0] == wsdir: # root directory
         return None
     else:
         return _find_eclipse_wsroot(split[0])
