@@ -280,7 +280,7 @@ public class PythonTreeTranslator extends Visitor {
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getName());
+            return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
         }
 
         // Specializing call node.

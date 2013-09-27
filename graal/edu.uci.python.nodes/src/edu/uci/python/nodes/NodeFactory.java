@@ -350,7 +350,7 @@ public class NodeFactory {
     }
 
     public PNode createLoadAttribute(PNode operand, String name) {
-        return LoadAttributeNodeFactory.create(name, operand);
+        return new UninitializedLoadAttributeNode(name, operand);
     }
 
     public PNode createStoreAttribute(PNode primary, String name, PNode value) {

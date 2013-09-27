@@ -26,52 +26,53 @@ package edu.uci.python.nodes.objects;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.*;
-
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-@NodeChild(value = "primary", type = PNode.class)
 public abstract class LoadAttributeNode extends PNode {
 
-    private final String attributeId;
+    protected final String attributeId;
 
-    public LoadAttributeNode(String name) {
+    @Child protected PNode primary;
+
+    public LoadAttributeNode(String name, PNode primary) {
         this.attributeId = name;
+        this.primary = adoptChild(primary);
     }
 
-    protected LoadAttributeNode(LoadAttributeNode node) {
-        this.attributeId = node.attributeId;
-    }
-
-    public abstract PNode getPrimary();
-
-    public String getName() {
+    public String getAttributeId() {
         return attributeId;
     }
 
-    @Specialization
-    public Object doPObject(PObject operand) {
-        return operand.findAttribute(attributeId);
+    public PNode getPrimary() {
+        return primary;
     }
 
-    @Specialization
-    public Object doString(String operand) {
-        PString primString = new PString(operand);
-        return primString.findAttribute(attributeId);
-    }
+    public LoadAttributeNode specialize(Object primaryObj) {
+        if (primaryObj instanceof PyObject || primaryObj instanceof PObject) {
+            return new LoadGenericAttributeNode(attributeId, primary);
+        }
 
-    @Generic
-    public Object doGeneric(Object operand) {
-        PyObject primary = (PyObject) operand;
-        return unboxPyObject(primary.__findattr__(attributeId));
+        final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
+        final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
+
+        if (storageLocation == null) {
+            throw new RuntimeException("Storage location should be found at this point");
+        }
+
+        if (storageLocation instanceof PIntStorageLocation) {
+            return new LoadPIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (PIntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof PFloatStorageLocation) {
+            return new LoadPFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (PFloatStorageLocation) storageLocation);
+        } else {
+            return new LoadObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+        }
     }
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + " ( " + getPrimary() + ", " + attributeId + ")";
+        return this.getClass().getSimpleName() + " ( " + primary + ", " + attributeId + ")";
     }
 
 }
