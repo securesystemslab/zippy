@@ -22,38 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.objects;
 
-import org.junit.*;
-import static edu.uci.python.test.PythonTests.*;
+import org.python.core.*;
 
-public class ClassTests {
+import com.oracle.truffle.api.frame.*;
 
-    @Test
-    public void emptyClass() {
-        String source = "class Foo:\n" + //
-                        "    pass\n";
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
-        assertPrints("", source);
+public class StoreGenericAttributeNode extends StoreAttributeNode {
+
+    protected StoreGenericAttributeNode(StoreAttributeNode node) {
+        super(node.attributeId, node.primary, node.rhs);
     }
 
-    @Test
-    public void simpleClass() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "\n";
+    @Override
+    public Object execute(VirtualFrame frame) {
+        final Object primaryObj = primary.execute(frame);
+        final Object value = rhs.execute(frame);
 
-        assertPrints("", source);
-    }
+        if (primaryObj instanceof PyObject) {
+            final PyObject pyObj = (PyObject) primaryObj;
+            pyObj.__setattr__(attributeId, (PyObject) value);
+        } else {
+            final PythonBasicObject pbObj = (PythonBasicObject) primaryObj;
+            pbObj.setInstanceVariable(attributeId, value);
+        }
 
-    @Test
-    public void classInstantiate() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "Foo(42)\n";
-
-        assertPrints("", source);
+        return PNone.NONE;
     }
 }

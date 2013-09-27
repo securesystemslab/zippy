@@ -22,56 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.nodes.objects;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+public class UninitializedStoreAttributeNode extends StoreAttributeNode {
 
-@NodeChild(value = "primary", type = PNode.class)
-public abstract class AttributeLoadNode extends PNode {
-
-    private final String attributeId;
-
-    public AttributeLoadNode(String name) {
-        this.attributeId = name;
-    }
-
-    protected AttributeLoadNode(AttributeLoadNode node) {
-        this.attributeId = node.attributeId;
-    }
-
-    public abstract PNode getPrimary();
-
-    public String getName() {
-        return attributeId;
-    }
-
-    @Specialization
-    public Object doPObject(PObject operand) {
-        return operand.findAttribute(attributeId);
-    }
-
-    @Specialization
-    public Object doString(String operand) {
-        PString primString = new PString(operand);
-        return primString.findAttribute(attributeId);
-    }
-
-    @Generic
-    public Object doGeneric(Object operand) {
-        PyObject primary = (PyObject) operand;
-        return unboxPyObject(primary.__findattr__(attributeId));
+    public UninitializedStoreAttributeNode(String name, PNode primary, PNode rhs) {
+        super(name, primary, rhs);
     }
 
     @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " ( " + getPrimary() + ", " + attributeId + ")";
+    public Object execute(VirtualFrame frame) {
+        CompilerAsserts.neverPartOfCompilation();
+        final Object primaryObj = primary.execute(frame);
+        final Object value = rhs.execute(frame);
+
+        if (primaryObj instanceof PyObject) {
+            final PyObject pyObj = (PyObject) primaryObj;
+            pyObj.__setattr__(attributeId, (PyObject) value);
+        } else {
+            final PythonBasicObject pbObj = (PythonBasicObject) primaryObj;
+            pbObj.setInstanceVariable(attributeId, value);
+        }
+
+        replace(specialize(primaryObj));
+        return PNone.NONE;
     }
 
 }

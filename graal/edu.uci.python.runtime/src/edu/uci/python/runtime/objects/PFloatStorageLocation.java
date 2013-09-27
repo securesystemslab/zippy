@@ -47,13 +47,13 @@ public class PFloatStorageLocation extends PrimitiveStorageLocation {
     @Override
     public Object read(PythonBasicObject object) {
         try {
-            return readFloat(object);
+            return readDouble(object);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
     }
 
-    public double readFloat(PythonBasicObject object) throws UnexpectedResultException {
+    public double readDouble(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
             return PythonUnsafe.UNSAFE.getDouble(object, offset);
         } else {
@@ -64,7 +64,7 @@ public class PFloatStorageLocation extends PrimitiveStorageLocation {
     @Override
     public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Double) {
-            writeFloat(object, (double) value);
+            writeDouble(object, (double) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
@@ -72,7 +72,7 @@ public class PFloatStorageLocation extends PrimitiveStorageLocation {
         }
     }
 
-    public void writeFloat(PythonBasicObject object, Double value) {
+    public void writeDouble(PythonBasicObject object, Double value) {
         PythonUnsafe.UNSAFE.putDouble(object, offset, value);
         markAsSet(object);
     }

@@ -349,12 +349,12 @@ public class NodeFactory {
         return current;
     }
 
-    public PNode createAttributeRef(PNode operand, String name) {
-        return AttributeLoadNodeFactory.create(name, operand);
+    public PNode createLoadAttribute(PNode operand, String name) {
+        return LoadAttributeNodeFactory.create(name, operand);
     }
 
-    public PNode createAttributeUpdate(PNode primary, String name, PNode value) {
-        return AttributeStoreNodeFactory.create(name, primary, value);
+    public PNode createStoreAttribute(PNode primary, String name, PNode value) {
+        return new UninitializedStoreAttributeNode(name, primary, value);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {

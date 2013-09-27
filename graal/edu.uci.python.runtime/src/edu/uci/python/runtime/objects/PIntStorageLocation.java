@@ -47,13 +47,13 @@ public class PIntStorageLocation extends PrimitiveStorageLocation {
     @Override
     public Object read(PythonBasicObject object) {
         try {
-            return readFixnum(object);
+            return readInt(object);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
     }
 
-    public int readFixnum(PythonBasicObject object) throws UnexpectedResultException {
+    public int readInt(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
             return PythonUnsafe.UNSAFE.getInt(object, offset);
         } else {
@@ -64,7 +64,7 @@ public class PIntStorageLocation extends PrimitiveStorageLocation {
     @Override
     public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Integer) {
-            writeFixnum(object, (int) value);
+            writeInt(object, (int) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
@@ -72,7 +72,7 @@ public class PIntStorageLocation extends PrimitiveStorageLocation {
         }
     }
 
-    public void writeFixnum(PythonBasicObject object, int value) {
+    public void writeInt(PythonBasicObject object, int value) {
         PythonUnsafe.UNSAFE.putInt(object, offset, value);
         markAsSet(object);
     }

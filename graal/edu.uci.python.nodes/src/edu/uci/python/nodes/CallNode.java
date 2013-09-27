@@ -33,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
@@ -69,7 +70,11 @@ public abstract class CallNode extends PNode {
     public Object doGeneric(VirtualFrame frame, Object callee) {
         Object[] args = executeArguments(frame, arguments);
 
-        if (callee instanceof PyObject) {
+        if (callee instanceof PythonClass) {
+            PNode specialized = new CallConstructorNode(getCallee(), arguments);
+            replace(specialized);
+            return specialized.execute(frame);
+        } else if (callee instanceof PyObject) {
             PyObject[] pyargs = adaptToPyObjects(args);
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(pyargs));
@@ -79,7 +84,7 @@ public abstract class CallNode extends PNode {
     }
 
     @ExplodeLoop
-    private static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+    protected static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
         int index = 0;
 

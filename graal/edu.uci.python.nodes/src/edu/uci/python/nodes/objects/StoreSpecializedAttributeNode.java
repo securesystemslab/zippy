@@ -22,38 +22,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.objects;
 
-import org.junit.*;
-import static edu.uci.python.test.PythonTests.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.objects.*;
 
-public class ClassTests {
+public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
 
-    @Test
-    public void emptyClass() {
-        String source = "class Foo:\n" + //
-                        "    pass\n";
+    protected final ObjectLayout objectLayout;
 
-        assertPrints("", source);
+    public StoreSpecializedAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout) {
+        super(name, primary, rhs);
+        this.objectLayout = objLayout;
     }
 
-    @Test
-    public void simpleClass() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "\n";
-
-        assertPrints("", source);
-    }
-
-    @Test
-    public void classInstantiate() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "Foo(42)\n";
-
-        assertPrints("", source);
-    }
 }

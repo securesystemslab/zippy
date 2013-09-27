@@ -41,6 +41,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.TranslationEnvironment.*;
 import edu.uci.python.nodes.truffle.*;
@@ -277,8 +278,8 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> keywords = walkKeywordList(node.getInternalKeywords());
         PNode[] keywordsArray = keywords.toArray(new PNode[keywords.size()]);
 
-        if (callee instanceof AttributeLoadNode) {
-            AttributeLoadNode attr = (AttributeLoadNode) callee;
+        if (callee instanceof LoadAttributeNode) {
+            LoadAttributeNode attr = (LoadAttributeNode) callee;
             return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getName());
         }
 
@@ -647,9 +648,9 @@ public class PythonTreeTranslator extends Visitor {
         PNode primary = (PNode) visit(node.getInternalValue());
 
         if (isLeftHandSide) {
-            return factory.createAttributeUpdate(primary, node.getInternalAttr(), PNode.EMPTYNODE);
+            return factory.createStoreAttribute(primary, node.getInternalAttr(), PNode.EMPTYNODE);
         } else {
-            return factory.createAttributeRef(primary, node.getInternalAttr());
+            return factory.createLoadAttribute(primary, node.getInternalAttr());
         }
     }
 

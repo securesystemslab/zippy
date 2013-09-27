@@ -22,40 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.nodes.objects;
 
-import org.python.core.PyObject;
-
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.objects.*;
 
-@NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
-public abstract class AttributeStoreNode extends StatementNode implements Amendable {
+public class StoreObjectAttributeNode extends StoreSpecializedAttributeNode {
 
-    private final String attributeId;
+    private final ObjectStorageLocation storageLocation;
 
-    public AttributeStoreNode(String name) {
-        this.attributeId = name;
+    public StoreObjectAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout, ObjectStorageLocation storageLocation) {
+        super(name, primary, rhs, objLayout);
+        this.storageLocation = storageLocation;
     }
-
-    protected AttributeStoreNode(AttributeStoreNode node) {
-        this.attributeId = node.attributeId;
-    }
-
-    public abstract PNode getPrimary();
 
     @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return AttributeStoreNodeFactory.create(attributeId, getPrimary(), newRhs);
-    }
+    public Object execute(VirtualFrame frame) {
+        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final Object value = rhs.execute(frame);
 
-    @Specialization
-    public Object doGeneric(Object primary, Object value) {
-        PyObject prim = (PyObject) primary;
-        prim.__setattr__(attributeId, (PyObject) value);
-        return null;
+        if (!primaryObject.getObjectLayout().contains(objectLayout)) {
+            CompilerDirectives.transferToInterpreter();
+            primaryObject.setInstanceVariable(attributeId, value);
+            replace(specialize(primaryObject));
+            return value;
+        }
+
+        storageLocation.write(primaryObject, value);
+        return value;
     }
 
 }

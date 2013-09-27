@@ -33,6 +33,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild("callee")
@@ -50,7 +51,7 @@ public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
         this(node.argument);
     }
 
-    @Specialization
+    @Specialization(order = 1)
     public Object doPCallable(VirtualFrame frame, PCallable callee) {
         Object arg = argument.execute(frame);
         return callee.call(frame.pack(), arg);
@@ -60,7 +61,11 @@ public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
     public Object doGeneric(VirtualFrame frame, Object callee) {
         Object arg = argument.execute(frame);
 
-        if (callee instanceof PyObject) {
+        if (callee instanceof PythonClass) {
+            PNode specialized = new CallConstructorNode(getCallee(), new PNode[]{argument});
+            replace(specialized);
+            return specialized.execute(frame);
+        } else if (callee instanceof PyObject) {
             PyObject pyarg = adaptToPyObject(arg);
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(new PyObject[]{pyarg}));

@@ -22,38 +22,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.objects;
 
-import org.junit.*;
-import static edu.uci.python.test.PythonTests.*;
+import org.python.core.*;
 
-public class ClassTests {
+import com.oracle.truffle.api.dsl.*;
 
-    @Test
-    public void emptyClass() {
-        String source = "class Foo:\n" + //
-                        "    pass\n";
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 
-        assertPrints("", source);
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+
+@NodeChild(value = "primary", type = PNode.class)
+public abstract class LoadAttributeNode extends PNode {
+
+    private final String attributeId;
+
+    public LoadAttributeNode(String name) {
+        this.attributeId = name;
     }
 
-    @Test
-    public void simpleClass() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "\n";
-
-        assertPrints("", source);
+    protected LoadAttributeNode(LoadAttributeNode node) {
+        this.attributeId = node.attributeId;
     }
 
-    @Test
-    public void classInstantiate() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "Foo(42)\n";
+    public abstract PNode getPrimary();
 
-        assertPrints("", source);
+    public String getName() {
+        return attributeId;
     }
+
+    @Specialization
+    public Object doPObject(PObject operand) {
+        return operand.findAttribute(attributeId);
+    }
+
+    @Specialization
+    public Object doString(String operand) {
+        PString primString = new PString(operand);
+        return primString.findAttribute(attributeId);
+    }
+
+    @Generic
+    public Object doGeneric(Object operand) {
+        PyObject primary = (PyObject) operand;
+        return unboxPyObject(primary.__findattr__(attributeId));
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + " ( " + getPrimary() + ", " + attributeId + ")";
+    }
+
 }
