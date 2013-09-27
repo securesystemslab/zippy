@@ -41,14 +41,18 @@ public class AddMethodNode extends PNode {
         this.methodDef = adoptChild(methodDef);
     }
 
-    public void addMethod(PythonClass pClass, VirtualFrame frame) {
+    public void addMethod(VirtualFrame frame) {
+        PArguments args = frame.getArguments(PArguments.class);
+        Object arg = args.getArgument(0);
+        assert arg != null && arg instanceof PythonClass : "AddMethodNode expects the first argument of the class definition method call to be the defining class";
+        PythonClass pclass = (PythonClass) arg;
         PFunction method = (PFunction) methodDef.execute(frame);
-        pClass.addMethod(method);
+        pclass.addMethod(method);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return methodDef.execute(frame);
+        addMethod(frame);
+        return PNone.NONE;
     }
-
 }

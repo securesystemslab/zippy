@@ -25,36 +25,34 @@
 package edu.uci.python.nodes.objects;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 
+@NodeInfo(shortName = "class-def")
 public class ClassDefinitionNode extends StatementNode {
 
     private final String name;
 
-    private final FrameSlot slot;
-
     @Child protected PNode superClass;
 
-    @Child protected PNode body;
+    @Child protected FunctionDefinitionNode definitionFunction;
 
-    public ClassDefinitionNode(FrameSlot slot, String name, PNode superClass, BlockNode body) {
-        this.slot = slot;
+    public ClassDefinitionNode(String name, PNode superClass, FunctionDefinitionNode definitionFunction) {
         this.name = name;
         this.superClass = adoptChild(superClass);
-        this.body = adoptChild(body);
+        this.definitionFunction = adoptChild(definitionFunction);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         PythonClass base = (PythonClass) superClass.execute(frame);
         PythonClass newClass = new PythonClass(base, name);
-        frame.setObject(slot, newClass);
-
-        body.execute(frame);
-        return PNone.NONE;
+        PFunction definitionFunc = (PFunction) definitionFunction.execute(frame);
+        definitionFunc.call(frame.pack(), newClass);
+        return newClass;
     }
 }

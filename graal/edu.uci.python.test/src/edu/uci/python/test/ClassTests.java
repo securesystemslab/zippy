@@ -36,4 +36,14 @@ public class ClassTests {
 
         assertPrints("", source);
     }
+
+    @Test
+    public void simpleClass() {
+        String source = "class Foo:\n" + //
+                        "    def __init__(self, num):\n" + //
+                        "        self.num = num\n" + //
+                        "\n";
+
+        assertPrints("", source);
+    }
 }

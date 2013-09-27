@@ -25,15 +25,11 @@
 package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
 public class FunctionDefinitionNode extends StatementNode {
-
-    private final FrameSlot slot;
 
     private final String name;
 
@@ -41,14 +37,10 @@ public class FunctionDefinitionNode extends StatementNode {
 
     private final CallTarget callTarget;
 
-    @Child private final RootNode funcRoot;
-
-    public FunctionDefinitionNode(FrameSlot slot, String name, ParametersNode parameters, CallTarget callTarget, RootNode funcRoot) {
-        this.slot = slot;
+    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget) {
         this.name = name;
         this.parameters = adoptChild(parameters);
         this.callTarget = callTarget;
-        this.funcRoot = adoptChild(funcRoot);
     }
 
     public String getName() {
@@ -56,22 +48,13 @@ public class FunctionDefinitionNode extends StatementNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        parameters.evaluateDefaults(frame);
-        PFunction fn = new PFunction(name, parameters.parameterNames, callTarget);
-        frame.setObject(slot, fn);
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
-        PFunction fn = new PFunction(name, parameters.parameterNames, callTarget);
-        frame.setObject(slot, fn);
-        return fn;
+        return new PFunction(name, parameters.parameterNames, callTarget);
     }
 
     @Override
     public String toString() {
-        return super.toString() + "(" + name + ")" + funcRoot;
+        return super.toString() + "(" + name + ")";
     }
 }

@@ -60,8 +60,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public StatementNode createFunctionDef(FrameSlot slot, String name, ParametersNode parameters, CallTarget callTarget, RootNode funcRoot) {
-        return new FunctionDefinitionNode(slot, name, parameters, callTarget, funcRoot);
+    public StatementNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
+        return new FunctionDefinitionNode(name, parameters, callTarget);
     }
 
     public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
@@ -70,6 +70,10 @@ public class NodeFactory {
 
     public RootNode createGeneratorRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
         return new GeneratorRootNode(parameters, body, returnValue);
+    }
+
+    public PNode createAddMethodNode(FunctionDefinitionNode methodDef) {
+        return new AddMethodNode(methodDef);
     }
 
     public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
@@ -111,8 +115,8 @@ public class NodeFactory {
         return new ParametersWithNoDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames);
     }
 
-    public ClassDefinitionNode createClassDef(FrameSlot slot, String name, PNode superclass, BlockNode body) {
-        return new ClassDefinitionNode(slot, name, superclass, body);
+    public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
+        return new ClassDefinitionNode(name, superclass, definitnionFunction);
     }
 
     public BlockNode createBlock(List<PNode> statements) {

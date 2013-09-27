@@ -42,6 +42,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.translation.TranslationEnvironment.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.Options;
@@ -81,7 +82,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Module);
 
         List<PNode> body = visitStatements(node.getInternalBody());
         RootNode newNode = new NodeFactory().createModule(body, getFrameDescriptor(node));
@@ -113,8 +114,9 @@ public class PythonTreeTranslator extends Visitor {
         environment.setDefaultArgs(defaultArgs);
 
         String name = node.getInternalName();
+        boolean isClassMethod = environment.isInClassScope() ? true : false;
         FrameSlot slot = environment.findSlot(name);
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Function);
         isGenerator = false;
 
         ParametersNode parameters = visitArgs(node.getInternalArgs());
@@ -124,14 +126,26 @@ public class PythonTreeTranslator extends Visitor {
         if (isGenerator) {
             body = new ASTLinearizer((BlockNode) body).linearize();
             RootNode genRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-            CallTarget ct = Truffle.getRuntime().createCallTarget(genRoot, environment.getCurrentFrame());
-            return factory.createFunctionDef(slot, name, parameters, ct, genRoot);
+            PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters, slot, isClassMethod);
+            environment.endScope();
+            return funcDef;
         }
 
         FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
+        PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters, slot, isClassMethod);
         environment.endScope();
-        return factory.createFunctionDef(slot, name, parameters, ct, funcRoot);
+        return funcDef;
+    }
+
+    private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters, FrameSlot functionSlot, boolean isClassMethod) {
+        CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
+        PNode funcDef = factory.createFunctionDef(name, parameters, ct);
+
+        if (isClassMethod) {
+            return factory.createAddMethodNode((FunctionDefinitionNode) funcDef);
+        } else {
+            return factory.createWriteLocal(funcDef, functionSlot);
+        }
     }
 
     public ParametersNode visitArgs(arguments node) throws Exception {
@@ -234,8 +248,13 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> bases = walkExprList(node.getInternalBases());
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
 
+        environment.beginScope(node, ScopeKind.Class);
         List<PNode> statements = visitStatements(node.getInternalBody());
         BlockNode body = factory.createBlock(statements);
+        FunctionRootNode methodRoot = factory.createFunctionRoot(ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct);
+        environment.endScope();
 
         // The default super class is the <class 'object'>.
         PNode base;
@@ -245,7 +264,8 @@ public class PythonTreeTranslator extends Visitor {
             base = bases.get(0);
         }
 
-        return factory.createClassDef(environment.findSlot(name), name, base, body);
+        PNode classDef = factory.createClassDef(name, base, funcDef);
+        return factory.createWriteLocal(classDef, environment.findSlot(name));
     }
 
     @Override
@@ -715,7 +735,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Function);
         ComprehensionNode comprehension = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorNode gnode = factory.createGenerator(comprehension, factory.createReadLocal(environment.getReturnSlot()));
         environment.endScope();

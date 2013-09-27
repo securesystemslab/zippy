@@ -35,6 +35,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.translation.TranslationEnvironment.ScopeKind;
 import edu.uci.python.nodes.truffle.*;
 
 public class PythonTreeProcessor extends Visitor {
@@ -55,7 +56,7 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Module);
         visitStatements(node.getInternalBody());
 
         FrameDescriptor fd = environment.endScope();
@@ -85,7 +86,7 @@ public class PythonTreeProcessor extends Visitor {
             visit(decs.get(i));
         }
 
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Function);
         int n = ac.names.size();
         for (int i = 0; i < n; i++) {
             environment.createLocal(ac.names.get(i));
@@ -123,7 +124,7 @@ public class PythonTreeProcessor extends Visitor {
             visit(defaults.get(i));
         }
 
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Function);
 
         for (Object o : ac.init_code) {
             visit((stmt) o);
@@ -197,7 +198,7 @@ public class PythonTreeProcessor extends Visitor {
             visit(node.getInternalBases().get(i));
         }
 
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Class);
         visitStatements(node.getInternalBody());
         environment.endScope();
         return null;
@@ -270,7 +271,7 @@ public class PythonTreeProcessor extends Visitor {
         List<expr> args = new ArrayList<>();
         args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
-        environment.beginScope(node);
+        environment.beginScope(node, ScopeKind.Function);
 
         // visit first iterator in the new scope
         if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {

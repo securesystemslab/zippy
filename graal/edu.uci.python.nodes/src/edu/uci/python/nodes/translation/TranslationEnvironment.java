@@ -46,6 +46,14 @@ public class TranslationEnvironment {
 
     private int scopeLevel;
 
+    public static enum ScopeKind {
+        Module, Function, Class,
+    }
+
+    private ScopeKind scopeKind;
+
+    private Stack<ScopeKind> scopes;
+
     private FrameDescriptor currentFrame;
 
     private FrameDescriptor globalFrame;
@@ -61,6 +69,8 @@ public class TranslationEnvironment {
 
     public TranslationEnvironment(mod module) {
         this.module = module;
+        this.scopeKind = ScopeKind.Module;
+        this.scopes = new Stack<>();
     }
 
     public TranslationEnvironment resetScopeLevel() {
@@ -77,7 +87,7 @@ public class TranslationEnvironment {
         return scopeLevel;
     }
 
-    public void beginScope(PythonTree scopeEntity) {
+    public void beginScope(PythonTree scopeEntity, ScopeKind kind) {
         scopeLevel++;
 
         if (currentFrame != null) {
@@ -95,6 +105,12 @@ public class TranslationEnvironment {
         if (globalFrame == null) {
             globalFrame = currentFrame;
         }
+
+        if (scopeKind != null) {
+            scopes.push(scopeKind);
+        }
+
+        scopeKind = kind;
     }
 
     public FrameDescriptor endScope() throws Exception {
@@ -104,9 +120,25 @@ public class TranslationEnvironment {
             currentFrame = frames.pop();
         }
 
+        if (!scopes.isEmpty()) {
+            scopeKind = scopes.pop();
+        }
+
         // reset locally declared globals
         localGlobals.clear();
         return fd;
+    }
+
+    public boolean isInModuleScope() {
+        return scopeKind == ScopeKind.Module;
+    }
+
+    public boolean isInFunctionScope() {
+        return scopeKind == ScopeKind.Function;
+    }
+
+    public boolean isInClassScope() {
+        return scopeKind == ScopeKind.Class;
     }
 
     public FrameDescriptor getCurrentFrame() {
