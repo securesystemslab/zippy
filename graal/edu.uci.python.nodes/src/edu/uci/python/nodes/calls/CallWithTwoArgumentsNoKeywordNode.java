@@ -22,47 +22,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
+import org.python.core.Py;
+import org.python.core.PyObject;
+
+import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
-@NodeChildren({@NodeChild(value = "arg0"), @NodeChild(value = "arg1")})
-public abstract class CallBuiltInWithTwoArgsNoKeywordNode extends PNode {
+@NodeChild("callee")
+public abstract class CallWithTwoArgumentsNoKeywordNode extends PNode {
 
-    protected final PCallable callee;
+    public abstract PNode getCallee();
 
-    protected final String name;
+    @Child private PNode arg0;
 
-    public CallBuiltInWithTwoArgsNoKeywordNode(PCallable callee, String name) {
-        this.callee = callee;
-        this.name = name;
+    @Child private PNode arg1;
+
+    public CallWithTwoArgumentsNoKeywordNode(PNode arg0, PNode arg1) {
+        this.arg0 = adoptChild(arg0);
+        this.arg1 = adoptChild(arg1);
     }
 
-    protected CallBuiltInWithTwoArgsNoKeywordNode(CallBuiltInWithTwoArgsNoKeywordNode node) {
-        this(node.callee, node.name);
+    protected CallWithTwoArgumentsNoKeywordNode(CallWithTwoArgumentsNoKeywordNode node) {
+        this(node.arg0, node.arg1);
     }
-
-    public abstract PNode getArg0();
-
-    public abstract PNode getArg1();
 
     @Specialization
-    public Object doGeneric(VirtualFrame frame, Object arg0, Object arg1) {
-        return callee.call(frame.pack(), arg0, arg1);
+    public Object doPCallable(VirtualFrame frame, PCallable callee) {
+        Object a0 = arg0.execute(frame);
+        Object a1 = arg1.execute(frame);
+        return callee.call(frame.pack(), a0, a1);
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + name + ")";
+    @Generic
+    public Object doGeneric(VirtualFrame frame, Object callee) {
+        Object a0 = arg0.execute(frame);
+        Object a1 = arg1.execute(frame);
+
+        if (callee instanceof PyObject) {
+            PyObject[] pyargs = adaptToPyObjects(new Object[]{a0, a1});
+            PyObject pyCallable = (PyObject) callee;
+            return unboxPyObject(pyCallable.__call__(pyargs));
+        } else {
+            throw Py.SystemError("Unexpected callable type");
+        }
     }
 
-    public Object getName() {
-        return name;
-    }
 }

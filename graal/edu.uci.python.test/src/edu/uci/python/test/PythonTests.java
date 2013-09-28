@@ -25,6 +25,8 @@
 package edu.uci.python.test;
 
 import java.io.*;
+import java.nio.file.*;
+
 import static org.junit.Assert.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.shell.*;
@@ -36,6 +38,31 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         RunScript.runScript(new String[0], source, getContext(printStream));
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertEquals(expected, result);
+    }
+
+    public static void assertPrints(String expected, Path scriptName) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        Path scriptFile;
+        if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
+            scriptFile = Paths.get("graal/edu.uci.python.test/src/tests").resolve(scriptName.toString());
+        } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
+            scriptFile = Paths.get("../../graal/edu.uci.python.test/src/tests").resolve(scriptName.toString());
+        } else {
+            throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
+        }
+
+        InputStream scriptStream;
+        try {
+            scriptStream = Files.newInputStream(scriptFile);
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
+
+        RunScript.runScript(new String[0], scriptStream, getContext(printStream));
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
     }

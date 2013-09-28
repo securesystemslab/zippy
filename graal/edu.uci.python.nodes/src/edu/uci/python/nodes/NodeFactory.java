@@ -42,6 +42,7 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryComparisonNodeFactory.*;
@@ -277,7 +278,7 @@ public class NodeFactory {
     }
 
     public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return AttributeCallNodeFactory.create(args, name, primary);
+        return new UninitializedAttributeCallNode(name, primary, args);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {

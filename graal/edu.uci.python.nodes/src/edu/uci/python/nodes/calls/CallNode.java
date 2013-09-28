@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
 import org.python.core.*;
 
@@ -32,6 +32,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 
@@ -71,9 +72,9 @@ public abstract class CallNode extends PNode {
         Object[] args = executeArguments(frame, arguments);
 
         if (callee instanceof PythonClass) {
-            PNode specialized = new CallConstructorNode(getCallee(), arguments);
+            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
             replace(specialized);
-            return specialized.execute(frame);
+            return specialized.callConstructor(frame, (PythonClass) callee);
         } else if (callee instanceof PyObject) {
             PyObject[] pyargs = adaptToPyObjects(args);
             PyObject pyCallable = (PyObject) callee;

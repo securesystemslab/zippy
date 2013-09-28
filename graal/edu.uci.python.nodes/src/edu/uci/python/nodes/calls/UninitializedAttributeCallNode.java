@@ -22,36 +22,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class CallConstructorNode extends PNode {
+public class UninitializedAttributeCallNode extends AttributeCallNode {
 
-    @Child protected PNode targetClass;
+    @Child protected PNode primary;
 
-    @Children private final PNode[] arguments;
+    public UninitializedAttributeCallNode(String attributeId, PNode primary, PNode[] arguments) {
+        super(arguments, attributeId);
+        this.primary = adoptChild(primary);
+    }
 
-    public CallConstructorNode(PNode targetClass, PNode[] arguments) {
-        this.targetClass = adoptChild(targetClass);
-        this.arguments = adoptChildren(arguments);
+    @Override
+    public PNode getPrimary() {
+        return primary;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        Object[] args = CallNode.executeArguments(frame, arguments);
-        PythonClass clazz = (PythonClass) targetClass.execute(frame);
-        PythonBasicObject obj = new PythonBasicObject(clazz);
-        Object[] selfWithArgs = new Object[args.length + 1];
+        Object primaryObj = primary.execute(frame);
 
-        selfWithArgs[0] = obj;
-        for (int i = 1; i < args.length + 1; i++) {
-            selfWithArgs[i] = args[i - 1];
+        if (primaryObj instanceof PythonBasicObject) {
+            MethodCallNode callNode = new MethodCallNode(attributeId, primary, arguments);
+            replace(callNode);
+            return callNode.callMethod(frame, (PythonBasicObject) primaryObj);
+        } else {
+            replace(AttributeCallNodeFactory.create(arguments, attributeId, primary));
+            return executeGenericSlowPath(frame, primaryObj);
         }
+    }
 
-        return clazz.lookUpMethod("__init__").call(frame.pack(), selfWithArgs);
+    protected Object executeGenericSlowPath(VirtualFrame frame, Object primaryObj) {
+        if (primaryObj instanceof String) {
+            return doString(frame, (String) primaryObj);
+        } else if (primaryObj instanceof PObject) {
+            return doPObject(frame, (PObject) primaryObj);
+        } else {
+            return doGeneric(frame, primaryObj);
+        }
     }
 }

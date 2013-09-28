@@ -138,6 +138,38 @@ public class RunScript {
         }
     }
 
+    public static void runScript(String[] args, InputStream script, PythonContext context) {
+        // Setup the basic python system state from these options
+        PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
+        PySystemState systemState = Py.getSystemState();
+
+        // Now create an interpreter
+        CustomConsole interp = new CustomConsole();
+        systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
+
+        if (script != null) {
+            try {
+                Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
+
+                interp.execfile(script, "(test)", context);
+            } catch (Throwable t) {
+                if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
+                    // Shutdown this instance...
+                    shutdownInterpreter();
+                    interp.cleanup();
+                    // ..reset the state...
+                    Py.setSystemState(new PySystemState());
+                    // ...and start again
+                    return;
+                } else {
+                    Py.printException(t);
+                    interp.cleanup();
+                    System.exit(-1);
+                }
+            }
+        }
+    }
+
     /**
      * Returns a new python interpreter using the InteractiveConsole subclass from the
      * <tt>python.console</tt> registry key.

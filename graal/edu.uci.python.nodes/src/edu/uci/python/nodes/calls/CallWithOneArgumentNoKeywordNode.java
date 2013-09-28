@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
 import org.python.core.Py;
 import org.python.core.PyObject;
@@ -32,6 +32,7 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -59,13 +60,12 @@ public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
 
     @Generic
     public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object arg = argument.execute(frame);
-
         if (callee instanceof PythonClass) {
-            PNode specialized = new CallConstructorNode(getCallee(), new PNode[]{argument});
+            CallConstructorNode specialized = new CallConstructorNode(getCallee(), new PNode[]{argument});
             replace(specialized);
-            return specialized.execute(frame);
+            return specialized.callConstructor(frame, (PythonClass) callee);
         } else if (callee instanceof PyObject) {
+            Object arg = argument.execute(frame);
             PyObject pyarg = adaptToPyObject(arg);
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(new PyObject[]{pyarg}));

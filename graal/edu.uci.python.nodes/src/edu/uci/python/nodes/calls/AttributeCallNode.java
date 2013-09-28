@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.nodes.calls;
 
 import org.python.core.*;
 
@@ -41,43 +41,37 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 @NodeChild("primary")
 public abstract class AttributeCallNode extends PNode {
 
-    @Children private final PNode[] arguments;
+    @Children protected final PNode[] arguments;
 
-    private final String name;
+    protected final String attributeId;
 
     public abstract PNode getPrimary();
 
     public AttributeCallNode(PNode[] arguments, String name) {
         this.arguments = adoptChildren(arguments);
-        this.name = name;
+        this.attributeId = name;
     }
 
     protected AttributeCallNode(AttributeCallNode node) {
-        this(node.arguments, node.name);
+        this(node.arguments, node.attributeId);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "(callee=" + getPrimary() + "," + name + ")";
-    }
-
-    @Specialization
-    public Object doPList(VirtualFrame frame, PList prim) {
-        Object[] args = doArguments(frame);
-        return prim.findAttribute(name).call(null, args);
-    }
-
-    @Specialization
-    public Object doPDictionary(VirtualFrame frame, PDictionary prim) {
-        Object[] args = doArguments(frame);
-        return prim.findAttribute(name).call(null, args);
+        return getClass().getSimpleName() + "(callee=" + getPrimary() + "," + attributeId + ")";
     }
 
     @Specialization
     public Object doString(VirtualFrame frame, String prim) {
         Object[] args = doArguments(frame);
         PString primString = new PString(prim);
-        return primString.findAttribute(name).call(null, args);
+        return primString.findAttribute(attributeId).call(null, args);
+    }
+
+    @Specialization
+    public Object doPObject(VirtualFrame frame, PObject prim) {
+        Object[] args = doArguments(frame);
+        return prim.findAttribute(attributeId).call(null, args);
     }
 
     @Generic
@@ -88,12 +82,12 @@ public abstract class AttributeCallNode extends PNode {
         if (prim instanceof PyObject) {
             primary = (PyObject) prim;
         } else if (prim instanceof PythonModule) {
-            return ((PythonModule) prim).lookupMethod(name).call(null, args, null);
+            return ((PythonModule) prim).lookupMethod(attributeId).call(null, args, null);
         } else {
             primary = adaptToPyObject(prim);
         }
 
-        PyObject callable = primary.__findattr__(name);
+        PyObject callable = primary.__findattr__(attributeId);
 
         // need to box Object to PyObject
         PyObject[] pyargs = new PyObject[args.length];
@@ -107,7 +101,7 @@ public abstract class AttributeCallNode extends PNode {
     }
 
     @ExplodeLoop
-    private Object[] doArguments(VirtualFrame frame) {
+    protected Object[] doArguments(VirtualFrame frame) {
         Object[] evaluated = new Object[arguments.length];
         int index = 0;
 

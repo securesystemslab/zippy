@@ -22,57 +22,63 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
-import org.python.core.Py;
-import org.python.core.PyObject;
+import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
-@NodeChild("callee")
-public abstract class CallWithTwoArgumentsNoKeywordNode extends PNode {
+public class MethodCallNode extends AttributeCallNode {
 
-    public abstract PNode getCallee();
+    @Child protected PNode primary;
 
-    @Child private PNode arg0;
-
-    @Child private PNode arg1;
-
-    public CallWithTwoArgumentsNoKeywordNode(PNode arg0, PNode arg1) {
-        this.arg0 = adoptChild(arg0);
-        this.arg1 = adoptChild(arg1);
+    public MethodCallNode(String attributeId, PNode primary, PNode[] arguments) {
+        super(arguments, attributeId);
+        this.primary = adoptChild(primary);
     }
 
-    protected CallWithTwoArgumentsNoKeywordNode(CallWithTwoArgumentsNoKeywordNode node) {
-        this(node.arg0, node.arg1);
+    @Override
+    public PNode getPrimary() {
+        return primary;
     }
 
-    @Specialization
-    public Object doPCallable(VirtualFrame frame, PCallable callee) {
-        Object a0 = arg0.execute(frame);
-        Object a1 = arg1.execute(frame);
-        return callee.call(frame.pack(), a0, a1);
+    // TODO: specialize return type
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PythonBasicObject self = (PythonBasicObject) primary.execute(frame);
+        return callMethod(frame, self);
     }
 
-    @Generic
-    public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object a0 = arg0.execute(frame);
-        Object a1 = arg1.execute(frame);
+    protected Object callMethod(VirtualFrame frame, PythonBasicObject self) {
+        PFunction method = self.getPythonClass().lookUpMethod(attributeId);
+        Object[] args = doArgumentsWithSelf(frame, self);
+        return method.call(frame.pack(), args);
+    }
 
-        if (callee instanceof PyObject) {
-            PyObject[] pyargs = adaptToPyObjects(new Object[]{a0, a1});
-            PyObject pyCallable = (PyObject) callee;
-            return unboxPyObject(pyCallable.__call__(pyargs));
-        } else {
-            throw Py.SystemError("Unexpected callable type");
+    @ExplodeLoop
+    protected Object[] doArgumentsWithSelf(VirtualFrame frame, Object self) {
+        Object[] evaluated = new Object[arguments.length + 1];
+        evaluated[0] = self;
+        int index = 0;
+
+        for (int i = 0; i < arguments.length; i++) {
+            Object arg = arguments[i].execute(frame);
+
+            if (arg instanceof PyObject) {
+                arg = unboxPyObject((PyObject) arg);
+            }
+
+            evaluated[index + 1] = arg;
+            index++;
         }
-    }
 
+        return evaluated;
+    }
 }

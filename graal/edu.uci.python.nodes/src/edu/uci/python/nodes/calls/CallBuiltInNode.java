@@ -22,39 +22,73 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.calls;
 
-import com.oracle.truffle.api.dsl.NodeChild;
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
-@NodeChild(value = "argument")
-public abstract class CallBuiltInWithOneArgNoKeywordNode extends PNode {
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+
+public abstract class CallBuiltInNode extends PNode {
 
     protected final PCallable callee;
 
     protected final String name;
 
-    public CallBuiltInWithOneArgNoKeywordNode(PCallable callee, String name) {
+    @Children protected final PNode[] arguments;
+
+    @Children protected final PNode[] keywords;
+
+    public CallBuiltInNode(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {
         this.callee = callee;
         this.name = name;
+        this.arguments = adoptChildren(arguments);
+        this.keywords = adoptChildren(keywords);
     }
 
-    protected CallBuiltInWithOneArgNoKeywordNode(CallBuiltInWithOneArgNoKeywordNode node) {
-        this(node.callee, node.name);
+    protected CallBuiltInNode(CallBuiltInNode node) {
+        this(node.callee, node.name, node.arguments, node.keywords);
     }
 
-    public abstract PNode getArgument();
+    public String getName() {
+        return name;
+    }
+
+    public PNode[] getArguments() {
+        return arguments;
+    }
 
     @Specialization
-    public Object doGeneric(VirtualFrame frame, Object argument) {
-        return callee.call(frame.pack(), argument);
+    public Object doGeneric(VirtualFrame frame) {
+        Object[] args = executeArguments(frame, arguments);
+        Object[] kwords = executeArguments(frame, keywords);
+
+        return callee.call(frame.pack(), args, kwords);
     }
 
-    public Object getName() {
-        return name;
+    @ExplodeLoop
+    private static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+        Object[] evaluated = new Object[arguments.length];
+        int index = 0;
+
+        for (int i = 0; i < arguments.length; i++) {
+            Object arg = arguments[i].execute(frame);
+
+            if (arg instanceof PyObject) {
+                arg = unboxPyObject((PyObject) arg);
+            }
+
+            evaluated[index] = arg;
+            index++;
+        }
+
+        return evaluated;
     }
 
     @Override

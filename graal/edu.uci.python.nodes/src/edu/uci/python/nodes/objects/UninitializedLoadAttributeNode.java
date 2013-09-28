@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.objects.*;
 
 public class UninitializedLoadAttributeNode extends LoadAttributeNode {
 
@@ -40,6 +41,11 @@ public class UninitializedLoadAttributeNode extends LoadAttributeNode {
         CompilerAsserts.neverPartOfCompilation();
         Object primaryObj = primary.execute(frame);
         replace(specialize(primaryObj));
-        return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId);
+
+        if (primaryObj instanceof PythonBasicObject) {
+            return ((PythonBasicObject) primaryObj).getInstanceVariable(attributeId);
+        } else {
+            return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId);
+        }
     }
 }

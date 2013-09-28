@@ -22,41 +22,44 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.nodes.calls;
 
-import org.python.core.PyObject;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-/**
- * The purpose of this class is to pack non-PyObject objects in Jython's built-in collection types.
- * Like PyTuple, PyList. Since at this point, our runtime object model heavily rely on the existing
- * code of Jython, this is an easy way to hide Truffle object in Jython's built-in collections.
- * 
- * Later on, this hack should be gone, where we should primarly rely on our own object model.
- * 
- * @author zwei
- * 
- */
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 
-@SuppressWarnings("serial")
-public class PyObjectContainer extends PyObject {
+@NodeChild(value = "argument")
+public abstract class CallBuiltInWithOneArgNoKeywordNode extends PNode {
 
-    final Object innerObject;
+    protected final PCallable callee;
 
-    public PyObjectContainer(Object inner) {
-        super();
-        innerObject = inner;
+    protected final String name;
+
+    public CallBuiltInWithOneArgNoKeywordNode(PCallable callee, String name) {
+        this.callee = callee;
+        this.name = name;
     }
 
-    public boolean isContainer() {
-        return true;
+    protected CallBuiltInWithOneArgNoKeywordNode(CallBuiltInWithOneArgNoKeywordNode node) {
+        this(node.callee, node.name);
     }
 
-    public static PyObject pack(Object object) {
-        return new PyObjectContainer(object);
+    public abstract PNode getArgument();
+
+    @Specialization
+    public Object doGeneric(VirtualFrame frame, Object argument) {
+        return callee.call(frame.pack(), argument);
     }
 
-    public Object unpack() {
-        return innerObject;
+    public Object getName() {
+        return name;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "(callee=" + name + ")";
+    }
 }

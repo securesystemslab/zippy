@@ -22,47 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.calls;
 
-import java.nio.file.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.junit.*;
-import static edu.uci.python.test.PythonTests.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.objects.*;
 
-public class ClassTests {
+public class CallConstructorNode extends PNode {
 
-    @Test
-    public void emptyClass() {
-        String source = "class Foo:\n" + //
-                        "    pass\n";
+    @Child protected PNode targetClass;
 
-        assertPrints("", source);
+    @Children private final PNode[] arguments;
+
+    public CallConstructorNode(PNode targetClass, PNode[] arguments) {
+        this.targetClass = adoptChild(targetClass);
+        this.arguments = adoptChildren(arguments);
     }
 
-    @Test
-    public void simpleClass() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "\n";
-
-        assertPrints("", source);
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PythonClass clazz = (PythonClass) targetClass.execute(frame);
+        return callConstructor(frame, clazz);
     }
 
-    @Test
-    public void classInstantiate() {
-        String source = "class Foo:\n" + //
-                        "    def __init__(self, num):\n" + //
-                        "        self.num = num\n" + //
-                        "\n" + //
-                        "Foo(42)\n";
+    protected Object callConstructor(VirtualFrame frame, PythonClass clazz) {
+        Object[] args = CallNode.executeArguments(frame, arguments);
+        PythonBasicObject obj = new PythonBasicObject(clazz);
+        Object[] selfWithArgs = new Object[args.length + 1];
 
-        assertPrints("", source);
-    }
+        selfWithArgs[0] = obj;
+        for (int i = 1; i < args.length + 1; i++) {
+            selfWithArgs[i] = args[i - 1];
+        }
 
-    @Test
-    public void scriptClassTest() {
-        Path script = Paths.get("class_test.py");
-        assertPrints("42\n", script);
+        clazz.lookUpMethod("__init__").call(frame.pack(), selfWithArgs);
+        return obj;
     }
 }
