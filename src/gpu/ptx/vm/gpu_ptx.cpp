@@ -282,7 +282,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
   // Get the result. TODO: Move this code to get_return_oop()
   BasicType return_type = ptxka.get_ret_type();
   switch (return_type) {
-     case T_INT :
+     case T_INT:
        {
          int return_val;
          status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
@@ -293,7 +293,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
          ret.set_jint(return_val);
        }
        break;
-     case T_LONG :
+     case T_LONG:
        {
          long return_val;
          status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_LONG_BYTE_SIZE);
@@ -304,10 +304,14 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
          ret.set_jlong(return_val);
        }
        break;
+     case T_VOID:
+       break;
      default:
-       tty->print_cr("[CUDA] TODO *** Unhandled return type");
+       tty->print_cr("[CUDA] TODO *** Unhandled return type: %d", return_type);
   }
 
+  // handle post-invocation object and array arguemtn
+  ptxka.reiterate();
 
   // Free device memory allocated for result
   status = gpu::Ptx::_cuda_cu_memfree(ptxka._return_value_ptr);
