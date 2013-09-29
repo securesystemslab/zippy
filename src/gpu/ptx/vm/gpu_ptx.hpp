@@ -74,6 +74,7 @@ class Ptx {
   static bool probe_linkage();
   static bool initialize_gpu();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+  static bool execute_warp(int dimX, int dimY, int dimZ, address kernel, PTXKernelArguments & ka, JavaValue &ret);
   static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
 public:
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)

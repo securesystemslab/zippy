@@ -61,12 +61,23 @@ void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name)
 }
 
 bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
-  if (gpu::has_gpu_linkage()) {
-    if (gpu::get_target_il_type() == gpu::PTX) {
-      return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
+    if (gpu::has_gpu_linkage()) {
+        if (gpu::get_target_il_type() == gpu::PTX) {
+            return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
+        }
+        // Add kernel execution functionality of other GPUs here
     }
-    // Add kernel execution functionality of other GPUs here
-  }
-  return false;
+    return false;
+}
+
+bool gpu::execute_warp(int dimX, int dimY, int dimZ,
+                       address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
+    if (gpu::has_gpu_linkage()) {
+        if (gpu::get_target_il_type() == gpu::PTX) {
+            return (gpu::Ptx::execute_warp(dimX, dimY, dimZ, kernel, ptxka, ret));
+        }
+        // Add kernel execution functionality of other GPUs here
+    }
+    return false;
 }
 

@@ -228,15 +228,20 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
 }
 
 bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
+    return gpu::Ptx::execute_warp(1, 1, 1, kernel, ptxka, ret);
+}
+
+bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
+                            address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
   // grid dimensionality
   unsigned int gridX = 1;
   unsigned int gridY = 1;
   unsigned int gridZ = 1;
 
   // thread dimensionality
-  unsigned int blockX = 1;
-  unsigned int blockY = 1;
-  unsigned int blockZ = 1;
+  unsigned int blockX = dimX;
+  unsigned int blockY = dimY;
+  unsigned int blockZ = dimZ;
 
   struct CUfunc_st* cu_function = (struct CUfunc_st*) kernel;
 
@@ -264,7 +269,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Kernel Launch");
+    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", blockX, blockY, blockZ);
   }
 
   status = _cuda_cu_ctx_synchronize();
