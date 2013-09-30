@@ -202,6 +202,7 @@ class SymbolPropertyTable;
   do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Opt) \
   do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Opt) \
   do_klass(LocalImpl_klass,                       com_oracle_graal_hotspot_debug_LocalImpl,                     Opt) \
+  do_klass(CompilerThread_klass,                  com_oracle_graal_hotspot_CompilerThread,                      Opt) \
   /* graal.api.code */                                                                                               \
   do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
   do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
