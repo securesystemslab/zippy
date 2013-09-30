@@ -27,8 +27,8 @@ package edu.uci.python.nodes.calls;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class CallConstructorNode extends PNode {
 

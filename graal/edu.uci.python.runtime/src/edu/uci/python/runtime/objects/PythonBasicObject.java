@@ -31,7 +31,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonBasicObject {
 

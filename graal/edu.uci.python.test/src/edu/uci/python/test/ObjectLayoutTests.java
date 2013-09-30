@@ -30,8 +30,8 @@ import org.junit.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class ObjectLayoutTests {
 
@@ -104,13 +104,16 @@ public class ObjectLayoutTests {
         assertSame(PIntStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
 
         /*
-         * The same instance variable in object 2 should be Nil. Note that this requires that we realize that even though the instance variable is known about in the layout of object 2, and we are using a primitive int to hold it, that it hasn't been
-         * set and is actually None. We don't want it to appear as 0.
+         * The same instance variable in object 2 should be Nil. Note that this requires that we
+         * realize that even though the instance variable is known about in the layout of object 2,
+         * and we are using a primitive int to hold it, that it hasn't been set and is actually
+         * None. We don't want it to appear as 0.
          */
         assertSame(PNone.NONE, object2.getInstanceVariable("foo"));
 
         /*
-         * We should be able to set the same instance variable in object 2 to also be a PInt without changing the layout.
+         * We should be able to set the same instance variable in object 2 to also be a PInt without
+         * changing the layout.
          */
         final ObjectLayout objectLayout2 = object2.getObjectLayout();
         object2.setInstanceVariable("foo", 2);
@@ -139,7 +142,6 @@ public class ObjectLayoutTests {
         final PythonContext context = new PythonContext(new Options());
 
         // Create two classes, A, and a subclass, B, and an instance of each
-
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonClass classB = new PythonClass(context, classA, "B");
 
@@ -153,11 +155,9 @@ public class ObjectLayoutTests {
         ObjectLayout layoutObjectB = objectB.getObjectLayout();
 
         // Add an instance variable to the instance of A
-
         objectA.setInstanceVariable("foo", 14);
 
         // That should have changed the layout of both classes
-
         assertNotSame(layoutClassA, classA.getObjectLayoutForInstances());
         assertNotSame(layoutClassB, classB.getObjectLayoutForInstances());
 
@@ -165,7 +165,6 @@ public class ObjectLayoutTests {
         layoutClassB = classA.getObjectLayoutForInstances();
 
         // If we notify the objects, both of them should have changed layouts
-
         objectA.updateLayout();
         objectB.updateLayout();
         assertNotSame(layoutObjectA, objectA.getObjectLayout());
@@ -175,37 +174,30 @@ public class ObjectLayoutTests {
         layoutObjectB = objectB.getObjectLayout();
 
         // We should be able to find that instance variable as a storage location in both classes
-
         assertNotNull(classA.getObjectLayoutForInstances().findStorageLocation("foo"));
         assertNotNull(classB.getObjectLayoutForInstances().findStorageLocation("foo"));
 
         // We should be able to read that value back out
-
         assertEquals(14, objectA.getInstanceVariable("foo"));
 
         // Add an instance variable to the instance of B
-
         objectB.setInstanceVariable("bar", 2);
 
         // This should not have changed the layout of A or the instance of A
-
         assertSame(layoutClassA, classA.getObjectLayoutForInstances());
         assertSame(layoutObjectA, objectA.getObjectLayout());
 
         // But the layout of B and the instance of B should have changed
-
         assertNotSame(layoutClassB, classB.getObjectLayoutForInstances());
 
         objectB.updateLayout();
         assertNotSame(layoutObjectB, objectB.getObjectLayout());
 
         // We should be able to find the new instance variable in the instance of B but not A
-
         assertNull(classA.getObjectLayoutForInstances().findStorageLocation("bar"));
         assertNotNull(classB.getObjectLayoutForInstances().findStorageLocation("bar"));
 
         // We should be able to read that value back out
-
         assertEquals(2, objectB.getInstanceVariable("bar"));
     }
 
@@ -236,7 +228,8 @@ public class ObjectLayoutTests {
         assertEquals(2, objectA.getInstanceVariable("foo"));
 
         /*
-         * We should also be able to read the first variable back out, even though we've switched to private layout since then.
+         * We should also be able to read the first variable back out, even though we've switched to
+         * private layout since then.
          */
         assertEquals(2, objectA.getInstanceVariable("foo"));
     }
