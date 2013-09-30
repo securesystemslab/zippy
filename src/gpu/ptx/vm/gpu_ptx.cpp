@@ -55,7 +55,7 @@ gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
  * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
  */
 int ncores(int major, int minor) {
-    int device_type = major << 4 + minor;
+    int device_type = (major << 4) + minor;
 
     switch (device_type) {
         case 0x10: return 8;
@@ -66,7 +66,7 @@ int ncores(int major, int minor) {
         case 0x21: return 48;
         case 0x30: return 192;
         case 0x35: return 192;
-    defaulf:
+    default:
         tty->print_cr("[CUDA] Warning: Unhandled device %x", device_type);
         return 0;
     }
