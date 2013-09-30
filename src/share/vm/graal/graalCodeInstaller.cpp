@@ -727,7 +727,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   oop debug_info = CompilationResult_Call::debugInfo(site);
 
-  assert((hotspot_method ? 1 : 0) + (foreign_call ? 1 : 0) == 1, "Call site needs exactly one type");
+  assert(!!hotspot_method ^ !!foreign_call, "Call site needs exactly one type");
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = CodeInstaller::pd_next_offset(inst, pc_offset, hotspot_method);
