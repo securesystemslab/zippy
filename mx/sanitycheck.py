@@ -24,7 +24,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, commands, os, sys, StringIO, subprocess
+import re, mx, commands, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 
 gc = 'UseSerialGC'
@@ -449,6 +449,8 @@ class Test:
             mx.log(startDelim)
             if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
+            # wait for subprocess to finish
+            time.sleep(.5)
             mx.log(endDelim)
             output = tee.output.getvalue()
 
@@ -469,7 +471,6 @@ class Test:
                     group[name] = score
 
         if not passed:
-            pass
-           # mx.abort("Benchmark failed (not passed)")
+           mx.abort("Benchmark failed (not passed)")
 
         return groups
