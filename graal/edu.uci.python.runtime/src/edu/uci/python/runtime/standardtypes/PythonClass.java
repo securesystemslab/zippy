@@ -56,14 +56,14 @@ public class PythonClass extends PythonObject {
      * normally be used from outside this class.
      */
     public PythonClass(PythonContext context, PythonClass superClass, String name) {
-        super(null); // TODO: should really pass the class class
+        super(context.getCoreLibrary().getTypeClass());
         this.context = context;
         this.name = name;
 
         if (superClass == null) {
             objectLayoutForInstances = ObjectLayout.EMPTY;
         } else {
-            unsafeSetSuperclass(superClass);
+            unsafeSetSuperClass(superClass);
         }
     }
 
@@ -119,7 +119,7 @@ public class PythonClass extends PythonObject {
      * This method supports initialization and solves boot-order problems and should not normally be
      * used.
      */
-    public void unsafeSetSuperclass(PythonClass newSuperClass) {
+    public void unsafeSetSuperClass(PythonClass newSuperClass) {
         assert superClass == null;
         superClass = newSuperClass;
         superClass.subClasses.add(this);

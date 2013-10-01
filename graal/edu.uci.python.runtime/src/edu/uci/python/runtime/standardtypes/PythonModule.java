@@ -34,6 +34,8 @@ import edu.uci.python.runtime.objects.*;
 
 public class PythonModule extends PythonBasicObject {
 
+    public static final String __NAME__ = "__name__";
+
     private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
     private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
@@ -86,7 +88,7 @@ public class PythonModule extends PythonBasicObject {
         if (!methodAnnotation.unmangledName().equals("")) {
             names.add(methodAnnotation.unmangledName());
         } else {
-            throw new IllegalStateException("unmangledName is empty!");
+            names.add(field.getName());
         }
         names.addAll(Arrays.asList(methodAnnotation.aliases()));
 

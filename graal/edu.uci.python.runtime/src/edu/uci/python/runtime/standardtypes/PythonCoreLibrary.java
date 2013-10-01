@@ -30,7 +30,13 @@ public class PythonCoreLibrary {
 
     private final PythonContext context;
 
+    private PythonClass typeClass;
+
     private PythonClass objectClass;
+
+    private PythonClass moduleClass;
+
+    private PythonModule builtinsModule;
 
     public PythonCoreLibrary(PythonContext context) {
         this.context = context;
@@ -39,10 +45,27 @@ public class PythonCoreLibrary {
     public void initialize() {
         assert context != null;
 
+        typeClass = new PythonClass(context, null, "type");
         objectClass = new PythonClass(context, null, "object");
+        typeClass.unsafeSetSuperClass(objectClass);
+        moduleClass = new PythonClass(context, objectClass, "module");
+
+        builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
+    }
+
+    public PythonClass getTypeClass() {
+        return typeClass;
     }
 
     public PythonClass getObjectClass() {
         return objectClass;
+    }
+
+    public PythonClass getModuleClass() {
+        return moduleClass;
+    }
+
+    public PythonModule getBuiltinsModule() {
+        return builtinsModule;
     }
 }

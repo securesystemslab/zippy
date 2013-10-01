@@ -28,7 +28,11 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
+
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonModuleTests {
@@ -44,4 +48,13 @@ public class PythonModuleTests {
         assertEquals("", module.getInstanceVariable("__package__").toString());
     }
 
+    @Test
+    public void builtinsTest() {
+        final PythonContext context = new PythonContext(new Options());
+        final PythonModule builtins = context.getCoreLibrary().getBuiltinsModule();
+        PFunction min = (PFunction) builtins.getInstanceVariable("min");
+        FrameDescriptor fd = new FrameDescriptor();
+        Object returnValue = min.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{4, 2, 1});
+        assertEquals(1, returnValue);
+    }
 }
