@@ -27,7 +27,7 @@ package edu.uci.python.runtime.modules;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class StringAttribute extends PythonModule {
+public class StringAttribute extends PModule {
 
     public StringAttribute() {
         super("str");

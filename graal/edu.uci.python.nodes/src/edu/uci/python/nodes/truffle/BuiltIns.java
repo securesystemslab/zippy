@@ -32,10 +32,10 @@ import edu.uci.python.runtime.modules.*;
 
 public class BuiltIns {
 
-    public static final HashMap<String, PythonModule> moduleMap = moduleMapInit();
+    public static final HashMap<String, PModule> moduleMap = moduleMapInit();
 
-    public static HashMap<String, PythonModule> moduleMapInit() {
-        HashMap<String, PythonModule> map = new HashMap<>();
+    public static HashMap<String, PModule> moduleMapInit() {
+        HashMap<String, PModule> map = new HashMap<>();
         map.put("array", new ArrayModule());
         map.put("bisect", new BisectModule());
         map.put("time", new TimeModule());

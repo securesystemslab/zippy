@@ -35,7 +35,7 @@ import java.util.Map;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class BuiltInModule extends PythonModule {
+public class BuiltInModule extends PModule {
 
     private static final long MASK_NON_SIGN_LONG = 0x7fffffffffffffffL;
 

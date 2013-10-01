@@ -37,7 +37,7 @@ public final class PNone {
 
     @Override
     public String toString() {
-        return "None";
+        return "";
     }
 
 }

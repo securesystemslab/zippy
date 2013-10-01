@@ -27,7 +27,7 @@ package edu.uci.python.runtime.modules;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class ArrayModule extends PythonModule {
+public class ArrayModule extends PModule {
 
     public ArrayModule() {
         super("array");

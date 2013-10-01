@@ -33,7 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class MethodCallNode extends AttributeCallNode {
 
@@ -52,11 +52,11 @@ public class MethodCallNode extends AttributeCallNode {
     // TODO: specialize return type
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonBasicObject self = (PythonBasicObject) primary.execute(frame);
+        PythonObject self = (PythonObject) primary.execute(frame);
         return callMethod(frame, self);
     }
 
-    protected Object callMethod(VirtualFrame frame, PythonBasicObject self) {
+    protected Object callMethod(VirtualFrame frame, PythonObject self) {
         PFunction method = self.getPythonClass().lookUpMethod(attributeId);
         Object[] args = doArgumentsWithSelf(frame, self);
         return method.call(frame.pack(), args);

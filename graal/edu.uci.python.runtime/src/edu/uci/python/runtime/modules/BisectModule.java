@@ -31,7 +31,7 @@ import java.util.List;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class BisectModule extends PythonModule {
+public class BisectModule extends PModule {
 
     public BisectModule() {
         super("bisect");

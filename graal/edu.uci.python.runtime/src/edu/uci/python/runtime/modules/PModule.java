@@ -37,7 +37,7 @@ import edu.uci.python.runtime.modules.annotations.*;
 /**
  * The Python <code>Module</code> class.
  */
-public class PythonModule extends PObject {
+public class PModule extends PObject {
 
     private final String name;
 
@@ -47,12 +47,12 @@ public class PythonModule extends PObject {
     // The context is stored here - objects can obtain it via their class (which is a module)
     private final PythonContext context;
 
-    public PythonModule(PythonContext context, String name) {
+    public PModule(PythonContext context, String name) {
         this.name = name;
         this.context = context;
     }
 
-    public PythonModule(String name) {
+    public PModule(String name) {
         this.name = name;
         this.context = null;
     }

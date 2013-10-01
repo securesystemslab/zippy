@@ -22,33 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.test;
 
-import edu.uci.python.runtime.modules.annotations.*;
+import static org.junit.Assert.*;
 
-public class TimeModule extends PModule {
+import org.junit.*;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
-    }
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+public class PythonModuleTests {
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
-    }
+    @Test
+    public void pythonModuleTest() {
+        final PythonContext context = new PythonContext(new Options());
+        PythonModule module = new PythonModule(new PythonClass(context, null, "module"));
 
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
+        module.addBuiltinMethodsAndConstants(PythonModule.class);
+        assertEquals("", module.getInstanceVariable("__name__").toString());
+        assertEquals("", module.getInstanceVariable("__doc__").toString());
+        assertEquals("", module.getInstanceVariable("__package__").toString());
     }
 
 }

@@ -22,33 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.modules.annotations;
 
-import edu.uci.python.runtime.modules.annotations.*;
+import java.util.*;
 
-public class TimeModule extends PModule {
+import edu.uci.python.runtime.modules.*;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
+public class AnnotatedBuiltinMethod {
+
+    private final List<String> names;
+    private final boolean isClassMethod;
+    private final PythonCallTarget callTarget;
+
+    public AnnotatedBuiltinMethod(List<String> names, boolean isClassMethod, PythonCallTarget callTarget) {
+        this.names = names;
+        this.isClassMethod = isClassMethod;
+        this.callTarget = callTarget;
     }
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
+    public List<String> getNames() {
+        return names;
     }
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
+    public boolean isClassMethod() {
+        return isClassMethod;
     }
 
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
+    public PythonCallTarget getCallTarget() {
+        return callTarget;
     }
-
 }

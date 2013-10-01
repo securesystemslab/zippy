@@ -32,11 +32,12 @@ public class PythonContext {
 
     private final Options options;
 
-    private final PythonClass objectClass;
+    private final PythonCoreLibrary coreLibrary;
 
     public PythonContext(Options opts) {
         options = opts;
-        objectClass = new PythonClass(this, null, "object");
+        this.coreLibrary = new PythonCoreLibrary(this);
+        this.coreLibrary.initialize();
     }
 
     public PrintStream getStandardOut() {
@@ -47,7 +48,7 @@ public class PythonContext {
         return Options.UseUnsafe;
     }
 
-    public PythonClass getObjectClass() {
-        return objectClass;
+    public PythonCoreLibrary getCoreLibrary() {
+        return coreLibrary;
     }
 }

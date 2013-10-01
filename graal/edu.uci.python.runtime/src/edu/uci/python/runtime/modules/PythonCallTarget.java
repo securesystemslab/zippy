@@ -22,49 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
+package edu.uci.python.runtime.modules;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-public class UninitializedAttributeCallNode extends AttributeCallNode {
+/**
+ * A call target typed to PArguments.
+ */
+public abstract class PythonCallTarget extends CallTarget {
 
-    @Child protected PNode primary;
-
-    public UninitializedAttributeCallNode(String attributeId, PNode primary, PNode[] arguments) {
-        super(arguments, attributeId);
-        this.primary = adoptChild(primary);
-    }
+    protected abstract Object call(PackedFrame frame, PArguments args);
 
     @Override
-    public PNode getPrimary() {
-        return primary;
+    public Object call(PackedFrame frame, Arguments args) {
+        return call(frame, (PArguments) args);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        Object primaryObj = primary.execute(frame);
-
-        if (primaryObj instanceof PythonObject) {
-            MethodCallNode callNode = new MethodCallNode(attributeId, primary, arguments);
-            replace(callNode);
-            return callNode.callMethod(frame, (PythonObject) primaryObj);
-        } else {
-            replace(AttributeCallNodeFactory.create(arguments, attributeId, primary));
-            return executeGenericSlowPath(frame, primaryObj);
-        }
-    }
-
-    protected Object executeGenericSlowPath(VirtualFrame frame, Object primaryObj) {
-        if (primaryObj instanceof String) {
-            return doString(frame, (String) primaryObj);
-        } else if (primaryObj instanceof PObject) {
-            return doPObject(frame, (PObject) primaryObj);
-        } else {
-            return doGeneric(frame, primaryObj);
-        }
-    }
 }

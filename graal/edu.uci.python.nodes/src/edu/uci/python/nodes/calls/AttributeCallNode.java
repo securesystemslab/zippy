@@ -81,8 +81,8 @@ public abstract class AttributeCallNode extends PNode {
         PyObject primary;
         if (prim instanceof PyObject) {
             primary = (PyObject) prim;
-        } else if (prim instanceof PythonModule) {
-            return ((PythonModule) prim).lookupMethod(attributeId).call(null, args, null);
+        } else if (prim instanceof PModule) {
+            return ((PModule) prim).lookupMethod(attributeId).call(null, args, null);
         } else {
             primary = adaptToPyObject(prim);
         }

@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class DictionaryAttribute extends PythonModule {
+public class DictionaryAttribute extends PModule {
 
     public DictionaryAttribute() {
         super("dict");

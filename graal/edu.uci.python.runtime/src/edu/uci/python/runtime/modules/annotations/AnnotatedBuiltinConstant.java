@@ -22,33 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.modules.annotations;
 
-import edu.uci.python.runtime.modules.annotations.*;
+public class AnnotatedBuiltinConstant {
 
-public class TimeModule extends PModule {
+    private final String name;
+    private final Object value;
 
-    public TimeModule() {
-        super("time");
-        addBuiltInMethods();
+    public AnnotatedBuiltinConstant(String name, Object value) {
+        this.name = name;
+        this.value = value;
     }
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
+    public String getName() {
+        return name;
     }
 
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
+    public Object getValue() {
+        return value;
     }
-
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
 }

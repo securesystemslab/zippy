@@ -31,7 +31,7 @@ import java.util.List;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
-public class ListAttribute extends PythonModule {
+public class ListAttribute extends PModule {
 
     public ListAttribute() {
         super("list");

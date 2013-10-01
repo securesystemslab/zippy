@@ -261,7 +261,7 @@ public class PythonTreeTranslator extends Visitor {
         // The default super class is the <class 'object'>.
         PNode base;
         if (bases.size() == 0 || bases.get(0) == null) {
-            base = factory.createObjectLiteral(context.getObjectClass());
+            base = factory.createObjectLiteral(context.getCoreLibrary().getObjectClass());
         } else {
             base = bases.get(0);
         }

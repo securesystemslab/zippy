@@ -32,7 +32,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class PythonClass extends PythonBasicObject {
+public class PythonClass extends PythonObject {
 
     private final String name;
 

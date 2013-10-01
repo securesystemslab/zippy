@@ -27,7 +27,6 @@ package edu.uci.python.nodes.calls;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class CallConstructorNode extends PNode {
@@ -49,7 +48,7 @@ public class CallConstructorNode extends PNode {
 
     protected Object callConstructor(VirtualFrame frame, PythonClass clazz) {
         Object[] args = CallNode.executeArguments(frame, arguments);
-        PythonBasicObject obj = new PythonBasicObject(clazz);
+        PythonObject obj = new PythonObject(clazz);
         Object[] selfWithArgs = new Object[args.length + 1];
 
         selfWithArgs[0] = obj;
