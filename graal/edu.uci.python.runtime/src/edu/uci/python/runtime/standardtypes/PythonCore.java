@@ -26,7 +26,7 @@ package edu.uci.python.runtime.standardtypes;
 
 import edu.uci.python.runtime.*;
 
-public class PythonCoreLibrary {
+public class PythonCore {
 
     private final PythonContext context;
 
@@ -38,7 +38,9 @@ public class PythonCoreLibrary {
 
     private PythonModule builtinsModule;
 
-    public PythonCoreLibrary(PythonContext context) {
+    private PythonModule mainModule;
+
+    public PythonCore(PythonContext context) {
         this.context = context;
     }
 
@@ -51,6 +53,8 @@ public class PythonCoreLibrary {
         moduleClass = new PythonClass(context, objectClass, "module");
 
         builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
+        mainModule = new MainModule(moduleClass, "__main__");
+        mainModule.setInstanceVariable("__builtins__", builtinsModule);
     }
 
     public PythonClass getTypeClass() {
@@ -67,5 +71,9 @@ public class PythonCoreLibrary {
 
     public PythonModule getBuiltinsModule() {
         return builtinsModule;
+    }
+
+    public PythonModule getMainModule() {
+        return mainModule;
     }
 }

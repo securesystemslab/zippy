@@ -37,144 +37,10 @@ import edu.uci.python.runtime.modules.annotations.*;
 
 public class BuiltInModule extends PModule {
 
-    private static final long MASK_NON_SIGN_LONG = 0x7fffffffffffffffL;
-
     public BuiltInModule() {
         super("builtin");
         addBuiltInMethods();
         addConstants();
-    }
-
-    public static int getExponent(final double d) {
-        // NaN and Infinite will return 1024 anywho so can use raw bits
-        return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023;
-    }
-
-    public static double abs(double x) {
-        return Double.longBitsToDouble(MASK_NON_SIGN_LONG & Double.doubleToRawLongBits(x));
-    }
-
-    public static double scalb(final double d, final int n) {
-
-        // first simple and fast handling when 2^n can be represented using
-        // normal numbers
-        if ((n > -1023) && (n < 1024)) {
-            return d * Double.longBitsToDouble(((long) (n + 1023)) << 52);
-        }
-
-        // handle special cases
-        if (Double.isNaN(d) || Double.isInfinite(d) || (d == 0)) {
-            return d;
-        }
-        if (n < -2098) {
-            return (d > 0) ? 0.0 : -0.0;
-        }
-        if (n > 2097) {
-            return (d > 0) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
-        }
-
-        // decompose d
-        final long bits = Double.doubleToRawLongBits(d);
-        final long sign = bits & 0x8000000000000000L;
-        int exponent = ((int) (bits >>> 52)) & 0x7ff;
-        long mantissa = bits & 0x000fffffffffffffL;
-
-        // compute scaled exponent
-        int scaledExponent = exponent + n;
-
-        if (n < 0) {
-            // we are really in the case n <= -1023
-            if (scaledExponent > 0) {
-                // both the input and the result are normal numbers, we only
-                // adjust the exponent
-                return Double.longBitsToDouble(sign | (((long) scaledExponent) << 52) | mantissa);
-            } else if (scaledExponent > -53) {
-                // the input is a normal number and the result is a subnormal
-                // number
-
-                // recover the hidden mantissa bit
-                mantissa = mantissa | (1L << 52);
-
-                // scales down complete mantissa, hence losing least significant
-                // bits
-                final long mostSignificantLostBit = mantissa & (1L << (-scaledExponent));
-                mantissa = mantissa >>> (1 - scaledExponent);
-                if (mostSignificantLostBit != 0) {
-                    // we need to add 1 bit to round up the result
-                    mantissa++;
-                }
-                return Double.longBitsToDouble(sign | mantissa);
-
-            } else {
-                // no need to compute the mantissa, the number scales down to 0
-                return (sign == 0L) ? 0.0 : -0.0;
-            }
-        } else {
-            // we are really in the case n >= 1024
-            if (exponent == 0) {
-
-                // the input number is subnormal, normalize it
-                while ((mantissa >>> 52) != 1) {
-                    mantissa = mantissa << 1;
-                    --scaledExponent;
-                }
-                ++scaledExponent;
-                mantissa = mantissa & 0x000fffffffffffffL;
-
-                if (scaledExponent < 2047) {
-                    return Double.longBitsToDouble(sign | (((long) scaledExponent) << 52) | mantissa);
-                } else {
-                    return (sign == 0L) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
-                }
-
-            } else if (scaledExponent < 2047) {
-                return Double.longBitsToDouble(sign | (((long) scaledExponent) << 52) | mantissa);
-            } else {
-                return (sign == 0L) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
-            }
-        }
-
-    }
-
-    public static double sqrt(final double a) {
-        return Math.sqrt(a);
-    }
-
-    // FastMath
-    public static double hypot(final double x, final double y) {
-        if (Double.isInfinite(x) || Double.isInfinite(y)) {
-            return Double.POSITIVE_INFINITY;
-        } else if (Double.isNaN(x) || Double.isNaN(y)) {
-            return Double.NaN;
-        } else {
-
-            final int expX = getExponent(x);
-            final int expY = getExponent(y);
-            if (expX > expY + 27) {
-                // y is neglectible with respect to x
-                return abs(x);
-            } else if (expY > expX + 27) {
-                // x is neglectible with respect to y
-                return abs(y);
-            } else {
-
-                // find an intermediate scale to avoid both overflow and
-                // underflow
-                final int middleExp = (expX + expY) / 2;
-
-                // scale parameters without losing precision
-                final double scaledX = scalb(x, -middleExp);
-                final double scaledY = scalb(y, -middleExp);
-
-                // compute scaled hypotenuse
-                final double scaledH = sqrt(scaledX * scaledX + scaledY * scaledY);
-
-                // remove scaling
-                return scalb(scaledH, middleExp);
-
-            }
-
-        }
     }
 
     @ModuleConstant public static final String __name__ = "__main__";
@@ -270,7 +136,7 @@ public class BuiltInModule extends PModule {
 
         if (keywords != null) {
             for (int i = 0; i < keywords.length; i++) { // not support file
-                                                        // keyword now
+                // keyword now
                 PKeyword kw = (PKeyword) keywords[i];
                 if (kw.getName().equals("end")) {
                     end = (String) kw.getValue();
@@ -283,7 +149,7 @@ public class BuiltInModule extends PModule {
         return print(values, sep, end);
     }
 
-    private Object print(Object[] values, String sep, String end) {
+    private static Object print(Object[] values, String sep, String end) {
         // CheckStyle: stop system..print check
         if (values.length == 0) {
             System.out.println();
@@ -325,8 +191,8 @@ public class BuiltInModule extends PModule {
         return null;
     }
 
-    private List<Character> stringToCharList(String s) {
-        ArrayList<Character> list = new ArrayList<Character>();
+    private static List<Character> stringToCharList(String s) {
+        ArrayList<Character> list = new ArrayList<>();
 
         char[] charArray = s.toCharArray();
         for (int i = 0; i < charArray.length; i++) {
@@ -484,7 +350,7 @@ public class BuiltInModule extends PModule {
             // return Math.hypot(val.getReal(), val.getImag());
             double real = val.getReal();
             double imag = val.getImag();
-            return hypot(real, imag);
+            return FastMathUtil.hypot(real, imag);
         } else {
             throw new RuntimeException("invalid data type for abs()");
         }
@@ -516,137 +382,6 @@ public class BuiltInModule extends PModule {
 
     public PList list(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of arguments for list()");
-    }
-
-    private static Object doubleToInt(Double num) {
-        if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE) {
-            return BigInteger.valueOf(num.longValue());
-        } else {
-            return num.intValue();
-        }
-    }
-
-    private Object stringToInt(String num, int base) {
-        if ((base >= 2 && base <= 32) || base == 0) {
-            BigInteger bi = asciiToBigInteger(num, 10, false);
-            if (bi.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0 || bi.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) < 0) {
-                return bi;
-            } else {
-                return bi.intValue();
-            }
-        } else {
-            throw new RuntimeException("base is out of range for int()");
-        }
-    }
-
-    // The built-in function returns an integer or BigInteger
-    @ModuleMethod
-    public Object toInt(Object[] args, Object[] keywords) {
-        if (args.length == 1) {
-            return toInt(args[0]);
-        } else if (args.length == 2) {
-            return toInt(args[0], args[1]);
-        } else {
-            throw new RuntimeException("wrong number of arguments for int()");
-        }
-    }
-
-    public Object toInt(Object arg) {
-        if (arg instanceof Integer || arg instanceof BigInteger) {
-            return arg;
-        } else if (arg instanceof Double) {
-            return doubleToInt((Double) arg);
-        } else if (arg instanceof String) {
-            return stringToInt((String) arg, 10);
-        } else {
-            throw new RuntimeException("invalid value for int()");
-        }
-    }
-
-    public Object toInt(Object arg1, Object arg2) {
-        if (arg1 instanceof String && arg2 instanceof Integer) {
-            return stringToInt((String) arg1, (Integer) arg2);
-        } else {
-            throw new RuntimeException("invalid base or val for int()");
-        }
-    }
-
-    // Copied directly from Jython
-    private static BigInteger asciiToBigInteger(String str, int base, boolean isLong) {
-        int b = 0;
-        int e = str.length();
-
-        while (b < e && Character.isWhitespace(str.charAt(b))) {
-            b++;
-        }
-
-        while (e > b && Character.isWhitespace(str.charAt(e - 1))) {
-            e--;
-        }
-
-        char sign = 0;
-        if (b < e) {
-            sign = str.charAt(b);
-            if (sign == '-' || sign == '+') {
-                b++;
-                while (b < e && Character.isWhitespace(str.charAt(b))) {
-                    b++;
-                }
-            }
-
-            if (base == 16) {
-                if (str.charAt(b) == '0') {
-                    if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'X') {
-                        b += 2;
-                    }
-                }
-            } else if (base == 0) {
-                if (str.charAt(b) == '0') {
-                    if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'X') {
-                        base = 16;
-                        b += 2;
-                    } else if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'O') {
-                        base = 8;
-                        b += 2;
-                    } else if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'B') {
-                        base = 2;
-                        b += 2;
-                    } else {
-                        base = 8;
-                    }
-                }
-            } else if (base == 8) {
-                if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'O') {
-                    b += 2;
-                }
-            } else if (base == 2) {
-                if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'B') {
-                    b += 2;
-                }
-            }
-        }
-
-        if (base == 0) {
-            base = 10;
-        }
-
-        // if the base >= 22, then an 'l' or 'L' is a digit!
-        if (isLong && base < 22 && e > b && (str.charAt(e - 1) == 'L' || str.charAt(e - 1) == 'l')) {
-            e--;
-        }
-
-        String s = str;
-        if (b > 0 || e < str.length()) {
-            s = str.substring(b, e);
-        }
-
-        BigInteger bi;
-        if (sign == '-') {
-            bi = new BigInteger("-" + s, base);
-        } else {
-            bi = new BigInteger(s, base);
-        }
-        return bi;
     }
 
     private static PList rangeInt(int start, int stop, int step) {
@@ -817,11 +552,11 @@ public class BuiltInModule extends PModule {
     }
 
     public int Int(Object arg) {
-        return (int) toInt(arg);
+        return (int) JavaTypeConversions.toInt(arg);
     }
 
     public int Int(Object arg0, Object arg1) {
-        return (int) toInt(arg0, arg1);
+        return (int) JavaTypeConversions.toInt(arg0, arg1);
     }
 
     // Checkstyle: resume method name check
@@ -829,7 +564,6 @@ public class BuiltInModule extends PModule {
     /**
      * zip() method, should return a python iterator, but we use list as a temporary solution.
      */
-
     @SuppressWarnings("rawtypes")
     @ModuleMethod
     public PList zip(Object[] args, Object[] keywords) {
@@ -901,7 +635,7 @@ public class BuiltInModule extends PModule {
     }
 
     @SuppressWarnings("unchecked")
-    private Iterator<Object> getIterable(Object o) {
+    private static Iterator<Object> getIterable(Object o) {
         if (o instanceof String) {
             return new PString((String) o).iterator();
         } else if (o instanceof Iterable) {

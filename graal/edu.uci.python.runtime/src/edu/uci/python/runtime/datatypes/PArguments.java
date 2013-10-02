@@ -30,12 +30,16 @@ public class PArguments extends Arguments {
 
     final Object[] arguments;
 
+    final PKeyword[] keywards;
+
     public PArguments() {
         this.arguments = new Object[0];
+        this.keywards = PKeyword.EMPTY_KEYWORDS;
     }
 
     public PArguments(Object[] arguments) {
         this.arguments = arguments;
+        this.keywards = PKeyword.EMPTY_KEYWORDS;
     }
 
     public final Object[] getArgumentsArray() {
@@ -44,6 +48,10 @@ public class PArguments extends Arguments {
 
     public final Object getArgument(int index) {
         return arguments[index];
+    }
+
+    public PKeyword[] getKeywords() {
+        return keywards;
     }
 
 }

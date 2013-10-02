@@ -30,6 +30,8 @@ public class PKeyword {
 
     private final String name;
 
+    public static final PKeyword[] EMPTY_KEYWORDS = new PKeyword[0];
+
     public PKeyword(Object value, String object) {
         this.value = value;
         this.name = object;

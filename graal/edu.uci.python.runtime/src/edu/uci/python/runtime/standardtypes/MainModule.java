@@ -22,33 +22,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.runtime.standardtypes;
 
-import java.io.*;
+public class MainModule extends PythonModule {
 
-import edu.uci.python.runtime.standardtypes.*;
+    public MainModule(PythonClass pythonClass, String name) {
+        super(pythonClass);
 
-public class PythonContext {
-
-    private final Options options;
-
-    private final PythonCore pythonCore;
-
-    public PythonContext(Options opts) {
-        options = opts;
-        this.pythonCore = new PythonCore(this);
-        this.pythonCore.initialize();
+        this.addBuiltinMethodsAndConstants(PythonModule.class);
+        this.addBuiltinMethodsAndConstants(MainModule.class);
+        this.setInstanceVariable(__NAME__, name);
     }
 
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
-    }
-
-    public boolean getUseUnsafe() {
-        return Options.UseUnsafe;
-    }
-
-    public PythonCore getPythonCore() {
-        return pythonCore;
-    }
 }
