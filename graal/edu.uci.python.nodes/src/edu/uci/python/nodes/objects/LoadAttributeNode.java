@@ -61,10 +61,10 @@ public abstract class LoadAttributeNode extends PNode {
             throw new RuntimeException("Storage location should be found at this point");
         }
 
-        if (storageLocation instanceof PIntStorageLocation) {
-            return new LoadPIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (PIntStorageLocation) storageLocation);
-        } else if (storageLocation instanceof PFloatStorageLocation) {
-            return new LoadPFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (PFloatStorageLocation) storageLocation);
+        if (storageLocation instanceof IntStorageLocation) {
+            return new LoadIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof FloatStorageLocation) {
+            return new LoadFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
         } else {
             return new LoadObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
         }

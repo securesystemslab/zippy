@@ -115,11 +115,11 @@ public class ObjectLayout {
                 }
 
                 if (storageClass == Integer.class) {
-                    final PIntStorageLocation newStorageLocation = new PIntStorageLocation(this, primitiveIntStorageLocationIndex);
+                    final IntStorageLocation newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else if (storageClass == Double.class) {
-                    final PFloatStorageLocation newStorageLocation = new PFloatStorageLocation(this, primitiveDoubleStorageLocationIndex);
+                    final FloatStorageLocation newStorageLocation = new FloatStorageLocation(this, primitiveDoubleStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveDoubleStorageLocationIndex++;
                 } else {

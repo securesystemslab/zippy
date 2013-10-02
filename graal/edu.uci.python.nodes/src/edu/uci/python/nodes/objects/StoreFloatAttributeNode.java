@@ -31,11 +31,11 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class StorePFloatAttributeNode extends StoreSpecializedAttributeNode {
+public class StoreFloatAttributeNode extends StoreSpecializedAttributeNode {
 
-    private final PFloatStorageLocation storageLocation;
+    private final FloatStorageLocation storageLocation;
 
-    public StorePFloatAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objectLayout, PFloatStorageLocation storageLocation) {
+    public StoreFloatAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objectLayout, FloatStorageLocation storageLocation) {
         super(name, primary, rhs, objectLayout);
         this.storageLocation = storageLocation;
     }

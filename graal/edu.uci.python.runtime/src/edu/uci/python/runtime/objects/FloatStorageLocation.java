@@ -31,31 +31,31 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
 /**
- * A storage location for PInts.
+ * A storage location for Floats.
  */
-public class PIntStorageLocation extends PrimitiveStorageLocation {
+public class FloatStorageLocation extends PrimitiveStorageLocation {
 
     private static final long FIRST_OFFSET = getFirstOffset();
 
     private final long offset;
 
-    public PIntStorageLocation(ObjectLayout objectLayout, int index) {
+    public FloatStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = FIRST_OFFSET + index * Unsafe.ARRAY_INT_INDEX_SCALE;
+        offset = FIRST_OFFSET + index * Unsafe.ARRAY_DOUBLE_INDEX_SCALE;
     }
 
     @Override
     public Object read(PythonBasicObject object) {
         try {
-            return readInt(object);
+            return readDouble(object);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
     }
 
-    public int readInt(PythonBasicObject object) throws UnexpectedResultException {
+    public double readDouble(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getInt(object, offset);
+            return PythonUnsafe.UNSAFE.getDouble(object, offset);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -63,8 +63,8 @@ public class PIntStorageLocation extends PrimitiveStorageLocation {
 
     @Override
     public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
-        if (value instanceof Integer) {
-            writeInt(object, (int) value);
+        if (value instanceof Double) {
+            writeDouble(object, (double) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
@@ -72,21 +72,22 @@ public class PIntStorageLocation extends PrimitiveStorageLocation {
         }
     }
 
-    public void writeInt(PythonBasicObject object, int value) {
-        PythonUnsafe.UNSAFE.putInt(object, offset, value);
+    public void writeDouble(PythonBasicObject object, Double value) {
+        PythonUnsafe.UNSAFE.putDouble(object, offset, value);
         markAsSet(object);
     }
 
     @Override
     public Class getStoredClass() {
-        return Integer.class;
+        return Double.class;
     }
 
     private static long getFirstOffset() {
         try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveIntStorageLocation1"));
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDoubleStorageLocation1"));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
     }
+
 }

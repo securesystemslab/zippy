@@ -63,10 +63,10 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
             throw new RuntimeException("Storage location should be found at this point");
         }
 
-        if (storageLocation instanceof PIntStorageLocation) {
-            return new StorePIntAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (PIntStorageLocation) storageLocation);
-        } else if (storageLocation instanceof PFloatStorageLocation) {
-            return new StorePFloatAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (PFloatStorageLocation) storageLocation);
+        if (storageLocation instanceof IntStorageLocation) {
+            return new StoreIntAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof FloatStorageLocation) {
+            return new StoreFloatAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
         } else {
             return new StoreObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
         }

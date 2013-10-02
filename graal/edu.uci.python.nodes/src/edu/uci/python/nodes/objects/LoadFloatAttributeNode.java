@@ -31,32 +31,32 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class LoadPIntAttributeNode extends LoadSpecializedAttributeNode {
+public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
 
-    private final PIntStorageLocation storageLocation;
+    private final FloatStorageLocation storageLocation;
 
-    public LoadPIntAttributeNode(String name, PNode primary, ObjectLayout objectLayout, PIntStorageLocation storageLocation) {
+    public LoadFloatAttributeNode(String name, PNode primary, ObjectLayout objectLayout, FloatStorageLocation storageLocation) {
         super(name, primary, objectLayout);
         this.storageLocation = storageLocation;
     }
 
     @Override
-    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObj = (PythonBasicObject) primary.execute(frame);
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!primaryObj.getObjectLayout().contains(objectLayout)) {
+        if (!receiverObject.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
-            replace(specialize(primaryObj));
-            throw new UnexpectedResultException(primaryObj.getInstanceVariable(attributeId));
+            replace(specialize(receiverObject));
+            throw new UnexpectedResultException(receiverObject.getInstanceVariable(attributeId));
         }
 
-        return storageLocation.readInt(primaryObj);
+        return storageLocation.readDouble(receiverObject);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            return executeInt(frame);
+            return executeDouble(frame);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }

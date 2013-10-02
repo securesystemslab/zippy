@@ -31,32 +31,44 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class LoadPFloatAttributeNode extends LoadSpecializedAttributeNode {
+public class StoreIntAttributeNode extends StoreSpecializedAttributeNode {
 
-    private final PFloatStorageLocation storageLocation;
+    private final IntStorageLocation storageLocation;
 
-    public LoadPFloatAttributeNode(String name, PNode primary, ObjectLayout objectLayout, PFloatStorageLocation storageLocation) {
-        super(name, primary, objectLayout);
+    public StoreIntAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objectLayout, IntStorageLocation storageLocation) {
+        super(name, primary, rhs, objectLayout);
         this.storageLocation = storageLocation;
     }
 
     @Override
-    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
+    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!receiverObject.getObjectLayout().contains(objectLayout)) {
-            CompilerDirectives.transferToInterpreter();
-            replace(specialize(receiverObject));
-            throw new UnexpectedResultException(receiverObject.getInstanceVariable(attributeId));
+        int value;
+
+        try {
+            value = rhs.executeInt(frame);
+        } catch (UnexpectedResultException e) {
+            primaryObject.setInstanceVariable(attributeId, e.getResult());
+            replace(specialize(primaryObject));
+            throw e;
         }
 
-        return storageLocation.readDouble(receiverObject);
+        if (!primaryObject.getObjectLayout().contains(objectLayout)) {
+            CompilerDirectives.transferToInterpreter();
+            primaryObject.setInstanceVariable(attributeId, value);
+            replace(specialize(primaryObject));
+            return value;
+        }
+
+        storageLocation.writeInt(primaryObject, value);
+        return value;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            return executeDouble(frame);
+            return executeInt(frame);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }

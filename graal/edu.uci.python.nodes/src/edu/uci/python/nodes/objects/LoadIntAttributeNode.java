@@ -31,38 +31,26 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class StorePIntAttributeNode extends StoreSpecializedAttributeNode {
+public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
 
-    private final PIntStorageLocation storageLocation;
+    private final IntStorageLocation storageLocation;
 
-    public StorePIntAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objectLayout, PIntStorageLocation storageLocation) {
-        super(name, primary, rhs, objectLayout);
+    public LoadIntAttributeNode(String name, PNode primary, ObjectLayout objectLayout, IntStorageLocation storageLocation) {
+        super(name, primary, objectLayout);
         this.storageLocation = storageLocation;
     }
 
     @Override
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final PythonBasicObject primaryObj = (PythonBasicObject) primary.execute(frame);
 
-        int value;
-
-        try {
-            value = rhs.executeInt(frame);
-        } catch (UnexpectedResultException e) {
-            primaryObject.setInstanceVariable(attributeId, e.getResult());
-            replace(specialize(primaryObject));
-            throw e;
-        }
-
-        if (!primaryObject.getObjectLayout().contains(objectLayout)) {
+        if (!primaryObj.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
-            primaryObject.setInstanceVariable(attributeId, value);
-            replace(specialize(primaryObject));
-            return value;
+            replace(specialize(primaryObj));
+            throw new UnexpectedResultException(primaryObj.getInstanceVariable(attributeId));
         }
 
-        storageLocation.writeInt(primaryObject, value);
-        return value;
+        return storageLocation.readInt(primaryObj);
     }
 
     @Override
