@@ -35,7 +35,7 @@ import com.oracle.graal.nodes.util.*;
  * The {@code InvokeNode} represents all kinds of method calls.
  */
 @NodeInfo(nameTemplate = "Invoke#{p#targetMethod/s}")
-public final class InvokeNode extends AbstractStateSplit implements StateSplit, Node.IterableNodeType, Invoke, LIRLowerable, MemoryCheckpoint.Single {
+public final class InvokeNode extends AbstractStateSplit implements Invoke, LIRLowerable, MemoryCheckpoint.Single {
 
     @Input private CallTargetNode callTarget;
     @Input private FrameState deoptState;
@@ -108,7 +108,7 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -130,11 +130,6 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
 
     public int bci() {
         return bci;
-    }
-
-    @Override
-    public FixedNode asNode() {
-        return this;
     }
 
     @Override
@@ -179,11 +174,6 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     }
 
     @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return null;
-    }
-
-    @Override
     public FrameState getDeoptimizationState() {
         if (deoptState == null) {
             FrameState stateDuring = stateDuring();
@@ -207,5 +197,15 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     public void setGuard(GuardingNode guard) {
         updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
         this.guard = guard;
+    }
+
+    @Override
+    public FrameState getState() {
+        if (deoptState != null) {
+            assert stateAfter() == null;
+            return deoptState;
+        } else {
+            return super.getState();
+        }
     }
 }

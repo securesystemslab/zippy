@@ -125,16 +125,36 @@ public class LoopFragmentInside extends LoopFragment {
         final StructuredGraph graph = graph();
         return new DuplicationReplacement() {
 
+            private HashMap<Node, Node> seenNode = new HashMap<>();
+
             @Override
             public Node replacement(Node original) {
                 if (original == loopBegin) {
-                    return graph.add(new BeginNode());
+                    Node value = seenNode.get(original);
+                    if (value != null) {
+                        return value;
+                    }
+                    BeginNode newValue = graph.add(new BeginNode());
+                    seenNode.put(original, newValue);
+                    return newValue;
                 }
                 if (original instanceof LoopExitNode && ((LoopExitNode) original).loopBegin() == loopBegin) {
-                    return graph.add(new BeginNode());
+                    Node value = seenNode.get(original);
+                    if (value != null) {
+                        return value;
+                    }
+                    BeginNode newValue = graph.add(new BeginNode());
+                    seenNode.put(original, newValue);
+                    return newValue;
                 }
                 if (original instanceof LoopEndNode && ((LoopEndNode) original).loopBegin() == loopBegin) {
-                    return graph.add(new EndNode());
+                    Node value = seenNode.get(original);
+                    if (value != null) {
+                        return value;
+                    }
+                    EndNode newValue = graph.add(new EndNode());
+                    seenNode.put(original, newValue);
+                    return newValue;
                 }
                 return original;
             }
@@ -160,7 +180,7 @@ public class LoopFragmentInside extends LoopFragment {
             }
             // create a new phi (we don't patch the old one since some usages of the old one may
             // still be valid)
-            PhiNode newPhi = graph.add(phi.type() == PhiType.Value ? new PhiNode(phi.kind(), loopBegin) : new PhiNode(phi.type(), loopBegin, phi.getIdentity()));
+            PhiNode newPhi = graph.addWithoutUnique(phi.type() == PhiType.Value ? new PhiNode(phi.kind(), loopBegin) : new PhiNode(phi.type(), loopBegin, phi.getIdentity()));
             newPhi.addInput(first);
             for (LoopEndNode end : loopBegin.orderedLoopEnds()) {
                 newPhi.addInput(phi.valueAt(end));
@@ -250,7 +270,7 @@ public class LoopFragmentInside extends LoopFragment {
             }
 
             for (final PhiNode phi : loopBegin.phis().snapshot()) {
-                final PhiNode firstPhi = graph.add(phi.type() == PhiType.Value ? new PhiNode(phi.kind(), newExitMerge) : new PhiNode(phi.type(), newExitMerge, phi.getIdentity()));
+                final PhiNode firstPhi = graph.addWithoutUnique(phi.type() == PhiType.Value ? new PhiNode(phi.kind(), newExitMerge) : new PhiNode(phi.type(), newExitMerge, phi.getIdentity()));
                 for (AbstractEndNode end : newExitMerge.forwardEnds()) {
                     LoopEndNode loopEnd = reverseEnds.get(end);
                     ValueNode prim = prim(phi.valueAt(loopEnd));

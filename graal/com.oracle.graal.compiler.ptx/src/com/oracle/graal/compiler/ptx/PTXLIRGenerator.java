@@ -24,6 +24,7 @@
 package com.oracle.graal.compiler.ptx;
 
 import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.api.meta.Value.*;
 import static com.oracle.graal.lir.ptx.PTXArithmetic.*;
 import static com.oracle.graal.lir.ptx.PTXBitManipulationOp.IntrinsicOpcode.*;
 import static com.oracle.graal.lir.ptx.PTXCompare.*;
@@ -32,6 +33,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.debug.Debug;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
@@ -44,8 +46,6 @@ import com.oracle.graal.lir.ptx.PTXArithmetic.Unary1Op;
 import com.oracle.graal.lir.ptx.PTXArithmetic.Unary2Op;
 import com.oracle.graal.lir.ptx.PTXCompare.CompareOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.BranchOp;
-import com.oracle.graal.lir.ptx.PTXControlFlow.CondMoveOp;
-import com.oracle.graal.lir.ptx.PTXControlFlow.FloatCondMoveOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.ReturnOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.ReturnNoValOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.SequentialSwitchOp;
@@ -59,12 +59,21 @@ import com.oracle.graal.lir.ptx.PTXMemOp.LoadReturnAddrOp;
 import com.oracle.graal.lir.ptx.PTXMemOp.StoreReturnValOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.calc.ConvertNode.Op;
 import com.oracle.graal.nodes.java.*;
+
+import java.lang.annotation.*;
+
 
 /**
  * This class implements the PTX specific portion of the LIR generator.
  */
 public class PTXLIRGenerator extends LIRGenerator {
+
+    // Number of the predicate register that can be used when needed.
+    // This value will be recorded and incremented in the LIR instruction
+    // that sets a predicate register. (e.g., CompareOp)
+    private int nextPredRegNum;
 
     public static final ForeignCallDescriptor ARITHMETIC_FREM = new ForeignCallDescriptor("arithmeticFrem", float.class, float.class, float.class);
     public static final ForeignCallDescriptor ARITHMETIC_DREM = new ForeignCallDescriptor("arithmeticDrem", double.class, double.class, double.class);
@@ -73,13 +82,20 @@ public class PTXLIRGenerator extends LIRGenerator {
 
         @Override
         public LIRInstruction createMove(AllocatableValue result, Value input) {
-            throw new InternalError("NYI");
+            throw GraalInternalError.unimplemented("PTXSpillMoveFactory.createMove()");
         }
     }
 
     public PTXLIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
         super(graph, runtime, target, frameMap, cc, lir);
         lir.spillMoveFactory = new PTXSpillMoveFactory();
+        int callVariables = cc.getArgumentCount() + (cc.getReturn() == Value.ILLEGAL ? 0 : 1);
+        lir.setFirstVariableNumber(callVariables);
+        nextPredRegNum = 0;
+    }
+
+    public int getNextPredRegNumber() {
+        return nextPredRegNum;
     }
 
     @Override
@@ -107,7 +123,9 @@ public class PTXLIRGenerator extends LIRGenerator {
             if (isRegister(value)) {
                 return asRegister(value).asValue(value.getKind().getStackKind());
             } else if (isStackSlot(value)) {
-                return StackSlot.get(value.getKind().getStackKind(), asStackSlot(value).getRawOffset(), asStackSlot(value).getRawAddFrameSize());
+                return StackSlot.get(value.getKind().getStackKind(),
+                                     asStackSlot(value).getRawOffset(),
+                                     asStackSlot(value).getRawAddFrameSize());
             } else {
                 throw GraalInternalError.shouldNotReachHere();
             }
@@ -119,21 +137,60 @@ public class PTXLIRGenerator extends LIRGenerator {
     public void emitPrologue() {
         // Need to emit .param directives based on incoming arguments and return value
         CallingConvention incomingArguments = cc;
-        int argCount = incomingArguments.getArgumentCount();
-        // Additional argument for return value.
-        Value[] params = new Value[argCount + 1];
-        for (int i = 0; i < argCount; i++) {
-            params[i] = toParamKind(incomingArguments.getArgument(i));
+        Object returnObject = incomingArguments.getReturn();
+        AllocatableValue[] params;
+        int argCount;
+
+        if (returnObject == Value.ILLEGAL) {
+            params = incomingArguments.getArguments();
+        } else {
+            argCount = incomingArguments.getArgumentCount();
+            params = new Variable[argCount + 1];
+            for (int i = 0; i < argCount; i++) {
+                params[i] = incomingArguments.getArgument(i);
+            }
+            params[argCount] = (Variable) returnObject;
         }
-        // Add the return value as the last parameter.
-        params[argCount] =  incomingArguments.getReturn();
 
         append(new PTXParameterOp(params));
         for (LocalNode local : graph.getNodes(LocalNode.class)) {
             Value param = params[local.index()];
-            assert param.getKind() == local.kind().getStackKind();
-            setResult(local, emitLoadParam(param.getKind(), param, null));
+            Annotation[] annos = graph.method().getParameterAnnotations()[local.index()];
+            Warp warpAnnotation = null;
+
+            if (annos != null) {
+                for (int a = 0; a < annos.length; a++) {
+                    if (annos[a].annotationType().equals(Warp.class)) {
+                        warpAnnotation = (Warp) annos[a];
+                    }
+                }
+            }
+            if (warpAnnotation != null) {
+                setResult(local, emitWarpParam(param.getKind(), warpAnnotation));
+            } else {
+                setResult(local, emitLoadParam(param.getKind(), param, null));
+            }
         }
+    }
+
+    public Variable emitWarpParam(Kind kind, Warp annotation) {
+        Variable result = newVariable(kind);
+        Variable tid = newVariable(Kind.Char);
+
+        switch (annotation.dimension()) {
+            case X:
+                tid.setName("%tid.x");
+                break;
+            case Y:
+                tid.setName("%tid.y");
+                break;
+            case Z:
+                tid.setName("%tid.y");
+                break;
+        }
+        emitMove(result, tid);
+
+        return result;
     }
 
     @Override
@@ -156,37 +213,45 @@ public class PTXLIRGenerator extends LIRGenerator {
     public PTXAddressValue emitAddress(Value base, long displacement, Value index, int scale) {
         AllocatableValue baseRegister;
         long finalDisp = displacement;
+
         if (isConstant(base)) {
             if (asConstant(base).isNull()) {
                 baseRegister = Value.ILLEGAL;
-            } else if (asConstant(base).getKind() != Kind.Object) {
+            } else if (asConstant(base).getKind() != Kind.Object && !runtime.needsDataPatch(asConstant(base))) {
                 finalDisp += asConstant(base).asLong();
                 baseRegister = Value.ILLEGAL;
             } else {
                 baseRegister = load(base);
             }
+        } else if (base.equals(Value.ILLEGAL)) {
+            baseRegister = Value.ILLEGAL;
         } else {
             baseRegister = asAllocatable(base);
         }
 
-        if (index != Value.ILLEGAL && scale != 0) {
+        if (!index.equals(Value.ILLEGAL)) {
             if (isConstant(index)) {
                 finalDisp += asConstant(index).asLong() * scale;
             } else {
+                Value convertedIndex;
                 Value indexRegister;
-                if (scale != 1) {
-                    indexRegister = emitMul(index, Constant.forInt(scale));
-                } else {
-                    indexRegister = index;
-                }
 
-                if (baseRegister == Value.ILLEGAL) {
+                convertedIndex = emitConvert(Op.I2L, index);
+                if (scale != 1) {
+                    if (CodeUtil.isPowerOf2(scale)) {
+                        indexRegister = emitShl(convertedIndex, Constant.forInt(CodeUtil.log2(scale)));
+                    } else {
+                        indexRegister = emitMul(convertedIndex, Constant.forInt(scale));
+                    }
+                } else {
+                    indexRegister = convertedIndex;
+                }
+                if (baseRegister.equals(Value.ILLEGAL)) {
                     baseRegister = asAllocatable(indexRegister);
                 } else {
-                    Variable newBase = newVariable(Kind.Int);
-                    emitMove(newBase, baseRegister);
-                    baseRegister = newBase;
-                    baseRegister = emitAdd(baseRegister, indexRegister);
+                    Variable longBaseRegister = newVariable(Kind.Long);
+                    emitMove(longBaseRegister, baseRegister);
+                    baseRegister = emitAdd(longBaseRegister, indexRegister);
                 }
             }
         }
@@ -195,6 +260,8 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     private PTXAddressValue asAddress(Value address) {
+        assert address != null;
+
         if (address instanceof PTXAddressValue) {
             return (PTXAddressValue) address;
         } else {
@@ -219,7 +286,7 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitAddress(StackSlot address) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitAddress()");
     }
 
     @Override
@@ -231,24 +298,24 @@ public class PTXLIRGenerator extends LIRGenerator {
     public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label) {
         switch (left.getKind().getStackKind()) {
             case Int:
-                append(new CompareOp(ICMP, cond, left, right));
-                append(new BranchOp(cond, label));
+                append(new CompareOp(ICMP, cond, left, right, nextPredRegNum));
+                append(new BranchOp(cond, label, nextPredRegNum++));
                 break;
             case Long:
-                append(new CompareOp(LCMP, cond, left, right));
-                append(new BranchOp(cond, label));
+                append(new CompareOp(LCMP, cond, left, right, nextPredRegNum));
+                append(new BranchOp(cond, label, nextPredRegNum++));
                 break;
             case Float:
-                append(new CompareOp(FCMP, cond, left, right));
-                append(new BranchOp(cond, label));
+                append(new CompareOp(FCMP, cond, left, right, nextPredRegNum));
+                append(new BranchOp(cond, label, nextPredRegNum++));
                 break;
             case Double:
-                append(new CompareOp(DCMP, cond, left, right));
-                append(new BranchOp(cond, label));
+                append(new CompareOp(DCMP, cond, left, right, nextPredRegNum));
+                append(new BranchOp(cond, label, nextPredRegNum++));
                 break;
             case Object:
-                append(new CompareOp(ACMP, cond, left, right));
-                append(new BranchOp(cond, label));
+                append(new CompareOp(ACMP, cond, left, right, nextPredRegNum));
+                append(new BranchOp(cond, label, nextPredRegNum++));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("" + left.getKind());
@@ -257,79 +324,22 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitOverflowCheckBranch(LabelRef label, boolean negated) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitOverflowCheckBranch()");
     }
 
     @Override
     public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitIntegerTestBranch()");
     }
 
     @Override
     public Variable emitConditionalMove(Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
-        boolean mirrored = emitCompare(cond, left, right);
-        Condition finalCondition = mirrored ? cond.mirror() : cond;
-
-        Variable result = newVariable(trueValue.getKind());
-        switch (left.getKind().getStackKind()) {
-            case Int:
-            case Long:
-            case Object:
-                append(new CondMoveOp(result, finalCondition, load(trueValue), loadNonConst(falseValue)));
-                break;
-            case Float:
-            case Double:
-                append(new FloatCondMoveOp(result, finalCondition, unorderedIsTrue, load(trueValue), load(falseValue)));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere("missing: " + left.getKind());
-        }
-        return result;
+        // TODO: There is no conventional conditional move instruction in PTX.
+        // So, this method is changed to throw NYI exception.
+        // To be revisited if this needs to be really implemented.
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitConditionalMove()");
     }
 
-    /**
-     * This method emits the compare instruction, and may reorder the operands. It returns true if
-     * it did so.
-     *
-     *
-     * @param a the left operand of the comparison
-     * @param b the right operand of the comparison
-     * @return true if the left and right operands were switched, false otherwise
-     */
-    private boolean emitCompare(Condition cond, Value a, Value b) {
-        Variable left;
-        Value right;
-        boolean mirrored;
-        if (LIRValueUtil.isVariable(b)) {
-            left = load(b);
-            right = loadNonConst(a);
-            mirrored = true;
-        } else {
-            left = load(a);
-            right = loadNonConst(b);
-            mirrored = false;
-        }
-        switch (left.getKind().getStackKind()) {
-            case Int:
-                append(new CompareOp(ICMP, cond, left, right));
-                break;
-            case Long:
-                append(new CompareOp(LCMP, cond, left, right));
-                break;
-            case Object:
-                append(new CompareOp(ACMP, cond, left, right));
-                break;
-            case Float:
-                append(new CompareOp(FCMP, cond, left, right));
-                break;
-            case Double:
-                append(new CompareOp(DCMP, cond, left, right));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
-        return mirrored;
-    }
 
     @Override
     public Variable emitIntegerTestMove(Value left, Value right, Value trueValue, Value falseValue) {
@@ -483,12 +493,12 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitUDiv(Value a, Value b, DeoptimizingNode deopting) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitUDiv()");
     }
 
     @Override
     public Variable emitURem(Value a, Value b, DeoptimizingNode deopting) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitURem()");
     }
 
     @Override
@@ -548,7 +558,7 @@ public class PTXLIRGenerator extends LIRGenerator {
                 append(new Op2Stack(ISHL, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op1Stack(LSHL, result, loadNonConst(b)));
+                append(new Op2Stack(LSHL, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -564,7 +574,7 @@ public class PTXLIRGenerator extends LIRGenerator {
                 append(new Op2Stack(ISHR, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op1Stack(LSHR, result, loadNonConst(b)));
+                append(new Op2Stack(LSHR, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -663,28 +673,28 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimize(DeoptimizationAction action, DeoptimizingNode deopting) {
+    public void emitDeoptimize(Value actionAndReason, DeoptimizingNode deopting) {
         append(new ReturnOp(Value.ILLEGAL));
     }
 
     @Override
     public void emitMembar(int barriers) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMembar()");
     }
 
     @Override
     protected void emitDirectCall(DirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitDirectCall()");
     }
 
     @Override
     protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitIndirectCall()");
     }
 
     @Override
     protected void emitForeignCall(ForeignCallLinkage callTarget, Value result, Value[] arguments, Value[] temps, LIRFrameState info) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitForeignCall()");
     }
 
     @Override
@@ -698,47 +708,47 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitBitScanForward(Variable result, Value value) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitBitScanForward()");
     }
 
     @Override
     public void emitBitScanReverse(Variable result, Value value) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitBitScanReverse()");
     }
 
     @Override
     public Value emitMathAbs(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathAbs()");
     }
 
     @Override
     public Value emitMathSqrt(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathSqrt()");
     }
 
     @Override
     public Value emitMathLog(Value input, boolean base10) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathLog()");
     }
 
     @Override
     public Value emitMathCos(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathCos()");
     }
 
     @Override
     public Value emitMathSin(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathSin()");
     }
 
     @Override
     public Value emitMathTan(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitMathTan()");
     }
 
     @Override
     public void emitByteSwap(Variable result, Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitByteSwap()");
     }
 
     @Override
@@ -755,10 +765,10 @@ public class PTXLIRGenerator extends LIRGenerator {
         // Making a copy of the switch value is necessary because jump table destroys the input
         // value
         if (key.getKind() == Kind.Int || key.getKind() == Kind.Long) {
-            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, Value.ILLEGAL));
+            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, Value.ILLEGAL, nextPredRegNum));
         } else {
             assert key.getKind() == Kind.Object : key.getKind();
-            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, newVariable(Kind.Object)));
+            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, newVariable(Kind.Object), nextPredRegNum));
         }
     }
 
@@ -772,39 +782,39 @@ public class PTXLIRGenerator extends LIRGenerator {
         // Making a copy of the switch value is necessary because jump table destroys the input
         // value
         Variable tmp = emitMove(key);
-        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target.wordKind)));
+        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target.wordKind), nextPredRegNum++));
     }
 
     @Override
     public void visitCompareAndSwap(LoweredCompareAndSwapNode node, Value address) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.visitCompareAndSwap()");
     }
 
     @Override
     public void visitBreakpointNode(BreakpointNode node) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.visitBreakpointNode()");
     }
 
     @Override
     public void visitSafepointNode(SafepointNode i) {
-        // LIRFrameState info = state();
+        // LIRFrameState info = state(i);
         // append(new PTXSafepointOp(info, runtime().config, this));
-        throw new InternalError("NYI");
+        Debug.log("visitSafePointNode unimplemented");
     }
 
     @Override
     public void emitUnwind(Value operand) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitUnwind()");
     }
 
     @Override
     public void emitNullCheck(ValueNode v, DeoptimizingNode deopting) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.emitNullCheck()");
     }
 
     @Override
     public void visitInfopointNode(InfopointNode i) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented("PTXLIRGenerator.visitInfopointNode()");
     }
 
     public Variable emitLoadParam(Kind kind, Value address, DeoptimizingNode deopting) {
@@ -827,6 +837,13 @@ public class PTXLIRGenerator extends LIRGenerator {
         append(new StoreReturnValOp(kind, storeAddress, input, deopting != null ? state(deopting) : null));
     }
 
+    @Override
+    public AllocatableValue resultOperandFor(Kind kind) {
+        if (kind == Kind.Void) {
+            return ILLEGAL;
+        }
+        return (new Variable(kind, 0));
+    }
 
     @Override
     public void visitReturn(ReturnNode x) {

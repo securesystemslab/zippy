@@ -34,6 +34,7 @@
 #define GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING        41
 #define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR  75
 #define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR  76
+#define GRAAL_CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT      16
 #define GRAAL_CU_JIT_MAX_REGISTERS                           0
 #define GRAAL_CU_JIT_THREADS_PER_BLOCK                       1
 #define GRAAL_CU_JIT_INFO_LOG_BUFFER                         3
@@ -73,7 +74,9 @@ class Ptx {
  protected:
   static bool probe_linkage();
   static bool initialize_gpu();
+  static unsigned int total_cores();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+  static bool execute_warp(int dimX, int dimY, int dimZ, address kernel, PTXKernelArguments & ka, JavaValue &ret);
   static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
 public:
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)

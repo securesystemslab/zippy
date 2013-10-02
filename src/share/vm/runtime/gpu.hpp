@@ -36,15 +36,20 @@ class PTXKernelArguments;
 
 class gpu: AllStatic {
 public:
+
+  enum TargetGPUIL { NONE = 0, PTX = 1, HSAIL = 2};
   static void init(void);
 
   static void probe_gpu();
 
-  static void probe_linkage();
-  
   static void initialize_gpu();
+
+  static int available_processors();
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+
+  static bool execute_warp(int dimX, int dimY, int dimZ,
+                           address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
   static bool execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
@@ -66,10 +71,19 @@ public:
 
   static bool has_gpu_linkage() { return _gpu_linkage; }
 
+  static void set_target_il_type(TargetGPUIL value) {
+    _targetIL = value;
+  }
+
+  static enum gpu::TargetGPUIL get_target_il_type() {
+    return _targetIL;
+  }
+
 protected:
   static bool _available;
   static bool _gpu_linkage;
   static bool _initialized;
+  static TargetGPUIL _targetIL;
 
   // Platform dependent stuff
 #ifdef TARGET_OS_FAMILY_linux

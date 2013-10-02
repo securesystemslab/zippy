@@ -25,9 +25,11 @@ package com.oracle.graal.hotspot.replacements;
 import static com.oracle.graal.compiler.GraalCompiler.*;
 
 import java.lang.reflect.*;
+import java.util.concurrent.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.debug.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -51,7 +53,7 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
     }
 
     @Override
-    protected StructuredGraph getSnippetGraph(LoweringTool tool) {
+    protected StructuredGraph getLoweredSnippetGraph(LoweringTool tool) {
         if (!shouldIntrinsify(getTargetMethod())) {
             return null;
         }
@@ -69,12 +71,18 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
         } else {
             method = ObjectCloneSnippets.instanceCloneMethod;
         }
-        ResolvedJavaMethod snippetMethod = tool.getRuntime().lookupJavaMethod(method);
-        Replacements replacements = tool.getReplacements();
-        StructuredGraph snippetGraph = replacements.getSnippet(snippetMethod);
+        final ResolvedJavaMethod snippetMethod = tool.getRuntime().lookupJavaMethod(method);
+        final Replacements replacements = tool.getReplacements();
+        StructuredGraph snippetGraph = Debug.scope("ArrayCopySnippet", snippetMethod, new Callable<StructuredGraph>() {
+
+            @Override
+            public StructuredGraph call() throws Exception {
+                return replacements.getSnippet(snippetMethod);
+            }
+        });
 
         assert snippetGraph != null : "ObjectCloneSnippets should be installed";
-        return snippetGraph;
+        return lowerReplacement(snippetGraph.copy(), tool);
     }
 
     private static boolean isCloneableType(ResolvedJavaType type, MetaAccessProvider metaAccess) {

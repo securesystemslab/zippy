@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.compiler.ptx;
 
-import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.lir.LIRValueUtil.*;
 
 import java.util.*;
 
@@ -40,6 +40,7 @@ import com.oracle.graal.nodes.cfg.Block;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 import com.oracle.graal.lir.LIRInstruction.OperandMode;
 import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
+import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.graph.GraalInternalError;
 
 /**
@@ -49,6 +50,11 @@ public class PTXBackend extends Backend {
 
     public PTXBackend(CodeCacheProvider runtime, TargetDescription target) {
         super(runtime, target);
+    }
+
+    @Override
+    public boolean shouldAllocateRegisters() {
+        return false;
     }
 
     @Override
@@ -80,7 +86,7 @@ public class PTXBackend extends Backend {
 
     @Override
     public TargetMethodAssembler newAssembler(LIRGenerator lirGen, CompilationResult compilationResult) {
-        // Omit the frame if the method:
+        // Omit the frame of the method:
         // - has no spill slots or other slots allocated during register allocation
         // - has no callee-saved registers
         // - has no incoming arguments passed on the stack
@@ -89,14 +95,13 @@ public class PTXBackend extends Backend {
         AbstractAssembler masm = createAssembler(frameMap);
         HotSpotFrameContext frameContext = new HotSpotFrameContext();
         TargetMethodAssembler tasm = new PTXTargetMethodAssembler(target, runtime(), frameMap, masm, frameContext, compilationResult);
-        tasm.setFrameSize(frameMap.frameSize());
+        tasm.setFrameSize(0);
         return tasm;
     }
 
-    private static void emitKernelEntry(TargetMethodAssembler tasm, LIRGenerator lirGen,
-                                        ResolvedJavaMethod codeCacheOwner) {
+    private static void emitKernelEntry(TargetMethodAssembler tasm, LIRGenerator lirGen, ResolvedJavaMethod codeCacheOwner) {
         // Emit PTX kernel entry text based on PTXParameterOp
-        // instructions in the start block.  Remove the instructions
+        // instructions in the start block. Remove the instructions
         // once kernel entry text and directives are emitted to
         // facilitate seemless PTX code generation subsequently.
         assert codeCacheOwner != null : lirGen.getGraph() + " is not associated with a method";
@@ -132,8 +137,6 @@ public class PTXBackend extends Backend {
         // Start emiting body of the PTX kernel.
         codeBuffer.emitString0(") {");
         codeBuffer.emitString("");
-
-        codeBuffer.emitString(".reg .u64" + " %rax;");
     }
 
     // Emit .reg space declarations
@@ -144,23 +147,53 @@ public class PTXBackend extends Backend {
 
         final SortedSet<Integer> signed32 = new TreeSet<>();
         final SortedSet<Integer> signed64 = new TreeSet<>();
+        final SortedSet<Integer> unsigned64 = new TreeSet<>();
+        final SortedSet<Integer> float32 = new TreeSet<>();
+        final SortedSet<Integer> float64 = new TreeSet<>();
 
         ValueProcedure trackRegisterKind = new ValueProcedure() {
 
             @Override
             public Value doValue(Value value, OperandMode mode, EnumSet<OperandFlag> flags) {
-                if (isRegister(value)) {
-                    RegisterValue regVal = (RegisterValue) value;
+                if (isVariable(value)) {
+                    Variable regVal = (Variable) value;
                     Kind regKind = regVal.getKind();
                     switch (regKind) {
-                       case Int:
-                           signed32.add(regVal.getRegister().encoding());
-                           break;
-                       case Long:
-                           signed64.add(regVal.getRegister().encoding());
-                           break;
-                       default :
-                           throw GraalInternalError.shouldNotReachHere("unhandled register type "  + value.toString());
+                        case Int:
+                            // If the register was used as a wider signed type
+                            // do not add it here
+                            if (!signed64.contains(regVal.index)) {
+                                signed32.add(regVal.index);
+                            }
+                            break;
+                        case Long:
+                            // If the register was used as a narrower signed type
+                            // remove it from there and add it to wider type.
+                            if (signed32.contains(regVal.index)) {
+                                signed32.remove(regVal.index);
+                            }
+                            signed64.add(regVal.index);
+                            break;
+                        case Float:
+                            // If the register was used as a wider signed type
+                            // do not add it here
+                            if (!float64.contains(regVal.index)) {
+                                float32.add(regVal.index);
+                            }
+                            break;
+                        case Double:
+                            // If the register was used as a narrower signed type
+                            // remove it from there and add it to wider type.
+                            if (float32.contains(regVal.index)) {
+                                float32.remove(regVal.index);
+                            }
+                            float64.add(regVal.index);
+                            break;
+                        case Object:
+                            unsigned64.add(regVal.index);
+                            break;
+                        default:
+                            throw GraalInternalError.shouldNotReachHere("unhandled register type " + value.toString());
                     }
                 }
                 return value;
@@ -169,7 +202,12 @@ public class PTXBackend extends Backend {
 
         for (Block b : lirGen.lir.codeEmittingOrder()) {
             for (LIRInstruction op : lirGen.lir.lir(b)) {
-                op.forEachOutput(trackRegisterKind);
+                if (op instanceof LabelOp) {
+                    // Don't consider this as a definition
+                } else {
+                    op.forEachTemp(trackRegisterKind);
+                    op.forEachOutput(trackRegisterKind);
+                }
             }
         }
 
@@ -178,6 +216,20 @@ public class PTXBackend extends Backend {
         }
         for (Integer i : signed64) {
             codeBuffer.emitString(".reg .s64 %r" + i.intValue() + ";");
+        }
+        for (Integer i : unsigned64) {
+            codeBuffer.emitString(".reg .u64 %r" + i.intValue() + ";");
+        }
+        for (Integer i : float32) {
+            codeBuffer.emitString(".reg .f32 %r" + i.intValue() + ";");
+        }
+        for (Integer i : float64) {
+            codeBuffer.emitString(".reg .f64 %r" + i.intValue() + ";");
+        }
+        // emit predicate register declaration
+        int maxPredRegNum = ((PTXLIRGenerator) lirGen).getNextPredRegNumber();
+        if (maxPredRegNum > 0) {
+            codeBuffer.emitString(".reg .pred %p<" + maxPredRegNum + ">;");
         }
     }
 
@@ -192,6 +244,7 @@ public class PTXBackend extends Backend {
         try {
             emitRegisterDecl(tasm, lirGen, codeCacheOwner);
         } catch (GraalInternalError e) {
+            e.printStackTrace();
             // TODO : Better error handling needs to be done once
             //        all types of parameters are handled.
             codeBuffer.setPosition(0);
@@ -202,6 +255,7 @@ public class PTXBackend extends Backend {
         try {
             lirGen.lir.emitCode(tasm);
         } catch (GraalInternalError e) {
+            e.printStackTrace();
             // TODO : Better error handling needs to be done once
             //        all types of parameters are handled.
             codeBuffer.setPosition(0);

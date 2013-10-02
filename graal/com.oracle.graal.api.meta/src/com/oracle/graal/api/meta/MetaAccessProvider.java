@@ -79,11 +79,11 @@ public interface MetaAccessProvider {
     boolean constantEquals(Constant x, Constant y);
 
     /**
-     * Returns the length of an array that is wrapped in a {@link Constant} object.
-     * 
-     * @throws IllegalArgumentException if {@code array} is not an array
+     * Returns the length of an array that is wrapped in a {@link Constant} object. If {@code array}
+     * is not an array, or the array length is not available at this point, the return value is
+     * {@code null}.
      */
-    int lookupArrayLength(Constant array);
+    Integer lookupArrayLength(Constant array);
 
     /**
      * Reads a value of this kind using a base address and a displacement.
@@ -113,4 +113,11 @@ public interface MetaAccessProvider {
      * Determines if deoptimization can occur during a given foreign call.
      */
     boolean canDeoptimize(ForeignCallDescriptor descriptor);
+
+    /**
+     * Encodes a deoptimization action and a deoptimization reason in an integer value.
+     * 
+     * @return the encoded value as an integer
+     */
+    Constant encodeDeoptActionAndReason(DeoptimizationAction action, DeoptimizationReason reason);
 }

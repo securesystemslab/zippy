@@ -22,11 +22,10 @@
  */
 package com.oracle.graal.nodes.java;
 
-import static com.oracle.graal.api.code.DeoptimizationAction.*;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ProfilingInfo.TriState;
 import com.oracle.graal.graph.*;
@@ -38,7 +37,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Implements a type check against a compile-time known type.
  */
-public final class CheckCastNode extends FixedWithNextNode implements Canonicalizable, Lowerable, Node.IterableNodeType, Virtualizable, ValueProxy {
+public final class CheckCastNode extends FixedWithNextNode implements Canonicalizable, Lowerable, Virtualizable, ValueProxy {
 
     @Input private ValueNode object;
     private final ResolvedJavaType type;
@@ -96,8 +95,8 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
      * {@code LoweringPhase.checkUsagesAreScheduled()}.
      */
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        InstanceOfNode typeTest = graph().add(new InstanceOfNode(type, object, profile));
+    public void lower(LoweringTool tool) {
+        InstanceOfNode typeTest = graph().addWithoutUnique(new InstanceOfNode(type, object, profile));
         Stamp stamp = StampFactory.declared(type);
         if (stamp() instanceof ObjectStamp && object().stamp() instanceof ObjectStamp) {
             stamp = ((ObjectStamp) object().stamp()).castTo((ObjectStamp) stamp);
@@ -115,14 +114,16 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
                 graph().addBeforeFixed(this, nullGuard);
                 condition = typeTest;
                 stamp = stamp.join(StampFactory.objectNonNull());
+                nullGuard.lower(tool);
             } else {
                 // TODO (ds) replace with probability of null-seen when available
                 double shortCircuitProbability = NOT_FREQUENT_PROBABILITY;
-                condition = graph().unique(new ShortCircuitOrNode(graph().unique(new IsNullNode(object)), false, typeTest, false, shortCircuitProbability));
+                condition = LogicNode.or(graph().unique(new IsNullNode(object)), typeTest, shortCircuitProbability);
             }
         }
         GuardingPiNode checkedObject = graph().add(new GuardingPiNode(object, condition, false, forStoreCheck ? ArrayStoreException : ClassCastException, InvalidateReprofile, stamp));
         graph().replaceFixedWithFixed(this, checkedObject);
+        checkedObject.lower(tool);
     }
 
     @Override
@@ -159,7 +160,7 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
         if (ObjectStamp.isObjectAlwaysNull(object())) {
             return object();
         }
-        if (tool.assumptions().useOptimisticAssumptions()) {
+        if (tool.assumptions() != null && tool.assumptions().useOptimisticAssumptions()) {
             ResolvedJavaType exactType = type.findUniqueConcreteSubtype();
             if (exactType != null && exactType != type) {
                 // Propagate more precise type information to usages of the checkcast.

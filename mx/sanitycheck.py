@@ -252,13 +252,15 @@ def getScalaDacapo(name, dacapoArgs=None):
     return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
 
 def getBootstraps():
-    time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
+    time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms( \(compiled (?P<methods>[0-9]+) methods\))?")
     scoreMatcher = ValuesMatcher(time, {'group' : 'Bootstrap', 'name' : 'BootstrapTime', 'score' : '<time>'})
+    methodMatcher = ValuesMatcher(time, {'group' : 'Bootstrap', 'name' : 'BootstrapMethods', 'score' : '<methods>'})
     scoreMatcherBig = ValuesMatcher(time, {'group' : 'Bootstrap-bigHeap', 'name' : 'BootstrapTime', 'score' : '<time>'})
+    methodMatcherBig = ValuesMatcher(time, {'group' : 'Bootstrap-bigHeap', 'name' : 'BootstrapMethods', 'score' : '<methods>'})
 
     tests = []
-    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
-    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
+    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher, methodMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
+    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig, methodMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
 
 class CTWMode:

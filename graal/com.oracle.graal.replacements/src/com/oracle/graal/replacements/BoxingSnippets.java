@@ -79,49 +79,49 @@ public class BoxingSnippets implements Snippets {
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Boolean booleanValueOf(boolean value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Boolean.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Boolean.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Byte byteValueOf(byte value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Byte.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Byte.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Character charValueOf(char value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Character.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Character.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Double doubleValueOf(double value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Double.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Double.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Float floatValueOf(float value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Float.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Float.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Integer intValueOf(int value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Integer.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Integer.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Long longValueOf(long value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Long.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Long.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
     public static Short shortValueOf(short value) {
         valueOfCounter.inc();
-        return UnsafeCastNode.unsafeCast(Short.valueOf(value), StampFactory.forNodeIntrinsic());
+        return PiNode.piCast(Short.valueOf(value), StampFactory.forNodeIntrinsic());
     }
 
     @Snippet(inlining = BoxingSnippetInliningPolicy.class)
@@ -220,7 +220,7 @@ public class BoxingSnippets implements Snippets {
             if (canonical != null && !AOTCompilation.getValue()) {
                 box.graph().replaceFloating(box, canonical);
             } else {
-                Arguments args = new Arguments(boxSnippets.get(box.getBoxingKind()));
+                Arguments args = new Arguments(boxSnippets.get(box.getBoxingKind()), box.graph().getGuardsStage());
                 args.add("value", box.getValue());
 
                 SnippetTemplate template = template(args);
@@ -231,7 +231,7 @@ public class BoxingSnippets implements Snippets {
         }
 
         public void lower(UnboxNode unbox, LoweringTool tool) {
-            Arguments args = new Arguments(unboxSnippets.get(unbox.getBoxingKind()));
+            Arguments args = new Arguments(unboxSnippets.get(unbox.getBoxingKind()), unbox.graph().getGuardsStage());
             args.add("value", unbox.getValue());
 
             SnippetTemplate template = template(args);

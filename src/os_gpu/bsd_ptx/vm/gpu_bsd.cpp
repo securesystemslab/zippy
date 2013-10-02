@@ -33,6 +33,7 @@ void gpu::probe_gpu() {
    * a better detection solution for NVIDA PTX and AMD HSAIL.
    */
   set_available(true);
+  set_target_il_type(gpu::PTX);
   if (TraceGPUInteraction) {
     tty->print_cr("gpu_bsd::probe_gpu(APPLE): %d", gpu::is_available());
   }

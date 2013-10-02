@@ -29,7 +29,7 @@
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
-#include "kernelArguments.hpp"
+#include "ptxKernelArguments.hpp"
 
 void * gpu::Ptx::_device_context;
 int    gpu::Ptx::_cu_device = 0;
@@ -50,34 +50,26 @@ gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data
 gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
 gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
 
-void gpu::probe_linkage() {
-#if defined(__APPLE__) || defined(LINUX)
-  set_gpu_linkage(gpu::Ptx::probe_linkage());
-#else
-  set_gpu_linkage(false);
-#endif
-}
 
-void gpu::initialize_gpu() {
-  if (gpu::has_gpu_linkage()) {
-    set_initialized(gpu::Ptx::initialize_gpu());
-  }
-}
+/*
+ * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
+ */
+int ncores(int major, int minor) {
+    int device_type = (major << 4) + minor;
 
-void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
-  if (gpu::has_gpu_linkage()) {
-    return (gpu::Ptx::generate_kernel(code, code_len, name));
-  } else {
-    return NULL;
-  }
-}
-
-bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
-  if (gpu::has_gpu_linkage()) {
-    return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
-  } else {
-    return false;
-  }
+    switch (device_type) {
+        case 0x10: return 8;
+        case 0x11: return 8;
+        case 0x12: return 8;
+        case 0x13: return 8;
+        case 0x20: return 32;
+        case 0x21: return 48;
+        case 0x30: return 192;
+        case 0x35: return 192;
+    default:
+        tty->print_cr("[CUDA] Warning: Unhandled device %x", device_type);
+        return 0;
+    }
 }
 
 bool gpu::Ptx::initialize_gpu() {
@@ -125,24 +117,7 @@ bool gpu::Ptx::initialize_gpu() {
   }
 
   /* Get device attributes */
-  int minor, major, unified_addressing;
-  status = _cuda_cu_device_get_attribute(&minor, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, _cu_device);
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to get minor attribute of device: %d", _cu_device);
-    return false;
-  }
-
-  status = _cuda_cu_device_get_attribute(&major, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, _cu_device);
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to get major attribute of device: %d", _cu_device);
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
-  }
+  int unified_addressing;
 
   status = _cuda_cu_device_get_attribute(&unified_addressing, GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, _cu_device);
 
@@ -169,7 +144,48 @@ bool gpu::Ptx::initialize_gpu() {
     tty->print_cr("[CUDA] Using %s", device_name);
   }
 
+
   return true;
+}
+
+unsigned int gpu::Ptx::total_cores() {
+
+    int minor, major, nmp;
+    int status = _cuda_cu_device_get_attribute(&minor,
+                                               GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                                               _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get minor attribute of device: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&major,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get major attribute of device: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&nmp,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get numberof MPs on device: %d", _cu_device);
+        return 0;
+    }
+
+    int total = nmp * ncores(major, minor);
+
+    if (TraceGPUInteraction) {
+        tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
+        tty->print_cr("[CUDA] Number of cores: %d", total);
+    }
+    return (total);
+    
 }
 
 void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
@@ -200,7 +216,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   int status = _cuda_cu_ctx_create(&_device_context, 0, _cu_device);
 
   if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to create CUDA context for device: %d", _cu_device);
+    tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
     return NULL;
   }
 
@@ -258,15 +274,20 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
 }
 
 bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
+    return gpu::Ptx::execute_warp(1, 1, 1, kernel, ptxka, ret);
+}
+
+bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
+                            address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
   // grid dimensionality
   unsigned int gridX = 1;
   unsigned int gridY = 1;
   unsigned int gridZ = 1;
 
   // thread dimensionality
-  unsigned int blockX = 1;
-  unsigned int blockY = 1;
-  unsigned int blockZ = 1;
+  unsigned int blockX = dimX;
+  unsigned int blockY = dimY;
+  unsigned int blockZ = dimZ;
 
   struct CUfunc_st* cu_function = (struct CUfunc_st*) kernel;
 
@@ -294,7 +315,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Kernel Launch");
+    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", blockX, blockY, blockZ);
   }
 
   status = _cuda_cu_ctx_synchronize();
@@ -312,7 +333,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
   // Get the result. TODO: Move this code to get_return_oop()
   BasicType return_type = ptxka.get_ret_type();
   switch (return_type) {
-     case T_INT :
+     case T_INT:
        {
          int return_val;
          status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
@@ -323,7 +344,7 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
          ret.set_jint(return_val);
        }
        break;
-     case T_LONG :
+     case T_LONG:
        {
          long return_val;
          status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_LONG_BYTE_SIZE);
@@ -334,10 +355,14 @@ bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaVal
          ret.set_jlong(return_val);
        }
        break;
+     case T_VOID:
+       break;
      default:
-       tty->print_cr("[CUDA] TODO *** Unhandled return type");
+       tty->print_cr("[CUDA] TODO *** Unhandled return type: %d", return_type);
   }
 
+  // handle post-invocation object and array arguemtn
+  ptxka.reiterate();
 
   // Free device memory allocated for result
   status = gpu::Ptx::_cuda_cu_memfree(ptxka._return_value_ptr);

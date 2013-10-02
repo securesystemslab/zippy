@@ -22,9 +22,12 @@
  */
 package com.oracle.graal.replacements.nodes;
 
+import static java.lang.reflect.Modifier.*;
+
 import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -32,6 +35,7 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
 public class MacroNode extends AbstractStateSplit implements Lowerable, MemoryCheckpoint.Single {
 
@@ -63,35 +67,68 @@ public class MacroNode extends AbstractStateSplit implements Lowerable, MemoryCh
     }
 
     /**
-     * Gets a snippet to be used for lowering this macro node.
+     * Gets a snippet to be used for lowering this macro node. The returned graph (if non-null) must
+     * have been {@linkplain #lowerReplacement(StructuredGraph, LoweringTool) lowered}.
      */
     @SuppressWarnings("unused")
-    protected StructuredGraph getSnippetGraph(LoweringTool tool) {
+    protected StructuredGraph getLoweredSnippetGraph(LoweringTool tool) {
         return null;
     }
 
     /**
      * Gets a normal method substitution to be used for lowering this macro node. This is only
-     * called if {@link #getSnippetGraph(LoweringTool)} return nulls.
+     * called if {@link #getLoweredSnippetGraph(LoweringTool)} returns null. The returned graph (if
+     * non-null) must have been {@linkplain #lowerReplacement(StructuredGraph, LoweringTool)
+     * lowered}.
      */
-    protected StructuredGraph getSubstitutionGraph(LoweringTool tool) {
-        return tool.getReplacements().getMethodSubstitution(getTargetMethod());
+    protected StructuredGraph getLoweredSubstitutionGraph(LoweringTool tool) {
+        StructuredGraph methodSubstitution = tool.getReplacements().getMethodSubstitution(getTargetMethod());
+        if (methodSubstitution != null) {
+            return lowerReplacement(methodSubstitution.copy(), tool);
+        }
+        return null;
+    }
+
+    /**
+     * Applies {@linkplain LoweringPhase lowering} to a replacement graph.
+     * 
+     * @param replacementGraph a replacement (i.e., snippet or method substitution) graph
+     */
+    protected StructuredGraph lowerReplacement(final StructuredGraph replacementGraph, LoweringTool tool) {
+        replacementGraph.setGuardsStage(graph().getGuardsStage());
+        final PhaseContext c = new PhaseContext(tool.getRuntime(), tool.assumptions(), tool.getReplacements());
+        Debug.scope("LoweringReplacement", replacementGraph, new Runnable() {
+
+            public void run() {
+                new LoweringPhase(new CanonicalizerPhase(true)).apply(replacementGraph, c);
+            }
+        });
+        return replacementGraph;
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        boolean nullCheck = false;
-        StructuredGraph replacementGraph = getSnippetGraph(tool);
+    public void lower(LoweringTool tool) {
+        StructuredGraph replacementGraph = getLoweredSnippetGraph(tool);
         if (replacementGraph == null) {
-            replacementGraph = getSubstitutionGraph(tool);
-            nullCheck = true;
+            replacementGraph = getLoweredSubstitutionGraph(tool);
         }
 
         InvokeNode invoke = replaceWithInvoke();
         assert invoke.verify();
 
         if (replacementGraph != null) {
-            InliningUtil.inline(invoke, replacementGraph, nullCheck);
+            // Pull out the receiver null check so that a replaced
+            // receiver can be lowered if necessary
+            if (!isStatic(targetMethod.getModifiers())) {
+                ValueNode nonNullReceiver = InliningUtil.nonNullReceiver(invoke);
+                if (nonNullReceiver instanceof Lowerable) {
+                    ((Lowerable) nonNullReceiver).lower(tool);
+                }
+            }
+            InliningUtil.inline(invoke, replacementGraph, false);
+            Debug.dump(graph(), "After inlining replacement %s", replacementGraph);
+        } else {
+            invoke.lower(tool);
         }
     }
 
@@ -110,17 +147,16 @@ public class MacroNode extends AbstractStateSplit implements Lowerable, MemoryCh
     }
 
     protected void replaceSnippetInvokes(StructuredGraph snippetGraph) {
-        for (InvokeNode invoke : snippetGraph.getNodes(InvokeNode.class)) {
-            if (((MethodCallTargetNode) invoke.callTarget()).targetMethod() != getTargetMethod()) {
+        for (MethodCallTargetNode call : snippetGraph.getNodes(MethodCallTargetNode.class)) {
+            Invoke invoke = call.invoke();
+            if (call.targetMethod() != getTargetMethod()) {
                 throw new GraalInternalError("unexpected invoke %s in snippet", getClass().getSimpleName());
             }
-            if (invoke.stateAfter().bci == FrameState.INVALID_FRAMESTATE_BCI) {
-                InvokeNode newInvoke = snippetGraph.add(new InvokeNode(invoke.callTarget(), getBci()));
-                newInvoke.setStateAfter(snippetGraph.add(new FrameState(FrameState.AFTER_BCI)));
-                snippetGraph.replaceFixedWithFixed(invoke, newInvoke);
-            } else {
-                assert invoke.stateAfter().bci == FrameState.AFTER_BCI : invoke;
-            }
+            assert invoke.stateAfter().bci == FrameState.AFTER_BCI;
+            // Here we need to fix the bci of the invoke
+            InvokeNode newInvoke = snippetGraph.add(new InvokeNode(invoke.callTarget(), getBci()));
+            newInvoke.setStateAfter(invoke.stateAfter());
+            snippetGraph.replaceFixedWithFixed((InvokeNode) invoke.asNode(), newInvoke);
         }
     }
 

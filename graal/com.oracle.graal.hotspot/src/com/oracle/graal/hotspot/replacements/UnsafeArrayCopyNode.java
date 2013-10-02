@@ -92,8 +92,8 @@ public final class UnsafeArrayCopyNode extends ArrayRangeWriteNode implements Lo
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        if (loweringType == LoweringType.AFTER_FSA) {
+    public void lower(LoweringTool tool) {
+        if (graph().getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
             UnsafeArrayCopySnippets.Templates templates = tool.getReplacements().getSnippetTemplateCache(UnsafeArrayCopySnippets.Templates.class);
             templates.lower(this);
         }
@@ -112,11 +112,7 @@ public final class UnsafeArrayCopyNode extends ArrayRangeWriteNode implements Lo
 
     @Override
     public LocationIdentity getLocationIdentity() {
-        if (elementKind == null) {
-            return ANY_LOCATION;
-        } else {
-            return NamedLocationIdentity.getArrayLocation(elementKind);
-        }
+        return ANY_LOCATION;
     }
 
     @NodeIntrinsic

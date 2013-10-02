@@ -22,12 +22,12 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.api.code.DeoptimizationAction.*;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.hotspot.replacements.TypeCheckSnippetUtils.*;
+import static com.oracle.graal.nodes.PiNode.*;
 import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
-import static com.oracle.graal.nodes.extended.UnsafeCastNode.*;
 import static com.oracle.graal.replacements.SnippetTemplate.*;
 
 import com.oracle.graal.api.code.*;
@@ -59,7 +59,7 @@ public class CheckCastDynamicSnippets implements Snippets {
             }
         }
         BeginNode anchorNode = BeginNode.anchor();
-        return unsafeCast(verifyOop(object), StampFactory.forNodeIntrinsic(), anchorNode);
+        return piCast(verifyOop(object), StampFactory.forNodeIntrinsic(), anchorNode);
     }
 
     public static class Templates extends AbstractTemplates {
@@ -74,7 +74,7 @@ public class CheckCastDynamicSnippets implements Snippets {
             StructuredGraph graph = checkcast.graph();
             ValueNode object = checkcast.object();
 
-            Arguments args = new Arguments(dynamic);
+            Arguments args = new Arguments(dynamic, graph.getGuardsStage());
             args.add("hub", checkcast.hub());
             args.add("object", object);
 

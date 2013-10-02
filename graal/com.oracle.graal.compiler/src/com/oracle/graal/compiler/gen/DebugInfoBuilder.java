@@ -48,7 +48,7 @@ public class DebugInfoBuilder {
     protected HashMap<VirtualObjectNode, VirtualObject> virtualObjects = new HashMap<>();
     protected IdentityHashMap<VirtualObjectNode, EscapeObjectState> objectStates = new IdentityHashMap<>();
 
-    public LIRFrameState build(FrameState topState, short reason, LabelRef exceptionEdge) {
+    public LIRFrameState build(FrameState topState, LabelRef exceptionEdge) {
         assert virtualObjects.size() == 0;
         assert objectStates.size() == 0;
 
@@ -101,11 +101,11 @@ public class DebugInfoBuilder {
         }
         objectStates.clear();
 
-        return newLIRFrameState(reason, exceptionEdge, frame, virtualObjectsArray);
+        return newLIRFrameState(exceptionEdge, frame, virtualObjectsArray);
     }
 
-    protected LIRFrameState newLIRFrameState(short reason, LabelRef exceptionEdge, BytecodeFrame frame, VirtualObject[] virtualObjectsArray) {
-        return new LIRFrameState(frame, virtualObjectsArray, exceptionEdge, reason);
+    protected LIRFrameState newLIRFrameState(LabelRef exceptionEdge, BytecodeFrame frame, VirtualObject[] virtualObjectsArray) {
+        return new LIRFrameState(frame, virtualObjectsArray, exceptionEdge);
     }
 
     protected BytecodeFrame computeFrameForState(FrameState state) {
@@ -122,7 +122,7 @@ public class DebugInfoBuilder {
         if (state.outerFrameState() != null) {
             caller = computeFrameForState(state.outerFrameState());
         }
-        assert state.bci != FrameState.UNKNOWN_BCI : "bci == " + state.bci;
+        assert state.bci >= FrameState.BEFORE_BCI : "bci == " + state.bci;
         return new BytecodeFrame(caller, state.method(), state.bci, state.rethrowException(), state.duringCall(), values, numLocals, numStack, numLocks);
     }
 

@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.graph;
 
+import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Source;
@@ -51,6 +52,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     private Point position;
     private List<Figure> predecessors;
     private List<Figure> successors;
+    private List<InputGraph> subgraphs;
     private Color color;
     private int id;
     private String idString;
@@ -175,6 +177,14 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     protected void removeSuccessor(Figure f) {
         assert successors.contains(f);
         successors.remove(f);
+    }
+
+    public List<InputGraph> getSubgraphs() {
+        return subgraphs;
+    }
+
+    public void setSubgraphs(List<InputGraph> subgraphs) {
+        this.subgraphs = subgraphs;
     }
 
     @Override

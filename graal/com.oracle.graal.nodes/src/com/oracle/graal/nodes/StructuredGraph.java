@@ -37,6 +37,35 @@ import com.oracle.graal.nodes.util.*;
  */
 public class StructuredGraph extends Graph {
 
+    /**
+     * The different stages of the compilation of a {@link Graph} regarding the status of
+     * {@link GuardNode guards}, {@link DeoptimizingNode deoptimizations} and {@link FrameState
+     * framestates}. The stage of a graph progresses monotonously.
+     * 
+     */
+    public static enum GuardsStage {
+        /**
+         * During this stage, there can be {@link FloatingNode floating} {@link DeoptimizingNode}
+         * such as {@link GuardNode GuardNodes}. New {@link DeoptimizingNode DeoptimizingNodes} can
+         * be introduced without constraints. {@link FrameState} nodes are associated with
+         * {@link StateSplit} nodes.
+         */
+        FLOATING_GUARDS,
+        /**
+         * During this stage, all {@link DeoptimizingNode DeoptimizingNodes} must be
+         * {@link FixedNode fixed} but new {@link DeoptimizingNode DeoptimizingNodes} can still be
+         * introduced. {@link FrameState} nodes are still associated with {@link StateSplit} nodes.
+         */
+        FIXED_DEOPTS,
+        /**
+         * During this stage, all {@link DeoptimizingNode DeoptimizingNodes} must be
+         * {@link FixedNode fixed}. New {@link DeoptimizingNode DeoptimizingNodes} can not be
+         * introduced any more. {@link FrameState} nodes are now associated with
+         * {@link DeoptimizingNode} nodes.
+         */
+        AFTER_FSA
+    }
+
     public static final int INVOCATION_ENTRY_BCI = -1;
     public static final long INVALID_GRAPH_ID = -1;
 
@@ -48,6 +77,8 @@ public class StructuredGraph extends Graph {
     private final ResolvedJavaMethod method;
     private final long graphId;
     private final int entryBCI;
+    private GuardsStage guardsStage = GuardsStage.FLOATING_GUARDS;
+    private boolean isAfterFloatingReadPhase = false;
 
     /**
      * Creates a new Graph containing a single {@link AbstractBeginNode} as the {@link #start()
@@ -148,7 +179,7 @@ public class StructuredGraph extends Graph {
         StructuredGraph copy = new StructuredGraph(newName, newMethod, graphId, entryBCI);
         HashMap<Node, Node> replacements = new HashMap<>();
         replacements.put(start, copy.start);
-        copy.addDuplicates(getNodes(), replacements);
+        copy.addDuplicates(getNodes(), this, this.getNodeCount(), replacements);
         return copy;
     }
 
@@ -385,5 +416,23 @@ public class StructuredGraph extends Graph {
         } else {
             singleEnd.replaceAndDelete(sux);
         }
+    }
+
+    public GuardsStage getGuardsStage() {
+        return guardsStage;
+    }
+
+    public void setGuardsStage(GuardsStage guardsStage) {
+        assert guardsStage.ordinal() >= this.guardsStage.ordinal();
+        this.guardsStage = guardsStage;
+    }
+
+    public boolean isAfterFloatingReadPhase() {
+        return isAfterFloatingReadPhase;
+    }
+
+    public void setAfterFloatingReadPhase(boolean state) {
+        assert state : "cannot 'unapply' floating read phase on graph";
+        isAfterFloatingReadPhase = state;
     }
 }

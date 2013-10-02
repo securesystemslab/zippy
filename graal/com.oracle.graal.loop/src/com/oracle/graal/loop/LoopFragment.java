@@ -129,15 +129,10 @@ public abstract class LoopFragment {
                     }
                 };
             } else {
-                dr = new DuplicationReplacement() {
-
-                    @Override
-                    public Node replacement(Node o) {
-                        return o;
-                    }
-                };
+                dr = null;
             }
-            duplicationMap = graph().addDuplicates(original().nodes(), dr);
+            NodeIterable<Node> nodesIterable = original().nodes();
+            duplicationMap = graph().addDuplicates(nodesIterable, graph(), nodesIterable.count(), dr);
             finishDuplication();
             nodesReady = true;
         } else {
@@ -295,7 +290,7 @@ public abstract class LoopFragment {
                 final ValueNode replaceWith;
                 ProxyNode newVpn = getDuplicatedNode(vpn);
                 if (newVpn != null) {
-                    PhiNode phi = graph.add(vpn.type() == PhiType.Value ? new PhiNode(vpn.kind(), merge) : new PhiNode(vpn.type(), merge, vpn.getIdentity()));
+                    PhiNode phi = graph.addWithoutUnique(vpn.type() == PhiType.Value ? new PhiNode(vpn.kind(), merge) : new PhiNode(vpn.type(), merge, vpn.getIdentity()));
                     phi.addInput(vpn);
                     phi.addInput(newVpn);
                     replaceWith = phi;

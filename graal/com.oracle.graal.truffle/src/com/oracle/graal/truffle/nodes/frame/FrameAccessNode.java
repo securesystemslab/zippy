@@ -25,7 +25,6 @@ package com.oracle.graal.truffle.nodes.frame;
 import java.lang.reflect.*;
 import java.util.*;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -89,7 +88,7 @@ public abstract class FrameAccessNode extends FixedWithNextNode implements Simpl
     @Override
     public String toString(Verbosity verbosity) {
         if (verbosity == Verbosity.Name) {
-            return super.toString(verbosity) + getSlotKind().name() + (isConstantFrameSlot() ? " " + getConstantFrameSlot() : "");
+            return super.toString(verbosity) + getSlotKind().name() + (slot != null && isConstantFrameSlot() ? " " + getConstantFrameSlot() : "");
         } else {
             return super.toString(verbosity);
         }

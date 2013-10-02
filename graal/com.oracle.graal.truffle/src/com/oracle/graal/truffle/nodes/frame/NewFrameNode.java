@@ -27,7 +27,6 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -59,7 +58,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
     }
 
     public NewFrameNode(ValueNode descriptor, ValueNode caller, ValueNode arguments) {
-        this(StampFactory.declaredNonNull(FRAME_TYPE), descriptor, caller, arguments);
+        this(StampFactory.exactNonNull(FRAME_TYPE), descriptor, caller, arguments);
     }
 
     public ValueNode getDescriptor() {

@@ -29,7 +29,6 @@ import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.lang.reflect.*;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
@@ -56,9 +55,12 @@ public class ObjectCloneSnippets implements Snippets {
         Word prototypeMarkWord = hub.readWord(prototypeMarkWordOffset(), PROTOTYPE_MARK_WORD_LOCATION);
         Object result = NewObjectSnippets.allocateInstance(instanceSize, hub, prototypeMarkWord, false);
 
-        Pointer memory = Word.fromObject(result);
         for (int offset = instanceHeaderSize(); offset < instanceSize; offset += wordSize()) {
-            memory.writeWord(offset, Word.fromObject(src).readWord(offset, ANY_LOCATION), ANY_LOCATION);
+            /*
+             * TODO atomicity problem on 32-bit architectures: The JVM spec requires double values
+             * to be copied atomically, but here they are copied as two 4-byte word values.
+             */
+            ObjectAccess.writeWord(result, offset, ObjectAccess.readWord(src, offset, ANY_LOCATION), ANY_LOCATION);
         }
 
         return result;
@@ -73,9 +75,12 @@ public class ObjectCloneSnippets implements Snippets {
         Word prototypeMarkWord = hub.readWord(prototypeMarkWordOffset(), PROTOTYPE_MARK_WORD_LOCATION);
         Object result = NewObjectSnippets.allocateArray(hub, arrayLength, prototypeMarkWord, headerSize, log2ElementSize, false);
 
-        Pointer memory = Word.fromObject(result);
         for (int offset = headerSize; offset < sizeInBytes; offset += wordSize()) {
-            memory.writeWord(offset, Word.fromObject(src).readWord(offset, ANY_LOCATION), ANY_LOCATION);
+            /*
+             * TODO atomicity problem on 32-bit architectures: The JVM spec requires double values
+             * to be copied atomically, but here they are copied as two 4-byte word values.
+             */
+            ObjectAccess.writeWord(result, offset, ObjectAccess.readWord(src, offset, ANY_LOCATION), ANY_LOCATION);
         }
         return result;
     }

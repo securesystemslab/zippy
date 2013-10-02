@@ -26,12 +26,11 @@ import static com.oracle.graal.graph.Graph.*;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.*;
 
+import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
 import com.oracle.graal.graph.Node.Input;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.graph.Node.Successor;
 import com.oracle.graal.graph.Node.Verbosity;
 
@@ -139,11 +138,15 @@ public final class NodeClass extends FieldIntrospection {
     private final long[] successorOffsets;
     private final Class<?>[] dataTypes;
     private final boolean canGVN;
+    private final boolean isLeafNode;
     private final int startGVNNumber;
     private final String shortName;
     private final String nameTemplate;
     private final int iterableId;
     private int[] iterableIds;
+
+    private static final DebugMetric ITERABLE_NODE_TYPES = Debug.metric("IterableNodeTypes");
+    private final DebugMetric nodeIterableCount;
 
     private NodeClass(Class<?> clazz) {
         super(clazz);
@@ -185,14 +188,15 @@ public final class NodeClass extends FieldIntrospection {
         }
         this.nameTemplate = newNameTemplate == null ? newShortName : newNameTemplate;
         this.shortName = newShortName;
-        if (Node.IterableNodeType.class.isAssignableFrom(clazz)) {
+        if (IterableNodeType.class.isAssignableFrom(clazz)) {
+            ITERABLE_NODE_TYPES.increment();
             this.iterableId = nextIterableId++;
             List<NodeClass> existingClasses = new LinkedList<>();
             for (FieldIntrospection nodeClass : allClasses.values()) {
                 if (clazz.isAssignableFrom(nodeClass.clazz)) {
                     existingClasses.add((NodeClass) nodeClass);
                 }
-                if (nodeClass.clazz.isAssignableFrom(clazz) && Node.IterableNodeType.class.isAssignableFrom(nodeClass.clazz)) {
+                if (nodeClass.clazz.isAssignableFrom(clazz) && IterableNodeType.class.isAssignableFrom(nodeClass.clazz)) {
                     NodeClass superNodeClass = (NodeClass) nodeClass;
                     superNodeClass.iterableIds = Arrays.copyOf(superNodeClass.iterableIds, superNodeClass.iterableIds.length + 1);
                     superNodeClass.iterableIds[superNodeClass.iterableIds.length - 1] = this.iterableId;
@@ -209,6 +213,9 @@ public final class NodeClass extends FieldIntrospection {
             this.iterableId = NOT_ITERABLE;
             this.iterableIds = null;
         }
+
+        isLeafNode = (this.inputOffsets.length == 0 && this.successorOffsets.length == 0);
+        nodeIterableCount = Debug.metric("NodeIterable_" + shortName);
     }
 
     @Override
@@ -236,6 +243,7 @@ public final class NodeClass extends FieldIntrospection {
     }
 
     public int[] iterableIds() {
+        nodeIterableCount.increment();
         return iterableIds;
     }
 
@@ -245,6 +253,10 @@ public final class NodeClass extends FieldIntrospection {
 
     public boolean valueNumberable() {
         return canGVN;
+    }
+
+    public boolean isLeafNode() {
+        return isLeafNode;
     }
 
     public static int cacheSize() {
@@ -417,6 +429,7 @@ public final class NodeClass extends FieldIntrospection {
      */
     public static final class NodeClassIterator implements Iterator<Node> {
 
+        private final NodeClass nodeClass;
         private final Node node;
         private final int modCount;
         private final int directCount;
@@ -434,6 +447,7 @@ public final class NodeClass extends FieldIntrospection {
          */
         private NodeClassIterator(Node node, long[] offsets, int directCount) {
             this.node = node;
+            this.nodeClass = node.getNodeClass();
             this.modCount = MODIFICATION_COUNTS_ENABLED ? node.modCount() : 0;
             this.offsets = offsets;
             this.directCount = directCount;
@@ -500,9 +514,9 @@ public final class NodeClass extends FieldIntrospection {
         public Position nextPosition() {
             try {
                 if (index < directCount) {
-                    return new Position(offsets == node.getNodeClass().inputOffsets, index, NOT_ITERABLE);
+                    return new Position(offsets == nodeClass.inputOffsets, index, NOT_ITERABLE);
                 } else {
-                    return new Position(offsets == node.getNodeClass().inputOffsets, index, subIndex);
+                    return new Position(offsets == nodeClass.inputOffsets, index, subIndex);
                 }
             } finally {
                 forward();
@@ -581,7 +595,7 @@ public final class NodeClass extends FieldIntrospection {
     }
 
     public boolean valueEqual(Node a, Node b) {
-        if (!canGVN || a.getNodeClass() != b.getNodeClass()) {
+        if (!canGVN || a.getClass() != b.getClass()) {
             return a == b;
         }
         for (int i = 0; i < dataOffsets.length; ++i) {
@@ -657,6 +671,84 @@ public final class NodeClass extends FieldIntrospection {
 
     public String getName(Position pos) {
         return fieldNames.get(pos.input ? inputOffsets[pos.index] : successorOffsets[pos.index]);
+    }
+
+    void updateInputSuccInPlace(Node node, InplaceUpdateClosure duplicationReplacement) {
+        int index = 0;
+        while (index < directInputCount) {
+            Node input = getNode(node, inputOffsets[index]);
+            if (input != null) {
+                Node newInput = duplicationReplacement.replacement(input, true);
+                node.updateUsages(null, newInput);
+                putNode(node, inputOffsets[index], newInput);
+            }
+            index++;
+        }
+
+        if (index < inputOffsets.length) {
+            updateInputLists(node, duplicationReplacement, index);
+        }
+
+        index = 0;
+        while (index < directSuccessorCount) {
+            Node successor = getNode(node, successorOffsets[index]);
+            if (successor != null) {
+                Node newSucc = duplicationReplacement.replacement(successor, false);
+                node.updatePredecessor(null, newSucc);
+                putNode(node, successorOffsets[index], newSucc);
+            }
+            index++;
+        }
+
+        if (index < successorOffsets.length) {
+            updateSuccLists(node, duplicationReplacement, index);
+        }
+    }
+
+    private void updateInputLists(Node node, InplaceUpdateClosure duplicationReplacement, int startIndex) {
+        int index = startIndex;
+        while (index < inputOffsets.length) {
+            NodeList<Node> list = getNodeList(node, inputOffsets[index]);
+            putNodeList(node, inputOffsets[index], updateInputListCopy(list, node, duplicationReplacement));
+            assert list != null : clazz;
+            index++;
+        }
+    }
+
+    private void updateSuccLists(Node node, InplaceUpdateClosure duplicationReplacement, int startIndex) {
+        int index = startIndex;
+        while (index < successorOffsets.length) {
+            NodeList<Node> list = getNodeList(node, successorOffsets[index]);
+            putNodeList(node, successorOffsets[index], updateSuccListCopy(list, node, duplicationReplacement));
+            assert list != null : clazz;
+            index++;
+        }
+    }
+
+    private static NodeInputList<Node> updateInputListCopy(NodeList<Node> list, Node node, InplaceUpdateClosure duplicationReplacement) {
+        int size = list.size();
+        NodeInputList<Node> result = new NodeInputList<>(node, size);
+        for (int i = 0; i < list.count(); ++i) {
+            Node oldNode = list.get(i);
+            if (oldNode != null) {
+                Node newNode = duplicationReplacement.replacement(oldNode, true);
+                result.set(i, newNode);
+            }
+        }
+        return result;
+    }
+
+    private static NodeSuccessorList<Node> updateSuccListCopy(NodeList<Node> list, Node node, InplaceUpdateClosure duplicationReplacement) {
+        int size = list.size();
+        NodeSuccessorList<Node> result = new NodeSuccessorList<>(node, size);
+        for (int i = 0; i < list.count(); ++i) {
+            Node oldNode = list.get(i);
+            if (oldNode != null) {
+                Node newNode = duplicationReplacement.replacement(oldNode, false);
+                result.set(i, newNode);
+            }
+        }
+        return result;
     }
 
     public void set(Node node, Position pos, Node x) {
@@ -955,78 +1047,113 @@ public final class NodeClass extends FieldIntrospection {
         return nameTemplate;
     }
 
-    static Map<Node, Node> addGraphDuplicate(Graph graph, Iterable<Node> nodes, DuplicationReplacement replacements) {
-        Map<Node, Node> newNodes = new IdentityHashMap<>();
-        Map<Node, Node> replacementsMap = new IdentityHashMap<>();
-        // create node duplicates
+    interface InplaceUpdateClosure {
+
+        Node replacement(Node node, boolean isInput);
+    }
+
+    static Map<Node, Node> addGraphDuplicate(final Graph graph, final Graph oldGraph, int estimatedNodeCount, Iterable<Node> nodes, final DuplicationReplacement replacements) {
+        final Map<Node, Node> newNodes = (estimatedNodeCount > (oldGraph.getNodeCount() + oldGraph.getDeletedNodeCount() >> 4)) ? new NodeNodeMap(oldGraph) : new IdentityHashMap<Node, Node>();
+        createNodeDuplicates(graph, nodes, replacements, newNodes);
+
+        InplaceUpdateClosure replacementClosure = new InplaceUpdateClosure() {
+
+            public Node replacement(Node node, boolean isInput) {
+                Node target = newNodes.get(node);
+                if (target == null) {
+                    Node replacement = node;
+                    if (replacements != null) {
+                        replacement = replacements.replacement(node);
+                    }
+                    if (replacement != node) {
+                        target = replacement;
+                    } else if (node.graph() == graph && isInput) {
+                        // patch to the outer world
+                        target = node;
+                    }
+
+                }
+                return target;
+            }
+
+        };
+
+        // re-wire inputs
+        for (Node oldNode : nodes) {
+            Node node = newNodes.get(oldNode);
+            NodeClass oldNodeClass = oldNode.getNodeClass();
+            NodeClass nodeClass = node.getNodeClass();
+            if (replacements == null || replacements.replacement(oldNode) == oldNode) {
+                nodeClass.updateInputSuccInPlace(node, replacementClosure);
+            } else {
+                transferValuesDifferentNodeClass(graph, replacements, newNodes, oldNode, node, oldNodeClass, nodeClass);
+            }
+        }
+
+        return newNodes;
+    }
+
+    private static void createNodeDuplicates(final Graph graph, Iterable<Node> nodes, final DuplicationReplacement replacements, final Map<Node, Node> newNodes) {
         for (Node node : nodes) {
             if (node != null) {
                 assert !node.isDeleted() : "trying to duplicate deleted node: " + node;
-                Node replacement = replacements.replacement(node);
+                Node replacement = node;
+                if (replacements != null) {
+                    replacement = replacements.replacement(node);
+                }
                 if (replacement != node) {
                     assert replacement != null;
                     newNodes.put(node, replacement);
                 } else {
-                    Node newNode = node.clone(graph);
+                    Node newNode = node.clone(graph, false);
+                    assert newNode.usages().count() == 0 || newNode.inputs().count() == 0;
                     assert newNode.getClass() == node.getClass();
                     newNodes.put(node, newNode);
                 }
             }
         }
-        // re-wire inputs
-        for (Entry<Node, Node> entry : newNodes.entrySet()) {
-            Node oldNode = entry.getKey();
-            Node node = entry.getValue();
-            for (NodeClassIterator iter = oldNode.inputs().iterator(); iter.hasNext();) {
-                Position pos = iter.nextPosition();
-                if (!pos.isValidFor(node, oldNode)) {
-                    continue;
-                }
-                Node input = oldNode.getNodeClass().get(oldNode, pos);
-                Node target = newNodes.get(input);
-                if (target == null) {
-                    target = replacementsMap.get(input);
-                    if (target == null) {
-                        Node replacement = replacements.replacement(input);
-                        if (replacement != input) {
-                            replacementsMap.put(input, replacement);
-                            assert isAssignable(node.getNodeClass().fieldTypes.get(node.getNodeClass().inputOffsets[pos.index]), replacement);
-                            target = replacement;
-                        } else if (input.graph() == graph) { // patch to the outer world
-                            target = input;
-                        }
-                    }
-                }
-                node.getNodeClass().set(node, pos, target);
+    }
+
+    private static void transferValuesDifferentNodeClass(final Graph graph, final DuplicationReplacement replacements, final Map<Node, Node> newNodes, Node oldNode, Node node, NodeClass oldNodeClass,
+                    NodeClass nodeClass) {
+        for (NodeClassIterator iter = oldNode.inputs().iterator(); iter.hasNext();) {
+            Position pos = iter.nextPosition();
+            if (!nodeClass.isValid(pos, oldNodeClass)) {
+                continue;
             }
+            Node input = oldNodeClass.get(oldNode, pos);
+            Node target = newNodes.get(input);
+            if (target == null) {
+                Node replacement = input;
+                if (replacements != null) {
+                    replacement = replacements.replacement(input);
+                }
+                if (replacement != input) {
+                    assert isAssignable(nodeClass.fieldTypes.get(nodeClass.inputOffsets[pos.index]), replacement);
+                    target = replacement;
+                } else if (input.graph() == graph) { // patch to the outer world
+                    target = input;
+                }
+            }
+            nodeClass.set(node, pos, target);
         }
 
-        // re-wire successors
-        for (Entry<Node, Node> entry : newNodes.entrySet()) {
-            Node oldNode = entry.getKey();
-            Node node = entry.getValue();
-            for (NodeClassIterator iter = oldNode.successors().iterator(); iter.hasNext();) {
-                Position pos = iter.nextPosition();
-                if (!pos.isValidFor(node, oldNode)) {
-                    continue;
-                }
-                Node succ = oldNode.getNodeClass().get(oldNode, pos);
-                Node target = newNodes.get(succ);
-                if (target == null) {
-                    target = replacementsMap.get(succ);
-                    if (target == null) {
-                        Node replacement = replacements.replacement(succ);
-                        if (replacement != succ) {
-                            replacementsMap.put(succ, replacement);
-                            assert isAssignable(node.getNodeClass().fieldTypes.get(node.getNodeClass().successorOffsets[pos.index]), replacement);
-                            target = replacement;
-                        }
-                    }
-                }
-                node.getNodeClass().set(node, pos, target);
+        for (NodeClassIterator iter = oldNode.successors().iterator(); iter.hasNext();) {
+            Position pos = iter.nextPosition();
+            if (!nodeClass.isValid(pos, oldNodeClass)) {
+                continue;
             }
+            Node succ = oldNodeClass.get(oldNode, pos);
+            Node target = newNodes.get(succ);
+            if (target == null) {
+                Node replacement = replacements.replacement(succ);
+                if (replacement != succ) {
+                    assert isAssignable(nodeClass.fieldTypes.get(node.getNodeClass().successorOffsets[pos.index]), replacement);
+                    target = replacement;
+                }
+            }
+            nodeClass.set(node, pos, target);
         }
-        return newNodes;
     }
 
     private static boolean isAssignable(Class<?> fieldType, Node replacement) {

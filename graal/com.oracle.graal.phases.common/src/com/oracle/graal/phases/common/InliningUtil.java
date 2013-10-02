@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.phases.common;
 
-import static com.oracle.graal.api.code.DeoptimizationAction.*;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.nodes.type.StampFactory.*;
 import static com.oracle.graal.phases.GraalOptions.*;
@@ -38,7 +38,8 @@ import com.oracle.graal.api.meta.JavaTypeProfile.ProfiledType;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.*;
+import com.oracle.graal.graph.Graph.DuplicationReplacement;
+import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
@@ -349,10 +350,11 @@ public class InliningUtil {
      * Represents an inlining opportunity where the compiler can statically determine a monomorphic
      * target method and therefore is able to determine the called method exactly.
      */
-    private static class ExactInlineInfo extends AbstractInlineInfo {
+    public static class ExactInlineInfo extends AbstractInlineInfo {
 
         protected final ResolvedJavaMethod concrete;
         private Inlineable inlineableElement;
+        private boolean suppressNullCheck;
 
         public ExactInlineInfo(Invoke invoke, ResolvedJavaMethod concrete) {
             super(invoke);
@@ -360,9 +362,13 @@ public class InliningUtil {
             assert concrete != null;
         }
 
+        public void suppressNullCheck() {
+            suppressNullCheck = true;
+        }
+
         @Override
         public void inline(MetaAccessProvider runtime, Assumptions assumptions, Replacements replacements) {
-            inline(invoke, concrete, inlineableElement, assumptions, true);
+            inline(invoke, concrete, inlineableElement, assumptions, !suppressNullCheck);
         }
 
         @Override
@@ -478,7 +484,7 @@ public class InliningUtil {
         private void createGuard(StructuredGraph graph, MetaAccessProvider runtime) {
             ValueNode nonNullReceiver = InliningUtil.nonNullReceiver(invoke);
             ConstantNode typeHub = ConstantNode.forConstant(type.getEncoding(Representation.ObjectHub), runtime, graph);
-            LoadHubNode receiverHub = graph.add(new LoadHubNode(nonNullReceiver, typeHub.kind(), null));
+            LoadHubNode receiverHub = graph.unique(new LoadHubNode(nonNullReceiver, typeHub.kind(), null));
 
             CompareNode typeCheck = CompareNode.createCompareNode(Condition.EQ, receiverHub, typeHub);
             FixedGuardNode guard = graph.add(new FixedGuardNode(typeCheck, DeoptimizationReason.TypeCheckedInliningViolated, DeoptimizationAction.InvalidateReprofile));
@@ -604,11 +610,11 @@ public class InliningUtil {
             ValueNode originalReceiver = ((MethodCallTargetNode) invoke.callTarget()).receiver();
             // setup merge and phi nodes for results and exceptions
             MergeNode returnMerge = graph.add(new MergeNode());
-            returnMerge.setStateAfter(invoke.stateAfter().duplicate(invoke.stateAfter().bci));
+            returnMerge.setStateAfter(invoke.stateAfter());
 
             PhiNode returnValuePhi = null;
             if (invoke.asNode().kind() != Kind.Void) {
-                returnValuePhi = graph.add(new PhiNode(invoke.asNode().kind(), returnMerge));
+                returnValuePhi = graph.addWithoutUnique(new PhiNode(invoke.asNode().kind(), returnMerge));
             }
 
             MergeNode exceptionMerge = null;
@@ -621,7 +627,7 @@ public class InliningUtil {
 
                 FixedNode exceptionSux = exceptionEdge.next();
                 graph.addBeforeFixed(exceptionSux, exceptionMerge);
-                exceptionObjectPhi = graph.add(new PhiNode(Kind.Object, exceptionMerge));
+                exceptionObjectPhi = graph.addWithoutUnique(new PhiNode(Kind.Object, exceptionMerge));
                 exceptionMerge.setStateAfter(exceptionEdge.stateAfter().duplicateModified(invoke.stateAfter().bci, true, Kind.Object, exceptionObjectPhi));
             }
 
@@ -707,7 +713,8 @@ public class InliningUtil {
                 if (opportunities > 0) {
                     metricInliningTailDuplication.increment();
                     Debug.log("MultiTypeGuardInlineInfo starting tail duplication (%d opportunities)", opportunities);
-                    TailDuplicationPhase.tailDuplicate(returnMerge, TailDuplicationPhase.TRUE_DECISION, replacementNodes, new PhaseContext(runtime, assumptions, replacements));
+                    TailDuplicationPhase.tailDuplicate(returnMerge, TailDuplicationPhase.TRUE_DECISION, replacementNodes, new PhaseContext(runtime, assumptions, replacements), new CanonicalizerPhase(
+                                    !AOTCompilation.getValue()));
                 }
             }
         }
@@ -763,7 +770,7 @@ public class InliningUtil {
             assert ptypes.size() >= 1;
             ValueNode nonNullReceiver = nonNullReceiver(invoke);
             Kind hubKind = ((MethodCallTargetNode) invoke.callTarget()).targetMethod().getDeclaringClass().getEncoding(Representation.ObjectHub).getKind();
-            LoadHubNode hub = graph.add(new LoadHubNode(nonNullReceiver, hubKind, null));
+            LoadHubNode hub = graph.unique(new LoadHubNode(nonNullReceiver, hubKind, null));
 
             if (!invokeIsOnlySuccessor && chooseMethodDispatch()) {
                 assert successors.length == concretes.size() + 1;
@@ -1287,7 +1294,7 @@ public class InliningUtil {
      *            false if no such check is required
      */
     public static Map<Node, Node> inline(Invoke invoke, StructuredGraph inlineGraph, boolean receiverNullCheck) {
-        NodeInputList<ValueNode> parameters = invoke.callTarget().arguments();
+        final NodeInputList<ValueNode> parameters = invoke.callTarget().arguments();
         StructuredGraph graph = invoke.asNode().graph();
 
         FrameState stateAfter = invoke.stateAfter();
@@ -1296,17 +1303,17 @@ public class InliningUtil {
             nonNullReceiver(invoke);
         }
 
-        IdentityHashMap<Node, Node> replacements = new IdentityHashMap<>();
-        ArrayList<Node> nodes = new ArrayList<>();
+        ArrayList<Node> nodes = new ArrayList<>(inlineGraph.getNodes().count());
         ReturnNode returnNode = null;
         UnwindNode unwindNode = null;
-        StartNode entryPointNode = inlineGraph.start();
+        final StartNode entryPointNode = inlineGraph.start();
         FixedNode firstCFGNode = entryPointNode.next();
+        if (firstCFGNode == null) {
+            throw new IllegalStateException("Inlined graph is in invalid state");
+        }
         for (Node node : inlineGraph.getNodes()) {
-            if (node == entryPointNode || node == entryPointNode.stateAfter()) {
+            if (node == entryPointNode || node == entryPointNode.stateAfter() || node instanceof LocalNode) {
                 // Do nothing.
-            } else if (node instanceof LocalNode) {
-                replacements.put(node, parameters.get(((LocalNode) node).index()));
             } else {
                 nodes.add(node);
                 if (node instanceof ReturnNode) {
@@ -1318,13 +1325,24 @@ public class InliningUtil {
                 }
             }
         }
-        // ensure proper anchoring of things that were anchored to the StartNode
-        replacements.put(entryPointNode, AbstractBeginNode.prevBegin(invoke.asNode()));
+
+        final AbstractBeginNode prevBegin = AbstractBeginNode.prevBegin(invoke.asNode());
+        DuplicationReplacement localReplacement = new DuplicationReplacement() {
+
+            public Node replacement(Node node) {
+                if (node instanceof LocalNode) {
+                    return parameters.get(((LocalNode) node).index());
+                } else if (node == entryPointNode) {
+                    return prevBegin;
+                }
+                return node;
+            }
+        };
 
         assert invoke.asNode().successors().first() != null : invoke;
         assert invoke.asNode().predecessor() != null;
 
-        Map<Node, Node> duplicates = graph.addDuplicates(nodes, replacements);
+        Map<Node, Node> duplicates = graph.addDuplicates(nodes, inlineGraph, inlineGraph.getNodeCount(), localReplacement);
         FixedNode firstCFGNodeDuplicate = (FixedNode) duplicates.get(firstCFGNode);
         invoke.asNode().replaceAtPredecessor(firstCFGNodeDuplicate);
 
@@ -1367,7 +1385,8 @@ public class InliningUtil {
         if (stateAfter != null) {
             FrameState outerFrameState = null;
             int callerLockDepth = stateAfter.nestedLockDepth();
-            for (Node node : duplicates.values()) {
+            for (Node inlinedNode : inlineGraph.getNodes()) {
+                Node node = duplicates.get(inlinedNode);
                 if (node instanceof FrameState) {
                     FrameState frameState = (FrameState) node;
                     assert frameState.bci != FrameState.BEFORE_BCI : frameState;
@@ -1391,12 +1410,6 @@ public class InliningUtil {
                             frameState.setOuterFrameState(outerFrameState);
                         }
                     }
-                } else if (node instanceof ValueAnchorNode) {
-                    /*
-                     * Synchronized inlinees have a valid point to deopt to after the monitor exit
-                     * at the end, so there's no need for the value anchor to be permanent anymore.
-                     */
-                    ((ValueAnchorNode) node).setPermanent(false);
                 }
                 if (callerLockDepth != 0 && node instanceof MonitorReference) {
                     MonitorReference monitor = (MonitorReference) node;
@@ -1409,8 +1422,8 @@ public class InliningUtil {
         Node returnValue = null;
         if (returnNode != null) {
             if (returnNode.result() instanceof LocalNode) {
-                returnValue = replacements.get(returnNode.result());
-            } else {
+                returnValue = localReplacement.replacement(returnNode.result());
+            } else if (returnNode.result() != null) {
                 returnValue = duplicates.get(returnNode.result());
             }
             invoke.asNode().replaceAtUsages(returnValue);

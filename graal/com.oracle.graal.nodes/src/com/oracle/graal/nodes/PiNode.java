@@ -36,7 +36,7 @@ import com.oracle.graal.nodes.type.*;
  * is as narrow or narrower than the PiNode's type. The PiNode, and therefore also the scheduling
  * restriction enforced by the anchor, will go away.
  */
-public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, Node.IterableNodeType, GuardingNode, Canonicalizable, ValueProxy {
+public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, IterableNodeType, GuardingNode, Canonicalizable, ValueProxy {
 
     @Input private ValueNode object;
 
@@ -49,9 +49,13 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
         this.object = object;
     }
 
-    public PiNode(ValueNode object, Stamp stamp, GuardingNode anchor) {
-        super(stamp, anchor);
+    public PiNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+        super(stamp, (GuardingNode) anchor);
         this.object = object;
+    }
+
+    public PiNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        this(object, StampFactory.object(toType, exactType, nonNull || ObjectStamp.isObjectNonNull(object.stamp())));
     }
 
     @Override
@@ -63,6 +67,9 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
 
     @Override
     public boolean inferStamp() {
+        if (stamp() == StampFactory.forNodeIntrinsic()) {
+            return false;
+        }
         return updateStamp(stamp().join(object().stamp()));
     }
 
@@ -70,6 +77,7 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
     public void virtualize(VirtualizerTool tool) {
         State state = tool.getObjectState(object);
         if (state != null && state.getState() == EscapeState.Virtual) {
+            assert ObjectStamp.typeOrNull(this).isAssignableFrom(state.getVirtualObject().type());
             tool.replaceWithVirtual(state.getVirtualObject());
         }
     }
@@ -86,5 +94,17 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
     @Override
     public ValueNode getOriginalValue() {
         return object;
+    }
+
+    @NodeIntrinsic
+    public static native <T> T piCast(Object object, @ConstantNodeParameter Stamp stamp);
+
+    @NodeIntrinsic
+    public static native <T> T piCast(Object object, @ConstantNodeParameter Stamp stamp, GuardingNode anchor);
+
+    @SuppressWarnings("unused")
+    @NodeIntrinsic
+    public static <T> T piCast(Object object, @ConstantNodeParameter Class<T> toType, @ConstantNodeParameter boolean exactType, @ConstantNodeParameter boolean nonNull) {
+        return toType.cast(object);
     }
 }

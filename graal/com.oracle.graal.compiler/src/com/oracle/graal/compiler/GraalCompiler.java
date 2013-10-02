@@ -229,7 +229,7 @@ public class GraalCompiler {
                 List<Block> codeEmittingOrder = ComputeBlockOrder.computeCodeEmittingOrder(blocks.length, startBlock, nodeProbabilities);
                 List<Block> linearScanOrder = ComputeBlockOrder.computeLinearScanOrder(blocks.length, startBlock, nodeProbabilities);
 
-                LIR lir = new LIR(schedule.getCFG(), schedule.getBlockToNodesMap(), linearScanOrder, codeEmittingOrder, speculationLog);
+                LIR lir = new LIR(schedule.getCFG(), schedule.getBlockToNodesMap(), linearScanOrder, codeEmittingOrder);
                 Debug.dump(lir, "After linear scan order");
                 return lir;
 
@@ -238,7 +238,7 @@ public class GraalCompiler {
 
     }
 
-    public static LIRGenerator emitLIR(Backend backend, final TargetDescription target, final LIR lir, StructuredGraph graph, CallingConvention cc) {
+    public static LIRGenerator emitLIR(final Backend backend, final TargetDescription target, final LIR lir, StructuredGraph graph, CallingConvention cc) {
         final FrameMap frameMap = backend.newFrameMap();
         final LIRGenerator lirGen = backend.newLIRGenerator(graph, frameMap, cc, lir);
 
@@ -269,7 +269,9 @@ public class GraalCompiler {
         Debug.scope("Allocator", new Runnable() {
 
             public void run() {
-                new LinearScan(target, lir, lirGen, frameMap).allocate();
+                if (backend.shouldAllocateRegisters()) {
+                    new LinearScan(target, lir, lirGen, frameMap).allocate();
+                }
             }
         });
         return lirGen;

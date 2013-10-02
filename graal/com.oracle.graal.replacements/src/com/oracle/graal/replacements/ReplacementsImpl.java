@@ -44,6 +44,7 @@ import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.Snippet.DefaultSnippetInliningPolicy;
 import com.oracle.graal.replacements.Snippet.SnippetInliningPolicy;
 import com.oracle.graal.word.phases.*;
@@ -291,11 +292,8 @@ public class ReplacementsImpl implements Replacements {
 
             if (original == null) {
                 new SnippetFrameStateCleanupPhase().apply(graph);
-                new DeadCodeEliminationPhase().apply(graph);
-                new InsertStateAfterPlaceholderPhase().apply(graph);
-            } else {
-                new DeadCodeEliminationPhase().apply(graph);
             }
+            new DeadCodeEliminationPhase().apply(graph);
         }
 
         private StructuredGraph parseGraph(final ResolvedJavaMethod methodToParse, final SnippetInliningPolicy policy) {
@@ -324,18 +322,20 @@ public class ReplacementsImpl implements Replacements {
 
                 @Override
                 public void run() {
-                    GraphBuilderConfiguration config = GraphBuilderConfiguration.getSnippetDefault();
-                    GraphBuilderPhase graphBuilder = new GraphBuilderPhase(runtime, config, OptimisticOptimizations.NONE);
-                    graphBuilder.apply(graph);
-
+                    new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
                     new WordTypeVerificationPhase(runtime, target.wordKind).apply(graph);
+                    new WordTypeRewriterPhase(runtime, target.wordKind).apply(graph);
+
                     if (OptCanonicalizer.getValue()) {
-                        new WordTypeRewriterPhase(runtime, target.wordKind).apply(graph);
-                        new CanonicalizerPhase.Instance(runtime, assumptions, true).apply(graph);
+                        new CanonicalizerPhase(true).apply(graph, new PhaseContext(runtime, assumptions, ReplacementsImpl.this));
                     }
                 }
             });
             return graph;
+        }
+
+        protected Object beforeInline(@SuppressWarnings("unused") MethodCallTargetNode callTarget, @SuppressWarnings("unused") StructuredGraph callee) {
+            return null;
         }
 
         /**
@@ -343,11 +343,11 @@ public class ReplacementsImpl implements Replacements {
          * 
          * @param caller the graph into which {@code callee} was inlined
          * @param callee the graph that was inlined into {@code caller}
+         * @param beforeInlineData value returned by {@link #beforeInline}.
          */
-        protected void afterInline(StructuredGraph caller, StructuredGraph callee) {
+        protected void afterInline(StructuredGraph caller, StructuredGraph callee, Object beforeInlineData) {
             if (OptCanonicalizer.getValue()) {
-                new WordTypeRewriterPhase(runtime, target.wordKind).apply(caller);
-                new CanonicalizerPhase.Instance(runtime, assumptions, true).apply(caller);
+                new CanonicalizerPhase(true).apply(caller, new PhaseContext(runtime, assumptions, ReplacementsImpl.this));
             }
         }
 
@@ -356,12 +356,9 @@ public class ReplacementsImpl implements Replacements {
          */
         protected void afterInlining(StructuredGraph graph) {
             new NodeIntrinsificationPhase(runtime).apply(graph);
-
-            new WordTypeRewriterPhase(runtime, target.wordKind).apply(graph);
-
             new DeadCodeEliminationPhase().apply(graph);
             if (OptCanonicalizer.getValue()) {
-                new CanonicalizerPhase.Instance(runtime, assumptions, true).apply(graph);
+                new CanonicalizerPhase(true).apply(graph, new PhaseContext(runtime, assumptions, ReplacementsImpl.this));
             }
         }
 
@@ -377,10 +374,13 @@ public class ReplacementsImpl implements Replacements {
                         if (callee == method) {
                             final StructuredGraph originalGraph = new StructuredGraph(original);
                             new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(originalGraph);
+                            new WordTypeVerificationPhase(runtime, target.wordKind).apply(graph);
+                            new WordTypeRewriterPhase(runtime, target.wordKind).apply(graph);
+
                             InliningUtil.inline(callTarget.invoke(), originalGraph, true);
 
                             Debug.dump(graph, "after inlining %s", callee);
-                            afterInline(graph, originalGraph);
+                            afterInline(graph, originalGraph, null);
                             substituteCallsOriginal = true;
                         } else {
                             StructuredGraph intrinsicGraph = InliningUtil.getIntrinsicGraph(ReplacementsImpl.this, callee);
@@ -397,9 +397,10 @@ public class ReplacementsImpl implements Replacements {
                                     }
                                     targetGraph = parseGraph(callee, policy);
                                 }
+                                Object beforeInlineData = beforeInline(callTarget, targetGraph);
                                 InliningUtil.inline(callTarget.invoke(), targetGraph, true);
                                 Debug.dump(graph, "after inlining %s", callee);
-                                afterInline(graph, targetGraph);
+                                afterInline(graph, targetGraph, beforeInlineData);
                             }
                         }
                     }

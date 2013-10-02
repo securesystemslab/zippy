@@ -22,11 +22,11 @@
  */
 package com.oracle.graal.lir.ptx;
 
-import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.asm.ptx.PTXAssembler.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
+import static com.oracle.graal.nodes.calc.Condition.*;
 
 import com.oracle.graal.api.code.CompilationResult.JumpTable;
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.ptx.*;
@@ -72,16 +72,17 @@ public class PTXControlFlow {
 
         protected Condition condition;
         protected LabelRef destination;
+        protected int predRegNum;
 
-        public BranchOp(Condition condition, LabelRef destination) {
+        public BranchOp(Condition condition, LabelRef destination, int predReg) {
             this.condition = condition;
             this.destination = destination;
+            this.predRegNum = predReg;
         }
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            masm.at();
-            masm.bra(masm.nameOf(destination.label()));
+            masm.bra(masm.nameOf(destination.label()), predRegNum);
         }
 
         @Override
@@ -151,45 +152,36 @@ public class PTXControlFlow {
         private LabelRef defaultTarget;
         @Alive({REG}) protected Value key;
         @Temp({REG, ILLEGAL}) protected Value scratch;
+        // Number of predicate register that would be set by this instruction.
+        protected int predRegNum;
 
-        public SequentialSwitchOp(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key, Value scratch) {
+        public SequentialSwitchOp(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key, Value scratch, int predReg) {
             assert keyConstants.length == keyTargets.length;
             this.keyConstants = keyConstants;
             this.keyTargets = keyTargets;
             this.defaultTarget = defaultTarget;
             this.key = key;
             this.scratch = scratch;
+            predRegNum = predReg;
         }
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            if (key.getKind() == Kind.Int) {
-                Register intKey = asIntReg(key);
+            Kind keyKind = key.getKind();
+
+            if (keyKind == Kind.Int || keyKind == Kind.Long) {
                 for (int i = 0; i < keyConstants.length; i++) {
                     if (tasm.runtime.needsDataPatch(keyConstants[i])) {
                         tasm.recordDataReferenceInCode(keyConstants[i], 0, true);
                     }
-                    long lc = keyConstants[i].asLong();
-                    assert NumUtil.isInt(lc);
-                    masm.setp_eq_s32((int) lc, intKey);
-                    masm.at();
-                    masm.bra(masm.nameOf(keyTargets[i].label()));
+                    new Setp(EQ, keyConstants[i], key, predRegNum).emit(masm);
+                    masm.bra(masm.nameOf(keyTargets[i].label()), predRegNum);
                 }
-            } else if (key.getKind() == Kind.Long) {
-                Register longKey = asLongReg(key);
+            } else if (keyKind == Kind.Object) {
                 for (int i = 0; i < keyConstants.length; i++) {
-                    masm.setp_eq_s64(tasm.asLongConst(keyConstants[i]), longKey);
-                    masm.at();
-                    masm.bra(masm.nameOf(keyTargets[i].label()));
-                }
-            } else if (key.getKind() == Kind.Object) {
-                Register intKey = asObjectReg(key);
-                Register temp = asObjectReg(scratch);
-                for (int i = 0; i < keyConstants.length; i++) {
-                    PTXMove.move(tasm, masm, temp.asValue(Kind.Object), keyConstants[i]);
-                    masm.setp_eq_u32(intKey, temp);
-                    masm.at();
-                    masm.bra(keyTargets[i].label().toString());
+                    PTXMove.move(tasm, masm, scratch, keyConstants[i]);
+                    new Setp(EQ, keyConstants[i], scratch, predRegNum).emit(masm);
+                    masm.bra(keyTargets[i].label().toString(), predRegNum);
                 }
             } else {
                 throw new GraalInternalError("sequential switch only supported for int, long and object");
@@ -219,38 +211,40 @@ public class PTXControlFlow {
         private final LabelRef[] targets;
         @Alive protected Value index;
         @Temp protected Value scratch;
+        // Number of predicate register that would be set by this instruction.
+        protected int predRegNum;
 
-        public TableSwitchOp(final int lowKey, final LabelRef defaultTarget, final LabelRef[] targets, Variable index, Variable scratch) {
+        public TableSwitchOp(final int lowKey, final LabelRef defaultTarget, final LabelRef[] targets, Variable index, Variable scratch, int predReg) {
             this.lowKey = lowKey;
             this.defaultTarget = defaultTarget;
             this.targets = targets;
             this.index = index;
             this.scratch = scratch;
+            predRegNum = predReg;
         }
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            tableswitch(tasm, masm, lowKey, defaultTarget, targets, asIntReg(index), asLongReg(scratch));
+            tableswitch(tasm, masm, lowKey, defaultTarget, targets, index, scratch, predRegNum);
         }
     }
 
     @SuppressWarnings("unused")
-    private static void tableswitch(TargetMethodAssembler tasm, PTXAssembler masm, int lowKey, LabelRef defaultTarget, LabelRef[] targets, Register value, Register scratch) {
+    private static void tableswitch(TargetMethodAssembler tasm, PTXAssembler masm, int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value value, Value scratch, int predNum) {
         Buffer buf = masm.codeBuffer;
         // Compare index against jump table bounds
         int highKey = lowKey + targets.length - 1;
         if (lowKey != 0) {
             // subtract the low value from the switch value
-            masm.sub_s32(value, value, lowKey);
-            masm.setp_gt_s32(value, highKey - lowKey);
+            // new Sub(value, value, lowKey).emit(masm);
+            new Setp(GT, value, Constant.forInt(highKey - lowKey), predNum).emit(masm);
         } else {
-            masm.setp_gt_s32(value, highKey);
+            new Setp(GT, value, Constant.forInt(highKey), predNum).emit(masm);
         }
 
         // Jump to default target if index is not within the jump table
         if (defaultTarget != null) {
-            masm.at();
-            masm.bra(defaultTarget.label().toString());
+            masm.bra(defaultTarget.label().toString(), predNum);
         }
 
         // address of jump table

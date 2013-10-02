@@ -62,7 +62,7 @@ public final class NewMultiArrayNode extends DeoptimizingFixedWithNextNode imple
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -73,10 +73,5 @@ public final class NewMultiArrayNode extends DeoptimizingFixedWithNextNode imple
     @Override
     public boolean canDeoptimize() {
         return true;
-    }
-
-    @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return DeoptimizationReason.RuntimeConstraint;
     }
 }

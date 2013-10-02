@@ -31,7 +31,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(nameTemplate = "Alloc {i#virtualObjects}")
-public final class CommitAllocationNode extends FixedWithNextNode implements VirtualizableAllocation, Lowerable, Node.IterableNodeType, Simplifiable {
+public final class CommitAllocationNode extends FixedWithNextNode implements VirtualizableAllocation, Lowerable, Simplifiable {
 
     @Input private final NodeInputList<VirtualObjectNode> virtualObjects = new NodeInputList<>(this);
     @Input private final NodeInputList<ValueNode> values = new NodeInputList<>(this);
@@ -55,7 +55,7 @@ public final class CommitAllocationNode extends FixedWithNextNode implements Vir
 
     @Override
     public boolean verify() {
-        assertTrue(virtualObjects.size() == locks.size(), "lockCounts size doesn't match");
+        assertTrue(virtualObjects.size() == locks.size(), "lockCounts size doesn't match " + virtualObjects + ", " + locks);
         int valueCount = 0;
         for (VirtualObjectNode virtual : virtualObjects) {
             valueCount += virtual.entryCount();
@@ -65,15 +65,13 @@ public final class CommitAllocationNode extends FixedWithNextNode implements Vir
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 
     @Override
-    public Node clone(Graph into) {
-        CommitAllocationNode clone = (CommitAllocationNode) super.clone(into);
-        clone.locks = new ArrayList<>(locks);
-        return clone;
+    public void afterClone(Node other) {
+        locks = new ArrayList<>(((CommitAllocationNode) other).locks);
     }
 
     @Override

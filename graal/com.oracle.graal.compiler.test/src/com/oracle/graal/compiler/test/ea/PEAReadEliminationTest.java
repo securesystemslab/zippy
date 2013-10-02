@@ -236,15 +236,15 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
 
     final ReturnNode getReturn(String snippet) {
         processMethod(snippet);
-        assertEquals(1, graph.getNodes(ReturnNode.class).count());
-        return graph.getNodes(ReturnNode.class).first();
+        assertEquals(1, graph.getNodes().filter(ReturnNode.class).count());
+        return graph.getNodes().filter(ReturnNode.class).first();
     }
 
     protected void processMethod(final String snippet) {
         graph = parse(snippet);
         Assumptions assumptions = new Assumptions(false);
         HighTierContext context = new HighTierContext(runtime(), assumptions, replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
-        new InliningPhase().apply(graph, context);
-        new PartialEscapePhase(false, true).apply(graph, context);
+        new InliningPhase(new CanonicalizerPhase(true)).apply(graph, context);
+        new PartialEscapePhase(false, true, new CanonicalizerPhase(true)).apply(graph, context);
     }
 }

@@ -22,7 +22,9 @@
  */
 package com.oracle.graal.lir.ptx;
 
+import static com.oracle.graal.asm.ptx.PTXAssembler.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.api.code.*;
@@ -170,14 +172,14 @@ public class PTXMove {
     }
 
     public static void move(TargetMethodAssembler tasm, PTXAssembler masm, Value result, Value input) {
-        if (isRegister(input)) {
-            if (isRegister(result)) {
+        if (isVariable(input)) {
+            if (isVariable(result)) {
                 reg2reg(masm, result, input);
             } else {
                 throw GraalInternalError.shouldNotReachHere();
             }
         } else if (isConstant(input)) {
-            if (isRegister(result)) {
+            if (isVariable(result)) {
                 const2reg(tasm, masm, result, (Constant) input);
             } else {
                 throw GraalInternalError.shouldNotReachHere();
@@ -188,24 +190,19 @@ public class PTXMove {
     }
 
     private static void reg2reg(PTXAssembler masm, Value result, Value input) {
-        if (asRegister(input).equals(asRegister(result))) {
+        Variable dest = (Variable) result;
+        Variable source = (Variable) input;
+
+        if (dest.index == source.index) {
             return;
         }
         switch (input.getKind()) {
             case Int:
-                masm.mov_s32(asRegister(result), asRegister(input));
-                break;
             case Long:
-                masm.mov_s64(asRegister(result), asRegister(input));
-                break;
             case Float:
-                masm.mov_f32(asRegister(result), asRegister(input));
-                break;
             case Double:
-                masm.mov_f64(asRegister(result), asRegister(input));
-                break;
             case Object:
-                masm.mov_u64(asRegister(result), asRegister(input));
+                new Mov(dest, source).emit(masm);
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + input.getKind());
@@ -213,27 +210,24 @@ public class PTXMove {
     }
 
     private static void const2reg(TargetMethodAssembler tasm, PTXAssembler masm, Value result, Constant input) {
+        Variable dest = (Variable) result;
+
         switch (input.getKind().getStackKind()) {
             case Int:
-                if (tasm.runtime.needsDataPatch(input)) {
-                    tasm.recordDataReferenceInCode(input, 0, true);
-                }
-                masm.mov_s32(asRegister(result), input.asInt());
-                break;
             case Long:
                 if (tasm.runtime.needsDataPatch(input)) {
                     tasm.recordDataReferenceInCode(input, 0, true);
                 }
-                masm.mov_s64(asRegister(result), input.asLong());
+                new Mov(dest, input).emit(masm);
                 break;
             case Object:
                 if (input.isNull()) {
-                    masm.mov_u64(asRegister(result), 0x0L);
+                    new Mov(dest, Constant.forLong(0x0L)).emit(masm);
                 } else if (tasm.target.inlineObjects) {
                     tasm.recordDataReferenceInCode(input, 0, true);
-                    masm.mov_u64(asRegister(result), 0xDEADDEADDEADDEADL);
+                    new Mov(dest, Constant.forLong(0xDEADDEADDEADDEADL)).emit(masm);
                 } else {
-                    masm.mov_u64(asRegister(result), tasm.recordDataReferenceInCode(input, 0, false));
+                    // new Mov(dest, tasm.recordDataReferenceInCode(input, 0, false));
                 }
                 break;
             default:

@@ -25,7 +25,6 @@ package com.oracle.graal.truffle.nodes.frame;
 import sun.misc.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -71,7 +70,7 @@ public class FrameGetNode extends FrameAccessNode implements IterableNodeType, V
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         assert !(getFrame() instanceof NewFrameNode);
         StructuredGraph structuredGraph = graph();
 
@@ -89,6 +88,8 @@ public class FrameGetNode extends FrameAccessNode implements IterableNodeType, V
             loadNode = graph().add(new UnsafeLoadNode(loadFieldNode, Unsafe.ARRAY_LONG_BASE_OFFSET, slotOffset, getSlotKind()));
         }
         structuredGraph.replaceFixedWithFixed(this, loadNode);
+        loadFieldNode.lower(tool);
+        ((Lowerable) loadNode).lower(tool);
     }
 
     @NodeIntrinsic

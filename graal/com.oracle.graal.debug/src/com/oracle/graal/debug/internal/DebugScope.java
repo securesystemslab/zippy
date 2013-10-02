@@ -92,7 +92,6 @@ public final class DebugScope {
     private static ThreadLocal<DebugScope> instanceTL = new ThreadLocal<>();
     private static ThreadLocal<DebugConfig> configTL = new ThreadLocal<>();
     private static ThreadLocal<Throwable> lastExceptionThrownTL = new ThreadLocal<>();
-    private static DebugTimer scopeTime = Debug.timer("ScopeTime");
 
     private final DebugScope parent;
     private IndentImpl lastUsedIndent;
@@ -210,6 +209,9 @@ public final class DebugScope {
             for (DebugDumpHandler dumpHandler : config.dumpHandlers()) {
                 dumpHandler.dump(object, message);
             }
+        } else {
+            PrintStream out = System.out;
+            out.println("Forced dump ignored because debugging is disabled - use -G:Dump=xxx option");
         }
     }
 
@@ -239,7 +241,7 @@ public final class DebugScope {
         }
         instanceTL.set(newChild);
         newChild.updateFlags();
-        try (TimerCloseable a = scopeTime.start()) {
+        try {
             return executeScope(runnable, callable);
         } finally {
             newChild.context = null;

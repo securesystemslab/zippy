@@ -22,7 +22,17 @@
  */
 package com.oracle.graal.asm.ptx;
 
-import com.oracle.graal.api.code.*;
+import static com.oracle.graal.api.code.ValueUtil.*;
+
+import com.oracle.graal.api.code.Register;
+import com.oracle.graal.api.code.RegisterConfig;
+import com.oracle.graal.api.code.TargetDescription;
+import com.oracle.graal.api.meta.Constant;
+import com.oracle.graal.api.meta.Kind;
+import com.oracle.graal.api.meta.Value;
+import com.oracle.graal.nodes.calc.Condition;
+import com.oracle.graal.graph.GraalInternalError;
+import com.oracle.graal.lir.Variable;
 
 public class PTXAssembler extends AbstractPTXAssembler {
 
@@ -30,535 +40,549 @@ public class PTXAssembler extends AbstractPTXAssembler {
         super(target);
     }
 
-    public final void at() {
-        emitString("@%p" + " " + "");
+    public enum ConditionOperator {
+        // @formatter:off
+
+        // Signed integer operators
+        S_EQ("eq"),
+        S_NE("ne"),
+        S_LT("lt"),
+        S_LE("le"),
+        S_GT("gt"),
+        S_GE("ge"),
+
+        // Unsigned integer operators
+        U_EQ("eq"),
+        U_NE("ne"),
+        U_LO("lo"),
+        U_LS("ls"),
+        U_HI("hi"),
+        U_HS("hs"),
+
+        // Bit-size integer operators
+        B_EQ("eq"),
+        B_NE("ne"),
+
+        // Floating-point operators
+        F_EQ("eq"),
+        F_NE("ne"),
+        F_LT("lt"),
+        F_LE("le"),
+        F_GT("gt"),
+        F_GE("ge"),
+
+        // Floating-point operators accepting NaN
+        F_EQU("equ"),
+        F_NEU("neu"),
+        F_LTU("ltu"),
+        F_LEU("leu"),
+        F_GTU("gtu"),
+        F_GEU("geu"),
+
+        // Floating-point operators testing for NaN
+        F_NUM("num"),
+        F_NAN("nan");
+
+        // @formatter:on
+
+        private final String operator;
+
+        private ConditionOperator(String op) {
+            this.operator = op;
+        }
+
+        public String getOperator() {
+            return operator;
+        }
     }
 
-    public final void atq() {
-        emitString("@%q" + " " + "");
+    public static class StandardFormat {
+
+        protected Kind valueKind;
+        protected Variable dest;
+        protected Value source1;
+        protected Value source2;
+        private boolean logicInstruction = false;
+
+        public StandardFormat(Variable dst, Value src1, Value src2) {
+            setDestination(dst);
+            setSource1(src1);
+            setSource2(src2);
+            setKind(dst.getKind());
+
+            // testAdd2B fails this assertion
+            // assert valueKind == src1.getKind();
+        }
+
+        public void setKind(Kind k) {
+            valueKind = k;
+        }
+
+        public void setDestination(Variable var) {
+            assert var != null;
+            dest = var;
+        }
+
+        public void setSource1(Value val) {
+            assert val != null;
+            source1 = val;
+        }
+
+        public void setSource2(Value val) {
+            assert val != null;
+            source2 = val;
+        }
+
+        public void setLogicInstruction(boolean b) {
+            logicInstruction = b;
+        }
+
+        public String typeForKind(Kind k) {
+            if (logicInstruction) {
+                switch (k.getTypeChar()) {
+                    case 's':
+                        return "b16";
+                    case 'i':
+                        return "b32";
+                    case 'j':
+                        return "b64";
+                    default:
+                        throw GraalInternalError.shouldNotReachHere();
+                }
+            } else {
+                switch (k.getTypeChar()) {
+                    case 'z':
+                        return "u8";
+                    case 'b':
+                        return "s8";
+                    case 's':
+                        return "s16";
+                    case 'c':
+                        return "u16";
+                    case 'i':
+                        return "s32";
+                    case 'f':
+                        return "f32";
+                    case 'j':
+                        return "s64";
+                    case 'd':
+                        return "f64";
+                    case 'a':
+                        return "u64";
+                    case '-':
+                        return "u32";
+                    default:
+                        throw GraalInternalError.shouldNotReachHere();
+                }
+            }
+        }
+
+        public String emit() {
+            return (typeForKind(valueKind) + emitRegister(dest, true) + emitValue(source1, true) + emitValue(source2, false) + ";");
+        }
+
+        public String emitValue(Value v, boolean comma) {
+            assert v != null;
+
+            if (isConstant(v)) {
+                return (emitConstant(v));
+            } else {
+                return (emitRegister((Variable) v, comma));
+            }
+        }
+
+        public String emitRegister(Variable v, boolean comma) {
+            return (" %r" + v.index + (comma ? "," : ""));
+        }
+
+        public String emitConstant(Value v) {
+            Constant constant = (Constant) v;
+
+            switch (v.getKind().getTypeChar()) {
+                case 'i':
+                    return (String.valueOf((int) constant.asLong()));
+                case 'f':
+                    return (String.valueOf(constant.asFloat()));
+                case 'j':
+                    return (String.valueOf(constant.asLong()));
+                case 'd':
+                    return (String.valueOf(constant.asDouble()));
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+    }
+
+    public static class SingleOperandFormat {
+
+        protected Variable dest;
+        protected Value    source;
+
+        public SingleOperandFormat(Variable dst, Value src) {
+            setDestination(dst);
+            setSource(src);
+        }
+
+        public void setDestination(Variable var) {
+            dest = var;
+        }
+
+        public void setSource(Value var) {
+            source = var;
+        }
+
+        public String typeForKind(Kind k) {
+            switch (k.getTypeChar()) {
+                case 'z':
+                    return "u8";
+                case 'b':
+                    return "s8";
+                case 's':
+                    return "s16";
+                case 'c':
+                    return "u16";
+                case 'i':
+                    return "s32";
+                case 'f':
+                    return "f32";
+                case 'j':
+                    return "s64";
+                case 'd':
+                    return "f64";
+                case 'a':
+                    return "u64";
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+
+        public String emit() {
+            return (typeForKind(dest.getKind()) + " " + emitVariable(dest) + ", " + emitValue(source) + ";");
+        }
+
+        public String emitValue(Value v) {
+            assert v != null;
+
+            if (isConstant(v)) {
+                return (emitConstant(v));
+            } else {
+                return (emitVariable((Variable) v));
+            }
+        }
+
+        public String emitConstant(Value v) {
+            Constant constant = (Constant) v;
+
+            switch (v.getKind().getTypeChar()) {
+                case 'i':
+                    return (String.valueOf((int) constant.asLong()));
+                case 'f':
+                    return (String.valueOf(constant.asFloat()));
+                case 'j':
+                    return (String.valueOf(constant.asLong()));
+                case 'd':
+                    return (String.valueOf(constant.asDouble()));
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+
+        public String emitVariable(Variable v) {
+            String name = v.getName();
+
+            if (name == null) {
+                return (" %r" + v.index);
+            } else {
+                return name;
+            }
+        }
+    }
+
+    public static class ConversionFormat extends SingleOperandFormat {
+
+        public ConversionFormat(Variable dst, Value src) {
+            super(dst, src);
+        }
+
+        @Override
+        public String emit() {
+            return (typeForKind(dest.getKind()) + "." + typeForKind(source.getKind()) + " " +
+                    emitVariable(dest) + ", " + emitValue(source) + ";");
+        }
+    }
+
+    public static class LoadStoreFormat extends StandardFormat {
+
+        protected PTXStateSpace space;
+
+        public LoadStoreFormat(PTXStateSpace space, Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setStateSpace(space);
+        }
+
+        public void setStateSpace(PTXStateSpace ss) {
+            space = ss;
+        }
+
+        public String emitAddress(Value var, Value val) {
+            assert var instanceof Variable;
+            assert val instanceof Constant;
+            Constant constant = (Constant) val;
+            return ("[" + emitRegister((Variable) var, false) + " + " + constant.asBoxedValue() + "]");
+        }
+
+        @Override
+        public String emitRegister(Variable var, boolean comma) {
+            /* if (space == Parameter) {
+                return ("param" + var.index);
+            } else {
+                return ("%r" + var.index);
+            } */
+            return ("%r" + var.index);
+        }
+
+        public String emit(boolean isLoad) {
+            if (isLoad) {
+                return (space.getStateName() + "." + typeForKind(valueKind) + " " +
+                        emitRegister(dest, false) + ", " + emitAddress(source1, source2) + ";");
+            } else {
+                return (space.getStateName() + "." + typeForKind(valueKind) + " " +
+                        emitAddress(source1, source2) + ", " + emitRegister(dest, false) + ";");
+            }
+        }
+    }
+
+    public static class Add extends StandardFormat {
+
+        public Add(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("add." + super.emit());
+        }
+    }
+
+    public static class And extends StandardFormat {
+
+        public And(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setLogicInstruction(true);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("and." + super.emit());
+        }
+    }
+
+    public static class Div extends StandardFormat {
+
+        public Div(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("div." + super.emit());
+        }
+    }
+
+    public static class Mul extends StandardFormat {
+
+        public Mul(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("mul.lo." + super.emit());
+        }
+    }
+
+    public static class Or extends StandardFormat {
+
+        public Or(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setLogicInstruction(true);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("or." + super.emit());
+        }
+    }
+
+    public static class Rem extends StandardFormat {
+
+        public Rem(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("rem." + super.emit());
+        }
+    }
+
+    public static class Shl extends StandardFormat {
+
+        public Shl(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setLogicInstruction(true);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("shl." + super.emit());
+        }
+    }
+
+    public static class Shr extends StandardFormat {
+
+        public Shr(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("shr." + super.emit());
+        }
+    }
+
+    public static class Sub extends StandardFormat {
+
+        public Sub(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("sub." + super.emit());
+        }
+    }
+
+    public static class Ushr extends StandardFormat {
+
+        public Ushr(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setKind(Kind.Illegal);  // get around not having an Unsigned Kind
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("shr." + super.emit());
+        }
+    }
+
+    public static class Xor extends StandardFormat {
+
+        public Xor(Variable dst, Value src1, Value src2) {
+            super(dst, src1, src2);
+            setLogicInstruction(true);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("xor." + super.emit());
+        }
     }
 
     // Checkstyle: stop method name check
-    public final void add_f32(Register d, Register a, Register b) {
-        emitString("add.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_f64(Register d, Register a, Register b) {
-        emitString("add.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_s16(Register d, Register a, Register b) {
-        emitString("add.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_s32(Register d, Register a, Register b) {
-        emitString("add.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_s64(Register d, Register a, Register b) {
-        emitString("add.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_s16(Register d, Register a, short s16) {
-        emitString("add.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void add_s32(Register d, Register a, int s32) {
-        emitString("add.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void add_s64(Register d, Register a, long s64) {
-        emitString("add.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void add_f32(Register d, Register a, float f32) {
-        emitString("add.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void add_f64(Register d, Register a, double f64) {
-        emitString("add.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void add_u16(Register d, Register a, Register b) {
-        emitString("add.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_u32(Register d, Register a, Register b) {
-        emitString("add.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_u64(Register d, Register a, Register b) {
-        emitString("add.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_u16(Register d, Register a, short u16) {
-        emitString("add.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u16 + ";" + "");
-    }
-
-    public final void add_u32(Register d, Register a, int u32) {
-        emitString("add.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void add_u64(Register d, Register a, long u64) {
-        emitString("add.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u64 + ";" + "");
-    }
-
-    public final void add_sat_s32(Register d, Register a, Register b) {
-        emitString("add.sat.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void add_sat_s32(Register d, Register a, int s32) {
-        emitString("add.sat.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void and_b16(Register d, Register a, Register b) {
-        emitString("and.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void and_b32(Register d, Register a, Register b) {
-        emitString("and.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void and_b64(Register d, Register a, Register b) {
-        emitString("and.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void and_b16(Register d, Register a, short b16) {
-        emitString("and.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b16 + ";" + "");
-    }
-
-    public final void and_b32(Register d, Register a, int b32) {
-        emitString("and.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b32 + ";" + "");
-    }
-
-    public final void and_b64(Register d, Register a, long b64) {
-        emitString("and.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b64 + ";" + "");
-    }
-
-    public final void bra(String tgt) {
-        emitString("bra" + " " + tgt + ";" + "");
+    public final void bra(String tgt, int pred) {
+        emitString((pred >= 0) ? "" : ("@%p" + pred + "  ") + "bra" + " " + tgt + ";" + "");
     }
 
     public final void bra_uni(String tgt) {
         emitString("bra.uni" + " " + tgt + ";" + "");
     }
 
-    public final void cvt_s32_f32(Register d, Register a) {
-        emitString("cvt.s32.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
+    public static class Cvt extends ConversionFormat {
+
+        public Cvt(Variable dst, Variable src) {
+            super(dst, src);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("cvt." + super.emit());
+        }
+    }
+    
+    public static class Mov extends SingleOperandFormat {
+
+        public Mov(Variable dst, Value src) {
+            super(dst, src);
+        }
+
+        /*
+        public Mov(Variable dst, AbstractAddress src) {
+            throw GraalInternalError.unimplemented("AbstractAddress Mov");
+        }
+        */
+        
+        public void emit(PTXAssembler asm) {
+            asm.emitString("mov." + super.emit());
+        }
+    }
+    
+    public static class Neg extends SingleOperandFormat {
+
+        public Neg(Variable dst, Variable src) {
+            super(dst, src);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("neg." + super.emit());
+        }
+    }
+    
+    public static class Not extends SingleOperandFormat {
+
+        public Not(Variable dst, Variable src) {
+            super(dst, src);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("not." + super.emit());
+        }
+    }
+    
+    public static class Ld extends LoadStoreFormat {
+
+        public Ld(PTXStateSpace space, Variable dst, Variable src1, Value src2) {
+            super(space, dst, src1, src2);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("ld." + super.emit(true));
+        }
     }
 
-    public final void cvt_s64_f32(Register d, Register a) {
-        emitString("cvt.s64.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
+    public static class St extends LoadStoreFormat {
 
-    public final void cvt_f64_f32(Register d, Register a) {
-        emitString("cvt.f64.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
+        public St(PTXStateSpace space, Variable dst, Variable src1, Value src2) {
+            super(space, dst, src1, src2);
+        }
 
-    public final void cvt_f32_f64(Register d, Register a) {
-        emitString("cvt.f32.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_s32_f64(Register d, Register a) {
-        emitString("cvt.s32.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_s64_f64(Register d, Register a) {
-        emitString("cvt.s64.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_f32_s32(Register d, Register a) {
-        emitString("cvt.f32.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_f64_s32(Register d, Register a) {
-        emitString("cvt.f64.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_s8_s32(Register d, Register a) {
-        emitString("cvt.s8.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_b16_s32(Register d, Register a) {
-        emitString("cvt.b16.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_s64_s32(Register d, Register a) {
-        emitString("cvt.s64.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void cvt_s32_s64(Register d, Register a) {
-        emitString("cvt.s32.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void div_f32(Register d, Register a, Register b) {
-        emitString("div.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_f64(Register d, Register a, Register b) {
-        emitString("div.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_s16(Register d, Register a, Register b) {
-        emitString("div.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_s32(Register d, Register a, Register b) {
-        emitString("div.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_s64(Register d, Register a, Register b) {
-        emitString("div.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_s16(Register d, Register a, short s16) {
-        emitString("div.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void div_s32(Register d, Register a, int s32) {
-        emitString("div.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void div_s32(Register d, int s32, Register b) {
-        emitString("div.s32" + " " + "%r" + d.encoding() + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_f32(Register d, float f32, Register b) {
-        emitString("div.f32" + " " + "%r" + d.encoding() + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_f64(Register d, double f64, Register b) {
-        emitString("div.f64" + " " + "%r" + d.encoding() + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_s64(Register d, Register a, long s64) {
-        emitString("div.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void div_f32(Register d, Register a, float f32) {
-        emitString("div.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void div_f64(Register d, Register a, double f64) {
-        emitString("div.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void div_u16(Register d, Register a, Register b) {
-        emitString("div.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_u32(Register d, Register a, Register b) {
-        emitString("div.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_u64(Register d, Register a, Register b) {
-        emitString("div.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void div_u16(Register d, Register a, short u16) {
-        emitString("div.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u16 + ";" + "");
-    }
-
-    public final void div_u32(Register d, Register a, int u32) {
-        emitString("div.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void div_u64(Register d, Register a, long u64) {
-        emitString("div.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u64 + ";" + "");
+        public void emit(PTXAssembler asm) {
+            asm.emitString("st." + super.emit(false));
+        }
     }
 
     public final void exit() {
         emitString("exit;" + " " + "");
     }
 
-    public final void ld_global_b8(Register d, Register a, long immOff) {
-        emitString("ld.global.b8" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
+    public static class Param extends SingleOperandFormat {
 
-    public final void ld_global_b16(Register d, Register a, long immOff) {
-        emitString("ld.global.b16" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
+        private boolean lastParameter;
 
-    public final void ld_global_b32(Register d, Register a, long immOff) {
-        emitString("ld.global.b32" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
+        public Param(Variable d, boolean lastParam) {
+            super(d, null);
+            setLastParameter(lastParam);
+        }
 
-    public final void ld_global_b64(Register d, Register a, long immOff) {
-        emitString("ld.global.b64" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
+        public void setLastParameter(boolean value) {
+            lastParameter = value;
+        }
 
-    public final void ld_global_u8(Register d, Register a, long immOff) {
-        emitString("ld.global.u8" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
+        public String emitParameter(Variable v) {
+            return (" %r" + v.index);
+        }
 
-    public final void ld_global_u16(Register d, Register a, long immOff) {
-        emitString("ld.global.u16" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_u32(Register d, Register a, long immOff) {
-        emitString("ld.global.u32" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_u64(Register d, Register a, long immOff) {
-        emitString("ld.global.u64" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_s8(Register d, Register a, long immOff) {
-        emitString("ld.global.s8" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_s16(Register d, Register a, long immOff) {
-        emitString("ld.global.s16" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_s32(Register d, Register a, long immOff) {
-        emitString("ld.global.s32" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_s64(Register d, Register a, long immOff) {
-        emitString("ld.global.s64" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_f32(Register d, Register a, long immOff) {
-        emitString("ld.global.f32" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void ld_global_f64(Register d, Register a, long immOff) {
-        emitString("ld.global.f64" + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    // Load from state space to destination register
-    public final void ld_from_state_space(String s, Register d, Register a, long immOff) {
-        emitString("ld" + s + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    // Load return address from return parameter which is in .param state space
-    public final void ld_return_address(String s, Register d, Register a, long immOff) {
-        emitString("ld.param." + s + " " + "%r" + d.encoding() + ", [" + a + " + " + immOff + "]" + ";" + "");
-    }
-
-    public final void mov_b16(Register d, Register a) {
-        emitString("mov.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_b32(Register d, Register a) {
-        emitString("mov.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_b64(Register d, Register a) {
-        emitString("mov.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_u16(Register d, Register a) {
-        emitString("mov.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_u32(Register d, Register a) {
-        emitString("mov.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_u64(Register d, Register a) {
-        emitString("mov.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_u64(@SuppressWarnings("unused") Register d, @SuppressWarnings("unused") AbstractAddress a) {
-        // emitString("mov.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_s16(Register d, Register a) {
-        emitString("mov.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_s32(Register d, Register a) {
-        emitString("mov.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_s64(Register d, Register a) {
-        emitString("mov.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_f32(Register d, Register a) {
-        emitString("mov.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_f64(Register d, Register a) {
-        emitString("mov.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void mov_b16(Register d, short b16) {
-        emitString("mov.b16" + " " + "%r" + d.encoding() + ", " + b16 + ";" + "");
-    }
-
-    public final void mov_b32(Register d, int b32) {
-        emitString("mov.b32" + " " + "%r" + d.encoding() + ", " + b32 + ";" + "");
-    }
-
-    public final void mov_b64(Register d, long b64) {
-        emitString("mov.b64" + " " + "%r" + d.encoding() + ", " + b64 + ";" + "");
-    }
-
-    public final void mov_u16(Register d, short u16) {
-        emitString("mov.u16" + " " + "%r" + d.encoding() + ", " + u16 + ";" + "");
-    }
-
-    public final void mov_u32(Register d, int u32) {
-        emitString("mov.u32" + " " + "%r" + d.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void mov_u64(Register d, long u64) {
-        emitString("mov.u64" + " " + "%r" + d.encoding() + ", " + u64 + ";" + "");
-    }
-
-    public final void mov_s16(Register d, short s16) {
-        emitString("mov.s16" + " " + "%r" + d.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void mov_s32(Register d, int s32) {
-        emitString("mov.s32" + " " + "%r" + d.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void mov_s64(Register d, long s64) {
-        emitString("mov.s64" + " " + "%r" + d.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void mov_f32(Register d, float f32) {
-        emitString("mov.f32" + " " + "%r" + d.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void mov_f64(Register d, double f64) {
-        emitString("mov.f64" + " " + "%r" + d.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void mul_lo_f32(Register d, Register a, Register b) {
-        emitString("mul.lo.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_f64(Register d, Register a, Register b) {
-        emitString("mul.lo.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_s16(Register d, Register a, Register b) {
-        emitString("mul.lo.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_s32(Register d, Register a, Register b) {
-        emitString("mul.lo.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_s64(Register d, Register a, Register b) {
-        emitString("mul.lo.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_s16(Register d, Register a, short s16) {
-        emitString("mul.lo.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void mul_lo_s32(Register d, Register a, int s32) {
-        emitString("mul.lo.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void mul_lo_s64(Register d, Register a, long s64) {
-        emitString("mul.lo.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void mul_lo_f32(Register d, Register a, float f32) {
-        emitString("mul.lo.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void mul_lo_f64(Register d, Register a, double f64) {
-        emitString("mul.lo.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void mul_lo_u16(Register d, Register a, Register b) {
-        emitString("mul.lo.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_u32(Register d, Register a, Register b) {
-        emitString("mul.lo.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_u64(Register d, Register a, Register b) {
-        emitString("mul.lo.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void mul_lo_u16(Register d, Register a, short u16) {
-        emitString("mul.lo.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u16 + ";" + "");
-    }
-
-    public final void mul_lo_u32(Register d, Register a, int u32) {
-        emitString("mul.lo.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void mul_lo_u64(Register d, Register a, long u64) {
-        emitString("mul.lo.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u64 + ";" + "");
-    }
-
-    public final void neg_f32(Register d, Register a) {
-        emitString("neg.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void neg_f64(Register d, Register a) {
-        emitString("neg.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void neg_s16(Register d, Register a) {
-        emitString("neg.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void neg_s32(Register d, Register a) {
-        emitString("neg.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void neg_s64(Register d, Register a) {
-        emitString("neg.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void not_s16(Register d, Register a) {
-        emitString("not.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void not_s32(Register d, Register a) {
-        emitString("not.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void not_s64(Register d, Register a) {
-        emitString("not.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
-    }
-
-    public final void or_b16(Register d, Register a, Register b) {
-        emitString("or.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void or_b32(Register d, Register a, Register b) {
-        emitString("or.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void or_b64(Register d, Register a, Register b) {
-        emitString("or.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void or_b16(Register d, Register a, short b16) {
-        emitString("or.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b16 + ";" + "");
-    }
-
-    public final void or_b32(Register d, Register a, int b32) {
-        emitString("or.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b32 + ";" + "");
-    }
-
-    public final void or_b64(Register d, Register a, long b64) {
-        emitString("or.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b64 + ";" + "");
-    }
-
-    public final void param_8_decl(Register d, boolean lastParam) {
-        emitString(".param" + " " + ".s8" + " " + d + (lastParam ? "" : ","));
-    }
-
-    public final void param_32_decl(Register d, boolean lastParam) {
-        emitString(".param" + " " + ".s32" + " " + d + (lastParam ? "" : ","));
-    }
-
-    public final void param_64_decl(Register d, boolean lastParam) {
-        emitString(".param" + " " + ".s64" + " " + d + (lastParam ? "" : ","));
+        public void emit(PTXAssembler asm) {
+            asm.emitString(".param ." + typeForKind(dest.getKind()) + emitParameter(dest)  + (lastParameter ? "" : ","));
+        }
     }
 
     public final void popc_b32(Register d, Register a) {
@@ -569,54 +593,6 @@ public class PTXAssembler extends AbstractPTXAssembler {
         emitString("popc.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ";" + "");
     }
 
-    public final void rem_s16(Register d, Register a, Register b) {
-        emitString("rem.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_s32(Register d, Register a, Register b) {
-        emitString("rem.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_s64(Register d, Register a, Register b) {
-        emitString("rem.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_s16(Register d, Register a, short s16) {
-        emitString("rem.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void rem_s32(Register d, Register a, int s32) {
-        emitString("rem.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void rem_s64(Register d, Register a, long s64) {
-        emitString("rem.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void rem_u16(Register d, Register a, Register b) {
-        emitString("rem.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_u32(Register d, Register a, Register b) {
-        emitString("rem.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_u64(Register d, Register a, Register b) {
-        emitString("rem.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void rem_u16(Register d, Register a, short u16) {
-        emitString("rem.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u16 + ";" + "");
-    }
-
-    public final void rem_u32(Register d, Register a, int u32) {
-        emitString("rem.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void rem_u64(Register d, Register a, long u64) {
-        emitString("rem.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u64 + ";" + "");
-    }
-
     public final void ret() {
         emitString("ret;" + " " + "");
     }
@@ -625,501 +601,168 @@ public class PTXAssembler extends AbstractPTXAssembler {
         emitString("ret.uni;" + " " + "");
     }
 
-    public final void setp_eq_f32(Register a, Register b) {
-        emitString("setp.eq.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
+    public static class Setp  {
+
+        private ConditionOperator  operator;
+        private Value first, second;
+        private Kind kind;
+        private int predicate;
+
+        public Setp(Condition condition, Value first, Value second, int predicateRegisterNumber) {
+            setFirst(first);
+            setSecond(second);
+            setPredicate(predicateRegisterNumber);
+            setKind();
+            setConditionOperator(operatorForConditon(condition));
+        }
+
+        public void setFirst(Value v) {
+            first = v;
+        }
+
+        public void setSecond(Value v) {
+            second = v;
+        }
+
+        public void setPredicate(int p) {
+            predicate = p;
+        }
+
+        public void setConditionOperator(ConditionOperator co) {
+            operator = co;
+        }
+
+        private ConditionOperator operatorForConditon(Condition condition) {
+            char typeChar = kind.getTypeChar();
+
+            switch (typeChar) {
+                case 'z':
+                case 'c':
+                case 'a':
+                    // unsigned
+                    switch (condition) {
+                        case EQ: return ConditionOperator.U_EQ;
+                        case NE: return ConditionOperator.U_NE;
+                        case LT: return ConditionOperator.U_LO;
+                        case LE: return ConditionOperator.U_LS;
+                        case GT: return ConditionOperator.U_HI;
+                        case GE: return ConditionOperator.U_HS;
+                        default:
+                            throw GraalInternalError.shouldNotReachHere();
+                    }
+                case 'b':
+                case 's':
+                case 'i':
+                case 'j':
+                    // signed
+                    switch (condition) {
+                        case EQ: return ConditionOperator.S_EQ;
+                        case NE: return ConditionOperator.S_NE;
+                        case LT: return ConditionOperator.S_LT;
+                        case LE: return ConditionOperator.S_LE;
+                        case GT: return ConditionOperator.S_GT;
+                        case GE:
+                        case AE:
+                            return ConditionOperator.S_GE;
+                        default:
+                            throw GraalInternalError.shouldNotReachHere();
+                    }
+                case 'f':
+                case 'd':
+                    // floating point - do these need to accept NaN??
+                    switch (condition) {
+                        case EQ: return ConditionOperator.F_EQ;
+                        case NE: return ConditionOperator.F_NE;
+                        case LT: return ConditionOperator.F_LT;
+                        case LE: return ConditionOperator.F_LE;
+                        case GT: return ConditionOperator.F_GT;
+                        case GE: return ConditionOperator.F_GE;
+                        default:
+                            throw GraalInternalError.shouldNotReachHere();
+                    }
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+
+        public void setKind() {
+            // assert isConstant(first) && isConstant(second) == false;
+
+            if (isConstant(first)) {
+                kind = second.getKind();
+            } else {
+                kind = first.getKind();
+            }
+        }
+        
+        public String emitValue(Value v) {
+            assert v != null;
+
+            if (isConstant(v)) {
+                return (", " + emitConstant(v));
+            } else {
+                return (", " + emitVariable((Variable) v));
+            }
+        }
+
+        public String typeForKind(Kind k) {
+            switch (k.getTypeChar()) {
+                case 'z':
+                    return "u8";
+                case 'b':
+                    return "s8";
+                case 's':
+                    return "s16";
+                case 'c':
+                    return "u16";
+                case 'i':
+                    return "s32";
+                case 'f':
+                    return "f32";
+                case 'j':
+                    return "s64";
+                case 'd':
+                    return "f64";
+                case 'a':
+                    return "u64";
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+
+        public String emitConstant(Value v) {
+            Constant constant = (Constant) v;
+
+            switch (v.getKind().getTypeChar()) {
+                case 'i':
+                    return (String.valueOf((int) constant.asLong()));
+                case 'f':
+                    return (String.valueOf(constant.asFloat()));
+                case 'j':
+                    return (String.valueOf(constant.asLong()));
+                case 'd':
+                    return (String.valueOf(constant.asDouble()));
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+        
+        public String emitVariable(Variable v) {
+            return ("%r" + v.index);
+        }
+
+        public void emit(PTXAssembler asm) {
+            asm.emitString("setp." + operator.getOperator() + "." + typeForKind(kind) +
+                           " %p" + predicate + emitValue(first) + emitValue(second) + ";");
+        }
     }
-
-    public final void setp_ne_f32(Register a, Register b) {
-        emitString("setp.ne.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_f32(Register a, Register b) {
-        emitString("setp.lt.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_f32(Register a, Register b) {
-        emitString("setp.le.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_f32(Register a, Register b) {
-        emitString("setp.gt.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_f32(Register a, Register b) {
-        emitString("setp.ge.f32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_f32(float f32, Register b) {
-        emitString("setp.eq.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_f32(float f32, Register b) {
-        emitString("setp.ne.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_f32(float f32, Register b) {
-        emitString("setp.lt.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_f32(float f32, Register b) {
-        emitString("setp.le.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_f32(float f32, Register b) {
-        emitString("setp.gt.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_f32(float f32, Register b) {
-        emitString("setp.ge.f32" + " " + "%p" + ", " + f32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_f64(double f64, Register b) {
-        emitString("setp.eq.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_f64(double f64, Register b) {
-        emitString("setp.ne.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_f64(double f64, Register b) {
-        emitString("setp.lt.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_f64(double f64, Register b) {
-        emitString("setp.le.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_f64(double f64, Register b) {
-        emitString("setp.gt.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_f64(double f64, Register b) {
-        emitString("setp.ge.f64" + " " + "%p" + ", " + f64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_s64(Register a, Register b) {
-        emitString("setp.eq.s64" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_s64(long s64, Register b) {
-        emitString("setp.eq.s64" + " " + "%p" + ", " + s64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_s32(Register a, Register b) {
-        emitString("setp.eq.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_s32(Register a, Register b) {
-        emitString("setp.ne.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_s32(Register a, Register b) {
-        emitString("setp.lt.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_s32(Register a, Register b) {
-        emitString("setp.le.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_s32(Register a, Register b) {
-        emitString("setp.gt.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_s32(Register a, Register b) {
-        emitString("setp.ge.s32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_s32(Register a, int s32) {
-        emitString("setp.eq.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_ne_s32(Register a, int s32) {
-        emitString("setp.ne.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_lt_s32(Register a, int s32) {
-        emitString("setp.lt.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_le_s32(Register a, int s32) {
-        emitString("setp.le.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_gt_s32(Register a, int s32) {
-        emitString("setp.gt.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_ge_s32(Register a, int s32) {
-        emitString("setp.ge.s32" + " " + "%p" + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void setp_eq_s32(int s32, Register b) {
-        emitString("setp.eq.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_s32(int s32, Register b) {
-        emitString("setp.ne.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_s32(int s32, Register b) {
-        emitString("setp.lt.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_s32(int s32, Register b) {
-        emitString("setp.le.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_s32(int s32, Register b) {
-        emitString("setp.gt.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_s32(int s32, Register b) {
-        emitString("setp.ge.s32" + " " + "%p" + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_u32(Register a, Register b) {
-        emitString("setp.eq.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_u32(Register a, Register b) {
-        emitString("setp.ne.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_u32(Register a, Register b) {
-        emitString("setp.lt.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_u32(Register a, Register b) {
-        emitString("setp.le.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_u32(Register a, Register b) {
-        emitString("setp.gt.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_u32(Register a, Register b) {
-        emitString("setp.ge.u32" + " " + "%p" + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_eq_u32(Register a, int u32) {
-        emitString("setp.eq.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_ne_u32(Register a, int u32) {
-        emitString("setp.ne.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_lt_u32(Register a, int u32) {
-        emitString("setp.lt.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_le_u32(Register a, int u32) {
-        emitString("setp.le.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_gt_u32(Register a, int u32) {
-        emitString("setp.gt.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_ge_u32(Register a, int u32) {
-        emitString("setp.ge.u32" + " " + "%p" + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void setp_eq_u32(int u32, Register b) {
-        emitString("setp.eq.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ne_u32(int u32, Register b) {
-        emitString("setp.ne.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_lt_u32(int u32, Register b) {
-        emitString("setp.lt.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_le_u32(int u32, Register b) {
-        emitString("setp.le.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_gt_u32(int u32, Register b) {
-        emitString("setp.gt.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void setp_ge_u32(int u32, Register b) {
-        emitString("setp.ge.u32" + " " + "%p" + ", " + u32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    // Shift left - only types supported are .b16, .b32 and .b64
-    public final void shl_b16(Register d, Register a, Register b) {
-        emitString("shl.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shl_b32(Register d, Register a, Register b) {
-        emitString("shl.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shl_b64(Register d, Register a, Register b) {
-        emitString("shl.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shl_b16_const(Register d, Register a, int b) {
-        emitString("shl.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b + ";" + "");
-    }
-
-    public final void shl_b32_const(Register d, Register a, int b) {
-        emitString("shl.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b + ";" + "");
-    }
-
-    public final void shl_b64_const(Register d, Register a, int b) {
-        emitString("shl.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b + ";" + "");
-    }
-
-    // Shift Right instruction
-    public final void shr_s16(Register d, Register a, Register b) {
-        emitString("shr.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_s32(Register d, Register a, Register b) {
-        emitString("shr.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_s64(Register d, Register a, Register b) {
-        emitString("shr.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_s16(Register d, Register a, int u32) {
-        emitString("shr.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void shr_s32(Register d, Register a, int u32) {
-        emitString("shr.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void shr_s64(Register d, Register a, int u32) {
-        emitString("shr.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void shr_u16(Register d, Register a, Register b) {
-        emitString("shr.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_u32(Register d, Register a, Register b) {
-        emitString("shr.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_u64(Register d, Register a, Register b) {
-        emitString("shr.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void shr_u16(Register d, Register a, int u32) {
-        emitString("shr.u16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void shr_u32(Register d, Register a, int u32) {
-        emitString("shr.u32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u32 + ";" + "");
-    }
-
-    public final void shr_u64(Register d, Register a, long u64) {
-        emitString("shr.u64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + u64 + ";" + "");
-    }
-
-    // Store in global state space
-
-    public final void st_global_b8(Register a, long immOff, Register b) {
-        emitString("st.global.b8" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_b16(Register a, long immOff, Register b) {
-        emitString("st.global.b16" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_b32(Register a, long immOff, Register b) {
-        emitString("st.global.b32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_b64(Register a, long immOff, Register b) {
-        emitString("st.global.b64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_u8(Register a, long immOff, Register b) {
-        emitString("st.global.u8" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_u16(Register a, long immOff, Register b) {
-        emitString("st.global.u16" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_u32(Register a, long immOff, Register b) {
-        emitString("st.global.u32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_u64(Register a, long immOff, Register b) {
-        emitString("st.global.u64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_s8(Register a, long immOff, Register b) {
-        emitString("st.global.s8" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_s16(Register a, long immOff, Register b) {
-        emitString("st.global.s16" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_s32(Register a, long immOff, Register b) {
-        emitString("st.global.s32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_s64(Register a, long immOff, Register b) {
-        emitString("st.global.s64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_f32(Register a, long immOff, Register b) {
-        emitString("st.global.f32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_f64(Register a, long immOff, Register b) {
-        emitString("st.global.f64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    // Store return value
-    public final void st_global_return_value_s8(Register a, long immOff, Register b) {
-        emitString("st.global.s8" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_s32(Register a, long immOff, Register b) {
-        emitString("st.global.s32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_s64(Register a, long immOff, Register b) {
-        emitString("st.global.s64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_f32(Register a, long immOff, Register b) {
-        emitString("st.global.f32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_f64(Register a, long immOff, Register b) {
-        emitString("st.global.f64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_u32(Register a, long immOff, Register b) {
-        emitString("st.global.u32" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    public final void st_global_return_value_u64(Register a, long immOff, Register b) {
-        emitString("st.global.u64" + " " + "[%r" + a.encoding() + " + " + immOff + "], %r" + b.encoding() + ";" + "");
-    }
-
-    // Subtract instruction
-
-    public final void sub_f32(Register d, Register a, Register b) {
-        emitString("sub.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_f64(Register d, Register a, Register b) {
-        emitString("sub.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s16(Register d, Register a, Register b) {
-        emitString("sub.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s32(Register d, Register a, Register b) {
-        emitString("sub.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s64(Register d, Register a, Register b) {
-        emitString("sub.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s16(Register d, Register a, short s16) {
-        emitString("sub.s16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s16 + ";" + "");
-    }
-
-    public final void sub_s32(Register d, Register a, int s32) {
-        emitString("sub.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void sub_s64(Register d, Register a, int s32) {
-        emitString("sub.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void sub_s64(Register d, Register a, long s64) {
-        emitString("sub.s64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s64 + ";" + "");
-    }
-
-    public final void sub_f32(Register d, Register a, float f32) {
-        emitString("sub.f32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void sub_f64(Register d, Register a, double f64) {
-        emitString("sub.f64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void sub_s16(Register d, short s16, Register b) {
-        emitString("sub.s16" + " " + "%r" + d.encoding() + ", " + s16 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s32(Register d, int s32, Register b) {
-        emitString("sub.s32" + " " + "%r" + d.encoding() + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_s64(Register d, long s64, Register b) {
-        emitString("sub.s64" + " " + "%r" + d.encoding() + ", " + s64 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_f32(Register d, float f32, Register b) {
-        emitString("sub.f32" + " " + "%r" + d.encoding() + ", %r" + b.encoding() + ", " + f32 + ";" + "");
-    }
-
-    public final void sub_f64(Register d, double f64, Register b) {
-        emitString("sub.f64" + " " + "%r" + d.encoding() + ", %r" + b.encoding() + ", " + f64 + ";" + "");
-    }
-
-    public final void sub_sat_s32(Register d, Register a, Register b) {
-        emitString("sub.sat.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void sub_sat_s32(Register d, Register a, int s32) {
-        emitString("sub.sat.s32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + s32 + ";" + "");
-    }
-
-    public final void sub_sat_s32(Register d, int s32, Register b) {
-        emitString("sub.sat.s32" + " " + "%r" + d.encoding() + ", " + s32 + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void xor_b16(Register d, Register a, Register b) {
-        emitString("xor.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void xor_b32(Register d, Register a, Register b) {
-        emitString("xor.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void xor_b64(Register d, Register a, Register b) {
-        emitString("xor.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", %r" + b.encoding() + ";" + "");
-    }
-
-    public final void xor_b16(Register d, Register a, short b16) {
-        emitString("xor.b16" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b16 + ";" + "");
-    }
-
-    public final void xor_b32(Register d, Register a, int b32) {
-        emitString("xor.b32" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b32 + ";" + "");
-    }
-
-    public final void xor_b64(Register d, Register a, long b64) {
-        emitString("xor.b64" + " " + "%r" + d.encoding() + ", %r" + a.encoding() + ", " + b64 + ";" + "");
-    }
-
     @Override
     public PTXAddress makeAddress(Register base, int displacement) {
-        return new PTXAddress(base, displacement);
+        throw GraalInternalError.shouldNotReachHere();
     }
 
     @Override
     public PTXAddress getPlaceholder() {
-        // TODO Auto-generated method stub
         return null;
     }
 }

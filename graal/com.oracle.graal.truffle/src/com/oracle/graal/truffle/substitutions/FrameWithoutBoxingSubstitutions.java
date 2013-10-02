@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.truffle.substitutions;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.api.runtime.*;
@@ -214,7 +213,8 @@ public class FrameWithoutBoxingSubstitutions {
     }
 
     private static void verifyGet(FrameWithoutBoxing frame, FrameSlot slot, FrameSlotKind accessType) {
-        if (getTag(frame, slot) != (byte) accessType.ordinal()) {
+        byte tag = getTag(frame, slot);
+        if (accessType == FrameSlotKind.Object ? (tag & 0xfe) != 0 : tag != (byte) accessType.ordinal()) {
             DeoptimizeNode.deopt(DeoptimizationAction.InvalidateReprofile, DeoptimizationReason.UnreachedCode);
         }
     }

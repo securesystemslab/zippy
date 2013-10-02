@@ -23,20 +23,21 @@
 package com.oracle.graal.nodes;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
  * Nodes of this type are inserted into the graph to denote points of interest to debugging.
  */
-public class InfopointNode extends AbstractStateSplit implements LIRLowerable, IterableNodeType {
+public class InfopointNode extends FixedWithNextNode implements LIRLowerable, NodeWithState {
 
     public final InfopointReason reason;
+    @Input private FrameState state;
 
-    public InfopointNode(InfopointReason reason) {
+    public InfopointNode(InfopointReason reason, FrameState state) {
         super(StampFactory.forVoid());
         this.reason = reason;
+        this.state = state;
     }
 
     @Override
@@ -44,24 +45,13 @@ public class InfopointNode extends AbstractStateSplit implements LIRLowerable, I
         generator.visitInfopointNode(this);
     }
 
-    @Override
-    public boolean hasSideEffect() {
-        return false;
-    }
-
-    @Override
-    public void setStateAfter(FrameState state) {
-        // shield this node from frame state removal
-        // TODO turn InfopointNode into a FixedWithNextNode subclass with a self-maintained
-        // FrameState that is correctly dealt with by scheduling and partial escape analysis
-        if (state != null) {
-            super.setStateAfter(state);
-        }
+    public FrameState getState() {
+        return state;
     }
 
     @Override
     public boolean verify() {
-        return stateAfter() != null && super.verify();
+        return getState() != null && super.verify();
     }
 
 }

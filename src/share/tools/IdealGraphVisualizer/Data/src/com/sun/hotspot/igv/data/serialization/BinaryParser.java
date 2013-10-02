@@ -62,6 +62,7 @@ public class BinaryParser implements GraphParser {
     private static final int PROPERTY_TRUE = 0x05;
     private static final int PROPERTY_FALSE = 0x06;
     private static final int PROPERTY_ARRAY = 0x07;
+    private static final int PROPERTY_SUBGRAPH = 0x08;
     
     private static final String NO_BLOCK = "noBlock";
     
@@ -522,6 +523,10 @@ public class BinaryParser implements GraphParser {
                     default:
                         throw new IOException("Unknown type");
                 }
+            case PROPERTY_SUBGRAPH:
+                InputGraph graph = parseGraph(null);
+                new Group(null).addElement(graph);
+                return graph;
             default:
                 throw new IOException("Unknown type");
         }
@@ -612,6 +617,10 @@ public class BinaryParser implements GraphParser {
             monitor.updateProgress();
         }
         String title = readPoolObject(String.class);
+        return parseGraph(title);
+    }
+
+    private InputGraph parseGraph(String title) throws IOException {
         InputGraph graph = new InputGraph(title);
         parseNodes(graph);
         parseBlocks(graph);
@@ -666,8 +675,14 @@ public class BinaryParser implements GraphParser {
                     key = "!data." + key;
                 }
                 Object value = readPropertyObject();
-                properties.setProperty(key, value != null ? value.toString() : "null");
-                props.put(key, value);
+                if (value instanceof InputGraph) {
+                    InputGraph subgraph = (InputGraph) value;
+                    subgraph.getProperties().setProperty("name", node.getId() + ":" + key);
+                    node.addSubgraph((InputGraph) value);
+                } else {
+                    properties.setProperty(key, value != null ? value.toString() : "null");
+                    props.put(key, value);
+                }
             }
             int edgesStart = edges.size();
             int suxCount = readShort();

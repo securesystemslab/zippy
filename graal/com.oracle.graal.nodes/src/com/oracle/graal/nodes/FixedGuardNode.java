@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.nodes;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.extended.*;
@@ -31,7 +30,7 @@ import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(nameTemplate = "FixedGuard(!={p#negated}) {p#reason/s}")
-public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implements Simplifiable, Lowerable, Node.IterableNodeType, GuardingNode {
+public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implements Simplifiable, Lowerable, IterableNodeType, GuardingNode {
 
     @Input private LogicNode condition;
     private final DeoptimizationReason reason;
@@ -106,9 +105,12 @@ public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implemen
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        if (loweringType == LoweringType.BEFORE_GUARDS) {
-            tool.getRuntime().lower(this, tool);
+    public void lower(LoweringTool tool) {
+        if (graph().getGuardsStage() == StructuredGraph.GuardsStage.FLOATING_GUARDS) {
+            ValueNode guard = tool.createGuard(condition(), getReason(), getAction(), isNegated()).asNode();
+            this.replaceAtUsages(guard);
+            ValueAnchorNode newAnchor = graph().add(new ValueAnchorNode(guard.asNode()));
+            graph().replaceFixedWithFixed(this, newAnchor);
         } else {
             FixedNode next = next();
             setNext(null);
@@ -130,17 +132,7 @@ public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implemen
     }
 
     @Override
-    public FixedGuardNode asNode() {
-        return this;
-    }
-
-    @Override
     public boolean canDeoptimize() {
         return true;
-    }
-
-    @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return reason;
     }
 }

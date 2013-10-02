@@ -126,7 +126,7 @@ public class PartialEscapeAnalysisTest extends GraalCompilerTest {
 
     @Test
     public void testCache() {
-        testMaterialize("testCacheSnippet", 0.5, 1);
+        testMaterialize("testCacheSnippet", 0.75, 1);
     }
 
     public static class CacheKey {
@@ -167,13 +167,13 @@ public class PartialEscapeAnalysisTest extends GraalCompilerTest {
     final void testMaterialize(final String snippet, double expectedProbability, int expectedCount, Class<? extends Node>... invalidNodeClasses) {
         StructuredGraph result = processMethod(snippet);
         try {
-            Assert.assertTrue("partial escape analysis should have removed all NewInstanceNode allocations", result.getNodes(NewInstanceNode.class).isEmpty());
-            Assert.assertTrue("partial escape analysis should have removed all NewArrayNode allocations", result.getNodes(NewArrayNode.class).isEmpty());
+            Assert.assertTrue("partial escape analysis should have removed all NewInstanceNode allocations", result.getNodes().filter(NewInstanceNode.class).isEmpty());
+            Assert.assertTrue("partial escape analysis should have removed all NewArrayNode allocations", result.getNodes().filter(NewArrayNode.class).isEmpty());
 
             NodesToDoubles nodeProbabilities = new ComputeProbabilityClosure(result).apply();
             double probabilitySum = 0;
             int materializeCount = 0;
-            for (CommitAllocationNode materialize : result.getNodes(CommitAllocationNode.class)) {
+            for (CommitAllocationNode materialize : result.getNodes().filter(CommitAllocationNode.class)) {
                 probabilitySum += nodeProbabilities.get(materialize) * materialize.getVirtualObjects().size();
                 materializeCount += materialize.getVirtualObjects().size();
             }
@@ -199,10 +199,10 @@ public class PartialEscapeAnalysisTest extends GraalCompilerTest {
 
                 Assumptions assumptions = new Assumptions(false);
                 HighTierContext context = new HighTierContext(runtime(), assumptions, replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
-                new InliningPhase().apply(graph, context);
+                new InliningPhase(new CanonicalizerPhase(true)).apply(graph, context);
                 new DeadCodeEliminationPhase().apply(graph);
                 new CanonicalizerPhase(true).apply(graph, context);
-                new PartialEscapePhase(false).apply(graph, context);
+                new PartialEscapePhase(false, new CanonicalizerPhase(true)).apply(graph, context);
 
                 for (MergeNode merge : graph.getNodes(MergeNode.class)) {
                     merge.setStateAfter(null);

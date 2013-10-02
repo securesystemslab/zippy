@@ -258,6 +258,14 @@ public class ConditionalEliminationPhase extends Phase {
                 metricTypeRegistered.increment();
             }
         }
+
+        public void clear() {
+            knownTypes.clear();
+            knownNonNull.clear();
+            knownNull.clear();
+            trueConditions.clear();
+            falseConditions.clear();
+        }
     }
 
     public static ResolvedJavaType widen(ResolvedJavaType a, ResolvedJavaType b) {
@@ -355,6 +363,9 @@ public class ConditionalEliminationPhase extends Phase {
 
         private void registerControlSplitInfo(Node pred, AbstractBeginNode begin) {
             assert pred != null && begin != null;
+            if (begin instanceof LoopExitNode) {
+                state.clear();
+            }
 
             if (pred instanceof IfNode) {
                 IfNode ifNode = (IfNode) pred;
@@ -494,15 +505,15 @@ public class ConditionalEliminationPhase extends Phase {
                     }
                     ValueAnchorNode anchor = null;
                     if (replacementAnchor == null) {
-                        anchor = graph.add(new ValueAnchorNode());
+                        anchor = graph.add(new ValueAnchorNode(null));
                         replacementAnchor = anchor;
                     }
                     PiNode piNode;
                     if (isNull) {
                         ConstantNode nullObject = ConstantNode.forObject(null, metaAccessProvider, graph);
-                        piNode = graph.unique(new PiNode(nullObject, StampFactory.forConstant(nullObject.value, metaAccessProvider), replacementAnchor));
+                        piNode = graph.unique(new PiNode(nullObject, StampFactory.forConstant(nullObject.value, metaAccessProvider), replacementAnchor.asNode()));
                     } else {
-                        piNode = graph.unique(new PiNode(object, StampFactory.declared(type, nonNull), replacementAnchor));
+                        piNode = graph.unique(new PiNode(object, StampFactory.declared(type, nonNull), replacementAnchor.asNode()));
                     }
                     checkCast.replaceAtUsages(piNode);
                     if (anchor != null) {

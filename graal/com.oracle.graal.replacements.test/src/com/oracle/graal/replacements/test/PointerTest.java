@@ -33,9 +33,13 @@ import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.Snippet.SnippetInliningPolicy;
 import com.oracle.graal.word.*;
+import com.oracle.graal.word.nodes.*;
 
 /**
  * Tests for the {@link Pointer} read and write operations.
@@ -103,11 +107,13 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
     }
 
     private void assertRead(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
-        ReadNode read = (ReadNode) graph.start().next();
+        WordCastNode cast = (WordCastNode) graph.start().next();
+
+        ReadNode read = (ReadNode) cast.next();
         Assert.assertEquals(kind.getStackKind(), read.kind());
 
-        UnsafeCastNode cast = (UnsafeCastNode) read.object();
-        Assert.assertEquals(graph.getLocal(0), cast.object());
+        Assert.assertEquals(cast, read.object());
+        Assert.assertEquals(graph.getLocal(0), cast.getInput());
         Assert.assertEquals(target.wordKind, cast.kind());
 
         IndexedLocationNode location = (IndexedLocationNode) read.location();
@@ -128,13 +134,15 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
     }
 
     private void assertWrite(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
-        WriteNode write = (WriteNode) graph.start().next();
+        WordCastNode cast = (WordCastNode) graph.start().next();
+
+        WriteNode write = (WriteNode) cast.next();
         Assert.assertEquals(graph.getLocal(2), write.value());
         Assert.assertEquals(Kind.Void, write.kind());
-        Assert.assertEquals(FrameState.INVALID_FRAMESTATE_BCI, write.stateAfter().bci);
+        Assert.assertEquals(FrameState.AFTER_BCI, write.stateAfter().bci);
 
-        UnsafeCastNode cast = (UnsafeCastNode) write.object();
-        Assert.assertEquals(graph.getLocal(0), cast.object());
+        Assert.assertEquals(cast, write.object());
+        Assert.assertEquals(graph.getLocal(0), cast.getInput());
         Assert.assertEquals(target.wordKind, cast.kind());
 
         IndexedLocationNode location = (IndexedLocationNode) write.location();
@@ -150,10 +158,7 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
             Assert.assertEquals(graph.getLocal(1), location.getIndex());
         }
 
-        AbstractStateSplit stateSplit = (AbstractStateSplit) write.next();
-        Assert.assertEquals(FrameState.AFTER_BCI, stateSplit.stateAfter().bci);
-
-        ReturnNode ret = (ReturnNode) stateSplit.next();
+        ReturnNode ret = (ReturnNode) write.next();
         Assert.assertEquals(null, ret.result());
     }
 
@@ -397,4 +402,62 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
         Word.fromObject(o).writeObject(offset, value);
     }
 
+    private void assertNumWordCasts(String snippetName, int expectedWordCasts) {
+        Assumptions assumptions = new Assumptions(true);
+        HighTierContext context = new HighTierContext(runtime(), assumptions, replacements, null, null, OptimisticOptimizations.ALL);
+
+        StructuredGraph graph = parse(snippetName);
+        new CanonicalizerPhase(false).apply(graph, context);
+        Assert.assertEquals(expectedWordCasts, graph.getNodes().filter(WordCastNode.class).count());
+    }
+
+    @Test
+    public void testUnusedFromObject() {
+        assertNumWordCasts("unusedFromObject", 0);
+    }
+
+    @Snippet
+    public static void unusedFromObject(Object o) {
+        Word.fromObject(o);
+    }
+
+    @Test
+    public void testUnusedRawValue() {
+        assertNumWordCasts("unusedRawValue", 0);
+    }
+
+    @Snippet
+    public static void unusedRawValue(Object o) {
+        Word.fromObject(o).rawValue();
+    }
+
+    @Test
+    public void testUsedRawValue() {
+        assertNumWordCasts("usedRawValue", 1);
+    }
+
+    @Snippet
+    public static long usedRawValue(Object o) {
+        return Word.fromObject(o).rawValue();
+    }
+
+    @Test
+    public void testUnusedToObject() {
+        assertNumWordCasts("unusedToObject", 0);
+    }
+
+    @Snippet
+    public static void unusedToObject(Word w) {
+        w.toObject();
+    }
+
+    @Test
+    public void testUsedToObject() {
+        assertNumWordCasts("usedToObject", 1);
+    }
+
+    @Snippet
+    public static Object usedToObject(Word w) {
+        return w.toObject();
+    }
 }

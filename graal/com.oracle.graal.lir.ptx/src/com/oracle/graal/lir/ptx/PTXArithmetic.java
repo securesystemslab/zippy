@@ -22,7 +22,9 @@
  */
 package com.oracle.graal.lir.ptx;
 
+import static com.oracle.graal.asm.ptx.PTXAssembler.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.api.meta.*;
@@ -61,7 +63,22 @@ public enum PTXArithmetic {
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            PTXMove.move(tasm, masm, result, x);
+            switch (opcode) {
+                case I2L:
+                case I2C:
+                case I2B:
+                case I2F:
+                case I2D:
+                case F2I:
+                case F2L:
+                case F2D:
+                case D2I:
+                case D2L:
+                case D2F:
+                    break;  // cvt handles the move
+                default:
+                    PTXMove.move(tasm, masm, result, x);
+            }
             emit(tasm, masm, opcode, result, x, null);
         }
     }
@@ -255,9 +272,15 @@ public enum PTXArithmetic {
 
     protected static void emit(@SuppressWarnings("unused") TargetMethodAssembler tasm,
                                PTXAssembler masm, PTXArithmetic opcode, Value result) {
+
+        Variable var = (Variable) result;
         switch (opcode) {
-        case L2I:  masm.and_b32(asIntReg(result), asIntReg(result), 0xFFFFFFFF); break;
-        case I2C:  masm.and_b16(asIntReg(result), asIntReg(result), (short) 0xFFFF); break;
+            case L2I:
+                new And(var, var, Constant.forLong(0xFFFFFFFF)).emit(masm);
+                break;
+            case I2C:
+                new And(var, var, Constant.forInt((short) 0xFFFF)).emit(masm);
+                break;
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: "  + opcode);
         }
@@ -265,74 +288,60 @@ public enum PTXArithmetic {
 
     public static void emit(TargetMethodAssembler tasm, PTXAssembler masm, PTXArithmetic opcode, Value dst, Value src, LIRFrameState info) {
         int exceptionOffset = -1;
-        if (isRegister(src)) {
+        Variable dest = (Variable) dst;
+
+        if (isVariable(src)) {
+            Variable source = (Variable) src;
             switch (opcode) {
                 case INEG:
-                    masm.neg_s32(asIntReg(dst), asIntReg(src));
+                case FNEG:
+                case DNEG:
+                    new Neg(dest, source).emit(masm);
                     break;
                 case INOT:
-                    masm.not_s32(asIntReg(dst), asIntReg(src));
-                    break;
                 case LNOT:
-                    masm.not_s64(asLongReg(dst), asLongReg(src));
+                    new Not(dest, source).emit(masm);
                     break;
                 case I2L:
-                    masm.cvt_s64_s32(asLongReg(dst), asIntReg(src));
-                    break;
                 case I2C:
-                    masm.cvt_b16_s32(asIntReg(dst), asIntReg(src));
-                    break;
                 case I2B:
-                    masm.cvt_s8_s32(asIntReg(dst), asIntReg(src));
-                    break;
                 case I2F:
-                    masm.cvt_f32_s32(asFloatReg(dst), asIntReg(src));
-                    break;
                 case I2D:
-                    masm.cvt_f64_s32(asDoubleReg(dst), asIntReg(src));
-                    break;
-                case FNEG:
-                    masm.neg_f32(asFloatReg(dst), asFloatReg(src));
-                    break;
-                case DNEG:
-                    masm.neg_f64(asDoubleReg(dst), asDoubleReg(src));
-                    break;
                 case F2I:
-                    masm.cvt_s32_f32(asIntReg(dst), asFloatReg(src));
-                    break;
                 case F2L:
-                    masm.cvt_s64_f32(asLongReg(dst), asFloatReg(src));
-                    break;
                 case F2D:
-                    masm.cvt_f64_f32(asDoubleReg(dst), asFloatReg(src));
-                    break;
                 case D2I:
-                    masm.cvt_s32_f64(asIntReg(dst), asDoubleReg(src));
-                    break;
                 case D2L:
-                    masm.cvt_s64_f64(asLongReg(dst), asDoubleReg(src));
-                    break;
                 case D2F:
-                    masm.cvt_f32_f64(asFloatReg(dst), asDoubleReg(src));
+                    new Cvt(dest, source).emit(masm);
                     break;
                 case LSHL:
-                    masm.shl_b64(asLongReg(dst), asLongReg(dst), asIntReg(src));
+                    new Shl(dest, dest, src).emit(masm);
                     break;
                 case LSHR:
-                    masm.shr_s64(asLongReg(dst), asLongReg(dst), asIntReg(src));
+                    new Shr(dest, dest, src).emit(masm);
                     break;
                 default:
                     throw GraalInternalError.shouldNotReachHere("missing: "  + opcode);
             }
         } else if (isConstant(src)) {
             switch (opcode) {
-                case ISUB: masm.sub_s32(asIntReg(dst), asIntReg(dst), tasm.asIntConst(src)); break;
-                case IAND: masm.and_b32(asIntReg(dst), asIntReg(dst), tasm.asIntConst(src)); break;
-                default:   throw GraalInternalError.shouldNotReachHere();
+                case ISUB:
+                    new Sub(dest, dest, src).emit(masm);
+                    break;
+                case IAND:
+                    new And(dest, dest, src).emit(masm);
+                    break;
+                case LSHL:
+                    new Shl(dest, dest, src).emit(masm);
+                    break;
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
             }
         } else {
             switch (opcode) {
-                default:   throw GraalInternalError.shouldNotReachHere();
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
             }
         }
 
@@ -342,84 +351,68 @@ public enum PTXArithmetic {
         }
     }
 
-    public static void emit(TargetMethodAssembler tasm, PTXAssembler masm, PTXArithmetic opcode, Value dst, Value src1, Value src2, LIRFrameState info) {
+    public static void emit(TargetMethodAssembler tasm, PTXAssembler masm, PTXArithmetic opcode,
+                            Value dst, Value src1, Value src2, LIRFrameState info) {
         int exceptionOffset = -1;
-        if (isConstant(src1)) {
-            switch (opcode) {
-            case ISUB:  masm.sub_s32(asIntReg(dst),    tasm.asIntConst(src1),    asIntReg(src2));         break;
-            case IAND:  masm.and_b32(asIntReg(dst),    asIntReg(src2),           tasm.asIntConst(src1));  break;
-            case IDIV:  masm.div_s32(asIntReg(dst),    tasm.asIntConst(src1),    asIntReg(src2));         break;
-            case FSUB:  masm.sub_f32(asFloatReg(dst),  tasm.asFloatConst(src1),  asFloatReg(src2));       break;
-            case FDIV:  masm.div_f32(asFloatReg(dst),  tasm.asFloatConst(src1),  asFloatReg(src2));       break;
-            case DSUB:  masm.sub_f64(asDoubleReg(dst), tasm.asDoubleConst(src1), asDoubleReg(src2));      break;
-            case DDIV:  masm.div_f64(asDoubleReg(dst), tasm.asDoubleConst(src1), asDoubleReg(src2));      break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-            }
-        } else if (isConstant(src2)) {
-            switch (opcode) {
-            case IADD:  masm.add_s32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case ISUB:  masm.sub_s32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case IMUL:  masm.mul_lo_s32(asIntReg(dst), asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case IAND:  masm.and_b32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case ISHL:  masm.shl_b32_const(asIntReg(dst), asIntReg(src1), tasm.asIntConst(src2));    break;
-            case ISHR:  masm.shr_s32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case IUSHR: masm.shr_u32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case IXOR:  masm.xor_b32(asIntReg(dst),    asIntReg(src1),    tasm.asIntConst(src2));    break;
-            case LXOR:  masm.xor_b64(asLongReg(dst),   asLongReg(src1),   tasm.asLongConst(src2));   break;
-            case LUSHR: masm.shr_u64(asLongReg(dst),   asLongReg(src1),   tasm.asLongConst(src2));   break;
-            case FADD:  masm.add_f32(asFloatReg(dst),  asFloatReg(src1),  tasm.asFloatConst(src2));  break;
-            case FMUL:  masm.mul_lo_f32(asFloatReg(dst), asFloatReg(src1), tasm.asFloatConst(src2)); break;
-            case FDIV:  masm.div_f32(asFloatReg(dst),  asFloatReg(src1),  tasm.asFloatConst(src2));  break;
-            case DADD:  masm.add_f64(asDoubleReg(dst), asDoubleReg(src1), tasm.asDoubleConst(src2)); break;
-            case DMUL:  masm.mul_lo_f64(asDoubleReg(dst), asDoubleReg(src1), tasm.asDoubleConst(src2)); break;
-            case DDIV:  masm.div_f64(asDoubleReg(dst), asDoubleReg(src1), tasm.asDoubleConst(src2)); break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-            }
-        } else {
-            switch (opcode) {
-            // case A:  new Add(Int, dst, src1, src2);
-            // case S:  new Sub(Int, dst, src1, src2);
-            // case U:  new Shl(UnsignedInt, dst, src1, src2);
-            // case L:  new Shl(UnsignedLong, dst, src1, src2);
-            // case F:  new Add(Float, dst, src1, src2);
-            // case D:  new Mul(Double, dst, src1, src2);
-            case IADD:  masm.add_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case ISUB:  masm.sub_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IMUL:  masm.mul_lo_s32(asIntReg(dst), asIntReg(src1),    asIntReg(src2));    break;
-            case IDIV:  masm.div_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IAND:  masm.and_b32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IOR:    masm.or_b32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IXOR:  masm.xor_b32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case ISHL:  masm.shl_b32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case ISHR:  masm.shr_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IUSHR: masm.shr_u32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case IREM:  masm.rem_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
-            case LADD:  masm.add_s64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LSUB:  masm.sub_s64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LMUL:  masm.mul_lo_s64(asLongReg(dst), asLongReg(src1),  asLongReg(src2));   break;
-            case LDIV:  masm.div_s64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LAND:  masm.and_b64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LOR:   masm.or_b64(asLongReg(dst),    asLongReg(src1),   asLongReg(src2));   break;
-            case LXOR:  masm.xor_b64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LSHL:  masm.shl_b64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LSHR:  masm.shr_s64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case LUSHR: masm.shr_u64(asLongReg(dst),   asLongReg(src1),   asIntReg(src2));    break;
-            case LREM:  masm.rem_s64(asLongReg(dst),   asLongReg(src1),   asLongReg(src2));   break;
-            case FADD:  masm.add_f32(asFloatReg(dst),  asFloatReg(src1),  asFloatReg(src2));  break;
-            case FSUB:  masm.sub_f32(asFloatReg(dst),  asFloatReg(src1),  asFloatReg(src2));  break;
-            case FMUL:  masm.mul_lo_f32(asFloatReg(dst), asFloatReg(src1), asFloatReg(src2)); break;
-            case FDIV:  masm.div_f32(asFloatReg(dst),  asFloatReg(src1),  asFloatReg(src2));  break;
-            case FREM:  masm.div_f32(asFloatReg(dst),  asFloatReg(src1),  asFloatReg(src2));  break;
-            case DADD:  masm.add_f64(asDoubleReg(dst), asDoubleReg(src1), asDoubleReg(src2)); break;
-            case DSUB:  masm.sub_f64(asDoubleReg(dst), asDoubleReg(src1), asDoubleReg(src2)); break;
-            case DMUL:  masm.mul_lo_f64(asDoubleReg(dst), asDoubleReg(src1), asDoubleReg(src2)); break;
-            case DDIV:  masm.div_f64(asDoubleReg(dst), asDoubleReg(src1), asDoubleReg(src2)); break;
-            case DREM:  masm.div_f64(asDoubleReg(dst), asDoubleReg(src1), asDoubleReg(src2)); break;
+        Variable dest = (Variable) dst;
+
+        switch (opcode) {
+            case IADD:
+            case LADD:
+            case FADD:
+            case DADD:
+                new Add(dest, src1, src2).emit(masm);
+                break;
+            case IAND:
+            case LAND:
+                new And(dest, src1, src2).emit(masm);
+                break;
+            case ISUB:
+            case LSUB:
+            case FSUB:
+            case DSUB:
+                new Sub(dest, src1, src2).emit(masm);
+                break;
+            case IMUL:
+            case LMUL:
+            case FMUL:
+            case DMUL:
+                new Mul(dest, src1, src2).emit(masm);
+                break;
+            case IDIV:
+            case LDIV:
+            case FDIV:
+            case DDIV:
+                new Div(dest, src1, src2).emit(masm);
+                break;
+            case IOR:
+            case LOR:
+                new Or(dest, src1, src2).emit(masm);
+                break;
+            case IXOR:
+            case LXOR:
+                new Xor(dest, src1, src2).emit(masm);
+                break;
+            case ISHL:
+            case LSHL:
+                new Shl(dest, src1, src2).emit(masm);
+                break;
+            case ISHR:
+            case LSHR:
+                new Shr(dest, src1, src2).emit(masm);
+                break;
+            case IUSHR:
+            case LUSHR:
+                new Ushr(dest, src1, src2).emit(masm);
+                break;
+            case IREM:
+            case LREM:
+            case FREM:
+            case DREM:
+                new Rem(dest, src1, src2).emit(masm);
+                break;
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: "  + opcode);
-            }
         }
 
         if (info != null) {
@@ -429,11 +422,73 @@ public enum PTXArithmetic {
     }
 
     private static void verifyKind(PTXArithmetic opcode, Value result, Value x, Value y) {
-        if (((opcode.name().startsWith("I") && result.getKind() == Kind.Int && x.getKind().getStackKind() == Kind.Int && y.getKind().getStackKind() == Kind.Int)
-            || (opcode.name().startsWith("L") && result.getKind() == Kind.Long && x.getKind() == Kind.Long && y.getKind() == Kind.Long)
-            || (opcode.name().startsWith("F") && result.getKind() == Kind.Float && x.getKind() == Kind.Float && y.getKind() == Kind.Float)
-            || (opcode.name().startsWith("D") && result.getKind() == Kind.Double && x.getKind() == Kind.Double && y.getKind() == Kind.Double)) == false) {
-                throw GraalInternalError.shouldNotReachHere("opcode: "  + opcode.name() + " x: " + x.getKind() + " y: " + y.getKind());
+        Kind rk;
+        Kind xk;
+        Kind yk;
+        Kind xsk;
+        Kind ysk;
+
+        switch (opcode) {
+            case IADD:
+            case ISUB:
+            case IMUL:
+            case IDIV:
+            case IREM:
+            case IAND:
+            case IOR:
+            case IXOR:
+            case ISHL:
+            case ISHR:
+            case IUSHR:
+                rk = result.getKind();
+                xsk = x.getKind().getStackKind();
+                ysk = y.getKind().getStackKind();
+                assert rk == Kind.Int && xsk == Kind.Int && ysk == Kind.Int;
+                break;
+            case LADD:
+            case LSUB:
+            case LMUL:
+            case LDIV:
+            case LREM:
+            case LAND:
+            case LOR:
+            case LXOR:
+                rk = result.getKind();
+                xk = x.getKind();
+                yk = y.getKind();
+                assert rk == Kind.Long && xk == Kind.Long && yk == Kind.Long;
+                break;
+            case LSHL:
+            case LSHR:
+            case LUSHR:
+                rk = result.getKind();
+                xk = x.getKind();
+                yk = y.getKind();
+                assert rk == Kind.Long && xk == Kind.Long && (yk == Kind.Int || yk == Kind.Long);
+                break;
+            case FADD:
+            case FSUB:
+            case FMUL:
+            case FDIV:
+            case FREM:
+                rk = result.getKind();
+                xk = x.getKind();
+                yk = y.getKind();
+                assert rk == Kind.Float && xk == Kind.Float && yk == Kind.Float;
+                break;
+            case DADD:
+            case DSUB:
+            case DMUL:
+            case DDIV:
+            case DREM:
+                rk = result.getKind();
+                xk = x.getKind();
+                yk = y.getKind();
+                assert rk == Kind.Double && xk == Kind.Double && yk == Kind.Double :
+                    "opcode=" + opcode + ", result kind=" + rk + ", x kind=" + xk + ", y kind=" + yk;
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere("missing: " + opcode);
         }
     }
 }

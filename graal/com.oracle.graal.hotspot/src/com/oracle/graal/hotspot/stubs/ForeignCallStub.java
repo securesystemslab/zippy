@@ -29,6 +29,7 @@ import static com.oracle.graal.hotspot.HotSpotForeignCallLinkage.Transition.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 
 import java.lang.reflect.*;
+import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -223,13 +224,16 @@ public class ForeignCallStub extends Stub {
         boolean isObjectResult = linkage.getOutgoingCallingConvention().getReturn().getKind() == Kind.Object;
         GraphBuilder builder = new GraphBuilder(this);
         LocalNode[] locals = createLocals(builder, args);
+        List<InvokeNode> invokes = new ArrayList<>(3);
 
         ReadRegisterNode thread = prependThread || isObjectResult ? builder.append(new ReadRegisterNode(runtime.threadRegister(), true, false)) : null;
         ValueNode result = createTargetCall(builder, locals, thread);
-        createInvoke(builder, StubUtil.class, "handlePendingException", ConstantNode.forBoolean(isObjectResult, builder.graph));
+        invokes.add(createInvoke(builder, StubUtil.class, "handlePendingException", ConstantNode.forBoolean(isObjectResult, builder.graph)));
         if (isObjectResult) {
             InvokeNode object = createInvoke(builder, HotSpotReplacementsUtil.class, "getAndClearObjectResult", thread);
             result = createInvoke(builder, StubUtil.class, "verifyObject", object);
+            invokes.add(object);
+            invokes.add((InvokeNode) result);
         }
         builder.append(new ReturnNode(linkage.getDescriptor().getResultType() == void.class ? null : result));
 
@@ -237,10 +241,15 @@ public class ForeignCallStub extends Stub {
             Debug.dump(builder.graph, "Initial stub graph");
         }
 
-        for (InvokeNode invoke : builder.graph.getNodes(InvokeNode.class).snapshot()) {
+        /* Rewrite all word types that can come in from the method argument types. */
+        new WordTypeRewriterPhase(runtime, wordKind()).apply(builder.graph);
+        /* Inline all method calls that are create above. */
+        for (InvokeNode invoke : invokes) {
             inline(invoke);
         }
-        assert builder.graph.getNodes(InvokeNode.class).isEmpty();
+        /* Clean up all code that is now dead after inlining. */
+        new DeadCodeEliminationPhase().apply(builder.graph);
+        assert builder.graph.getNodes().filter(InvokeNode.class).isEmpty();
 
         if (Debug.isDumpEnabled()) {
             Debug.dump(builder.graph, "Stub graph before compilation");
@@ -294,13 +303,9 @@ public class ForeignCallStub extends Stub {
     }
 
     private void inline(InvokeNode invoke) {
-        StructuredGraph graph = invoke.graph();
         ResolvedJavaMethod method = ((MethodCallTargetNode) invoke.callTarget()).targetMethod();
         ReplacementsImpl repl = new ReplacementsImpl(runtime, new Assumptions(false), runtime.getTarget());
         StructuredGraph calleeGraph = repl.makeGraph(method, null, null);
         InliningUtil.inline(invoke, calleeGraph, false);
-        new NodeIntrinsificationPhase(runtime).apply(graph);
-        new WordTypeRewriterPhase(runtime, wordKind()).apply(graph);
-        new DeadCodeEliminationPhase().apply(graph);
     }
 }

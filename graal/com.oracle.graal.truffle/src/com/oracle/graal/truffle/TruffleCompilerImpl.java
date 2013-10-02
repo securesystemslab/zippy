@@ -23,7 +23,6 @@
 package com.oracle.graal.truffle;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
-import static com.oracle.graal.compiler.GraalDebugConfig.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -78,13 +77,13 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         this.graalRuntime = HotSpotGraalRuntime.graalRuntime();
         this.skippedExceptionTypes = getSkippedExceptionTypes(metaAccessProvider);
 
-        final GraphBuilderConfiguration config = GraphBuilderConfiguration.getDefault();
+        final GraphBuilderConfiguration config = GraphBuilderConfiguration.getEagerDefault();
         config.setSkippedExceptionTypes(skippedExceptionTypes);
         this.truffleCache = new TruffleCache(this.runtime, config, TruffleCompilerImpl.Optimizations, this.replacements);
 
         this.partialEvaluator = new PartialEvaluator(metaAccessProvider, replacements, truffleCache);
 
-        if (DebugEnabled.getValue()) {
+        if (Debug.isEnabled()) {
             DebugEnvironment.initialize(System.out);
         }
     }

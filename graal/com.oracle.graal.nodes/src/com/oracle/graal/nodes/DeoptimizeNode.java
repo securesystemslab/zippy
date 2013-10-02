@@ -22,30 +22,15 @@
  */
 package com.oracle.graal.nodes;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
-/**
- * This node represents an unconditional explicit request for immediate deoptimization.
- * 
- * After this node, execution will continue using a fallback execution engine (such as an
- * interpreter) at the position described by the {@link #getDeoptimizationState() deoptimization
- * state}.
- * 
- */
-@NodeInfo(shortName = "Deopt", nameTemplate = "Deopt {p#reason/s}")
-public class DeoptimizeNode extends ControlSinkNode implements Node.IterableNodeType, Lowerable, LIRLowerable, DeoptimizingNode {
-
-    @Input private FrameState deoptState;
+public class DeoptimizeNode extends AbstractDeoptimizeNode implements LIRLowerable {
 
     private final DeoptimizationAction action;
     private final DeoptimizationReason reason;
 
     public DeoptimizeNode(DeoptimizationAction action, DeoptimizationReason reason) {
-        super(StampFactory.forVoid());
         this.action = action;
         this.reason = reason;
     }
@@ -59,36 +44,15 @@ public class DeoptimizeNode extends ControlSinkNode implements Node.IterableNode
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        tool.getRuntime().lower(this, tool);
+    public void generate(LIRGeneratorTool gen) {
+        gen.emitDeoptimize(gen.getRuntime().encodeDeoptActionAndReason(action, reason), this);
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.emitDeoptimize(action, this);
+    public ValueNode getActionAndReason(MetaAccessProvider runtime) {
+        return ConstantNode.forConstant(runtime.encodeDeoptActionAndReason(action, reason), runtime, graph());
     }
 
     @NodeIntrinsic
     public static native void deopt(@ConstantNodeParameter DeoptimizationAction action, @ConstantNodeParameter DeoptimizationReason reason);
-
-    @Override
-    public boolean canDeoptimize() {
-        return true;
-    }
-
-    @Override
-    public FrameState getDeoptimizationState() {
-        return deoptState;
-    }
-
-    @Override
-    public void setDeoptimizationState(FrameState f) {
-        updateUsages(deoptState, f);
-        deoptState = f;
-    }
-
-    @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return reason;
-    }
 }
