@@ -1318,6 +1318,14 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
+def sl(args):
+    """run an SL program
+
+    VM args should have a @ prefix."""
+    vmArgs = [a[1:] for a in args if a[0] == '@']
+    slArgs = [a for a in args if a[0] != '@']
+    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
+
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
@@ -1361,7 +1369,8 @@ def mx_init(suite):
         'vmg': [vmg, '[-options] class [args...]'],
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
-        'longtests' : [longtests, '']
+        'longtests' : [longtests, ''],
+        'sl' : [sl, '[SL args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
