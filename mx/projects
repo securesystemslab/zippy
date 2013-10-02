@@ -497,7 +497,7 @@ project@com.oracle.graal.asm.amd64.test@workingSets=Graal,Assembler,AMD64,Test
 # graal.hsail
 project@com.oracle.graal.hsail@subDir=graal
 project@com.oracle.graal.hsail@sourceDirs=src
-project@com.oracle.graal.hsail@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph
+project@com.oracle.graal.hsail@dependencies=com.oracle.graal.graph
 project@com.oracle.graal.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hsail@javaCompliance=1.7
 
