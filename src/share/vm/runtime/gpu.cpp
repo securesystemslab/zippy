@@ -81,3 +81,13 @@ bool gpu::execute_warp(int dimX, int dimY, int dimZ,
     return false;
 }
 
+int gpu::available_processors() {
+    if (gpu::has_gpu_linkage()) {
+        if (gpu::get_target_il_type() == gpu::PTX) {
+            return (gpu::Ptx::total_cores());
+        }
+        // Add kernel execution functionality of other GPUs here
+    }
+    return 0;
+}
+

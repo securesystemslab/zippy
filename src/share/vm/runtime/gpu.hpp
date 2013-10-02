@@ -43,6 +43,8 @@ public:
   static void probe_gpu();
 
   static void initialize_gpu();
+
+  static int available_processors();
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
 

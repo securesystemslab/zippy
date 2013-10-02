@@ -50,6 +50,28 @@ gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data
 gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
 gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
 
+
+/*
+ * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
+ */
+int ncores(int major, int minor) {
+    int device_type = (major << 4) + minor;
+
+    switch (device_type) {
+        case 0x10: return 8;
+        case 0x11: return 8;
+        case 0x12: return 8;
+        case 0x13: return 8;
+        case 0x20: return 32;
+        case 0x21: return 48;
+        case 0x30: return 192;
+        case 0x35: return 192;
+    default:
+        tty->print_cr("[CUDA] Warning: Unhandled device %x", device_type);
+        return 0;
+    }
+}
+
 bool gpu::Ptx::initialize_gpu() {
 
   /* Initialize CUDA driver API */
@@ -95,24 +117,7 @@ bool gpu::Ptx::initialize_gpu() {
   }
 
   /* Get device attributes */
-  int minor, major, unified_addressing;
-  status = _cuda_cu_device_get_attribute(&minor, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, _cu_device);
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to get minor attribute of device: %d", _cu_device);
-    return false;
-  }
-
-  status = _cuda_cu_device_get_attribute(&major, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, _cu_device);
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to get major attribute of device: %d", _cu_device);
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
-  }
+  int unified_addressing;
 
   status = _cuda_cu_device_get_attribute(&unified_addressing, GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, _cu_device);
 
@@ -139,7 +144,48 @@ bool gpu::Ptx::initialize_gpu() {
     tty->print_cr("[CUDA] Using %s", device_name);
   }
 
+
   return true;
+}
+
+unsigned int gpu::Ptx::total_cores() {
+
+    int minor, major, nmp;
+    int status = _cuda_cu_device_get_attribute(&minor,
+                                               GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                                               _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get minor attribute of device: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&major,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get major attribute of device: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&nmp,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get numberof MPs on device: %d", _cu_device);
+        return 0;
+    }
+
+    int total = nmp * ncores(major, minor);
+
+    if (TraceGPUInteraction) {
+        tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
+        tty->print_cr("[CUDA] Number of cores: %d", total);
+    }
+    return (total);
+    
 }
 
 void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {

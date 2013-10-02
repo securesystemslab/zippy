@@ -111,7 +111,7 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   HandleMark hm;
 
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
-    tty->print_cr("executeExternalMethodVarargs - not available / no linkage / not initialized");
+    tty->print_cr("executeParallelMethodVarargs - not available / no linkage / not initialized");
     return NULL;
   }
   jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
@@ -153,6 +153,14 @@ C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
   }
   gpu::initialize_gpu();
   return gpu::is_initialized();
+C2V_END
+
+C2V_VMENTRY(jint, availableProcessors, (JNIEnv *env, jobject))
+  if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
+    tty->print_cr("deviceInit - not available / no linkage");
+    return false;
+  }
+  return gpu::available_processors();
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceDetach, (JNIEnv *env, jobject))
@@ -199,6 +207,7 @@ JNINativeMethod CompilerToGPU_methods[] = {
   {CC"generateKernel",                CC"([B" STRING ")"GPUSPACE_METHOD,          FN_PTR(generateKernel)},
   {CC"deviceInit",                    CC"()Z",                                    FN_PTR(deviceInit)},
   {CC"deviceDetach",                  CC"()Z",                                    FN_PTR(deviceDetach)},
+  {CC"availableProcessors",           CC"()I",                                    FN_PTR(availableProcessors)},
   {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,    FN_PTR(executeExternalMethodVarargs)},
   {CC"executeParallelMethodVarargs",  CC"(III["OBJECT HS_INSTALLED_CODE")"OBJECT, FN_PTR(executeParallelMethodVarargs)},
 };
