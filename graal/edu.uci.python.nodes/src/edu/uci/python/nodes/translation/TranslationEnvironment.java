@@ -129,6 +129,10 @@ public class TranslationEnvironment {
         return fd;
     }
 
+    public ScopeKind getScopeKind() {
+        return scopeKind;
+    }
+
     public boolean isInModuleScope() {
         return scopeKind == ScopeKind.Module;
     }

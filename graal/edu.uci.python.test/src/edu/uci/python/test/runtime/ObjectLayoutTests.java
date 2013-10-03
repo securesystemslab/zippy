@@ -101,7 +101,7 @@ public class ObjectLayoutTests {
         assertSame(Integer.class, object1.getInstanceVariable("foo").getClass());
 
         // The underlying instance store should be PInt
-        assertSame(PIntStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
+        assertSame(IntStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
 
         /*
          * The same instance variable in object 2 should be Nil. Note that this requires that we

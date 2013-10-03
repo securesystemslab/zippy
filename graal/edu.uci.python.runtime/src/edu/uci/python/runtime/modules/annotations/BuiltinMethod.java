@@ -35,5 +35,4 @@ public @interface BuiltinMethod {
     String unmangledName() default "";
 
     String[] aliases() default {};
-
 }

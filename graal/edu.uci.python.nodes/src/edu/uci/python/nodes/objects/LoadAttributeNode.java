@@ -58,7 +58,7 @@ public abstract class LoadAttributeNode extends PNode {
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {
-            throw new RuntimeException("Storage location should be found at this point");
+            return this;
         }
 
         if (storageLocation instanceof IntStorageLocation) {

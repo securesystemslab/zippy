@@ -27,6 +27,8 @@ package edu.uci.python.nodes.literals;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.runtime.datatypes.*;
+
 public abstract class NoneLiteralNode extends LiteralNode {
 
     @Override
@@ -36,8 +38,7 @@ public abstract class NoneLiteralNode extends LiteralNode {
 
     @Specialization
     public Object doGeneric() {
-// return PNone.NONE;
-        return null;
+        return PNone.NONE;
     }
 
     @Override

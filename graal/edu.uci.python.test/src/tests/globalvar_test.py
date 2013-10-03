@@ -7,5 +7,4 @@ def foo():
     print (x)
 
 foo();
-print (x)
-
+print(x)

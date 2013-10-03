@@ -24,24 +24,20 @@
  */
 package edu.uci.python.runtime.objects;
 
-import sun.misc.*;
-
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
 /**
- * A storage location for PInts.
+ * A storage location for ints.
  */
 public class IntStorageLocation extends PrimitiveStorageLocation {
-
-    private static final long FIRST_OFFSET = getFirstOffset();
 
     private final long offset;
 
     public IntStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = FIRST_OFFSET + index * Unsafe.ARRAY_INT_INDEX_SCALE;
+        offset = getExactOffsetOf(index);
     }
 
     @Override
@@ -82,9 +78,10 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
         return Integer.class;
     }
 
-    private static long getFirstOffset() {
+    private static long getExactOffsetOf(int index) {
+        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveIntStorageLocation1"));
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveIntStorageLocation" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }

@@ -33,9 +33,9 @@ public class FunctionDefinitionNode extends StatementNode {
 
     private final String name;
 
-    @Child private final ParametersNode parameters;
-
     private final CallTarget callTarget;
+
+    @Child protected ParametersNode parameters;
 
     public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget) {
         this.name = name;

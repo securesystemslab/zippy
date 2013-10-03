@@ -28,53 +28,30 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.modules.*;
 
-public class ImportNode extends StatementNode {
+public class ImportNode extends PNode {
 
-    final String fromModule;
+    private final String fromModuleName;
 
-    final FrameSlot[] targetSlots;
+    private final String importee;
 
-    final String[] aliases;
-
-    public ImportNode(FrameSlot[] targetSlots, String fromModule, String[] aliases) {
-        this.targetSlots = targetSlots;
-        this.fromModule = fromModule;
-        this.aliases = aliases;
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        Object importedModule = null;
-
-        if (fromModule != null) {
-            importedModule = BuiltIns.importModule(fromModule);
-        }
-
-        int index = 0;
-        for (int i = 0; i < targetSlots.length; i++) {
-            Object importee = doImport(importedModule, aliases[index++]);
-            frame.setObject(targetSlots[i], importee);
-        }
+    public ImportNode(String fromModule, String importee) {
+        this.fromModuleName = fromModule;
+        this.importee = importee;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         Object importedModule = null;
 
-        if (fromModule != null) {
-            importedModule = BuiltIns.importModule(fromModule);
+        if (fromModuleName != null) {
+            importedModule = BuiltIns.importModule(fromModuleName);
         }
 
-        int index = 0;
-        for (int i = 0; i < targetSlots.length; i++) {
-            Object importee = doImport(importedModule, aliases[index++]);
-            frame.setObject(targetSlots[i], importee);
-        }
-
-        return null;
+        return doImport(importedModule, importee);
     }
 
     private static Object doImport(Object importedModule, String name) {

@@ -74,6 +74,7 @@ public class PythonTreeTranslator extends Visitor {
         try {
             return (RootNode) visit(root);
         } catch (Throwable t) {
+            t.printStackTrace();
             throw new RuntimeException("Failed in " + this + " with error " + t);
         }
     }
@@ -116,8 +117,8 @@ public class PythonTreeTranslator extends Visitor {
         environment.setDefaultArgs(defaultArgs);
 
         String name = node.getInternalName();
-        boolean isClassMethod = environment.isInClassScope() ? true : false;
         FrameSlot slot = environment.findSlot(name);
+        ScopeKind definingScopeKind = environment.getScopeKind();
         environment.beginScope(node, ScopeKind.Function);
         isGenerator = false;
 
@@ -128,25 +129,36 @@ public class PythonTreeTranslator extends Visitor {
         if (isGenerator) {
             body = new ASTLinearizer((BlockNode) body).linearize();
             RootNode genRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-            PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters, slot, isClassMethod);
+            PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters);
+            PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
             environment.endScope();
-            return funcDef;
+            return writeOrStore;
         }
 
         FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-        PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters, slot, isClassMethod);
+        PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
+        PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
         environment.endScope();
-        return funcDef;
+        return writeOrStore;
     }
 
-    private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters, FrameSlot functionSlot, boolean isClassMethod) {
+    private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
-        PNode funcDef = factory.createFunctionDef(name, parameters, ct);
+        return factory.createFunctionDef(name, parameters, ct);
+    }
 
-        if (isClassMethod) {
-            return factory.createAddMethodNode((FunctionDefinitionNode) funcDef);
-        } else {
-            return factory.createWriteLocal(funcDef, functionSlot);
+    public PNode wrapWithWriteOrStore(PNode rhs, ScopeKind definingScope, FrameSlot slot, String name) {
+        switch (definingScope) {
+            case Module:
+                PNode main = factory.createObjectLiteral(context.getPythonCore().getMainModule());
+                return factory.createStoreAttribute(main, name, rhs);
+            case Function:
+                assert slot != null;
+                return factory.createWriteLocal(rhs, slot);
+            case Class:
+                return factory.createAddMethodNode((FunctionDefinitionNode) rhs);
+            default:
+                throw new RuntimeException("Unexpected ScopeKind " + definingScope);
         }
     }
 
@@ -213,30 +225,52 @@ public class PythonTreeTranslator extends Visitor {
         return slots;
     }
 
+    private PNode createSingleImportStatement(alias aliaz, String fromModuleName, FrameSlot slot) {
+        String importName = aliaz.getInternalName();
+        String asName = aliaz.getInternalAsname();
+        PNode importNode = factory.createImport(fromModuleName, importName);
+
+        if (asName != null) {
+            return wrapWithWriteOrStore(importNode, environment.getScopeKind(), slot, asName);
+        } else {
+            return wrapWithWriteOrStore(importNode, environment.getScopeKind(), slot, importName);
+        }
+    }
+
     @Override
     public Object visitImport(Import node) throws Exception {
         List<alias> aliases = node.getInternalNames();
         FrameSlot[] slots = walkAliasList(aliases);
-        String[] names = new String[aliases.size()];
+        assert !aliases.isEmpty();
 
-        for (int i = 0; i < aliases.size(); i++) {
-            names[i] = aliases.get(i).getInternalName();
+        if (aliases.size() == 1) {
+            return createSingleImportStatement(aliases.get(0), null, slots[0]);
         }
 
-        return factory.createImport(slots, null, names);
+        List<PNode> imports = new ArrayList<>();
+        for (int i = 0; i < aliases.size(); i++) {
+            imports.add(createSingleImportStatement(aliases.get(i), null, slots[i]));
+        }
+
+        return factory.createBlock(imports);
     }
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
         List<alias> aliases = node.getInternalNames();
         FrameSlot[] slots = walkAliasList(aliases);
-        String[] names = new String[aliases.size()];
+        assert !aliases.isEmpty();
 
-        for (int i = 0; i < aliases.size(); i++) {
-            names[i] = aliases.get(i).getInternalName();
+        if (aliases.size() == 1) {
+            return createSingleImportStatement(aliases.get(0), node.getInternalModule(), slots[0]);
         }
 
-        return factory.createImport(slots, node.getInternalModule(), names);
+        List<PNode> imports = new ArrayList<>();
+        for (int i = 0; i < aliases.size(); i++) {
+            imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule(), slots[i]));
+        }
+
+        return factory.createBlock(imports);
     }
 
     protected PNode visitKeyword(keyword node) throws Exception {
@@ -249,6 +283,7 @@ public class PythonTreeTranslator extends Visitor {
         String name = node.getInternalName();
         List<PNode> bases = walkExprList(node.getInternalBases());
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
+        ScopeKind definingScopeKind = environment.getScopeKind();
 
         environment.beginScope(node, ScopeKind.Class);
         List<PNode> statements = visitStatements(node.getInternalBody());
@@ -267,7 +302,7 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         PNode classDef = factory.createClassDef(name, base, funcDef);
-        return factory.createWriteLocal(classDef, environment.findSlot(name));
+        return wrapWithWriteOrStore(classDef, definingScopeKind, null, name);
     }
 
     @Override
@@ -284,12 +319,15 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
         }
 
+        /**
+         * TODO: this is a mess...
+         */
         // Specializing call node.
         if (argumentsArray.length == 1 && keywordsArray.length == 0) {
             if (Options.OptimizeNode) {
                 PCallable builtIn = null;
-                if (callee instanceof ReadGlobalNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalNode) callee).getName())) != null) {
-                    return factory.createCallBuiltInWithOneArgNoKeyword(builtIn, ((ReadGlobalNode) callee).getName(), argumentsArray[0]);
+                if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
+                    return factory.createCallBuiltInWithOneArgNoKeyword(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray[0]);
                 } else {
                     return factory.createCallWithOneArgumentNoKeyword(callee, argumentsArray[0]);
                 }
@@ -299,8 +337,8 @@ public class PythonTreeTranslator extends Visitor {
         } else if (argumentsArray.length == 2 && keywordsArray.length == 0) {
             if (Options.OptimizeNode) {
                 PCallable builtIn = null;
-                if (callee instanceof ReadGlobalNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalNode) callee).getName())) != null) {
-                    return factory.createCallBuiltInWithTwoArgsNoKeyword(builtIn, ((ReadGlobalNode) callee).getName(), argumentsArray[0], argumentsArray[1]);
+                if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
+                    return factory.createCallBuiltInWithTwoArgsNoKeyword(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray[0], argumentsArray[1]);
                 } else {
                     return factory.createCallWithTwoArgumentsNoKeyword(callee, argumentsArray[0], argumentsArray[1]);
                 }
@@ -311,8 +349,8 @@ public class PythonTreeTranslator extends Visitor {
 
         if (Options.OptimizeNode) {
             PCallable builtIn = null;
-            if (callee instanceof ReadGlobalNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalNode) callee).getName())) != null) {
-                return factory.createCallBuiltIn(builtIn, ((ReadGlobalNode) callee).getName(), argumentsArray, keywordsArray);
+            if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
+                return factory.createCallBuiltIn(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray, keywordsArray);
             } else {
                 return factory.createCall(callee, argumentsArray, keywordsArray);
             }
@@ -352,25 +390,41 @@ public class PythonTreeTranslator extends Visitor {
         String name = node.getInternalId();
         FrameSlot slot = environment.findSlot(name);
 
-        if (slot != null) {
-            if (slot instanceof EnvironmentFrameSlot) {
-                return factory.createReadEnvironment(slot, ((EnvironmentFrameSlot) slot).getLevel());
-            }
+        switch (environment.getScopeKind()) {
+            case Module:
+                return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+            case Function:
+                if (slot == null) {
+                    return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+                }
 
-            return factory.createReadLocal(slot);
-        } else {
-            return factory.createReadGlobal(name);
+                if (slot instanceof EnvironmentFrameSlot) {
+                    return factory.createReadEnvironment(slot, ((EnvironmentFrameSlot) slot).getLevel());
+                }
+
+                return factory.createReadLocal(slot);
+            case Class:
+            default:
+                throw new RuntimeException("Unexpected scopeKind " + environment.getScopeKind());
         }
     }
 
     PNode convertWrite(Name node) {
-        FrameSlot slot = environment.findSlot(node.getInternalId());
+        String name = node.getInternalId();
+        FrameSlot slot = environment.findSlot(name);
+        PNode main = factory.createObjectLiteral(context.getPythonCore().getMainModule());
 
-        if (slot != null) {
-            return factory.createWriteLocal(PNode.EMPTYNODE, slot);
-        } else {
-            String name = node.getInternalId();
-            return factory.createWriteGlobal(name, PNode.EMPTYNODE);
+        switch (environment.getScopeKind()) {
+            case Module:
+                return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
+            case Function:
+                if (slot == null) {
+                    return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
+                }
+                return factory.createWriteLocal(PNode.EMPTYNODE, slot);
+            case Class:
+            default:
+                throw new RuntimeException("Unexpected scopeKind " + environment.getScopeKind());
         }
     }
 
@@ -405,6 +459,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
 
+        /**
+         * TODO: AugAssign should be translated to in-place operations.<br>
+         * The assignment should be ScopeKind sensitive too!
+         */
         PNode expr;
         if (target instanceof FrameSlotNode) {
             FrameSlot slot = ((FrameSlotNode) target).getSlot();

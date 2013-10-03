@@ -31,11 +31,11 @@ import edu.uci.python.nodes.translation.*;
 
 public class IfNode extends StatementNode {
 
-    @Child protected final BooleanCastNode condition;
+    @Child protected BooleanCastNode condition;
 
-    @Child protected final BlockNode then;
+    @Child protected BlockNode then;
 
-    @Child protected final BlockNode orelse;
+    @Child protected BlockNode orelse;
 
     public IfNode(BooleanCastNode condition, BlockNode then, BlockNode orelse) {
         this.condition = adoptChild(condition);

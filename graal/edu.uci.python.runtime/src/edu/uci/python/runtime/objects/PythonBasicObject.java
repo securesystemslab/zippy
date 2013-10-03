@@ -40,19 +40,19 @@ public class PythonBasicObject {
     private ObjectLayout objectLayout;
 
     public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 4;
+    protected int primitiveIntStorageLocation0;
     protected int primitiveIntStorageLocation1;
     protected int primitiveIntStorageLocation2;
     protected int primitiveIntStorageLocation3;
-    protected int primitiveIntStorageLocation4;
 
     public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 7;
+    protected double primitiveDoubleStorageLocation0;
     protected double primitiveDoubleStorageLocation1;
     protected double primitiveDoubleStorageLocation2;
     protected double primitiveDoubleStorageLocation3;
     protected double primitiveDoubleStorageLocation4;
     protected double primitiveDoubleStorageLocation5;
     protected double primitiveDoubleStorageLocation6;
-    protected double primitiveDoubleStorageLocation7;
 
     // A bit map to indicate which primitives are set, so that they can be Nil
     protected int primitiveSetMap;

@@ -53,6 +53,7 @@ import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class NodeFactory {
 
@@ -125,8 +126,8 @@ public class NodeFactory {
         return new BlockNode(array);
     }
 
-    public StatementNode createImport(FrameSlot[] slots, String fromModule, String[] names) {
-        return new ImportNode(slots, fromModule, names);
+    public PNode createImport(String fromModuleName, String importee) {
+        return new ImportNode(fromModuleName, importee);
     }
 
     public StatementNode createWhile(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
@@ -375,6 +376,7 @@ public class NodeFactory {
     }
 
     public PNode createReadLocal(FrameSlot slot) {
+        assert slot != null;
         return ReadLocalNodeFactory.create(slot);
     }
 
@@ -392,6 +394,10 @@ public class NodeFactory {
 
     public PNode createReadGlobal(String name) {
         return ReadGlobalNodeFactory.create(name);
+    }
+
+    public PNode createReadGlobalScope(PythonContext context, PythonModule globalScope, String attributeId) {
+        return new ReadGlobalScopeNode(context, globalScope, attributeId);
     }
 
     public PNode createBooleanLiteral(boolean value) {

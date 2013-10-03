@@ -64,6 +64,12 @@ public abstract class BooleanCastNode extends UnaryOpNode {
             return operand.length() != 0;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(guards = "isNone")
+        boolean doNone(Object operand) {
+            return false;
+        }
+
         @Specialization
         boolean doPTuple(PTuple operand) {
             return operand.len() != 0;
@@ -117,6 +123,12 @@ public abstract class BooleanCastNode extends UnaryOpNode {
             return operand.length() == 0;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(guards = "isNone")
+        boolean doNone(Object operand) {
+            return true;
+        }
+
         @Specialization
         boolean doPTuple(PTuple operand) {
             return operand.len() == 0;
@@ -142,6 +154,10 @@ public abstract class BooleanCastNode extends UnaryOpNode {
             return false;
         }
 
+    }
+
+    static boolean isNone(Object value) {
+        return value == PNone.NONE;
     }
 
 }

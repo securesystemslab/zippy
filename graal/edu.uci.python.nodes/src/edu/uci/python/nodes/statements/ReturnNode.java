@@ -45,7 +45,7 @@ public class ReturnNode extends StatementNode {
 
     public static class ExplicitReturnNode extends ReturnNode {
 
-        @Child protected final PNode right;
+        @Child protected PNode right;
 
         public ExplicitReturnNode(PNode right) {
             this.right = adoptChild(right);

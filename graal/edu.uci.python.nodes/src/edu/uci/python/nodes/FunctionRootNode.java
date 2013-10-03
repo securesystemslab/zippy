@@ -38,7 +38,7 @@ import edu.uci.python.nodes.utils.*;
  */
 public class FunctionRootNode extends RootNode {
 
-    @Child protected final ParametersNode parameters;
+    @Child protected ParametersNode parameters;
 
     @Child protected StatementNode body;
 

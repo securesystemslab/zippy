@@ -24,24 +24,20 @@
  */
 package edu.uci.python.runtime.objects;
 
-import sun.misc.*;
-
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
 /**
- * A storage location for Floats.
+ * A storage location for floats.
  */
 public class FloatStorageLocation extends PrimitiveStorageLocation {
-
-    private static final long FIRST_OFFSET = getFirstOffset();
 
     private final long offset;
 
     public FloatStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = FIRST_OFFSET + index * Unsafe.ARRAY_DOUBLE_INDEX_SCALE;
+        offset = getExactOffsetOf(index);
     }
 
     @Override
@@ -82,12 +78,12 @@ public class FloatStorageLocation extends PrimitiveStorageLocation {
         return Double.class;
     }
 
-    private static long getFirstOffset() {
+    private static long getExactOffsetOf(int index) {
+        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDoubleStorageLocation1"));
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDoubleStorageLocation" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
     }
-
 }

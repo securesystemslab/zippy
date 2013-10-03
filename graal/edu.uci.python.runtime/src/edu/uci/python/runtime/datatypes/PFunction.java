@@ -49,6 +49,7 @@ public class PFunction extends PCallable {
     @Override
     public Object call(PackedFrame caller, Object[] arguments, Object[] keywords) {
         Object[] combined = new Object[parameters.size()];
+        assert combined.length >= arguments.length : "Parameters size does not match for call " + callTarget;
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
 
         // TODO: get rid of cast.
