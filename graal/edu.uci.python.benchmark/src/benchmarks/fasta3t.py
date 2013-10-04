@@ -28,10 +28,8 @@ homosapiens = [
     ('t', 0.3015094502008),
 ]
 
-#IM = 139968
-IM = 3
-#INITIAL_STATE = 42
-INITIAL_STATE = 2
+IM = 139968
+INITIAL_STATE = 42
 
 def makeCumulative(table):
     P = []
@@ -70,8 +68,6 @@ def randomFasta(table, n):
     global randomLUT, randomGenState
     width = 60
     rgs = randomGenState
-    print("randomGenState ", randomGenState)
-    print("rgs ", rgs)
     rlut = randomLUT
     
     lut = makeLookupTable(table)
@@ -81,19 +77,16 @@ def randomFasta(table, n):
     for i in range(n // width):
         for i in range(width):
             rgs = rlut[rgs]
-            print("rgs ", rgs)
             la(lut[rgs])
         print(''.join(line_buffer))
         line_buffer[:] = []
     if n % width:
         for i in range(n % width):
             rgs = rlut[rgs]
-            print("rgs ", rgs)
             la(lut[rgs])
         print(''.join(line_buffer))
     
     randomGenState = rgs
-    print("rgs ", rgs)
 
 def main(n):
     #n = int(sys.argv[1])
@@ -111,7 +104,7 @@ def main(n):
     
 
 # warm up
-for run in range(1):
+for run in range(5):
     main(5)
 
 # reset
@@ -123,4 +116,4 @@ print("Start timing...")
 start = time.time()
 main(num)
 duration = "%.3f\n" % (time.time() - start)
-print("nbody: " + duration)
+print("fasta: " + duration)
