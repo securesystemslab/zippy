@@ -48,7 +48,7 @@ public class CustomConsole extends JLineConsole {
     public void execfile(java.io.InputStream s, String name, PythonContext context) {
         setSystemState();
 
-        ASTInterpreter.init((PyStringMap) getLocals(), false);
+        ASTInterpreter.init(false);
         RootNode root = parseToAST(s, name, CompileMode.exec, cflags, context);
 
         if (Options.PrintAST) {

@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.truffle.*;
 
 public class ModuleNode extends RootNode {
 
@@ -47,7 +46,6 @@ public class ModuleNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        GlobalScope.getInstance(frame.materialize());
         return body.execute(frame);
     }
 

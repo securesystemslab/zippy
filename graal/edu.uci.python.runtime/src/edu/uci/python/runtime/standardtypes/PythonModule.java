@@ -63,7 +63,7 @@ public class PythonModule extends PythonBasicObject {
         }
 
         for (AnnotatedBuiltinMethod method : builtinMethods) {
-            final PFunction function = new PFunction(method.getNames().get(0), new ArrayList<String>(), method.getCallTarget());
+            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
             String methodName = method.getNames().get(0);
             setInstanceVariable(methodName, function);
         }

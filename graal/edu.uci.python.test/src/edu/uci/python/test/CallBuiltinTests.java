@@ -22,48 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.truffle.*;
+import org.junit.*;
 
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class WriteGlobalNode extends StatementNode implements Amendable {
+public class CallBuiltinTests {
 
-    public abstract PNode getRightNode();
+    @Test
+    public void abs() {
+        String source = "val = abs(-42)\n" + //
+                        "print(val)\n";
 
-    private final String name;
-
-    public WriteGlobalNode(String name) {
-        this.name = name;
+        assertPrints("42\n", source);
     }
 
-    protected WriteGlobalNode(WriteGlobalNode node) {
-        this(node.name);
-    }
-
-    public StatementNode updateRhs(PNode newRhs) {
-        return WriteGlobalNodeFactory.create(this.name, newRhs);
-    }
-
-    @SuppressWarnings("unused")
-    @Specialization
-    public Object doGeneric(VirtualFrame frame, Object value) {
-        GlobalScope.getInstance().set(name, value);
-        return null;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + "(" + name + ")";
-    }
 }

@@ -35,7 +35,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords) {
         super(arguments, keywords);
-        this.callee = callee;
+        this.callee = adoptChild(callee);
     }
 
     @Override

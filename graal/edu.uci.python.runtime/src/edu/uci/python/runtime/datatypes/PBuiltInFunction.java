@@ -27,11 +27,11 @@ package edu.uci.python.runtime.datatypes;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-public class PBuiltInFunction extends PCallable {
+public class PBuiltinFunction extends PCallable {
 
     private final CallTarget callTarget;
 
-    public PBuiltInFunction(String name, CallTarget callTarget) {
+    public PBuiltinFunction(String name, CallTarget callTarget) {
         super(name, true);
         this.callTarget = callTarget;
     }
@@ -48,23 +48,12 @@ public class PBuiltInFunction extends PCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        // TODO Auto-generated method stub
-        return null;
+        if (keywords.length == 0) {
+            return callTarget.call(caller, new PArguments(args));
+        } else {
+            PKeyword[] pkeywords = new PKeyword[keywords.length];
+            System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
+            return callTarget.call(caller, new PArguments(args, pkeywords));
+        }
     }
-
-// @Override
-// public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-// return callTarget.call(caller, new PArguments(args, keywords));
-// }
-
-// @Override
-// public Object call(PackedFrame caller, Object arg) {
-// return callTarget.call(caller, new PArguments(new Object[]{arg}));
-// }
-//
-// @Override
-// public Object call(PackedFrame caller, Object arg0, Object arg1) {
-// return callTarget.call(caller, new PArguments(new Object[]{arg0, arg1}));
-// }
-
 }

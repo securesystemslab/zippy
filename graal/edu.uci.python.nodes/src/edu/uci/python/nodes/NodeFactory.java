@@ -388,14 +388,6 @@ public class NodeFactory {
         return WriteLocalNodeFactory.create(slot, right);
     }
 
-    public PNode createWriteGlobal(String name, PNode right) {
-        return WriteGlobalNodeFactory.create(name, right);
-    }
-
-    public PNode createReadGlobal(String name) {
-        return ReadGlobalNodeFactory.create(name);
-    }
-
     public PNode createReadGlobalScope(PythonContext context, PythonModule globalScope, String attributeId) {
         return new ReadGlobalScopeNode(context, globalScope, attributeId);
     }
@@ -413,7 +405,7 @@ public class NodeFactory {
     }
 
     public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords) {
-        return CallFunctionNodeFactory.create(arguments, keywords, callee);
+        return new UninitializedCallFunctionNode(callee, arguments, keywords);
     }
 
     public PNode createCallBuiltIn(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {

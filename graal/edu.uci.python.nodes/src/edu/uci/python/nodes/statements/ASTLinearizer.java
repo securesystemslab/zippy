@@ -46,11 +46,6 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
 
     public StatementNode linearize() {
         visit(root);
-
-// if (Options.debug) {
-// new LiearizedASTPrinter().print();
-// }
-
         return getHead();
     }
 
@@ -172,9 +167,9 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
 
         @Override
         public StatementNode visitStatementNode(StatementNode node) {
-            int id = getId(node);
+            int sid = getId(node);
             int nextId = getId(node.next());
-            ASTInterpreter.trace(id + " " + node + " -> " + nextId);
+            ASTInterpreter.trace(sid + " " + node + " -> " + nextId);
             return null;
         }
 

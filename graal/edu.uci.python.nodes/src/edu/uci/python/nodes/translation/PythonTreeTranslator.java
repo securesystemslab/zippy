@@ -319,19 +319,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
         }
 
-        /**
-         * TODO: this is a mess...
-         */
-        if (Options.OptimizeNode) {
-            PCallable builtIn = null;
-            if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
-                return factory.createCallBuiltIn(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray, keywordsArray);
-            } else {
-                return factory.createCallFunction(callee, argumentsArray, keywordsArray);
-            }
-        } else {
-            return factory.createCallFunction(callee, argumentsArray, keywordsArray);
-        }
+        return factory.createCallFunction(callee, argumentsArray, keywordsArray);
     }
 
     @Override
@@ -449,11 +437,6 @@ public class PythonTreeTranslator extends Visitor {
             SubscriptLoadNode read = (SubscriptLoadNode) target;
             PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
             expr = factory.createSubscriptStore(read.getPrimary(), read.getSlice(), binaryOp);
-        } else if (target instanceof WriteGlobalNode) {
-            WriteGlobalNode writeGlobal = (WriteGlobalNode) target;
-            PNode readGlobal = factory.createReadGlobal(writeGlobal.getName());
-            PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), readGlobal, value);
-            expr = factory.createWriteGlobal(writeGlobal.getName(), binaryOp);
         } else {
             throw new NotCovered();
         }

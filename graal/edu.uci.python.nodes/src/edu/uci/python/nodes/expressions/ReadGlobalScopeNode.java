@@ -33,7 +33,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.objects.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -84,11 +83,7 @@ public class ReadGlobalScopeNode extends PNode {
 
     @SlowPath
     private Object slowPathLookup() {
-        Object value = GlobalScope.getTruffleBuiltIns().lookup(attributeId);
-
-        if (value == null) {
-            value = PySystemState.builtins.__finditem__(attributeId);
-        }
+        Object value = PySystemState.builtins.__finditem__(attributeId);
 
         if (value == null) {
             throw Py.NameError("name \'" + attributeId + "\' is not defined");

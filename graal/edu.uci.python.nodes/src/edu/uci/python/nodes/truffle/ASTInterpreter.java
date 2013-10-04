@@ -24,9 +24,6 @@
  */
 package edu.uci.python.nodes.truffle;
 
-
-import org.python.core.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -38,8 +35,7 @@ public class ASTInterpreter {
     public static boolean debug;
 
     @SuppressWarnings("hiding")
-    public static void init(PyStringMap globals, boolean debug) {
-        GlobalScope.create(globals);
+    public static void init(boolean debug) {
         ASTInterpreter.debug = debug;
     }
 

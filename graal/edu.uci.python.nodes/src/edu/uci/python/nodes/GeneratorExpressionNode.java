@@ -51,7 +51,7 @@ public abstract class GeneratorExpressionNode extends PNode {
 
         // TODO: This is probably not the best way to determine whether the
         // generator should be evaluated immediately or not.
-        if (getParent() instanceof WriteLocalNode || getParent() instanceof WriteGlobalNode) {
+        if (getParent() instanceof WriteLocalNode) {
             return ct;
         } else {
             return ct.call(frame.pack());

@@ -36,7 +36,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.translation.TranslationEnvironment.ScopeKind;
-import edu.uci.python.nodes.truffle.*;
 
 public class PythonTreeProcessor extends Visitor {
 
@@ -215,9 +214,9 @@ public class PythonTreeProcessor extends Visitor {
                  * Variables in module's scope are also treated as globals This is why slot is not
                  * set for variables in module's scope WriteGlobal or ReadGlobal
                  */
-                if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
-                    environment.createLocal(name);
-                }
+// if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
+// environment.createLocal(name);
+// }
             } else if (!environment.isLocalGlobals(name)) {
                 // function scope
                 environment.createLocal(name);
