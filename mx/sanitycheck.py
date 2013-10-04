@@ -97,7 +97,7 @@ dacapoScalaGateBuildLevels = {
     'tmt':        ['product', 'fastdebug', 'debug'],
 }
 
-getPythonTestBenchmarks = {
+pythonTestBenchmarks = {
     'binarytrees3'  : '12',
     'fannkuchredux3' : '9',
     'fasta3'        : '250000',
@@ -107,7 +107,7 @@ getPythonTestBenchmarks = {
     'spectralnorm3' : '500',
 }
 
-getPythonPartialEvaluationBenchmarks = {
+pythonBenchmarks = {
     'binarytrees3t'   : '19',
     'fannkuchredux3t' : '10',
     'fasta3t'         : '25000000',
@@ -283,13 +283,12 @@ def getBootstraps():
     tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig, methodMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
 
-def getPythonBenchmarks(vm):
+def getPythonTestBenchmarks(vm):
     score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
     error = re.compile(r"Exception")
     success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
     matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
-    #benchmarks = getPythonPartialEvaluationBenchmarks
-    benchmarks = getPythonTestBenchmarks
+    benchmarks = pythonTestBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
@@ -299,6 +298,20 @@ def getPythonBenchmarks(vm):
     
     return tests
 
+def getPythonBenchmarks(vm):
+    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
+    error = re.compile(r"Exception")
+    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
+    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    benchmarks = pythonBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
 
 class CTWMode:
     Full, NoInline, NoComplex = range(3)

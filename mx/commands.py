@@ -1226,6 +1226,9 @@ def bench(args):
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     # Python
+    if 'pythontest' in args:
+        benchmarks += sanitycheck.getPythonTestBenchmarks(vm)
+
     if 'python' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
 

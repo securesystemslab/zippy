@@ -71,4 +71,4 @@ print(sum)
 print("Pfannkuchen(%d) = %d" % (int(sys.argv[1]), maxflips))
 
 duration = "%.3f\n" % (time.time() - start)
-sys.stderr.write(duration)
+print("nbody: " + duration)

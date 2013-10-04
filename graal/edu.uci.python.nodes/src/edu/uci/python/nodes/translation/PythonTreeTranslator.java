@@ -322,31 +322,6 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * TODO: this is a mess...
          */
-        // Specializing call node.
-        if (argumentsArray.length == 1 && keywordsArray.length == 0) {
-            if (Options.OptimizeNode) {
-                PCallable builtIn = null;
-                if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
-                    return factory.createCallBuiltInWithOneArgNoKeyword(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray[0]);
-                } else {
-                    return factory.createCallWithOneArgumentNoKeyword(callee, argumentsArray[0]);
-                }
-            } else {
-                return factory.createCallWithOneArgumentNoKeyword(callee, argumentsArray[0]);
-            }
-        } else if (argumentsArray.length == 2 && keywordsArray.length == 0) {
-            if (Options.OptimizeNode) {
-                PCallable builtIn = null;
-                if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
-                    return factory.createCallBuiltInWithTwoArgsNoKeyword(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray[0], argumentsArray[1]);
-                } else {
-                    return factory.createCallWithTwoArgumentsNoKeyword(callee, argumentsArray[0], argumentsArray[1]);
-                }
-            } else {
-                return factory.createCallWithTwoArgumentsNoKeyword(callee, argumentsArray[0], argumentsArray[1]);
-            }
-        }
-
         if (Options.OptimizeNode) {
             PCallable builtIn = null;
             if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
@@ -754,7 +729,6 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitListComp(ListComp node) throws Exception {
-        assert node.getInternalGenerators().size() <= 1 : "More than one generator!";
         ComprehensionNode comp = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         return factory.createListComprehension(comp);
     }
