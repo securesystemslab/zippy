@@ -924,13 +924,15 @@ class JavaThread: public Thread {
 #define GRAAL_COUNTERS_SIZE (0)
 #define GRAAL_COUNTERS_EXCLUDE_COMPILER_THREADS (true)
 
+#if GRAAL_COUNTERS_SIZE > 0
   jlong     _graal_counters[GRAAL_COUNTERS_SIZE];
-  static jlong _graal_old_counters[GRAAL_COUNTERS_SIZE];
+  static jlong _graal_old_thread_counters[GRAAL_COUNTERS_SIZE];
+#endif // GRAAL_COUNTERS_SIZE > 0
 
  public:
   static void collect_counters(typeArrayOop array);
  private:
-#endif
+#endif // GRAAL
   StackGuardState        _stack_guard_state;
 
   nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
@@ -1390,8 +1392,12 @@ class JavaThread: public Thread {
 #ifdef GRAAL
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
   static ByteSize graal_implicit_exception_pc_offset() { return byte_offset_of(JavaThread, _graal_implicit_exception_pc); }
-  static ByteSize graal_counters_offset()              { return byte_offset_of(JavaThread, _graal_counters             ); }
-#endif
+#if GRAAL_COUNTERS_SIZE > 0
+  static ByteSize graal_counters_offset()        { return byte_offset_of(JavaThread, _graal_counters      ); }
+#else
+  static ByteSize graal_counters_offset()        { return in_ByteSize(0); }
+#endif // GRAAL_COUNTERS_SIZE > 0
+#endif // GRAAL
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
   static ByteSize exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }
