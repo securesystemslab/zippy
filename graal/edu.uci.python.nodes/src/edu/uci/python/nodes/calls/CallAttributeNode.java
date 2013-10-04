@@ -39,7 +39,7 @@ import edu.uci.python.runtime.modules.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild("primary")
-public abstract class AttributeCallNode extends PNode {
+public abstract class CallAttributeNode extends PNode {
 
     @Children protected final PNode[] arguments;
 
@@ -47,12 +47,12 @@ public abstract class AttributeCallNode extends PNode {
 
     public abstract PNode getPrimary();
 
-    public AttributeCallNode(PNode[] arguments, String name) {
+    public CallAttributeNode(PNode[] arguments, String name) {
         this.arguments = adoptChildren(arguments);
         this.attributeId = name;
     }
 
-    protected AttributeCallNode(AttributeCallNode node) {
+    protected CallAttributeNode(CallAttributeNode node) {
         this(node.arguments, node.attributeId);
     }
 

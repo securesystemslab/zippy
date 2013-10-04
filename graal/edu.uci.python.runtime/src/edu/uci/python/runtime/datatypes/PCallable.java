@@ -32,8 +32,20 @@ public abstract class PCallable {
 
     protected Object self = null;
 
+    private final boolean isBuiltin;
+
     public PCallable(String name) {
         this.name = name;
+        this.isBuiltin = false;
+    }
+
+    public PCallable(String name, boolean isBuiltin) {
+        this.name = name;
+        this.isBuiltin = isBuiltin;
+    }
+
+    public boolean isBuiltin() {
+        return isBuiltin;
     }
 
     public Object call(PackedFrame caller, Object[] args) {

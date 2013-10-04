@@ -38,17 +38,17 @@ import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild("callee")
-public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
+public abstract class CallFunctionWithOneArgumentNoKeywordNode extends PNode {
 
     public abstract PNode getCallee();
 
     @Child private PNode argument;
 
-    public CallWithOneArgumentNoKeywordNode(PNode argument) {
+    public CallFunctionWithOneArgumentNoKeywordNode(PNode argument) {
         this.argument = adoptChild(argument);
     }
 
-    protected CallWithOneArgumentNoKeywordNode(CallWithOneArgumentNoKeywordNode node) {
+    protected CallFunctionWithOneArgumentNoKeywordNode(CallFunctionWithOneArgumentNoKeywordNode node) {
         this(node.argument);
     }
 

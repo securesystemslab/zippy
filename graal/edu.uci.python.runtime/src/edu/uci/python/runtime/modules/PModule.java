@@ -240,7 +240,7 @@ public class PModule extends PObject {
 
                 final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
-                final PCallable pythonMethod = new PCallable(methodName) {
+                final PCallable pythonMethod = new PCallable(methodName, true) {
 
                     @Override
                     public Object call(PackedFrame caller, Object arg) {

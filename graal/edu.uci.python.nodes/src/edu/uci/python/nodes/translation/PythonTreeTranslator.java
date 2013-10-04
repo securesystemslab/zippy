@@ -111,7 +111,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         /**
-         * translate default arguments in FunctionDef's enclosing scope.
+         * translate default arguments in FunctionDef's declaring scope.
          */
         List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
         environment.setDefaultArgs(defaultArgs);
@@ -327,10 +327,10 @@ public class PythonTreeTranslator extends Visitor {
             if (callee instanceof ReadGlobalScopeNode && (builtIn = GlobalScope.getTruffleBuiltIns().lookupMethod(((ReadGlobalScopeNode) callee).getAttributeId())) != null) {
                 return factory.createCallBuiltIn(builtIn, ((ReadGlobalScopeNode) callee).getAttributeId(), argumentsArray, keywordsArray);
             } else {
-                return factory.createCall(callee, argumentsArray, keywordsArray);
+                return factory.createCallFunction(callee, argumentsArray, keywordsArray);
             }
         } else {
-            return factory.createCall(callee, argumentsArray, keywordsArray);
+            return factory.createCallFunction(callee, argumentsArray, keywordsArray);
         }
     }
 

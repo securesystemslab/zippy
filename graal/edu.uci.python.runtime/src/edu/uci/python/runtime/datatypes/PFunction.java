@@ -41,6 +41,12 @@ public class PFunction extends PCallable {
         this.callTarget = callTarget;
     }
 
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, boolean isBuiltin) {
+        super(name, isBuiltin);
+        this.parameters = parameters;
+        this.callTarget = callTarget;
+    }
+
     @Override
     public Object call(PackedFrame caller, Object[] args) {
         return callTarget.call(caller, new PArguments(args));

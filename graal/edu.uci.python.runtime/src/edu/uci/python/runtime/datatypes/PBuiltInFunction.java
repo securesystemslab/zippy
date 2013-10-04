@@ -22,49 +22,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
+package edu.uci.python.runtime.datatypes;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
+public class PBuiltInFunction extends PCallable {
 
-public class UninitializedAttributeCallNode extends AttributeCallNode {
+    private final CallTarget callTarget;
 
-    @Child protected PNode primary;
-
-    public UninitializedAttributeCallNode(String attributeId, PNode primary, PNode[] arguments) {
-        super(arguments, attributeId);
-        this.primary = adoptChild(primary);
+    public PBuiltInFunction(String name, CallTarget callTarget) {
+        super(name, true);
+        this.callTarget = callTarget;
     }
 
     @Override
-    public PNode getPrimary() {
-        return primary;
+    public boolean isBuiltin() {
+        return true;
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        Object primaryObj = primary.execute(frame);
-
-        if (primaryObj instanceof PythonObject) {
-            MethodCallNode callNode = new MethodCallNode(attributeId, primary, arguments);
-            replace(callNode);
-            return callNode.callMethod(frame, (PythonObject) primaryObj);
-        } else {
-            replace(AttributeCallNodeFactory.create(arguments, attributeId, primary));
-            return executeGenericSlowPath(frame, primaryObj);
-        }
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(args));
     }
 
-    protected Object executeGenericSlowPath(VirtualFrame frame, Object primaryObj) {
-        if (primaryObj instanceof String) {
-            return doString(frame, (String) primaryObj);
-        } else if (primaryObj instanceof PObject) {
-            return doPObject(frame, (PObject) primaryObj);
-        } else {
-            return doGeneric(frame, primaryObj);
-        }
+    @Override
+    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+        // TODO Auto-generated method stub
+        return null;
     }
+
+// @Override
+// public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+// return callTarget.call(caller, new PArguments(args, keywords));
+// }
+
+// @Override
+// public Object call(PackedFrame caller, Object arg) {
+// return callTarget.call(caller, new PArguments(new Object[]{arg}));
+// }
+//
+// @Override
+// public Object call(PackedFrame caller, Object arg0, Object arg1) {
+// return callTarget.call(caller, new PArguments(new Object[]{arg0, arg1}));
+// }
+
 }

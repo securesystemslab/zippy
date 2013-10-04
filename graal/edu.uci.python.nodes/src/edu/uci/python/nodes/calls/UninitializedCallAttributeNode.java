@@ -24,22 +24,17 @@
  */
 package edu.uci.python.nodes.calls;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class MethodCallNode extends AttributeCallNode {
+public class UninitializedCallAttributeNode extends CallAttributeNode {
 
     @Child protected PNode primary;
 
-    public MethodCallNode(String attributeId, PNode primary, PNode[] arguments) {
+    public UninitializedCallAttributeNode(String attributeId, PNode primary, PNode[] arguments) {
         super(arguments, attributeId);
         this.primary = adoptChild(primary);
     }
@@ -49,36 +44,27 @@ public class MethodCallNode extends AttributeCallNode {
         return primary;
     }
 
-    // TODO: specialize return type
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonObject self = (PythonObject) primary.execute(frame);
-        return callMethod(frame, self);
-    }
+        Object primaryObj = primary.execute(frame);
 
-    protected Object callMethod(VirtualFrame frame, PythonObject self) {
-        PFunction method = self.getPythonClass().lookUpMethod(attributeId);
-        Object[] args = doArgumentsWithSelf(frame, self);
-        return method.call(frame.pack(), args);
-    }
-
-    @ExplodeLoop
-    protected Object[] doArgumentsWithSelf(VirtualFrame frame, Object self) {
-        Object[] evaluated = new Object[arguments.length + 1];
-        evaluated[0] = self;
-        int index = 0;
-
-        for (int i = 0; i < arguments.length; i++) {
-            Object arg = arguments[i].execute(frame);
-
-            if (arg instanceof PyObject) {
-                arg = unboxPyObject((PyObject) arg);
-            }
-
-            evaluated[index + 1] = arg;
-            index++;
+        if (primaryObj instanceof PythonObject) {
+            CallMethodNode callNode = new CallMethodNode(attributeId, primary, arguments);
+            replace(callNode);
+            return callNode.callMethod(frame, (PythonObject) primaryObj);
+        } else {
+            replace(CallAttributeNodeFactory.create(arguments, attributeId, primary));
+            return executeGenericSlowPath(frame, primaryObj);
         }
+    }
 
-        return evaluated;
+    protected Object executeGenericSlowPath(VirtualFrame frame, Object primaryObj) {
+        if (primaryObj instanceof String) {
+            return doString(frame, (String) primaryObj);
+        } else if (primaryObj instanceof PObject) {
+            return doPObject(frame, (PObject) primaryObj);
+        } else {
+            return doGeneric(frame, primaryObj);
+        }
     }
 }

@@ -24,59 +24,51 @@
  */
 package edu.uci.python.nodes.calls;
 
-import org.python.core.*;
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+
+import org.python.core.Py;
+import org.python.core.PyObject;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-@NodeChild(value = "callee", type = PNode.class)
-public abstract class CallNode extends PNode {
+@NodeChild("callee")
+public abstract class CallFunctionWithTwoArgumentsNoKeywordNode extends PNode {
 
     public abstract PNode getCallee();
 
-    @Children private final PNode[] arguments;
+    @Child private PNode arg0;
 
-    @Children private final PNode[] keywords;
+    @Child private PNode arg1;
 
-    public CallNode(PNode[] arguments, PNode[] keywords) {
-        this.arguments = adoptChildren(arguments);
-        this.keywords = adoptChildren(keywords);
+    public CallFunctionWithTwoArgumentsNoKeywordNode(PNode arg0, PNode arg1) {
+        this.arg0 = adoptChild(arg0);
+        this.arg1 = adoptChild(arg1);
     }
 
-    protected CallNode(CallNode node) {
-        this(node.arguments, node.keywords);
-    }
-
-    public PNode[] getArguments() {
-        return arguments;
+    protected CallFunctionWithTwoArgumentsNoKeywordNode(CallFunctionWithTwoArgumentsNoKeywordNode node) {
+        this(node.arg0, node.arg1);
     }
 
     @Specialization
     public Object doPCallable(VirtualFrame frame, PCallable callee) {
-        Object[] args = executeArguments(frame, arguments);
-        Object[] kwords = executeArguments(frame, keywords);
-        return callee.call(frame.pack(), args, kwords);
+        Object a0 = arg0.execute(frame);
+        Object a1 = arg1.execute(frame);
+        return callee.call(frame.pack(), a0, a1);
     }
 
     @Generic
     public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object[] args = executeArguments(frame, arguments);
+        Object a0 = arg0.execute(frame);
+        Object a1 = arg1.execute(frame);
 
-        if (callee instanceof PythonClass) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            return specialized.callConstructor(frame, (PythonClass) callee);
-        } else if (callee instanceof PyObject) {
-            PyObject[] pyargs = adaptToPyObjects(args);
+        if (callee instanceof PyObject) {
+            PyObject[] pyargs = adaptToPyObjects(new Object[]{a0, a1});
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(pyargs));
         } else {
@@ -84,27 +76,4 @@ public abstract class CallNode extends PNode {
         }
     }
 
-    @ExplodeLoop
-    protected static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        Object[] evaluated = new Object[arguments.length];
-        int index = 0;
-
-        for (int i = 0; i < arguments.length; i++) {
-            Object arg = arguments[i].execute(frame);
-
-            if (arg instanceof PyObject) {
-                arg = unboxPyObject((PyObject) arg);
-            }
-
-            evaluated[index] = arg;
-            index++;
-        }
-
-        return evaluated;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + getCallee() + ")";
-    }
 }

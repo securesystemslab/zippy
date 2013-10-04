@@ -24,55 +24,45 @@
  */
 package edu.uci.python.nodes.calls;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-import org.python.core.Py;
-import org.python.core.PyObject;
-
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
-@NodeChild("callee")
-public abstract class CallWithTwoArgumentsNoKeywordNode extends PNode {
+public class UninitializedCallFunctionNode extends CallFunctionNode {
 
-    public abstract PNode getCallee();
+    @Child protected final PNode callee;
 
-    @Child private PNode arg0;
-
-    @Child private PNode arg1;
-
-    public CallWithTwoArgumentsNoKeywordNode(PNode arg0, PNode arg1) {
-        this.arg0 = adoptChild(arg0);
-        this.arg1 = adoptChild(arg1);
+    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords) {
+        super(arguments, keywords);
+        this.callee = callee;
     }
 
-    protected CallWithTwoArgumentsNoKeywordNode(CallWithTwoArgumentsNoKeywordNode node) {
-        this(node.arg0, node.arg1);
+    @Override
+    public PNode getCallee() {
+        return callee;
     }
 
-    @Specialization
-    public Object doPCallable(VirtualFrame frame, PCallable callee) {
-        Object a0 = arg0.execute(frame);
-        Object a1 = arg1.execute(frame);
-        return callee.call(frame.pack(), a0, a1);
-    }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        Object calleeObj = callee.execute(frame);
 
-    @Generic
-    public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object a0 = arg0.execute(frame);
-        Object a1 = arg1.execute(frame);
+        if (calleeObj instanceof PCallable) {
+            PCallable callable = (PCallable) calleeObj;
 
-        if (callee instanceof PyObject) {
-            PyObject[] pyargs = adaptToPyObjects(new Object[]{a0, a1});
-            PyObject pyCallable = (PyObject) callee;
-            return unboxPyObject(pyCallable.__call__(pyargs));
+            if (callable.isBuiltin()) {
+                CallBuiltInFunctionNode callBuiltIn = CallBuiltInFunctionNodeFactory.create(callable, callable.getName(), arguments, keywords);
+                replace(callBuiltIn);
+                return callBuiltIn.doGeneric(frame);
+            } else {
+                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+                replace(callFunction);
+                return callFunction.doPCallable(frame, callable);
+            }
         } else {
-            throw Py.SystemError("Unexpected callable type");
+            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+            replace(callFunction);
+            return callFunction.doGeneric(frame, calleeObj);
         }
     }
 

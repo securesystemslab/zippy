@@ -279,7 +279,7 @@ public class NodeFactory {
     }
 
     public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return new UninitializedAttributeCallNode(name, primary, args);
+        return new UninitializedCallAttributeNode(name, primary, args);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
@@ -412,12 +412,12 @@ public class NodeFactory {
         return new ObjectLiteralNode(obj);
     }
 
-    public PNode createCall(PNode callee, PNode[] arguments, PNode[] keywords) {
-        return CallNodeFactory.create(arguments, keywords, callee);
+    public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords) {
+        return CallFunctionNodeFactory.create(arguments, keywords, callee);
     }
 
     public PNode createCallBuiltIn(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {
-        return CallBuiltInNodeFactory.create(callee, name, arguments, keywords);
+        return CallBuiltInFunctionNodeFactory.create(callee, name, arguments, keywords);
     }
 
     public PNode createKeywordLiteral(PNode value, String name) {
@@ -425,7 +425,7 @@ public class NodeFactory {
     }
 
     public PNode createCallWithOneArgumentNoKeyword(PNode callee, PNode argument) {
-        return CallWithOneArgumentNoKeywordNodeFactory.create(argument, callee);
+        return CallFunctionWithOneArgumentNoKeywordNodeFactory.create(argument, callee);
     }
 
     public PNode createCallBuiltInWithOneArgNoKeyword(PCallable callee, String name, PNode argument) {
@@ -433,7 +433,7 @@ public class NodeFactory {
     }
 
     public PNode createCallWithTwoArgumentsNoKeyword(PNode callee, PNode argument0, PNode argument1) {
-        return CallWithTwoArgumentsNoKeywordNodeFactory.create(argument0, argument1, callee);
+        return CallFunctionWithTwoArgumentsNoKeywordNodeFactory.create(argument0, argument1, callee);
     }
 
     public PNode createCallBuiltInWithTwoArgsNoKeyword(PCallable callee, String name, PNode argument0, PNode argument1) {

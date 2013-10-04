@@ -42,6 +42,11 @@ public class PArguments extends Arguments {
         this.keywards = PKeyword.EMPTY_KEYWORDS;
     }
 
+    public PArguments(Object[] arguments, PKeyword[] keywards) {
+        this.arguments = arguments;
+        this.keywards = keywards;
+    }
+
     public final Object[] getArgumentsArray() {
         return arguments;
     }

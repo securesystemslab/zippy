@@ -24,57 +24,48 @@
  */
 package edu.uci.python.nodes.calls;
 
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+public class CallMethodNode extends CallAttributeNode {
 
-public abstract class CallBuiltInNode extends PNode {
+    @Child protected PNode primary;
 
-    protected final PCallable callee;
-
-    protected final String name;
-
-    @Children protected final PNode[] arguments;
-
-    @Children protected final PNode[] keywords;
-
-    public CallBuiltInNode(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {
-        this.callee = callee;
-        this.name = name;
-        this.arguments = adoptChildren(arguments);
-        this.keywords = adoptChildren(keywords);
+    public CallMethodNode(String attributeId, PNode primary, PNode[] arguments) {
+        super(arguments, attributeId);
+        this.primary = adoptChild(primary);
     }
 
-    protected CallBuiltInNode(CallBuiltInNode node) {
-        this(node.callee, node.name, node.arguments, node.keywords);
+    @Override
+    public PNode getPrimary() {
+        return primary;
     }
 
-    public String getName() {
-        return name;
+    // TODO: specialize return type
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PythonObject self = (PythonObject) primary.execute(frame);
+        return callMethod(frame, self);
     }
 
-    public PNode[] getArguments() {
-        return arguments;
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        Object[] args = executeArguments(frame, arguments);
-        Object[] kwords = executeArguments(frame, keywords);
-
-        return callee.call(frame.pack(), args, kwords);
+    protected Object callMethod(VirtualFrame frame, PythonObject self) {
+        PFunction method = self.getPythonClass().lookUpMethod(attributeId);
+        Object[] args = doArgumentsWithSelf(frame, self);
+        return method.call(frame.pack(), args);
     }
 
     @ExplodeLoop
-    private static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        Object[] evaluated = new Object[arguments.length];
+    protected Object[] doArgumentsWithSelf(VirtualFrame frame, Object self) {
+        Object[] evaluated = new Object[arguments.length + 1];
+        evaluated[0] = self;
         int index = 0;
 
         for (int i = 0; i < arguments.length; i++) {
@@ -84,15 +75,10 @@ public abstract class CallBuiltInNode extends PNode {
                 arg = unboxPyObject((PyObject) arg);
             }
 
-            evaluated[index] = arg;
+            evaluated[index + 1] = arg;
             index++;
         }
 
         return evaluated;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + name + ")";
     }
 }
