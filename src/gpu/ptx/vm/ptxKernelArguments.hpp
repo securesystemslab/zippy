@@ -30,6 +30,7 @@
 
 #define T_BYTE_SIZE       1
 #define T_INT_BYTE_SIZE   4
+#define T_FLOAT_BYTE_SIZE 4
 #define T_LONG_BYTE_SIZE  8
 #define T_ARRAY_BYTE_SIZE 8
 
@@ -99,6 +100,7 @@ private:
 
   void do_byte();
   void do_int();
+  void do_float();
   void do_long();
   void do_array(int begin, int end);
   void do_void();
@@ -114,10 +116,6 @@ private:
   inline void do_short()  {
     /* TODO : To be implemented */
     guarantee(false, "do_short:NYI");
-  }
-  inline void do_float()  {
-    /* TODO : To be implemented */
-    guarantee(false, "do_float:NYI");
   }
   inline void do_double() {
     /* TODO : To be implemented */
