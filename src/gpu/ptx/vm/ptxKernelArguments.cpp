@@ -41,35 +41,67 @@ oop PTXKernelArguments::next_arg(BasicType expectedType) {
 }
 
 void PTXKernelArguments::do_int() {
-  if (is_after_invocation()) {
+    if (is_after_invocation()) {
+        return;
+    }
+    // If the parameter is a return value,
+    if (is_return_type()) {
+        // Allocate device memory for T_INT return value pointer on device. Size in bytes
+        int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_INT_BYTE_SIZE);
+        if (status != GRAAL_CUDA_SUCCESS) {
+            tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+            _success = false;
+            return;
+        }
+        // Push _return_value_ptr to _kernelBuffer
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
+        _bufferOffset += sizeof(_return_value_ptr);
+    } else {
+        // Get the next java argument and its value which should be a T_INT
+        oop arg = next_arg(T_INT);
+        // Copy the java argument value to kernelArgBuffer
+        jvalue intval;
+        if (java_lang_boxing_object::get_value(arg, &intval) != T_INT) {
+            tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_INT");
+            _success = false;
+            return;
+        }
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = intval.i;
+        _bufferOffset += sizeof(intval.i);
+    }
     return;
-  }
-  // If the parameter is a return value,
-  if (is_return_type()) {
-    // Allocate device memory for T_INT return value pointer on device. Size in bytes
-    int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_INT_BYTE_SIZE);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-      _success = false;
-      return;
+}
+
+void PTXKernelArguments::do_float() {
+    if (is_after_invocation()) {
+        return;
     }
-    // Push _return_value_ptr to _kernelBuffer
-    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
-    _bufferOffset += sizeof(_return_value_ptr);
-  } else {
-    // Get the next java argument and its value which should be a T_INT
-    oop arg = next_arg(T_INT);
-    // Copy the java argument value to kernelArgBuffer
-    jvalue intval;
-    if (java_lang_boxing_object::get_value(arg, &intval) != T_INT) {
-      tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_INT");
-      _success = false;
-      return;
+    // If the parameter is a return value,
+    if (is_return_type()) {
+        // Allocate device memory for T_INT return value pointer on device. Size in bytes
+        int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_FLOAT_BYTE_SIZE);
+        if (status != GRAAL_CUDA_SUCCESS) {
+            tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+            _success = false;
+            return;
+        }
+        // Push _return_value_ptr to _kernelBuffer
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
+        _bufferOffset += sizeof(_return_value_ptr);
+    } else {
+        // Get the next java argument and its value which should be a T_INT
+        oop arg = next_arg(T_FLOAT);
+        // Copy the java argument value to kernelArgBuffer
+        jvalue floatval;
+        if (java_lang_boxing_object::get_value(arg, &floatval) != T_FLOAT) {
+            tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_INT");
+            _success = false;
+            return;
+        }
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = floatval.f;
+        _bufferOffset += sizeof(floatval.f);
     }
-    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = intval.i;
-    _bufferOffset += sizeof(intval.i);
-  }
-  return;
+    return;
 }
 
 void PTXKernelArguments::do_long() {
