@@ -393,6 +393,17 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
          ret.set_jint(return_val);
        }
        break;
+     case T_BOOLEAN:
+       {
+         int return_val;
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
+         if (status != GRAAL_CUDA_SUCCESS) {
+           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
+           return false;
+         }
+         ret.set_jint(return_val);
+       }
+       break;
      case T_FLOAT:
        {
          float return_val;
