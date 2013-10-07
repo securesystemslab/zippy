@@ -96,7 +96,20 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
   } else {
     oop o = java_lang_boxing_object::create(ptxka.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
     if (TraceGPUInteraction) {
-      tty->print_cr("GPU execution returned %d", result.get_jint());
+      switch (ptxka.get_ret_type()) {
+        case T_INT:
+          tty->print_cr("GPU execution returned %d", result.get_jint());
+          break;
+        case T_FLOAT:
+          tty->print_cr("GPU execution returned %f", result.get_jfloat());
+          break;
+        case T_DOUBLE:
+          tty->print_cr("GPU execution returned %f", result.get_jdouble());
+          break;
+        default:
+          tty->print_cr("GPU returned unhandled");
+          break;
+        }
     }
     return JNIHandles::make_local(o);
   }
@@ -135,7 +148,20 @@ if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
   } else {
     oop o = java_lang_boxing_object::create(ptxka.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
     if (TraceGPUInteraction) {
-      tty->print_cr("GPU execution returned %d", result.get_jint());
+      switch (ptxka.get_ret_type()) {
+        case T_INT:
+          tty->print_cr("GPU execution returned %d", result.get_jint());
+          break;
+        case T_FLOAT:
+          tty->print_cr("GPU execution returned %f", result.get_jfloat());
+          break;
+        case T_DOUBLE:
+          tty->print_cr("GPU execution returned %g", result.get_jdouble());
+          break;
+        default:
+          tty->print_cr("GPU returned unhandled");
+          break;
+      }
     }
     return JNIHandles::make_local(o);
   }
