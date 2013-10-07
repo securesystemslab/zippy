@@ -101,16 +101,6 @@ public class PModule extends PObject {
         return null;
     }
 
-    public Object lookup(String methodName) {
-        PCallable method = lookupMethod(methodName);
-
-        if (method != null) {
-            return method;
-        }
-
-        return lookupConstant(methodName);
-    }
-
     public PCallable lookupMethod(String methodName) {
         PCallable method;
 
