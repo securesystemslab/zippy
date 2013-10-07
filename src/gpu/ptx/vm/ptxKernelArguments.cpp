@@ -104,6 +104,39 @@ void PTXKernelArguments::do_float() {
     return;
 }
 
+void PTXKernelArguments::do_double() {
+    if (is_after_invocation()) {
+        return;
+    }
+    // If the parameter is a return value,
+    jvalue doubleval;
+    if (is_return_type()) {
+        // Allocate device memory for T_INT return value pointer on device. Size in bytes
+        int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_DOUBLE_BYTE_SIZE);
+        if (status != GRAAL_CUDA_SUCCESS) {
+            tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+            _success = false;
+            return;
+        }
+        // Push _return_value_ptr to _kernelBuffer
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
+        // _bufferOffset += sizeof(_return_value_ptr);
+        _bufferOffset += sizeof(doubleval.d);
+    } else {
+        // Get the next java argument and its value which should be a T_INT
+        oop arg = next_arg(T_FLOAT);
+        // Copy the java argument value to kernelArgBuffer
+        if (java_lang_boxing_object::get_value(arg, &doubleval) != T_DOUBLE) {
+            tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_INT");
+            _success = false;
+            return;
+        }
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = doubleval.d;
+        _bufferOffset += sizeof(doubleval.d);
+    }
+    return;
+}
+
 void PTXKernelArguments::do_long() {
   if (is_after_invocation()) {
     return;
@@ -164,6 +197,38 @@ void PTXKernelArguments::do_byte() {
         }
         *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.b;
         _bufferOffset += sizeof(val.b);
+    }
+    return;
+}
+
+void PTXKernelArguments::do_bool() {
+    if (is_after_invocation()) {
+        return;
+    }
+    // If the parameter is a return value,
+    if (is_return_type()) {
+        // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
+        int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_BOOLEAN_SIZE);
+        if (status != GRAAL_CUDA_SUCCESS) {
+            tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+            _success = false;
+            return;
+        }
+        // Push _return_value_ptr to _kernelBuffer
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
+        _bufferOffset += sizeof(_return_value_ptr);
+    } else {
+        // Get the next java argument and its value which should be a T_BYTE
+        oop arg = next_arg(T_BYTE);
+        // Copy the java argument value to kernelArgBuffer
+        jvalue val;
+        if (java_lang_boxing_object::get_value(arg, &val) != T_BOOLEAN) {
+            tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_BYTE");
+            _success = false;
+            return;
+        }
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.z;
+        _bufferOffset += sizeof(val.z);
     }
     return;
 }

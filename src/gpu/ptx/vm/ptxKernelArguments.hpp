@@ -28,11 +28,13 @@
 #include "runtime/gpu.hpp"
 #include "runtime/signature.hpp"
 
-#define T_BYTE_SIZE       1
-#define T_INT_BYTE_SIZE   4
-#define T_FLOAT_BYTE_SIZE 4
-#define T_LONG_BYTE_SIZE  8
-#define T_ARRAY_BYTE_SIZE 8
+#define T_BYTE_SIZE        1
+#define T_BOOLEAN_SIZE     4
+#define T_INT_BYTE_SIZE    4
+#define T_FLOAT_BYTE_SIZE  4
+#define T_DOUBLE_BYTE_SIZE 8
+#define T_LONG_BYTE_SIZE   8
+#define T_ARRAY_BYTE_SIZE  8
 
 class PTXKernelArguments : public SignatureIterator {
 public:
@@ -99,16 +101,14 @@ private:
 
 
   void do_byte();
+  void do_bool();
   void do_int();
   void do_float();
+  void do_double();
   void do_long();
   void do_array(int begin, int end);
   void do_void();
 
-  inline void do_bool()   {
-    /* TODO : To be implemented */
-    guarantee(false, "do_bool:NYI");
-  }
   inline void do_char()   {
     /* TODO : To be implemented */
     guarantee(false, "do_char:NYI");
@@ -117,11 +117,6 @@ private:
     /* TODO : To be implemented */
     guarantee(false, "do_short:NYI");
   }
-  inline void do_double() {
-    /* TODO : To be implemented */
-    guarantee(false, "do_double:NYI");
-  }
-
   inline void do_object() {
     /* TODO : To be implemented */
     guarantee(false, "do_object:NYI");
