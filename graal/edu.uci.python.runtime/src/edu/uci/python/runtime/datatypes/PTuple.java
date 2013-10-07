@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class PTuple extends PSequence {
+public class PTuple extends PImmutableSequence {
 
     private final Object[] array;
 
@@ -136,34 +136,6 @@ public class PTuple extends PSequence {
                 return iter.next();
             }
         };
-    }
-
-    // TODO should the UnsupportedOperationException actually be a Python
-    // exception?
-    // "TypeError: 'tuple' object does not support item assignment"
-    @Override
-    public void setItem(int idx, Object value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setSlice(PSlice slice, PSequence value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setSlice(int start, int stop, int step, PSequence value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void delItem(int idx) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void delItems(int start, int stop) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
