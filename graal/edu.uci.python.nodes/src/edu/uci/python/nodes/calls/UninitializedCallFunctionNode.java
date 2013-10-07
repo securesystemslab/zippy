@@ -31,7 +31,7 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class UninitializedCallFunctionNode extends CallFunctionNode {
 
-    @Child protected final PNode callee;
+    @Child protected PNode callee;
 
     public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords) {
         super(arguments, keywords);

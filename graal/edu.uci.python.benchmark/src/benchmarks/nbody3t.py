@@ -116,7 +116,7 @@ def main(n, ref='sun'):
 
 # warm up
 num =  int(sys.argv[1])
-for run in range(20):
+for run in range(1000):
     main(5)
 
 print("Start timing...")

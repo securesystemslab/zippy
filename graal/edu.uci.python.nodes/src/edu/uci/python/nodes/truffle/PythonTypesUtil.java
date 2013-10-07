@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.datatypes.*;
@@ -69,6 +70,8 @@ public class PythonTypesUtil {
     }
 
     public static PyObject adaptToPyObject(Object value) {
+        CompilerAsserts.neverPartOfCompilation();
+
         if (value instanceof PyObject) {
             return (PyObject) value;
         }

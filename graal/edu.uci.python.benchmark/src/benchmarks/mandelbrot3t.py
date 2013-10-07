@@ -11,7 +11,7 @@ import time
 def main(num):
     cout = sys.stdout.write
     #size = float(sys.argv[1])
-    size = float(num)
+    size = int(num)
     xr_size = range(size)
     xr_iter = range(50)
     bit = 128
@@ -47,7 +47,7 @@ def main(num):
 
 
 # warm up
-for run in range(20):
+for run in range(5000):
     main(5)
     print()
 
@@ -55,4 +55,5 @@ print("Start timing...")
 start = time.time()
 main(sys.argv[1])
 duration = "%.3f\n" % (time.time() - start)
+print()
 print("mandelbrot: " + duration)

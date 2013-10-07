@@ -27,6 +27,7 @@ package edu.uci.python.nodes.literals;
 import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
@@ -43,6 +44,7 @@ public class ListLiteralNode extends LiteralNode {
         this(node.values);
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
         List<Object> elements = new ArrayList<>();

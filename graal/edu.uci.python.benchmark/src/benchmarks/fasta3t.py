@@ -104,7 +104,7 @@ def main(n):
     
 
 # warm up
-for run in range(5):
+for run in range(500):
     main(5)
 
 # reset
