@@ -20,9 +20,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.meta;
+package com.oracle.graal.lir.ptx;
 
-public interface MemoryMap<T> {
-
-    T getLastLocationAccess(LocationIdentity locationIdentity);
+public enum ThreadDimension {
+X,
+Y,
+Z
 }
+

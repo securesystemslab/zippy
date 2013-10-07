@@ -35,6 +35,7 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.java.*;
@@ -223,11 +224,11 @@ public class PartialEvaluator {
                         int nodeCountBefore = graph.getNodeCount();
                         int mark = graph.getMark();
                         InliningUtil.inline(methodCallTargetNode.invoke(), inlineGraph, false);
-                        canonicalizer.applyIncremental(graph, context, mark);
                         if (Debug.isDumpEnabled()) {
                             int nodeCountAfter = graph.getNodeCount();
                             Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
                         }
+                        canonicalizer.applyIncremental(graph, context, mark);
                         changed = true;
                     }
                 }

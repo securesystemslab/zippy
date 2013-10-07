@@ -26,6 +26,7 @@ import static com.oracle.graal.compiler.GraalCompiler.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -38,7 +39,7 @@ public class ReflectionGetCallerClassNode extends MacroNode implements Canonical
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         ConstantNode callerClassNode = getCallerClassNode(tool.runtime());
         if (callerClassNode != null) {
             return callerClassNode;
@@ -53,7 +54,9 @@ public class ReflectionGetCallerClassNode extends MacroNode implements Canonical
         if (callerClassNode != null) {
             graph().replaceFixedWithFloating(this, callerClassNode);
         } else {
-            graph().replaceFixedWithFixed(this, createInvoke());
+            InvokeNode invoke = createInvoke();
+            graph().replaceFixedWithFixed(this, invoke);
+            invoke.lower(tool);
         }
     }
 

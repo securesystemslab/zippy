@@ -31,6 +31,7 @@ import com.oracle.graal.graph.Graph.NodeChangedListener;
 import com.oracle.graal.graph.NodeClass.NodeClassIterator;
 import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.graph.iterators.*;
+import com.oracle.graal.graph.spi.*;
 
 /**
  * This class is the base class for all nodes, it represent a node which can be inserted in a
@@ -433,15 +434,15 @@ public abstract class Node implements Cloneable, Formattable {
                 assert assertTrue(result, "not found in usages, old input: %s", oldInput);
             }
             if (newInput != null) {
-                NodeChangedListener inputChanged = graph.inputChanged;
-                if (inputChanged != null) {
-                    inputChanged.nodeChanged(this);
+                NodeChangedListener listener = graph.inputChangedListener;
+                if (listener != null) {
+                    listener.nodeChanged(this);
                 }
                 newInput.addUsage(this);
             } else if (oldInput != null && oldInput.usages().isEmpty()) {
-                NodeChangedListener nodeChangedListener = graph.usagesDroppedZero;
-                if (nodeChangedListener != null) {
-                    nodeChangedListener.nodeChanged(oldInput);
+                NodeChangedListener listener = graph.usagesDroppedToZeroListener;
+                if (listener != null) {
+                    listener.nodeChanged(oldInput);
                 }
             }
         }
@@ -495,9 +496,9 @@ public abstract class Node implements Cloneable, Formattable {
             boolean result = usage.getNodeClass().replaceFirstInput(usage, this, other);
             assert assertTrue(result, "not found in inputs, usage: %s", usage);
             if (other != null) {
-                NodeChangedListener inputChanged = graph.inputChanged;
-                if (inputChanged != null) {
-                    inputChanged.nodeChanged(usage);
+                NodeChangedListener listener = graph.inputChangedListener;
+                if (listener != null) {
+                    listener.nodeChanged(usage);
                 }
                 other.addUsage(usage);
             }
@@ -542,9 +543,9 @@ public abstract class Node implements Cloneable, Formattable {
         for (Node input : inputs()) {
             removeThisFromUsages(input);
             if (input.usages().isEmpty()) {
-                NodeChangedListener nodeChangedListener = graph.usagesDroppedZero;
-                if (nodeChangedListener != null) {
-                    nodeChangedListener.nodeChanged(input);
+                NodeChangedListener listener = graph.usagesDroppedToZeroListener;
+                if (listener != null) {
+                    listener.nodeChanged(input);
                 }
             }
         }
@@ -594,10 +595,30 @@ public abstract class Node implements Cloneable, Formattable {
         return newNode;
     }
 
-    static int count = 0;
-
     public final Node clone(Graph into) {
         return clone(into, true);
+    }
+
+    /**
+     * Must be overridden buy subclasses that implement {@link Canonicalizable}. The implementation
+     * in {@link Node} exists to obviate the need to cast a node before invoking
+     * {@link Canonicalizable#canonical(CanonicalizerTool)}.
+     * 
+     * @param tool
+     */
+    public Node canonical(CanonicalizerTool tool) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Must be overridden buy subclasses that implement {@link Simplifiable}. The implementation in
+     * {@link Node} exists to obviate the need to cast a node before invoking
+     * {@link Simplifiable#simplify(SimplifierTool)}.
+     * 
+     * @param tool
+     */
+    public void simplify(SimplifierTool tool) {
+        throw new UnsupportedOperationException();
     }
 
     final Node clone(Graph into, boolean clearInputsAndSuccessors) {

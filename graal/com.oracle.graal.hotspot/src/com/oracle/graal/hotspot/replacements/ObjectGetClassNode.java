@@ -26,6 +26,8 @@ import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -57,7 +59,8 @@ public class ObjectGetClassNode extends MacroNode implements Virtualizable, Cano
         }
     }
 
-    public ValueNode canonical(CanonicalizerTool tool) {
+    @Override
+    public Node canonical(CanonicalizerTool tool) {
         if (AOTCompilation.getValue()) {
             return this;
         }

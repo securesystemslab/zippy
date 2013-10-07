@@ -22,12 +22,12 @@
  */
 package com.oracle.graal.nodes;
 
-import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodes.spi.*;
 
 /**
  * Interface implemented by nodes which need deoptimization information.
  */
-public interface DeoptimizingNode {
+public interface DeoptimizingNode extends NodeWithState {
 
     /**
      * Determines if this node needs deoptimization information.
@@ -45,13 +45,4 @@ public interface DeoptimizingNode {
      * @param state the FrameState which represents the deoptimization information
      */
     void setDeoptimizationState(FrameState state);
-
-    /**
-     * Returns the reason for deoptimization triggered by this node. If deoptimization at this point
-     * can happen for external reasons (i.e. not explicitely triggered by this node) this method can
-     * return null.
-     * 
-     * @return the reason for deoptimization triggered by this node.
-     */
-    DeoptimizationReason getDeoptimizationReason();
 }

@@ -121,7 +121,7 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Iterabl
     @Override
     public void setNext(FixedNode x) {
         if (x != null) {
-            this.setNext(AbstractBeginNode.begin(x));
+            this.setNext(KillingBeginNode.begin(x, getLocationIdentity()));
         } else {
             this.setNext(null);
         }
@@ -219,11 +219,6 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Iterabl
     }
 
     @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return null;
-    }
-
-    @Override
     public FrameState getDeoptimizationState() {
         if (deoptState == null) {
             FrameState stateDuring = stateDuring();
@@ -247,5 +242,15 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Iterabl
     public void setGuard(GuardingNode guard) {
         updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
         this.guard = guard;
+    }
+
+    @Override
+    public FrameState getState() {
+        if (deoptState != null) {
+            assert stateAfter() == null;
+            return deoptState;
+        } else {
+            return stateAfter();
+        }
     }
 }

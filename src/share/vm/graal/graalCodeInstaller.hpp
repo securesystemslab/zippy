@@ -80,7 +80,7 @@ private:
   void pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst);
   void pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination);
   void pd_relocate_JavaMethod(oop method, jint pc_offset);
-  int32_t* pd_locate_operand(address instruction);
+  void pd_relocate_poll(address pc, jint mark);
 
 public:
 

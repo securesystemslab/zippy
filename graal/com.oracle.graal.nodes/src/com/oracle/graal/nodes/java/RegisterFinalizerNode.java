@@ -24,6 +24,8 @@ package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -32,7 +34,7 @@ import com.oracle.graal.nodes.type.*;
  * This node is used to perform the finalizer registration at the end of the java.lang.Object
  * constructor.
  */
-public final class RegisterFinalizerNode extends AbstractStateSplit implements StateSplit, Canonicalizable, LIRLowerable, Virtualizable, DeoptimizingNode {
+public final class RegisterFinalizerNode extends AbstractStateSplit implements Canonicalizable, LIRLowerable, Virtualizable, DeoptimizingNode {
 
     public static final ForeignCallDescriptor REGISTER_FINALIZER = new ForeignCallDescriptor("registerFinalizer", void.class, Object.class);
 
@@ -55,7 +57,7 @@ public final class RegisterFinalizerNode extends AbstractStateSplit implements S
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         if (!(object.stamp() instanceof ObjectStamp)) {
             return this;
         }
@@ -103,11 +105,6 @@ public final class RegisterFinalizerNode extends AbstractStateSplit implements S
     public void setDeoptimizationState(FrameState f) {
         updateUsages(deoptState, f);
         deoptState = f;
-    }
-
-    @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return null;
     }
 
     @SuppressWarnings("unused")

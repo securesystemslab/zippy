@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.replacements;
 
+import static com.oracle.graal.api.meta.LocationIdentity.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -32,6 +34,7 @@ import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
@@ -42,6 +45,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.common.FloatingReadPhase.MemoryMapImpl;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.Snippet.ConstantParameter;
 import com.oracle.graal.replacements.Snippet.VarargsParameter;
@@ -388,7 +392,7 @@ public class SnippetTemplate {
     /**
      * Creates a snippet template.
      */
-    protected SnippetTemplate(MetaAccessProvider runtime, Replacements replacements, Arguments args) {
+    protected SnippetTemplate(final MetaAccessProvider runtime, final Replacements replacements, Arguments args) {
         StructuredGraph snippetGraph = replacements.getSnippet(args.info.method);
 
         ResolvedJavaMethod method = snippetGraph.method();
@@ -397,7 +401,7 @@ public class SnippetTemplate {
         PhaseContext context = new PhaseContext(runtime, replacements.getAssumptions(), replacements);
 
         // Copy snippet graph, replacing constant parameters with given arguments
-        StructuredGraph snippetCopy = new StructuredGraph(snippetGraph.name, snippetGraph.method());
+        final StructuredGraph snippetCopy = new StructuredGraph(snippetGraph.name, snippetGraph.method());
         IdentityHashMap<Node, Node> nodeReplacements = new IdentityHashMap<>();
         nodeReplacements.put(snippetGraph.start(), snippetCopy.start());
 
@@ -501,8 +505,13 @@ public class SnippetTemplate {
 
         // Perform lowering on the snippet
         snippetCopy.setGuardsStage(args.cacheKey.guardsStage);
-        PhaseContext c = new PhaseContext(runtime, new Assumptions(false), replacements);
-        new LoweringPhase(new CanonicalizerPhase(true)).apply(snippetCopy, c);
+        Debug.scope("LoweringSnippetTemplate", snippetCopy, new Runnable() {
+
+            public void run() {
+                PhaseContext c = new PhaseContext(runtime, new Assumptions(false), replacements);
+                new LoweringPhase(new CanonicalizerPhase(true)).apply(snippetCopy, c);
+            }
+        });
 
         // Remove all frame states from snippet graph. Snippets must be atomic (i.e. free
         // of side-effects that prevent deoptimizing to a point before the snippet).
@@ -532,17 +541,18 @@ public class SnippetTemplate {
         }
 
         new DeadCodeEliminationPhase().apply(snippetCopy);
-        new CanonicalizerPhase(true).apply(snippetCopy, context);
 
         assert checkAllVarargPlaceholdersAreDeleted(parameterCount, placeholders);
 
-        new FloatingReadPhase(false).apply(snippetCopy);
+        new FloatingReadPhase(FloatingReadPhase.ExecutionMode.ANALYSIS_ONLY).apply(snippetCopy);
         this.memoryMap = null;
 
         this.snippet = snippetCopy;
         ReturnNode retNode = null;
         StartNode entryPointNode = snippet.start();
         nodes = new ArrayList<>(snippet.getNodeCount());
+        boolean seenReturn = false;
+        boolean containsMemoryMap = false;
         for (Node node : snippet.getNodes()) {
             if (node == entryPointNode || node == entryPointNode.stateAfter()) {
                 // Do nothing.
@@ -550,15 +560,20 @@ public class SnippetTemplate {
                 nodes.add(node);
                 if (node instanceof ReturnNode) {
                     retNode = (ReturnNode) node;
-                    for (MemoryState memstate : retNode.usages().filter(MemoryState.class).snapshot()) {
-                        this.memoryMap = memstate.getMemoryMap();
-                        memstate.safeDelete();
-                    }
-                    assert snippet.getNodes().filter(ReturnNode.class).count() == 1;
+                    NodeIterable<MemoryMapNode> memstates = retNode.inputs().filter(MemoryMapNode.class);
+                    assert memstates.count() == 1;
+                    memoryMap = memstates.first();
+                    retNode.replaceFirstInput(memoryMap, null);
+                    memoryMap.safeDelete();
+
+                    assert !seenReturn : "can handle only one ReturnNode";
+                    seenReturn = true;
+                } else if (node instanceof MemoryMapNode) {
+                    containsMemoryMap = true;
                 }
             }
         }
-        assert !containsMemoryState(snippet);
+        assert !containsMemoryMap;
 
         this.sideEffectNodes = curSideEffectNodes;
         this.deoptNodes = curDeoptNodes;
@@ -567,10 +582,6 @@ public class SnippetTemplate {
 
         this.instantiationCounter = Debug.metric("SnippetInstantiationCount[" + method.getName() + "]");
         this.instantiationTimer = Debug.timer("SnippetInstantiationTime[" + method.getName() + "]");
-    }
-
-    private static boolean containsMemoryState(StructuredGraph snippet) {
-        return snippet.getNodes().filter(MemoryState.class).count() > 0;
     }
 
     private static boolean checkAllVarargPlaceholdersAreDeleted(int parameterCount, ConstantNode[] placeholders) {
@@ -646,9 +657,9 @@ public class SnippetTemplate {
     private final ArrayList<Node> nodes;
 
     /**
-     * mapping of killing locations to memory checkpoints (nodes).
+     * map of killing locations to memory checkpoints (nodes).
      */
-    private MemoryMap<Node> memoryMap;
+    private MemoryMapNode memoryMap;
 
     /**
      * Gets the instantiation-time bindings to this template's parameters.
@@ -742,7 +753,7 @@ public class SnippetTemplate {
         /**
          * Replaces all usages of {@code oldNode} with direct or indirect usages of {@code newNode}.
          */
-        void replace(ValueNode oldNode, ValueNode newNode, MemoryMap<Node> mmap);
+        void replace(ValueNode oldNode, ValueNode newNode, MemoryMapNode mmap);
     }
 
     /**
@@ -752,29 +763,74 @@ public class SnippetTemplate {
     public static final UsageReplacer DEFAULT_REPLACER = new UsageReplacer() {
 
         @Override
-        public void replace(ValueNode oldNode, ValueNode newNode, MemoryMap<Node> mmap) {
+        public void replace(ValueNode oldNode, ValueNode newNode, MemoryMapNode mmap) {
             oldNode.replaceAtUsages(newNode);
             if (mmap == null || newNode == null) {
                 return;
             }
             for (Node usage : newNode.usages().snapshot()) {
                 if (usage instanceof FloatingReadNode && ((FloatingReadNode) usage).lastLocationAccess() == newNode) {
-                    // TODO: add graph state for FloatingReadPhase
-                    assert newNode.graph().getGuardsStage().ordinal() >= StructuredGraph.GuardsStage.FIXED_DEOPTS.ordinal();
+                    assert newNode.graph().isAfterFloatingReadPhase();
 
                     // lastLocationAccess points into the snippet graph. find a proper
                     // MemoryCheckPoint inside the snippet graph
-                    FloatingReadNode frn = (FloatingReadNode) usage;
-                    Node newlla = mmap.getLastLocationAccess(frn.location().getLocationIdentity());
+                    FloatingReadNode read = (FloatingReadNode) usage;
+                    Node lastAccess = mmap.getLastLocationAccess(read.location().getLocationIdentity());
 
-                    assert newlla != null : "no mapping found for lowerable node " + oldNode + ". (No node in the snippet kill the same location as the lowerable node?)";
-                    frn.setLastLocationAccess(newlla);
+                    assert lastAccess != null : "no mapping found for lowerable node " + oldNode + ". (No node in the snippet kill the same location as the lowerable node?)";
+                    read.setLastLocationAccess(lastAccess);
                 }
             }
         }
     };
 
-    private class DuplicateMapper implements MemoryMap<Node> {
+    private boolean checkSnippetKills(ScheduledNode replacee) {
+        if (!replacee.graph().isAfterFloatingReadPhase()) {
+            // no floating reads yet, ignore locations created while lowering
+            return true;
+        }
+        if (memoryMap == null || ((MemoryMapImpl) memoryMap).isEmpty()) {
+            // there're no kills in the snippet graph
+            return true;
+        }
+
+        Set<LocationIdentity> kills = new HashSet<>(((MemoryMapImpl) memoryMap).getLocations());
+
+        if (replacee instanceof MemoryCheckpoint.Single) {
+            // check if some node in snippet graph also kills the same location
+            LocationIdentity locationIdentity = ((MemoryCheckpoint.Single) replacee).getLocationIdentity();
+            if (locationIdentity == ANY_LOCATION) {
+                assert !(memoryMap.getLastLocationAccess(ANY_LOCATION) instanceof StartNode);
+            }
+            assert kills.contains(locationIdentity) : replacee + " kills " + locationIdentity + ", but snippet doesn't contain a kill to this location";
+            return true;
+        }
+        assert !(replacee instanceof MemoryCheckpoint.Multi) : replacee + " multi not supported (yet)";
+
+        Debug.log("WARNING: %s is not a MemoryCheckpoint, but the snippet graph contains kills (%s). You might want %s to be a MemoryCheckpoint", replacee, kills, replacee);
+
+        // remove ANY_LOCATION if it's just a kill by the start node
+        if (memoryMap.getLastLocationAccess(ANY_LOCATION) instanceof StartNode) {
+            kills.remove(ANY_LOCATION);
+        }
+
+        // node can only lower to a ANY_LOCATION kill if the replacee also kills ANY_LOCATION
+        assert !kills.contains(ANY_LOCATION) : "snippet graph contains a kill to ANY_LOCATION, but replacee (" + replacee + ") doesn't kill ANY_LOCATION.  kills: " + kills;
+
+        /*
+         * kills to other locations than ANY_LOCATION can be still inserted if there aren't any
+         * floating reads accessing this locations. Example: In HotSpot, InstanceOfNode is lowered
+         * to a snippet containing a write to SECONDARY_SUPER_CACHE_LOCATION. This is runtime
+         * specific, so the runtime independent InstanceOfNode can not kill this location. However,
+         * if no FloatingReadNode is reading from this location, the kill to this location is fine.
+         */
+        for (FloatingReadNode frn : replacee.graph().getNodes(FloatingReadNode.class)) {
+            assert !(kills.contains(frn.location().getLocationIdentity())) : frn + " reads from " + frn.location().getLocationIdentity() + " but " + replacee + " does not kill this location";
+        }
+        return true;
+    }
+
+    private class DuplicateMapper extends MemoryMapNode {
 
         Map<Node, Node> duplicates;
         StartNode replaceeStart;
@@ -807,6 +863,7 @@ public class SnippetTemplate {
      * @return the map of duplicated nodes (original -> duplicate)
      */
     public Map<Node, Node> instantiate(MetaAccessProvider runtime, FixedNode replacee, UsageReplacer replacer, Arguments args) {
+        assert checkSnippetKills(replacee);
         try (TimerCloseable a = instantiationTimer.start()) {
             instantiationCounter.increment();
             // Inline the snippet nodes, replacing parameters with the given args in the process
@@ -860,7 +917,7 @@ public class SnippetTemplate {
                     returnValue = (ValueNode) duplicates.get(returnNode.result());
                 }
                 Node returnDuplicate = duplicates.get(returnNode);
-                MemoryMap<Node> mmap = new DuplicateMapper(duplicates, replaceeGraph.start());
+                MemoryMapNode mmap = new DuplicateMapper(duplicates, replaceeGraph.start());
                 if (returnValue == null && replacee.usages().isNotEmpty() && replacee instanceof MemoryCheckpoint) {
                     replacer.replace(replacee, (ValueNode) returnDuplicate.predecessor(), mmap);
                 } else {
@@ -899,6 +956,7 @@ public class SnippetTemplate {
      * @param args the arguments to be bound to the flattened positional parameters of the snippet
      */
     public void instantiate(MetaAccessProvider runtime, FloatingNode replacee, UsageReplacer replacer, LoweringTool tool, Arguments args) {
+        assert checkSnippetKills(replacee);
         try (TimerCloseable a = instantiationTimer.start()) {
             instantiationCounter.increment();
 

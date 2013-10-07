@@ -27,6 +27,7 @@ package edu.uci.python.runtime.standardtypes;
 import java.math.*;
 import java.util.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatypes.*;
@@ -66,12 +67,17 @@ public class BuiltinsModule extends PythonModule {
             if (arg instanceof PObject) {
                 return ((PObject) arg).getMin();
             } else if (arg instanceof String) {
-                char[] copy = ((String) arg).toCharArray();
-                Arrays.sort(copy);
-                return copy[0];
+                return findMin((String) arg);
             } else {
                 throw new RuntimeException("Unexpected argument type for min() ");
             }
+        }
+
+        @SlowPath
+        private Object findMin(String string) {
+            char[] copy = string.toCharArray();
+            Arrays.sort(copy);
+            return copy[0];
         }
     };
 

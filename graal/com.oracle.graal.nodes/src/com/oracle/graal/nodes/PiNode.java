@@ -24,6 +24,7 @@ package com.oracle.graal.nodes;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -49,9 +50,13 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
         this.object = object;
     }
 
-    public PiNode(ValueNode object, Stamp stamp, GuardingNode anchor) {
-        super(stamp, anchor);
+    public PiNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+        super(stamp, (GuardingNode) anchor);
         this.object = object;
+    }
+
+    public PiNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        this(object, StampFactory.object(toType, exactType, nonNull || ObjectStamp.isObjectNonNull(object.stamp())));
     }
 
     @Override
@@ -63,6 +68,9 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
 
     @Override
     public boolean inferStamp() {
+        if (stamp() == StampFactory.forNodeIntrinsic()) {
+            return false;
+        }
         return updateStamp(stamp().join(object().stamp()));
     }
 
@@ -70,20 +78,13 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
     public void virtualize(VirtualizerTool tool) {
         State state = tool.getObjectState(object);
         if (state != null && state.getState() == EscapeState.Virtual) {
-            ResolvedJavaType virtualObjectType = state.getVirtualObject().type();
-            if (this.kind() == Kind.Object) {
-                ObjectStamp myStamp = ((ObjectStamp) this.stamp());
-                ResolvedJavaType myType = myStamp.type();
-                if (!myType.isAssignableFrom(virtualObjectType)) {
-                    return;
-                }
-            }
+            assert ObjectStamp.typeOrNull(this).isAssignableFrom(state.getVirtualObject().type());
             tool.replaceWithVirtual(state.getVirtualObject());
         }
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         inferStamp();
         if (stamp().equals(object().stamp())) {
             return object();
@@ -94,5 +95,17 @@ public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtual
     @Override
     public ValueNode getOriginalValue() {
         return object;
+    }
+
+    @NodeIntrinsic
+    public static native <T> T piCast(Object object, @ConstantNodeParameter Stamp stamp);
+
+    @NodeIntrinsic
+    public static native <T> T piCast(Object object, @ConstantNodeParameter Stamp stamp, GuardingNode anchor);
+
+    @SuppressWarnings("unused")
+    @NodeIntrinsic
+    public static <T> T piCast(Object object, @ConstantNodeParameter Class<T> toType, @ConstantNodeParameter boolean exactType, @ConstantNodeParameter boolean nonNull) {
+        return toType.cast(object);
     }
 }

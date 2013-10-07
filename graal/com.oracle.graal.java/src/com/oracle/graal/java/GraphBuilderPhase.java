@@ -22,8 +22,8 @@
  */
 package com.oracle.graal.java;
 
-import static com.oracle.graal.api.code.DeoptimizationAction.*;
 import static com.oracle.graal.api.code.TypeCheckHints.*;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.bytecode.Bytecodes.*;
 import static com.oracle.graal.java.GraphBuilderPhase.RuntimeCalls.*;
@@ -50,7 +50,6 @@ import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.util.*;
 
 /**
  * The {@code GraphBuilder} class parses the bytecode of a method and builds the IR graph.
@@ -216,16 +215,13 @@ public class GraphBuilderPhase extends Phase {
             lastInstr = genMonitorEnter(methodSynchronizedObject);
         }
         frameState.clearNonLiveLocals(blockMap.startBlock.localsLiveIn);
+        ((StateSplit) lastInstr).setStateAfter(frameState.create(0));
 
         if (graphBuilderConfig.eagerInfopointMode()) {
-            ((StateSplit) lastInstr).setStateAfter(frameState.create(0));
-            InfopointNode ipn = currentGraph.add(new InfopointNode(InfopointReason.METHOD_START));
+            InfopointNode ipn = currentGraph.add(new InfopointNode(InfopointReason.METHOD_START, frameState.create(0)));
             lastInstr.setNext(ipn);
             lastInstr = ipn;
         }
-
-        // finish the start block
-        ((StateSplit) lastInstr).setStateAfter(frameState.create(0));
 
         currentBlock = blockMap.startBlock;
         blockMap.startBlock.entryState = frameState;
@@ -1636,8 +1632,7 @@ public class GraphBuilderPhase extends Phase {
         }
 
         if (graphBuilderConfig.eagerInfopointMode()) {
-            InfopointNode ipn = append(new InfopointNode(InfopointReason.METHOD_END));
-            ipn.setStateAfter(frameState.create(FrameState.AFTER_BCI));
+            append(new InfopointNode(InfopointReason.METHOD_END, frameState.create(FrameState.AFTER_BCI)));
         }
 
         append(new ReturnNode(x));
@@ -1697,20 +1692,7 @@ public class GraphBuilderPhase extends Phase {
     }
 
     private static boolean isBlockEnd(Node n) {
-        return trueSuccessorCount(n) > 1 || n instanceof ReturnNode || n instanceof UnwindNode || n instanceof DeoptimizeNode;
-    }
-
-    private static int trueSuccessorCount(Node n) {
-        if (n == null) {
-            return 0;
-        }
-        int i = 0;
-        for (Node s : n.successors()) {
-            if (Util.isFixed(s)) {
-                i++;
-            }
-        }
-        return i;
+        return n instanceof ControlSplitNode || n instanceof ControlSinkNode;
     }
 
     private void iterateBytecodesForBlock(Block block) {
@@ -1752,8 +1734,7 @@ public class GraphBuilderPhase extends Phase {
             if (graphBuilderConfig.eagerInfopointMode() && lnt != null) {
                 currentLineNumber = lnt.getLineNumber(bci);
                 if (currentLineNumber != previousLineNumber) {
-                    InfopointNode ipn = append(new InfopointNode(InfopointReason.LINE_NUMBER));
-                    ipn.setStateAfter(frameState.create(bci));
+                    append(new InfopointNode(InfopointReason.LINE_NUMBER, frameState.create(bci)));
                     previousLineNumber = currentLineNumber;
                 }
             }

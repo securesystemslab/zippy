@@ -20,41 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.lir.ptx;
 
-import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import static com.oracle.graal.lir.ptx.ThreadDimension.*;
 
-public abstract class WriteBarrier extends FixedWithNextNode implements Lowerable, IterableNodeType {
+import java.lang.annotation.*;
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.PARAMETER})
+public @interface ParallelOver {
 
-    @Input private ValueNode object;
-    @Input private LocationNode location;
-    private final boolean precise;
+    String value() default "";
 
-    public ValueNode getObject() {
-        return object;
-    }
-
-    public LocationNode getLocation() {
-        return location;
-    }
-
-    public boolean usePrecise() {
-        return precise;
-    }
-
-    public WriteBarrier(ValueNode object, LocationNode location, boolean precise) {
-        super(StampFactory.forVoid());
-        this.object = object;
-        this.location = location;
-        this.precise = precise;
-    }
-
-    @Override
-    public void lower(LoweringTool generator) {
-        assert graph().getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA;
-        generator.getRuntime().lower(this, generator);
-    }
+    ThreadDimension dimension() default X;
 }
+

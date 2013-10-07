@@ -33,6 +33,7 @@ import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.hotspot.phases.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -638,7 +639,7 @@ public class WriteBarrierVerificationTest extends GraalCompilerTest {
 
                 new LoweringPhase(new CanonicalizerPhase(true)).apply(graph, highTierContext);
                 new GuardLoweringPhase().apply(graph, midTierContext);
-                new SafepointInsertionPhase().apply(graph);
+                new LoopSafepointInsertionPhase().apply(graph);
                 new LoweringPhase(new CanonicalizerPhase(true)).apply(graph, highTierContext);
 
                 new WriteBarrierAdditionPhase().apply(graph);

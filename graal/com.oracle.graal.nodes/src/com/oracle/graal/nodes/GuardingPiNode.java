@@ -22,9 +22,9 @@
  */
 package com.oracle.graal.nodes;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
@@ -82,7 +82,7 @@ public class GuardingPiNode extends FixedWithNextNode implements Lowerable, Guar
         }
         GuardingNode guard = tool.createGuard(condition, reason, action, negated);
         ValueAnchorNode anchor = graph().add(new ValueAnchorNode((ValueNode) guard));
-        PiNode pi = graph().unique(new PiNode(object, stamp(), guard));
+        PiNode pi = graph().unique(new PiNode(object, stamp(), (ValueNode) guard));
         replaceAtUsages(pi);
         graph().replaceFixedWithFixed(this, anchor);
     }
@@ -93,9 +93,18 @@ public class GuardingPiNode extends FixedWithNextNode implements Lowerable, Guar
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
+        if (stamp() == StampFactory.illegal(object.kind())) {
+            // The guard always fails
+            return graph().add(new DeoptimizeNode(action, reason));
+        }
         if (condition instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition;
+            if (c.getValue() == negated) {
+                // The guard always fails
+                return graph().add(new DeoptimizeNode(action, reason));
+            }
+
             if (c.getValue() != negated && stamp().equals(object().stamp())) {
                 return object;
             }

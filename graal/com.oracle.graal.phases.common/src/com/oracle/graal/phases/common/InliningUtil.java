@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.phases.common;
 
-import static com.oracle.graal.api.code.DeoptimizationAction.*;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.nodes.type.StampFactory.*;
 import static com.oracle.graal.phases.GraalOptions.*;
@@ -1362,6 +1362,13 @@ public class InliningUtil {
                 unwindDuplicate.replaceAndDelete(n);
             } else {
                 invokeWithException.killExceptionEdge();
+            }
+
+            // get rid of memory kill
+            AbstractBeginNode begin = invokeWithException.next();
+            if (begin instanceof KillingBeginNode) {
+                graph.addAfterFixed(begin, graph.add(new BeginNode()));
+                graph.removeFixed(begin);
             }
         } else {
             if (unwindNode != null) {

@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.nodes.type;
 
+import java.util.*;
+
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
@@ -133,27 +135,14 @@ public class IntegerStamp extends Stamp {
             str.append(" [").append(lowerBound).append(" - ").append(upperBound).append(']');
         }
         if (downMask != 0) {
-            str.append(" \u21ca").append(Long.toHexString(downMask));
+            str.append(" \u21ca");
+            new Formatter(str).format("%016x", downMask);
         }
         if (upMask != defaultMask(kind())) {
-            str.append(" \u21c8").append(Long.toHexString(upMask));
+            str.append(" \u21c8");
+            new Formatter(str).format("%016x", upMask);
         }
         return str.toString();
-    }
-
-    @Override
-    public boolean alwaysDistinct(Stamp otherStamp) {
-        IntegerStamp other = (IntegerStamp) otherStamp;
-        if (lowerBound > other.upperBound || upperBound < other.lowerBound) {
-            return true;
-        } else if ((upMask & other.upMask) == 0 && (lowerBound > 0 || upperBound < 0 || other.lowerBound > 0 || other.upperBound < 0)) {
-            /*
-             * Zero is the only common value if the masks don't overlap. If one of the two values is
-             * less than or greater than zero, they are always distinct.
-             */
-            return true;
-        }
-        return false;
     }
 
     private Stamp createStamp(IntegerStamp other, long newUpperBound, long newLowerBound, long newDownMask, long newUpMask) {

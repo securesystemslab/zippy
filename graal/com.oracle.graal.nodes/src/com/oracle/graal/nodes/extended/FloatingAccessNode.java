@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -75,11 +74,6 @@ public abstract class FloatingAccessNode extends FloatingGuardedNode implements 
     }
 
     @Override
-    public DeoptimizationReason getDeoptimizationReason() {
-        return DeoptimizationReason.NullCheckException;
-    }
-
-    @Override
     public FrameState getDeoptimizationState() {
         return deoptState;
     }
@@ -93,6 +87,10 @@ public abstract class FloatingAccessNode extends FloatingGuardedNode implements 
     @Override
     public BarrierType getBarrierType() {
         return barrierType;
+    }
+
+    public FrameState getState() {
+        return deoptState;
     }
 
     @Override

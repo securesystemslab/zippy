@@ -27,6 +27,7 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
@@ -89,6 +90,7 @@ public class ExceptionObjectNode extends DispatchBeginNode implements Lowerable,
         graph().addAfterFixed(this, loadException);
         setStateAfter(null);
         setStamp(StampFactory.forVoid());
+        loadException.lower(tool);
     }
 
     @Override

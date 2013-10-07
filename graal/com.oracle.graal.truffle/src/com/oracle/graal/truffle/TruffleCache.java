@@ -33,11 +33,13 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
@@ -59,12 +61,14 @@ public final class TruffleCache {
 
     private final HashMap<List<Object>, StructuredGraph> cache = new HashMap<>();
     private final StructuredGraph markerGraph = new StructuredGraph();
+    private final ResolvedJavaType stringBuilderClass;
 
     public TruffleCache(MetaAccessProvider metaAccessProvider, GraphBuilderConfiguration config, OptimisticOptimizations optimisticOptimizations, Replacements replacements) {
         this.metaAccessProvider = metaAccessProvider;
         this.config = config;
         this.optimisticOptimizations = optimisticOptimizations;
         this.replacements = replacements;
+        this.stringBuilderClass = metaAccessProvider.lookupJavaType(StringBuilder.class);
     }
 
     @SuppressWarnings("unused")
@@ -191,7 +195,8 @@ public final class TruffleCache {
         }
         if (inlineGraph == this.markerGraph) {
             // Can happen for recursive calls.
-            throw new IllegalStateException("Found illegal recursive call to " + methodCallTargetNode.targetMethod() + ", must annotate such calls with @CompilerDirectives.Slowpath!");
+            throw GraphUtil.approxSourceException(methodCallTargetNode, new IllegalStateException("Found illegal recursive call to " + methodCallTargetNode.targetMethod() +
+                            ", must annotate such calls with @CompilerDirectives.SlowPath!"));
         }
         Invoke invoke = methodCallTargetNode.invoke();
         InliningUtil.inline(invoke, inlineGraph, true);
@@ -200,7 +205,9 @@ public final class TruffleCache {
     private boolean tryCutOffRuntimeExceptions(MethodCallTargetNode methodCallTargetNode) {
         if (methodCallTargetNode.targetMethod().isConstructor()) {
             ResolvedJavaType runtimeException = metaAccessProvider.lookupJavaType(RuntimeException.class);
-            if (runtimeException.isAssignableFrom(methodCallTargetNode.targetMethod().getDeclaringClass())) {
+            ResolvedJavaType controlFlowException = metaAccessProvider.lookupJavaType(ControlFlowException.class);
+            ResolvedJavaType exceptionType = Objects.requireNonNull(ObjectStamp.typeOrNull(methodCallTargetNode.receiver().stamp()));
+            if (runtimeException.isAssignableFrom(methodCallTargetNode.targetMethod().getDeclaringClass()) && !controlFlowException.isAssignableFrom(exceptionType)) {
                 DeoptimizeNode deoptNode = methodCallTargetNode.graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, DeoptimizationReason.UnreachedCode));
                 FixedNode invokeNode = methodCallTargetNode.invoke().asNode();
                 invokeNode.replaceAtPredecessor(deoptNode);
@@ -211,9 +218,9 @@ public final class TruffleCache {
         return false;
     }
 
-    private static boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
+    private boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
         return (methodCallTargetNode.invokeKind() == InvokeKind.Special || methodCallTargetNode.invokeKind() == InvokeKind.Static) &&
                         !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) && methodCallTargetNode.targetMethod().getAnnotation(ExplodeLoop.class) == null &&
-                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null;
+                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null && methodCallTargetNode.targetMethod().getDeclaringClass() != stringBuilderClass;
     }
 }

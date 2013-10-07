@@ -20,11 +20,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.hotspot.nodes;
 
-public final class G1ArrayRangePreWriteBarrier extends ArrayRangeWriteBarrier {
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 
-    public G1ArrayRangePreWriteBarrier(ValueNode object, ValueNode startIndex, ValueNode length) {
-        super(object, startIndex, length);
+public class G1PostWriteBarrier extends WriteBarrier {
+
+    public G1PostWriteBarrier(ValueNode object, ValueNode value, LocationNode location, boolean precise) {
+        super(object, value, location, precise);
     }
 }

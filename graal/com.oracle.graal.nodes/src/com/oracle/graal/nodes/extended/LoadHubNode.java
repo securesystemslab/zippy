@@ -24,6 +24,8 @@ package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -65,7 +67,7 @@ public final class LoadHubNode extends FloatingGuardedNode implements Lowerable,
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         MetaAccessProvider runtime = tool.runtime();
         if (runtime != null && object.stamp() instanceof ObjectStamp) {
             ObjectStamp stamp = (ObjectStamp) object.stamp();

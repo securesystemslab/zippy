@@ -22,17 +22,17 @@
  */
 package com.oracle.graal.replacements.amd64;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.ConvertNode.Op;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.calc.ConvertNode.Op;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
  * This node has the semantics of the AMD64 conversions. It is used in the lowering of the
- * ConvertNode which, on AMD64 needs a AMD64ConvertNode plus some fixup code that handles the corner
- * cases that differ between AMD64 and Java.
- * 
+ * {@link ConvertNode} which, on AMD64 needs a {@link AMD64ConvertNode} plus some fixup code that
+ * handles the corner cases that differ between AMD64 and Java.
  */
 public class AMD64ConvertNode extends FloatingNode implements ArithmeticLIRLowerable {
 
@@ -43,6 +43,12 @@ public class AMD64ConvertNode extends FloatingNode implements ArithmeticLIRLower
         super(StampFactory.forKind(opcode.to.getStackKind()));
         this.opcode = opcode;
         this.value = value;
+    }
+
+    public Constant evalConst(Constant... inputs) {
+        // this node should never have been created if its input is constant
+        assert false;
+        return null;
     }
 
     public void generate(ArithmeticLIRGenerator gen) {

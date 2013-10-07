@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,20 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.nodes.spi;
 
-import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.*;
 
-public class SerialWriteBarrier extends WriteBarrier {
-
-    @Input private ValueNode value;
-
-    public ValueNode getValue() {
-        return value;
-    }
-
-    public SerialWriteBarrier(ValueNode object, ValueNode value, LocationNode location, boolean precise) {
-        super(object, location, precise);
-        this.value = value;
-    }
+public interface NodeWithState {
+    FrameState getState();
 }

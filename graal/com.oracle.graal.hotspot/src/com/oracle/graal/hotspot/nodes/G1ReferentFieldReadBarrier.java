@@ -20,46 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.hotspot.nodes;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 
-public class MemoryState extends VirtualState {
+/**
+ * The {@code G1ReferentFieldReadBarrier} is added when a read access is performed to the referent
+ * field of a {@link java.lang.ref.Reference} object (through a {@code LoadFieldNode} or an
+ * {@code UnsafeLoadNode}). The return value of the read is passed to the snippet implementing the
+ * read barrier and consequently is added to the SATB queue if the concurrent marker is enabled.
+ */
+public class G1ReferentFieldReadBarrier extends WriteBarrier {
 
-    private MemoryMap<Node> memoryMap;
-    @Input private Node object;
+    private final boolean doLoad;
 
-    public MemoryState(MemoryMap<Node> memoryMap, FixedNode object) {
-        this.memoryMap = memoryMap;
-        this.object = object;
+    public G1ReferentFieldReadBarrier(ValueNode object, ValueNode expectedObject, LocationNode location, boolean doLoad) {
+        super(object, expectedObject, location, true);
+        this.doLoad = doLoad;
     }
 
-    public Node object() {
-        return object;
+    public ValueNode getExpectedObject() {
+        return getValue();
     }
 
-    public MemoryMap<Node> getMemoryMap() {
-        return memoryMap;
-    }
-
-    @Override
-    public VirtualState duplicateWithVirtualState() {
-        throw new GraalInternalError("should not reach here");
-    }
-
-    @Override
-    public void applyToNonVirtual(NodeClosure<? super ValueNode> closure) {
-        throw new GraalInternalError("should not reach here");
-    }
-
-    @Override
-    public void applyToVirtual(VirtualClosure closure) {
-        throw new GraalInternalError("should not reach here");
-    }
-
-    @Override
-    public boolean isPartOfThisState(VirtualState state) {
-        throw new GraalInternalError("should not reach here");
+    public boolean doLoad() {
+        return doLoad;
     }
 }
