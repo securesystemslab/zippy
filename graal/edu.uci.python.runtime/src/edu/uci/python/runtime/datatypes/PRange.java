@@ -126,7 +126,7 @@ public class PRange extends PImmutableSequence {
             }
 
             public boolean hasNext() {
-                return index < length - 1;
+                return index <= length - 1;
             }
 
             public Object next() {
@@ -137,7 +137,14 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object[] getSequence() {
-        return null;
+        Integer[] array = new Integer[length];
+
+        for (int i = 0; i < length; i++) {
+            int item = start + step * i;
+            array[i] = item;
+        }
+
+        return array;
     }
 
     @Override

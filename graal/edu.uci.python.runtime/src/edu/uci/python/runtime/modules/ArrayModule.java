@@ -53,7 +53,7 @@ public class ArrayModule extends PModule {
         return makeArray(((String) arg0).toCharArray()[0], arg1);
     }
 
-    private PArray makeEmptyArray(char type) {
+    private static PArray makeEmptyArray(char type) {
         switch (type) {
             case 'c':
                 return new PCharArray();
@@ -66,7 +66,7 @@ public class ArrayModule extends PModule {
         }
     }
 
-    private PArray makeArray(char type, Object initializer) {
+    private static PArray makeArray(char type, Object initializer) {
         Object[] copyArray;
         switch (type) {
             case 'c':

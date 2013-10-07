@@ -392,94 +392,17 @@ public class BuiltinsModule extends PythonModule {
             Object[] args = arguments.getArgumentsArray();
 
             if (args.length == 1) {
-                return range(args[0]);
+                return new PRange((int) args[0]);
             } else if (args.length == 2) {
-                return range(args[0], args[1]);
+                return new PRange((int) args[0], (int) args[1]);
             } else if (args.length == 3) {
                 if (args[0] instanceof Integer && args[1] instanceof Integer && args[2] instanceof Integer) {
-                    return rangeInt((Integer) args[0], (Integer) args[1], (Integer) args[2]);
+                    return new PRange((int) args[0], (int) args[1], (int) args[2]);
                 } else {
-                    return rangeBigInt(args[0], args[1], args[2]);
+                    throw new RuntimeException("wrong arguments for range() ");
                 }
             } else {
                 throw new RuntimeException("wrong number of arguments for range() ");
-            }
-        }
-
-        public PList range(Object arg) {
-            if (arg instanceof Integer) {
-                return rangeInt(0, (Integer) arg, 1);
-            } else if (arg instanceof Double) {
-                int intArg = ((Double) arg).intValue();
-                return rangeInt(0, intArg, 1);
-            } else {
-                return rangeBigInt(BigInteger.ZERO, arg, BigInteger.ONE);
-            }
-        }
-
-        public PList range(Object arg1, Object arg2) {
-            if (arg1 instanceof Integer && arg2 instanceof Integer) {
-                return rangeInt((Integer) arg1, (Integer) arg2, 1);
-            } else {
-                return rangeBigInt(arg1, arg2, BigInteger.ONE);
-            }
-        }
-
-        private PList rangeInt(int start, int stop, int step) {
-            ArrayList<Object> sequence = new ArrayList<>();
-
-            if (step > 0) {
-                for (int i = start; i < stop; i += step) {
-                    sequence.add(i);
-                }
-                return new PList(sequence);
-            } else if (step < 0) {
-                if (start >= stop) {
-                    for (int i = start; i > stop; i -= step) {
-                        sequence.add(i);
-                    }
-                    return new PList(sequence);
-                } else {
-                    throw new RuntimeException("start should not be less than stop!");
-                }
-            } else {
-                throw new RuntimeException("step can not be zero!");
-            }
-        }
-
-        private PList rangeBigInt(Object start, Object stop, Object step) {
-            BigInteger bigStart = getBigInt(start);
-            BigInteger bigStop = getBigInt(stop);
-            BigInteger bigStep = getBigInt(step);
-
-            ArrayList<Object> sequence = new ArrayList<>();
-
-            if (bigStep.compareTo(BigInteger.ZERO) == 1) {
-                for (BigInteger i = bigStart; i.compareTo(bigStop) == -1; i.add(bigStep)) {
-                    sequence.add(i);
-                }
-                return new PList(sequence);
-            } else if (bigStep.compareTo(BigInteger.ZERO) == -1) {
-                if (bigStart.compareTo(bigStop) == 1 || bigStart.compareTo(bigStop) == 0) {
-                    for (BigInteger i = bigStart; i.compareTo(bigStop) == 1; i.subtract(bigStep)) {
-                        sequence.add(i);
-                    }
-                    return new PList(sequence);
-                } else {
-                    throw new RuntimeException("start should not be less than stop!");
-                }
-            } else {
-                throw new RuntimeException("step can not be zero!");
-            }
-        }
-
-        private BigInteger getBigInt(Object num) {
-            if (num instanceof BigInteger) {
-                return (BigInteger) num;
-            } else if (num instanceof Integer) {
-                return BigInteger.valueOf((long) num);
-            } else {
-                return null; // this should not happen
             }
         }
     };

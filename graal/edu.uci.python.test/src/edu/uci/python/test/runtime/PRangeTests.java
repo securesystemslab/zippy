@@ -24,8 +24,10 @@
  */
 package edu.uci.python.test.runtime;
 
+import static edu.uci.python.test.PythonTests.*;
 import static org.junit.Assert.*;
 
+import java.nio.file.*;
 import java.util.*;
 
 import org.junit.*;
@@ -70,5 +72,11 @@ public class PRangeTests {
     public void getItemNegative() {
         PRange range = new PRange(10);
         assertEquals(7, range.getItem(-3));
+    }
+
+    @Test
+    public void forRangeLoop() {
+        Path script = Paths.get("range_test.py");
+        assertPrints("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n", script);
     }
 }
