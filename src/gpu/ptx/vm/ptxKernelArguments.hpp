@@ -29,6 +29,7 @@
 #include "runtime/signature.hpp"
 
 #define T_BYTE_SIZE       1
+#define T_BOOLEAN_SIZE    4
 #define T_INT_BYTE_SIZE   4
 #define T_FLOAT_BYTE_SIZE 4
 #define T_LONG_BYTE_SIZE  8
@@ -99,16 +100,13 @@ private:
 
 
   void do_byte();
+  void do_bool();
   void do_int();
   void do_float();
   void do_long();
   void do_array(int begin, int end);
   void do_void();
 
-  inline void do_bool()   {
-    /* TODO : To be implemented */
-    guarantee(false, "do_bool:NYI");
-  }
   inline void do_char()   {
     /* TODO : To be implemented */
     guarantee(false, "do_char:NYI");

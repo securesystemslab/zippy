@@ -168,6 +168,38 @@ void PTXKernelArguments::do_byte() {
     return;
 }
 
+void PTXKernelArguments::do_bool() {
+    if (is_after_invocation()) {
+        return;
+    }
+    // If the parameter is a return value,
+    if (is_return_type()) {
+        // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
+        int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_BOOLEAN_SIZE);
+        if (status != GRAAL_CUDA_SUCCESS) {
+            tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+            _success = false;
+            return;
+        }
+        // Push _return_value_ptr to _kernelBuffer
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _return_value_ptr;
+        _bufferOffset += sizeof(_return_value_ptr);
+    } else {
+        // Get the next java argument and its value which should be a T_BYTE
+        oop arg = next_arg(T_BYTE);
+        // Copy the java argument value to kernelArgBuffer
+        jvalue val;
+        if (java_lang_boxing_object::get_value(arg, &val) != T_BOOLEAN) {
+            tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_BYTE");
+            _success = false;
+            return;
+        }
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.z;
+        _bufferOffset += sizeof(val.z);
+    }
+    return;
+}
+
 void PTXKernelArguments::do_array(int begin, int end) {
     gpu::Ptx::CUdeviceptr _array_ptr;
     int status;
