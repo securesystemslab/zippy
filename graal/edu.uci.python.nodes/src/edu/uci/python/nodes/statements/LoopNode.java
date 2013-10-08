@@ -24,46 +24,15 @@
  */
 package edu.uci.python.nodes.statements;
 
-import com.oracle.truffle.api.frame.*;
+public abstract class LoopNode extends StatementNode {
 
-import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.utils.*;
+    @Child protected BlockNode body;
 
-public class WhileNode extends LoopNode {
+    @Child protected BlockNode orelse;
 
-    @Child protected BooleanCastNode condition;
-
-    public WhileNode(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
-        super(body, orelse);
-        this.condition = adoptChild(condition);
+    public LoopNode(BlockNode body, BlockNode orelse) {
+        this.body = adoptChild(body);
+        this.orelse = adoptChild(orelse);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            while (condition.executeBoolean(frame)) {
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
-                }
-            }
-        } catch (BreakException ex) {
-            return null;
-        }
-
-        orelse.executeVoid(frame);
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitWhileNode(this);
-    }
 }

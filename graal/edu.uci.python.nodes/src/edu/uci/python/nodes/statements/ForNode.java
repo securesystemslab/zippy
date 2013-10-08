@@ -35,18 +35,13 @@ import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
-public abstract class ForNode extends StatementNode {
+public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    @Child protected BlockNode body;
-
-    @Child protected BlockNode orelse;
-
     public ForNode(PNode target, BlockNode body, BlockNode orelse) {
+        super(body, orelse);
         this.target = adoptChild(target);
-        this.body = adoptChild(body);
-        this.orelse = adoptChild(orelse);
     }
 
     protected ForNode(ForNode previous) {
@@ -54,11 +49,6 @@ public abstract class ForNode extends StatementNode {
     }
 
     public abstract PNode getIterator();
-
-    public void setInternal(BlockNode body, BlockNode orelse) {
-        this.body = adoptChild(body);
-        this.orelse = adoptChild(orelse);
-    }
 
     @Specialization
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
