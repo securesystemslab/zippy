@@ -29,12 +29,13 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class WhileNode extends LoopNode {
 
     @Child protected BooleanCastNode condition;
 
-    public WhileNode(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
+    public WhileNode(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
         super(body, orelse);
         this.condition = adoptChild(condition);
     }
@@ -43,18 +44,14 @@ public class WhileNode extends LoopNode {
     public Object execute(VirtualFrame frame) {
         try {
             while (condition.executeBoolean(frame)) {
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
-                }
+                body.executeVoid(frame);
             }
         } catch (BreakException ex) {
-            return null;
+            return PNone.NONE;
         }
 
         orelse.executeVoid(frame);
-        return null;
+        return PNone.NONE;
     }
 
     @Override

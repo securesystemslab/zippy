@@ -816,8 +816,15 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         BlockNode bodyPart = factory.createBlock(body);
         BlockNode orelsePart = factory.createBlock(orelse);
-        loops.endLoop();
-        return factory.createWhile(factory.toBooleanCastNode(test), bodyPart, orelsePart);
+        return createWhileNode(test, bodyPart, orelsePart, loops.endLoop());
+    }
+
+    private StatementNode createWhileNode(PNode test, BlockNode body, BlockNode orelse, LoopInfo info) {
+        StatementNode wrappedBody = body;
+        if (info.hasContinue()) {
+            wrappedBody = factory.createContinueTarget(body);
+        }
+        return factory.createWhile(factory.toBooleanCastNode(test), wrappedBody, orelse);
     }
 
     @Override

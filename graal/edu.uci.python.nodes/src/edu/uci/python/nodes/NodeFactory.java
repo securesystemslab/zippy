@@ -130,7 +130,7 @@ public class NodeFactory {
         return new ImportNode(fromModuleName, importee);
     }
 
-    public StatementNode createWhile(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
+    public StatementNode createWhile(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
         return new WhileNode(condition, body, orelse);
     }
 

@@ -34,7 +34,20 @@ public class LoopTests {
 
     @Test
     public void forWithContinue() {
-        Path script = Paths.get("continue_test.py");
+        Path script = Paths.get("for_with_continue_test.py");
         assertPrints("0\n3\n6\n9\n", script);
+    }
+
+    @Test
+    public void whileWithContinue() {
+        String source = "num = 11\n" + //
+                        "while num:\n" + //
+                        "    num = num - 1\n" + //
+                        "    if num % 3 != 0:\n" + //
+                        "        continue\n" + //
+                        "    print(num)\n" + //
+                        "\n";
+
+        assertPrints("9\n6\n3\n0\n", source);
     }
 }
