@@ -80,7 +80,17 @@ public abstract class FrameSlotNode extends PNode {
     /**
      * Promoting int slot to BigInteger(Object) slot.
      */
-    protected final void setBigInteger(Frame frame, BigInteger value) {
+    protected final void setBigInteger(Frame frame, BigInteger value) throws FrameSlotTypeException {
+        FrameSlotKind slotKind = slot.getKind();
+
+        if (slotKind != FrameSlotKind.Object) {
+            if (slotKind == FrameSlotKind.Illegal) {
+                slot.setKind(FrameSlotKind.Object);
+            } else {
+                throw new FrameSlotTypeException();
+            }
+        }
+
         frame.setObject(slot, value);
     }
 

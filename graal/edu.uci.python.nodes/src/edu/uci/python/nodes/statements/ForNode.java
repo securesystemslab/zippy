@@ -26,54 +26,53 @@ package edu.uci.python.nodes.statements;
 
 import java.util.*;
 
-import org.python.core.PyObject;
-
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-public class ForNode extends StatementNode {
+@NodeChild(value = "iterator", type = PNode.class)
+public abstract class ForNode extends StatementNode {
 
     @Child protected PNode target;
-
-    @Child protected PNode iterator;
 
     @Child protected BlockNode body;
 
     @Child protected BlockNode orelse;
 
-    public ForNode(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public ForNode(PNode target, BlockNode body, BlockNode orelse) {
         this.target = adoptChild(target);
-        this.iterator = adoptChild(iterator);
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
     }
+
+    protected ForNode(ForNode previous) {
+        this(previous.target, previous.body, previous.orelse);
+    }
+
+    public abstract PNode getIterator();
 
     public void setInternal(BlockNode body, BlockNode orelse) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        Object evaluatedIterator = iterator.execute(frame);
-
-        if (evaluatedIterator instanceof Iterable) {
-            loopOnIterable(frame, (Iterable<?>) evaluatedIterator);
-        } else if (evaluatedIterator instanceof PyObject) {
-            loopOnPyObject(frame, (PyObject) evaluatedIterator);
-        } else {
-            throw new RuntimeException("Unexpected iterator type ");
-        }
-
-        return null;
+    @Specialization
+    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
+        loopOnIterator(frame, sequence);
+        return PNone.NONE;
     }
 
-    private void loopOnIterable(VirtualFrame frame, Iterable<?> iterable) {
+    @Specialization
+    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
+        loopOnIterator(frame, set);
+        return PNone.NONE;
+    }
+
+    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
         Iterator<?> iter = iterable.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
@@ -97,53 +96,27 @@ public class ForNode extends StatementNode {
         orelse.executeVoid(frame);
     }
 
-    private void loopOnPyObject(VirtualFrame frame, PyObject sequence) {
-        PyObject pyIterator = sequence.__iter__();
-        PyObject itValue;
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
-        try {
-            while ((itValue = pyIterator.__iternext__()) != null) {
-                rvn.setValue(unboxPyObject(itValue));
-                target.execute(frame);
-
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
-                }
-            }
-        } catch (BreakException ex) {
-            // Done executing this loop
-            // If there is a break, orelse should not be executed
-            return;
-        }
-
-        orelse.executeVoid(frame);
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + target + ", " + iterator + ")";
-    }
-
     @Override
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitForNode(this);
     }
 
-    public static class GeneratorForNode extends ForNode {
+    public abstract static class GeneratorForNode extends ForNode {
 
         private Iterator<?> iter;
 
         public GeneratorForNode(ForNode node) {
-            super(node.target, node.iterator, node.body, node.orelse);
+            super(node.target, node.body, node.orelse);
+        }
+
+        protected GeneratorForNode(GeneratorForNode previous) {
+            super(previous);
         }
 
         @Override
         public void executeVoid(VirtualFrame frame) {
             if (iter == null) {
-                Iterable<?> it = (Iterable<?>) this.iterator.execute(frame);
+                Iterable<?> it = (Iterable<?>) this.getIterator().execute(frame);
                 iter = it.iterator();
             }
 

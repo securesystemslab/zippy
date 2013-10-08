@@ -84,9 +84,13 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         return last;
     }
 
+    /**
+     * FIXME: this is broken!
+     */
     @Override
     public StatementNode visitForNode(ForNode node) {
-        ForNode newNode = new ForNode.GeneratorForNode(node);
+// ForNode newNode = new ForNodeFactory.create(node, null);
+        ForNode newNode = null;
         node.replace(newNode);
         append(newNode);
 

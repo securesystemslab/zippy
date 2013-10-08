@@ -63,43 +63,43 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
         return WriteLocalNodeFactory.create(this.slot, newRhs);
     }
 
-    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    @Specialization(order = 1, rewriteOn = FrameSlotTypeException.class)
     public int write(VirtualFrame frame, int value) throws FrameSlotTypeException {
         setInteger(frame, value);
         return value;
     }
 
-    @Specialization
-    public BigInteger write(VirtualFrame frame, BigInteger value) {
-        setObject(frame, value);
+    @Specialization(order = 2, rewriteOn = FrameSlotTypeException.class)
+    public BigInteger write(VirtualFrame frame, BigInteger value) throws FrameSlotTypeException {
+        setBigInteger(frame, value);
         return value;
     }
 
-    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    @Specialization(order = 3, rewriteOn = FrameSlotTypeException.class)
     public double write(VirtualFrame frame, double right) throws FrameSlotTypeException {
         setDouble(frame, right);
         return right;
     }
 
-    @Specialization
+    @Specialization(order = 4)
     public PComplex write(VirtualFrame frame, PComplex right) {
         setObject(frame, right);
         return right;
     }
 
-    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    @Specialization(order = 5, rewriteOn = FrameSlotTypeException.class)
     public boolean write(VirtualFrame frame, boolean right) throws FrameSlotTypeException {
         setBoolean(frame, right);
         return right;
     }
 
-    @Specialization
+    @Specialization(order = 6)
     public String write(VirtualFrame frame, String right) {
         setObject(frame, right);
         return right;
     }
 
-    @Specialization
+    @Specialization(order = 10)
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;

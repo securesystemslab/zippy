@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statements;
 import java.util.Arrays;
 import java.util.List;
 
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
@@ -53,11 +52,6 @@ public class ParametersWithNoDefaultsNode extends ParametersNode {
             parameters[i].executeVoid(frame);
         }
     }
-
-    /*
-     * @Override public <R> R accept(PNodeVisitor<R> visitor) { return
-     * visitor.visitParametersDefaultNode(this); }
-     */
 
     @Override
     public String toString() {

@@ -139,7 +139,7 @@ public class NodeFactory {
     }
 
     public StatementNode createFor(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
-        return new ForNode(target, iterator, body, orelse);
+        return ForNodeFactory.create(target, body, orelse, iterator);
     }
 
     public StatementNode createForRangeWithOneValue(PNode target, PNode start, BlockNode body, BlockNode orelse) {
