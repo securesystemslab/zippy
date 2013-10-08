@@ -39,7 +39,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.objects.*;
@@ -47,7 +46,6 @@ import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.TranslationEnvironment.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.Options;
 import edu.uci.python.runtime.datatypes.*;
 
 public class PythonTreeTranslator extends Visitor {
@@ -55,6 +53,7 @@ public class PythonTreeTranslator extends Visitor {
     private final PythonContext context;
     private final NodeFactory factory;
     private final TranslationEnvironment environment;
+    private final LoopsBookKeeper loops;
     private final PythonParseResult result;
 
     private boolean isLeftHandSide = false;
@@ -67,6 +66,7 @@ public class PythonTreeTranslator extends Visitor {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.resetScopeLevel();
+        this.loops = new LoopsBookKeeper();
         this.result = new PythonParseResult();
     }
 
@@ -788,8 +788,14 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitBreak(Break node) throws Exception {
-        StatementNode breakNode = factory.createBreak();
-        return breakNode;
+        loops.addBreak();
+        return factory.createBreak();
+    }
+
+    @Override
+    public Object visitContinue(Continue node) throws Exception {
+        loops.addContinue();
+        return factory.createContinue();
     }
 
     @Override
@@ -804,16 +810,19 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitWhile(While node) throws Exception {
+        loops.beginLoop(node);
         PNode test = (PNode) visit(node.getInternalTest());
         List<PNode> body = visitStatements(node.getInternalBody());
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         BlockNode bodyPart = factory.createBlock(body);
         BlockNode orelsePart = factory.createBlock(orelse);
+        loops.endLoop();
         return factory.createWhile(factory.toBooleanCastNode(test), bodyPart, orelsePart);
     }
 
     @Override
     public Object visitFor(For node) throws Exception {
+        loops.beginLoop(node);
         List<expr> lhs = new ArrayList<>();
         lhs.add(node.getInternalTarget());
 
@@ -831,19 +840,22 @@ public class PythonTreeTranslator extends Visitor {
         body.addAll(0, targets);
         BlockNode bodyPart = factory.createBlock(body);
         BlockNode orelsePart = factory.createBlock(orelse);
-        return dirtySpecialization(iteratorWrite, iter, bodyPart, orelsePart);
+        return createForNode(iteratorWrite, iter, bodyPart, orelsePart, loops.endLoop());
     }
 
-    private StatementNode dirtySpecialization(PNode target, PNode iter, BlockNode body, BlockNode orelse) {
-        StatementNode forNode;
+    private StatementNode createForNode(PNode target, PNode iter, BlockNode body, BlockNode orelse, LoopInfo info) {
+        StatementNode wrappedBody = body;
+        if (info.hasContinue()) {
+            wrappedBody = factory.createContinueTarget(body);
+        }
+
         if (environment.isInFunctionScope() && target instanceof WriteLocalNode) {
             WriteLocalNode wtarget = (WriteLocalNode) target;
             wtarget = (WriteLocalNode) wtarget.updateRhs(null);
-            forNode = factory.createForWithLocalTarget(wtarget, iter, body, orelse);
+            return factory.createForWithLocalTarget(wtarget, iter, wrappedBody, orelse);
         } else {
-            forNode = factory.createFor(target, iter, body, orelse);
+            return factory.createFor(target, iter, wrappedBody, orelse);
         }
-        return forNode;
     }
 
     @Override

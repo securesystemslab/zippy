@@ -22,13 +22,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes.statements;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import com.oracle.truffle.api.frame.*;
 
-public final class ContinueException extends ControlFlowException {
+import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
-    private static final long serialVersionUID = 5329687983726237188L;
-    public static final ContinueException instance = new ContinueException();
+public class ContinueTargetNode extends StatementNode {
+
+    @Child protected BlockNode child;
+
+    public ContinueTargetNode(BlockNode child) {
+        this.child = adoptChild(child);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            return child.execute(frame);
+        } catch (ContinueException ex) {
+            return PNone.NONE;
+        }
+    }
 
 }

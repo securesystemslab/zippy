@@ -26,11 +26,11 @@ package edu.uci.python.nodes.statements;
 
 public abstract class LoopNode extends StatementNode {
 
-    @Child protected BlockNode body;
+    @Child protected StatementNode body;
 
     @Child protected BlockNode orelse;
 
-    public LoopNode(BlockNode body, BlockNode orelse) {
+    public LoopNode(StatementNode body, BlockNode orelse) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
     }

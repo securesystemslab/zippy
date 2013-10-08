@@ -39,7 +39,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected WriteLocalNode target;
 
-    public ForWithLocalTargetNode(WriteLocalNode target, BlockNode body, BlockNode orelse) {
+    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body, BlockNode orelse) {
         super(body, orelse);
         this.target = adoptChild(target);
     }
@@ -68,12 +68,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
         try {
             while (iter.hasNext()) {
                 target.execute(frame, iter.next());
-
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
-                }
+                body.executeVoid(frame);
             }
         } catch (BreakException ex) {
             // Done executing this loop.

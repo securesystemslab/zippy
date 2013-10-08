@@ -95,10 +95,10 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         append(newNode);
 
         StatementNode loopEnd = getDummy();
-        StatementNode bodyLast = visitBlockNode(node.body);
+// StatementNode bodyLast = visitBlockNode(node.body);
         visitBlockNode(node.orelse);
 
-        setNext(bodyLast, newNode);
+// setNext(bodyLast, newNode);
         setNext(newNode, loopEnd);
         append(loopEnd);
         return loopEnd;
@@ -121,10 +121,10 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
     public StatementNode visitWhileNode(WhileNode node) {
         append(node);
         StatementNode loopEnd = getDummy();
-        StatementNode bodyLast = visitBlockNode(node.body);
+// StatementNode bodyLast = visitBlockNode(node.body);
         visitBlockNode(node.orelse);
 
-        setNext(bodyLast, node);
+// setNext(bodyLast, node);
         setNext(node, loopEnd);
         append(loopEnd);
         return loopEnd;

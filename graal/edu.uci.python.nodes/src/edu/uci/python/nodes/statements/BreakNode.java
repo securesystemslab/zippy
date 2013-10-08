@@ -35,9 +35,4 @@ public class BreakNode extends StatementNode {
         throw BreakException.instance;
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName();
-    }
-
 }

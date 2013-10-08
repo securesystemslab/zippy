@@ -22,13 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import static edu.uci.python.test.PythonTests.*;
 
-public final class ContinueException extends ControlFlowException {
+import java.nio.file.*;
 
-    private static final long serialVersionUID = 5329687983726237188L;
-    public static final ContinueException instance = new ContinueException();
+import org.junit.*;
 
+public class LoopTests {
+
+    @Test
+    public void forWithContinue() {
+        Path script = Paths.get("continue_test.py");
+        assertPrints("0\n3\n6\n9\n", script);
+    }
 }

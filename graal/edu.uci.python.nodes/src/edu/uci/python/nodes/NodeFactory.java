@@ -138,11 +138,11 @@ public class NodeFactory {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public StatementNode createFor(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public StatementNode createFor(PNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForNodeFactory.create(target, body, orelse, iterator);
     }
 
-    public StatementNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public StatementNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForWithLocalTargetNodeFactory.create(target, body, orelse, iterator);
     }
 
@@ -168,6 +168,14 @@ public class NodeFactory {
 
     public StatementNode createBreak() {
         return new BreakNode();
+    }
+
+    public StatementNode createContinue() {
+        return new ContinueNode();
+    }
+
+    public StatementNode createContinueTarget(BlockNode child) {
+        return new ContinueTargetNode(child);
     }
 
     public StatementNode createYield(PNode right) {

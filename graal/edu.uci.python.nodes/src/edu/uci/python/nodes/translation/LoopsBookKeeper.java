@@ -22,13 +22,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes.translation;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import java.util.*;
 
-public final class ContinueException extends ControlFlowException {
+import org.python.antlr.base.*;
 
-    private static final long serialVersionUID = 5329687983726237188L;
-    public static final ContinueException instance = new ContinueException();
+public class LoopsBookKeeper {
 
+    private final Stack<stmt> loops;
+    private final Map<stmt, LoopInfo> infos;
+
+    public LoopsBookKeeper() {
+        loops = new Stack<>();
+        infos = new HashMap<>();
+    }
+
+    public void beginLoop(stmt loop) {
+        loops.push(loop);
+        infos.put(loop, new LoopInfo(loop));
+    }
+
+    public LoopInfo endLoop() {
+        stmt loop = loops.pop();
+        return infos.remove(loop);
+    }
+
+    public void addBreak() {
+        stmt currentLoop = loops.peek();
+        LoopInfo info = infos.get(currentLoop);
+        info.addBreak();
+    }
+
+    public void addContinue() {
+        stmt currentLoop = loops.peek();
+        LoopInfo info = infos.get(currentLoop);
+        info.addContinue();
+    }
+
+    public void hasBreak() {
+        stmt currentLoop = loops.peek();
+        LoopInfo info = infos.get(currentLoop);
+        info.hasBreak();
+    }
+
+    public void hasContinue() {
+        stmt currentLoop = loops.peek();
+        LoopInfo info = infos.get(currentLoop);
+        info.hasContinue();
+    }
 }

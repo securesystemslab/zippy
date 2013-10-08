@@ -22,13 +22,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes.translation;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import org.python.antlr.base.*;
 
-public final class ContinueException extends ControlFlowException {
+public class LoopInfo {
 
-    private static final long serialVersionUID = 5329687983726237188L;
-    public static final ContinueException instance = new ContinueException();
+    private final stmt loopNode;
 
+    private int continueCount = 0;
+    private int breakCount = 0;
+
+    public LoopInfo(stmt loopNode) {
+        this.loopNode = loopNode;
+    }
+
+    public stmt getLoopNode() {
+        return loopNode;
+    }
+
+    public void addContinue() {
+        continueCount++;
+    }
+
+    public void addBreak() {
+        breakCount++;
+    }
+
+    public boolean hasContinue() {
+        return continueCount > 0;
+    }
+
+    public boolean hasBreak() {
+        return breakCount > 0;
+    }
 }

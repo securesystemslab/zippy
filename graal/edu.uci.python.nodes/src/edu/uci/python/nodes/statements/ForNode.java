@@ -39,7 +39,7 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    public ForNode(PNode target, BlockNode body, BlockNode orelse) {
+    public ForNode(PNode target, StatementNode body, BlockNode orelse) {
         super(body, orelse);
         this.target = adoptChild(target);
     }
@@ -70,12 +70,7 @@ public abstract class ForNode extends LoopNode {
             while (iter.hasNext()) {
                 rvn.setValue(iter.next());
                 target.execute(frame);
-
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
-                }
+                body.executeVoid(frame);
             }
         } catch (BreakException ex) {
             // Done executing this loop.
