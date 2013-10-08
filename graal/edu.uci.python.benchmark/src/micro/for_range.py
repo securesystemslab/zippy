@@ -6,7 +6,7 @@ iteration = 1000000
 def sumitup(iteration):
 	total = 0
 	for i in range(iteration):
-		total = total + i
+		total = total + 42
 
 	return total
 

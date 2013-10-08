@@ -55,8 +55,8 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     }
 
     @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
-    public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        return getBoolean(frame);
+    public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
+        return getBigInteger(frame);
     }
 
     @Specialization(order = 3, rewriteOn = {FrameSlotTypeException.class})
@@ -65,8 +65,8 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     }
 
     @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
-    public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        return getBigInteger(frame);
+    public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
+        return getBoolean(frame);
     }
 
     @Specialization(order = 5, rewriteOn = {FrameSlotTypeException.class})
