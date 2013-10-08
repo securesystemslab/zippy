@@ -63,6 +63,8 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
         return WriteLocalNodeFactory.create(this.slot, newRhs);
     }
 
+    public abstract Object execute(VirtualFrame frame, Object value);
+
     @Specialization(order = 1, rewriteOn = FrameSlotTypeException.class)
     public int write(VirtualFrame frame, int value) throws FrameSlotTypeException {
         setInteger(frame, value);

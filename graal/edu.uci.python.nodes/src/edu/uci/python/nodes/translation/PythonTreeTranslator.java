@@ -836,14 +836,10 @@ public class PythonTreeTranslator extends Visitor {
 
     private StatementNode dirtySpecialization(PNode target, PNode iter, BlockNode body, BlockNode orelse) {
         StatementNode forNode;
-        if (Options.OptimizeNode) {
-            if (iter instanceof CallBuiltInWithOneArgNoKeywordNode && ((CallBuiltInWithOneArgNoKeywordNode) iter).getName().equals("range")) {
-                forNode = factory.createForRangeWithOneValue(target, ((CallBuiltInWithOneArgNoKeywordNode) iter).getArgument(), body, orelse);
-            } else if (iter instanceof CallBuiltInWithTwoArgsNoKeywordNode && ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getName().equals("range")) {
-                forNode = factory.createForRangeWithTwoValues(target, ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg0(), ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg1(), body, orelse);
-            } else {
-                forNode = factory.createFor(target, iter, body, orelse);
-            }
+        if (environment.isInFunctionScope() && target instanceof WriteLocalNode) {
+            WriteLocalNode wtarget = (WriteLocalNode) target;
+            wtarget = (WriteLocalNode) wtarget.updateRhs(null);
+            forNode = factory.createForWithLocalTarget(wtarget, iter, body, orelse);
         } else {
             forNode = factory.createFor(target, iter, body, orelse);
         }

@@ -30,21 +30,21 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
+import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
-public abstract class ForNode extends LoopNode {
+public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected PNode target;
+    @Child protected WriteLocalNode target;
 
-    public ForNode(PNode target, BlockNode body, BlockNode orelse) {
+    public ForWithLocalTargetNode(WriteLocalNode target, BlockNode body, BlockNode orelse) {
         super(body, orelse);
         this.target = adoptChild(target);
     }
 
-    protected ForNode(ForNode previous) {
+    protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
         this(previous.target, previous.body, previous.orelse);
     }
 
@@ -64,12 +64,10 @@ public abstract class ForNode extends LoopNode {
 
     private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
         Iterator<?> iter = iterable.iterator();
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         try {
             while (iter.hasNext()) {
-                rvn.setValue(iter.next());
-                target.execute(frame);
+                target.execute(frame, iter.next());
 
                 try {
                     body.executeVoid(frame);
@@ -84,10 +82,5 @@ public abstract class ForNode extends LoopNode {
         }
 
         orelse.executeVoid(frame);
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitForNode(this);
     }
 }
