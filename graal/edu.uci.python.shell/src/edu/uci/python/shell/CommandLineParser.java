@@ -43,6 +43,10 @@ public class CommandLineParser {
                 Options.PrintAST = true;
             }
 
+            if (arg.equals("-visualize-ast")) {
+                Options.VisualizedAST = true;
+            }
+
             index++;
         }
 

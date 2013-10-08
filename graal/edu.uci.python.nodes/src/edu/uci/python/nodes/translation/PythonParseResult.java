@@ -22,57 +22,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.truffle;
+package edu.uci.python.nodes.translation;
 
-import com.oracle.truffle.api.*;
+import java.util.*;
+
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
-import edu.uci.python.runtime.datatypes.*;
 
-public class ASTInterpreter {
+public class PythonParseResult {
 
-    public static boolean debug;
+    private ModuleNode module;
 
-    @SuppressWarnings("hiding")
-    public static void init(boolean debug) {
-        ASTInterpreter.debug = debug;
+    private final Map<String, RootNode> functions = new HashMap<>();
+
+    protected void setModule(ModuleNode module) {
+        this.module = module;
     }
 
-    public static void interpret(PythonParseResult result, boolean log) {
-        CallTarget module;
+    protected void addParsedFunction(String name, FunctionRootNode function) {
+        functions.put(name, function);
+    }
 
-        ModuleNode root = result.getModuleRoot();
-        module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
+    public ModuleNode getModuleRoot() {
+        return module;
+    }
 
-        Arguments arguments = new PArguments();
+    public void printAST() {
+        printSeparationLine("module");
+        NodeUtil.printCompactTree(System.out, module);
 
-        long start = System.nanoTime();
-        module.call(null, arguments);
-        long end = System.nanoTime();
-
-        if (log) {
-            // CheckStyle: stop system..print check
-            System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
-            // CheckStyle: resume system..print check
+        for (String functionName : functions.keySet()) {
+            printSeparationLine(functionName);
+            RootNode root = functions.get(functionName);
+            NodeUtil.printCompactTree(System.out, root);
         }
     }
 
-    public static void trace(String message) {
+    private static void printSeparationLine(String id) {
         // CheckStyle: stop system..print check
-        System.out.print(message);
+        System.out.println(" ------------- " + id + " ------------- ");
         // CheckStyle: resume system..print check
     }
 
-    public static void traceln(String message) {
-        // CheckStyle: stop system..print check
-        System.out.println(message);
-        // CheckStyle: resume system..print check
-    }
+    public void visualizeToNetwork() {
+        new GraphPrintVisitor().beginGraph("module").visit(module).printToNetwork();
 
-    public static void trace(Object entity) {
-        // CheckStyle: stop system..print check
-        System.out.println(entity);
-        // CheckStyle: resume system..print check
+        for (String functionName : functions.keySet()) {
+            RootNode root = functions.get(functionName);
+            new GraphPrintVisitor().beginGraph(functionName).visit(root).printToNetwork();
+        }
     }
 }

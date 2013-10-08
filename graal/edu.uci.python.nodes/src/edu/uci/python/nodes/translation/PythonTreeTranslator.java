@@ -53,10 +53,9 @@ import edu.uci.python.runtime.datatypes.*;
 public class PythonTreeTranslator extends Visitor {
 
     private final PythonContext context;
-
     private final NodeFactory factory;
-
     private final TranslationEnvironment environment;
+    private final PythonParseResult result;
 
     private boolean isLeftHandSide = false;
 
@@ -68,15 +67,21 @@ public class PythonTreeTranslator extends Visitor {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.resetScopeLevel();
+        this.result = new PythonParseResult();
     }
 
-    public RootNode translate(PythonTree root) {
+    public PythonParseResult translate(PythonTree root) {
+        ModuleNode module;
+
         try {
-            return (RootNode) visit(root);
+            module = (ModuleNode) visit(root);
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException("Failed in " + this + " with error " + t);
         }
+
+        result.setModule(module);
+        return result;
     }
 
     private FrameDescriptor getFrameDescriptor(PythonTree scopeEntity) {
@@ -136,6 +141,7 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
+        result.addParsedFunction(name, funcRoot);
         PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
         PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
         environment.endScope();

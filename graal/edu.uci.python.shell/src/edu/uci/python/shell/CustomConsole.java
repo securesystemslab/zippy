@@ -35,8 +35,6 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.Options;
 
-import com.oracle.truffle.api.nodes.*;
-
 public class CustomConsole extends JLineConsole {
 
     @Override
@@ -49,16 +47,26 @@ public class CustomConsole extends JLineConsole {
         setSystemState();
 
         ASTInterpreter.init(false);
-        RootNode root = parseToAST(s, name, CompileMode.exec, cflags, context);
+        PythonParseResult result = parseToAST(s, name, CompileMode.exec, cflags, context);
 
         if (Options.PrintAST) {
-            printAST(root, "Before Specialization");
+            printBanner("Before Specialization");
+            result.printAST();
         }
 
-        ASTInterpreter.interpret(root, false);
+        if (Options.VisualizedAST) {
+            result.visualizeToNetwork();
+        }
+
+        ASTInterpreter.interpret(result, false);
 
         if (Options.PrintAST) {
-            printAST(root, "After Specialization");
+            printBanner("After Specialization");
+            result.printAST();
+        }
+
+        if (Options.VisualizedAST) {
+            result.visualizeToNetwork();
         }
 
         Py.flushLine();
@@ -67,27 +75,20 @@ public class CustomConsole extends JLineConsole {
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
-    public static RootNode parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
+    public static PythonParseResult parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
         mod node = ParserFacade.parse(istream, kind, filename, cflags);
         TranslationEnvironment environment = new TranslationEnvironment(node);
         PythonTreeProcessor ptp = new PythonTreeProcessor(environment);
         node = ptp.process(node);
 
         PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
-        RootNode rootNode = ptt.translate(node);
-        return rootNode;
+        PythonParseResult result = ptt.translate(node);
+        return result;
     }
 
-    public static void printAST(RootNode tree, String phase) {
-        if (!Options.PrintAST) {
-            return;
-        }
-
+    public static void printBanner(String phase) {
         // CheckStyle: stop system..print check
         System.out.println("============= " + phase + " ============= ");
         // CheckStyle: resume system..print check
-
-        NodeUtil.printCompactTree(System.out, tree);
     }
-
 }
