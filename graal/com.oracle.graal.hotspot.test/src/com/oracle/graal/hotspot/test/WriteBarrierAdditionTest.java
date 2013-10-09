@@ -157,7 +157,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     }
 
     public static Object test5Snippet() throws Exception {
-        return UnsafeLoadNode.load(wr, 0, useCompressedOops() ? 12 : 16, Kind.Object);
+        return UnsafeLoadNode.load(wr, useCompressedOops() ? 12 : 16, Kind.Object);
     }
 
     /**
@@ -232,7 +232,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     public static Object testUnsafeLoad(Object a, Object b, Object c) throws Exception {
         final int offset = (c == null ? 0 : ((Integer) c).intValue());
         final long displacement = (b == null ? 0 : ((Long) b).longValue());
-        return UnsafeLoadNode.load(a, offset, displacement, Kind.Object);
+        return UnsafeLoadNode.load(a, offset + displacement, Kind.Object);
     }
 
     private HotSpotInstalledCode getInstalledCode(String name) throws Exception {
@@ -258,9 +258,10 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
 
                 int barriers = 0;
                 if (useG1GC()) {
-                    barriers = graph.getNodes(G1ReferentFieldReadBarrier.class).count() + graph.getNodes(G1PreWriteBarrier.class).count() + graph.getNodes(G1PostWriteBarrier.class).count();
+                    barriers = graph.getNodes().filter(G1ReferentFieldReadBarrier.class).count() + graph.getNodes().filter(G1PreWriteBarrier.class).count() +
+                                    graph.getNodes().filter(G1PostWriteBarrier.class).count();
                 } else {
-                    barriers = graph.getNodes(SerialWriteBarrier.class).count();
+                    barriers = graph.getNodes().filter(SerialWriteBarrier.class).count();
                 }
                 Assert.assertEquals(expectedBarriers, barriers);
                 for (WriteNode write : graph.getNodes().filter(WriteNode.class)) {

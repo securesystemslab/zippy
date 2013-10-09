@@ -27,6 +27,7 @@ import java.lang.reflect.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -36,7 +37,7 @@ import com.oracle.graal.nodes.virtual.*;
  * The {@code LoadFieldNode} represents a read of a static or instance field.
  */
 @NodeInfo(nameTemplate = "LoadField#{p#field/s}")
-public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, IterableNodeType, VirtualizableRoot {
+public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, VirtualizableRoot {
 
     /**
      * Creates a new LoadFieldNode instance.
@@ -58,7 +59,7 @@ public final class LoadFieldNode extends AccessFieldNode implements Canonicaliza
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         MetaAccessProvider runtime = tool.runtime();
         if (tool.canonicalizeReads() && runtime != null) {
             ConstantNode constant = asConstant(runtime);

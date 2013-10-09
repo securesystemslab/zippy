@@ -26,6 +26,7 @@ import static com.oracle.graal.api.meta.Kind.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -200,7 +201,7 @@ public class ConvertNode extends FloatingNode implements Canonicalizable, Lowera
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         if (value.isConstant()) {
             return ConstantNode.forPrimitive(evalConst(value.asConstant()), graph());
         }

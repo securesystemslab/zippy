@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,39 +20,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.nodes.typesystem;
+package com.oracle.graal.nodes;
 
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodes.extended.*;
 
-public final class UnsafeCustomizationNode extends FloatingNode implements LIRLowerable, com.oracle.graal.graph.IterableNodeType {
+public class KillingBeginNode extends AbstractBeginNode implements MemoryCheckpoint.Single {
 
-    @Input private ValueNode receiver;
-    private final Object customType;
-    private final Object locationIdentity;
+    private LocationIdentity locationIdentity;
 
-    public UnsafeCustomizationNode(ValueNode receiver, Object customType, Object locationIdentity) {
-        super(StampFactory.object());
-        this.receiver = receiver;
-        this.customType = customType;
+    public KillingBeginNode(LocationIdentity locationIdentity) {
         this.locationIdentity = locationIdentity;
     }
 
-    public ValueNode getReceiver() {
-        return receiver;
+    public static KillingBeginNode begin(FixedNode with, LocationIdentity locationIdentity) {
+        if (with instanceof KillingBeginNode) {
+            return (KillingBeginNode) with;
+        }
+        KillingBeginNode begin = with.graph().add(new KillingBeginNode(locationIdentity));
+        begin.setNext(with);
+        return begin;
     }
 
-    public Object getCustomType() {
-        return customType;
-    }
-
-    public Object getLocationIdentity() {
+    @Override
+    public LocationIdentity getLocationIdentity() {
         return locationIdentity;
-    }
-
-    public void generate(LIRGeneratorTool generator) {
-        generator.setResult(this, generator.operand(receiver));
     }
 }

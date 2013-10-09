@@ -24,6 +24,7 @@ package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -37,15 +38,15 @@ public final class FloatSubNode extends FloatArithmeticNode implements Canonical
     public Constant evalConst(Constant... inputs) {
         assert inputs.length == 2;
         if (kind() == Kind.Float) {
-            return Constant.forFloat(x().asConstant().asFloat() - y().asConstant().asFloat());
+            return Constant.forFloat(inputs[0].asFloat() - inputs[1].asFloat());
         } else {
             assert kind() == Kind.Double;
-            return Constant.forDouble(x().asConstant().asDouble() - y().asConstant().asDouble());
+            return Constant.forDouble(inputs[0].asDouble() - inputs[1].asDouble());
         }
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         if (x() == y()) {
             return ConstantNode.forFloatingKind(kind(), 0.0f, graph());
         }

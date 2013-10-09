@@ -23,6 +23,8 @@
 package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -41,18 +43,6 @@ public final class ReadNode extends FloatableAccessNode implements LIRLowerable,
         super(object, location, stamp, guard, barrierType, compressible);
     }
 
-    public ReadNode(ValueNode object, int displacement, LocationIdentity locationIdentity, Kind kind) {
-        super(object, ConstantLocationNode.create(locationIdentity, kind, displacement, object.graph()), StampFactory.forKind(kind));
-    }
-
-    private ReadNode(ValueNode object, ValueNode location, ValueNode guard) {
-        /*
-         * Used by node intrinsics. Since the initial value for location is a parameter, i.e., a
-         * LocalNode, the constructor cannot use the declared type LocationNode.
-         */
-        super(object, location, StampFactory.forNodeIntrinsic(), (GuardingNode) guard, BarrierType.NONE, false);
-    }
-
     @Override
     public void generate(LIRGeneratorTool gen) {
         Value address = location().generateAddress(gen, gen.operand(object()));
@@ -60,7 +50,7 @@ public final class ReadNode extends FloatableAccessNode implements LIRLowerable,
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
+    public Node canonical(CanonicalizerTool tool) {
         return canonicalizeRead(this, location(), object(), tool, isCompressible());
     }
 

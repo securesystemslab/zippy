@@ -180,9 +180,58 @@ unsigned int gpu::Ptx::total_cores() {
 
     int total = nmp * ncores(major, minor);
 
+    int max_threads_per_block, warp_size, async_engines, can_map_host_memory, concurrent_kernels;
+
+    status = _cuda_cu_device_get_attribute(&max_threads_per_block,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&warp_size,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_WARP_SIZE,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_WARP_SIZE: %d", _cu_device);
+        return 0;
+    }
+    
+    status = _cuda_cu_device_get_attribute(&async_engines,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_WARP_SIZE: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&can_map_host_memory,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY: %d", _cu_device);
+        return 0;
+    }
+
+    status = _cuda_cu_device_get_attribute(&concurrent_kernels,
+                                           GRAAL_CU_DEVICE_ATTRIBUTE_CONCURRENT_KERNELS,
+                                           _cu_device);
+
+    if (status != GRAAL_CUDA_SUCCESS) {
+        tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_CONCURRENT_KERNELS: %d", _cu_device);
+        return 0;
+    }
+
     if (TraceGPUInteraction) {
         tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
-        tty->print_cr("[CUDA] Number of cores: %d", total);
+        tty->print_cr("[CUDA] Number of cores: %d async engines: %d can map host mem: %d concurrent kernels: %d",
+                      total, async_engines, can_map_host_memory, concurrent_kernels);
+        tty->print_cr("[CUDA] Max threads per block: %d warp size: %d", max_threads_per_block, warp_size);
     }
     return (total);
     
@@ -342,6 +391,39 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
            return false;
          }
          ret.set_jint(return_val);
+       }
+       break;
+     case T_BOOLEAN:
+       {
+         int return_val;
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
+         if (status != GRAAL_CUDA_SUCCESS) {
+           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
+           return false;
+         }
+         ret.set_jint(return_val);
+       }
+       break;
+     case T_FLOAT:
+       {
+         float return_val;
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_FLOAT_BYTE_SIZE);
+         if (status != GRAAL_CUDA_SUCCESS) {
+           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
+           return false;
+         }
+         ret.set_jfloat(return_val);
+       }
+       break;
+     case T_DOUBLE:
+       {
+         double return_val;
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_DOUBLE_BYTE_SIZE);
+         if (status != GRAAL_CUDA_SUCCESS) {
+           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
+           return false;
+         }
+         ret.set_jdouble(return_val);
        }
        break;
      case T_LONG:

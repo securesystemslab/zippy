@@ -20,11 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.spi;
+package com.oracle.graal.graph.spi;
 
-import com.oracle.graal.nodes.*;
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
 
-public interface Canonicalizable {
+public interface CanonicalizerTool {
 
-    ValueNode canonical(CanonicalizerTool tool);
+    Assumptions assumptions();
+
+    MetaAccessProvider runtime();
+
+    boolean canonicalizeReads();
+
+    void removeIfUnused(Node node);
 }
