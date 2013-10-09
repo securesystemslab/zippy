@@ -146,14 +146,6 @@ public class NodeFactory {
         return ForWithLocalTargetNodeFactory.create(target, body, orelse, iterator);
     }
 
-    public StatementNode createForRangeWithOneValue(PNode target, PNode start, BlockNode body, BlockNode orelse) {
-        return new ForRangeWithOneValueNode(target, start, body, orelse);
-    }
-
-    public StatementNode createForRangeWithTwoValues(PNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
-        return new ForRangeWithTwoValuesNode(target, start, stop, body, orelse);
-    }
-
     public StatementNode createReturn() {
         return new ReturnNode();
     }
