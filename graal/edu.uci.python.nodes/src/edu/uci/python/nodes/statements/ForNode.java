@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
@@ -66,16 +65,10 @@ public abstract class ForNode extends LoopNode {
         Iterator<?> iter = iterable.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        try {
-            while (iter.hasNext()) {
-                rvn.setValue(iter.next());
-                target.execute(frame);
-                body.executeVoid(frame);
-            }
-        } catch (BreakException ex) {
-            // Done executing this loop.
-            // If there is a break, orelse should not be executed
-            return;
+        while (iter.hasNext()) {
+            rvn.setValue(iter.next());
+            target.execute(frame);
+            body.executeVoid(frame);
         }
 
         orelse.executeVoid(frame);

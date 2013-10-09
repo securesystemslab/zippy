@@ -130,7 +130,7 @@ public class NodeFactory {
         return new ImportNode(fromModuleName, importee);
     }
 
-    public StatementNode createWhile(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
+    public LoopNode createWhile(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
         return new WhileNode(condition, body, orelse);
     }
 
@@ -138,11 +138,11 @@ public class NodeFactory {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public StatementNode createFor(PNode target, PNode iterator, StatementNode body, BlockNode orelse) {
+    public LoopNode createFor(PNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForNodeFactory.create(target, body, orelse, iterator);
     }
 
-    public StatementNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body, BlockNode orelse) {
+    public LoopNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForWithLocalTargetNodeFactory.create(target, body, orelse, iterator);
     }
 
@@ -176,6 +176,10 @@ public class NodeFactory {
 
     public StatementNode createContinueTarget(BlockNode child) {
         return new ContinueTargetNode(child);
+    }
+
+    public StatementNode createBreakTarget(LoopNode child) {
+        return new BreakTargetNode(child);
     }
 
     public StatementNode createYield(PNode right) {

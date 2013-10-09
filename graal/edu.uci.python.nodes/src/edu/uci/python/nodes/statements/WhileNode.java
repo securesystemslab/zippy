@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class WhileNode extends LoopNode {
@@ -42,12 +41,8 @@ public class WhileNode extends LoopNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-            }
-        } catch (BreakException ex) {
-            return PNone.NONE;
+        while (condition.executeBoolean(frame)) {
+            body.executeVoid(frame);
         }
 
         orelse.executeVoid(frame);

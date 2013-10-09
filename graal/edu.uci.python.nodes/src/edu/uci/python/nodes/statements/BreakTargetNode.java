@@ -24,51 +24,26 @@
  */
 package edu.uci.python.nodes.statements;
 
-import java.util.*;
-
-import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
-@NodeChild(value = "iterator", type = PNode.class)
-public abstract class ForWithLocalTargetNode extends LoopNode {
+public class BreakTargetNode extends StatementNode {
 
-    @Child protected WriteLocalNode target;
+    @Child protected LoopNode child;
 
-    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
-        this.target = adoptChild(target);
+    public BreakTargetNode(LoopNode child) {
+        this.child = adoptChild(child);
     }
 
-    protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
-        this(previous.target, previous.body, previous.orelse);
-    }
-
-    public abstract PNode getIterator();
-
-    @Specialization
-    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence);
-        return PNone.NONE;
-    }
-
-    @Specialization
-    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set);
-        return PNone.NONE;
-    }
-
-    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
-        Iterator<?> iter = iterable.iterator();
-
-        while (iter.hasNext()) {
-            target.execute(frame, iter.next());
-            body.executeVoid(frame);
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            return child.execute(frame);
+        } catch (BreakException ex) {
+            return PNone.NONE;
         }
-
-        orelse.executeVoid(frame);
     }
+
 }

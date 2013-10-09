@@ -50,4 +50,28 @@ public class LoopTests {
 
         assertPrints("9\n6\n3\n0\n", source);
     }
+
+    @Test
+    public void forWithBreak() {
+        String source = "for i in range(1, 10):\n" + //
+                        "    if i % 3 == 0:\n" + //
+                        "        break\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("1\n2\n", source);
+    }
+
+    @Test
+    public void whileWithBreak() {
+        String source = "num = 11\n" + //
+                        "while num:\n" + //
+                        "    num = num - 1\n" + //
+                        "    if num % 7 == 0:\n" + //
+                        "        break\n" + //
+                        "    print(num)\n" + //
+                        "\n";
+
+        assertPrints("10\n9\n8\n", source);
+    }
 }

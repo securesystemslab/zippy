@@ -824,7 +824,13 @@ public class PythonTreeTranslator extends Visitor {
         if (info.hasContinue()) {
             wrappedBody = factory.createContinueTarget(body);
         }
-        return factory.createWhile(factory.toBooleanCastNode(test), wrappedBody, orelse);
+
+        LoopNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody, orelse);
+        if (info.hasBreak()) {
+            return factory.createBreakTarget(whileNode);
+        } else {
+            return whileNode;
+        }
     }
 
     @Override
@@ -856,12 +862,19 @@ public class PythonTreeTranslator extends Visitor {
             wrappedBody = factory.createContinueTarget(body);
         }
 
+        LoopNode forNode;
         if (environment.isInFunctionScope() && target instanceof WriteLocalNode) {
             WriteLocalNode wtarget = (WriteLocalNode) target;
             wtarget = (WriteLocalNode) wtarget.updateRhs(null);
-            return factory.createForWithLocalTarget(wtarget, iter, wrappedBody, orelse);
+            forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody, orelse);
         } else {
-            return factory.createFor(target, iter, wrappedBody, orelse);
+            forNode = factory.createFor(target, iter, wrappedBody, orelse);
+        }
+
+        if (info.hasBreak()) {
+            return factory.createBreakTarget(forNode);
+        } else {
+            return forNode;
         }
     }
 
