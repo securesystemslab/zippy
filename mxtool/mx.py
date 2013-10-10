@@ -158,7 +158,7 @@ _annotationProcessors = None
 _mainSuite = None
 _opts = None
 _java = None
-_check_global_structures = True # can be set False to allow suites with duplicate definitions to load without aborting
+_check_global_structures = True  # can be set False to allow suites with duplicate definitions to load without aborting
 
 
 """
@@ -1275,6 +1275,36 @@ def add_lib_suffix(name):
     if os == 'darwin':
         return name + '.dylib'
     return name
+
+"""
+Utility for filtering duplicate lines.
+"""
+class DuplicateSuppressingStream:
+    """
+    Creates an object that will suppress duplicate lines sent to 'out'.
+    The lines considered for suppression are those that contain one of the
+    strings in 'restrictTo' if it is not None.
+    """
+    def __init__(self, restrictTo=None, out=sys.stdout):
+        self.restrictTo = restrictTo
+        self.seen = set()
+        self.out = out
+
+    def isSuppressionCandidate(self, line):
+        if self.restrictTo:
+            for p in self.restrictTo:
+                if p in line:
+                    return True
+            return False
+        else:
+            return True
+
+    def write(self, line):
+        if self.isSuppressionCandidate(line):
+            if line in self.seen:
+                return
+            self.seen.add(line)
+        self.out.write(line)
 
 """
 A JavaCompliance simplifies comparing Java compliance values extracted from a JDK version string.
@@ -2518,7 +2548,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         return
 
     if buildProcessorJars:
-        ## todo suite specific
+        # todo suite specific
         processorjars()
 
     projToDist = dict()
@@ -2810,7 +2840,7 @@ def _find_eclipse_wsroot(wsdir):
     if exists(md):
         return wsdir
     split = os.path.split(wsdir)
-    if split[0] == wsdir: # root directory
+    if split[0] == wsdir:  # root directory
         return None
     else:
         return _find_eclipse_wsroot(split[0])
