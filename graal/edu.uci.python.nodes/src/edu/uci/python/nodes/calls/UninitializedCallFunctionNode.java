@@ -62,6 +62,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         } else {
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
             replace(callFunction);
+            callFunction.execute(frame);
             return callFunction.doGeneric(frame, calleeObj);
         }
     }

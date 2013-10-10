@@ -19,6 +19,7 @@ def main(num):
 
     cout("P4\n%d %d\n" % (size_int, size_int))
 
+    loop(size_int, xr_size, xr_iter, bit, byte_acc, cout)
     size = float(size_int)
     for y in xr_size:
         fy = 2j * y / size - 1j
@@ -40,15 +41,17 @@ def main(num):
                 bit = 128
                 byte_acc = 0
 
-        if bit != 128:
-            cout(chr(byte_acc))
-            bit = 128
-            byte_acc = 0
 
+        # zwei: disabled this block. Because it was never executed within the parameter value range that we use.
+        # All the nodes in this block is usually never specialized, which is a problem for partial evaluation.
+        # if bit != 128:
+        #     cout(chr(byte_acc))
+        #     bit = 128
+        #     byte_acc = 0
 
 # warm up
-for run in range(3):
-    main(50)
+for run in range(6):
+    main(300)
     print()
 
 print("Start timing...")

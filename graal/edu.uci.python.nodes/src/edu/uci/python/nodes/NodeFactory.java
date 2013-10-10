@@ -424,10 +424,6 @@ public class NodeFactory {
         return KeywordLiteralNodeFactory.create(value, name);
     }
 
-    public PNode createCallWithOneArgumentNoKeyword(PNode callee, PNode argument) {
-        return CallFunctionWithOneArgumentNoKeywordNodeFactory.create(argument, callee);
-    }
-
     public PNode createCallBuiltInWithOneArgNoKeyword(PCallable callee, String name, PNode argument) {
         return CallBuiltInWithOneArgNoKeywordNodeFactory.create(callee, name, argument);
     }

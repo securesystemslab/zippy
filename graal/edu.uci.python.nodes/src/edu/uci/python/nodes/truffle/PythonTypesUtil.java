@@ -120,6 +120,7 @@ public class PythonTypesUtil {
         throw new RuntimeException("unexpected type! " + value.getClass());
     }
 
+    @SlowPath
     public static PyObject[] adaptToPyObjects(Object[] values) {
         List<PyObject> converted = new ArrayList<>(values.length);
 
