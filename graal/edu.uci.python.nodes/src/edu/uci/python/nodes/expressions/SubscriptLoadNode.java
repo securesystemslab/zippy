@@ -100,32 +100,12 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
     }
 
     @Specialization(order = 5)
-    public Object doPIntegerArray(PIntegerArray primary, int slice) {
+    public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }
 
     @Specialization(order = 6)
-    public Object doPIntegerArray(PIntegerArray primary, PSlice slice) {
-        return primary.getSlice(slice);
-    }
-
-    @Specialization(order = 7)
-    public Object doPDoubleArray(PDoubleArray primary, int slice) {
-        return primary.getItem(slice);
-    }
-
-    @Specialization(order = 8)
-    public Object doPDoubleArray(PDoubleArray primary, PSlice slice) {
-        return primary.getSlice(slice);
-    }
-
-    @Specialization(order = 9)
-    public Object doPCharArray(PCharArray primary, int slice) {
-        return primary.getItem(slice);
-    }
-
-    @Specialization(order = 10)
-    public Object doPCharArray(PCharArray primary, PSlice slice) {
+    public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
     }
 

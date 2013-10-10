@@ -103,8 +103,8 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
         array[idx] = (double) value;
     }
 
-    @SuppressWarnings("unused")
-    public void setSlice(PSlice slice, PDoubleArray value) {
+    @Override
+    public void setSlice(PSlice slice, PArray other) {
         throw new UnsupportedOperationException();
     }
 

@@ -110,8 +110,8 @@ public class PCharArray extends PArray implements Iterable<Character> {
         array[idx] = value;
     }
 
-    @SuppressWarnings("unused")
-    public void setSlice(PSlice slice, PCharArray value) {
+    @Override
+    public void setSlice(PSlice slice, PArray value) {
         throw new UnsupportedOperationException();
     }
 

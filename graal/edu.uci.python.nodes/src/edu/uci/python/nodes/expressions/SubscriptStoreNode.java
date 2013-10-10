@@ -66,38 +66,26 @@ public abstract class SubscriptStoreNode extends StatementNode implements Amenda
     }
 
     @Specialization(order = 3)
-    public Object doPIntegerArray(PIntegerArray primary, int slice, int value) {
+    public Object doPArrayInt(PArray primary, int slice, int value) {
         primary.setItem(slice, value);
         return null;
     }
 
     @Specialization(order = 4)
-    public Object doPIntegerArray(PIntegerArray primary, PSlice slice, PIntegerArray value) {
+    public Object doPArray(PArray primary, PSlice slice, PArray value) {
         primary.setSlice(slice, value);
         return null;
     }
 
     @Specialization(order = 5)
-    public Object doPDoubleArray(PDoubleArray primary, int slice, double value) {
+    public Object doPArrayDouble(PArray primary, int slice, double value) {
         primary.setItem(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 6)
-    public Object doPDoubleArray(PDoubleArray primary, PSlice slice, PDoubleArray value) {
-        primary.setSlice(slice, value);
         return null;
     }
 
     @Specialization(order = 7)
-    public Object doPCharArray(PCharArray primary, int slice, char value) {
+    public Object doPArrayChar(PArray primary, int slice, char value) {
         primary.setItem(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 8)
-    public Object doPCharArray(PCharArray primary, PSlice slice, PCharArray value) {
-        primary.setSlice(slice, value);
         return null;
     }
 
@@ -121,11 +109,6 @@ public abstract class SubscriptStoreNode extends StatementNode implements Amenda
         }
 
         return null;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " = " + getPrimary() + "[" + getSlice() + "]";
     }
 
 }

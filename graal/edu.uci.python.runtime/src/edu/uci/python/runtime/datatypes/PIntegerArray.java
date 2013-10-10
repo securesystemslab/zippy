@@ -117,8 +117,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
         return copy[copy.length - 1];
     }
 
-    @SuppressWarnings("unused")
-    public void setSlice(PSlice slice, PIntegerArray value) {
+    @Override
+    public void setSlice(PSlice slice, PArray value) {
         throw new UnsupportedOperationException();
     }
 
