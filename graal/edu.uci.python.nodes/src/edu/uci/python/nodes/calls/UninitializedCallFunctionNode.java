@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class UninitializedCallFunctionNode extends CallFunctionNode {
 
@@ -49,13 +50,22 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         CompilerAsserts.neverPartOfCompilation();
         Object calleeObj = callee.execute(frame);
 
-        if (calleeObj instanceof PCallable) {
+        if (calleeObj instanceof PythonClass) {
+            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
+            replace(specialized);
+            Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
+        } else if (calleeObj instanceof PCallable) {
             PCallable callable = (PCallable) calleeObj;
 
             if (callable.isBuiltin()) {
                 CallBuiltInFunctionNode callBuiltIn = CallBuiltInFunctionNodeFactory.create(callable, callable.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
+            } else if (keywords.length == 0) {
+                CallFunctionNoKeywordNode callFunction = new CallFunctionNoKeywordNode(callee, arguments);
+                replace(callFunction);
+                return callFunction.executeCall(frame, callable);
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
                 replace(callFunction);
@@ -68,5 +78,4 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             return callFunction.doGeneric(frame, calleeObj);
         }
     }
-
 }

@@ -24,60 +24,43 @@
  */
 package edu.uci.python.nodes.calls;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-
-import org.python.core.*;
-
-import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-@NodeChild(value = "callee", type = PNode.class)
-public abstract class CallFunctionNoKeywordNode extends PNode {
+public class CallFunctionNoKeywordNode extends PNode {
+
+    @Child protected PNode callee;
 
     @Children protected final PNode[] arguments;
 
-    public abstract PNode getCallee();
-
-    public CallFunctionNoKeywordNode(PNode[] arguments) {
+    public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
+        this.callee = adoptChild(callee);
         this.arguments = adoptChildren(arguments);
     }
 
-    protected CallFunctionNoKeywordNode(CallFunctionNoKeywordNode node) {
-        this(node.arguments);
+    @Override
+    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectInteger(execute(frame));
     }
 
-    @Specialization
-    public Object doPCallable(VirtualFrame frame, PCallable callee) {
+    @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectDouble(execute(frame));
+    }
+
+    public Object executeCall(VirtualFrame frame, PCallable callable) {
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        return callee.call(frame.pack(), args);
+        return callable.call(frame.pack(), args);
     }
 
-    @Specialization
-    public Object doPyObject(VirtualFrame frame, PyObject callee) {
-        Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        PyObject[] pyargs = adaptToPyObjects(args);
-        return unboxPyObject(callee.__call__(pyargs));
-    }
-
-    @Generic
-    public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-
-        if (callee instanceof PythonClass) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            return specialized.callConstructor(frame, (PythonClass) callee, args);
-        } else if (callee instanceof PyObject) {
-            PyObject[] pyargs = adaptToPyObjects(args);
-            PyObject pyCallable = (PyObject) callee;
-            return unboxPyObject(pyCallable.__call__(pyargs));
-        } else {
-            throw Py.SystemError("Unexpected callable type");
-        }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PCallable callable = (PCallable) callee.execute(frame);
+        return executeCall(frame, callable);
     }
 
 }

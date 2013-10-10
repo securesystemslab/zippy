@@ -92,7 +92,7 @@ public abstract class CallFunctionNode extends PNode {
     }
 
     @ExplodeLoop
-    protected static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+    protected static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
 
         for (int i = 0; i < arguments.length; i++) {

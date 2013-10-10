@@ -52,7 +52,7 @@ public class PythonModuleTests {
     public void builtinsMinTest() {
         final PythonContext context = new PythonContext(new Options());
         final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
-        PFunction min = (PFunction) builtins.getInstanceVariable("min");
+        PBuiltinFunction min = (PBuiltinFunction) builtins.getInstanceVariable("min");
         FrameDescriptor fd = new FrameDescriptor();
         Object returnValue = min.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{4, 2, 1});
         assertEquals(1, returnValue);
@@ -62,7 +62,7 @@ public class PythonModuleTests {
     public void builtinsIntTest() {
         final PythonContext context = new PythonContext(new Options());
         final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
-        PFunction intFunc = (PFunction) builtins.getInstanceVariable("int");
+        PBuiltinFunction intFunc = (PBuiltinFunction) builtins.getInstanceVariable("int");
         FrameDescriptor fd = new FrameDescriptor();
         Object returnValue = intFunc.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{"42"});
         assertEquals(42, returnValue);
@@ -73,7 +73,7 @@ public class PythonModuleTests {
         final PythonContext context = new PythonContext(new Options());
         PythonModule main = context.getPythonCore().getMainModule();
         PythonModule builtins = (PythonModule) main.getInstanceVariable("__builtins__");
-        PFunction abs = (PFunction) builtins.getInstanceVariable("abs");
+        PBuiltinFunction abs = (PBuiltinFunction) builtins.getInstanceVariable("abs");
         FrameDescriptor fd = new FrameDescriptor();
         Object returned = abs.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{-42});
         assertEquals(42, returned);
