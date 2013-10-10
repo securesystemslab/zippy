@@ -22,45 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.test;
 
-import java.util.*;
+import java.nio.file.*;
 
-import org.python.antlr.*;
-import org.python.antlr.base.*;
-import org.python.core.*;
+import org.junit.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import static edu.uci.python.test.PythonTests.*;
 
-public class TranslationUtil {
+public class RaiseTests {
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
+    @Test
+    public void keyboardInterruptTest() {
+        String source = "raise KeyboardInterrupt";
 
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+        assertPrints("\n" + "edu.uci.python.runtime.datatypes.PException: \n" + "----------------------------\n" + "   exception type: <type 'exceptions.KeyboardInterrupt'>\n"
+                        + "----------------------------\n", source);
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
-        }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
-
-        return retVal;
+    @Test
+    public void scriptRaiseTest() {
+        Path script = Paths.get("raise_test.py");
+        assertPrints("\n" + "edu.uci.python.runtime.datatypes.PException: \n" + "----------------------------\n" + "   exception type: <type 'exceptions.KeyboardInterrupt'>\n"
+                        + "----------------------------\n", script);
     }
 
 }

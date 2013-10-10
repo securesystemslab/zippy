@@ -22,45 +22,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.statements;
 
-import java.util.*;
-
-import org.python.antlr.*;
-import org.python.antlr.base.*;
 import org.python.core.*;
 
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class TranslationUtil {
+public class RaiseNode extends StatementNode {
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
+    private PNode type;
+    @SuppressWarnings("unused") private PNode inst;
+    @SuppressWarnings("unused") private PNode tback;
 
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public RaiseNode(PNode type) {
+        this(type, null, null);
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
-        }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
-
-        return retVal;
+    public RaiseNode(PNode type, PNode inst) {
+        this(type, inst, null);
     }
 
+    public RaiseNode(PNode type, PNode inst, PNode tback) {
+        this.type = type;
+        this.inst = inst;
+        this.tback = tback;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        Object t = type.execute(frame);
+// Object i = (inst == null) ? null : inst.execute(frame);
+// Object b = (tback == null) ? null : tback.execute(frame);
+
+        if (t instanceof PyType) {
+            if (((PyType) t).getModule().toString().compareTo("exceptions") == 0)
+                throw new PException(t);
+            else
+                throw new RuntimeException("Uncoverd");
+        } else
+            throw new RuntimeException("Uncoverd");
+    }
 }

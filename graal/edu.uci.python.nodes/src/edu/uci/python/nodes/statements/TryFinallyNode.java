@@ -22,45 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.statements;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.python.antlr.*;
-import org.python.antlr.base.*;
-import org.python.core.*;
+public class TryFinallyNode extends StatementNode {
 
-import edu.uci.python.runtime.datatypes.*;
+    @Child protected BlockNode body;
 
-public class TranslationUtil {
+    @Child protected BlockNode finalbody;
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
-
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public TryFinallyNode(BlockNode body, BlockNode finalbody) {
+        this.body = adoptChild(body);
+        this.finalbody = adoptChild(finalbody);
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        Object result;
+        try {
+            result = body.execute(frame);
+        } finally {
+            result = finalbody.execute(frame);
         }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
-
-        return retVal;
+        return result;
     }
 
 }

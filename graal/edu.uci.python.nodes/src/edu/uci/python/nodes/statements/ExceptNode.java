@@ -22,45 +22,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.statements;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.python.antlr.*;
-import org.python.antlr.base.*;
-import org.python.core.*;
+import edu.uci.python.nodes.*;
 
-import edu.uci.python.runtime.datatypes.*;
+public class ExceptNode extends StatementNode {
 
-public class TranslationUtil {
+    private PNode type;
+    private PNode name;
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
+    @Child protected BlockNode body;
 
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public ExceptNode(PNode type, PNode name, BlockNode body) {
+        this.type = type;
+        this.name = name;
+        this.body = adoptChild(body);
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
-        }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
+    public PNode getExceptType() {
+        return type;
+    }
 
-        return retVal;
+    public PNode getExceptName() {
+        return name;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return body.execute(frame);
     }
 
 }
