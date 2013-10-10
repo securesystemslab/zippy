@@ -94,17 +94,9 @@ public abstract class CallFunctionNode extends PNode {
     @ExplodeLoop
     protected static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
-        int index = 0;
 
         for (int i = 0; i < arguments.length; i++) {
-            Object arg = arguments[i].execute(frame);
-
-            if (arg instanceof PyObject) {
-                arg = unboxPyObject((PyObject) arg);
-            }
-
-            evaluated[index] = arg;
-            index++;
+            evaluated[i] = arguments[i].execute(frame);
         }
 
         return evaluated;
