@@ -109,9 +109,9 @@ pythonTestBenchmarks = {
 
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
-    'fannkuchredux3t' : '10',
-    'fasta3t'         : '25000000',
-    'mandelbrot3t'    : '4000',
+    #'fannkuchredux3t' : '10',
+    #'fasta3t'         : '25000000',
+    #'mandelbrot3t'    : '4000',
     #'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',

@@ -91,4 +91,9 @@ public class ReadGlobalScopeNode extends PNode {
 
         return value;
     }
+
+    @Override
+    public String toString() {
+        return "ReadGlobal: " + attributeId;
+    }
 }

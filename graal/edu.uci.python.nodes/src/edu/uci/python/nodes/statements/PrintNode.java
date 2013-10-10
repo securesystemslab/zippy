@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
@@ -42,6 +43,7 @@ public class PrintNode extends StatementNode {
         this.context = context;
     }
 
+    @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
         StringBuilder sb = new StringBuilder();
@@ -64,6 +66,7 @@ public class PrintNode extends StatementNode {
         // CheckStyle: resume system..print check
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
         StringBuilder sb = new StringBuilder();

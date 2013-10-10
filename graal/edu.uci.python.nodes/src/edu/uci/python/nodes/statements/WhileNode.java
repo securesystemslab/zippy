@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.statements;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
@@ -41,8 +42,20 @@ public class WhileNode extends LoopNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        while (condition.executeBoolean(frame)) {
-            body.executeVoid(frame);
+        int count = 0;
+
+        try {
+            while (condition.executeBoolean(frame)) {
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         orelse.executeVoid(frame);

@@ -73,8 +73,8 @@ def main(n):
 
 # warm up
 num = int(sys.argv[1])
-for i in range(20):
-    main(3)
+for i in range(1):
+    main(num)
 
 print("Start timing...")
 start = time.time()
