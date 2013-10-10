@@ -54,4 +54,6 @@ public abstract class PArray extends PObject {
 
         return ret;
     }
+
+    public abstract PArray append(PArray other);
 }

@@ -158,6 +158,15 @@ public class PCharArray extends PArray implements Iterable<Character> {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public PArray append(PArray other) {
+        PCharArray otherArray = (PCharArray) other;
+        char[] joined = new char[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PCharArray(joined);
+    }
+
     private List<Character> getList() {
         List<Character> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {

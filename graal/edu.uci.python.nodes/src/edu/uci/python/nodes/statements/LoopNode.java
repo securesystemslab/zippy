@@ -24,6 +24,9 @@
  */
 package edu.uci.python.nodes.statements;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
+
 public abstract class LoopNode extends StatementNode {
 
     @Child protected StatementNode body;
@@ -35,4 +38,17 @@ public abstract class LoopNode extends StatementNode {
         this.orelse = adoptChild(orelse);
     }
 
+    protected final void reportLoopCount(int count) {
+        CompilerAsserts.neverPartOfCompilation();
+        Node current = LoopNode.this.getParent();
+        while (current != null && !(current instanceof RootNode)) {
+            current = current.getParent();
+        }
+        if (current != null) {
+            RootNode root = (RootNode) current;
+            if (root.getCallTarget() instanceof LoopCountReceiver) {
+                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
+            }
+        }
+    }
 }

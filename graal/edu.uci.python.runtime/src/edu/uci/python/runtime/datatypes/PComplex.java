@@ -46,31 +46,23 @@ public class PComplex extends PObject {
 
     public PComplex add(PComplex c) {
         PComplex result = new PComplex(this.real + c.getReal(), this.imag + c.getImag());
-        // result.setReal(this.real + c.getReal());
-        // result.setImag(this.imag + c.getImag());
         return result;
     }
 
     public PComplex sub(PComplex c) {
         PComplex result = new PComplex(this.real - c.getReal(), this.imag - c.getImag());
-        // result.setReal(this.real - c.getReal());
-        // result.setImag(this.imag - c.getImag());
         return result;
     }
 
     public PComplex mul(PComplex c) {
-        PComplex result = new PComplex(this.real * c.getReal() - this.imag * c.getImag(), this.real * c.getImag() + this.imag * c.getReal());
-        // result.setReal(this.real * c.getReal() - this.imag * c.getImag());
-        // result.setImag(this.real * c.getImag() + this.imag * c.getReal());
+        PComplex result = new PComplex();
+        result.setReal(this.real * c.getReal() - this.imag * c.getImag());
+        result.setImag(this.real * c.getImag() + this.imag * c.getReal());
         return result;
     }
 
     public PComplex div(PComplex c) {
-        // PComplex result = new PComplex(this);
-        // result = result.mul(c.getConjugate());
         double opNormSq = c.getReal() * c.getReal() + c.getImag() * c.getImag();
-        // result.setReal(result.getReal() / opNormSq);
-        // result.setImag(result.getImag() / opNormSq);
         PComplex conjugate = c.getConjugate();
         double realPart = this.real * conjugate.getReal() - this.imag * conjugate.getImag();
         double imagPart = this.real * conjugate.getImag() + this.imag * conjugate.getReal();

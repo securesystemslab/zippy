@@ -38,13 +38,16 @@ import edu.uci.python.nodes.utils.*;
  */
 public class FunctionRootNode extends RootNode {
 
+    private final String functionName;
+
     @Child protected ParametersNode parameters;
 
     @Child protected StatementNode body;
 
     @Child protected PNode returnValue;
 
-    public FunctionRootNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
+    public FunctionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        this.functionName = functionName;
         this.parameters = adoptChild(parameters);
         this.body = adoptChild(body);
         this.returnValue = adoptChild(returnValue);
@@ -65,5 +68,10 @@ public class FunctionRootNode extends RootNode {
         } catch (ExplicitReturnException ere) {
             return returnValue.execute(frame);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "<function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
     }
 }

@@ -11,15 +11,15 @@ import time
 def main(num):
     cout = sys.stdout.write
     #size = float(sys.argv[1])
-    size = int(num)
-    xr_size = range(size)
+    size_int = int(num)
+    xr_size = range(size_int)
     xr_iter = range(50)
     bit = 128
     byte_acc = 0
 
-    cout("P4\n%d %d\n" % (size, size))
+    cout("P4\n%d %d\n" % (size_int, size_int))
 
-    size = float(size)
+    size = float(size_int)
     for y in xr_size:
         fy = 2j * y / size - 1j
         for x in xr_size:
@@ -47,8 +47,8 @@ def main(num):
 
 
 # warm up
-for run in range(5000):
-    main(5)
+for run in range(3):
+    main(50)
     print()
 
 print("Start timing...")

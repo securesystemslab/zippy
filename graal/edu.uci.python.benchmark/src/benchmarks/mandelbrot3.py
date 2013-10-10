@@ -36,13 +36,11 @@ def main():
                 bit >>= 1
             else:
                 cout(chr(byte_acc))
-                #print(chr(byte_acc))
                 bit = 128
                 byte_acc = 0
 
         if bit != 128:
             cout(chr(byte_acc))
-            #print(chr(byte_acc))
             bit = 128
             byte_acc = 0
 

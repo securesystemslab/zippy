@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.objects;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -36,6 +37,7 @@ public class UninitializedLoadAttributeNode extends LoadAttributeNode {
         super(name, primary);
     }
 
+    @SlowPath
     @Override
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();

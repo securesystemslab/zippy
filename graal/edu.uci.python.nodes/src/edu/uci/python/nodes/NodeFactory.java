@@ -66,12 +66,12 @@ public class NodeFactory {
         return new FunctionDefinitionNode(name, parameters, callTarget);
     }
 
-    public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new FunctionRootNode(parameters, body, returnValue);
+    public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new FunctionRootNode(functionName, parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode(parameters, body, returnValue);
+    public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode(functionName, parameters, body, returnValue);
     }
 
     public PNode createAddMethodNode(FunctionDefinitionNode methodDef) {
@@ -235,7 +235,7 @@ public class NodeFactory {
     }
 
     public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
-        return new GeneratorNode(ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+        return new GeneratorNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

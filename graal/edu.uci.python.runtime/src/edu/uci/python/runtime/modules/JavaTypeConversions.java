@@ -69,6 +69,22 @@ public class JavaTypeConversions {
         }
     }
 
+    public static double toDouble(Object value) {
+        try {
+            return (double) value;
+        } catch (ClassCastException e) {
+            // fall through
+        }
+
+        if (value instanceof Integer) {
+            return ((Integer) value).doubleValue();
+        } else if (value instanceof BigInteger) {
+            return ((BigInteger) value).doubleValue();
+        } else {
+            throw new RuntimeException("unexpected value type " + value.getClass());
+        }
+    }
+
     // Copied directly from Jython
     private static BigInteger asciiToBigInteger(String str, int possibleBase, boolean isLong) {
         int base = possibleBase;

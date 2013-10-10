@@ -31,8 +31,8 @@ import edu.uci.python.nodes.utils.*;
 
 public class GeneratorNode extends FunctionRootNode {
 
-    public GeneratorNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(parameters, body, returnValue);
+    public GeneratorNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
     @Override

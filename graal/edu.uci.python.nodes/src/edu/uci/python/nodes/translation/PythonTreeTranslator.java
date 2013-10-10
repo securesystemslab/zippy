@@ -133,14 +133,14 @@ public class PythonTreeTranslator extends Visitor {
 
         if (isGenerator) {
             body = new ASTLinearizer((BlockNode) body).linearize();
-            RootNode genRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
+            RootNode genRoot = factory.createGeneratorRoot(name, parameters, body, factory.createReadLocal(environment.getReturnSlot()));
             PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters);
             PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
             environment.endScope();
             return writeOrStore;
         }
 
-        FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
+        FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocal(environment.getReturnSlot()));
         result.addParsedFunction(name, funcRoot);
         PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
         PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
@@ -294,7 +294,7 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeKind.Class);
         List<PNode> statements = visitStatements(node.getInternalBody());
         BlockNode body = factory.createBlock(statements);
-        FunctionRootNode methodRoot = factory.createFunctionRoot(ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
+        FunctionRootNode methodRoot = factory.createFunctionRoot(name, ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
         CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
         FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct);
         environment.endScope();

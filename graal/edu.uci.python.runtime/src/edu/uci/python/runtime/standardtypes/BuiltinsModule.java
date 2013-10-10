@@ -487,6 +487,16 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
+    @BuiltinMethod(unmangledName = "float") public static final PythonCallTarget Float = new PythonCallTarget() {
+
+        @Override
+        public Object call(PackedFrame frame, PArguments arguments) {
+            Object[] args = arguments.getArgumentsArray();
+            return JavaTypeConversions.toDouble(args[0]);
+        }
+
+    };
+
     @BuiltinMethod public static final PythonCallTarget zip = new PythonCallTarget() {
 
         /**

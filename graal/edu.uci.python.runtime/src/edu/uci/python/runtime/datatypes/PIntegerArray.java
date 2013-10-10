@@ -160,6 +160,15 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
+    public PArray append(PArray other) {
+        PIntegerArray otherArray = (PIntegerArray) other;
+        int[] joined = new int[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PIntegerArray(joined);
+    }
+
+    @Override
     public Iterator<Integer> iterator() {
         return new Iterator<Integer>() {
 

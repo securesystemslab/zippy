@@ -26,6 +26,7 @@ package edu.uci.python.nodes.statements;
 
 import java.util.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -63,10 +64,21 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
         Iterator<?> iter = iterable.iterator();
+        int count = 0;
 
-        while (iter.hasNext()) {
-            target.execute(frame, iter.next());
-            body.executeVoid(frame);
+        try {
+            while (iter.hasNext()) {
+                target.execute(frame, iter.next());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         orelse.executeVoid(frame);

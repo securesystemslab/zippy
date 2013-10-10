@@ -141,6 +141,15 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
+    public PArray append(PArray other) {
+        PDoubleArray otherArray = (PDoubleArray) other;
+        double[] joined = new double[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PDoubleArray(joined);
+    }
+
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("(");
         for (int i = 0; i < array.length - 1; i++) {
