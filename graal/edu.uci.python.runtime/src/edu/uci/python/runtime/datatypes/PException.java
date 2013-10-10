@@ -22,45 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
+import java.io.*;
 
-import org.python.antlr.*;
-import org.python.antlr.base.*;
-import org.python.core.*;
+public class PException extends RuntimeException {
 
-import edu.uci.python.runtime.datatypes.*;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -470778656456645169L;
+    private Object exceptionObject;
 
-public class TranslationUtil {
-
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
-
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public PException(Object exceptionObject) {
+        super();
+        this.exceptionObject = exceptionObject;
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
-        }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
-
-        return retVal;
+    public PException(String message) {
+        super(message);
     }
 
+    public Object getExceptionObject() {
+        return exceptionObject;
+    }
+
+    @Override
+    public void printStackTrace(PrintStream s) {
+
+    }
+
+    @Override
+    public String toString() {
+        String exception = (exceptionObject != null) ? exceptionObject.toString() : getMessage();
+        return "\n-------------------------------------------\n   exception type: " + exception + "\n-------------------------------------------";
+    }
 }

@@ -467,8 +467,19 @@ public class NodeFactory {
         return IfExpressionNodeFactory.create(test, body, orelse);
     }
 
+    public PNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
+        return new TryFinallyNode(body, finalbody);
+    }
+
+    public PNode createTryExceptNode(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
+        return TryExceptNode.create(body, orelse, excepts);
+    }
+
+    public PNode createRaiseNode(PNode type, PNode inst, PNode tback) {
+        return new RaiseNode(type, inst, tback);
+    }
+
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
-
 }

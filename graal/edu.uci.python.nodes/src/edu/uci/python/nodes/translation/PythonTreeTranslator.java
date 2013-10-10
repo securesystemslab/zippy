@@ -950,6 +950,51 @@ public class PythonTreeTranslator extends Visitor {
         return null;
     }
 
+    public ExceptNode[] visitExcepts(List<excepthandler> excepts) throws Exception {
+        ExceptNode[] retVal = new ExceptNode[excepts.size()];
+
+        for (int i = 0; i < excepts.size(); i++) {
+            ExceptHandler except = (ExceptHandler) excepts.get(i);
+            List<PNode> b = visitStatements(except.getInternalBody());
+            BlockNode body = factory.createBlock(b);
+            PNode type = (PNode) visit(except.getInternalType());
+            PNode name = (except.getInternalName() == null) ? null : (PNode) visit(except.getInternalName());
+            retVal[i] = new ExceptNode(type, name, body);
+        }
+
+        return retVal;
+    }
+
+    @Override
+    public Object visitTryExcept(TryExcept node) throws Exception {
+
+        List<PNode> b = visitStatements(node.getInternalBody());
+        List<PNode> o = visitStatements(node.getInternalOrelse());
+        BlockNode body = factory.createBlock(b);
+        BlockNode orelse = factory.createBlock(o);
+        ExceptNode[] excepts = visitExcepts(node.getInternalHandlers());
+
+        return factory.createTryExceptNode(body, orelse, excepts);
+    }
+
+    @Override
+    public Object visitTryFinally(TryFinally node) throws Exception {
+        List<PNode> b = visitStatements(node.getInternalBody());
+        List<PNode> f = visitStatements(node.getInternalFinalbody());
+        BlockNode body = factory.createBlock(b);
+        BlockNode finalbody = factory.createBlock(f);
+
+        return factory.createTryFinallyNode(body, finalbody);
+    }
+
+    @Override
+    public Object visitRaise(Raise node) throws Exception {
+        PNode type = (PNode) visit(node.getInternalType());
+        PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
+        PNode tback = (node.getInternalTback() == null) ? null : (PNode) visit(node.getInternalTback());
+        return factory.createRaiseNode(type, inst, tback);
+    }
+
     // Checkstyle: stop
     @Override
     protected Object unhandled_node(PythonTree node) throws Exception {
@@ -966,5 +1011,4 @@ public class PythonTreeTranslator extends Visitor {
         }
 
     }
-
 }
