@@ -2,10 +2,10 @@ def divide(x, y):
     try:
         result = x / y
         raise KeyboardInterrupt
-    except ZeroDivisionError:
-        print("division by zero!")
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt!")
+    except ZeroDivisionError as err:
+        print("division by zero!",err)
+    except KeyboardInterrupt as k:
+        print("KeyboardInterrupt!", k)
     else:
         print("result is ", result)
     finally:

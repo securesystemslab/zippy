@@ -611,11 +611,15 @@ public class PythonTreeTranslator extends Visitor {
         return tempWrites;
     }
 
-    private PNode makeTemporaryWrite() {
+    private PNode makeTemporaryWrite(PNode right) {
         String tempName = TEMP_LOCAL_PREFIX + environment.getCurrentFrameSize();
         FrameSlot tempSlot = environment.createLocal(tempName);
-        PNode tempWrite = factory.createWriteLocal(PNode.EMPTYNODE, tempSlot);
+        PNode tempWrite = factory.createWriteLocal(right, tempSlot);
         return tempWrite;
+    }
+
+    private PNode makeTemporaryWrite() {
+        return makeTemporaryWrite(PNode.EMPTYNODE);
     }
 
     private PNode makeSubscriptLoad(WriteLocalNode write, int index) {
@@ -950,31 +954,46 @@ public class PythonTreeTranslator extends Visitor {
         return null;
     }
 
-    public ExceptNode[] visitExcepts(List<excepthandler> excepts) throws Exception {
-        ExceptNode[] retVal = new ExceptNode[excepts.size()];
-
-        for (int i = 0; i < excepts.size(); i++) {
-            ExceptHandler except = (ExceptHandler) excepts.get(i);
-            List<PNode> b = visitStatements(except.getInternalBody());
-            BlockNode body = factory.createBlock(b);
-            PNode type = (PNode) visit(except.getInternalType());
-            PNode name = (except.getInternalName() == null) ? null : (PNode) visit(except.getInternalName());
-            retVal[i] = new ExceptNode(type, name, body);
-        }
-
-        return retVal;
-    }
-
     @Override
     public Object visitTryExcept(TryExcept node) throws Exception {
-
+        StatementNode retVal = null;
         List<PNode> b = visitStatements(node.getInternalBody());
         List<PNode> o = visitStatements(node.getInternalOrelse());
         BlockNode body = factory.createBlock(b);
         BlockNode orelse = factory.createBlock(o);
-        ExceptNode[] excepts = visitExcepts(node.getInternalHandlers());
 
-        return factory.createTryExceptNode(body, orelse, excepts);
+        List<excepthandler> excepts = node.getInternalHandlers();
+
+        ExceptHandler except = (ExceptHandler) excepts.get(0);
+        PNode exceptType = (PNode) visit(except.getInternalType());
+        PNode exceptName = null;
+        if (except.getInternalName() != null) {
+            exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
+        }
+        List<PNode> exceptbody = visitStatements(except.getInternalBody());
+        BlockNode exceptBody = factory.createBlock(exceptbody);
+        retVal = factory.createTryExceptNode(body, orelse, exceptType, exceptName, exceptBody);
+
+        for (int i = 1; i < excepts.size(); i++) {
+            except = (ExceptHandler) excepts.get(i);
+            exceptType = (PNode) visit(except.getInternalType());
+            exceptName = null;
+            if (except.getInternalName() != null) {
+                exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
+            }
+            exceptbody = visitStatements(except.getInternalBody());
+            exceptBody = factory.createBlock(exceptbody);
+            List<PNode> trynode = new ArrayList<>();
+            trynode.add(retVal);
+            body = factory.createBlock(trynode);
+            retVal = factory.createTryExceptNode(body, null, exceptType, exceptName, exceptBody);
+        }
+
+        if (retVal == null) {
+            retVal = factory.createTryExceptNode(body, orelse, null, null, null);
+        }
+
+        return retVal;
     }
 
     @Override
@@ -991,8 +1010,8 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitRaise(Raise node) throws Exception {
         PNode type = (PNode) visit(node.getInternalType());
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
-        PNode tback = (node.getInternalTback() == null) ? null : (PNode) visit(node.getInternalTback());
-        return factory.createRaiseNode(type, inst, tback);
+// PNode tback = (node.getInternalTback() == null) ? null : (PNode) visit(node.getInternalTback());
+        return factory.createRaiseNode(type, inst);
     }
 
     // Checkstyle: stop

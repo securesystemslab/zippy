@@ -29,41 +29,24 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.datatypes.*;
 
 public class RaiseNode extends StatementNode {
 
-    private PNode type;
-    @SuppressWarnings("unused") private PNode inst;
-    @SuppressWarnings("unused") private PNode tback;
+    @Child protected PNode type;
 
-    public RaiseNode(PNode type) {
-        this(type, null, null);
-    }
+    @Child protected PNode inst;
 
     public RaiseNode(PNode type, PNode inst) {
-        this(type, inst, null);
-    }
-
-    public RaiseNode(PNode type, PNode inst, PNode tback) {
-        this.type = type;
-        this.inst = inst;
-        this.tback = tback;
+        this.type = adoptChild(type);
+        this.inst = adoptChild(inst);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         Object t = type.execute(frame);
-// Object i = (inst == null) ? null : inst.execute(frame);
+        Object i = (inst == null) ? null : inst.execute(frame);
 // Object b = (tback == null) ? null : tback.execute(frame);
 
-        if (t instanceof PyType) {
-            if (((PyType) t).getModule().toString().compareTo("exceptions") == 0)
-                throw new PException(t);
-            else
-                throw new RuntimeException("Uncoverd");
-        } else
-            throw new RuntimeException("Uncoverd");
+        throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
 }
