@@ -46,7 +46,11 @@ define_pd_global(bool, ProfileInterpreter,           false);
 #else
 define_pd_global(bool, ProfileInterpreter,           true);
 #endif // CC_INTERP
+#ifdef GRAAL
 define_pd_global(bool, TieredCompilation,            false);
+#else
+define_pd_global(bool, TieredCompilation,            trueInTiered);
+#endif
 define_pd_global(intx, CompileThreshold,             10000);
 define_pd_global(intx, BackEdgeThreshold,            100000);
 

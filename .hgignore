@@ -79,3 +79,6 @@ jacoco.exec
 workingsets.xml
 .buildbot/
 graal.options
+agent/build/*
+agent/make/filelist
+agent/make/sa17.tar.gz

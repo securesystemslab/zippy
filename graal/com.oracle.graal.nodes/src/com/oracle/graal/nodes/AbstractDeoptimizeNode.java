@@ -34,7 +34,6 @@ import com.oracle.graal.nodes.type.*;
  * state}.
  * 
  */
-@NodeInfo(shortName = "Deopt", nameTemplate = "Deopt {p#reason/s}")
 public abstract class AbstractDeoptimizeNode extends ControlSinkNode implements IterableNodeType, DeoptimizingNode {
 
     @Input private FrameState deoptState;
@@ -63,5 +62,5 @@ public abstract class AbstractDeoptimizeNode extends ControlSinkNode implements 
         return deoptState;
     }
 
-    public abstract ValueNode getActionAndReason(MetaAccessProvider runtime);
+    public abstract ValueNode getActionAndReason(MetaAccessProvider metaAccess);
 }
