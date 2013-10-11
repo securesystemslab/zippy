@@ -50,12 +50,16 @@ public class TryExceptNode extends StatementNode {
     }
 
     public static TryExceptNode create(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        return new TryOnlyNode(body, orelse, exceptType, exceptName, exceptBody);
+        if (orelse == null) {
+            return new TryOnlyNode(body, orelse, exceptType, exceptName, exceptBody);
+        }
+        return new TryElseNode(body, orelse, exceptType, exceptName, exceptBody);
+
     }
 
     @SuppressWarnings("unused")
     protected Object executeExcept(VirtualFrame frame, RuntimeException ex) {
-        throw new UnsupportedOperationException("cannot execute executeExcept on TryOnlyNode");
+        throw new UnsupportedOperationException("cannot execute executeExcept on TryOnlyNode or TryElseNode");
     }
 
     @Override
@@ -73,15 +77,27 @@ class TryOnlyNode extends TryExceptNode {
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            if (orelse != null) {
-                body.execute(frame);
-                return orelse.execute(frame);
-            } else {
-                return body.execute(frame);
-            }
+            return body.execute(frame);
         } catch (RuntimeException ex) {
             return this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
         }
+    }
+}
+
+class TryElseNode extends TryExceptNode {
+
+    protected TryElseNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        super(body, orelse, exceptType, exceptName, exceptBody);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            body.execute(frame);
+        } catch (RuntimeException ex) {
+            return this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
+        }
+        return orelse.execute(frame);
     }
 }
 
@@ -94,15 +110,11 @@ class GenericTryExceptNode extends TryExceptNode {
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            if (orelse != null) {
-                body.execute(frame);
-                return orelse.execute(frame);
-            } else {
-                return body.execute(frame);
-            }
+            body.execute(frame);
         } catch (RuntimeException ex) {
             return executeExcept(frame, ex);
         }
+        return orelse.execute(frame);
     }
 
     @Override
@@ -127,6 +139,5 @@ class GenericTryExceptNode extends TryExceptNode {
             }
         }
         throw excep;
-
     }
 }
