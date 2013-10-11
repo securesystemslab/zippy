@@ -64,6 +64,9 @@ JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   h->initialize(CHECK);
   // allocate instance and return via TLS
   oop obj = h->allocate_instance(CHECK);
+  if (GraalDeferredInitBarriers) {
+    obj = Universe::heap()->new_store_pre_barrier(thread, obj);
+  }
   thread->set_vm_result(obj);
 JRT_END
 
@@ -79,6 +82,9 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
   } else {
     Klass* elem_klass = ObjArrayKlass::cast(array_klass)->element_klass();
     obj = oopFactory::new_objArray(elem_klass, length, CHECK);
+  }
+  if (GraalDeferredInitBarriers) {
+    obj = Universe::heap()->new_store_pre_barrier(thread, obj);
   }
   thread->set_vm_result(obj);
   // This is pretty rare but this runtime patch is stressful to deoptimization
