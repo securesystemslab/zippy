@@ -466,16 +466,16 @@ public class NodeFactory {
         return IfExpressionNodeFactory.create(test, body, orelse);
     }
 
-    public PNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
+    public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
         return new TryFinallyNode(body, finalbody);
     }
 
-    public PNode createTryExceptNode(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
-        return TryExceptNode.create(body, orelse, excepts);
+    public StatementNode createTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        return TryExceptNode.create(body, orelse, exceptType, exceptName, exceptBody);
     }
 
-    public PNode createRaiseNode(PNode type, PNode inst, PNode tback) {
-        return new RaiseNode(type, inst, tback);
+    public PNode createRaiseNode(PNode type, PNode inst) {
+        return new RaiseNode(type, inst);
     }
 
     public PNode createRuntimeValueNode() {

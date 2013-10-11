@@ -55,7 +55,7 @@ public class TryTests {
                         "finally:\n" + //
                         "    print(\"executing finally clause\")\n";
 
-        assertPrints("result is 1\n" + "executing finally clause\n", source);
+        assertPrints("result is  1\n" + "executing finally clause\n", source);
     }
 
     @Test
@@ -74,8 +74,8 @@ public class TryTests {
 
     @Test
     public void scriptTryTest() {
-        Path script = Paths.get("try_test.py");
-        assertPrints("KeyboardInterrupt!\n" + "executing finally clause\n", script);
+        Path script = Paths.get("raise_try_test.py");
+        assertPrints("KeyboardInterrupt! <type \'exceptions.KeyboardInterrupt\'>\n" + "executing finally clause\n", script);
     }
 
 }
