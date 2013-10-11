@@ -37,6 +37,8 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @Children protected final PNode[] arguments;
 
+    private PCallable cached;
+
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
         this.callee = adoptChild(callee);
         this.arguments = adoptChildren(arguments);
@@ -59,8 +61,12 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PCallable callable = (PCallable) callee.execute(frame);
-        return executeCall(frame, callable);
+        if (cached == null) {
+            PCallable callable = (PCallable) callee.execute(frame);
+            cached = callable;
+        }
+
+        return executeCall(frame, cached);
     }
 
 }

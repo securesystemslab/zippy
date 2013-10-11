@@ -28,9 +28,6 @@ import java.util.*;
 
 import org.python.antlr.*;
 import org.python.antlr.base.*;
-import org.python.core.*;
-
-import edu.uci.python.runtime.datatypes.*;
 
 public class TranslationUtil {
 

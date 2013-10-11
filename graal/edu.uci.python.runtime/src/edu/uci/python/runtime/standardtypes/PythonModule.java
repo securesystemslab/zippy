@@ -27,6 +27,9 @@ package edu.uci.python.runtime.standardtypes;
 import java.lang.reflect.*;
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+
+import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.modules.annotations.*;
@@ -39,9 +42,16 @@ public class PythonModule extends PythonBasicObject {
     private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
     private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
+    private final CyclicAssumption unmodifiedAssumption;
+
     // TODO: should be the moduleClass
     public PythonModule(PythonClass pythonClass) {
         super(pythonClass);
+        unmodifiedAssumption = new CyclicAssumption("unmodified");
+    }
+
+    public Assumption getUnmodifiedAssumption() {
+        return unmodifiedAssumption.getAssumption();
     }
 
     private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {

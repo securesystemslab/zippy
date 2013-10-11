@@ -22,47 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
+import org.python.core.*;
+
+import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.nodes.expressions.*;
 
-@NodeChildren({@NodeChild(value = "arg0"), @NodeChild(value = "arg1")})
-public abstract class CallBuiltInWithTwoArgsNoKeywordNode extends PNode {
-
-    protected final PCallable callee;
-
-    protected final String name;
-
-    public CallBuiltInWithTwoArgsNoKeywordNode(PCallable callee, String name) {
-        this.callee = callee;
-        this.name = name;
-    }
-
-    protected CallBuiltInWithTwoArgsNoKeywordNode(CallBuiltInWithTwoArgsNoKeywordNode node) {
-        this(node.callee, node.name);
-    }
-
-    public abstract PNode getArg0();
-
-    public abstract PNode getArg1();
+public abstract class IndexNode extends UnaryOpNode {
 
     @Specialization
-    public Object doGeneric(VirtualFrame frame, Object arg0, Object arg1) {
-        return callee.call(frame.pack(), arg0, arg1);
+    public int doInteger(int index) {
+        return index;
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + name + ")";
+    @SuppressWarnings("unused")
+    @Specialization
+    public double doDouble(double index) {
+        throw Py.TypeError("list indices must be integers, not float");
     }
 
-    public Object getName() {
-        return name;
+    @Generic
+    public Object doGeneric(Object index) {
+        return index;
     }
+
 }

@@ -39,7 +39,7 @@ public class LoadGenericAttributeNode extends LoadAttributeNode {
         super(name, primary);
     }
 
-    protected static Object executeGeneric(Object primary, String attributeId) {
+    public static Object executeGeneric(Object primary, String attributeId) {
         if (primary instanceof PObject) {
             return ((PObject) primary).findAttribute(attributeId);
         } else if (primary instanceof PyObject) {

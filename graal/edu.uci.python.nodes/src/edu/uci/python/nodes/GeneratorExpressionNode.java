@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.access.*;
 
 public abstract class GeneratorExpressionNode extends PNode {
 

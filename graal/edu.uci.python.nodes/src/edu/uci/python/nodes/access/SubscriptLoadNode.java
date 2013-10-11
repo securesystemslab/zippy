@@ -22,12 +22,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.nodes.access;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class SubscriptLoadNode extends BinaryOpNode {

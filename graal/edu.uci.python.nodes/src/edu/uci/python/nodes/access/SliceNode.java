@@ -22,44 +22,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.dsl.NodeChild;
+import java.math.BigInteger;
+
+import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
 
-@NodeChild(value = "argument")
-public abstract class CallBuiltInWithOneArgNoKeywordNode extends PNode {
 
-    protected final PCallable callee;
+public abstract class SliceNode extends TernaryOpNode {
 
-    protected final String name;
-
-    public CallBuiltInWithOneArgNoKeywordNode(PCallable callee, String name) {
-        this.callee = callee;
-        this.name = name;
+    public SliceNode() {
     }
-
-    protected CallBuiltInWithOneArgNoKeywordNode(CallBuiltInWithOneArgNoKeywordNode node) {
-        this(node.callee, node.name);
-    }
-
-    public abstract PNode getArgument();
 
     @Specialization
-    public Object doGeneric(VirtualFrame frame, Object argument) {
-        return callee.call(frame.pack(), argument);
+    public PSlice doPSlice(int start, int stop, int step) {
+        return new PSlice(start, stop, step);
     }
 
-    public Object getName() {
-        return name;
+    @Specialization
+    public PSlice doPSlice(BigInteger start, BigInteger stop, BigInteger step) {
+        return new PSlice(start.intValue(), stop.intValue(), step.intValue());
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + name + ")";
+    @Generic
+    public Object doGeneric(Object startObj, Object stopObj, Object stepObj) {
+        int start = 0;
+        if (startObj instanceof Integer) {
+            start = (Integer) startObj;
+        } else if (startObj instanceof BigInteger) {
+            start = ((BigInteger) startObj).intValue();
+        }
+
+        int stop = 0;
+        if (stopObj instanceof Integer) {
+            stop = (Integer) stopObj;
+        } else if (stopObj instanceof BigInteger) {
+            stop = ((BigInteger) stopObj).intValue();
+        }
+
+        int step = 1;
+        if (stepObj instanceof Integer) {
+            step = (Integer) stepObj;
+        } else if (stepObj instanceof BigInteger) {
+            step = ((BigInteger) stepObj).intValue();
+        }
+
+        return new PSlice(start, stop, step);
     }
+
 }

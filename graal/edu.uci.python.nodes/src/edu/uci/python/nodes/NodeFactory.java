@@ -46,6 +46,7 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
@@ -425,14 +426,6 @@ public class NodeFactory {
 
     public PNode createKeywordLiteral(PNode value, String name) {
         return KeywordLiteralNodeFactory.create(value, name);
-    }
-
-    public PNode createCallBuiltInWithOneArgNoKeyword(PCallable callee, String name, PNode argument) {
-        return CallBuiltInWithOneArgNoKeywordNodeFactory.create(callee, name, argument);
-    }
-
-    public PNode createCallBuiltInWithTwoArgsNoKeyword(PCallable callee, String name, PNode argument0, PNode argument1) {
-        return CallBuiltInWithTwoArgsNoKeywordNodeFactory.create(callee, name, argument0, argument1);
     }
 
     public List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {

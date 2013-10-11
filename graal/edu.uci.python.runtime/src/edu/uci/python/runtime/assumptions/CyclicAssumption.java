@@ -22,55 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.runtime.assumptions;
 
-import java.math.BigInteger;
+import com.oracle.truffle.api.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+public class CyclicAssumption {
 
-import edu.uci.python.runtime.datatypes.*;
+    private final String name;
+    private Assumption assumption;
 
-
-public abstract class SliceNode extends TernaryOpNode {
-
-    public SliceNode() {
+    public CyclicAssumption(String name) {
+        this.name = name;
+        invalidate();
     }
 
-    @Specialization
-    public PSlice doPSlice(int start, int stop, int step) {
-        return new PSlice(start, stop, step);
+    public void invalidate() {
+        if (assumption != null) {
+            assumption.invalidate();
+        }
+
+        assumption = Truffle.getRuntime().createAssumption(name);
     }
 
-    @Specialization
-    public PSlice doPSlice(BigInteger start, BigInteger stop, BigInteger step) {
-        return new PSlice(start.intValue(), stop.intValue(), step.intValue());
-    }
-
-    @Generic
-    public Object doGeneric(Object startObj, Object stopObj, Object stepObj) {
-        int start = 0;
-        if (startObj instanceof Integer) {
-            start = (Integer) startObj;
-        } else if (startObj instanceof BigInteger) {
-            start = ((BigInteger) startObj).intValue();
-        }
-
-        int stop = 0;
-        if (stopObj instanceof Integer) {
-            stop = (Integer) stopObj;
-        } else if (stopObj instanceof BigInteger) {
-            stop = ((BigInteger) stopObj).intValue();
-        }
-
-        int step = 1;
-        if (stepObj instanceof Integer) {
-            step = (Integer) stepObj;
-        } else if (stepObj instanceof BigInteger) {
-            step = ((BigInteger) stepObj).intValue();
-        }
-
-        return new PSlice(start, stop, step);
+    public Assumption getAssumption() {
+        return assumption;
     }
 
 }

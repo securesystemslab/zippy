@@ -33,7 +33,7 @@ import edu.uci.python.runtime.objects.*;
 
 public class StoreGenericAttributeNode extends StoreAttributeNode {
 
-    protected StoreGenericAttributeNode(StoreAttributeNode node) {
+    public StoreGenericAttributeNode(StoreAttributeNode node) {
         super(node.attributeId, node.primary, node.rhs);
     }
 
