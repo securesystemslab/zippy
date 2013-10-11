@@ -215,7 +215,7 @@ void CollectedHeap::pre_initialize() {
 #ifdef COMPILER2
   _defer_initial_card_mark =    ReduceInitialCardMarks && can_elide_tlab_store_barriers()
                              && (DeferInitialCardMark || card_mark_must_follow_store());
-#elif GRAAL
+#elif defined GRAAL
   _defer_initial_card_mark =   GraalDeferredInitBarriers && can_elide_tlab_store_barriers()
                                && (DeferInitialCardMark || card_mark_must_follow_store());
 #else
