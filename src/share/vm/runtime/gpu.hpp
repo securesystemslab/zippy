@@ -43,8 +43,13 @@ public:
   static void probe_gpu();
 
   static void initialize_gpu();
+
+  static int available_processors();
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+
+  static bool execute_warp(int dimX, int dimY, int dimZ,
+                           address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
   static bool execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 

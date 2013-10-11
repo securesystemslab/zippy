@@ -875,6 +875,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   set_int("arrayClassElementOffset", in_bytes(ObjArrayKlass::element_klass_offset()));
 
+  set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
+  set_int("graalCountersSize", (jint) GRAAL_COUNTERS_SIZE);
+
 #undef set_boolean
 #undef set_int
 #undef set_long
@@ -1145,6 +1148,12 @@ C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
   return klass;
 C2V_END
 
+C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
+  typeArrayOop arrayOop = oopFactory::new_longArray(GRAAL_COUNTERS_SIZE, CHECK_NULL);
+  JavaThread::collect_counters(arrayOop);
+  return (jlongArray) JNIHandles::make_local(arrayOop);
+C2V_END
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -1224,6 +1233,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
   {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
+  {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
 };
 
 int CompilerToVM_methods_count() {

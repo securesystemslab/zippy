@@ -96,7 +96,72 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
   } else {
     oop o = java_lang_boxing_object::create(ptxka.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
     if (TraceGPUInteraction) {
-      tty->print_cr("GPU execution returned %d", result.get_jint());
+      switch (ptxka.get_ret_type()) {
+        case T_INT:
+          tty->print_cr("GPU execution returned %d", result.get_jint());
+          break;
+        case T_FLOAT:
+          tty->print_cr("GPU execution returned %f", result.get_jfloat());
+          break;
+        case T_DOUBLE:
+          tty->print_cr("GPU execution returned %f", result.get_jdouble());
+          break;
+        default:
+          tty->print_cr("GPU returned unhandled");
+          break;
+        }
+    }
+    return JNIHandles::make_local(o);
+  }
+
+C2V_END
+
+C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
+                                                          jobject,
+                                                          jint dimX, jint dimY, jint dimZ,
+                                                          jobject args, jobject hotspotInstalledCode))
+  ResourceMark rm;
+  HandleMark hm;
+
+  if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
+    tty->print_cr("executeParallelMethodVarargs - not available / no linkage / not initialized");
+    return NULL;
+  }
+  jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
+  nmethod* nm = (nmethod*) (address) nmethodValue;
+  methodHandle mh = nm->method();
+  Symbol* signature = mh->signature();
+
+  // start value is the kernel
+  jlong startValue = HotSpotInstalledCode::codeStart(hotspotInstalledCode);
+
+  PTXKernelArguments ptxka(signature, (arrayOop) JNIHandles::resolve(args), mh->is_static());
+  JavaValue result(ptxka.get_ret_type());
+if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
+    return NULL;
+  }
+
+  if (ptxka.get_ret_type() == T_VOID) {
+    return NULL;
+  } else if (ptxka.get_ret_type() == T_OBJECT || ptxka.get_ret_type() == T_ARRAY) {
+    return JNIHandles::make_local((oop) result.get_jobject());
+  } else {
+    oop o = java_lang_boxing_object::create(ptxka.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    if (TraceGPUInteraction) {
+      switch (ptxka.get_ret_type()) {
+        case T_INT:
+          tty->print_cr("GPU execution returned %d", result.get_jint());
+          break;
+        case T_FLOAT:
+          tty->print_cr("GPU execution returned %f", result.get_jfloat());
+          break;
+        case T_DOUBLE:
+          tty->print_cr("GPU execution returned %g", result.get_jdouble());
+          break;
+        default:
+          tty->print_cr("GPU returned unhandled");
+          break;
+      }
     }
     return JNIHandles::make_local(o);
   }
@@ -114,6 +179,14 @@ C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
   }
   gpu::initialize_gpu();
   return gpu::is_initialized();
+C2V_END
+
+C2V_VMENTRY(jint, availableProcessors, (JNIEnv *env, jobject))
+  if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
+    tty->print_cr("deviceInit - not available / no linkage");
+    return false;
+  }
+  return gpu::available_processors();
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceDetach, (JNIEnv *env, jobject))
@@ -157,10 +230,12 @@ C2V_END
 #define GPUSPACE_METHOD       "J"
 
 JNINativeMethod CompilerToGPU_methods[] = {
-  {CC"generateKernel",                CC"([B" STRING ")"GPUSPACE_METHOD,        FN_PTR(generateKernel)},
-  {CC"deviceInit",                    CC"()Z",                                  FN_PTR(deviceInit)},
-  {CC"deviceDetach",                  CC"()Z",                                  FN_PTR(deviceDetach)},
-  {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,  FN_PTR(executeExternalMethodVarargs)},
+  {CC"generateKernel",                CC"([B" STRING ")"GPUSPACE_METHOD,          FN_PTR(generateKernel)},
+  {CC"deviceInit",                    CC"()Z",                                    FN_PTR(deviceInit)},
+  {CC"deviceDetach",                  CC"()Z",                                    FN_PTR(deviceDetach)},
+  {CC"availableProcessors",           CC"()I",                                    FN_PTR(availableProcessors)},
+  {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,    FN_PTR(executeExternalMethodVarargs)},
+  {CC"executeParallelMethodVarargs",  CC"(III["OBJECT HS_INSTALLED_CODE")"OBJECT, FN_PTR(executeParallelMethodVarargs)},
 };
 
 int CompilerToGPU_methods_count() {

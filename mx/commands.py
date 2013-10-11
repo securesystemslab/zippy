@@ -365,9 +365,18 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
 
     return jdk
 
+def _updateInstalledGraalOptionsFile(jdk):
+    graalOptions = join(_graal_home, 'graal.options')
+    jreLibDir = join(jdk, 'jre', 'lib')
+    if exists(graalOptions):
+        shutil.copy(graalOptions, join(jreLibDir, 'graal.options'))
+    else:
+        toDelete = join(jreLibDir, 'graal.options')
+        if exists(toDelete):
+            os.unlink(toDelete)
+
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
-    graalOptions = join(_graal_home, 'graal.options')
     jdks = _jdksDir()
     if exists(jdks):
         for e in os.listdir(jdks):
@@ -378,9 +387,6 @@ def _installGraalJarInJdks(graalDist):
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
                 shutil.move(tmp, join(jreLibDir, 'graal.jar'))
-
-                if exists(graalOptions):
-                    shutil.copy(graalOptions, join(jreLibDir, 'graal.options'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -692,6 +698,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
+    _updateInstalledGraalOptionsFile(jdk)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
@@ -944,12 +951,14 @@ def _basic_gate_body(args, tasks):
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
@@ -1318,6 +1327,14 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
+def sl(args):
+    """run an SL program
+
+    VM args should have a @ prefix."""
+    vmArgs = [a[1:] for a in args if a[0] == '@']
+    slArgs = [a for a in args if a[0] != '@']
+    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
+
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
@@ -1361,7 +1378,8 @@ def mx_init(suite):
         'vmg': [vmg, '[-options] class [args...]'],
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
-        'longtests' : [longtests, '']
+        'longtests' : [longtests, ''],
+        'sl' : [sl, '[SL args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

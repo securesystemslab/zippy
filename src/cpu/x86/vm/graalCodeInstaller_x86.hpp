@@ -50,6 +50,9 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
     // the inlined vtable stub contains a "call register" instruction
     assert(method != NULL, "only valid for virtual calls");
     return (pc_offset + ((NativeCallReg *) inst)->next_instruction_offset());
+  } else if (inst->is_cond_jump()) {
+    address pc = (address) (inst);
+    return pc_offset + (jint) (Assembler::locate_next_instruction(pc) - pc);
   } else {
     fatal("unsupported type of instruction for call site");
     return 0;
@@ -145,21 +148,30 @@ inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction*
 }
 
 inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
+  address pc = (address) inst;
   if (inst->is_call()) {
     // NOTE: for call without a mov, the offset must fit a 32-bit immediate
     //       see also CompilerToVM.getMaxCallTargetOffset()
-    NativeCall* call = nativeCall_at((address) (inst));
+    NativeCall* call = nativeCall_at(pc);
     call->set_destination((address) foreign_call_destination);
     _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
   } else if (inst->is_mov_literal64()) {
-    NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
+    NativeMovConstReg* mov = nativeMovConstReg_at(pc);
     mov->set_data((intptr_t) foreign_call_destination);
     _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
-  } else {
-    NativeJump* jump = nativeJump_at((address) (inst));
+  } else if (inst->is_jump()) {
+    NativeJump* jump = nativeJump_at(pc);
     jump->set_jump_destination((address) foreign_call_destination);
-    _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
+    _instructions->relocate(jump->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+  } else if (inst->is_cond_jump()) {
+    address old_dest = nativeGeneralJump_at(pc)->jump_destination();
+    address disp = Assembler::locate_operand(pc, Assembler::call32_operand);
+    *(jint*) disp += ((address) foreign_call_destination) - old_dest;
+    _instructions->relocate(pc, runtime_call_Relocation::spec(), Assembler::call32_operand);
+  } else {
+    fatal("unsupported relocation for foreign call");
   }
+
   TRACE_graal_3("relocating (foreign call)  at %p", inst);
 }
 

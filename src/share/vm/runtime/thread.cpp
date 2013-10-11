@@ -1411,6 +1411,36 @@ void WatcherThread::print_on(outputStream* st) const {
 
 // ======= JavaThread ========
 
+#ifdef GRAAL
+
+#if GRAAL_COUNTERS_SIZE > 0
+jlong JavaThread::_graal_old_thread_counters[GRAAL_COUNTERS_SIZE];
+
+bool graal_counters_include(oop threadObj) {
+  return !GRAAL_COUNTERS_EXCLUDE_COMPILER_THREADS || threadObj == NULL || threadObj->klass() != SystemDictionary::CompilerThread_klass();
+}
+
+void JavaThread::collect_counters(typeArrayOop array) {
+  MutexLocker tl(Threads_lock);
+  for (int i = 0; i < array->length(); i++) {
+    array->long_at_put(i, _graal_old_thread_counters[i]);
+  }
+  for (JavaThread* tp = Threads::first(); tp != NULL; tp = tp->next()) {
+    if (graal_counters_include(tp->threadObj())) {
+      for (int i = 0; i < array->length(); i++) {
+        array->long_at_put(i, array->long_at(i) + tp->_graal_counters[i]);
+      }
+    }
+  }
+}
+#else
+void JavaThread::collect_counters(typeArrayOop array) {
+  // empty
+}
+#endif // GRAAL_COUNTERS_SIZE > 0
+
+#endif // GRAAL
+
 // A JavaThread is a normal Java thread
 
 void JavaThread::initialize() {
@@ -1449,7 +1479,12 @@ void JavaThread::initialize() {
   _stack_guard_state = stack_guard_unused;
 #ifdef GRAAL
   _graal_alternate_call_target = NULL;
-#endif
+#if GRAAL_COUNTERS_SIZE > 0
+  for (int i = 0; i < GRAAL_COUNTERS_SIZE; i++) {
+    _graal_counters[i] = 0;
+  }
+#endif // GRAAL_COUNTER_SIZE > 0
+#endif // GRAAL
   _exception_oop = NULL;
   _exception_pc  = 0;
   _exception_handler_pc = 0;
@@ -1638,6 +1673,14 @@ JavaThread::~JavaThread() {
   ThreadSafepointState::destroy(this);
   if (_thread_profiler != NULL) delete _thread_profiler;
   if (_thread_stat != NULL) delete _thread_stat;
+
+#if defined(GRAAL) && (GRAAL_COUNTERS_SIZE > 0)
+  if (graal_counters_include(threadObj())) {
+    for (int i = 0; i < GRAAL_COUNTERS_SIZE; i++) {
+      _graal_old_thread_counters[i] += _graal_counters[i];
+    }
+  }
+#endif
 }
 
 
