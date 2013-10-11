@@ -147,7 +147,6 @@ class Klass : public Metadata {
   Klass*      _primary_supers[_primary_super_limit];
   // java/lang/Class instance mirroring this class
   oop       _java_mirror;
-
   // Superclass
   Klass*      _super;
   // First subclass (NULL if none); _subklass->next_sibling() is next one
@@ -461,6 +460,9 @@ class Klass : public Metadata {
  protected:
   // computes the subtype relationship
   virtual bool compute_is_subtype_of(Klass* k);
+ public:
+  // subclass accessor (here for convenience; undefined for non-klass objects)
+  virtual bool is_leaf_class() const { fatal("not a class"); return false; }
  public:
   // ALL FUNCTIONS BELOW THIS POINT ARE DISPATCHED FROM AN OOP
   // These functions describe behavior for the oop not the KLASS.

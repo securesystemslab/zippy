@@ -45,6 +45,7 @@ define_pd_global(bool, ProfileInterpreter,           false);
 #else
 define_pd_global(bool, ProfileInterpreter,           true);
 #endif // CC_INTERP
+// Disable TieredCompilation while profile data problems are not resolved - same thing in c2_globals_sparc.hpp
 #ifdef GRAAL
 define_pd_global(bool, TieredCompilation,            false);
 #else
@@ -95,8 +96,9 @@ define_pd_global(intx, ReservedCodeCacheSize,        64*M);
 #else
 define_pd_global(intx, ReservedCodeCacheSize,        48*M);
 #endif
-define_pd_global(uintx,CodeCacheMinBlockLength,      4);
+define_pd_global(uintx, CodeCacheMinBlockLength,     4);
 define_pd_global(uintx, CodeCacheMinimumUseSpace,    400*K);
+
 // Heap related flags
 define_pd_global(uintx,MetaspaceSize,    ScaleForWordSize(16*M));
 

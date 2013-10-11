@@ -688,7 +688,6 @@ public:
   #ifdef GRAAL
     HeapWord** top_addr() const;
     HeapWord** end_addr() const;
-
   #endif
 
   // We register a region with the fast "in collection set" test. We

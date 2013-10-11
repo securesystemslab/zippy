@@ -45,7 +45,6 @@ class MethodCounters: public MetaspaceObj {
   MethodCounters() : _interpreter_invocation_count(0),
                      _interpreter_throwout_count(0),
                      _number_of_breakpoints(0)
-
 #ifdef TIERED
                    , _rate(0),
                      _prev_time(0)

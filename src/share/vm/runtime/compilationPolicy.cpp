@@ -480,7 +480,6 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
     NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, comp_level, true));)
   }
 }
-
 // StackWalkCompPolicy - walk up stack to find a suitable method to compile
 
 #ifdef COMPILER2

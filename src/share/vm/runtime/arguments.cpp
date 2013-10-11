@@ -3667,7 +3667,7 @@ jint Arguments::apply_ergo() {
     set_tiered_flags();
   } else {
     // Check if the policy is valid. Policies 0 and 1 are valid for non-tiered setup.
-    if (CompilationPolicyChoice >= 2 GRAAL_ONLY(&& CompilationPolicyChoice < 4)) {
+    if (CompilationPolicyChoice >= 2) {
       vm_exit_during_initialization(
         "Incompatible compilation policy selected", NULL);
     }

@@ -305,6 +305,7 @@ void ReferenceProcessor::process_phaseJNI(BoolObjectClosure* is_alive,
   complete_gc->do_void();
 }
 
+
 template <class T>
 bool enqueue_discovered_ref_helper(ReferenceProcessor* ref,
                                    AbstractRefProcTaskExecutor* task_executor) {

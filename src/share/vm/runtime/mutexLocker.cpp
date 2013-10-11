@@ -284,6 +284,7 @@ void mutex_init() {
   def(JfrStream_lock               , Mutex,   nonleaf+2,   true);
   def(JfrStacktrace_lock           , Mutex,   special,     true );
 #endif
+
 #ifdef GRAAL
   def(GraalDeoptLeafGraphIds_lock  , Mutex,   special,     true);
 #endif // GRAAL

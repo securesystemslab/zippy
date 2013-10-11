@@ -418,7 +418,7 @@ class Method : public Metadata {
     MethodCounters* mcs = get_method_counters(CHECK_0);
     return (mcs == NULL) ? 0 : mcs->increment_interpreter_invocation_count();
   }
-  
+
 #ifndef PRODUCT
   int  compiled_invocation_count() const         { return _compiled_invocation_count;  }
   void set_compiled_invocation_count(int count)  { _compiled_invocation_count = count; }

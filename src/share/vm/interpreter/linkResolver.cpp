@@ -656,6 +656,10 @@ void LinkResolver::check_field_accessability(KlassHandle ref_klass,
 }
 
 void LinkResolver::resolve_field_access(fieldDescriptor& result, constantPoolHandle pool, int index, Bytecodes::Code byte, TRAPS) {
+  resolve_field_access(result, pool, index, byte, true, true, THREAD);
+}
+
+void LinkResolver::resolve_field_access(fieldDescriptor& result, constantPoolHandle pool, int index, Bytecodes::Code byte, bool check_access, bool initialize_class, TRAPS) {
   // Load these early in case the resolve of the containing klass fails
   Symbol* field = pool->name_ref_at(index);
   Symbol* sig   = pool->signature_ref_at(index);
@@ -665,7 +669,7 @@ void LinkResolver::resolve_field_access(fieldDescriptor& result, constantPoolHan
   resolve_klass(resolved_klass, pool, index, CHECK);
 
   KlassHandle  current_klass(THREAD, pool->pool_holder());
-  resolve_field(result, resolved_klass, field, sig, current_klass, byte, true, true, CHECK);
+  resolve_field(result, resolved_klass, field, sig, current_klass, byte, check_access, initialize_class, CHECK);
 }
 
 void LinkResolver::resolve_field(fieldDescriptor& fd, KlassHandle resolved_klass, Symbol* field, Symbol* sig,

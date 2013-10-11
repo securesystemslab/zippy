@@ -970,6 +970,9 @@ class CommandLineFlags {
   diagnostic(ccstr, PrintAssemblyOptions, NULL,                             \
           "Options string passed to disassembler.so")                       \
                                                                             \
+  product(bool, PrintNMethodStatistics, false,                              \
+          "Print a summary statistic for the generated nmethods")           \
+                                                                            \
   diagnostic(bool, PrintNMethods, false,                                    \
           "Print assembly code for nmethods when generated")                \
                                                                             \

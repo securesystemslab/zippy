@@ -869,6 +869,7 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
   }
 }
 
+
 // restore fields of an eliminated object array
 void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, objArrayOop obj) {
   for (int i = 0; i < sv->field_size(); i++) {
@@ -1554,6 +1555,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     bool inc_recompile_count = false;
     ProfileData* pdata = NULL;
     if (ProfileTraps && update_trap_state && trap_mdo != NULL) {
+      assert(trap_mdo == get_method_data(thread, profiled_method, false), "sanity");
       uint this_trap_count = 0;
       bool maybe_prior_trap = false;
       bool maybe_prior_recompile = false;
@@ -1711,9 +1713,10 @@ Deoptimization::query_update_method_data(MethodData* trap_mdo,
     maybe_prior_trap      = (prior_trap_count != 0);
     maybe_prior_recompile = (trap_mdo->decompile_count() != 0);
   }
+  ProfileData* pdata = NULL;
+
 
   // For reasons which are recorded per bytecode, we check per-BCI data.
-  ProfileData* pdata = NULL;
   DeoptReason per_bc_reason = reason_recorded_per_bytecode_if_any(reason);
   assert(per_bc_reason != Reason_none || update_total_trap_count, "must be");
   if (per_bc_reason != Reason_none) {

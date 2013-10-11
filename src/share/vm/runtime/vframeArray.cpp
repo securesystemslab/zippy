@@ -428,6 +428,9 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     ttyLocker ttyl;
     tty->print_cr("[%d Interpreted Frame]", ++unpack_counter);
     iframe()->print_on(tty);
+    RegisterMap map(thread);
+    vframe* f = vframe::new_vframe(iframe(), &map, thread);
+    f->print();
 
     tty->print_cr("locals size     %d", locals()->size());
     tty->print_cr("expression size %d", expressions()->size());

@@ -256,10 +256,6 @@ bool InlineTree::should_not_inline(ciMethod *callee_method,
     set_msg("force inline by CompilerOracle");
     return false;
   }
-  if (callee_method->should_not_inline()) {
-    set_msg("disallowed by CompilerOracle");
-    return false;
-  }
 
   if (callee_method->should_not_inline()) {
     set_msg("disallowed by CompilerOracle");

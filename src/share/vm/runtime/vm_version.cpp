@@ -123,10 +123,10 @@ void Abstract_VM_Version::initialize() {
   #else // ZERO
   #ifdef GRAALVM
      #define VMTYPE "Graal"
-  #else // GRAAL
+  #else // GRAALVM
      #define VMTYPE COMPILER1_PRESENT("Client")   \
                     COMPILER2_PRESENT("Server")
-  #endif // GRAAL
+  #endif // GRAALVM
   #endif // ZERO
   #endif // TIERED
 #endif

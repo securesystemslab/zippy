@@ -260,7 +260,7 @@ void print_statistics() {
 #endif //COMPILER1
     os::print_statistics();
   }
-  
+
   if (PrintLockStatistics || PrintPreciseBiasedLockingStatistics) {
     OptoRuntime::print_named_counters();
   }

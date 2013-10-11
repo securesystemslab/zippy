@@ -329,7 +329,6 @@ class java_lang_Thread : AllStatic {
  public:
   // Instance creation
   static oop create();
-  static int java_thread_offset_in_bytes() { return _eetop_offset; }
   // Returns the JavaThread associated with the thread obj
   static JavaThread* thread(oop java_thread);
   // Set JavaThread for instance

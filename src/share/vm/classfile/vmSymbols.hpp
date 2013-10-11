@@ -395,12 +395,6 @@
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
   template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
-  /* graal.api.interpreter */                                                                                                         \
-  template(com_oracle_graal_api_interpreter_Interpreter,             "com/oracle/graal/api/interpreter/Interpreter")                  \
-  template(interpreter_execute_name,              "execute")                                                                          \
-  template(interpreter_execute_signature,         "(Lcom/oracle/graal/api/meta/ResolvedJavaMethod;[Ljava/lang/Object;)Ljava/lang/Object;") \
-                                                                                                                                      \
-                                                                                                  \
                                                                       \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \

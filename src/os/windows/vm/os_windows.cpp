@@ -2215,33 +2215,29 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #ifdef _M_IA64
   assert(0, "Fix Handle_IDiv_Exception");
 #elif _M_AMD64
-  #ifdef GRAAL
-    PCONTEXT ctx = exceptionInfo->ContextRecord;
-    address pc = (address)ctx->Rip;
-    assert(pc[0] >= Assembler::REX && pc[0] <= Assembler::REX_WRXB && pc[1] == 0xF7 || pc[0] == 0xF7, "not an idiv opcode");
-    if (pc[0] == 0xF7) {
-      // set correct result values and continue after idiv instruction
-      ctx->Rip = (DWORD64)pc + 2;        // idiv reg, reg  is 2 bytes
-    } else {
-      ctx->Rip = (DWORD64)pc + 3;        // REX idiv reg, reg  is 3 bytes
-    }
-    // do not set ctx->Rax as it already contains the correct value (either 32 or 64 bit, depending on the operation)
-    // this is the case because the exception only happens for -MinValue/-1 and -MinValue is always in rax because of the
-    // idiv opcode (0xF7)
-    ctx->Rdx = (DWORD64)0;               // remainder
-    // Continue the execution
-  #else
-    PCONTEXT ctx = exceptionInfo->ContextRecord;
-    address pc = (address)ctx->Rip;
-    assert(pc[0] == 0xF7, "not an idiv opcode");
-    assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
-    assert(ctx->Rax == min_jint, "unexpected idiv exception");
+  PCONTEXT ctx = exceptionInfo->ContextRecord;
+  address pc = (address)ctx->Rip;
+#ifdef GRAAL
+  assert(pc[0] >= Assembler::REX && pc[0] <= Assembler::REX_WRXB && pc[1] == 0xF7 || pc[0] == 0xF7, "not an idiv opcode");
+  if (pc[0] == 0xF7) {
     // set correct result values and continue after idiv instruction
-    ctx->Rip = (DWORD)pc + 2;        // idiv reg, reg  is 2 bytes
-    ctx->Rax = (DWORD)min_jint;      // result
-    ctx->Rdx = (DWORD)0;             // remainder
-    // Continue the execution
-  #endif // GRAAL
+    ctx->Rip = (DWORD64)pc + 2;        // idiv reg, reg  is 2 bytes
+  } else {
+    ctx->Rip = (DWORD64)pc + 3;        // REX idiv reg, reg  is 3 bytes
+  }
+  // do not set ctx->Rax as it already contains the correct value (either 32 or 64 bit, depending on the operation)
+  // this is the case because the exception only happens for -MinValue/-1 and -MinValue is always in rax because of the
+  // idiv opcode (0xF7)
+#else
+  assert(pc[0] == 0xF7, "not an idiv opcode");
+  assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
+  assert(ctx->Rax == min_jint, "unexpected idiv exception");
+  // set correct result values and continue after idiv instruction
+  ctx->Rip = (DWORD)pc + 2;        // idiv reg, reg  is 2 bytes
+  ctx->Rax = (DWORD)min_jint;      // result
+#endif // GRAAL
+  ctx->Rdx = (DWORD)0;             // remainder
+  // Continue the execution
 #else
   PCONTEXT ctx = exceptionInfo->ContextRecord;
   address pc = (address)ctx->Eip;

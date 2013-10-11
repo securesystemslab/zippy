@@ -161,6 +161,7 @@ class LinkResolver: AllStatic {
 
   // runtime/static resolving for fields
   static void resolve_field_access(fieldDescriptor& result, constantPoolHandle pool, int index, Bytecodes::Code byte, TRAPS);
+  static void resolve_field_access(fieldDescriptor& result, constantPoolHandle pool, int index, Bytecodes::Code byte, bool check_access, bool initialize_class, TRAPS);
   static void resolve_field(fieldDescriptor& result, KlassHandle resolved_klass, Symbol* field_name, Symbol* field_signature,
                             KlassHandle current_klass, Bytecodes::Code access_kind, bool check_access, bool initialize_class, TRAPS);
 

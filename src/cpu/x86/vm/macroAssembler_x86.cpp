@@ -5075,7 +5075,7 @@ void MacroAssembler::encode_klass_not_null(Register dst, Register src) {
 // when (Universe::heap() != NULL).  Hence, if the instructions they
 // generate change, then this method needs to be updated.
 int MacroAssembler::instr_size_for_decode_klass_not_null() {
-  assert (UseCompressedKlassPointers, "only for compressed klass ptrs");
+  assert (UseCompressedClassPointers, "only for compressed klass ptrs");
   // mov64 + addq + shlq? + mov64  (for reinit_heapbase()).
   return (Universe::narrow_klass_shift() == 0 ? 20 : 24);
 }
@@ -5085,7 +5085,7 @@ int MacroAssembler::instr_size_for_decode_klass_not_null() {
 void  MacroAssembler::decode_klass_not_null(Register r) {
   // Note: it will change flags
   assert(Universe::narrow_klass_base() != NULL, "Base should be initialized");
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   assert(r != r12_heapbase, "Decoding a klass in r12");
   // Cannot assert, unverified entry point counts instructions (see .ad file)
   // vtableStubs also counts instructions in pd_code_size_limit.
@@ -5103,7 +5103,7 @@ void  MacroAssembler::decode_klass_not_null(Register r) {
 void  MacroAssembler::decode_klass_not_null(Register dst, Register src) {
   // Note: it will change flags
   assert(Universe::narrow_klass_base() != NULL, "Base should be initialized");
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   if (dst == src) {
     decode_klass_not_null(dst);
   } else {
@@ -5141,7 +5141,7 @@ void  MacroAssembler::set_narrow_oop(Address dst, jobject obj) {
 }
 
 void  MacroAssembler::set_narrow_klass(Register dst, Klass* k) {
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   assert (oop_recorder() != NULL, "this assembler needs an OopRecorder");
   int klass_index = oop_recorder()->find_index(k);
   RelocationHolder rspec = metadata_Relocation::spec(klass_index);
@@ -5149,7 +5149,7 @@ void  MacroAssembler::set_narrow_klass(Register dst, Klass* k) {
 }
 
 void  MacroAssembler::set_narrow_klass(Address dst, Klass* k) {
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   assert (oop_recorder() != NULL, "this assembler needs an OopRecorder");
   int klass_index = oop_recorder()->find_index(k);
   RelocationHolder rspec = metadata_Relocation::spec(klass_index);
@@ -5175,7 +5175,7 @@ void  MacroAssembler::cmp_narrow_oop(Address dst, jobject obj) {
 }
 
 void  MacroAssembler::cmp_narrow_klass(Register dst, Klass* k) {
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   assert (oop_recorder() != NULL, "this assembler needs an OopRecorder");
   int klass_index = oop_recorder()->find_index(k);
   RelocationHolder rspec = metadata_Relocation::spec(klass_index);
@@ -5183,7 +5183,7 @@ void  MacroAssembler::cmp_narrow_klass(Register dst, Klass* k) {
 }
 
 void  MacroAssembler::cmp_narrow_klass(Address dst, Klass* k) {
-  assert (UseCompressedKlassPointers, "should only be used for compressed headers");
+  assert (UseCompressedClassPointers, "should only be used for compressed headers");
   assert (oop_recorder() != NULL, "this assembler needs an OopRecorder");
   int klass_index = oop_recorder()->find_index(k);
   RelocationHolder rspec = metadata_Relocation::spec(klass_index);
@@ -5191,7 +5191,7 @@ void  MacroAssembler::cmp_narrow_klass(Address dst, Klass* k) {
 }
 
 void MacroAssembler::reinit_heapbase() {
-  if (UseCompressedOops || UseCompressedKlassPointers) {
+  if (UseCompressedOops || UseCompressedClassPointers) {
     if (Universe::heap() != NULL) {
       if (Universe::narrow_oop_base() == NULL) {
         MacroAssembler::xorptr(r12_heapbase, r12_heapbase);

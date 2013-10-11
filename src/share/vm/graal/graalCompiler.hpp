@@ -55,6 +55,8 @@ public:
   bool is_c1   ()                                { return false; }
   bool is_c2   ()                                { return false; }
 
+  bool needs_stubs            () { return false; }
+
   // Initialization
   virtual void initialize();
 

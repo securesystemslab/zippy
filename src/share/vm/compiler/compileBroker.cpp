@@ -767,16 +767,15 @@ void CompileBroker::compilation_init() {
   // Set the interface to the current compiler(s).
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
-
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-
-#if defined(GRAALVM)
+#ifdef GRAALVM
   _compilers[0] = graal;
   c1_count = 0;
   c2_count = 0;
-#elif defined(COMPILER1)
+#else // GRAALVM
+#ifdef COMPILER1
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
   }
@@ -787,7 +786,7 @@ void CompileBroker::compilation_init() {
     _compilers[1] = new C2Compiler();
   }
 #endif // COMPILER2
-
+#endif // GRAALVM
 #else // SHARK
   int c1_count = 0;
   int c2_count = 1;
@@ -1054,9 +1053,10 @@ bool CompileBroker::is_idle() {
         return false;
       }
     }
+
+    // No pending or active compilations.
+    return true;
   }
-  // No pending or active compilations.
-  return true;
 }
 
 

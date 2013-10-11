@@ -417,7 +417,6 @@ void Flag::print_as_flag(outputStream* st) {
 
 #define GRAAL_PRODUCT_FLAG_STRUCT(          type, name, value, doc) { #type, XSTR(name), &name,      NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_PRODUCT) },
 #define GRAAL_PD_PRODUCT_FLAG_STRUCT(       type, name,        doc) { #type, XSTR(name), &name,      NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_PRODUCT | Flag::KIND_PLATFORM_DEPENDENT) },
-#define GRAAL_DIAGNOSTIC_FLAG_STRUCT(       type, name, value, doc) { #type, XSTR(name), &name,      NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_DIAGNOSTIC) },
 #define GRAAL_DEVELOP_FLAG_STRUCT(          type, name, value, doc) { #type, XSTR(name), NAME(name), NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_DEVELOP) },
 #define GRAAL_PD_DEVELOP_FLAG_STRUCT(       type, name,        doc) { #type, XSTR(name), NAME(name), NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_DEVELOP | Flag::KIND_PLATFORM_DEPENDENT) },
 #define GRAAL_NOTPRODUCT_FLAG_STRUCT(       type, name, value, doc) { #type, XSTR(name), NAME(name), NOT_PRODUCT_ARG(doc) Flag::Flags(Flag::DEFAULT | Flag::KIND_GRAAL | Flag::KIND_NOT_PRODUCT) },
