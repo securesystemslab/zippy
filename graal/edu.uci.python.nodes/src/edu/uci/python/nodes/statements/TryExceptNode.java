@@ -28,7 +28,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.nodes.*;
 
 public class TryExceptNode extends StatementNode {
 
@@ -36,16 +36,21 @@ public class TryExceptNode extends StatementNode {
 
     @Child protected BlockNode orelse;
 
-    @Child protected ExceptNode[] excepts;
+    @Child protected PNode exceptType;
+    @Child protected PNode exceptName;
+    @Child protected BlockNode exceptBody;
 
-    protected TryExceptNode(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
+    protected TryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
-        this.excepts = adoptChildren(excepts);
+
+        this.exceptName = adoptChild(exceptName);
+        this.exceptType = adoptChild(exceptType);
+        this.exceptBody = adoptChild(exceptBody);
     }
 
-    public static TryExceptNode create(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
-        return new TryOnlyNode(body, orelse, excepts);
+    public static TryExceptNode create(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        return new TryOnlyNode(body, orelse, exceptType, exceptName, exceptBody);
     }
 
     @SuppressWarnings("unused")
@@ -61,59 +66,67 @@ public class TryExceptNode extends StatementNode {
 
 class TryOnlyNode extends TryExceptNode {
 
-    protected TryOnlyNode(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
-        super(body, orelse, excepts);
+    protected TryOnlyNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        super(body, orelse, exceptType, exceptName, exceptBody);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            body.execute(frame);
-            return orelse.execute(frame);
+            if (orelse != null) {
+                body.execute(frame);
+                return orelse.execute(frame);
+            } else {
+                return body.execute(frame);
+            }
         } catch (RuntimeException ex) {
-            return this.replace(new GenericTryExceptNode(body, orelse, excepts)).executeExcept(frame, ex);
+            return this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
         }
     }
 }
 
 class GenericTryExceptNode extends TryExceptNode {
 
-    protected GenericTryExceptNode(BlockNode body, BlockNode orelse, ExceptNode[] excepts) {
-        super(body, orelse, excepts);
+    protected GenericTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        super(body, orelse, exceptType, exceptName, exceptBody);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            body.execute(frame);
-            return orelse.execute(frame);
+            if (orelse != null) {
+                body.execute(frame);
+                return orelse.execute(frame);
+            } else {
+                return body.execute(frame);
+            }
         } catch (RuntimeException ex) {
             return executeExcept(frame, ex);
         }
     }
 
-    private Object findExcept(VirtualFrame frame, String catchedExcept) {
-        for (ExceptNode except : excepts) {
-            Object type = except.getExceptType().execute(frame);
-            if (type instanceof PyType) {
-                if (catchedExcept.compareTo(((PyType) type).getName().toString()) == 0) {
-                    return except.execute(frame);
-                }
-            } else {
-                throw new PException(type.getClass() + ": is unknown exception type!");
-            }
-        }
-        throw new PException(catchedExcept);
-    }
-
     @Override
     protected Object executeExcept(VirtualFrame frame, RuntimeException excep) {
-// String exception = TranslationUtil.isCompatibleException(excep);
-// if (exception != null) {
-// return findExcept(frame, exception);
-// } else {
-// throw new UnsupportedOperationException("Cannot execute this exception! " + excep.getClass());
-// }
-        return null;
+        PyException e = null;
+        if (excep instanceof PyException) {
+            e = (PyException) excep;
+        } else if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
+            e = Py.ZeroDivisionError("divide by zero");
+        } else {
+            throw excep;
+        }
+
+        if (exceptType != null) {
+            PyObject type = (PyObject) exceptType.execute(frame);
+            if (exceptName != null) {
+                exceptName.execute(frame);
+            }
+
+            if (e.type == type) {
+                return exceptBody.execute(frame);
+            }
+        }
+        throw excep;
+
     }
 }

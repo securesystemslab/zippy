@@ -22,29 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.translation;
 
-import java.nio.file.*;
+import java.util.*;
 
-import org.junit.*;
+import org.python.antlr.*;
+import org.python.antlr.base.*;
+import org.python.core.*;
 
-import static edu.uci.python.test.PythonTests.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class RaiseTests {
+public class TranslationUtil {
 
-    @Test
-    public void keyboardInterruptTest() {
-        String source = "raise KeyboardInterrupt";
+    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
+        List<PythonTree> pythonTreeList = new ArrayList<>();
 
-        assertPrints("\n" + "edu.uci.python.runtime.datatypes.PException: \n" + "----------------------------\n" + "   exception type: <type 'exceptions.KeyboardInterrupt'>\n"
-                        + "----------------------------\n", source);
+        for (stmt s : argsInit) {
+            pythonTreeList.add(s);
+        }
+
+        return pythonTreeList;
     }
-
-    @Test
-    public void scriptRaiseTest() {
-        Path script = Paths.get("raise_test.py");
-        assertPrints("\n" + "edu.uci.python.runtime.datatypes.PException: \n" + "----------------------------\n" + "   exception type: <type 'exceptions.KeyboardInterrupt'>\n"
-                        + "----------------------------\n", script);
-    }
-
 }
