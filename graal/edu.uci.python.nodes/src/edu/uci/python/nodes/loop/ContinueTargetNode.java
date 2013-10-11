@@ -22,45 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.loop;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.python.antlr.*;
-import org.python.antlr.base.*;
-import org.python.core.*;
-
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class TranslationUtil {
+public class ContinueTargetNode extends StatementNode {
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
+    @Child protected BlockNode child;
 
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public ContinueTargetNode(BlockNode child) {
+        this.child = adoptChild(child);
     }
 
-    public static String isCompatibleException(RuntimeException excep) {
-        String retVal = null;
-        if (excep instanceof PException) {
-            PException ex = (PException) excep;
-            if (ex.getExceptionObject() instanceof PyType) {
-                PyType thrownException = (PyType) ex.getExceptionObject();
-                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
-                if (isException) {
-                    retVal = thrownException.getName();
-                }
-            }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            return child.execute(frame);
+        } catch (ContinueException ex) {
+            return PNone.NONE;
         }
-        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            retVal = "ZeroDivisionError";
-        }
-
-        return retVal;
     }
 
 }

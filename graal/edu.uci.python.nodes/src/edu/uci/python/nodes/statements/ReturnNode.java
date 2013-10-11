@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class ReturnNode extends StatementNode {
 
@@ -40,7 +41,7 @@ public class ReturnNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return null;
+        return PNone.NONE;
     }
 
     public static class ExplicitReturnNode extends ReturnNode {

@@ -22,39 +22,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.loop;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import java.util.*;
 
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class FunctionDefinitionNode extends StatementNode {
+@NodeChild(value = "iterator", type = PNode.class)
+public abstract class ForNode extends LoopNode {
 
-    private final String name;
+    @Child protected PNode target;
 
-    private final CallTarget callTarget;
-
-    @Child protected ParametersNode parameters;
-
-    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget) {
-        this.name = name;
-        this.parameters = adoptChild(parameters);
-        this.callTarget = callTarget;
+    public ForNode(PNode target, StatementNode body, BlockNode orelse) {
+        super(body, orelse);
+        this.target = adoptChild(target);
     }
 
-    public String getName() {
-        return name;
+    protected ForNode(ForNode previous) {
+        this(previous.target, previous.body, previous.orelse);
+    }
+
+    public abstract PNode getIterator();
+
+    @Specialization
+    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
+        loopOnIterator(frame, sequence);
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
+        loopOnIterator(frame, set);
+        return PNone.NONE;
+    }
+
+    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
+        Iterator<?> iter = iterable.iterator();
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+
+        while (iter.hasNext()) {
+            rvn.setValue(iter.next());
+            target.execute(frame);
+            body.executeVoid(frame);
+        }
+
+        orelse.executeVoid(frame);
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.evaluateDefaults(frame);
-        return new PFunction(name, parameters.parameterNames, callTarget);
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + name + ")";
+    public <R> R accept(StatementVisitor<R> visitor) {
+        return visitor.visitForNode(this);
     }
 }

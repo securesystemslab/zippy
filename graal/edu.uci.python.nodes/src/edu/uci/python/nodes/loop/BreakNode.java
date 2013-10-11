@@ -22,16 +22,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.loop;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
 
-public class ContinueNode extends StatementNode {
+public class BreakNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw ContinueException.instance;
+        throw BreakException.instance;
     }
+
 }

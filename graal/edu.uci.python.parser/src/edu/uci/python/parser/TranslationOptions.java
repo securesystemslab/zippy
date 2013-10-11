@@ -22,28 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.parser;
 
-import com.oracle.truffle.api.frame.*;
+public class TranslationOptions {
 
-import edu.uci.python.nodes.utils.*;
-import edu.uci.python.runtime.datatypes.*;
-
-public class ContinueTargetNode extends StatementNode {
-
-    @Child protected BlockNode child;
-
-    public ContinueTargetNode(BlockNode child) {
-        this.child = adoptChild(child);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return child.execute(frame);
-        } catch (ContinueException ex) {
-            return PNone.NONE;
-        }
-    }
+    public static final boolean RETURN_VALUE_IN_FRAME = true;
 
 }

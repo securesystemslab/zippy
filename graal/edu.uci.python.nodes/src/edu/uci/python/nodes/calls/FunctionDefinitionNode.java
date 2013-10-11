@@ -22,17 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.calls;
 
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.utils.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class BreakNode extends StatementNode {
+public class FunctionDefinitionNode extends PNode {
+
+    private final String name;
+
+    private final CallTarget callTarget;
+
+    @Child protected ParametersNode parameters;
+
+    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget) {
+        this.name = name;
+        this.parameters = adoptChild(parameters);
+        this.callTarget = callTarget;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw BreakException.instance;
+        parameters.evaluateDefaults(frame);
+        return new PFunction(name, parameters.getParameterNames(), callTarget);
     }
 
+    @Override
+    public String toString() {
+        return super.toString() + "(" + name + ")";
+    }
 }

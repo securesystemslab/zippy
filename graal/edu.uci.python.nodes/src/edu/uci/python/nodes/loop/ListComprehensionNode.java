@@ -22,60 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.loop;
 
-import java.util.*;
-
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.nodes.utils.*;
 
-@NodeChild(value = "iterator", type = PNode.class)
-public abstract class ForNode extends LoopNode {
+public abstract class ListComprehensionNode extends PNode {
 
-    @Child protected PNode target;
+    @Child ComprehensionNode comprehension;
 
-    public ForNode(PNode target, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
-        this.target = adoptChild(target);
+    public ListComprehensionNode(ComprehensionNode comprehension) {
+        this.comprehension = adoptChild(comprehension);
     }
 
-    protected ForNode(ForNode previous) {
-        this(previous.target, previous.body, previous.orelse);
-    }
-
-    public abstract PNode getIterator();
-
-    @Specialization
-    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence);
-        return PNone.NONE;
+    protected ListComprehensionNode(ListComprehensionNode node) {
+        this(node.comprehension);
     }
 
     @Specialization
-    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set);
-        return PNone.NONE;
-    }
-
-    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
-        Iterator<?> iter = iterable.iterator();
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
-        while (iter.hasNext()) {
-            rvn.setValue(iter.next());
-            target.execute(frame);
-            body.executeVoid(frame);
+    public Object doGeneric(VirtualFrame frame) {
+        try {
+            comprehension.execute(frame);
+        } catch (ExplicitReturnException ere) {
+            return ere.getValue();
         }
 
-        orelse.executeVoid(frame);
+        return null;
     }
 
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitForNode(this);
-    }
 }

@@ -22,38 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.loop;
 
-import org.python.antlr.base.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
-public class LoopInfo {
+import edu.uci.python.nodes.statements.*;
 
-    private final stmt loopNode;
+public abstract class LoopNode extends StatementNode {
 
-    private int continueCount = 0;
-    private int breakCount = 0;
+    @Child protected StatementNode body;
 
-    public LoopInfo(stmt loopNode) {
-        this.loopNode = loopNode;
+    @Child protected BlockNode orelse;
+
+    public LoopNode(StatementNode body, BlockNode orelse) {
+        this.body = adoptChild(body);
+        this.orelse = adoptChild(orelse);
     }
 
-    public stmt getLoopNode() {
-        return loopNode;
-    }
-
-    public void addContinue() {
-        continueCount++;
-    }
-
-    public void addBreak() {
-        breakCount++;
-    }
-
-    public boolean hasContinue() {
-        return continueCount > 0;
-    }
-
-    public boolean hasBreak() {
-        return breakCount > 0;
+    protected final void reportLoopCount(int count) {
+        CompilerAsserts.neverPartOfCompilation();
+        Node current = LoopNode.this.getParent();
+        while (current != null && !(current instanceof RootNode)) {
+            current = current.getParent();
+        }
+        if (current != null) {
+            RootNode root = (RootNode) current;
+            if (root.getCallTarget() instanceof LoopCountReceiver) {
+                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
+            }
+        }
     }
 }

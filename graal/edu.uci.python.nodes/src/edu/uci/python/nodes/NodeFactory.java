@@ -31,7 +31,11 @@ import java.util.List;
 import org.python.antlr.PythonTree;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
+
 import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.loop.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
+import edu.uci.python.nodes.loop.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
@@ -48,7 +52,6 @@ import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryComparisonNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
-import edu.uci.python.nodes.expressions.ComprehensionNodeFactory.*;
 import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
@@ -62,7 +65,7 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public StatementNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
         return new FunctionDefinitionNode(name, parameters, callTarget);
     }
 

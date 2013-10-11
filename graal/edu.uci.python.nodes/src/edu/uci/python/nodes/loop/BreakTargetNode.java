@@ -22,35 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.expressions;
+package edu.uci.python.nodes.loop;
 
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public abstract class ListComprehensionNode extends PNode {
+public class BreakTargetNode extends StatementNode {
 
-    @Child ComprehensionNode comprehension;
+    @Child protected LoopNode child;
 
-    public ListComprehensionNode(ComprehensionNode comprehension) {
-        this.comprehension = adoptChild(comprehension);
+    public BreakTargetNode(LoopNode child) {
+        this.child = adoptChild(child);
     }
 
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.comprehension);
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
+    @Override
+    public Object execute(VirtualFrame frame) {
         try {
-            comprehension.execute(frame);
-        } catch (ExplicitReturnException ere) {
-            return ere.getValue();
+            return child.execute(frame);
+        } catch (BreakException ex) {
+            return PNone.NONE;
         }
-
-        return null;
     }
 
 }

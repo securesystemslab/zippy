@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.loop;
 
 import java.util.*;
 
@@ -32,6 +32,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)

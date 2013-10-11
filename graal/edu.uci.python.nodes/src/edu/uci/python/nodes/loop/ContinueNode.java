@@ -22,53 +22,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.nodes.loop;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.python.antlr.base.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.utils.*;
 
-public class LoopsBookKeeper {
+public class ContinueNode extends StatementNode {
 
-    private final Stack<stmt> loops;
-    private final Map<stmt, LoopInfo> infos;
-
-    public LoopsBookKeeper() {
-        loops = new Stack<>();
-        infos = new HashMap<>();
-    }
-
-    public void beginLoop(stmt loop) {
-        loops.push(loop);
-        infos.put(loop, new LoopInfo(loop));
-    }
-
-    public LoopInfo endLoop() {
-        stmt loop = loops.pop();
-        return infos.remove(loop);
-    }
-
-    public void addBreak() {
-        stmt currentLoop = loops.peek();
-        LoopInfo info = infos.get(currentLoop);
-        info.addBreak();
-    }
-
-    public void addContinue() {
-        stmt currentLoop = loops.peek();
-        LoopInfo info = infos.get(currentLoop);
-        info.addContinue();
-    }
-
-    public void hasBreak() {
-        stmt currentLoop = loops.peek();
-        LoopInfo info = infos.get(currentLoop);
-        info.hasBreak();
-    }
-
-    public void hasContinue() {
-        stmt currentLoop = loops.peek();
-        LoopInfo info = infos.get(currentLoop);
-        info.hasContinue();
+    @Override
+    public Object execute(VirtualFrame frame) {
+        throw ContinueException.instance;
     }
 }

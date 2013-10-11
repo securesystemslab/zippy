@@ -22,33 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.parser;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
+import java.util.*;
 
-public abstract class LoopNode extends StatementNode {
+import org.python.antlr.*;
+import org.python.antlr.base.*;
+import org.python.core.*;
 
-    @Child protected StatementNode body;
+import edu.uci.python.runtime.datatypes.*;
 
-    @Child protected BlockNode orelse;
+public class TranslationUtil {
 
-    public LoopNode(StatementNode body, BlockNode orelse) {
-        this.body = adoptChild(body);
-        this.orelse = adoptChild(orelse);
+    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
+        List<PythonTree> pythonTreeList = new ArrayList<>();
+
+        for (stmt s : argsInit) {
+            pythonTreeList.add(s);
+        }
+
+        return pythonTreeList;
     }
 
-    protected final void reportLoopCount(int count) {
-        CompilerAsserts.neverPartOfCompilation();
-        Node current = LoopNode.this.getParent();
-        while (current != null && !(current instanceof RootNode)) {
-            current = current.getParent();
-        }
-        if (current != null) {
-            RootNode root = (RootNode) current;
-            if (root.getCallTarget() instanceof LoopCountReceiver) {
-                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
+    public static String isCompatibleException(RuntimeException excep) {
+        String retVal = null;
+        if (excep instanceof PException) {
+            PException ex = (PException) excep;
+            if (ex.getExceptionObject() instanceof PyType) {
+                PyType thrownException = (PyType) ex.getExceptionObject();
+                boolean isException = thrownException.getModule().toString().compareTo("exceptions") == 0;
+                if (isException) {
+                    retVal = thrownException.getName();
+                }
             }
         }
+        if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
+            retVal = "ZeroDivisionError";
+        }
+
+        return retVal;
     }
+
 }

@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 

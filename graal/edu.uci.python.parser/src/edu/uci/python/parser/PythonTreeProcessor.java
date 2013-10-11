@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.parser;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.translation.TranslationEnvironment.ScopeKind;
+import edu.uci.python.parser.TranslationEnvironment.ScopeKind;
 
 public class PythonTreeProcessor extends Visitor {
 

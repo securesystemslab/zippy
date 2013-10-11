@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.parser;
 
 import java.util.*;
 import java.util.List;
@@ -39,12 +39,15 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.translation.TranslationEnvironment.*;
+import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.parser.TranslationEnvironment.ScopeKind;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 

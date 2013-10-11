@@ -22,28 +22,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.parser;
 
-import com.oracle.truffle.api.frame.*;
+import org.python.antlr.base.*;
 
-import edu.uci.python.nodes.utils.*;
-import edu.uci.python.runtime.datatypes.*;
+public class LoopInfo {
 
-public class BreakTargetNode extends StatementNode {
+    private final stmt loopNode;
 
-    @Child protected LoopNode child;
+    private int continueCount = 0;
+    private int breakCount = 0;
 
-    public BreakTargetNode(LoopNode child) {
-        this.child = adoptChild(child);
+    public LoopInfo(stmt loopNode) {
+        this.loopNode = loopNode;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return child.execute(frame);
-        } catch (BreakException ex) {
-            return PNone.NONE;
-        }
+    public stmt getLoopNode() {
+        return loopNode;
     }
 
+    public void addContinue() {
+        continueCount++;
+    }
+
+    public void addBreak() {
+        breakCount++;
+    }
+
+    public boolean hasContinue() {
+        return continueCount > 0;
+    }
+
+    public boolean hasBreak() {
+        return breakCount > 0;
+    }
 }

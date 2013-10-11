@@ -28,7 +28,6 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class TryExceptNode extends StatementNode {
@@ -109,11 +108,12 @@ class GenericTryExceptNode extends TryExceptNode {
 
     @Override
     protected Object executeExcept(VirtualFrame frame, RuntimeException excep) {
-        String exception = TranslationUtil.isCompatibleException(excep);
-        if (exception != null) {
-            return findExcept(frame, exception);
-        } else {
-            throw new UnsupportedOperationException("Cannot execute this exception! " + excep.getClass());
-        }
+// String exception = TranslationUtil.isCompatibleException(excep);
+// if (exception != null) {
+// return findExcept(frame, exception);
+// } else {
+// throw new UnsupportedOperationException("Cannot execute this exception! " + excep.getClass());
+// }
+        return null;
     }
 }

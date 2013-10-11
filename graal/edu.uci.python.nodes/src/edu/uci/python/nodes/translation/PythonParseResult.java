@@ -36,11 +36,11 @@ public class PythonParseResult {
 
     private final Map<String, RootNode> functions = new HashMap<>();
 
-    protected void setModule(ModuleNode module) {
+    public void setModule(ModuleNode module) {
         this.module = module;
     }
 
-    protected void addParsedFunction(String name, FunctionRootNode function) {
+    public void addParsedFunction(String name, FunctionRootNode function) {
         functions.put(name, function);
     }
 
