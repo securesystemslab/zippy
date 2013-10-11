@@ -809,20 +809,20 @@ enum CompLevel {
   CompLevel_full_profile      = 3,         // C1, invocation & backedge counters + mdo
   CompLevel_full_optimization = 4,         // C2 or Shark
 
-#if defined(COMPILER2) || defined(SHARK) || defined(GRAAL)
-  CompLevel_highest_tier      = CompLevel_full_optimization,  // pure C2, tiered or pure Graal
-#elif defined(COMPILER1)
-  CompLevel_highest_tier      = CompLevel_simple,             // pure C1
+#if defined(COMPILER2) || defined(SHARK)
+  CompLevel_highest_tier      = CompLevel_full_optimization,  // pure C2 and tiered
+#elif defined(COMPILER1) || defined(GRAAL)
+  CompLevel_highest_tier      = CompLevel_simple,             // pure C1 or Graal
 #else
   CompLevel_highest_tier      = CompLevel_none,
 #endif
 
 #if defined(TIERED)
   CompLevel_initial_compile   = CompLevel_full_profile        // tiered
-#elif defined(COMPILER1)
-  CompLevel_initial_compile   = CompLevel_simple              // pure C1
-#elif defined(COMPILER2) || defined(SHARK) || defined(GRAAL)
-  CompLevel_initial_compile   = CompLevel_full_optimization   // pure C2 or pure Graal
+#elif defined(COMPILER1) || defined(GRAAL)
+  CompLevel_initial_compile   = CompLevel_simple              // pure C1 or Graal
+#elif defined(COMPILER2) || defined(SHARK)
+  CompLevel_initial_compile   = CompLevel_full_optimization   // pure C2
 #else
   CompLevel_initial_compile   = CompLevel_none
 #endif
