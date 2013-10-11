@@ -98,7 +98,7 @@ void PTXKernelArguments::do_float() {
             _success = false;
             return;
         }
-        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = floatval.f;
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) floatval.f;
         _bufferOffset += sizeof(floatval.f);
     }
     return;
@@ -131,7 +131,7 @@ void PTXKernelArguments::do_double() {
             _success = false;
             return;
         }
-        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = doubleval.d;
+        *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) doubleval.d;
         _bufferOffset += sizeof(doubleval.d);
     }
     return;
