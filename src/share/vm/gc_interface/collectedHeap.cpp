@@ -207,6 +207,9 @@ void CollectedHeap::pre_initialize() {
 #ifdef COMPILER2
   _defer_initial_card_mark =    ReduceInitialCardMarks && can_elide_tlab_store_barriers()
                              && (DeferInitialCardMark || card_mark_must_follow_store());
+#elif GRAAL
+  _defer_initial_card_mark =   GraalDeferredInitBarriers && can_elide_tlab_store_barriers()
+                               && (DeferInitialCardMark || card_mark_must_follow_store());
 #else
   assert(_defer_initial_card_mark == false, "Who would set it?");
 #endif
