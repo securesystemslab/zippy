@@ -172,9 +172,9 @@ void CompiledStaticCall::verify() {
     verify_alignment();
   }
 
+#ifndef GRAAL
   // Verify stub.
   address stub = find_stub();
-#ifndef GRAAL
   assert(stub != NULL, "no stub found for static call");
   // Creation also verifies the object.
   NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);

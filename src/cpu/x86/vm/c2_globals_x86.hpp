@@ -30,7 +30,6 @@
 
 // Sets the default values for platform dependent flags used by the server compiler.
 // (see c2_globals.hpp).  Alpha-sorted.
-
 define_pd_global(bool, BackgroundCompilation,        true);
 define_pd_global(bool, UseTLAB,                      true);
 define_pd_global(bool, ResizeTLAB,                   true);
@@ -46,6 +45,7 @@ define_pd_global(bool, ProfileInterpreter,           false);
 #else
 define_pd_global(bool, ProfileInterpreter,           true);
 #endif // CC_INTERP
+// Disable TieredCompilation while profile data problems are not resolved - same thing in c2_globals_sparc.hpp
 #ifdef GRAAL
 define_pd_global(bool, TieredCompilation,            false);
 #else
@@ -58,6 +58,7 @@ define_pd_global(intx, OnStackReplacePercentage,     140);
 define_pd_global(intx, ConditionalMoveLimit,         3);
 define_pd_global(intx, FLOATPRESSURE,                6);
 define_pd_global(intx, FreqInlineSize,               325);
+define_pd_global(intx, MinJumpTableSize,             10);
 #ifdef AMD64
 define_pd_global(intx, INTPRESSURE,                  13);
 define_pd_global(intx, InteriorEntryAlignment,       16);
@@ -95,8 +96,9 @@ define_pd_global(intx, ReservedCodeCacheSize,        64*M);
 #else
 define_pd_global(intx, ReservedCodeCacheSize,        48*M);
 #endif
-define_pd_global(uintx,CodeCacheMinBlockLength,      4);
+define_pd_global(uintx, CodeCacheMinBlockLength,     4);
 define_pd_global(uintx, CodeCacheMinimumUseSpace,    400*K);
+
 // Heap related flags
 define_pd_global(uintx,MetaspaceSize,    ScaleForWordSize(16*M));
 

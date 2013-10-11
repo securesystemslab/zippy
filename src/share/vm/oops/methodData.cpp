@@ -510,7 +510,7 @@ int MethodData::compute_allocation_size_in_bytes(methodHandle method) {
     int size_in_bytes = compute_data_size(&stream);
     data_size += size_in_bytes;
 
-    if (is_empty_data(size_in_bytes, c)) empty_bc_count++;
+    if (is_empty_data(size_in_bytes, c)) empty_bc_count += 1;
   }
   int object_size = in_bytes(data_offset()) + data_size;
 
@@ -703,7 +703,7 @@ void MethodData::initialize() {
     int size_in_bytes = initialize_data(&stream, data_size);
     data_size += size_in_bytes;
 
-    if (is_empty_data(size_in_bytes, c)) empty_bc_count++;
+    if (is_empty_data(size_in_bytes, c)) empty_bc_count += 1;
   }
   _data_size = data_size;
   int object_size = in_bytes(data_offset()) + data_size;

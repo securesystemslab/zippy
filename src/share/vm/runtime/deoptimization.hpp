@@ -63,7 +63,7 @@ class Deoptimization : AllStatic {
 #endif
 
     // recorded per method
-    Reason_unloaded,              // unloaded or class constant pool entry
+    Reason_unloaded,              // unloaded class or constant pool entry
     Reason_uninitialized,         // bad class state (uninitialized)
     Reason_unreached,             // code is not reached, compiler
     Reason_unhandled,             // arbitrary compiler limitation
@@ -80,8 +80,8 @@ class Deoptimization : AllStatic {
     Reason_jsr_mismatch                   = Reason_age,
 #endif
 
-    Reason_RECORDED_LIMIT = Reason_bimorphic  // some are not recorded per bc
     // Note:  Keep this enum in sync. with _trap_reason_name.
+    Reason_RECORDED_LIMIT = Reason_bimorphic  // some are not recorded per bc
     // Note:  Reason_RECORDED_LIMIT should be < 8 to fit into 3 bits of
     // DataLayout::trap_bits.  This dependency is enforced indirectly
     // via asserts, to avoid excessive direct header-to-header dependencies.
@@ -271,29 +271,26 @@ class Deoptimization : AllStatic {
 
   // trap_request codes
   static DeoptReason trap_request_reason(int trap_request) {
-    if (trap_request < 0) {
+    if (trap_request < 0)
       return (DeoptReason)
         ((~(trap_request) >> _reason_shift) & right_n_bits(_reason_bits));
-    } else {
+    else
       // standard reason for unloaded CP entry
       return Reason_unloaded;
-    }
   }
   static DeoptAction trap_request_action(int trap_request) {
-    if (trap_request < 0) {
+    if (trap_request < 0)
       return (DeoptAction)
         ((~(trap_request) >> _action_shift) & right_n_bits(_action_bits));
-    } else {
+    else
       // standard action for unloaded CP entry
       return _unloaded_action;
-    }
   }
   static int trap_request_index(int trap_request) {
-    if (trap_request < 0) {
+    if (trap_request < 0)
       return -1;
-    } else {
+    else
       return trap_request;
-    }
   }
   static int make_trap_request(DeoptReason reason, DeoptAction action,
                                int index = -1) {

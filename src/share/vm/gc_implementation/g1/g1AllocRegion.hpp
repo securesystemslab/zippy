@@ -183,7 +183,7 @@ public:
   }
 #endif
 
-  #if G1_ALLOC_REGION_TRACING
+#if G1_ALLOC_REGION_TRACING
   void trace(const char* str, size_t word_size = 0, HeapWord* result = NULL);
 #else // G1_ALLOC_REGION_TRACING
   void trace(const char* str, size_t word_size = 0, HeapWord* result = NULL) { }

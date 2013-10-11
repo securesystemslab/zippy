@@ -260,7 +260,7 @@ void print_statistics() {
 #endif //COMPILER1
     os::print_statistics();
   }
-  
+
   if (PrintLockStatistics || PrintPreciseBiasedLockingStatistics) {
     OptoRuntime::print_named_counters();
   }
@@ -555,6 +555,19 @@ void before_exit(JavaThread * thread) {
   // Shutdown NMT before exit. Otherwise,
   // it will run into trouble when system destroys static variables.
   MemTracker::shutdown(MemTracker::NMT_normal);
+
+  if (VerifyStringTableAtExit) {
+    int fail_cnt = 0;
+    {
+      MutexLocker ml(StringTable_lock);
+      fail_cnt = StringTable::verify_and_compare_entries();
+    }
+
+    if (fail_cnt != 0) {
+      tty->print_cr("ERROR: fail_cnt=%d", fail_cnt);
+      guarantee(fail_cnt == 0, "unexpected StringTable verification failures");
+    }
+  }
 
   #undef BEFORE_EXIT_NOT_RUN
   #undef BEFORE_EXIT_RUNNING

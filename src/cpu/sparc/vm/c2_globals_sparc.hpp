@@ -44,6 +44,7 @@ define_pd_global(bool, ProfileInterpreter,           false);
 #else
 define_pd_global(bool, ProfileInterpreter,           true);
 #endif // CC_INTERP
+// Disable TieredCompilation while profile data problems are not resolved - same thing in c2_globals_x86.hpp
 #ifdef GRAAL
 define_pd_global(bool, TieredCompilation,            false);
 #else
@@ -63,6 +64,7 @@ define_pd_global(intx, RegisterCostAreaRatio,        12000);
 define_pd_global(bool, UseTLAB,                      true);
 define_pd_global(bool, ResizeTLAB,                   true);
 define_pd_global(intx, LoopUnrollLimit,              60); // Design center runs on 1.3.1
+define_pd_global(intx, MinJumpTableSize,             5);
 
 // Peephole and CISC spilling both break the graph, and so makes the
 // scheduler sick.

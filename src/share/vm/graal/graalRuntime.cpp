@@ -350,14 +350,14 @@ JRT_END
 
 JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oop obj, jint flags))
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
-  bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
+  bool addr = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
   if (!string) {
-    if (!address && obj->is_oop_or_null(true)) {
+    if (!addr && obj->is_oop_or_null(true)) {
       char buf[O_BUFLEN];
-      tty->print("%s@%p", obj->klass()->name()->as_C_string(buf, O_BUFLEN), obj);
+      tty->print("%s@%p", obj->klass()->name()->as_C_string(buf, O_BUFLEN), (address)obj);
     } else {
-      tty->print("%p", obj);
+      tty->print("%p", (address)obj);
     }
   } else {
     ResourceMark rm;
@@ -378,7 +378,7 @@ JRT_LEAF(void, GraalRuntime::write_barrier_post(JavaThread* thread, void* card_a
   thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
-JRT_LEAF(jboolean, GraalRuntime::validate_object(JavaThread* thread,oopDesc* parent, oopDesc* child))
+JRT_LEAF(jboolean, GraalRuntime::validate_object(JavaThread* thread, oopDesc* parent, oopDesc* child))
   bool ret = true;
   if(!Universe::heap()->is_in_closed_subset(parent)) {
     tty->print_cr("Parent Object "INTPTR_FORMAT" not in heap", parent);
