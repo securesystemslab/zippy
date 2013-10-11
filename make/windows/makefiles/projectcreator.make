@@ -93,6 +93,10 @@ ProjectCreatorIDEOptions = \
         -disablePch        getThread_windows_$(Platform_arch).cpp \
         -disablePch_compiler2     opcodes.cpp
 
+!if "$(BUILD_WIN_SA)" != "1"
+BUILD_VM_DEF_FLAG=-nosa
+!endif
+
 # Common options for the IDE builds for c1, and c2
 ProjectCreatorIDEOptions=\
         $(ProjectCreatorIDEOptions) \
@@ -105,7 +109,7 @@ ProjectCreatorIDEOptions=\
         -jdkTargetRoot $(HOTSPOTJDKDIST) \
         -define ALIGN_STACK_FRAMES \
         -define VM_LITTLE_ENDIAN \
-        -prelink  "" "Generating vm.def..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	set JAVA_HOME=$(HOTSPOTJDKDIST)	$(HOTSPOTMKSHOME)\sh $(HOTSPOTWORKSPACE)\make\windows\build_vm_def.sh $(LD_VER)" \
+        -prelink  "" "Generating vm.def..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	set JAVA_HOME=$(HOTSPOTJDKDIST)	$(HOTSPOTMKSHOME)\sh $(HOTSPOTWORKSPACE)\make\windows\build_vm_def.sh $(BUILD_VM_DEF_FLAG) $(LD_VER)" \
         -postbuild "" "Building hotspot.exe..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	nmake -f $(HOTSPOTWORKSPACE)\make\windows\projectfiles\common\Makefile LOCAL_MAKE=$(HOTSPOTBUILDSPACE)\%f\local.make JAVA_HOME=$(HOTSPOTJDKDIST) launcher" \
         -ignoreFile jsig.c \
         -ignoreFile jvmtiEnvRecommended.cpp \
@@ -189,7 +193,6 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
  -define_compiler2 GRAAL \
- -define_compiler2 TIERED \
  -ignorePath_compiler2 graal/generated \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalFile_compiler2 ad_$(Platform_arch_model).cpp \

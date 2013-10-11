@@ -1635,7 +1635,7 @@ void MacroAssembler::call_VM_base(Register oop_result,
 #ifdef ASSERT
   // TraceBytecodes does not use r12 but saves it over the call, so don't verify
   // r12 is the heapbase.
-  LP64_ONLY(if ((UseCompressedOops || UseCompressedKlassPointers) && !TraceBytecodes) verify_heapbase("call_VM_base: heap base corrupted?");)
+  LP64_ONLY(if ((UseCompressedOops || UseCompressedClassPointers) && !TraceBytecodes) verify_heapbase("call_VM_base: heap base corrupted?");)
 #endif // ASSERT
 
   assert(java_thread != oop_result  , "cannot use the same register for java_thread & oop_result");
@@ -4802,7 +4802,7 @@ void MacroAssembler::restore_cpu_control_state_after_jni() {
 
 void MacroAssembler::load_klass(Register dst, Register src) {
 #ifdef _LP64
-  if (UseCompressedKlassPointers) {
+  if (UseCompressedClassPointers) {
     movl(dst, Address(src, oopDesc::klass_offset_in_bytes()));
     decode_klass_not_null(dst);
   } else
@@ -4817,7 +4817,7 @@ void MacroAssembler::load_prototype_header(Register dst, Register src) {
 
 void MacroAssembler::store_klass(Register dst, Register src) {
 #ifdef _LP64
-  if (UseCompressedKlassPointers) {
+  if (UseCompressedClassPointers) {
     encode_klass_not_null(src);
     movl(Address(dst, oopDesc::klass_offset_in_bytes()), src);
   } else
@@ -4892,7 +4892,7 @@ void MacroAssembler::store_heap_oop_null(Address dst) {
 
 #ifdef _LP64
 void MacroAssembler::store_klass_gap(Register dst, Register src) {
-  if (UseCompressedKlassPointers) {
+  if (UseCompressedClassPointers) {
     // Store to klass gap in destination
     movl(Address(dst, oopDesc::klass_gap_offset_in_bytes()), src);
   }
