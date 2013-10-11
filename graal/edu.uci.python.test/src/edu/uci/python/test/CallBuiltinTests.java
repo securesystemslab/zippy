@@ -38,4 +38,11 @@ public class CallBuiltinTests {
         assertPrints("42\n", source);
     }
 
+    @Test
+    public void strJoin() {
+        String source = "val = \"-\".join(\"12345\")\n" + //
+                        "print(val)\n";
+
+        assertPrints("1-2-3-4-5\n", source);
+    }
 }

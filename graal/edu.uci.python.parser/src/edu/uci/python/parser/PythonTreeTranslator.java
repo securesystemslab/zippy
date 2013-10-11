@@ -958,38 +958,34 @@ public class PythonTreeTranslator extends Visitor {
         StatementNode retVal = null;
         List<PNode> b = visitStatements(node.getInternalBody());
         List<PNode> o = visitStatements(node.getInternalOrelse());
-        BlockNode body = factory.createBlock(b);
-        BlockNode orelse = factory.createBlock(o);
+        BlockNode body = null;
+        BlockNode orelse = null;
 
         List<excepthandler> excepts = node.getInternalHandlers();
 
-        ExceptHandler except = (ExceptHandler) excepts.get(0);
-        PNode exceptType = (PNode) visit(except.getInternalType());
-        PNode exceptName = null;
-        if (except.getInternalName() != null) {
-            exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
-        }
-        List<PNode> exceptbody = visitStatements(except.getInternalBody());
-        BlockNode exceptBody = factory.createBlock(exceptbody);
-        retVal = factory.createTryExceptNode(body, orelse, exceptType, exceptName, exceptBody);
+        for (int i = 0; i < excepts.size(); i++) {
+            if (i == 0) {
+                body = factory.createBlock(b);
+            } else {
+                List<PNode> trynode = new ArrayList<>();
+                trynode.add(retVal);
+                body = factory.createBlock(trynode);
+            }
 
-        for (int i = 1; i < excepts.size(); i++) {
-            except = (ExceptHandler) excepts.get(i);
-            exceptType = (PNode) visit(except.getInternalType());
-            exceptName = null;
+            if (i == excepts.size() - 1) {
+                orelse = factory.createBlock(o);
+            }
+
+            ExceptHandler except = (ExceptHandler) excepts.get(i);
+            PNode exceptType = (PNode) visit(except.getInternalType());
+            PNode exceptName = null;
             if (except.getInternalName() != null) {
                 exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
             }
-            exceptbody = visitStatements(except.getInternalBody());
-            exceptBody = factory.createBlock(exceptbody);
-            List<PNode> trynode = new ArrayList<>();
-            trynode.add(retVal);
-            body = factory.createBlock(trynode);
-            retVal = factory.createTryExceptNode(body, null, exceptType, exceptName, exceptBody);
-        }
+            List<PNode> exceptbody = visitStatements(except.getInternalBody());
+            BlockNode exceptBody = factory.createBlock(exceptbody);
 
-        if (retVal == null) {
-            retVal = factory.createTryExceptNode(body, orelse, null, null, null);
+            retVal = factory.createTryExceptNode(body, orelse, exceptType, exceptName, exceptBody);
         }
 
         return retVal;
