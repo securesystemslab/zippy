@@ -29,7 +29,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class RaiseNode extends StatementNode {
@@ -59,11 +58,14 @@ public class RaiseNode extends StatementNode {
 // Object b = (tback == null) ? null : tback.execute(frame);
 
         if (t instanceof PyType) {
-            if (((PyType) t).getModule().toString().compareTo("exceptions") == 0)
+            if (((PyType) t).getModule().toString().compareTo("exceptions") == 0) {
                 throw new PException(t);
-            else
+
+            } else {
                 throw new RuntimeException("Uncoverd");
-        } else
+            }
+        } else {
             throw new RuntimeException("Uncoverd");
+        }
     }
 }

@@ -428,10 +428,6 @@ public class NodeFactory {
         return CallBuiltInWithOneArgNoKeywordNodeFactory.create(callee, name, argument);
     }
 
-    public PNode createCallWithTwoArgumentsNoKeyword(PNode callee, PNode argument0, PNode argument1) {
-        return CallFunctionWithTwoArgumentsNoKeywordNodeFactory.create(argument0, argument1, callee);
-    }
-
     public PNode createCallBuiltInWithTwoArgsNoKeyword(PCallable callee, String name, PNode argument0, PNode argument1) {
         return CallBuiltInWithTwoArgsNoKeywordNodeFactory.create(callee, name, argument0, argument1);
     }

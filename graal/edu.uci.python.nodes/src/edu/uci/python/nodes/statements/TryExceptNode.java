@@ -97,10 +97,12 @@ class GenericTryExceptNode extends TryExceptNode {
         for (ExceptNode except : excepts) {
             Object type = except.getExceptType().execute(frame);
             if (type instanceof PyType) {
-                if (catchedExcept.compareTo(((PyType) type).getName().toString()) == 0)
+                if (catchedExcept.compareTo(((PyType) type).getName().toString()) == 0) {
                     return except.execute(frame);
-            } else
+                }
+            } else {
                 throw new PException(type.getClass() + ": is unknown exception type!");
+            }
         }
         throw new PException(catchedExcept);
     }
