@@ -1484,6 +1484,12 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
   } else {
     assert(state == not_entrant, "other cases may need to be handled differently");
   }
+#ifdef GRAAL
+      if (_graal_installed_code != NULL) {
+        // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
+        HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+      }
+#endif
 
   if (TraceCreateZombies) {
     ResourceMark m;
