@@ -31,7 +31,15 @@ import com.oracle.graal.nodes.extended.*;
 
 public interface LoweringTool {
 
-    GraalCodeCacheProvider getRuntime();
+    MetaAccessProvider getMetaAccess();
+
+    CodeCacheProvider getCodeCache();
+
+    LoweringProvider getLowerer();
+
+    ConstantReflectionProvider getConstantReflection();
+
+    ForeignCallsProvider getForeignCalls();
 
     Replacements getReplacements();
 

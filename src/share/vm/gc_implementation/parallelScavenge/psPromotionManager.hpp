@@ -29,6 +29,8 @@
 #include "gc_implementation/shared/gcTrace.hpp"
 #include "gc_implementation/shared/copyFailedInfo.hpp"
 #include "memory/allocation.hpp"
+#include "memory/padded.hpp"
+#include "utilities/globalDefinitions.hpp"
 #include "utilities/taskqueue.hpp"
 
 //
@@ -51,14 +53,14 @@ class MutableSpace;
 class PSOldGen;
 class ParCompactionManager;
 
-class PSPromotionManager : public CHeapObj<mtGC> {
+class PSPromotionManager VALUE_OBJ_CLASS_SPEC {
   friend class PSScavenge;
   friend class PSRefProcTaskExecutor;
  private:
-  static PSPromotionManager**         _manager_array;
-  static OopStarTaskQueueSet*         _stack_array_depth;
-  static PSOldGen*                    _old_gen;
-  static MutableSpace*                _young_space;
+  static PaddedEnd<PSPromotionManager>* _manager_array;
+  static OopStarTaskQueueSet*           _stack_array_depth;
+  static PSOldGen*                      _old_gen;
+  static MutableSpace*                  _young_space;
 
 #if TASKQUEUE_STATS
   size_t                              _masked_pushes;
@@ -124,7 +126,7 @@ class PSPromotionManager : public CHeapObj<mtGC> {
 
   oop* mask_chunked_array_oop(oop obj) {
     assert(!is_oop_masked((oop*) obj), "invariant");
-    oop* ret = (oop*) ((uintptr_t)obj | PS_CHUNKED_ARRAY_OOP_MASK);
+    oop* ret = (oop*) (cast_from_oop<uintptr_t>(obj) | PS_CHUNKED_ARRAY_OOP_MASK);
     assert(is_oop_masked(ret), "invariant");
     return ret;
   }

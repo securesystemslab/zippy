@@ -1,6 +1,6 @@
 @echo off
 REM
-REM Copyright (c) 1999, 2011, Oracle and/or its affiliates. All rights reserved.
+REM Copyright (c) 1999, 2013, Oracle and/or its affiliates. All rights reserved.
 REM DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 REM
 REM This code is free software; you can redistribute it and/or modify it
@@ -86,6 +86,7 @@ for /F %%i in ('sh %HotSpotWorkSpace%/make/windows/get_msc_ver.sh') do set %%i
 
 echo **************************************************************
 set ProjectFile=%HotSpotBuildSpace%\jvm.vcproj
+echo MSC_VER = "%MSC_VER%" 
 if "%MSC_VER%" == "1200" (
 set ProjectFile=%HotSpotBuildSpace%\jvm.dsp
 echo Will generate VC6 project {unsupported}
@@ -100,7 +101,13 @@ if "%MSC_VER%" == "1600" (
 echo Will generate VC10 {Visual Studio 2010}
 set ProjectFile=%HotSpotBuildSpace%\jvm.vcxproj
 ) else (
+if "%MSC_VER%" == "1700" (
+echo Will generate VC10 {compatible with Visual Studio 2012}
+echo After opening in VS 2012, click "Update" when prompted.
+set ProjectFile=%HotSpotBuildSpace%\jvm.vcxproj
+) else (
 echo Will generate VC7 project {Visual Studio 2003 .NET}
+)
 )
 )
 )
@@ -152,7 +159,7 @@ echo   HotSpotJDKDist=%HotSpotJDKDist%
 
 REM This is now safe to do.
 :copyfiles
-for /D %%i in (graal, compiler1, compiler2, tiered, core) do (
+for /D %%i in (graal, compiler1, compiler2, tiered) do (
 if NOT EXIST %HotSpotBuildSpace%\%%i\generated mkdir %HotSpotBuildSpace%\%%i\generated
 copy %HotSpotWorkSpace%\make\windows\projectfiles\%%i\* %HotSpotBuildSpace%\%%i\generated > NUL
 )
@@ -160,7 +167,7 @@ copy %HotSpotWorkSpace%\make\windows\projectfiles\%%i\* %HotSpotBuildSpace%\%%i\
 REM force regneration of ProjectFile
 if exist %ProjectFile% del %ProjectFile%
 
-for /D %%i in (graal, compiler1, compiler2, tiered, core) do (
+for /D %%i in (graal, compiler1, compiler2, tiered) do (
 echo -- %%i --
 echo # Generated file!                                                        >    %HotSpotBuildSpace%\%%i\local.make
 echo # Changing a variable below and then deleting %ProjectFile% will cause  >>    %HotSpotBuildSpace%\%%i\local.make

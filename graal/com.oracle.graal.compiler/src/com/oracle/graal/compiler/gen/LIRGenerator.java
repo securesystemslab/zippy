@@ -60,7 +60,9 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public final LIR lir;
 
     protected final StructuredGraph graph;
-    protected final CodeCacheProvider runtime;
+    protected final MetaAccessProvider metaAccess;
+    protected final CodeCacheProvider codeCache;
+    protected final ForeignCallsProvider foreignCalls;
     protected final TargetDescription target;
     protected final CallingConvention cc;
 
@@ -85,16 +87,18 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
      */
     public abstract boolean canStoreConstant(Constant c);
 
-    public LIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+    public LIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
         this.graph = graph;
-        this.runtime = runtime;
+        this.metaAccess = providers.getMetaAccess();
+        this.codeCache = providers.getCodeCache();
+        this.foreignCalls = providers.getForeignCalls();
         this.target = target;
         this.frameMap = frameMap;
         if (graph.getEntryBCI() == StructuredGraph.INVOCATION_ENTRY_BCI) {
             this.cc = cc;
         } else {
-            JavaType[] parameterTypes = new JavaType[]{runtime.lookupJavaType(long.class)};
-            CallingConvention tmp = frameMap.registerConfig.getCallingConvention(JavaCallee, runtime.lookupJavaType(void.class), parameterTypes, target, false);
+            JavaType[] parameterTypes = new JavaType[]{metaAccess.lookupJavaType(long.class)};
+            CallingConvention tmp = frameMap.registerConfig.getCallingConvention(JavaCallee, metaAccess.lookupJavaType(void.class), parameterTypes, target, false);
             this.cc = new CallingConvention(cc.getStackSize(), cc.getReturn(), tmp.getArgument(0));
         }
         this.nodeOperands = graph.createNodeMap();
@@ -113,8 +117,18 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     @Override
-    public CodeCacheProvider getRuntime() {
-        return runtime;
+    public MetaAccessProvider getMetaAccess() {
+        return metaAccess;
+    }
+
+    @Override
+    public CodeCacheProvider getCodeCache() {
+        return codeCache;
+    }
+
+    @Override
+    public ForeignCallsProvider getForeignCalls() {
+        return foreignCalls;
     }
 
     public StructuredGraph getGraph() {
@@ -551,7 +565,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     @Override
     public void emitInvoke(Invoke x) {
         LoweredCallTargetNode callTarget = (LoweredCallTargetNode) x.callTarget();
-        CallingConvention invokeCc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.asNode().stamp().javaType(runtime), callTarget.signature(), target(), false);
+        CallingConvention invokeCc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.asNode().stamp().javaType(metaAccess), callTarget.signature(), target(), false);
         frameMap.callsMethod(invokeCc);
 
         Value[] parameters = visitInvokeArguments(invokeCc, callTarget.arguments());

@@ -753,7 +753,7 @@ typedef </xsl:text>
   </xsl:template>
 
 
-<!-- ======== HotSpotJavaType ======== -->
+<!-- ======== HotSpotType ======== -->
 
 <xsl:template match="parameters" mode="HotSpotSig">
   <xsl:variable name="length" select="count(param)"/>
@@ -777,7 +777,7 @@ typedef </xsl:text>
 <xsl:template match="param" mode="HotSpotSig">
   <xsl:param name="comma"/>
   <xsl:variable name="result">
-    <xsl:apply-templates select="child::*[position()=1]" mode="HotSpotJavaType"/>
+    <xsl:apply-templates select="child::*[position()=1]" mode="HotSpotType"/>
   </xsl:variable>
   <xsl:if test="string-length($result)!=0">
     <xsl:value-of select="$result"/>
@@ -789,7 +789,7 @@ typedef </xsl:text>
   </xsl:if>
 </xsl:template>
 
-<xsl:template match="jthread" mode="HotSpotJavaType">
+<xsl:template match="jthread" mode="HotSpotType">
   <xsl:choose>
     <xsl:when test="count(@impl)=0 or not(contains(@impl,'noconvert'))">
       <xsl:text>JavaThread*</xsl:text>
@@ -800,23 +800,23 @@ typedef </xsl:text>
   </xsl:choose>
 </xsl:template>
 
-<xsl:template match="jrawMonitorID" mode="HotSpotJavaType">
+<xsl:template match="jrawMonitorID" mode="HotSpotType">
   <xsl:text>JvmtiRawMonitor *</xsl:text>
 </xsl:template>
 
-<xsl:template match="jframeID" mode="HotSpotJavaType">
+<xsl:template match="jframeID" mode="HotSpotType">
   <xsl:text>jint</xsl:text>
 </xsl:template>
 
-<xsl:template match="jmethodID" mode="HotSpotJavaType">
+<xsl:template match="jmethodID" mode="HotSpotType">
   <xsl:text>Method*</xsl:text>
 </xsl:template>
 
-<xsl:template match="jfieldID" mode="HotSpotJavaType">
+<xsl:template match="jfieldID" mode="HotSpotType">
   <xsl:text>fieldDescriptor*</xsl:text>
 </xsl:template>
 
-<xsl:template match="jclass" mode="HotSpotJavaType">
+<xsl:template match="jclass" mode="HotSpotType">
   <!--
     classes passed as part of a class/method or class/field pair are used
     by the wrapper to get the internal type but are not needed by nor 
@@ -827,38 +827,38 @@ typedef </xsl:text>
   </xsl:if>
 </xsl:template>
 
-<xsl:template match="nullok" mode="HotSpotJavaType">
+<xsl:template match="nullok" mode="HotSpotType">
 </xsl:template>
 
-<xsl:template match="jobject|jvalue|jthreadGroup|enum|jint|jchar|jlong|jfloat|jdouble|jlocation|jboolean|char|uchar|size_t|void|struct" mode="HotSpotJavaType">
+<xsl:template match="jobject|jvalue|jthreadGroup|enum|jint|jchar|jlong|jfloat|jdouble|jlocation|jboolean|char|uchar|size_t|void|struct" mode="HotSpotType">
   <xsl:apply-templates select="." mode="btsig"/>
 </xsl:template>
 
-<xsl:template match="varargs" mode="HotSpotJavaType">
+<xsl:template match="varargs" mode="HotSpotType">
   <xsl:text> </xsl:text>
 </xsl:template>
 
-<xsl:template match="outptr|outbuf|allocfieldbuf" mode="HotSpotJavaType">
+<xsl:template match="outptr|outbuf|allocfieldbuf" mode="HotSpotType">
   <xsl:apply-templates select="child::*[position()=1]" mode="btsig"/>
   <xsl:text>*</xsl:text>
 </xsl:template>
 
-<xsl:template match="ptrtype" mode="HotSpotJavaType">
+<xsl:template match="ptrtype" mode="HotSpotType">
   <xsl:apply-templates select="child::*[position()=1]" mode="btsig"/>
 </xsl:template>
 
-<xsl:template match="inptr|inbuf|vmbuf" mode="HotSpotJavaType">
+<xsl:template match="inptr|inbuf|vmbuf" mode="HotSpotType">
   <xsl:text>const </xsl:text>
   <xsl:apply-templates select="child::*[position()=1]" mode="btsig"/>
   <xsl:text>*</xsl:text>
 </xsl:template>
 
-<xsl:template match="allocbuf|agentbuf" mode="HotSpotJavaType">
+<xsl:template match="allocbuf|agentbuf" mode="HotSpotType">
   <xsl:apply-templates select="child::*[position()=1]" mode="btsig"/>
   <xsl:text>**</xsl:text>
 </xsl:template>
 
-<xsl:template match="allocallocbuf" mode="HotSpotJavaType">
+<xsl:template match="allocallocbuf" mode="HotSpotType">
   <xsl:apply-templates select="child::*[position()=1]" mode="btsig"/>
   <xsl:text>***</xsl:text>
 </xsl:template>

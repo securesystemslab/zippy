@@ -112,7 +112,7 @@ public class IntegerDivNode extends FixedBinaryNode implements Canonicalizable, 
 
     @Override
     public void lower(LoweringTool tool) {
-        tool.getRuntime().lower(this, tool);
+        tool.getLowerer().lower(this, tool);
     }
 
     @Override

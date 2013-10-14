@@ -169,29 +169,19 @@ jint Unsafe_invocation_key_to_method_slot(jint key) {
   OrderAccess::release_store_fence((volatile type_name*)index_oop_from_field_offset_long(p, offset), x);
 
 // Macros for oops that check UseCompressedOops
-#ifndef GRAAL
+
 #define GET_OOP_FIELD(obj, offset, v) \
-  oop p = JNIHandles::resolve(obj); \
-  oop v; \
-  if (UseCompressedOops) { \
+  oop p = JNIHandles::resolve(obj);   \
+  oop v;                              \
+   /* Uncompression is not performed to unsafeAccess with null object. \
+    * This concerns accesses to the metaspace such as the classMirrorOffset in Graal which is not compressed.*/ \
+  if (UseCompressedOops GRAAL_ONLY(&& p != NULL && offset >= oopDesc::header_size())) {            \
     narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
-    v = oopDesc::decode_heap_oop(n); \
-  } else { \
-    v = *(oop*)index_oop_from_field_offset_long(p, offset); \
+    v = oopDesc::decode_heap_oop(n);                                \
+  } else {                            \
+    v = *(oop*)index_oop_from_field_offset_long(p, offset);                 \
   }
-#else
-#define GET_OOP_FIELD(obj, offset, v) \
-   oop p = JNIHandles::resolve(obj); \
-   oop v; \
-   /* Uncompression is not performed to unsafeAccess with null object.
-    * This concerns accesses to the metaspace such as the classMirrorOffset which is not compressed.*/ \
-   if (UseCompressedOops && p != NULL && offset >= oopDesc::header_size()) { \
-     narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
-     v = oopDesc::decode_heap_oop(n); \
-   } else { \
-     v = *(oop*)index_oop_from_field_offset_long(p, offset); \
-   }
-#endif
+
 
 // Get/SetObject must be special-cased, since it works with handles.
 
@@ -304,9 +294,9 @@ UNSAFE_ENTRY(jobject, Unsafe_GetObjectVolatile(JNIEnv *env, jobject unsafe, jobj
   volatile oop v;
   if (UseCompressedOops) {
     volatile narrowOop n = *(volatile narrowOop*) addr;
-    v = oopDesc::decode_heap_oop(n);
+    (void)const_cast<oop&>(v = oopDesc::decode_heap_oop(n));
   } else {
-    v = *(volatile oop*) addr;
+    (void)const_cast<oop&>(v = *(volatile oop*) addr);
   }
   OrderAccess::acquire();
   return JNIHandles::make_local(env, v);
@@ -1234,9 +1224,9 @@ UNSAFE_ENTRY(void, Unsafe_Park(JNIEnv *env, jobject unsafe, jboolean isAbsolute,
 #endif /* USDT2 */
   if (event.should_commit()) {
     oop obj = thread->current_park_blocker();
-    event.set_klass(obj ? obj->klass() : NULL);
+    event.set_klass((obj != NULL) ? obj->klass() : NULL);
     event.set_timeout(time);
-    event.set_address(obj ? (TYPE_ADDRESS) (uintptr_t) obj : 0);
+    event.set_address((obj != NULL) ? (TYPE_ADDRESS) cast_from_oop<uintptr_t>(obj) : 0);
     event.commit();
   }
 UNSAFE_END

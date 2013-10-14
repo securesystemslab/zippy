@@ -55,6 +55,9 @@
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \
+  product(bool, GraalDeferredInitBarriers, false,                           \
+          "Defer write barriers of young objects")                          \
+                                                                            \
   develop(bool, GraalUseFastLocking, true,                                  \
           "Use fast inlined locking code")                                  \
                                                                             \

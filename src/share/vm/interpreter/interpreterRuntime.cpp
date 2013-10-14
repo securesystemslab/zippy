@@ -511,15 +511,15 @@ IRT_END
 
 IRT_ENTRY(void, InterpreterRuntime::resolve_get_put(JavaThread* thread, Bytecodes::Code bytecode))
   // resolve field
-  FieldAccessInfo info;
+  fieldDescriptor info;
   constantPoolHandle pool(thread, method(thread)->constants());
   bool is_put    = (bytecode == Bytecodes::_putfield  || bytecode == Bytecodes::_putstatic);
   bool is_static = (bytecode == Bytecodes::_getstatic || bytecode == Bytecodes::_putstatic);
 
   {
     JvmtiHideSingleStepping jhss(thread);
-    LinkResolver::resolve_field(info, pool, get_index_u2_cpcache(thread, bytecode),
-                                bytecode, false, CHECK);
+    LinkResolver::resolve_field_access(info, pool, get_index_u2_cpcache(thread, bytecode),
+                                       bytecode, CHECK);
   } // end JvmtiHideSingleStepping
 
   // check if link resolution caused cpCache to be updated
@@ -539,7 +539,7 @@ IRT_ENTRY(void, InterpreterRuntime::resolve_get_put(JavaThread* thread, Bytecode
   // class is intitialized.  This is required so that access to the static
   // field will call the initialization function every time until the class
   // is completely initialized ala. in 2.17.5 in JVM Specification.
-  InstanceKlass *klass = InstanceKlass::cast(info.klass()());
+  InstanceKlass* klass = InstanceKlass::cast(info.field_holder());
   bool uninitialized_static = ((bytecode == Bytecodes::_getstatic || bytecode == Bytecodes::_putstatic) &&
                                !klass->is_initialized());
   Bytecodes::Code get_code = (Bytecodes::Code)0;
@@ -554,9 +554,9 @@ IRT_ENTRY(void, InterpreterRuntime::resolve_get_put(JavaThread* thread, Bytecode
   cache_entry(thread)->set_field(
     get_code,
     put_code,
-    info.klass(),
-    info.field_index(),
-    info.field_offset(),
+    info.field_holder(),
+    info.index(),
+    info.offset(),
     state,
     info.access_flags().is_final(),
     info.access_flags().is_volatile(),
@@ -701,29 +701,55 @@ IRT_ENTRY(void, InterpreterRuntime::resolve_invoke(JavaThread* thread, Bytecodes
   if (already_resolved(thread)) return;
 
   if (bytecode == Bytecodes::_invokeinterface) {
-
     if (TraceItables && Verbose) {
       ResourceMark rm(thread);
       tty->print_cr("Resolving: klass: %s to method: %s", info.resolved_klass()->name()->as_C_string(), info.resolved_method()->name()->as_C_string());
     }
+  }
+#ifdef ASSERT
+  if (bytecode == Bytecodes::_invokeinterface) {
     if (info.resolved_method()->method_holder() ==
                                             SystemDictionary::Object_klass()) {
       // NOTE: THIS IS A FIX FOR A CORNER CASE in the JVM spec
-      // (see also cpCacheOop.cpp for details)
+      // (see also CallInfo::set_interface for details)
+      assert(info.call_kind() == CallInfo::vtable_call ||
+             info.call_kind() == CallInfo::direct_call, "");
       methodHandle rm = info.resolved_method();
       assert(rm->is_final() || info.has_vtable_index(),
              "should have been set already");
-      cache_entry(thread)->set_method(bytecode, rm, info.vtable_index());
+    } else if (!info.resolved_method()->has_itable_index()) {
+      // Resolved something like CharSequence.toString.  Use vtable not itable.
+      assert(info.call_kind() != CallInfo::itable_call, "");
     } else {
       // Setup itable entry
-      int index = klassItable::compute_itable_index(info.resolved_method()());
-      cache_entry(thread)->set_interface_call(info.resolved_method(), index);
+      assert(info.call_kind() == CallInfo::itable_call, "");
+      int index = info.resolved_method()->itable_index();
+      assert(info.itable_index() == index, "");
     }
   } else {
-    cache_entry(thread)->set_method(
+    assert(info.call_kind() == CallInfo::direct_call ||
+           info.call_kind() == CallInfo::vtable_call, "");
+  }
+#endif
+  switch (info.call_kind()) {
+  case CallInfo::direct_call:
+    cache_entry(thread)->set_direct_call(
+      bytecode,
+      info.resolved_method());
+    break;
+  case CallInfo::vtable_call:
+    cache_entry(thread)->set_vtable_call(
       bytecode,
       info.resolved_method(),
       info.vtable_index());
+    break;
+  case CallInfo::itable_call:
+    cache_entry(thread)->set_itable_call(
+      bytecode,
+      info.resolved_method(),
+      info.itable_index());
+    break;
+  default:  ShouldNotReachHere();
   }
 }
 IRT_END
@@ -1224,3 +1250,26 @@ IRT_LEAF(void, InterpreterRuntime::popframe_move_outgoing_args(JavaThread* threa
                        size_of_arguments * Interpreter::stackElementSize);
 IRT_END
 #endif
+
+#if INCLUDE_JVMTI
+// This is a support of the JVMTI PopFrame interface.
+// Make sure it is an invokestatic of a polymorphic intrinsic that has a member_name argument
+// and return it as a vm_result so that it can be reloaded in the list of invokestatic parameters.
+// The dmh argument is a reference to a DirectMethoHandle that has a member name field.
+IRT_ENTRY(void, InterpreterRuntime::member_name_arg_or_null(JavaThread* thread, address dmh,
+                                                            Method* method, address bcp))
+  Bytecodes::Code code = Bytecodes::code_at(method, bcp);
+  if (code != Bytecodes::_invokestatic) {
+    return;
+  }
+  ConstantPool* cpool = method->constants();
+  int cp_index = Bytes::get_native_u2(bcp + 1) + ConstantPool::CPCACHE_INDEX_TAG;
+  Symbol* cname = cpool->klass_name_at(cpool->klass_ref_index_at(cp_index));
+  Symbol* mname = cpool->name_ref_at(cp_index);
+
+  if (MethodHandles::has_member_arg(cname, mname)) {
+    oop member_name = java_lang_invoke_DirectMethodHandle::member((oop)dmh);
+    thread->set_vm_result(member_name);
+  }
+IRT_END
+#endif // INCLUDE_JVMTI

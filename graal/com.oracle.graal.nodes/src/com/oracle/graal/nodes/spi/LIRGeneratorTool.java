@@ -33,7 +33,11 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     TargetDescription target();
 
-    CodeCacheProvider getRuntime();
+    MetaAccessProvider getMetaAccess();
+
+    CodeCacheProvider getCodeCache();
+
+    ForeignCallsProvider getForeignCalls();
 
     /**
      * Checks whether the supplied constant can be used without loading it into a register for most

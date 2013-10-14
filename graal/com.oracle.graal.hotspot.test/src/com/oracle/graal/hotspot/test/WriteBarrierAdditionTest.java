@@ -53,13 +53,12 @@ import com.oracle.graal.phases.tiers.*;
  * offsets) passed as input parameters can be checked against printed output from the G1 write
  * barrier snippets. The runtime checks have been validated offline.
  */
-
 public class WriteBarrierAdditionTest extends GraalCompilerTest {
 
-    private final MetaAccessProvider metaAccessProvider;
+    private final MetaAccessProvider metaAccess;
 
     public WriteBarrierAdditionTest() {
-        this.metaAccessProvider = Graal.getRequiredCapability(MetaAccessProvider.class);
+        this.metaAccess = Graal.getRequiredCapability(MetaAccessProvider.class);
     }
 
     public static class Container {
@@ -73,7 +72,13 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test1() throws Exception {
-        test("test1Snippet", useG1GC() ? 4 : 2);
+        int expectedBarriers = 0;
+        if (useG1GC()) {
+            expectedBarriers = (useDeferredInitBarriers() ? 0 : 4);
+        } else {
+            expectedBarriers = (useDeferredInitBarriers() ? 0 : 2);
+        }
+        test("test1Snippet", expectedBarriers);
     }
 
     public static void test1Snippet() {
@@ -89,7 +94,13 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test2() throws Exception {
-        test("test2Snippet", useG1GC() ? 8 : 4);
+        int expectedBarriers = 0;
+        if (useG1GC()) {
+            expectedBarriers = (useDeferredInitBarriers() ? 0 : 8);
+        } else {
+            expectedBarriers = (useDeferredInitBarriers() ? 0 : 4);
+        }
+        test("test2Snippet", expectedBarriers);
     }
 
     public static void test2Snippet(boolean test) {
@@ -135,7 +146,13 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test4() throws Exception {
-        test("test4Snippet", useG1GC() ? 5 : 2);
+        int expectedBarriers = 0;
+        if (useG1GC()) {
+            expectedBarriers = (useDeferredInitBarriers() ? 1 : 5);
+        } else {
+            expectedBarriers = (useDeferredInitBarriers() ? 0 : 2);
+        }
+        test("test4Snippet", expectedBarriers);
     }
 
     public static Object test4Snippet() {
@@ -157,7 +174,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     }
 
     public static Object test5Snippet() throws Exception {
-        return UnsafeLoadNode.load(wr, 0, useCompressedOops() ? 12 : 16, Kind.Object);
+        return UnsafeLoadNode.load(wr, useCompressedOops() ? 12 : 16, Kind.Object);
     }
 
     /**
@@ -232,12 +249,12 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     public static Object testUnsafeLoad(Object a, Object b, Object c) throws Exception {
         final int offset = (c == null ? 0 : ((Integer) c).intValue());
         final long displacement = (b == null ? 0 : ((Long) b).longValue());
-        return UnsafeLoadNode.load(a, offset, displacement, Kind.Object);
+        return UnsafeLoadNode.load(a, offset + displacement, Kind.Object);
     }
 
     private HotSpotInstalledCode getInstalledCode(String name) throws Exception {
         final Method method = WriteBarrierAdditionTest.class.getMethod(name, Object.class, Object.class, Object.class);
-        final HotSpotResolvedJavaMethod javaMethod = (HotSpotResolvedJavaMethod) metaAccessProvider.lookupJavaMethod(method);
+        final HotSpotResolvedJavaMethod javaMethod = (HotSpotResolvedJavaMethod) metaAccess.lookupJavaMethod(method);
         final HotSpotInstalledCode installedBenchmarkCode = (HotSpotInstalledCode) getCode(javaMethod, parse(method));
         return installedBenchmarkCode;
     }
@@ -247,8 +264,8 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
 
             public void run() {
                 StructuredGraph graph = parse(snippet);
-                HighTierContext highContext = new HighTierContext(runtime(), new Assumptions(false), replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
-                MidTierContext midContext = new MidTierContext(runtime(), new Assumptions(false), replacements, runtime().getTarget(), OptimisticOptimizations.ALL);
+                HighTierContext highContext = new HighTierContext(getProviders(), new Assumptions(false), null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
+                MidTierContext midContext = new MidTierContext(getProviders(), new Assumptions(false), getCodeCache().getTarget(), OptimisticOptimizations.ALL);
                 new InliningPhase(new InliningPhase.InlineEverythingPolicy(), new CanonicalizerPhase(true)).apply(graph, highContext);
                 new LoweringPhase(new CanonicalizerPhase(true)).apply(graph, highContext);
                 new GuardLoweringPhase().apply(graph, midContext);
@@ -258,9 +275,10 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
 
                 int barriers = 0;
                 if (useG1GC()) {
-                    barriers = graph.getNodes(G1ReferentFieldReadBarrier.class).count() + graph.getNodes(G1PreWriteBarrier.class).count() + graph.getNodes(G1PostWriteBarrier.class).count();
+                    barriers = graph.getNodes().filter(G1ReferentFieldReadBarrier.class).count() + graph.getNodes().filter(G1PreWriteBarrier.class).count() +
+                                    graph.getNodes().filter(G1PostWriteBarrier.class).count();
                 } else {
-                    barriers = graph.getNodes(SerialWriteBarrier.class).count();
+                    barriers = graph.getNodes().filter(SerialWriteBarrier.class).count();
                 }
                 Assert.assertEquals(expectedBarriers, barriers);
                 for (WriteNode write : graph.getNodes().filter(WriteNode.class)) {

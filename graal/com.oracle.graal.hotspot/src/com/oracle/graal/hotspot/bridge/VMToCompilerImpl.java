@@ -179,10 +179,10 @@ public class VMToCompilerImpl implements VMToCompiler {
             }
         }
 
-        assert VerifyHotSpotOptionsPhase.checkOptions();
+        final HotSpotRuntime runtime = graalRuntime.getCapability(HotSpotRuntime.class);
+        assert VerifyOptionsPhase.checkOptions(runtime, runtime);
 
         // Install intrinsics.
-        final HotSpotRuntime runtime = graalRuntime.getCapability(HotSpotRuntime.class);
         final Replacements replacements = graalRuntime.getCapability(Replacements.class);
         if (Intrinsify.getValue()) {
             Debug.scope("RegisterReplacements", new Object[]{new DebugDumpScope("RegisterReplacements")}, new Runnable() {
@@ -687,7 +687,7 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     public PhasePlan createPhasePlan(OptimisticOptimizations optimisticOpts, boolean onStackReplacement) {
         PhasePlan phasePlan = new PhasePlan();
-        phasePlan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(graalRuntime.getRuntime(), GraphBuilderConfiguration.getDefault(), optimisticOpts));
+        phasePlan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(graalRuntime.getRuntime(), graalRuntime.getRuntime(), GraphBuilderConfiguration.getDefault(), optimisticOpts));
         if (onStackReplacement) {
             phasePlan.addPhase(PhasePosition.AFTER_PARSING, new OnStackReplacementPhase());
         }
