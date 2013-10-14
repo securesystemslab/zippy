@@ -34,75 +34,48 @@
 // Parens left off in the following for the enum decl below.
 #define FLAG_MEMBER(flag) Flag_##flag
 
-#define RUNTIME_PRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#define RUNTIME_PD_PRODUCT_FLAG_MEMBER(type, name, doc)        FLAG_MEMBER(name),
-#define RUNTIME_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
+#define RUNTIME_PRODUCT_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
+#define RUNTIME_PD_PRODUCT_FLAG_MEMBER(type, name, doc)          FLAG_MEMBER(name),
+#define RUNTIME_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)   FLAG_MEMBER(name),
 #define RUNTIME_EXPERIMENTAL_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
-#define RUNTIME_MANAGEABLE_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
-#define RUNTIME_PRODUCT_RW_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
-#ifdef PRODUCT
-  #define RUNTIME_DEVELOP_FLAG_MEMBER(type, name, value, doc)  /* flag is constant */
-  #define RUNTIME_PD_DEVELOP_FLAG_MEMBER(type, name, doc)      /* flag is constant */
-  #define RUNTIME_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
-#else
-  #define RUNTIME_DEVELOP_FLAG_MEMBER(type, name, value, doc)  FLAG_MEMBER(name),
-  #define RUNTIME_PD_DEVELOP_FLAG_MEMBER(type, name, doc)      FLAG_MEMBER(name),
-  #define RUNTIME_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
-#endif
+#define RUNTIME_MANAGEABLE_FLAG_MEMBER(type, name, value, doc)   FLAG_MEMBER(name),
+#define RUNTIME_PRODUCT_RW_FLAG_MEMBER(type, name, value, doc)   FLAG_MEMBER(name),
+#define RUNTIME_DEVELOP_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
+#define RUNTIME_PD_DEVELOP_FLAG_MEMBER(type, name, doc)          FLAG_MEMBER(name),
+#define RUNTIME_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)   FLAG_MEMBER(name),
+
 #ifdef _LP64
-#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
+#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER(type, name, value, doc) FLAG_MEMBER(name),
 #else
-#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER(type, name, value, doc)    /* flag is constant */
+#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER(type, name, value, doc) /* flag is constant */
 #endif // _LP64
 
-#define C1_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
-#define C1_PD_PRODUCT_FLAG_MEMBER(type, name, doc)             FLAG_MEMBER(name),
-#ifdef PRODUCT
-  #define C1_DEVELOP_FLAG_MEMBER(type, name, value, doc)       /* flag is constant */
-  #define C1_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           /* flag is constant */
-  #define C1_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
-#else
-  #define C1_DEVELOP_FLAG_MEMBER(type, name, value, doc)       FLAG_MEMBER(name),
-  #define C1_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           FLAG_MEMBER(name),
-  #define C1_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#endif
+#define C1_PRODUCT_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define C1_PD_PRODUCT_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define C1_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)        FLAG_MEMBER(name),
+#define C1_DEVELOP_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define C1_PD_DEVELOP_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define C1_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)        FLAG_MEMBER(name),
 
-#define GRAAL_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
-#define GRAAL_PD_PRODUCT_FLAG_MEMBER(type, name, doc)             FLAG_MEMBER(name),
-#ifdef PRODUCT
-  #define GRAAL_DEVELOP_FLAG_MEMBER(type, name, value, doc)       /* flag is constant */
-  #define GRAAL_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           /* flag is constant */
-  #define GRAAL_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
-#else
-  #define GRAAL_DEVELOP_FLAG_MEMBER(type, name, value, doc)       FLAG_MEMBER(name),
-  #define GRAAL_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           FLAG_MEMBER(name),
-  #define GRAAL_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#endif
+#define GRAAL_PRODUCT_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define GRAAL_PD_PRODUCT_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define GRAAL_DEVELOP_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define GRAAL_PD_DEVELOP_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define GRAAL_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)        FLAG_MEMBER(name),
 
-#define C2_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
-#define C2_PD_PRODUCT_FLAG_MEMBER(type, name, doc)             FLAG_MEMBER(name),
-#define C2_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
-#define C2_EXPERIMENTAL_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#ifdef PRODUCT
-  #define C2_DEVELOP_FLAG_MEMBER(type, name, value, doc)       /* flag is constant */
-  #define C2_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           /* flag is constant */
-  #define C2_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
-#else
-  #define C2_DEVELOP_FLAG_MEMBER(type, name, value, doc)       FLAG_MEMBER(name),
-  #define C2_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           FLAG_MEMBER(name),
-  #define C2_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#endif
+#define C2_PRODUCT_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define C2_PD_PRODUCT_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define C2_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)        FLAG_MEMBER(name),
+#define C2_EXPERIMENTAL_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
+#define C2_DEVELOP_FLAG_MEMBER(type, name, value, doc)           FLAG_MEMBER(name),
+#define C2_PD_DEVELOP_FLAG_MEMBER(type, name, doc)               FLAG_MEMBER(name),
+#define C2_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)        FLAG_MEMBER(name),
 
 #define ARCH_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
 #define ARCH_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
 #define ARCH_EXPERIMENTAL_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#ifdef PRODUCT
-  #define ARCH_DEVELOP_FLAG_MEMBER(type, name, value, doc)       /* flag is constant */
-  #define ARCH_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
-#else
-  #define ARCH_DEVELOP_FLAG_MEMBER(type, name, value, doc)       FLAG_MEMBER(name),
-  #define ARCH_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
-#endif
+#define ARCH_DEVELOP_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
+#define ARCH_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
 
 typedef enum {
  RUNTIME_FLAGS(RUNTIME_DEVELOP_FLAG_MEMBER, RUNTIME_PD_DEVELOP_FLAG_MEMBER, RUNTIME_PRODUCT_FLAG_MEMBER, RUNTIME_PD_PRODUCT_FLAG_MEMBER, RUNTIME_DIAGNOSTIC_FLAG_MEMBER, RUNTIME_EXPERIMENTAL_FLAG_MEMBER, RUNTIME_NOTPRODUCT_FLAG_MEMBER, RUNTIME_MANAGEABLE_FLAG_MEMBER, RUNTIME_PRODUCT_RW_FLAG_MEMBER, RUNTIME_LP64_PRODUCT_FLAG_MEMBER)
@@ -111,10 +84,7 @@ typedef enum {
  G1_FLAGS(RUNTIME_DEVELOP_FLAG_MEMBER, RUNTIME_PD_DEVELOP_FLAG_MEMBER, RUNTIME_PRODUCT_FLAG_MEMBER, RUNTIME_PD_PRODUCT_FLAG_MEMBER, RUNTIME_DIAGNOSTIC_FLAG_MEMBER, RUNTIME_EXPERIMENTAL_FLAG_MEMBER, RUNTIME_NOTPRODUCT_FLAG_MEMBER, RUNTIME_MANAGEABLE_FLAG_MEMBER, RUNTIME_PRODUCT_RW_FLAG_MEMBER)
 #endif // INCLUDE_ALL_GCS
 #ifdef COMPILER1
- C1_FLAGS(C1_DEVELOP_FLAG_MEMBER, C1_PD_DEVELOP_FLAG_MEMBER, C1_PRODUCT_FLAG_MEMBER, C1_PD_PRODUCT_FLAG_MEMBER, C1_NOTPRODUCT_FLAG_MEMBER)
-#endif
-#ifdef GRAAL
- GRAAL_FLAGS(GRAAL_DEVELOP_FLAG_MEMBER, GRAAL_PD_DEVELOP_FLAG_MEMBER, GRAAL_PRODUCT_FLAG_MEMBER, GRAAL_PD_PRODUCT_FLAG_MEMBER, GRAAL_NOTPRODUCT_FLAG_MEMBER)
+ C1_FLAGS(C1_DEVELOP_FLAG_MEMBER, C1_PD_DEVELOP_FLAG_MEMBER, C1_PRODUCT_FLAG_MEMBER, C1_PD_PRODUCT_FLAG_MEMBER, C1_DIAGNOSTIC_FLAG_MEMBER, C1_NOTPRODUCT_FLAG_MEMBER)
 #endif
 #ifdef COMPILER2
  C2_FLAGS(C2_DEVELOP_FLAG_MEMBER, C2_PD_DEVELOP_FLAG_MEMBER, C2_PRODUCT_FLAG_MEMBER, C2_PD_PRODUCT_FLAG_MEMBER, C2_DIAGNOSTIC_FLAG_MEMBER, C2_EXPERIMENTAL_FLAG_MEMBER, C2_NOTPRODUCT_FLAG_MEMBER)
@@ -128,74 +98,48 @@ typedef enum {
 
 #define FLAG_MEMBER_WITH_TYPE(flag,type) Flag_##flag##_##type
 
-#define RUNTIME_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
-#define RUNTIME_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
-#define RUNTIME_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)          FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)   FLAG_MEMBER_WITH_TYPE(name,type),
 #define RUNTIME_EXPERIMENTAL_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) FLAG_MEMBER_WITH_TYPE(name,type),
-#define RUNTIME_MANAGEABLE_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) FLAG_MEMBER_WITH_TYPE(name,type),
-#define RUNTIME_PRODUCT_RW_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) FLAG_MEMBER_WITH_TYPE(name,type),
-#ifdef PRODUCT
-  #define RUNTIME_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)     /* flag is constant */
-  #define RUNTIME_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)         /* flag is constant */
-  #define RUNTIME_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
-#else
-  #define RUNTIME_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)     FLAG_MEMBER_WITH_TYPE(name,type),
-  #define RUNTIME_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
-  #define RUNTIME_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)  FLAG_MEMBER_WITH_TYPE(name,type),
-#endif
+#define RUNTIME_MANAGEABLE_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)   FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_PRODUCT_RW_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)   FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)          FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)   FLAG_MEMBER_WITH_TYPE(name,type),
 
-#define C1_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
-#define C1_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)             FLAG_MEMBER_WITH_TYPE(name,type),
-#ifdef PRODUCT
-  #define C1_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       /* flag is constant */
-  #define C1_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           /* flag is constant */
-  #define C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
-#else
-  #define C1_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
-  #define C1_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
-  #define C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
-#endif
-#define GRAAL_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
-#define GRAAL_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)             FLAG_MEMBER_WITH_TYPE(name,type),
-#ifdef PRODUCT
-  #define GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       /* flag is constant */
-  #define GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           /* flag is constant */
-  #define GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
-#else
-  #define GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
-  #define GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
-  #define GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
-#endif
+#define C1_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define C1_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define C1_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
+#define C1_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define C1_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
+
+#define GRAAL_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define GRAAL_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
+
 #ifdef _LP64
-#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
+#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) FLAG_MEMBER_WITH_TYPE(name,type),
 #else
-#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    /* flag is constant */
+#define RUNTIME_LP64_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc) /* flag is constant */
 #endif // _LP64
 
-#define C2_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
-#define C2_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)             FLAG_MEMBER_WITH_TYPE(name,type),
-#define C2_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
+#define C2_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define C2_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define C2_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
 #define C2_EXPERIMENTAL_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
-#ifdef PRODUCT
-  #define C2_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       /* flag is constant */
-  #define C2_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           /* flag is constant */
-  #define C2_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
-#else
-  #define C2_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
-  #define C2_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
-  #define C2_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
-#endif
+#define C2_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+#define C2_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)               FLAG_MEMBER_WITH_TYPE(name,type),
+#define C2_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)        FLAG_MEMBER_WITH_TYPE(name,type),
 
 #define ARCH_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
 #define ARCH_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
-#define ARCH_EXPERIMENTAL_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
-#ifdef PRODUCT
-  #define ARCH_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       /* flag is constant */
-  #define ARCH_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
-#else
-  #define ARCH_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
-  #define ARCH_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
-#endif
+#define ARCH_EXPERIMENTAL_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
+#define ARCH_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
+#define ARCH_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)      FLAG_MEMBER_WITH_TYPE(name,type),
 
 typedef enum {
  RUNTIME_FLAGS(RUNTIME_DEVELOP_FLAG_MEMBER_WITH_TYPE,
@@ -230,6 +174,7 @@ typedef enum {
           C1_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE,
           C1_PRODUCT_FLAG_MEMBER_WITH_TYPE,
           C1_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE,
+          C1_DIAGNOSTIC_FLAG_MEMBER_WITH_TYPE,
           C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE)
 #endif
 #ifdef GRAAL
@@ -263,19 +208,19 @@ typedef enum {
 
 #define FLAG_SET_DEFAULT(name, value) ((name) = (value))
 
-#define FLAG_SET_CMDLINE(type, name, value) (CommandLineFlagsEx::type##AtPut(FLAG_MEMBER_WITH_TYPE(name,type), (type)(value), COMMAND_LINE))
-#define FLAG_SET_ERGO(type, name, value)    (CommandLineFlagsEx::type##AtPut(FLAG_MEMBER_WITH_TYPE(name,type), (type)(value), ERGONOMIC))
+#define FLAG_SET_CMDLINE(type, name, value) (CommandLineFlagsEx::type##AtPut(FLAG_MEMBER_WITH_TYPE(name,type), (type)(value), Flag::COMMAND_LINE))
+#define FLAG_SET_ERGO(type, name, value)    (CommandLineFlagsEx::type##AtPut(FLAG_MEMBER_WITH_TYPE(name,type), (type)(value), Flag::ERGONOMIC))
 
 // Can't put the following in CommandLineFlags because
 // of a circular dependency on the enum definition.
 class CommandLineFlagsEx : CommandLineFlags {
  public:
-  static void boolAtPut(CommandLineFlagWithType flag, bool value, FlagValueOrigin origin);
-  static void intxAtPut(CommandLineFlagWithType flag, intx value, FlagValueOrigin origin);
-  static void uintxAtPut(CommandLineFlagWithType flag, uintx value, FlagValueOrigin origin);
-  static void uint64_tAtPut(CommandLineFlagWithType flag, uint64_t value, FlagValueOrigin origin);
-  static void doubleAtPut(CommandLineFlagWithType flag, double value, FlagValueOrigin origin);
-  static void ccstrAtPut(CommandLineFlagWithType flag, ccstr value, FlagValueOrigin origin);
+  static void boolAtPut(CommandLineFlagWithType flag, bool value, Flag::Flags origin);
+  static void intxAtPut(CommandLineFlagWithType flag, intx value, Flag::Flags origin);
+  static void uintxAtPut(CommandLineFlagWithType flag, uintx value, Flag::Flags origin);
+  static void uint64_tAtPut(CommandLineFlagWithType flag, uint64_t value, Flag::Flags origin);
+  static void doubleAtPut(CommandLineFlagWithType flag, double value, Flag::Flags origin);
+  static void ccstrAtPut(CommandLineFlagWithType flag, ccstr value, Flag::Flags origin);
 
   static bool is_default(CommandLineFlag flag);
   static bool is_ergo(CommandLineFlag flag);

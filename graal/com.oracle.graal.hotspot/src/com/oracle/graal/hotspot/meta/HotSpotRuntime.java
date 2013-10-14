@@ -99,7 +99,8 @@ import com.oracle.graal.word.*;
 /**
  * HotSpot implementation of {@link LoweringProvider}.
  */
-public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantReflectionProvider, CodeCacheProvider, LoweringProvider, DisassemblerProvider, BytecodeDisassemblerProvider, SuitesProvider {
+public abstract class HotSpotRuntime implements MetaAccessProvider, ForeignCallsProvider, ConstantReflectionProvider, CodeCacheProvider, LoweringProvider, DisassemblerProvider,
+                BytecodeDisassemblerProvider, SuitesProvider {
 
     public static final ForeignCallDescriptor OSR_MIGRATION_END = new ForeignCallDescriptor("OSR_migration_end", void.class, long.class);
     public static final ForeignCallDescriptor IDENTITY_HASHCODE = new ForeignCallDescriptor("identity_hashcode", int.class, Object.class);
@@ -292,7 +293,7 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
         registerForeignCall(NEW_INSTANCE_C, c.newInstanceAddress, NativeCall, DESTROYS_REGISTERS, NOT_LEAF, REEXECUTABLE, ANY_LOCATION);
         registerForeignCall(VM_MESSAGE_C, c.vmMessageAddress, NativeCall, DESTROYS_REGISTERS, NOT_LEAF, REEXECUTABLE, NO_LOCATIONS);
 
-        Providers providers = new Providers(this, this, this, this, r);
+        Providers providers = new Providers(this, this, this, this, this, r);
 
         link(new NewInstanceStub(providers, target, registerStubCall(NEW_INSTANCE, REEXECUTABLE, NOT_LEAF, ANY_LOCATION)));
         link(new NewArrayStub(providers, target, registerStubCall(NEW_ARRAY, REEXECUTABLE, NOT_LEAF, INIT_LOCATION)));
@@ -494,7 +495,7 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
     }
 
     public boolean useCompressedKlassPointers() {
-        return config.useCompressedKlassPointers;
+        return config.useCompressedClassPointers;
     }
 
     @Override
@@ -731,8 +732,8 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
                             }
                             if (!(value.isConstant() && value.asConstant().isDefaultForKind())) {
                                 WriteNode write = new WriteNode(newObject, value, createFieldLocation(graph, (HotSpotResolvedJavaField) virtualInstance.field(i), true),
-                                                virtualInstance.field(i).getKind() == Kind.Object ? BarrierType.IMPRECISE : BarrierType.NONE, virtualInstance.field(i).getKind() == Kind.Object);
-
+                                                (virtualInstance.field(i).getKind() == Kind.Object && !deferInitBarrier(newObject)) ? BarrierType.IMPRECISE : BarrierType.NONE,
+                                                virtualInstance.field(i).getKind() == Kind.Object);
                                 graph.addBeforeFixed(commit, graph.add(write));
                             }
                         }
@@ -749,7 +750,7 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
                             }
                             if (!(value.isConstant() && value.asConstant().isDefaultForKind())) {
                                 WriteNode write = new WriteNode(newObject, value, createArrayLocation(graph, element.getKind(), ConstantNode.forInt(i, graph), true),
-                                                value.kind() == Kind.Object ? BarrierType.PRECISE : BarrierType.NONE, value.kind() == Kind.Object);
+                                                (value.kind() == Kind.Object && !deferInitBarrier(newObject)) ? BarrierType.PRECISE : BarrierType.NONE, value.kind() == Kind.Object);
                                 graph.addBeforeFixed(commit, graph.add(write));
                             }
                         }
@@ -951,7 +952,7 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
 
     private static BarrierType getFieldStoreBarrierType(StoreFieldNode storeField) {
         BarrierType barrierType = BarrierType.NONE;
-        if (storeField.field().getKind() == Kind.Object) {
+        if (storeField.field().getKind() == Kind.Object && !deferInitBarrier(storeField.object())) {
             barrierType = BarrierType.IMPRECISE;
         }
         return barrierType;
@@ -959,10 +960,14 @@ public abstract class HotSpotRuntime implements MetaAccessProvider, ConstantRefl
 
     private static BarrierType getArrayStoreBarrierType(StoreIndexedNode store) {
         BarrierType barrierType = BarrierType.NONE;
-        if (store.elementKind() == Kind.Object) {
+        if (store.elementKind() == Kind.Object && !deferInitBarrier(store.array())) {
             barrierType = BarrierType.PRECISE;
         }
         return barrierType;
+    }
+
+    private static boolean deferInitBarrier(ValueNode object) {
+        return useDeferredInitBarriers() && (object instanceof NewInstanceNode || object instanceof NewArrayNode);
     }
 
     private static BarrierType getUnsafeStoreBarrierType(UnsafeStoreNode store) {

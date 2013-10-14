@@ -74,7 +74,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
 
     @Override
     public LIRGenerator newLIRGenerator(StructuredGraph graph, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        return new AMD64HotSpotLIRGenerator(graph, getMetaAccess(), getCodeCache(), target, frameMap, cc, lir);
+        return new AMD64HotSpotLIRGenerator(graph, getProviders(), target, frameMap, cc, lir);
     }
 
     /**
@@ -174,7 +174,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         Stub stub = gen.getStub();
         AbstractAssembler masm = createAssembler(frameMap);
         HotSpotFrameContext frameContext = omitFrame ? null : new HotSpotFrameContext(stub != null);
-        TargetMethodAssembler tasm = new TargetMethodAssembler(target, getCodeCache(), frameMap, masm, frameContext, compilationResult);
+        TargetMethodAssembler tasm = new TargetMethodAssembler(target, getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
         tasm.setFrameSize(frameMap.frameSize());
         StackSlot deoptimizationRescueSlot = gen.deoptimizationRescueSlot;
         if (deoptimizationRescueSlot != null && stub == null) {
@@ -251,12 +251,12 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             AMD64HotSpotRuntime hr = ((AMD64HotSpotRuntime) gen.getCodeCache());
             if (hr.useCompressedKlassPointers()) {
                 Register register = r10;
-                AMD64HotSpotMove.decodeKlassPointer(asm, register, hr.heapBaseRegister(), src, config.narrowKlassBase, config.narrowKlassShift, config.logKlassAlignment);
+                AMD64HotSpotMove.decodeKlassPointer(asm, register, hr.heapBaseRegister(), src, config.narrowKlassBase, config.narrowOopBase, config.narrowKlassShift, config.logKlassAlignment);
                 asm.cmpq(inlineCacheKlass, register);
             } else {
                 asm.cmpq(inlineCacheKlass, src);
             }
-            AMD64Call.directConditionalJmp(tasm, asm, getCodeCache().lookupForeignCall(IC_MISS_HANDLER), ConditionFlag.NotEqual);
+            AMD64Call.directConditionalJmp(tasm, asm, getForeignCalls().lookupForeignCall(IC_MISS_HANDLER), ConditionFlag.NotEqual);
         }
 
         asm.align(config.codeEntryAlignment);

@@ -182,6 +182,7 @@ class java_lang_String : AllStatic {
   static unsigned int hash_string(oop java_string);
 
   static bool equals(oop java_string, jchar* chars, int len);
+  static bool equals(oop str1, oop str2);
 
   // Conversion between '.' and '/' formats
   static Handle externalize_classname(Handle java_string, TRAPS) { return char_converter(java_string, '/', '.', THREAD); }
@@ -328,7 +329,6 @@ class java_lang_Thread : AllStatic {
  public:
   // Instance creation
   static oop create();
-  static int java_thread_offset_in_bytes() { return _eetop_offset; }
   // Returns the JavaThread associated with the thread obj
   static JavaThread* thread(oop java_thread);
   // Set JavaThread for instance

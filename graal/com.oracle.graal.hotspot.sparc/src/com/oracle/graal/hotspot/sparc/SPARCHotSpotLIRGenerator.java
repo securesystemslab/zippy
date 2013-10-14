@@ -46,6 +46,7 @@ import com.oracle.graal.lir.sparc.SPARCMove.StoreConstantOp;
 import com.oracle.graal.lir.sparc.SPARCMove.StoreOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
+import com.oracle.graal.phases.util.*;
 
 public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSpotLIRGenerator {
 
@@ -53,8 +54,8 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
         return (HotSpotRuntime) codeCache;
     }
 
-    public SPARCHotSpotLIRGenerator(StructuredGraph graph, MetaAccessProvider metaAccess, CodeCacheProvider codeCache, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, metaAccess, codeCache, target, frameMap, cc, lir);
+    public SPARCHotSpotLIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, target, frameMap, cc, lir);
     }
 
     /**
@@ -176,7 +177,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
 
     @Override
     public void emitUnwind(Value exception) {
-        ForeignCallLinkage linkage = getCodeCache().lookupForeignCall(HotSpotBackend.UNWIND_EXCEPTION_TO_CALLER);
+        ForeignCallLinkage linkage = getForeignCalls().lookupForeignCall(HotSpotBackend.UNWIND_EXCEPTION_TO_CALLER);
         CallingConvention linkageCc = linkage.getOutgoingCallingConvention();
         assert linkageCc.getArgumentCount() == 2;
         RegisterValue exceptionParameter = (RegisterValue) linkageCc.getArgument(0);
@@ -211,7 +212,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
     @Override
     public void emitJumpToExceptionHandlerInCaller(ValueNode handlerInCallerPc, ValueNode exception, ValueNode exceptionPc) {
         Variable handler = load(operand(handlerInCallerPc));
-        ForeignCallLinkage linkage = getCodeCache().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
+        ForeignCallLinkage linkage = getForeignCalls().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
         CallingConvention linkageCc = linkage.getOutgoingCallingConvention();
         assert linkageCc.getArgumentCount() == 2;
         RegisterValue exceptionFixed = (RegisterValue) linkageCc.getArgument(0);
@@ -237,7 +238,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
 // null, runtime().config.narrowOopBase, runtime().config.narrowOopShift,
 // runtime().config.logMinObjAlignment));
                 throw GraalInternalError.unimplemented();
-            } else if (runtime().config.useCompressedKlassPointers && kind == Kind.Long) {
+            } else if (runtime().config.useCompressedClassPointers && kind == Kind.Long) {
 // append(new LoadCompressedPointer(kind, result, loadAddress, access != null ? state(access) :
 // null, runtime().config.narrowKlassBase, runtime().config.narrowKlassShift,
 // runtime().config.logKlassAlignment));
@@ -261,7 +262,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
                 if (inputVal.getKind() == Kind.Object) {
                     append(new StoreConstantOp(kind, storeAddress, c, state, runtime().config.useCompressedOops && isCompressCandidate(access)));
                 } else if (inputVal.getKind() == Kind.Long) {
-                    append(new StoreConstantOp(kind, storeAddress, c, state, runtime().config.useCompressedKlassPointers && isCompressCandidate(access)));
+                    append(new StoreConstantOp(kind, storeAddress, c, state, runtime().config.useCompressedClassPointers && isCompressCandidate(access)));
                 } else {
                     append(new StoreConstantOp(kind, storeAddress, c, state, false));
                 }
@@ -281,7 +282,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
 // append(new StoreOp(input.getKind(), storeAddress, input, state));
 // }
                 throw GraalInternalError.unimplemented();
-            } else if (runtime().config.useCompressedKlassPointers && kind == Kind.Long) {
+            } else if (runtime().config.useCompressedClassPointers && kind == Kind.Long) {
 // Variable scratch = newVariable(Kind.Long);
 // append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state,
 // runtime().config.narrowKlassBase, runtime().config.narrowKlassShift,

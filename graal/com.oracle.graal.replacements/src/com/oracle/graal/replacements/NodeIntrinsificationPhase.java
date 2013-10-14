@@ -27,12 +27,12 @@ import static com.oracle.graal.api.meta.MetaUtil.*;
 import java.lang.reflect.*;
 import java.util.*;
 
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.ConstantNodeParameter;
-import com.oracle.graal.graph.Node.NodeIntrinsic;
+import com.oracle.graal.graph.Node.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -41,6 +41,7 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.Snippet.Fold;
 
 /**
@@ -49,10 +50,10 @@ import com.oracle.graal.replacements.Snippet.Fold;
  */
 public class NodeIntrinsificationPhase extends Phase {
 
-    private final MetaAccessProvider metaAccess;
+    private final Providers providers;
 
-    public NodeIntrinsificationPhase(MetaAccessProvider metaAccess) {
-        this.metaAccess = metaAccess;
+    public NodeIntrinsificationPhase(Providers providers) {
+        this.providers = providers;
     }
 
     @Override
@@ -75,7 +76,7 @@ public class NodeIntrinsificationPhase extends Phase {
             assert target.getAnnotation(Fold.class) == null;
             assert Modifier.isStatic(target.getModifiers()) : "node intrinsic must be static: " + target;
 
-            ResolvedJavaType[] parameterTypes = MetaUtil.resolveJavaTypes(MetaUtil.signatureToTypes(target), declaringClass);
+            ResolvedJavaType[] parameterTypes = resolveJavaTypes(signatureToTypes(target), declaringClass);
 
             // Prepare the arguments for the reflective constructor call on the node class.
             Constant[] nodeConstructorArguments = prepareArguments(methodCallTargetNode, parameterTypes, target, false);
@@ -94,7 +95,7 @@ public class NodeIntrinsificationPhase extends Phase {
             // Clean up checkcast instructions inserted by javac if the return type is generic.
             cleanUpReturnList.add(newInstance);
         } else if (isFoldable(target)) {
-            ResolvedJavaType[] parameterTypes = MetaUtil.resolveJavaTypes(MetaUtil.signatureToTypes(target), declaringClass);
+            ResolvedJavaType[] parameterTypes = resolveJavaTypes(signatureToTypes(target), declaringClass);
 
             // Prepare the arguments for the reflective method call
             Constant[] arguments = prepareArguments(methodCallTargetNode, parameterTypes, target, true);
@@ -113,7 +114,7 @@ public class NodeIntrinsificationPhase extends Phase {
 
             if (constant != null) {
                 // Replace the invoke with the result of the call
-                ConstantNode node = ConstantNode.forConstant(constant, metaAccess, methodCallTargetNode.graph());
+                ConstantNode node = ConstantNode.forConstant(constant, providers.getMetaAccess(), methodCallTargetNode.graph());
                 methodCallTargetNode.invoke().intrinsify(node);
 
                 // Clean up checkcast instructions inserted by javac if the return type is generic.
@@ -150,7 +151,7 @@ public class NodeIntrinsificationPhase extends Phase {
                 parameterIndex--;
             }
             ValueNode argument = arguments.get(i);
-            if (folding || MetaUtil.getParameterAnnotation(ConstantNodeParameter.class, parameterIndex, target) != null) {
+            if (folding || getParameterAnnotation(ConstantNodeParameter.class, parameterIndex, target) != null) {
                 if (!(argument instanceof ConstantNode)) {
                     return null;
                 }
@@ -158,8 +159,8 @@ public class NodeIntrinsificationPhase extends Phase {
                 Constant constant = constantNode.asConstant();
                 Object o = constant.asBoxedValue();
                 if (o instanceof Class<?>) {
-                    reflectionCallArguments[i] = Constant.forObject(metaAccess.lookupJavaType((Class<?>) o));
-                    parameterTypes[i] = metaAccess.lookupJavaType(ResolvedJavaType.class);
+                    reflectionCallArguments[i] = Constant.forObject(providers.getMetaAccess().lookupJavaType((Class<?>) o));
+                    parameterTypes[i] = providers.getMetaAccess().lookupJavaType(ResolvedJavaType.class);
                 } else {
                     if (parameterTypes[i].getKind() == Kind.Boolean) {
                         reflectionCallArguments[i] = Constant.forObject(Boolean.valueOf(constant.asInt() != 0));
@@ -175,7 +176,7 @@ public class NodeIntrinsificationPhase extends Phase {
                 }
             } else {
                 reflectionCallArguments[i] = Constant.forObject(argument);
-                parameterTypes[i] = metaAccess.lookupJavaType(ValueNode.class);
+                parameterTypes[i] = providers.getMetaAccess().lookupJavaType(ValueNode.class);
             }
         }
         return reflectionCallArguments;
@@ -186,10 +187,10 @@ public class NodeIntrinsificationPhase extends Phase {
         if (intrinsic.value() == NodeIntrinsic.class) {
             result = target.getDeclaringClass();
         } else {
-            result = metaAccess.lookupJavaType(intrinsic.value());
+            result = providers.getMetaAccess().lookupJavaType(intrinsic.value());
         }
-        assert metaAccess.lookupJavaType(ValueNode.class).isAssignableFrom(result) : "Node intrinsic class " + toJavaName(result, false) + " derived from @" + NodeIntrinsic.class.getSimpleName() +
-                        " annotation on " + format("%H.%n(%p)", target) + " is not a subclass of " + ValueNode.class;
+        assert providers.getMetaAccess().lookupJavaType(ValueNode.class).isAssignableFrom(result) : "Node intrinsic class " + toJavaName(result, false) + " derived from @" +
+                        NodeIntrinsic.class.getSimpleName() + " annotation on " + format("%H.%n(%p)", target) + " is not a subclass of " + ValueNode.class;
         return result;
     }
 
@@ -205,12 +206,12 @@ public class NodeIntrinsificationPhase extends Phase {
                     constructor = c;
                     arguments = match;
                 } else {
-                    throw new GraalInternalError("Found multiple constructors in " + nodeClass + " compatible with signature " + Arrays.toString(parameterTypes) + ": " + constructor + ", " + c);
+                    throw new GraalInternalError("Found multiple constructors in %s compatible with signature %s: %s, %s", toJavaName(nodeClass), sigString(parameterTypes), constructor, c);
                 }
             }
         }
         if (constructor == null) {
-            throw new GraalInternalError("Could not find constructor in " + nodeClass + " compatible with signature " + Arrays.toString(parameterTypes));
+            throw new GraalInternalError("Could not find constructor in %s compatible with signature %s", toJavaName(nodeClass), sigString(parameterTypes));
         }
 
         try {
@@ -225,15 +226,50 @@ public class NodeIntrinsificationPhase extends Phase {
         }
     }
 
+    private static String sigString(ResolvedJavaType[] types) {
+        StringBuilder sb = new StringBuilder("(");
+        for (int i = 0; i < types.length; i++) {
+            if (i != 0) {
+                sb.append(", ");
+            }
+            sb.append(toJavaName(types[i]));
+        }
+        return sb.append(")").toString();
+    }
+
+    private static boolean containsInjected(ResolvedJavaMethod c, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (getParameterAnnotation(InjectedNodeParameter.class, i, c) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Constant[] match(ResolvedJavaMethod c, ResolvedJavaType[] parameterTypes, Constant[] nodeConstructorArguments) {
         Constant[] arguments = null;
-        boolean needsMetaAccessProviderArgument = false;
+        Constant[] injected = null;
 
-        ResolvedJavaType[] signature = MetaUtil.resolveJavaTypes(MetaUtil.signatureToTypes(c.getSignature(), null), c.getDeclaringClass());
-        if (signature.length != 0 && signature[0].equals(metaAccess.lookupJavaType(MetaAccessProvider.class))) {
-            // Chop off the MetaAccessProvider first parameter
-            signature = Arrays.copyOfRange(signature, 1, signature.length);
-            needsMetaAccessProviderArgument = true;
+        ResolvedJavaType[] signature = resolveJavaTypes(signatureToTypes(c.getSignature(), null), c.getDeclaringClass());
+        MetaAccessProvider metaAccess = providers.getMetaAccess();
+        for (int i = 0; i < signature.length; i++) {
+            if (getParameterAnnotation(InjectedNodeParameter.class, i, c) != null) {
+                injected = injected == null ? new Constant[1] : Arrays.copyOf(injected, injected.length + 1);
+                if (signature[i].equals(metaAccess.lookupJavaType(MetaAccessProvider.class))) {
+                    injected[injected.length - 1] = Constant.forObject(metaAccess);
+                } else if (signature[i].equals(metaAccess.lookupJavaType(ForeignCallsProvider.class))) {
+                    injected[injected.length - 1] = Constant.forObject(providers.getForeignCalls());
+                } else {
+                    throw new GraalInternalError("Cannot handle injected argument of type %s in %s", toJavaName(signature[i]), format("%H.%n(%p)", c));
+                }
+            } else {
+                if (i > 0) {
+                    // Chop injected arguments from signature
+                    signature = Arrays.copyOfRange(signature, i, signature.length);
+                }
+                assert !containsInjected(c, i, signature.length);
+                break;
+            }
         }
 
         if (Arrays.equals(parameterTypes, signature)) {
@@ -270,10 +306,10 @@ public class NodeIntrinsificationPhase extends Phase {
             return null;
         }
 
-        if (needsMetaAccessProviderArgument) {
-            Constant[] copy = new Constant[arguments.length + 1];
-            System.arraycopy(arguments, 0, copy, 1, arguments.length);
-            copy[0] = Constant.forObject(metaAccess);
+        if (injected != null) {
+            Constant[] copy = new Constant[injected.length + arguments.length];
+            System.arraycopy(injected, 0, copy, 0, injected.length);
+            System.arraycopy(arguments, 0, copy, injected.length, arguments.length);
             arguments = copy;
         }
         return arguments;

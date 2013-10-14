@@ -31,9 +31,9 @@ public class PhaseContext extends Providers {
 
     private final Assumptions assumptions;
 
-    public PhaseContext(MetaAccessProvider metaAccess, CodeCacheProvider codeCache, ConstantReflectionProvider constantReflection, LoweringProvider lowerer, Assumptions assumptions,
-                    Replacements replacements) {
-        super(metaAccess, codeCache, constantReflection, lowerer, replacements);
+    public PhaseContext(MetaAccessProvider metaAccess, CodeCacheProvider codeCache, ConstantReflectionProvider constantReflection, ForeignCallsProvider foreignCalls, LoweringProvider lowerer,
+                    Assumptions assumptions, Replacements replacements) {
+        super(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements);
         this.assumptions = assumptions;
     }
 

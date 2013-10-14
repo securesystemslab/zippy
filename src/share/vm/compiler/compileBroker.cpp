@@ -637,19 +637,36 @@ CompileTask* CompileQueue::get() {
   NMethodSweeper::possibly_sweep();
 
   MutexLocker locker(lock());
-  // Wait for an available CompileTask.
+  // If _first is NULL we have no more compile jobs. There are two reasons for
+  // having no compile jobs: First, we compiled everything we wanted. Second,
+  // we ran out of code cache so compilation has been disabled. In the latter
+  // case we perform code cache sweeps to free memory such that we can re-enable
+  // compilation.
   while (_first == NULL) {
-    // There is no work to be done right now.  Wait.
-    if (UseCodeCacheFlushing && (!CompileBroker::should_compile_new_jobs() || CodeCache::needs_flushing())) {
-      // During the emergency sweeping periods, wake up and sweep occasionally
-      bool timedout = lock()->wait(!Mutex::_no_safepoint_check_flag, NmethodSweepCheckInterval*1000);
-      if (timedout) {
+    if (UseCodeCacheFlushing && !CompileBroker::should_compile_new_jobs()) {
+      // Wait a certain amount of time to possibly do another sweep.
+      // We must wait until stack scanning has happened so that we can
+      // transition a method's state from 'not_entrant' to 'zombie'.
+      long wait_time = NmethodSweepCheckInterval * 1000;
+      if (FLAG_IS_DEFAULT(NmethodSweepCheckInterval)) {
+        // Only one thread at a time can do sweeping. Scale the
+        // wait time according to the number of compiler threads.
+        // As a result, the next sweep is likely to happen every 100ms
+        // with an arbitrary number of threads that do sweeping.
+        wait_time = 100 * CICompilerCount;
+      }
+      bool timeout = lock()->wait(!Mutex::_no_safepoint_check_flag, wait_time);
+      if (timeout) {
         MutexUnlocker ul(lock());
-        // When otherwise not busy, run nmethod sweeping
         NMethodSweeper::possibly_sweep();
       }
     } else {
-      // During normal operation no need to wake up on timer
+      // If there are no compilation tasks and we can compile new jobs
+      // (i.e., there is enough free space in the code cache) there is
+      // no need to invoke the sweeper. As a result, the hotness of methods
+      // remains unchanged. This behavior is desired, since we want to keep
+      // the stable state, i.e., we do not want to evict methods from the
+      // code cache if it is unnecessary.
       lock()->wait();
     }
   }
@@ -750,16 +767,15 @@ void CompileBroker::compilation_init() {
   // Set the interface to the current compiler(s).
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
-
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-
-#if defined(GRAALVM)
+#ifdef GRAALVM
   _compilers[0] = graal;
   c1_count = 0;
   c2_count = 0;
-#elif defined(COMPILER1)
+#else // GRAALVM
+#ifdef COMPILER1
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
   }
@@ -770,7 +786,7 @@ void CompileBroker::compilation_init() {
     _compilers[1] = new C2Compiler();
   }
 #endif // COMPILER2
-
+#endif // GRAALVM
 #else // SHARK
   int c1_count = 0;
   int c2_count = 1;
@@ -1037,9 +1053,10 @@ bool CompileBroker::is_idle() {
         return false;
       }
     }
+
+    // No pending or active compilations.
+    return true;
   }
-  // No pending or active compilations.
-  return true;
 }
 
 
@@ -1246,16 +1263,9 @@ nmethod* CompileBroker::compile_method(methodHandle method, int osr_bci,
         return method_code;
       }
     }
-    if (method->is_not_compilable(comp_level)) return NULL;
-
-    if (UseCodeCacheFlushing) {
-      nmethod* saved = CodeCache::reanimate_saved_code(method());
-      if (saved != NULL) {
-        method->set_code(method, saved);
-        return saved;
-      }
+    if (method->is_not_compilable(comp_level)) {
+      return NULL;
     }
-
   } else {
     // osr compilation
 #ifndef TIERED
@@ -1604,9 +1614,6 @@ void CompileBroker::compiler_thread_loop() {
       if (CodeCache::unallocated_capacity() < CodeCacheMinimumFreeSpace) {
         // the code cache is really full
         handle_full_code_cache();
-      } else if (UseCodeCacheFlushing && CodeCache::needs_flushing()) {
-        // Attempt to start cleaning the code cache while there is still a little headroom
-        NMethodSweeper::handle_full_code_cache(false);
       }
 
       CompileTask* task = queue->get();
@@ -1737,7 +1744,7 @@ static void codecache_print(bool detailed)
     CodeCache::print_summary(&s, detailed);
   }
   ttyLocker ttyl;
-  tty->print_cr(s.as_string());
+  tty->print(s.as_string());
 }
 
 // ------------------------------------------------------------------
@@ -1962,7 +1969,11 @@ void CompileBroker::handle_full_code_cache() {
     }
 #endif
     if (UseCodeCacheFlushing) {
-      NMethodSweeper::handle_full_code_cache(true);
+      // Since code cache is full, immediately stop new compiles
+      if (CompileBroker::set_should_compile_new_jobs(CompileBroker::stop_compilation)) {
+        NMethodSweeper::log_sweep("disable_compiler");
+        NMethodSweeper::possibly_sweep();
+      }
     } else {
       UseCompiler               = false;
       AlwaysCompileLoopMethods  = false;
