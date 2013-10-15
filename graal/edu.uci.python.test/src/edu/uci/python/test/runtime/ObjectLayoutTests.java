@@ -246,4 +246,44 @@ public class ObjectLayoutTests {
          */
         assertEquals(2, objectA.getInstanceVariable("foo"));
     }
+
+    /**
+     * Tests written for new style object model.
+     */
+    @Test
+    public void objectWithPrimitiveAttributes() {
+        // Create a class and an instance
+        final PythonContext context = new PythonContext(new Options());
+        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonBasicObject obj = new PythonBasicObject(classA);
+        final ObjectLayout objLayoutBefore = obj.getObjectLayout();
+        obj.setAttribute("foo", 42);
+        obj.setAttribute("bar", 24);
+
+        final ObjectLayout objLayoutAfter = obj.getObjectLayout();
+        assertNotSame(objLayoutBefore, objLayoutAfter);
+
+        assertEquals(42, obj.getAttribute("foo"));
+        assertEquals(24, obj.getAttribute("bar"));
+    }
+
+    @Test
+    public void objectPrimitiveAttributeOverflow() {
+        // Create a class and an instance
+        final PythonContext context = new PythonContext(new Options());
+        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonBasicObject obj = new PythonBasicObject(classA);
+
+        for (int i = 0; i < 100; i++) {
+            obj.setAttribute("foo" + i, i);
+        }
+
+        final ObjectLayout layout = obj.getObjectLayout();
+        int objectStorageLocationUsed = layout.getObjectStorageLocationsUsed();
+        assertEquals(100 - PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
+
+        for (int i = 0; i < 100; i++) {
+            assertEquals(i, obj.getAttribute("foo" + i));
+        }
+    }
 }

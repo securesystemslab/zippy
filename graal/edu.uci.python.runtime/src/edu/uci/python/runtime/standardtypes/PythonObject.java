@@ -24,12 +24,32 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
+import com.oracle.truffle.api.*;
+
+import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.objects.*;
 
 public class PythonObject extends PythonBasicObject {
 
+    /**
+     * Assumption used by any attribute call site or attribute access site.
+     * <p>
+     * The unmodifiedAssumption is invalidated whenever the object itself is modified.
+     */
+    protected final CyclicAssumption unmodifiedAssumption;
+
     public PythonObject(PythonClass pythonClass) {
         super(pythonClass);
+        unmodifiedAssumption = new CyclicAssumption("unmodified");
     }
 
+    public Assumption getUnmodifiedAssumption() {
+        return unmodifiedAssumption.getAssumption();
+    }
+
+    @Override
+    public void setAttribute(String name, Object value) {
+        unmodifiedAssumption.invalidate();
+        super.setAttribute(name, value);
+    }
 }
