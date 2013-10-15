@@ -56,6 +56,7 @@ class GraalRuntime: public AllStatic {
   static void write_barrier_pre(JavaThread* thread, oopDesc* obj);
   static void write_barrier_post(JavaThread* thread, void* card);
   static jboolean validate_object(JavaThread* thread, oopDesc* parent, oopDesc* child);
+  static void new_store_pre_barrier(JavaThread* thread);
 };
 
 #endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP

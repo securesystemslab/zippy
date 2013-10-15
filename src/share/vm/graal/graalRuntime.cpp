@@ -56,7 +56,8 @@ static void deopt_caller() {
   }
 }
 
-JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
+JRT_BLOCK_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
+  JRT_BLOCK;
   assert(klass->is_klass(), "not a class");
   instanceKlassHandle h(thread, klass);
   h->check_valid_for_instantiation(true, CHECK);
@@ -64,13 +65,16 @@ JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   h->initialize(CHECK);
   // allocate instance and return via TLS
   oop obj = h->allocate_instance(CHECK);
-  if (GraalDeferredInitBarriers) {
-    obj = Universe::heap()->new_store_pre_barrier(thread, obj);
-  }
   thread->set_vm_result(obj);
+  JRT_BLOCK_END;
+
+  if (GraalDeferredInitBarriers) {
+    new_store_pre_barrier(thread);
+  }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, jint length))
+JRT_BLOCK_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, jint length))
+  JRT_BLOCK;
   // Note: no handle for klass needed since they are not used
   //       anymore after new_objArray() and no GC can happen before.
   //       (This may have to change if this code changes!)
@@ -82,9 +86,6 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
   } else {
     Klass* elem_klass = ObjArrayKlass::cast(array_klass)->element_klass();
     obj = oopFactory::new_objArray(elem_klass, length, CHECK);
-  }
-  if (GraalDeferredInitBarriers) {
-    obj = Universe::heap()->new_store_pre_barrier(thread, obj);
   }
   thread->set_vm_result(obj);
   // This is pretty rare but this runtime patch is stressful to deoptimization
@@ -99,7 +100,29 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
       deopt_caller();
     }
   }
+  JRT_BLOCK_END;
+
+  if (GraalDeferredInitBarriers) {
+    new_store_pre_barrier(thread);
+  }
 JRT_END
+
+void GraalRuntime::new_store_pre_barrier(JavaThread* thread) {
+  // After any safepoint, just before going back to compiled code,
+  // we inform the GC that we will be doing initializing writes to
+  // this object in the future without emitting card-marks, so
+  // GC may take any compensating steps.
+  // NOTE: Keep this code consistent with GraphKit::store_barrier.
+
+  oop new_obj = thread->vm_result();
+  if (new_obj == NULL)  return;
+
+  assert(Universe::heap()->can_elide_tlab_store_barriers(),
+         "compiler must check this first");
+  // GC may decide to give back a safer copy of new_obj.
+  new_obj = Universe::heap()->new_store_pre_barrier(thread, new_obj);
+  thread->set_vm_result(new_obj);
+}
 
 JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims))
   assert(klass->is_klass(), "not a class");
