@@ -30,28 +30,55 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
 public class LoadGenericAttributeNode extends LoadAttributeNode {
 
-    public LoadGenericAttributeNode(String name, PNode primary) {
-        super(name, primary);
+    public LoadGenericAttributeNode(LoadAttributeNode node) {
+        super(node.attributeId, node.primary);
     }
 
     public static Object executeGeneric(Object primary, String attributeId) {
-        if (primary instanceof PObject) {
+        if (primary instanceof PythonBasicObject) {
+            return ((PythonBasicObject) primary).getInstanceVariable(attributeId);
+        } else if (primary instanceof PObject) {
             return ((PObject) primary).findAttribute(attributeId);
         } else if (primary instanceof PyObject) {
             PyObject pyObj = (PyObject) primary;
             return unboxPyObject(pyObj.__findattr__(attributeId));
         } else {
-            throw new RuntimeException("Unexpected LoadGenericAttribute primary type " + primary);
+            throw new RuntimeException("Unexpected primary type " + primary);
         }
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return executeGeneric(primary.execute(frame), attributeId);
+        return ((PythonBasicObject) primary.execute(frame)).getInstanceVariable(attributeId);
+    }
+
+    public static class LoadPObjectAttributeNode extends LoadAttributeNode {
+
+        public LoadPObjectAttributeNode(LoadAttributeNode node) {
+            super(node.attributeId, node.primary);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return ((PObject) primary.execute(frame)).findAttribute(attributeId);
+        }
+    }
+
+    public static class LoadPyObjectAttributeNode extends LoadAttributeNode {
+
+        public LoadPyObjectAttributeNode(LoadAttributeNode node) {
+            super(node.attributeId, node.primary);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PyObject pyObj = (PyObject) primary.execute(frame);
+            return unboxPyObject(pyObj.__findattr__(attributeId));
+        }
     }
 }

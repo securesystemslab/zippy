@@ -71,7 +71,7 @@ public class ObjectLayoutTests {
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonBasicObject objectA = new PythonBasicObject(classA);
 
-        // Add many more Fixnums that we have space for primitives
+        // Add many more ints than the space we have for primitives
         final int count = 100;
 
         for (int n = 0; n < count; n++) {
@@ -100,20 +100,17 @@ public class ObjectLayoutTests {
         assertEquals(14, object1.getInstanceVariable("foo"));
         assertSame(Integer.class, object1.getInstanceVariable("foo").getClass());
 
-        // The underlying instance store should be PInt
+        // The underlying instance store should be int
         assertSame(IntStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
 
         /*
-         * The same instance variable in object 2 should be Nil. Note that this requires that we
-         * realize that even though the instance variable is known about in the layout of object 2,
-         * and we are using a primitive int to hold it, that it hasn't been set and is actually
-         * None. We don't want it to appear as 0.
+         * The same instance variable in object 2 should be None. Note that this requires that we realize that even though the instance variable is known about in the layout of object 2, and we are using a primitive int to hold it, that it hasn't
+         * been set and is actually None. We don't want it to appear as 0.
          */
         assertSame(PNone.NONE, object2.getInstanceVariable("foo"));
 
         /*
-         * We should be able to set the same instance variable in object 2 to also be a PInt without
-         * changing the layout.
+         * We should be able to set the same instance variable in object 2 to also be an int without changing the layout.
          */
         final ObjectLayout objectLayout2 = object2.getObjectLayout();
         object2.setInstanceVariable("foo", 2);
@@ -124,11 +121,11 @@ public class ObjectLayoutTests {
         // Set the instance variable in object 2 to be a Float
         object2.setInstanceVariable("foo", 2.25);
 
-        // We should be able to read that instance variable back, and it should still be a PInt
+        // We should be able to read that instance variable back, and it should still be a double
         assertEquals(2.25, object2.getInstanceVariable("foo"));
         assertSame(Double.class, object2.getInstanceVariable("foo").getClass());
 
-        // Object 1 should give still think the instance variable is a PInt
+        // Object 1 should give still think the instance variable is an int
         assertEquals(14, object1.getInstanceVariable("foo"));
         assertSame(Integer.class, object1.getInstanceVariable("foo").getClass());
 
@@ -228,8 +225,24 @@ public class ObjectLayoutTests {
         assertEquals(2, objectA.getInstanceVariable("foo"));
 
         /*
-         * We should also be able to read the first variable back out, even though we've switched to
-         * private layout since then.
+         * Switch object A to having a private object layout, as would be done by updating the object layout of a Python object.
+         */
+        objectA.switchToPrivateLayout();
+
+        // Set an instance variable on object A
+        objectA.setInstanceVariable("bar", 14);
+
+        // That should not have changed the layout of class A
+        assertSame(layoutClassA, classA.getObjectLayoutForInstances());
+
+        // The layout of object A, however, should have changed
+        assertNotSame(layoutObjectA, objectA.getObjectLayout());
+
+        // We should be able to read the value back out
+        assertEquals(14, objectA.getInstanceVariable("bar"));
+
+        /*
+         * We should also be able to read the first variable back out, even though we've switched to private layout since then.
          */
         assertEquals(2, objectA.getInstanceVariable("foo"));
     }

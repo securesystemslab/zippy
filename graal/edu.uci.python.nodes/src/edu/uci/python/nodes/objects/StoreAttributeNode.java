@@ -63,10 +63,15 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
 
     public StoreAttributeNode specialize(Object primaryObj) {
         if (primaryObj instanceof PyObject) {
-            return new StoreGenericAttributeNode(this);
+            return new StoreGenericAttributeNode.StorePyObjectAttributeNode(this);
         }
 
         final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
+
+        if (pythonBasicObj.usePrivateLayout()) {
+            return new StoreGenericAttributeNode(this);
+        }
+
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {

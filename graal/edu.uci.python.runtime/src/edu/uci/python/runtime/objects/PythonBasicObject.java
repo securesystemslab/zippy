@@ -59,6 +59,9 @@ public class PythonBasicObject {
 
     protected Object[] objectStorageLocations = null;
 
+    public boolean usePrivateLayout = false;
+    private Map<String, Object> privateLayoutStorage = null;
+
     public PythonBasicObject(PythonClass pythonClass) {
         if (pythonClass != null) {
             unsafeSetPythonClass(pythonClass);
@@ -87,6 +90,9 @@ public class PythonBasicObject {
      * Does this object have an instance variable defined?
      */
     public boolean isInstanceVariableDefined(String name) {
+        if (usePrivateLayout) {
+            return privateLayoutStorage.containsKey(name);
+        }
 
         if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
             updateLayout();
@@ -100,6 +106,11 @@ public class PythonBasicObject {
      */
     public void setInstanceVariable(String name, Object value) {
         CompilerAsserts.neverPartOfCompilation();
+
+        if (usePrivateLayout) {
+            privateLayoutStorage.put(name, value);
+            return;
+        }
 
         // If the object's layout doesn't match the class, update
         if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
@@ -149,7 +160,18 @@ public class PythonBasicObject {
      * Get the value of an instance variable, or None if it isn't defined. Slow path.
      */
     public Object getInstanceVariable(String name) {
-        CompilerAsserts.neverPartOfCompilation();
+        // TODO: should implement inca for GlobalLoad and re-enable this assertion
+// CompilerAsserts.neverPartOfCompilation();
+
+        if (usePrivateLayout) {
+            final Object value = privateLayoutStorage.get(name);
+
+            if (value == null) {
+                return PNone.NONE;
+            } else {
+                return value;
+            }
+        }
 
         // If the object's layout doesn't match the class, update
         if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
@@ -176,6 +198,10 @@ public class PythonBasicObject {
      * Get a map of all instance variables.
      */
     protected Map<String, Object> getInstanceVariables() {
+        if (usePrivateLayout) {
+            return new HashMap<>(privateLayoutStorage);
+        }
+
         if (objectLayout == null) {
             return Collections.emptyMap();
         }
@@ -198,6 +224,11 @@ public class PythonBasicObject {
      * Set instance variables from a map.
      */
     protected void setInstanceVariables(Map<String, Object> instanceVariables) {
+        if (usePrivateLayout) {
+            privateLayoutStorage = new HashMap<>(instanceVariables);
+            return;
+        }
+
         for (Entry<String, Object> entry : instanceVariables.entrySet()) {
             final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
 
@@ -214,6 +245,9 @@ public class PythonBasicObject {
      * Update the layout of this object to match that of its class.
      */
     public void updateLayout() {
+        if (usePrivateLayout) {
+            throw new RuntimeException("Should not be updating the layout of an object with a private layout");
+        }
 
         // Get the current values of instance variables
         final Map<String, Object> instanceVariableMap = getInstanceVariables();
@@ -239,6 +273,17 @@ public class PythonBasicObject {
         } else {
             objectStorageLocations = new Object[objectStorageLocationsUsed];
         }
+    }
+
+    public boolean usePrivateLayout() {
+        return usePrivateLayout;
+    }
+
+    public void switchToPrivateLayout() {
+        final Map<String, Object> instanceVariableMap = getInstanceVariables();
+        usePrivateLayout = true;
+        objectLayout = ObjectLayout.EMPTY;
+        setInstanceVariables(instanceVariableMap);
     }
 
     @Override

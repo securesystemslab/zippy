@@ -44,9 +44,9 @@ public class PythonModule extends PythonBasicObject {
 
     private final CyclicAssumption unmodifiedAssumption;
 
-    // TODO: should be the moduleClass
     public PythonModule(PythonClass pythonClass) {
         super(pythonClass);
+        switchToPrivateLayout();
         unmodifiedAssumption = new CyclicAssumption("unmodified");
     }
 
@@ -107,6 +107,12 @@ public class PythonModule extends PythonBasicObject {
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void setInstanceVariable(String name, Object value) {
+        unmodifiedAssumption.invalidate();
+        super.setInstanceVariable(name, value);
     }
 
     /**
