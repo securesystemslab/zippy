@@ -26,6 +26,8 @@ import org.junit.*;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.dsl.test.ImplicitCastTestFactory.ImplicitCast0NodeFactory;
+import com.oracle.truffle.api.dsl.test.ImplicitCastTestFactory.ImplicitCast1NodeFactory;
+import com.oracle.truffle.api.dsl.test.ImplicitCastTestFactory.ImplicitCast2NodeFactory;
 import com.oracle.truffle.api.dsl.test.NodeContainerTest.Str;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.TestRootNode;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.ValueNode;
@@ -55,12 +57,12 @@ public class ImplicitCastTest {
         public abstract Object executeEvaluated(VirtualFrame frame, Object value2);
 
         @Specialization(order = 1)
-        public String op1(String value) throws RuntimeException {
+        public String op1(String value) {
             return value;
         }
 
         @Specialization(order = 2)
-        public boolean op1(boolean value) throws RuntimeException {
+        public boolean op1(boolean value) {
             return value;
         }
 
@@ -77,8 +79,79 @@ public class ImplicitCastTest {
         Assert.assertEquals(true, root.getNode().executeEvaluated(null, true));
     }
 
-    // TODO assert implicit casts only in one direction
+    @TypeSystemReference(ImplicitCast0Types.class)
+    @NodeChild(value = "operand", type = ImplicitCast1Node.class)
+    // TODO temporary workaround
+    abstract static class ImplicitCast1Node extends ValueNode {
 
-    // test example that covers the most cases
+        public abstract Object executeEvaluated(VirtualFrame frame, Object operand);
+
+        @Specialization(order = 0)
+        public String op0(String value) {
+            return value;
+        }
+
+        @Specialization(order = 1, rewriteOn = RuntimeException.class)
+        public boolean op1(@SuppressWarnings("unused") boolean value) throws RuntimeException {
+            throw new RuntimeException();
+        }
+
+        @Specialization(order = 2)
+        public boolean op2(boolean value) {
+            return value;
+        }
+
+    }
+
+    @Test
+    public void testImplicitCast1() {
+        ImplicitCast1Node node = ImplicitCast1NodeFactory.create(null);
+        TestRootNode<ImplicitCast1Node> root = new TestRootNode<>(node);
+        Assert.assertEquals("2", root.getNode().executeEvaluated(null, "2"));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, 1));
+        Assert.assertEquals("1", root.getNode().executeEvaluated(null, "1"));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, 1));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, true));
+    }
+
+    @TypeSystemReference(ImplicitCast0Types.class)
+    @NodeChildren({@NodeChild(value = "operand0", type = ImplicitCast2Node.class), @NodeChild(value = "operand1", type = ImplicitCast2Node.class, executeWith = "operand0")})
+    // TODO temporary workaround
+    abstract static class ImplicitCast2Node extends ValueNode {
+
+        @Specialization(order = 0)
+        public String op0(String v0, String v1) {
+            return v0 + v1;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 1, rewriteOn = RuntimeException.class)
+        public boolean op1(boolean v0, boolean v1) throws RuntimeException {
+            throw new RuntimeException();
+        }
+
+        @Specialization(order = 2)
+        public boolean op2(boolean v0, boolean v1) {
+            return v0 && v1;
+        }
+
+        public abstract Object executeEvaluated(VirtualFrame frame, Object v1);
+
+        public abstract Object executeEvaluated(VirtualFrame frame, Object v1, Object v2);
+
+        public abstract Object executeEvaluated(VirtualFrame frame, boolean v1, boolean v2);
+
+    }
+
+    @Test
+    public void testImplicitCast2() {
+        ImplicitCast2Node node = ImplicitCast2NodeFactory.create(null, null);
+        TestRootNode<ImplicitCast2Node> root = new TestRootNode<>(node);
+        Assert.assertEquals("42", root.getNode().executeEvaluated(null, "4", "2"));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, 1, 1));
+        Assert.assertEquals("42", root.getNode().executeEvaluated(null, "4", "2"));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, 1, 1));
+        Assert.assertEquals(true, root.getNode().executeEvaluated(null, true, true));
+    }
 
 }

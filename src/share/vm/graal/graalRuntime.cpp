@@ -108,7 +108,7 @@ JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, 
   thread->set_vm_result(obj);
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::dynamic_new_array(JavaThread* thread, oop element_mirror, jint length))
+JRT_ENTRY(void, GraalRuntime::dynamic_new_array(JavaThread* thread, oopDesc* element_mirror, jint length))
   oop obj = Reflection::reflect_new_array(element_mirror, length, CHECK);
   thread->set_vm_result(obj);
 JRT_END
@@ -348,7 +348,7 @@ JRT_LEAF(void, GraalRuntime::monitorexit(JavaThread* thread, oopDesc* obj, Basic
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oop obj, jint flags))
+JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oopDesc* obj, jint flags))
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool addr = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
@@ -393,7 +393,7 @@ JRT_LEAF(jboolean, GraalRuntime::validate_object(JavaThread* thread, oopDesc* pa
   return (jint)ret;
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format, jlong value))
+JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oopDesc* where, oopDesc* format, jlong value))
   ResourceMark rm;
   assert(where == NULL || java_lang_String::is_instance(where), "must be");
   const char *error_msg = where == NULL ? "<internal Graal error>" : java_lang_String::as_utf8_string(where);
@@ -407,7 +407,7 @@ JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
-JRT_LEAF(oop, GraalRuntime::load_and_clear_exception(JavaThread* thread))
+JRT_LEAF(oopDesc*, GraalRuntime::load_and_clear_exception(JavaThread* thread))
   oop exception = thread->exception_oop();
   assert(exception != NULL, "npe");
   thread->set_exception_oop(NULL);
@@ -415,7 +415,7 @@ JRT_LEAF(oop, GraalRuntime::load_and_clear_exception(JavaThread* thread))
   return exception;
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
+JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oopDesc* format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   assert(format != NULL && java_lang_String::is_instance(format), "must be");
   char *buf = java_lang_String::as_utf8_string(format);
@@ -485,14 +485,14 @@ JRT_ENTRY(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, 
   }
 JRT_END
 
-JRT_ENTRY(jint, GraalRuntime::identity_hash_code(JavaThread* thread, oop obj))
+JRT_ENTRY(jint, GraalRuntime::identity_hash_code(JavaThread* thread, oopDesc* obj))
   return (jint) obj->identity_hash();
 JRT_END
 
-JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
+JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oopDesc* receiver, jboolean clear_interrupted))
   // Ensure that the C++ Thread and OSThread structures aren't freed before we operate
   Handle receiverHandle(thread, receiver);
-  MutexLockerEx ml(thread->threadObj() == receiver ? NULL : Threads_lock);
+  MutexLockerEx ml(thread->threadObj() == (void*)receiver ? NULL : Threads_lock);
   JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
   return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
 JRT_END

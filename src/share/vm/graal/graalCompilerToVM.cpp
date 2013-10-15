@@ -1132,6 +1132,7 @@ C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspo
     VM_Deoptimize op;
     VMThread::execute(&op);
   }
+  HotSpotInstalledCode::set_codeBlob(hotspotInstalledCode, 0);
 C2V_END
 
 
