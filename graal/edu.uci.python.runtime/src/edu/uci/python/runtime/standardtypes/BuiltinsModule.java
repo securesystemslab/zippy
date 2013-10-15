@@ -45,7 +45,7 @@ public class BuiltinsModule extends PythonModule {
 
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
-        this.setInstanceVariable(__NAME__, name);
+        this.setAttribute(__NAME__, name);
     }
 
     @BuiltinMethod public static final PythonCallTarget min = new PythonCallTarget() {

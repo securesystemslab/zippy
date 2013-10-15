@@ -59,11 +59,6 @@ public abstract class LoadAttributeNode extends PNode {
         }
 
         final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
-
-        if (pythonBasicObj.usePrivateLayout()) {
-            return new LoadGenericAttributeNode(this);
-        }
-
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {

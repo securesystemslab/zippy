@@ -31,7 +31,7 @@ public class MainModule extends PythonModule {
 
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.addBuiltinMethodsAndConstants(MainModule.class);
-        this.setInstanceVariable(__NAME__, name);
+        this.setAttribute(__NAME__, name);
     }
 
 }

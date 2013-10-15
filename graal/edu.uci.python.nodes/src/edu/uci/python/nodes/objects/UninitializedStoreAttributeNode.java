@@ -50,7 +50,7 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
             pyObj.__setattr__(attributeId, (PyObject) value);
         } else {
             final PythonBasicObject pbObj = (PythonBasicObject) primaryObj;
-            pbObj.setInstanceVariable(attributeId, value);
+            pbObj.setAttribute(attributeId, value);
         }
 
         replace(specialize(primaryObj));

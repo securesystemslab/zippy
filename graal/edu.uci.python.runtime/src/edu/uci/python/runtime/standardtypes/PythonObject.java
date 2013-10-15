@@ -32,9 +32,12 @@ import edu.uci.python.runtime.objects.*;
 public class PythonObject extends PythonBasicObject {
 
     /**
-     * Assumption used by any attribute call site or attribute access site.
+     * Assumption used by attribute call sites or attribute access sites that access attribute
+     * stored in this object.
      * <p>
-     * The unmodifiedAssumption is invalidated whenever the object itself is modified.
+     * The unmodifiedAssumption is invalidated whenever the object itself is modified. <br>
+     * 1. Invalidated by setAttribute slow path here. <br>
+     * 2. Invalidated by StoreObjectAttributeNode... (TODO:)
      */
     protected final CyclicAssumption unmodifiedAssumption;
 

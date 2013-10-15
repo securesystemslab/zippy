@@ -71,7 +71,7 @@ public class ReadGlobalScopeNode extends PNode {
         Object value = load.execute(frame);
 
         if (value == PNone.NONE) {
-            value = context.getPythonCore().getBuiltinsModule().getInstanceVariable(attributeId);
+            value = context.getPythonCore().getBuiltinsModule().getAttribute(attributeId);
         }
 
         if (value == PNone.NONE) {

@@ -46,7 +46,6 @@ public class PythonModule extends PythonBasicObject {
 
     public PythonModule(PythonClass pythonClass) {
         super(pythonClass);
-        switchToPrivateLayout();
         unmodifiedAssumption = new CyclicAssumption("unmodified");
     }
 
@@ -69,13 +68,13 @@ public class PythonModule extends PythonBasicObject {
 
         for (AnnotatedBuiltinConstant constant : builtinConstants) {
             Object value = constant.getValue();
-            setInstanceVariable(constant.getName(), value);
+            setAttribute(constant.getName(), value);
         }
 
         for (AnnotatedBuiltinMethod method : builtinMethods) {
             final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
             String methodName = method.getNames().get(0);
-            setInstanceVariable(methodName, function);
+            setAttribute(methodName, function);
         }
     }
 
@@ -110,9 +109,9 @@ public class PythonModule extends PythonBasicObject {
     }
 
     @Override
-    public void setInstanceVariable(String name, Object value) {
+    public void setAttribute(String name, Object value) {
         unmodifiedAssumption.invalidate();
-        super.setInstanceVariable(name, value);
+        super.setAttribute(name, value);
     }
 
     /**

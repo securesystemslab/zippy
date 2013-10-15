@@ -26,26 +26,24 @@ package edu.uci.python.runtime.standardtypes;
 
 import java.util.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.objects.*;
 
 public class PythonClass extends PythonObject {
 
-    private final String name;
-
-    @CompilationFinal private PythonClass superClass;
-
-    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
-
-    private ObjectLayout objectLayoutForInstances = null;
+    private final String className;
 
     // The context is stored here - objects can obtain it via their class (which is a module)
     private final PythonContext context;
 
-    private final Map<String, PFunction> methods = new HashMap<>();
+    // TODO: Multiple inheritance and MRO...
+    @CompilationFinal private PythonClass superClass;
+
+    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
@@ -58,10 +56,10 @@ public class PythonClass extends PythonObject {
     public PythonClass(PythonContext context, PythonClass superClass, String name) {
         super(context.getPythonCore().getTypeClass());
         this.context = context;
-        this.name = name;
+        this.className = name;
 
         if (superClass == null) {
-            objectLayoutForInstances = ObjectLayout.EMPTY;
+            this.superClass = context.getPythonCore().getObjectClass();
         } else {
             unsafeSetSuperClass(superClass);
         }
@@ -72,47 +70,42 @@ public class PythonClass extends PythonObject {
         return superClass;
     }
 
-    public String getName() {
-        return name;
+    public String getClassName() {
+        return className;
     }
 
     public PythonContext getContext() {
         return context;
     }
 
-    public PFunction lookUpMethod(String methodName) {
-        final PFunction method = methods.get(methodName);
-        assert method != null;
-        return method;
+    public PCallable lookUpMethod(String methodName) {
+        Object attr = getAttribute(methodName);
+        assert attr != null;
+
+        if (attr instanceof PCallable) {
+            return (PCallable) attr;
+        }
+
+        throw Py.TypeError(attr + " object is not callable");
     }
 
     public void addMethod(PFunction method) {
-        methods.put(method.getName(), method);
+        setAttribute(method.getName(), method);
     }
 
     /**
-     * Returns the object layout that objects of this class should use. Do not confuse with // *
-     * {#getObjectLayout}, which for {@link PythonClass} will return the layout of the class object
-     * itself.
+     * Invalidate the unmodified assumption of the PythonClass itself and propagate the invalidation
+     * to its subclasses too.
      */
-    public ObjectLayout getObjectLayoutForInstances() {
-        return objectLayoutForInstances;
-    }
-
-    public void setObjectLayoutForInstances(ObjectLayout newObjectLayoutForInstances) {
-        objectLayoutForInstances = newObjectLayoutForInstances;
+    @Override
+    public void setAttribute(String name, Object value) {
+        unmodifiedAssumption.invalidate();
 
         for (PythonClass subClass : subClasses) {
-            subClass.renewObjectLayoutForInstances();
+            subClass.unmodifiedAssumption.invalidate();
         }
-    }
 
-    private void renewObjectLayoutForInstances() {
-        objectLayoutForInstances = objectLayoutForInstances.renew(getContext(), superClass.objectLayoutForInstances);
-
-        for (PythonClass subClass : subClasses) {
-            subClass.renewObjectLayoutForInstances();
-        }
+        super.setAttribute(name, value);
     }
 
     /**
@@ -123,12 +116,11 @@ public class PythonClass extends PythonObject {
         assert superClass == null;
         superClass = newSuperClass;
         superClass.subClasses.add(this);
-        objectLayoutForInstances = new ObjectLayout(getName(), getContext(), superClass.objectLayoutForInstances);
     }
 
     @Override
     public String toString() {
-        return "<class \'" + name + "\'>";
+        return "<class \'" + className + "\'>";
     }
 
 }

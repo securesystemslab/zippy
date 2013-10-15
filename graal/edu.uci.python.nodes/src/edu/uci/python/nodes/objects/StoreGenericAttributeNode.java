@@ -41,7 +41,7 @@ public class StoreGenericAttributeNode extends StoreAttributeNode {
     public Object execute(VirtualFrame frame) {
         final PythonBasicObject pbObj = (PythonBasicObject) primary.execute(frame);
         final Object value = rhs.execute(frame);
-        pbObj.setInstanceVariable(attributeId, value);
+        pbObj.setAttribute(attributeId, value);
         return PNone.NONE;
     }
 

@@ -46,7 +46,7 @@ public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
         if (!receiverObject.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
             replace(specialize(receiverObject));
-            return receiverObject.getInstanceVariable(attributeId);
+            return receiverObject.getAttribute(attributeId);
         }
 
         return storageLocation.read(receiverObject);

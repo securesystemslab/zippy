@@ -54,7 +54,7 @@ public class PythonCore {
 
         builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
         mainModule = new MainModule(moduleClass, "__main__");
-        mainModule.setInstanceVariable("__builtins__", builtinsModule);
+        mainModule.setAttribute("__builtins__", builtinsModule);
     }
 
     public PythonClass getTypeClass() {

@@ -45,7 +45,7 @@ public class UninitializedLoadAttributeNode extends LoadAttributeNode {
         replace(specialize(primaryObj));
 
         if (primaryObj instanceof PythonBasicObject) {
-            return ((PythonBasicObject) primaryObj).getInstanceVariable(attributeId);
+            return ((PythonBasicObject) primaryObj).getAttribute(attributeId);
         } else {
             return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId);
         }

@@ -67,11 +67,6 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
         }
 
         final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
-
-        if (pythonBasicObj.usePrivateLayout()) {
-            return new StoreGenericAttributeNode(this);
-        }
-
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {
