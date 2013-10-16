@@ -56,7 +56,7 @@ public class ReadGlobalScopeNode extends PNode {
     protected ReadGlobalScopeNode(ReadGlobalScopeNode previous) {
         this.attributeId = previous.attributeId;
         this.context = previous.context;
-        this.load = previous.load;
+        this.load = adoptChild(previous.load);
     }
 
     public String getAttributeId() {
@@ -80,6 +80,7 @@ public class ReadGlobalScopeNode extends PNode {
         if (value == PNone.NONE) {
             value = context.getPythonCore().getBuiltinsModule().getAttribute(attributeId);
         } else {
+            replaceWithGlobalDirect();
             return value;
         }
 
@@ -103,15 +104,37 @@ public class ReadGlobalScopeNode extends PNode {
     }
 
     @SlowPath
+    protected void replaceWithGlobalDirect() {
+        replace(new ReadGlobalDirectNode(this));
+    }
+
+    @SlowPath
     protected void cacheBuiltin(Object builtin) {
         Assumption globalScopeUnchanged = this.context.getPythonCore().getMainModule().getUnmodifiedAssumption();
         Assumption builtinsModuleUnchanged = this.context.getPythonCore().getBuiltinsModule().getUnmodifiedAssumption();
         replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
     }
 
+    @SlowPath
+    protected Object uninitialize(VirtualFrame frame) {
+        return replace(new ReadGlobalScopeNode(this)).execute(frame);
+    }
+
     @Override
     public String toString() {
         return "ReadGlobal: " + attributeId;
+    }
+
+    public static class ReadGlobalDirectNode extends ReadGlobalScopeNode {
+
+        public ReadGlobalDirectNode(ReadGlobalScopeNode previous) {
+            super(previous);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return load.execute(frame);
+        }
     }
 
     public static class ReadBuiltinCachedNode extends ReadGlobalScopeNode {
@@ -134,7 +157,7 @@ public class ReadGlobalScopeNode extends PNode {
                 builtinsModuleUnchanged.check();
                 return cachedBuiltin;
             } catch (InvalidAssumptionException e) {
-                return replace(new ReadGlobalScopeNode(this)).execute(frame);
+                return uninitialize(frame);
             }
         }
     }
