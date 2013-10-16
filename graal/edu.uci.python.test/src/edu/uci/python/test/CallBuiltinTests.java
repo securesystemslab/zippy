@@ -31,6 +31,14 @@ import org.junit.*;
 public class CallBuiltinTests {
 
     @Test
+    public void builtinLookup() {
+        String source = "for i in range(5):\n" + //
+                        "    print(abs)\n";
+
+        assertPrints("<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n", source);
+    }
+
+    @Test
     public void abs() {
         String source = "val = abs(-42)\n" + //
                         "print(val)\n";

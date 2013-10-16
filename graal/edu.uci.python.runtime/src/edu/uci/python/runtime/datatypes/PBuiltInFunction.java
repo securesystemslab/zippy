@@ -56,4 +56,9 @@ public class PBuiltinFunction extends PCallable {
             return callTarget.call(caller, new PArguments(args, pkeywords));
         }
     }
+
+    @Override
+    public String toString() {
+        return "<built-in function " + name + ">";
+    }
 }

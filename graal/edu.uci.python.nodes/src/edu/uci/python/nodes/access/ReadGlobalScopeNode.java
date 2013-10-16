@@ -26,6 +26,7 @@ package edu.uci.python.nodes.access;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -52,6 +53,12 @@ public class ReadGlobalScopeNode extends PNode {
         this.load = adoptChild(new UninitializedLoadAttributeNode(attributeId, primary));
     }
 
+    protected ReadGlobalScopeNode(ReadGlobalScopeNode previous) {
+        this.attributeId = previous.attributeId;
+        this.context = previous.context;
+        this.load = previous.load;
+    }
+
     public String getAttributeId() {
         return attributeId;
     }
@@ -72,11 +79,14 @@ public class ReadGlobalScopeNode extends PNode {
 
         if (value == PNone.NONE) {
             value = context.getPythonCore().getBuiltinsModule().getAttribute(attributeId);
+        } else {
+            return value;
         }
 
         if (value == PNone.NONE) {
             return slowPathLookup();
         } else {
+            cacheBuiltin(value);
             return value;
         }
     }
@@ -92,8 +102,40 @@ public class ReadGlobalScopeNode extends PNode {
         return value;
     }
 
+    @SlowPath
+    protected void cacheBuiltin(Object builtin) {
+        Assumption globalScopeUnchanged = this.context.getPythonCore().getMainModule().getUnmodifiedAssumption();
+        Assumption builtinsModuleUnchanged = this.context.getPythonCore().getBuiltinsModule().getUnmodifiedAssumption();
+        replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
+    }
+
     @Override
     public String toString() {
         return "ReadGlobal: " + attributeId;
+    }
+
+    public static class ReadBuiltinCachedNode extends ReadGlobalScopeNode {
+
+        private final Assumption globalScopeUnchanged;
+        private final Assumption builtinsModuleUnchanged;
+        private final Object cachedBuiltin;
+
+        public ReadBuiltinCachedNode(ReadGlobalScopeNode previous, Assumption globalScopeUnchanged, Assumption builtinsModuleUnchanged, Object cachedBuiltin) {
+            super(previous);
+            this.globalScopeUnchanged = globalScopeUnchanged;
+            this.builtinsModuleUnchanged = builtinsModuleUnchanged;
+            this.cachedBuiltin = cachedBuiltin;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            try {
+                globalScopeUnchanged.check();
+                builtinsModuleUnchanged.check();
+                return cachedBuiltin;
+            } catch (InvalidAssumptionException e) {
+                return replace(new ReadGlobalScopeNode(this)).execute(frame);
+            }
+        }
     }
 }
