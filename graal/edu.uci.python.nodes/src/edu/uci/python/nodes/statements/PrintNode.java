@@ -32,7 +32,7 @@ import edu.uci.python.runtime.*;
 
 public class PrintNode extends StatementNode {
 
-    @Children protected PNode[] values;
+    @Children final PNode[] values;
 
     private final boolean nl;
     private final PythonContext context;
