@@ -20,47 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.printer.method;
+package com.oracle.graal.hotspot.sparc;
 
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.spi.*;
 
-public class CallStackElement {
+public class SPARCHotSpotLoweringProvider extends HotSpotLoweringProvider {
 
-    private final int lineOfInvoke;
-    private final ResolvedJavaMethod callerMethod;
-
-    public CallStackElement(ResolvedJavaMethod callerMethod, int lineOfInvoke) {
-        this.lineOfInvoke = lineOfInvoke;
-        this.callerMethod = callerMethod;
-    }
-
-    public int getLineOfInvoke() {
-        return lineOfInvoke;
+    public SPARCHotSpotLoweringProvider(HotSpotGraalRuntime runtime, MetaAccessProvider metaAccess, ForeignCallsProvider foreignCalls) {
+        super(runtime, metaAccess, foreignCalls);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o instanceof CallStackElement) {
-            CallStackElement i = (CallStackElement) o;
-            if (i.getCallerMethod() == this.getCallerMethod()/*
-                                                              * && i.lineOfInvoke ==
-                                                              * this.lineOfInvoke
-                                                              */) {
-                return true;
-            } else {
-                return false;
-            }
+    public void lower(Node n, LoweringTool tool) {
+        if (n instanceof ConvertNode) {
+            // ConvertNodes are handled in SPARCLIRGenerator.emitConvert
         } else {
-            return false;
+            super.lower(n, tool);
         }
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    public ResolvedJavaMethod getCallerMethod() {
-        return callerMethod;
     }
 }

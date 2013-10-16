@@ -338,7 +338,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
 #ifndef PRODUCT
         if (PrintDeoptimizationDetails) {
           tty->print("Reconstructed expression %d (OBJECT): ", i);
-          oop o = (oop)(*addr);
+          oop o = (oop)(address)(*addr);
           if (o == NULL) {
             tty->print_cr("NULL");
           } else {
@@ -375,7 +375,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
 #ifndef PRODUCT
         if (PrintDeoptimizationDetails) {
           tty->print("Reconstructed local %d (OBJECT): ", i);
-          oop o = (oop)(*addr);
+          oop o = (oop)(address)(*addr);
           if (o == NULL) {
             tty->print_cr("NULL");
           } else {

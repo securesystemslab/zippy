@@ -147,7 +147,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
         ResolvedJavaField primitiveLocalsField = findField(frameFields, "primitiveLocals");
         ResolvedJavaField tagsField = findField(frameFields, "tags");
 
-        VirtualObjectNode virtualFrame = new VirtualOnlyInstanceNode(frameType, frameFields);
+        VirtualObjectNode virtualFrame = new VirtualInstanceNode(frameType, frameFields, false);
         VirtualObjectNode virtualFrameObjectArray = new VirtualArrayNode((ResolvedJavaType) localsField.getType().getComponentType(), frameSize);
         VirtualObjectNode virtualFramePrimitiveArray = new VirtualArrayNode((ResolvedJavaType) primitiveLocalsField.getType().getComponentType(), frameSize);
         VirtualObjectNode virtualFrameTagArray = new VirtualArrayNode((ResolvedJavaType) tagsField.getType().getComponentType(), frameSize);
@@ -186,8 +186,14 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
     }
 
     private ValueNode initialValue(FrameSlotKind kind) {
-        Kind graalKind = Kind.Long;
+        Kind graalKind = null;
         switch (kind) {
+            case Boolean:
+                graalKind = Kind.Boolean;
+                break;
+            case Byte:
+                graalKind = Kind.Byte;
+                break;
             case Int:
                 graalKind = Kind.Int;
                 break;
@@ -197,9 +203,17 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
             case Float:
                 graalKind = Kind.Float;
                 break;
-            case Boolean:
-                graalKind = Kind.Boolean;
+            case Long:
+                graalKind = Kind.Long;
                 break;
+            case Object:
+                graalKind = Kind.Object;
+                break;
+            case Illegal:
+                graalKind = Kind.Long;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected frame slot kind: " + kind);
         }
 
         return ConstantNode.defaultForKind(graalKind, graph());

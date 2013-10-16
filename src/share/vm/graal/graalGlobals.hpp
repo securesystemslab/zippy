@@ -55,7 +55,7 @@
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \
-  product(bool, GraalDeferredInitBarriers, false,                           \
+  product(bool, GraalDeferredInitBarriers, true,                            \
           "Defer write barriers of young objects")                          \
                                                                             \
   develop(bool, GraalUseFastLocking, true,                                  \
