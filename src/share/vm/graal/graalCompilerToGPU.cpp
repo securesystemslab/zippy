@@ -191,9 +191,10 @@ C2V_VMENTRY(jint, availableProcessors, (JNIEnv *env, jobject))
 C2V_END
 
 static objArrayHandle newSingletonStringArray(const char* value, TRAPS) {
-  objArrayOop res = oopFactory::new_objArray(SystemDictionary::String_klass(), 1, CHECK_NULL);
+  objArrayHandle nullRes;
+  objArrayOop res = oopFactory::new_objArray(SystemDictionary::String_klass(), 1, CHECK_(nullRes));
   objArrayHandle res_h = objArrayHandle(THREAD, res);
-  Handle valueString = java_lang_String::create_from_str(value, CHECK_NULL);
+  Handle valueString = java_lang_String::create_from_str(value, CHECK_(nullRes));
   res_h->obj_at_put(0, valueString());
   return res_h;
 }
