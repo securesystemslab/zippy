@@ -34,7 +34,7 @@
   // Run with +PrintInterpreter to get the VM to print out the size.
   // Max size with JVMTI
 #ifdef AMD64
-  const static int InterpreterCodeSize = GRAALVM_ONLY(244) NOT_GRAALVM(240) * 1024;
+  const static int InterpreterCodeSize = GRAAL_ONLY(256) NOT_GRAAL(208) * 1024;
 #else
   const static int InterpreterCodeSize = 176 * 1024;
 #endif // AMD64
