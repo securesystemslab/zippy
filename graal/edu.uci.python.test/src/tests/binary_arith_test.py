@@ -10,6 +10,7 @@ print (a, b, c, d, e)
 # slightly more complex ones
 print ("----------- double/BigInteger + - * / //")
 a = 345606 + 364 * 2
+print a
 b = 1101010101 / 356 - 2002
 c = 42 - 99999 * 543858438584385
 d = 1 / 356 * 2.0
