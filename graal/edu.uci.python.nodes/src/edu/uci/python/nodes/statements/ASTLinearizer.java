@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statements;
 import java.util.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
 
@@ -95,10 +96,10 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         append(newNode);
 
         StatementNode loopEnd = getDummy();
-        StatementNode bodyLast = visitBlockNode(node.body);
-        visitBlockNode(node.orelse);
+// StatementNode bodyLast = visitBlockNode(node.body);
+// visitBlockNode(node.orelse);
 
-        setNext(bodyLast, newNode);
+// setNext(bodyLast, newNode);
         setNext(newNode, loopEnd);
         append(loopEnd);
         return loopEnd;
@@ -121,10 +122,10 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
     public StatementNode visitWhileNode(WhileNode node) {
         append(node);
         StatementNode loopEnd = getDummy();
-        StatementNode bodyLast = visitBlockNode(node.body);
-        visitBlockNode(node.orelse);
+// StatementNode bodyLast = visitBlockNode(node.body);
+// visitBlockNode(node.orelse);
 
-        setNext(bodyLast, node);
+// setNext(bodyLast, node);
         setNext(node, loopEnd);
         append(loopEnd);
         return loopEnd;
@@ -196,9 +197,9 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         @Override
         public StatementNode visitForNode(ForNode node) {
             visitStatementNode(node);
-            visit(node.body);
-            StatementNode next = visit(node.orelse).next();
-            visitStatementNode(next);
+// visit(node.body);
+// StatementNode next = visit(node.orelse).next();
+// visitStatementNode(next);
             return null;
         }
 
@@ -214,9 +215,9 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         @Override
         public StatementNode visitWhileNode(WhileNode node) {
             visitStatementNode(node);
-            visit(node.body);
-            StatementNode next = visit(node.orelse).next();
-            visitStatementNode(next);
+// visit(node.body);
+// StatementNode next = visit(node.orelse).next();
+// visitStatementNode(next);
             return null;
         }
     }

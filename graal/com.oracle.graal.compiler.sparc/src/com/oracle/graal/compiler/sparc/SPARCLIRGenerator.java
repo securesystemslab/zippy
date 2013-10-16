@@ -63,6 +63,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.calc.ConvertNode.Op;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.phases.util.*;
 
 /**
  * This class implements the SPARC specific portion of the LIR generator.
@@ -77,8 +78,8 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         }
     }
 
-    public SPARCLIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, runtime, target, frameMap, cc, lir);
+    public SPARCLIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, target, frameMap, cc, lir);
         lir.spillMoveFactory = new SPARCSpillMoveFactory();
     }
 
@@ -98,9 +99,9 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public boolean canInlineConstant(Constant c) {
         switch (c.getKind()) {
             case Int:
-                return SPARCAssembler.isSimm13(c.asInt()) && !runtime.needsDataPatch(c);
+                return SPARCAssembler.isSimm13(c.asInt()) && !codeCache.needsDataPatch(c);
             case Long:
-                return SPARCAssembler.isSimm13(c.asLong()) && !runtime.needsDataPatch(c);
+                return SPARCAssembler.isSimm13(c.asLong()) && !codeCache.needsDataPatch(c);
             case Object:
                 return c.isNull();
             default:
@@ -850,7 +851,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public void visitBreakpointNode(BreakpointNode node) {
         JavaType[] sig = new JavaType[node.arguments().size()];
         for (int i = 0; i < sig.length; i++) {
-            sig[i] = node.arguments().get(i).stamp().javaType(runtime);
+            sig[i] = node.arguments().get(i).stamp().javaType(metaAccess);
         }
 
         Value[] parameters = visitInvokeArguments(frameMap.registerConfig.getCallingConvention(CallingConvention.Type.JavaCall, null, sig, target(), false), node.arguments());

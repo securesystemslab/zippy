@@ -117,8 +117,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
         return copy[copy.length - 1];
     }
 
-    @SuppressWarnings("unused")
-    public void setSlice(PSlice slice, PIntegerArray value) {
+    @Override
+    public void setSlice(PSlice slice, PArray value) {
         throw new UnsupportedOperationException();
     }
 
@@ -157,6 +157,15 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
             list.add(array[i]);
         }
         return list;
+    }
+
+    @Override
+    public PArray append(PArray other) {
+        PIntegerArray otherArray = (PIntegerArray) other;
+        int[] joined = new int[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PIntegerArray(joined);
     }
 
     @Override

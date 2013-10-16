@@ -29,208 +29,75 @@ import static org.junit.Assert.*;
 import org.junit.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class ObjectLayoutTests {
 
     @Test
-    public void testNewInstanceVariable() {
-        final PythonContext context = new PythonContext(new Options());
-
+    public void objectWithPrimitiveAttributes() {
         // Create a class and an instance
+        final PythonContext context = new PythonContext(new Options());
         final PythonClass classA = new PythonClass(context, null, "A");
-        final ObjectLayout layoutClassA = classA.getObjectLayoutForInstances();
+        final PythonBasicObject obj = new PythonBasicObject(classA);
+        final ObjectLayout objLayoutBefore = obj.getObjectLayout();
+        obj.setAttribute("foo", 42);
+        obj.setAttribute("bar", 24);
 
-        final PythonBasicObject objectA = new PythonBasicObject(classA);
-        final ObjectLayout layoutObjectA = objectA.getObjectLayout();
+        final ObjectLayout objLayoutAfter = obj.getObjectLayout();
+        assertNotSame(objLayoutBefore, objLayoutAfter);
 
-        // Add an instance variable to the instance
-        objectA.setInstanceVariable("foo", 14);
-
-        // That should have changed the layout of the class
-        assertNotSame(layoutClassA, classA.getObjectLayoutForInstances());
-
-        // If we notify the object, it should also change the layout of that
-        objectA.updateLayout();
-        assertNotSame(layoutObjectA, objectA.getObjectLayout());
-
-        // We should be able to find that instance variable as a storage location in the class
-        assertNotNull(classA.getObjectLayoutForInstances().findStorageLocation("foo"));
-
-        // We should be able to read that value back out
-        assertEquals(14, objectA.getInstanceVariable("foo"));
+        assertEquals(42, obj.getAttribute("foo"));
+        assertEquals(24, obj.getAttribute("bar"));
     }
 
     @Test
-    public void testOverflowPrimitives() {
-        final PythonContext context = new PythonContext(new Options());
-
+    public void objectPrimitiveAttributeOverflow() {
         // Create a class and an instance
+        final PythonContext context = new PythonContext(new Options());
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject objectA = new PythonBasicObject(classA);
+        final PythonBasicObject obj = new PythonBasicObject(classA);
 
-        // Add many more Fixnums that we have space for primitives
-        final int count = 100;
-
-        for (int n = 0; n < count; n++) {
-            objectA.setInstanceVariable("foo" + n, n);
+        for (int i = 0; i < 100; i++) {
+            obj.setAttribute("foo" + i, i);
         }
 
-        // We should be able to read them back out
-        for (int n = 0; n < count; n++) {
-            assertEquals(n, objectA.getInstanceVariable("foo" + n));
+        final ObjectLayout layout = obj.getObjectLayout();
+        int objectStorageLocationUsed = layout.getObjectStorageLocationsUsed();
+        assertEquals(100 - PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
+
+        for (int i = 0; i < 100; i++) {
+            assertEquals(i, obj.getAttribute("foo" + i));
         }
     }
 
     @Test
-    public void testGeneralisation() {
-        final PythonContext context = new PythonContext(new Options());
-
-        // Create a class and two instances
-        final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject object1 = new PythonBasicObject(classA);
-        final PythonBasicObject object2 = new PythonBasicObject(classA);
-
-        // Set an instance variable to be a PInt in object 1
-        object1.setInstanceVariable("foo", 14);
-
-        // We should be able to read that instance variable back, and it should still be a PInt
-        assertEquals(14, object1.getInstanceVariable("foo"));
-        assertSame(Integer.class, object1.getInstanceVariable("foo").getClass());
-
-        // The underlying instance store should be PInt
-        assertSame(IntStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
-
-        /*
-         * The same instance variable in object 2 should be Nil. Note that this requires that we
-         * realize that even though the instance variable is known about in the layout of object 2,
-         * and we are using a primitive int to hold it, that it hasn't been set and is actually
-         * None. We don't want it to appear as 0.
-         */
-        assertSame(PNone.NONE, object2.getInstanceVariable("foo"));
-
-        /*
-         * We should be able to set the same instance variable in object 2 to also be a PInt without
-         * changing the layout.
-         */
-        final ObjectLayout objectLayout2 = object2.getObjectLayout();
-        object2.setInstanceVariable("foo", 2);
-        assertEquals(2, object2.getInstanceVariable("foo"));
-        assertSame(Integer.class, object2.getInstanceVariable("foo").getClass());
-        assertSame(objectLayout2, object2.getObjectLayout());
-
-        // Set the instance variable in object 2 to be a Float
-        object2.setInstanceVariable("foo", 2.25);
-
-        // We should be able to read that instance variable back, and it should still be a PInt
-        assertEquals(2.25, object2.getInstanceVariable("foo"));
-        assertSame(Double.class, object2.getInstanceVariable("foo").getClass());
-
-        // Object 1 should give still think the instance variable is a PInt
-        assertEquals(14, object1.getInstanceVariable("foo"));
-        assertSame(Integer.class, object1.getInstanceVariable("foo").getClass());
-
-        // The underlying instance store in both objects should now be Object
-        assertSame(ObjectStorageLocation.class, object1.getObjectLayout().findStorageLocation("foo").getClass());
-        assertSame(ObjectStorageLocation.class, object2.getObjectLayout().findStorageLocation("foo").getClass());
-    }
-
-    @Test
-    public void testSubclasses() {
-        final PythonContext context = new PythonContext(new Options());
-
-        // Create two classes, A, and a subclass, B, and an instance of each
-        final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonClass classB = new PythonClass(context, classA, "B");
-
-        ObjectLayout layoutClassA = classA.getObjectLayoutForInstances();
-        ObjectLayout layoutClassB = classA.getObjectLayoutForInstances();
-
-        final PythonBasicObject objectA = new PythonBasicObject(classA);
-        final PythonBasicObject objectB = new PythonBasicObject(classB);
-
-        ObjectLayout layoutObjectA = objectA.getObjectLayout();
-        ObjectLayout layoutObjectB = objectB.getObjectLayout();
-
-        // Add an instance variable to the instance of A
-        objectA.setInstanceVariable("foo", 14);
-
-        // That should have changed the layout of both classes
-        assertNotSame(layoutClassA, classA.getObjectLayoutForInstances());
-        assertNotSame(layoutClassB, classB.getObjectLayoutForInstances());
-
-        layoutClassA = classA.getObjectLayoutForInstances();
-        layoutClassB = classA.getObjectLayoutForInstances();
-
-        // If we notify the objects, both of them should have changed layouts
-        objectA.updateLayout();
-        objectB.updateLayout();
-        assertNotSame(layoutObjectA, objectA.getObjectLayout());
-        assertNotSame(layoutObjectB, objectB.getObjectLayout());
-
-        layoutObjectA = objectA.getObjectLayout();
-        layoutObjectB = objectB.getObjectLayout();
-
-        // We should be able to find that instance variable as a storage location in both classes
-        assertNotNull(classA.getObjectLayoutForInstances().findStorageLocation("foo"));
-        assertNotNull(classB.getObjectLayoutForInstances().findStorageLocation("foo"));
-
-        // We should be able to read that value back out
-        assertEquals(14, objectA.getInstanceVariable("foo"));
-
-        // Add an instance variable to the instance of B
-        objectB.setInstanceVariable("bar", 2);
-
-        // This should not have changed the layout of A or the instance of A
-        assertSame(layoutClassA, classA.getObjectLayoutForInstances());
-        assertSame(layoutObjectA, objectA.getObjectLayout());
-
-        // But the layout of B and the instance of B should have changed
-        assertNotSame(layoutClassB, classB.getObjectLayoutForInstances());
-
-        objectB.updateLayout();
-        assertNotSame(layoutObjectB, objectB.getObjectLayout());
-
-        // We should be able to find the new instance variable in the instance of B but not A
-        assertNull(classA.getObjectLayoutForInstances().findStorageLocation("bar"));
-        assertNotNull(classB.getObjectLayoutForInstances().findStorageLocation("bar"));
-
-        // We should be able to read that value back out
-        assertEquals(2, objectB.getInstanceVariable("bar"));
-    }
-
-    /**
-     * This is simplified.
-     */
-    @Test
-    public void testPerObjectInstanceVariables() {
-        final PythonContext context = new PythonContext(new Options());
-
+    public void classAttributes() {
         // Create a class and an instance
+        final PythonContext context = new PythonContext(new Options());
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject objectA = new PythonBasicObject(classA);
 
-        ObjectLayout layoutClassA = classA.getObjectLayoutForInstances();
-        ObjectLayout layoutObjectA = objectA.getObjectLayout();
+        // Add class variable
+        classA.setAttribute("foo", 42);
+        classA.setAttribute("bar", 24);
 
-        // Add an instance variable to the instance of A
-        objectA.setInstanceVariable("foo", 2);
+        assertEquals(42, classA.getAttribute("foo"));
+        assertEquals(24, classA.getAttribute("bar"));
 
-        // That should have changed the layout of the class and the object
-        assertNotSame(layoutClassA, classA.getObjectLayoutForInstances());
-        assertNotSame(layoutObjectA, objectA.getObjectLayout());
-        layoutClassA = classA.getObjectLayoutForInstances();
-        layoutObjectA = classA.getObjectLayout();
+        final PythonBasicObject obj = new PythonBasicObject(classA);
+        int initialSize = obj.getObjectLayout().getAllStorageLocations().size();
+        assertEquals(0, initialSize);
 
-        // We should be able to read the value back out
-        assertEquals(2, objectA.getInstanceVariable("foo"));
+        // Get "foo" from its type
+        assertEquals(42, obj.getAttribute("foo"));
+        assertEquals(24, obj.getAttribute("bar"));
 
-        /*
-         * We should also be able to read the first variable back out, even though we've switched to
-         * private layout since then.
-         */
-        assertEquals(2, objectA.getInstanceVariable("foo"));
+        assertFalse(obj.isOwnAttribute("foo"));
+
+        // Override "foo" in object instance
+        obj.setAttribute("foo", 43);
+        assertEquals(43, obj.getAttribute("foo"));
+
+        assertTrue(obj.isOwnAttribute("foo"));
     }
 }

@@ -47,4 +47,8 @@ public abstract class StorageLocation {
         return objectLayout;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "@" + hashCode();
+    }
 }

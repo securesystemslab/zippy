@@ -45,7 +45,7 @@ public class BuiltinsModule extends PythonModule {
 
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
-        this.setInstanceVariable(__NAME__, name);
+        this.setAttribute(__NAME__, name);
     }
 
     @BuiltinMethod public static final PythonCallTarget min = new PythonCallTarget() {
@@ -483,6 +483,16 @@ public class BuiltinsModule extends PythonModule {
         public Object call(PackedFrame frame, PArguments arguments) {
             Object[] args = arguments.getArgumentsArray();
             return (int) JavaTypeConversions.toInt(args[0]);
+        }
+
+    };
+
+    @BuiltinMethod(unmangledName = "float") public static final PythonCallTarget Float = new PythonCallTarget() {
+
+        @Override
+        public Object call(PackedFrame frame, PArguments arguments) {
+            Object[] args = arguments.getArgumentsArray();
+            return JavaTypeConversions.toDouble(args[0]);
         }
 
     };

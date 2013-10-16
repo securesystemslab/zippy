@@ -108,49 +108,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return new PTuple(newArray);
         }
 
-        @Specialization(order = 9)
-        PIntegerArray doPIntegerArray(PIntegerArray left, PIntegerArray right) {
-            int[] newArray = new int[left.len() + right.len()];
-            int index = 0;
-            int[] leftArray = left.getSequence();
-            for (int i = 0; i < leftArray.length; i++) {
-                newArray[index++] = leftArray[i];
-            }
-            int[] rightArray = right.getSequence();
-            for (int i = 0; i < rightArray.length; i++) {
-                newArray[index++] = rightArray[i];
-            }
-            return new PIntegerArray(newArray);
-        }
-
         @Specialization(order = 10)
-        PDoubleArray doPDoubleArray(PDoubleArray left, PDoubleArray right) {
-            double[] newArray = new double[left.len() + right.len()];
-            int index = 0;
-            double[] leftArray = left.getSequence();
-            for (int i = 0; i < leftArray.length; i++) {
-                newArray[index++] = leftArray[i];
-            }
-            double[] rightArray = right.getSequence();
-            for (int i = 0; i < rightArray.length; i++) {
-                newArray[index++] = rightArray[i];
-            }
-            return new PDoubleArray(newArray);
-        }
-
-        @Specialization(order = 11)
-        PCharArray doPCharArray(PCharArray left, PCharArray right) {
-            char[] newArray = new char[left.len() + right.len()];
-            int index = 0;
-            char[] leftArray = left.getSequence();
-            for (int i = 0; i < leftArray.length; i++) {
-                newArray[index++] = leftArray[i];
-            }
-            char[] rightArray = right.getSequence();
-            for (int i = 0; i < rightArray.length; i++) {
-                newArray[index++] = rightArray[i];
-            }
-            return new PCharArray(newArray);
+        PArray doPDoubleArray(PArray left, PArray right) {
+            return left.append(right);
         }
 
         @SuppressWarnings("unused")
@@ -265,11 +225,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 3)
         PComplex doDoubleComplex(double left, PComplex right) {
-            // return left.div(right);
             double opNormSq = right.getReal() * right.getReal() + right.getImag() * right.getImag();
-            // result.setReal(result.getReal() / opNormSq);
-            // result.setImag(result.getImag() / opNormSq);
-
             PComplex conjugate = right.getConjugate();
             double realPart = left * conjugate.getReal();
             double imagPart = left * conjugate.getImag();
@@ -278,10 +234,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 4)
         PComplex doComplexDouble(PComplex left, double right) {
-            // return left.div(right);
             double opNormSq = right * right;
-            // result.setReal(result.getReal() / opNormSq);
-            // result.setImag(result.getImag() / opNormSq);
             double realPart = left.getReal() * right;
             double imagPart = left.getImag() * right;
             return new PComplex(realPart / opNormSq, imagPart / opNormSq);
@@ -289,14 +242,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 5)
         PComplex doComplex(PComplex left, PComplex right) {
-            // return left.div(right);
-            double opNormSq = right.getReal() * right.getReal() + right.getImag() * right.getImag();
-            // result.setReal(result.getReal() / opNormSq);
-            // result.setImag(result.getImag() / opNormSq);
-            PComplex conjugate = right.getConjugate();
-            double realPart = left.getReal() * conjugate.getReal() - left.getImag() * conjugate.getImag();
-            double imagPart = left.getReal() * conjugate.getImag() + left.getImag() * conjugate.getReal();
-            return new PComplex(realPart / opNormSq, imagPart / opNormSq);
+            return left.div(right);
         }
     }
 

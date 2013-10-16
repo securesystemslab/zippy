@@ -74,13 +74,15 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   // does *not* answer the question "can this compiler generate code for
   // a native method".
   virtual bool supports_native()                 { return true; }
-
   virtual bool supports_osr   ()                 { return true; }
   virtual bool can_compile_method(methodHandle method)  { return true; }
   bool is_c1   ()                                { return _type == c1; }
   bool is_c2   ()                                { return _type == c2; }
   bool is_shark()                                { return _type == shark; }
   bool is_graal()                                { return _type == graal; }
+
+  // Customization
+  virtual bool needs_stubs            ()         = 0;
 
   void mark_initialized()                        { _is_initialized = true; }
   bool is_initialized()                          { return _is_initialized; }

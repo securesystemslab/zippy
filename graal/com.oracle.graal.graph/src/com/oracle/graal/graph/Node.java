@@ -86,10 +86,22 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     /**
+     * Denotes an injected parameter in a {@linkplain NodeIntrinsic node intrinsic} constructor. If
+     * the constructor is called as part of node intrinsification, the node intrinsifier will inject
+     * an argument for the annotated parameter. Injected parameters must precede all non-injected
+     * parameters in a constructor.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public static @interface InjectedNodeParameter {
+    }
+
+    /**
      * Annotates a method that can be replaced by a compiler intrinsic. A (resolved) call to the
      * annotated method can be replaced with an instance of the node class denoted by
      * {@link #value()}. For this reason, the signature of the annotated method must match the
-     * signature of a constructor in the node class.
+     * signature (excluding a prefix of {@linkplain InjectedNodeParameter injected} parameters) of a
+     * constructor in the node class.
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
@@ -600,7 +612,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     /**
-     * Must be overridden buy subclasses that implement {@link Canonicalizable}. The implementation
+     * Must be overridden by subclasses that implement {@link Canonicalizable}. The implementation
      * in {@link Node} exists to obviate the need to cast a node before invoking
      * {@link Canonicalizable#canonical(CanonicalizerTool)}.
      * 
@@ -611,7 +623,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     /**
-     * Must be overridden buy subclasses that implement {@link Simplifiable}. The implementation in
+     * Must be overridden by subclasses that implement {@link Simplifiable}. The implementation in
      * {@link Node} exists to obviate the need to cast a node before invoking
      * {@link Simplifiable#simplify(SimplifierTool)}.
      * 

@@ -113,14 +113,16 @@ def main(n, ref='sun'):
     advance(0.01, n)
     report_energy()
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("nbody: " + duration)
 
 # warm up
 num =  int(sys.argv[1])
 for run in range(1000):
     main(5)
 
-print("Start timing...")
-start = time.time()
-main(num)
-duration = "%.3f\n" % (time.time() - start)
-print("nbody: " + duration)
+measure()

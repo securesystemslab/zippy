@@ -67,7 +67,7 @@ public final class CommitAllocationNode extends FixedWithNextNode implements Vir
 
     @Override
     public void lower(LoweringTool tool) {
-        tool.getRuntime().lower(this, tool);
+        tool.getLowerer().lower(this, tool);
     }
 
     @Override

@@ -71,14 +71,17 @@ def main(n):
 
     print("%0.9f" % (sqrt(vBv/vv)))
 
+
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("spectralnorm: " + duration)
+
 # warm up
 num = int(sys.argv[1])
-for i in range(20):
-    main(3)
+for i in range(1):
+    main(num)
 
-print("Start timing...")
-start = time.time()
-main(num)
-duration = "%.3f\n" % (time.time() - start)
-print("spectralnorm: " + duration)
-
+measure()

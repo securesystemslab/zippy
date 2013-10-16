@@ -46,6 +46,10 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
         return attributeId;
     }
 
+    public PNode getPrimary() {
+        return primary;
+    }
+
     @Override
     public StatementNode updateRhs(PNode newRhs) {
         return new UninitializedStoreAttributeNode(attributeId, primary, newRhs);
@@ -63,7 +67,7 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
 
     public StoreAttributeNode specialize(Object primaryObj) {
         if (primaryObj instanceof PyObject) {
-            return new StoreGenericAttributeNode(this);
+            return new StoreGenericAttributeNode.StorePyObjectAttributeNode(this);
         }
 
         final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;

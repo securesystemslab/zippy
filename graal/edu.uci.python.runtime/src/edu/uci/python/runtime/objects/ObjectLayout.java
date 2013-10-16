@@ -239,4 +239,8 @@ public class ObjectLayout {
         return originHint;
     }
 
+    @Override
+    public String toString() {
+        return "ObjectLayout:" + this.storageLocations.toString();
+    }
 }

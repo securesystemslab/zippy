@@ -49,14 +49,14 @@ public class StoreFloatAttributeNode extends StoreSpecializedAttributeNode {
         try {
             value = rhs.executeDouble(frame);
         } catch (UnexpectedResultException e) {
-            primaryObject.setInstanceVariable(attributeId, e.getResult());
+            primaryObject.setAttribute(attributeId, e.getResult());
             replace(specialize(primaryObject));
             throw e;
         }
 
         if (!primaryObject.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
-            primaryObject.setInstanceVariable(attributeId, value);
+            primaryObject.setAttribute(attributeId, value);
             replace(specialize(primaryObject));
             return value;
         }

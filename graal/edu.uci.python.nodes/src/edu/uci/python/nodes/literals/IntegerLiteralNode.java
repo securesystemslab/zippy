@@ -24,9 +24,9 @@
  */
 package edu.uci.python.nodes.literals;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
-public abstract class IntegerLiteralNode extends LiteralNode {
+public class IntegerLiteralNode extends LiteralNode {
 
     private final int value;
 
@@ -38,9 +38,14 @@ public abstract class IntegerLiteralNode extends LiteralNode {
         return value;
     }
 
-    @Specialization
-    public int doInteger() {
+    @Override
+    public int executeInt(VirtualFrame frame) {
         return value;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executeInt(frame);
     }
 
     @Override

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -38,6 +38,7 @@ default:: $(BUILD_PCH_FILE) $(AOUT) checkAndBuildSA
 !include ../local.make
 !include compile.make
 
+#CXX_FLAGS=$(CXX_FLAGS) $(FASTDEBUG_OPT_OPTION) /D "CHECK_UNHANDLED_OOPS"
 CXX_FLAGS=$(CXX_FLAGS) $(FASTDEBUG_OPT_OPTION)
 
 !include $(WorkSpace)/make/windows/makefiles/vm.make
@@ -47,9 +48,6 @@ HS_BUILD_ID=$(HS_BUILD_VER)-fastdebug
 
 # Force resources to be rebuilt every time
 $(Res_Files): FORCE
-
-vm.def: $(Obj_Files)
-	sh $(WorkSpace)/make/windows/build_vm_def.sh
 
 $(AOUT): $(Res_Files) $(Obj_Files) vm.def
 	$(LD) @<<

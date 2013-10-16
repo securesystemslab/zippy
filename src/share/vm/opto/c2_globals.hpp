@@ -179,6 +179,9 @@
   product_pd(intx,  LoopUnrollLimit,                                        \
           "Unroll loop bodies with node count less than this")              \
                                                                             \
+  product(intx,  LoopMaxUnroll, 16,                                         \
+          "Maximum number of unrolls for main loop")                        \
+                                                                            \
   product(intx,  LoopUnrollMin, 4,                                          \
           "Minimum number of unroll loop bodies before checking progress"   \
           "of rounds of unroll,optimize,..")                                \
@@ -418,7 +421,7 @@
   product(bool, UseDivMod, true,                                            \
           "Use combined DivMod instruction if available")                   \
                                                                             \
-  product(intx, MinJumpTableSize, 18,                                       \
+  product_pd(intx, MinJumpTableSize,                                        \
           "Minimum number of targets in a generated jump table")            \
                                                                             \
   product(intx, MaxJumpTableSize, 65000,                                    \
@@ -444,6 +447,9 @@
                                                                             \
   product(bool, EliminateAutoBox, true,                                     \
           "Control optimizations for autobox elimination")                  \
+                                                                            \
+  experimental(bool, UseImplicitStableValues, false,                        \
+          "Mark well-known stable fields as such (e.g. String.value)")      \
                                                                             \
   product(intx, AutoBoxCacheMax, 128,                                       \
           "Sets max value cached by the java.lang.Integer autobox cache")   \
@@ -630,7 +636,9 @@
                                                                             \
   diagnostic(bool, OptimizeExpensiveOps, true,                              \
           "Find best control for expensive operations")                     \
-
+                                                                            \
+  product(bool, UseMathExactIntrinsics, true,                               \
+          "Enables intrinsification of various java.lang.Math funcitons")
 
 C2_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_PD_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_EXPERIMENTAL_FLAG, DECLARE_NOTPRODUCT_FLAG)
 

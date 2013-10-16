@@ -37,6 +37,8 @@ public abstract class PArray extends PObject {
 
     public abstract Object getSlice(PSlice slice);
 
+    public abstract void setSlice(PSlice slice, PArray other);
+
     /**
      * Make step a long in case adding the start, stop and step together overflows an int.
      */
@@ -54,4 +56,6 @@ public abstract class PArray extends PObject {
 
         return ret;
     }
+
+    public abstract PArray append(PArray other);
 }

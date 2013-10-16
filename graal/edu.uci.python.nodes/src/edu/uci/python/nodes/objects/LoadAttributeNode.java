@@ -50,8 +50,12 @@ public abstract class LoadAttributeNode extends PNode {
     }
 
     public LoadAttributeNode specialize(Object primaryObj) {
-        if (primaryObj instanceof PyObject || primaryObj instanceof PObject) {
-            return new LoadGenericAttributeNode(attributeId, primary);
+        if (primaryObj instanceof PyObject) {
+            return new LoadGenericAttributeNode.LoadPyObjectAttributeNode(this);
+        }
+
+        if (primaryObj instanceof PObject) {
+            return new LoadGenericAttributeNode.LoadPObjectAttributeNode(this);
         }
 
         final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;

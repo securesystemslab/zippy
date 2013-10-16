@@ -30,7 +30,9 @@ public interface CanonicalizerTool {
 
     Assumptions assumptions();
 
-    MetaAccessProvider runtime();
+    MetaAccessProvider getMetaAccess();
+
+    ConstantReflectionProvider getConstantReflection();
 
     boolean canonicalizeReads();
 

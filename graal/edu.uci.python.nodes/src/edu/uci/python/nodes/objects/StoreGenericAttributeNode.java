@@ -33,23 +33,32 @@ import edu.uci.python.runtime.objects.*;
 
 public class StoreGenericAttributeNode extends StoreAttributeNode {
 
-    protected StoreGenericAttributeNode(StoreAttributeNode node) {
+    public StoreGenericAttributeNode(StoreAttributeNode node) {
         super(node.attributeId, node.primary, node.rhs);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final Object primaryObj = primary.execute(frame);
+        final PythonBasicObject pbObj = (PythonBasicObject) primary.execute(frame);
         final Object value = rhs.execute(frame);
+        pbObj.setAttribute(attributeId, value);
+        return PNone.NONE;
+    }
 
-        if (primaryObj instanceof PyObject) {
-            final PyObject pyObj = (PyObject) primaryObj;
-            pyObj.__setattr__(attributeId, (PyObject) value);
-        } else {
-            final PythonBasicObject pbObj = (PythonBasicObject) primaryObj;
-            pbObj.setInstanceVariable(attributeId, value);
+    public static class StorePyObjectAttributeNode extends StoreAttributeNode {
+
+        public StorePyObjectAttributeNode(StoreAttributeNode node) {
+            super(node.attributeId, node.primary, node.rhs);
         }
 
-        return PNone.NONE;
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Object primaryObj = primary.execute(frame);
+            final Object value = rhs.execute(frame);
+            assert primaryObj instanceof PyObject;
+            final PyObject pyObj = (PyObject) primaryObj;
+            pyObj.__setattr__(attributeId, (PyObject) value);
+            return PNone.NONE;
+        }
     }
 }

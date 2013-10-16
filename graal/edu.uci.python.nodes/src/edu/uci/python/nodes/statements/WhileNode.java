@@ -24,37 +24,43 @@
  */
 package edu.uci.python.nodes.statements;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class WhileNode extends LoopNode {
 
     @Child protected BooleanCastNode condition;
 
-    public WhileNode(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
+    public WhileNode(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
         super(body, orelse);
         this.condition = adoptChild(condition);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
+        int count = 0;
+
         try {
             while (condition.executeBoolean(frame)) {
-                try {
-                    body.executeVoid(frame);
-                } catch (ContinueException ex) {
-                    // Fall through to next loop iteration.
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
                 }
             }
-        } catch (BreakException ex) {
-            return null;
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         orelse.executeVoid(frame);
-        return null;
+        return PNone.NONE;
     }
 
     @Override

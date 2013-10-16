@@ -52,6 +52,8 @@ public:
   static bool must_be_compiled(methodHandle m, int comp_level = CompLevel_all);
   // m is allowed to be compiled
   static bool can_be_compiled(methodHandle m, int comp_level = CompLevel_all);
+  // m is allowed to be osr compiled
+  static bool can_be_osr_compiled(methodHandle m, int comp_level = CompLevel_all);
   static bool is_compilation_enabled();
   static void set_policy(CompilationPolicy* policy) { _policy = policy; }
   static CompilationPolicy* policy()                { return _policy; }
@@ -115,14 +117,6 @@ class SimpleCompPolicy : public NonTieredCompPolicy {
   virtual void method_invocation_event(methodHandle m, JavaThread* thread);
   virtual void method_back_branch_event(methodHandle m, int bci, JavaThread* thread);
 };
-
-#ifdef GRAALVM
-class GraalCompPolicy : public NonTieredCompPolicy {
- public:
-  virtual void method_invocation_event(methodHandle m, JavaThread* thread);
-  virtual void method_back_branch_event(methodHandle m, int bci, JavaThread* thread);
-};
-#endif // GRAALVM
 
 // StackWalkCompPolicy - existing C2 policy
 

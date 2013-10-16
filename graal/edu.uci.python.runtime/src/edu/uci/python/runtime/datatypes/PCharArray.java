@@ -110,8 +110,8 @@ public class PCharArray extends PArray implements Iterable<Character> {
         array[idx] = value;
     }
 
-    @SuppressWarnings("unused")
-    public void setSlice(PSlice slice, PCharArray value) {
+    @Override
+    public void setSlice(PSlice slice, PArray value) {
         throw new UnsupportedOperationException();
     }
 
@@ -156,6 +156,15 @@ public class PCharArray extends PArray implements Iterable<Character> {
     @Override
     public PCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PArray append(PArray other) {
+        PCharArray otherArray = (PCharArray) other;
+        char[] joined = new char[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PCharArray(joined);
     }
 
     private List<Character> getList() {

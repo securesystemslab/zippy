@@ -47,7 +47,7 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
         if (!primaryObj.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
             replace(specialize(primaryObj));
-            Object value = primaryObj.getInstanceVariable(attributeId);
+            Object value = primaryObj.getAttribute(attributeId);
 
             if (value instanceof Integer) {
                 return (int) value;

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.translation;
 
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statements.*;
 
 public interface StatementVisitor<R> {

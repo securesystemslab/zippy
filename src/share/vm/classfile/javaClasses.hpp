@@ -182,6 +182,7 @@ class java_lang_String : AllStatic {
   static unsigned int hash_string(oop java_string);
 
   static bool equals(oop java_string, jchar* chars, int len);
+  static bool equals(oop str1, oop str2);
 
   // Conversion between '.' and '/' formats
   static Handle externalize_classname(Handle java_string, TRAPS) { return char_converter(java_string, '/', '.', THREAD); }
@@ -328,7 +329,6 @@ class java_lang_Thread : AllStatic {
  public:
   // Instance creation
   static oop create();
-  static int java_thread_offset_in_bytes() { return _eetop_offset; }
   // Returns the JavaThread associated with the thread obj
   static JavaThread* thread(oop java_thread);
   // Set JavaThread for instance
@@ -984,6 +984,32 @@ class java_lang_invoke_MethodHandle: AllStatic {
   // Accessors for code generation:
   static int type_offset_in_bytes()             { return _type_offset; }
   static int form_offset_in_bytes()             { return _form_offset; }
+};
+
+// Interface to java.lang.invoke.DirectMethodHandle objects
+
+class java_lang_invoke_DirectMethodHandle: AllStatic {
+  friend class JavaClasses;
+
+ private:
+  static int _member_offset;               // the MemberName of this DMH
+
+  static void compute_offsets();
+
+ public:
+  // Accessors
+  static oop  member(oop mh);
+
+  // Testers
+  static bool is_subclass(Klass* klass) {
+    return klass->is_subclass_of(SystemDictionary::DirectMethodHandle_klass());
+  }
+  static bool is_instance(oop obj) {
+    return obj != NULL && is_subclass(obj->klass());
+  }
+
+  // Accessors for code generation:
+  static int member_offset_in_bytes()           { return _member_offset; }
 };
 
 // Interface to java.lang.invoke.LambdaForm objects

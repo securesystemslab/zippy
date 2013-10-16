@@ -27,6 +27,9 @@ package edu.uci.python.runtime.standardtypes;
 import java.lang.reflect.*;
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+
+import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.modules.annotations.*;
@@ -39,9 +42,15 @@ public class PythonModule extends PythonBasicObject {
     private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
     private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
-    // TODO: should be the moduleClass
+    private final CyclicAssumption unmodifiedAssumption;
+
     public PythonModule(PythonClass pythonClass) {
         super(pythonClass);
+        unmodifiedAssumption = new CyclicAssumption("unmodified");
+    }
+
+    public Assumption getUnmodifiedAssumption() {
+        return unmodifiedAssumption.getAssumption();
     }
 
     private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {
@@ -59,13 +68,13 @@ public class PythonModule extends PythonBasicObject {
 
         for (AnnotatedBuiltinConstant constant : builtinConstants) {
             Object value = constant.getValue();
-            setInstanceVariable(constant.getName(), value);
+            setAttribute(constant.getName(), value);
         }
 
         for (AnnotatedBuiltinMethod method : builtinMethods) {
             final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
             String methodName = method.getNames().get(0);
-            setInstanceVariable(methodName, function);
+            setAttribute(methodName, function);
         }
     }
 
@@ -97,6 +106,12 @@ public class PythonModule extends PythonBasicObject {
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void setAttribute(String name, Object value) {
+        unmodifiedAssumption.invalidate();
+        super.setAttribute(name, value);
     }
 
     /**

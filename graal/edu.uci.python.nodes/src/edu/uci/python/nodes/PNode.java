@@ -26,12 +26,15 @@ package edu.uci.python.nodes;
 
 import java.math.BigInteger;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.TypeSystemReference;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 @TypeSystemReference(PythonTypes.class)
 public abstract class PNode extends Node {
@@ -119,18 +122,6 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPBaseSet(execute(frame));
     }
 
-    public PIntegerArray executePIntegerArray(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPIntegerArray(execute(frame));
-    }
-
-    public PDoubleArray executePDoubleArray(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPDoubleArray(execute(frame));
-    }
-
-    public PCharArray executePCharArray(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPCharArray(execute(frame));
-    }
-
     public PArray executePArray(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPArray(execute(frame));
     }
@@ -145,6 +136,14 @@ public abstract class PNode extends Node {
 
     public PCallable executePCallable(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPCallable(execute(frame));
+    }
+
+    public PythonClass executePythonClass(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPythonClass(execute(frame));
+    }
+
+    public PyObject executePyObject(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPyObject(execute(frame));
     }
 
     public void executeVoid(VirtualFrame frame) {

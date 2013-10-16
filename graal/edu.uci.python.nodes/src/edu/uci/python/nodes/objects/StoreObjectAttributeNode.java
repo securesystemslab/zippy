@@ -46,7 +46,7 @@ public class StoreObjectAttributeNode extends StoreSpecializedAttributeNode {
 
         if (!primaryObject.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
-            primaryObject.setInstanceVariable(attributeId, value);
+            primaryObject.setAttribute(attributeId, value);
             replace(specialize(primaryObject));
             return value;
         }

@@ -60,6 +60,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
+import com.oracle.graal.phases.util.*;
 
 /**
  * LIR generator specialized for AMD64 HotSpot.
@@ -67,11 +68,11 @@ import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpotLIRGenerator {
 
     private HotSpotRuntime runtime() {
-        return (HotSpotRuntime) runtime;
+        return (HotSpotRuntime) codeCache;
     }
 
-    protected AMD64HotSpotLIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, runtime, target, frameMap, cc, lir);
+    protected AMD64HotSpotLIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, target, frameMap, cc, lir);
     }
 
     /**
@@ -305,7 +306,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         AMD64AddressValue address;
         Value index = operand(x.offset());
         if (ValueUtil.isConstant(index) && NumUtil.isInt(ValueUtil.asConstant(index).asLong() + disp)) {
-            assert !runtime.needsDataPatch(asConstant(index));
+            assert !codeCache.needsDataPatch(asConstant(index));
             disp += (int) ValueUtil.asConstant(index).asLong();
             address = new AMD64AddressValue(kind, load(operand(x.object())), disp);
         } else {
@@ -355,7 +356,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
     @Override
     public void emitUnwind(Value exception) {
-        ForeignCallLinkage linkage = getRuntime().lookupForeignCall(HotSpotBackend.UNWIND_EXCEPTION_TO_CALLER);
+        ForeignCallLinkage linkage = getForeignCalls().lookupForeignCall(HotSpotBackend.UNWIND_EXCEPTION_TO_CALLER);
         CallingConvention outgoingCc = linkage.getOutgoingCallingConvention();
         assert outgoingCc.getArgumentCount() == 2;
         RegisterValue exceptionParameter = (RegisterValue) outgoingCc.getArgument(0);
@@ -367,9 +368,9 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         int pendingDeoptimizationOffset = graalRuntime().getConfig().pendingDeoptimizationOffset;
         RegisterValue thread = runtime().threadRegister().asValue(HotSpotGraalRuntime.wordKind());
         AMD64AddressValue pendingDeoptAddress = new AMD64AddressValue(actionAndReason.getKind(), thread, pendingDeoptimizationOffset);
-        if (actionAndReason instanceof Constant && !runtime.needsDataPatch((Constant) actionAndReason)) {
+        if (actionAndReason instanceof Constant && !codeCache.needsDataPatch((Constant) actionAndReason)) {
             Constant constantActionAndReason = (Constant) actionAndReason;
-            assert !runtime.needsDataPatch(constantActionAndReason);
+            assert !codeCache.needsDataPatch(constantActionAndReason);
             append(new StoreConstantOp(constantActionAndReason.getKind(), pendingDeoptAddress, constantActionAndReason, null));
         } else {
             append(new StoreOp(actionAndReason.getKind(), pendingDeoptAddress, load(actionAndReason), null));
@@ -384,7 +385,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
     @Override
     public void emitDeoptimizeCaller(DeoptimizationAction action, DeoptimizationReason reason) {
-        moveDeoptimizationActionAndReasonToThread(runtime.encodeDeoptActionAndReason(action, reason));
+        moveDeoptimizationActionAndReasonToThread(metaAccess.encodeDeoptActionAndReason(action, reason));
         append(new AMD64HotSpotDeoptimizeCallerOp());
     }
 
@@ -396,7 +397,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     @Override
     public void emitJumpToExceptionHandlerInCaller(ValueNode handlerInCallerPc, ValueNode exception, ValueNode exceptionPc) {
         Variable handler = load(operand(handlerInCallerPc));
-        ForeignCallLinkage linkage = getRuntime().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
+        ForeignCallLinkage linkage = getForeignCalls().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
         CallingConvention outgoingCc = linkage.getOutgoingCallingConvention();
         assert outgoingCc.getArgumentCount() == 2;
         RegisterValue exceptionFixed = (RegisterValue) outgoingCc.getArgument(0);
@@ -444,11 +445,11 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
          */
         if (isCompressCandidate(access)) {
             if (runtime().useCompressedOops() && kind == Kind.Object) {
-                append(new LoadCompressedPointer(kind, result, runtime().heapBaseRegister().asValue(), loadAddress, access != null ? state(access) : null, getNarrowOopBase(), getNarrowOopShift(),
-                                getLogMinObjectAlignment()));
+                append(new LoadCompressedPointer(kind, result, runtime().heapBaseRegister().asValue(), loadAddress, access != null ? state(access) : null, getNarrowKlassBase(), getNarrowOopBase(),
+                                getNarrowOopShift(), getLogMinObjectAlignment()));
             } else if (runtime().useCompressedKlassPointers() && kind == Kind.Long) {
-                append(new LoadCompressedPointer(kind, result, runtime().heapBaseRegister().asValue(), loadAddress, access != null ? state(access) : null, getNarrowKlassBase(), getNarrowKlassShift(),
-                                getLogKlassAlignment()));
+                append(new LoadCompressedPointer(kind, result, runtime().heapBaseRegister().asValue(), loadAddress, access != null ? state(access) : null, getNarrowKlassBase(), getNarrowOopBase(),
+                                getNarrowKlassShift(), getLogKlassAlignment()));
             } else {
                 append(new LoadOp(kind, result, loadAddress, access != null ? state(access) : null));
             }
@@ -480,14 +481,14 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
             if (runtime().useCompressedOops() && kind == Kind.Object) {
                 if (input.getKind() == Kind.Object) {
                     Variable scratch = newVariable(Kind.Long);
-                    append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, getNarrowOopBase(), getNarrowOopShift(), getLogMinObjectAlignment()));
+                    append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, getNarrowKlassBase(), getNarrowOopBase(), getNarrowOopShift(), getLogMinObjectAlignment()));
                 } else {
                     // the input oop is already compressed
                     append(new StoreOp(input.getKind(), storeAddress, input, state));
                 }
             } else if (runtime().useCompressedKlassPointers() && kind == Kind.Long) {
                 Variable scratch = newVariable(Kind.Long);
-                append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, getNarrowKlassBase(), getNarrowKlassShift(), getLogKlassAlignment()));
+                append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, getNarrowKlassBase(), getNarrowOopBase(), getNarrowKlassShift(), getLogKlassAlignment()));
             } else {
                 append(new StoreOp(kind, storeAddress, input, state));
             }

@@ -438,6 +438,29 @@ bool java_lang_String::equals(oop java_string, jchar* chars, int len) {
   return true;
 }
 
+bool java_lang_String::equals(oop str1, oop str2) {
+  assert(str1->klass() == SystemDictionary::String_klass(),
+         "must be java String");
+  assert(str2->klass() == SystemDictionary::String_klass(),
+         "must be java String");
+  typeArrayOop value1  = java_lang_String::value(str1);
+  int          offset1 = java_lang_String::offset(str1);
+  int          length1 = java_lang_String::length(str1);
+  typeArrayOop value2  = java_lang_String::value(str2);
+  int          offset2 = java_lang_String::offset(str2);
+  int          length2 = java_lang_String::length(str2);
+
+  if (length1 != length2) {
+    return false;
+  }
+  for (int i = 0; i < length1; i++) {
+    if (value1->char_at(i + offset1) != value2->char_at(i + offset2)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void java_lang_String::print(Handle java_string, outputStream* st) {
   oop          obj    = java_string();
   assert(obj->klass() == SystemDictionary::String_klass(), "must be java_string");
@@ -2563,6 +2586,26 @@ void java_lang_ref_SoftReference::set_clock(jlong value) {
   *offset = value;
 }
 
+// Support for java_lang_invoke_DirectMethodHandle
+
+int java_lang_invoke_DirectMethodHandle::_member_offset;
+
+oop java_lang_invoke_DirectMethodHandle::member(oop dmh) {
+  oop member_name = NULL;
+  bool is_dmh = dmh->is_oop() && java_lang_invoke_DirectMethodHandle::is_instance(dmh);
+  assert(is_dmh, "a DirectMethodHandle oop is expected");
+  if (is_dmh) {
+    member_name = dmh->obj_field(member_offset_in_bytes());
+  }
+  return member_name;
+}
+
+void java_lang_invoke_DirectMethodHandle::compute_offsets() {
+  Klass* klass_oop = SystemDictionary::DirectMethodHandle_klass();
+  if (klass_oop != NULL && EnableInvokeDynamic) {
+    compute_offset(_member_offset, klass_oop, vmSymbols::member_name(), vmSymbols::java_lang_invoke_MemberName_signature());
+  }
+}
 
 // Support for java_lang_invoke_MethodHandle
 
@@ -3214,6 +3257,7 @@ void JavaClasses::compute_offsets() {
   java_lang_ThreadGroup::compute_offsets();
   if (EnableInvokeDynamic) {
     java_lang_invoke_MethodHandle::compute_offsets();
+    java_lang_invoke_DirectMethodHandle::compute_offsets();
     java_lang_invoke_MemberName::compute_offsets();
     java_lang_invoke_LambdaForm::compute_offsets();
     java_lang_invoke_MethodType::compute_offsets();

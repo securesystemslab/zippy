@@ -36,28 +36,28 @@ import com.oracle.graal.nodes.type.*;
 public class ForeignCallNode extends AbstractStateSplit implements LIRLowerable, DeoptimizingNode, MemoryCheckpoint.Multi {
 
     @Input private final NodeInputList<ValueNode> arguments;
-    private final MetaAccessProvider runtime;
+    private final ForeignCallsProvider foreignCalls;
     @Input private FrameState deoptState;
 
     private final ForeignCallDescriptor descriptor;
 
-    public ForeignCallNode(MetaAccessProvider runtime, ForeignCallDescriptor descriptor, ValueNode... arguments) {
+    public ForeignCallNode(@InjectedNodeParameter ForeignCallsProvider foreignCalls, ForeignCallDescriptor descriptor, ValueNode... arguments) {
         super(StampFactory.forKind(Kind.fromJavaClass(descriptor.getResultType())));
         this.arguments = new NodeInputList<>(this, arguments);
         this.descriptor = descriptor;
-        this.runtime = runtime;
+        this.foreignCalls = foreignCalls;
     }
 
-    protected ForeignCallNode(MetaAccessProvider runtime, ForeignCallDescriptor descriptor, Stamp stamp) {
+    protected ForeignCallNode(@InjectedNodeParameter ForeignCallsProvider metaAccess, ForeignCallDescriptor descriptor, Stamp stamp) {
         super(stamp);
         this.arguments = new NodeInputList<>(this);
         this.descriptor = descriptor;
-        this.runtime = runtime;
+        this.foreignCalls = metaAccess;
     }
 
     @Override
     public boolean hasSideEffect() {
-        return !runtime.isReexecutable(descriptor);
+        return !foreignCalls.isReexecutable(descriptor);
     }
 
     public ForeignCallDescriptor getDescriptor() {
@@ -66,7 +66,7 @@ public class ForeignCallNode extends AbstractStateSplit implements LIRLowerable,
 
     @Override
     public LocationIdentity[] getLocationIdentities() {
-        return runtime.getKilledLocations(descriptor);
+        return foreignCalls.getKilledLocations(descriptor);
     }
 
     protected Value[] operands(LIRGeneratorTool gen) {
@@ -79,7 +79,7 @@ public class ForeignCallNode extends AbstractStateSplit implements LIRLowerable,
 
     @Override
     public void generate(LIRGeneratorTool gen) {
-        ForeignCallLinkage linkage = gen.getRuntime().lookupForeignCall(descriptor);
+        ForeignCallLinkage linkage = gen.getForeignCalls().lookupForeignCall(descriptor);
         Value[] operands = operands(gen);
         Value result = gen.emitForeignCall(linkage, this, operands);
         if (result != null) {
@@ -126,7 +126,7 @@ public class ForeignCallNode extends AbstractStateSplit implements LIRLowerable,
 
     @Override
     public boolean canDeoptimize() {
-        return runtime.canDeoptimize(descriptor);
+        return foreignCalls.canDeoptimize(descriptor);
     }
 
     @Override

@@ -24,20 +24,19 @@
  */
 package edu.uci.python.nodes.literals;
 
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class NoneLiteralNode extends LiteralNode {
+public class NoneLiteralNode extends LiteralNode {
 
     @Override
     public final boolean executeBoolean(VirtualFrame frame) {
         return false;
     }
 
-    @Specialization
-    public Object doGeneric() {
+    @Override
+    public Object execute(VirtualFrame frame) {
         return PNone.NONE;
     }
 

@@ -36,8 +36,8 @@ public class GeneratorRootNode extends FunctionRootNode {
 
     private VirtualFrame continuingFrame;
 
-    public GeneratorRootNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(parameters, body, returnValue);
+    public GeneratorRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
     @Override

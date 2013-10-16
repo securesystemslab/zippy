@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class ListLiteralNode extends LiteralNode {
 
@@ -46,7 +47,7 @@ public class ListLiteralNode extends LiteralNode {
 
     @ExplodeLoop
     @Override
-    public Object execute(VirtualFrame frame) {
+    public PList executePList(VirtualFrame frame) {
         List<Object> elements = new ArrayList<>();
 
         for (PNode v : this.values) {
@@ -54,6 +55,11 @@ public class ListLiteralNode extends LiteralNode {
         }
 
         return PythonTypesUtil.createList(elements);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executePList(frame);
     }
 
     @Override

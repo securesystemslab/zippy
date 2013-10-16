@@ -1099,7 +1099,6 @@ void InterpreterMacroAssembler::profile_final_call(Register mdp) {
     update_mdp_by_constant(mdp,
                            in_bytes(VirtualCallData::
                                     virtual_call_data_size()));
-
     bind(profile_continue);
   }
 }

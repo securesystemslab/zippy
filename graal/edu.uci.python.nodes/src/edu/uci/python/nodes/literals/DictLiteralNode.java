@@ -28,9 +28,11 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class DictLiteralNode extends LiteralNode {
 
@@ -47,8 +49,9 @@ public class DictLiteralNode extends LiteralNode {
         this(node.keys, node.values);
     }
 
+    @ExplodeLoop
     @Override
-    public Object execute(VirtualFrame frame) {
+    public PDictionary executePDictionary(VirtualFrame frame) {
         List<Object> resolvedKeys = new ArrayList<>();
         for (int i = 0; i < keys.length; i++) {
             PNode e = keys[i];
@@ -67,6 +70,11 @@ public class DictLiteralNode extends LiteralNode {
         }
 
         return PythonTypesUtil.createDictionary(map);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executePDictionary(frame);
     }
 
     @Override

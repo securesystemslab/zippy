@@ -26,9 +26,9 @@ package edu.uci.python.nodes.literals;
 
 import java.math.*;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
-public abstract class BigIntegerLiteralNode extends LiteralNode {
+public class BigIntegerLiteralNode extends LiteralNode {
 
     private final BigInteger value;
 
@@ -40,9 +40,14 @@ public abstract class BigIntegerLiteralNode extends LiteralNode {
         return value;
     }
 
-    @Specialization
-    public BigInteger doBigInteger() {
+    @Override
+    public BigInteger executeBigInteger(VirtualFrame frame) {
         return value;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executeBigInteger(frame);
     }
 
     @Override

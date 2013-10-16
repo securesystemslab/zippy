@@ -40,6 +40,10 @@ public class ParametersNode extends PNode {
         this.parameterNames = paramNames;
     }
 
+    public List<String> getParameterNames() {
+        return parameterNames;
+    }
+
     public int indexOf(String name) {
         return parameterNames.indexOf(name);
     }

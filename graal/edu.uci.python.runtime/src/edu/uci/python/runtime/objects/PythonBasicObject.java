@@ -35,7 +35,7 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonBasicObject {
 
-    @CompilationFinal protected PythonClass pythonClass;
+    @CompilationFinal protected PythonClass pythonType;
 
     private ObjectLayout objectLayout;
 
@@ -63,20 +63,15 @@ public class PythonBasicObject {
         if (pythonClass != null) {
             unsafeSetPythonClass(pythonClass);
         } else {
-            this.pythonClass = null;
+            this.pythonType = null;
         }
 
-        if (pythonClass != null) {
-            objectLayout = pythonClass.getObjectLayoutForInstances();
-            allocateObjectStorageLocations();
-        } else {
-            objectLayout = null;
-        }
+        objectLayout = ObjectLayout.EMPTY;
     }
 
     public PythonClass getPythonClass() {
-        assert pythonClass != null;
-        return pythonClass;
+        assert pythonType != null;
+        return pythonType;
     }
 
     public ObjectLayout getObjectLayout() {
@@ -86,149 +81,8 @@ public class PythonBasicObject {
     /**
      * Does this object have an instance variable defined?
      */
-    public boolean isInstanceVariableDefined(String name) {
-
-        if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
-            updateLayout();
-        }
-
+    public boolean isOwnAttribute(String name) {
         return objectLayout.findStorageLocation(name) != null;
-    }
-
-    /**
-     * Set an instance variable to be a value. Slow path.
-     */
-    public void setInstanceVariable(String name, Object value) {
-        CompilerAsserts.neverPartOfCompilation();
-
-        // If the object's layout doesn't match the class, update
-        if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
-            updateLayout();
-        }
-
-        // Find the storage location
-        StorageLocation storageLocation = objectLayout.findStorageLocation(name);
-
-        if (storageLocation == null) {
-            /*
-             * It doesn't exist, so create a new layout for the class that includes it and update
-             * the layout of this object.
-             */
-            pythonClass.setObjectLayoutForInstances(pythonClass.getObjectLayoutForInstances().withNewVariable(pythonClass.getContext(), name, value.getClass()));
-            updateLayout();
-
-            storageLocation = objectLayout.findStorageLocation(name);
-        }
-
-        // Try to write to that storage location
-        try {
-            storageLocation.write(this, value);
-        } catch (GeneralizeStorageLocationException e) {
-            /*
-             * It might not be able to store the type that we passed, if not generalize the class's
-             * layout and update the layout of this object.
-             */
-
-            pythonClass.setObjectLayoutForInstances(pythonClass.getObjectLayoutForInstances().withGeneralisedVariable(pythonClass.getContext(), name));
-            updateLayout();
-
-            storageLocation = objectLayout.findStorageLocation(name);
-
-            // Try to write to the generalized storage location
-
-            try {
-                storageLocation.write(this, value);
-            } catch (GeneralizeStorageLocationException e1) {
-                // We know that we just generalized it, so this should not happen
-                throw new RuntimeException("Generalised an instance variable, but it still rejected the value");
-            }
-        }
-    }
-
-    /**
-     * Get the value of an instance variable, or None if it isn't defined. Slow path.
-     */
-    public Object getInstanceVariable(String name) {
-        CompilerAsserts.neverPartOfCompilation();
-
-        // If the object's layout doesn't match the class, update
-        if (objectLayout != pythonClass.getObjectLayoutForInstances()) {
-            updateLayout();
-        }
-
-        // Find the storage location
-        final StorageLocation storageLocation = objectLayout.findStorageLocation(name);
-
-        // Get the value
-        if (storageLocation == null) {
-            return PNone.NONE;
-        }
-
-        return storageLocation.read(this);
-    }
-
-    public String[] getInstanceVariableNames() {
-        final Set<String> instanceVariableNames = getInstanceVariables().keySet();
-        return instanceVariableNames.toArray(new String[instanceVariableNames.size()]);
-    }
-
-    /**
-     * Get a map of all instance variables.
-     */
-    protected Map<String, Object> getInstanceVariables() {
-        if (objectLayout == null) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, Object> instanceVariableMap = new HashMap<>();
-
-        for (Entry<String, StorageLocation> entry : objectLayout.getAllStorageLocations().entrySet()) {
-            final String name = entry.getKey();
-            final StorageLocation storageLocation = entry.getValue();
-
-            if (storageLocation.isSet(this)) {
-                instanceVariableMap.put(name, storageLocation.read(this));
-            }
-        }
-
-        return instanceVariableMap;
-    }
-
-    /**
-     * Set instance variables from a map.
-     */
-    protected void setInstanceVariables(Map<String, Object> instanceVariables) {
-        for (Entry<String, Object> entry : instanceVariables.entrySet()) {
-            final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
-
-            try {
-                storageLocation.write(this, entry.getValue());
-            } catch (GeneralizeStorageLocationException e) {
-                throw new RuntimeException("Should not have to be generalising when setting instance variables - " + entry.getValue().getClass().getName() + ", " +
-                                storageLocation.getStoredClass().getName());
-            }
-        }
-    }
-
-    /**
-     * Update the layout of this object to match that of its class.
-     */
-    public void updateLayout() {
-
-        // Get the current values of instance variables
-        final Map<String, Object> instanceVariableMap = getInstanceVariables();
-
-        // Use the layout of the class
-        objectLayout = pythonClass.getObjectLayoutForInstances();
-
-        // Make all primitives as unset
-        primitiveSetMap = 0;
-
-        // Create a new array for objects
-        allocateObjectStorageLocations();
-
-        // Restore values
-        setInstanceVariables(instanceVariableMap);
     }
 
     private void allocateObjectStorageLocations() {
@@ -243,12 +97,123 @@ public class PythonBasicObject {
 
     @Override
     public String toString() {
-        return "#<" + pythonClass.getName() + ">";
+        return "#<" + pythonType.getClassName() + ">";
     }
 
     public void unsafeSetPythonClass(PythonClass newPythonClass) {
-        assert pythonClass == null;
-        pythonClass = newPythonClass;
-        updateLayout();
+        assert pythonType == null;
+        pythonType = newPythonClass;
+    }
+
+    /**
+     * The new APIs, more Python like..
+     * <p>
+     * Object and its Type (Class) maintain their own 'dictionary'.<br>
+     * Class variables and methods are not inlined in the instantiated object's layout.<br>
+     * Class attribute modification after the object instantiation does not affect the object's
+     * layout. Likewise, object attribute modification after instantiation updates its own layout.
+     * <p>
+     * As described in the Python documentation, the attribute lookup order is:<br>
+     * Object's dict -> its type's dict -> super classes' dicts.<br>
+     * More advanced Method Resolution Order (C3 MRO), descriptors and special method overriding are
+     * not covered here..
+     */
+    public Object getAttribute(String name) {
+        // Find the storage location
+        final StorageLocation storageLocation = objectLayout.findStorageLocation(name);
+
+        // Continue the look up in PythonType.
+        if (storageLocation == null) {
+            return pythonType == null ? PNone.NONE : pythonType.getAttribute(name);
+        }
+
+        return storageLocation.read(this);
+    }
+
+    public void setAttribute(String name, Object value) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        // Find the storage location
+        StorageLocation storageLocation = objectLayout.findStorageLocation(name);
+
+        if (storageLocation == null) {
+            /*
+             * It doesn't exist, so create a new layout for the class that includes it and update
+             * the layout of this object.
+             */
+            updateLayout(objectLayout.withNewVariable(pythonType.getContext(), name, value.getClass()));
+            storageLocation = objectLayout.findStorageLocation(name);
+        }
+
+        // Try to write to that storage location
+        try {
+            storageLocation.write(this, value);
+        } catch (GeneralizeStorageLocationException e) {
+            /*
+             * It might not be able to store the type that we passed, if not generalize the class's
+             * layout and update the layout of this object.
+             */
+            updateLayout(objectLayout.withGeneralisedVariable(pythonType.getContext(), name));
+
+            storageLocation = objectLayout.findStorageLocation(name);
+
+            // Try to write to the generalized storage location
+
+            try {
+                storageLocation.write(this, value);
+            } catch (GeneralizeStorageLocationException e1) {
+                // We know that we just generalized it, so this should not happen
+                throw new RuntimeException("Generalised an instance variable, but it still rejected the value");
+            }
+        }
+    }
+
+    public void updateLayout(ObjectLayout newLayout) {
+        // Get the current values of instance variables
+        final Map<String, Object> instanceVariableMap = getAttributes();
+
+        // Use new Layout
+        objectLayout = newLayout;
+
+        // Make all primitives as unset
+        primitiveSetMap = 0;
+
+        // Create a new array for objects
+        allocateObjectStorageLocations();
+
+        // Restore values
+        setAttributes(instanceVariableMap);
+    }
+
+    protected Map<String, Object> getAttributes() {
+        if (objectLayout == null) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, Object> attributesMap = new HashMap<>();
+
+        for (Entry<String, StorageLocation> entry : objectLayout.getAllStorageLocations().entrySet()) {
+            final String name = entry.getKey();
+            final StorageLocation storageLocation = entry.getValue();
+
+            if (storageLocation.isSet(this)) {
+                attributesMap.put(name, storageLocation.read(this));
+            }
+        }
+
+        return attributesMap;
+    }
+
+    protected void setAttributes(Map<String, Object> attributes) {
+        for (Entry<String, Object> entry : attributes.entrySet()) {
+            final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
+
+            try {
+                storageLocation.write(this, entry.getValue());
+            } catch (GeneralizeStorageLocationException e) {
+                throw new RuntimeException("Should not have to be generalising when setting instance variables - " + entry.getValue().getClass().getName() + ", " +
+                                storageLocation.getStoredClass().getName());
+            }
+        }
     }
 }

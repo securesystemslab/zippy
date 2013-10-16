@@ -31,7 +31,11 @@ import java.util.List;
 import org.python.antlr.PythonTree;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
+
 import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.loop.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
+import edu.uci.python.nodes.loop.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
@@ -42,13 +46,13 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryComparisonNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
-import edu.uci.python.nodes.expressions.ComprehensionNodeFactory.*;
 import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
@@ -62,16 +66,16 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public StatementNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
         return new FunctionDefinitionNode(name, parameters, callTarget);
     }
 
-    public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new FunctionRootNode(parameters, body, returnValue);
+    public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new FunctionRootNode(functionName, parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode(parameters, body, returnValue);
+    public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode(functionName, parameters, body, returnValue);
     }
 
     public PNode createAddMethodNode(FunctionDefinitionNode methodDef) {
@@ -130,7 +134,7 @@ public class NodeFactory {
         return new ImportNode(fromModuleName, importee);
     }
 
-    public StatementNode createWhile(BooleanCastNode condition, BlockNode body, BlockNode orelse) {
+    public LoopNode createWhile(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
         return new WhileNode(condition, body, orelse);
     }
 
@@ -138,20 +142,12 @@ public class NodeFactory {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public StatementNode createFor(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public LoopNode createFor(PNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForNodeFactory.create(target, body, orelse, iterator);
     }
 
-    public StatementNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public LoopNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body, BlockNode orelse) {
         return ForWithLocalTargetNodeFactory.create(target, body, orelse, iterator);
-    }
-
-    public StatementNode createForRangeWithOneValue(PNode target, PNode start, BlockNode body, BlockNode orelse) {
-        return new ForRangeWithOneValueNode(target, start, body, orelse);
-    }
-
-    public StatementNode createForRangeWithTwoValues(PNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
-        return new ForRangeWithTwoValuesNode(target, start, stop, body, orelse);
     }
 
     public StatementNode createReturn() {
@@ -170,6 +166,18 @@ public class NodeFactory {
         return new BreakNode();
     }
 
+    public StatementNode createContinue() {
+        return new ContinueNode();
+    }
+
+    public StatementNode createContinueTarget(BlockNode child) {
+        return new ContinueTargetNode(child);
+    }
+
+    public StatementNode createBreakTarget(LoopNode child) {
+        return new BreakTargetNode(child);
+    }
+
     public StatementNode createYield(PNode right) {
         return new YieldNode(right);
     }
@@ -179,23 +187,23 @@ public class NodeFactory {
     }
 
     public PNode createIntegerLiteral(int value) {
-        return IntegerLiteralNodeFactory.create(value);
+        return new IntegerLiteralNode(value);
     }
 
     public PNode createBigIntegerLiteral(BigInteger value) {
-        return BigIntegerLiteralNodeFactory.create(value);
+        return new BigIntegerLiteralNode(value);
     }
 
     public PNode createDoubleLiteral(double value) {
-        return DoubleLiteralNodeFactory.create(value);
+        return new DoubleLiteralNode(value);
     }
 
     public PNode createComplexLiteral(PComplex value) {
-        return ComplexLiteralNodeFactory.create(value);
+        return new ComplexLiteralNode(value);
     }
 
     public PNode createStringLiteral(PyString value) {
-        return StringLiteralNodeFactory.create(value.getString());
+        return new StringLiteralNode(value.getString());
     }
 
     public PNode createDictLiteral(List<PNode> keys, List<PNode> values) {
@@ -231,7 +239,7 @@ public class NodeFactory {
     }
 
     public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
-        return new GeneratorNode(ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+        return new GeneratorNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -397,11 +405,11 @@ public class NodeFactory {
     }
 
     public PNode createBooleanLiteral(boolean value) {
-        return BooleanLiteralNodeFactory.create(value);
+        return new BooleanLiteralNode(value);
     }
 
     public PNode createNoneLiteral() {
-        return NoneLiteralNodeFactory.create();
+        return new NoneLiteralNode();
     }
 
     public PNode createObjectLiteral(Object obj) {
@@ -417,23 +425,7 @@ public class NodeFactory {
     }
 
     public PNode createKeywordLiteral(PNode value, String name) {
-        return KeywordLiteralNodeFactory.create(value, name);
-    }
-
-    public PNode createCallWithOneArgumentNoKeyword(PNode callee, PNode argument) {
-        return CallFunctionWithOneArgumentNoKeywordNodeFactory.create(argument, callee);
-    }
-
-    public PNode createCallBuiltInWithOneArgNoKeyword(PCallable callee, String name, PNode argument) {
-        return CallBuiltInWithOneArgNoKeywordNodeFactory.create(callee, name, argument);
-    }
-
-    public PNode createCallWithTwoArgumentsNoKeyword(PNode callee, PNode argument0, PNode argument1) {
-        return CallFunctionWithTwoArgumentsNoKeywordNodeFactory.create(argument0, argument1, callee);
-    }
-
-    public PNode createCallBuiltInWithTwoArgsNoKeyword(PCallable callee, String name, PNode argument0, PNode argument1) {
-        return CallBuiltInWithTwoArgsNoKeywordNodeFactory.create(callee, name, argument0, argument1);
+        return new KeywordLiteralNode(value, name);
     }
 
     public List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
@@ -467,8 +459,19 @@ public class NodeFactory {
         return IfExpressionNodeFactory.create(test, body, orelse);
     }
 
+    public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
+        return new TryFinallyNode(body, finalbody);
+    }
+
+    public StatementNode createTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        return TryExceptNode.create(body, orelse, exceptType, exceptName, exceptBody);
+    }
+
+    public PNode createRaiseNode(PNode type, PNode inst) {
+        return new RaiseNode(type, inst);
+    }
+
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
-
 }

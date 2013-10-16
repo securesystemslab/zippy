@@ -47,7 +47,7 @@ public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
         if (!receiverObject.getObjectLayout().contains(objectLayout)) {
             CompilerDirectives.transferToInterpreter();
             replace(specialize(receiverObject));
-            throw new UnexpectedResultException(receiverObject.getInstanceVariable(attributeId));
+            throw new UnexpectedResultException(receiverObject.getAttribute(attributeId));
         }
 
         return storageLocation.readDouble(receiverObject);

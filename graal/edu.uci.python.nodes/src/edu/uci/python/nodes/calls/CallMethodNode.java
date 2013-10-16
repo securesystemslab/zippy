@@ -57,7 +57,7 @@ public class CallMethodNode extends CallAttributeNode {
     }
 
     protected Object callMethod(VirtualFrame frame, PythonObject self) {
-        PFunction method = self.getPythonClass().lookUpMethod(attributeId);
+        PCallable method = self.getPythonClass().lookUpMethod(attributeId);
         Object[] args = doArgumentsWithSelf(frame, self);
         return method.call(frame.pack(), args);
     }

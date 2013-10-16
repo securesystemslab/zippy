@@ -80,3 +80,6 @@ workingsets.xml
 .buildbot/
 graal.options
 *.pydevproject
+agent/build/*
+agent/make/filelist
+agent/make/sa17.tar.gz

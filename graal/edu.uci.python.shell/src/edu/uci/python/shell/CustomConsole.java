@@ -32,6 +32,7 @@ import org.python.util.*;
 
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.Options;
 

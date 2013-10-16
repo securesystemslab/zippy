@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -146,6 +146,11 @@ public:
   // Adaptive size policy
   virtual AdaptiveSizePolicy* size_policy() {
     return gen_policy()->size_policy();
+  }
+
+  // Return the (conservative) maximum heap alignment
+  static size_t conservative_max_heap_alignment() {
+    return Generation::GenGrain;
   }
 
   size_t capacity() const;
@@ -368,25 +373,23 @@ public:
   // collection.
   virtual bool is_maximal_no_gc() const;
 
-  // Return the generation before "gen", or else NULL.
+  // Return the generation before "gen".
   Generation* prev_gen(Generation* gen) const {
     int l = gen->level();
-    if (l == 0) return NULL;
-    else return _gens[l-1];
+    guarantee(l > 0, "Out of bounds");
+    return _gens[l-1];
   }
 
-  // Return the generation after "gen", or else NULL.
+  // Return the generation after "gen".
   Generation* next_gen(Generation* gen) const {
     int l = gen->level() + 1;
-    if (l == _n_gens) return NULL;
-    else return _gens[l];
+    guarantee(l < _n_gens, "Out of bounds");
+    return _gens[l];
   }
 
   Generation* get_gen(int i) const {
-    if (i >= 0 && i < _n_gens)
-      return _gens[i];
-    else
-      return NULL;
+    guarantee(i >= 0 && i < _n_gens, "Out of bounds");
+    return _gens[i];
   }
 
   int n_gens() const {
@@ -485,9 +488,9 @@ public:
 
   // Promotion of obj into gen failed.  Try to promote obj to higher
   // gens in ascending order; return the new location of obj if successful.
-  // Otherwise, try expand-and-allocate for obj in each generation starting at
-  // gen; return the new location of obj if successful.  Otherwise, return NULL.
-  oop handle_failed_promotion(Generation* gen,
+  // Otherwise, try expand-and-allocate for obj in both the young and old
+  // generation; return the new location of obj if successful.  Otherwise, return NULL.
+  oop handle_failed_promotion(Generation* old_gen,
                               oop obj,
                               size_t obj_size);
 

@@ -31,6 +31,14 @@ import org.junit.*;
 public class CallBuiltinTests {
 
     @Test
+    public void builtinLookup() {
+        String source = "for i in range(5):\n" + //
+                        "    print(abs)\n";
+
+        assertPrints("<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n", source);
+    }
+
+    @Test
     public void abs() {
         String source = "val = abs(-42)\n" + //
                         "print(val)\n";
@@ -38,4 +46,11 @@ public class CallBuiltinTests {
         assertPrints("42\n", source);
     }
 
+    @Test
+    public void strJoin() {
+        String source = "val = \"-\".join(\"12345\")\n" + //
+                        "print(val)\n";
+
+        assertPrints("1-2-3-4-5\n", source);
+    }
 }

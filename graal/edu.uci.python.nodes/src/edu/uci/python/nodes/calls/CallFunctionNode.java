@@ -67,6 +67,13 @@ public abstract class CallFunctionNode extends PNode {
         return callee.call(frame.pack(), args, kwords);
     }
 
+    @Specialization
+    public Object doPyObject(VirtualFrame frame, PyObject callee) {
+        Object[] args = executeArguments(frame, arguments);
+        PyObject[] pyargs = adaptToPyObjects(args);
+        return unboxPyObject(callee.__call__(pyargs));
+    }
+
     @Generic
     public Object doGeneric(VirtualFrame frame, Object callee) {
         Object[] args = executeArguments(frame, arguments);
@@ -74,7 +81,7 @@ public abstract class CallFunctionNode extends PNode {
         if (callee instanceof PythonClass) {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
             replace(specialized);
-            return specialized.callConstructor(frame, (PythonClass) callee);
+            return specialized.callConstructor(frame, (PythonClass) callee, args);
         } else if (callee instanceof PyObject) {
             PyObject[] pyargs = adaptToPyObjects(args);
             PyObject pyCallable = (PyObject) callee;
@@ -85,19 +92,11 @@ public abstract class CallFunctionNode extends PNode {
     }
 
     @ExplodeLoop
-    protected static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+    protected static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
-        int index = 0;
 
         for (int i = 0; i < arguments.length; i++) {
-            Object arg = arguments[i].execute(frame);
-
-            if (arg instanceof PyObject) {
-                arg = unboxPyObject((PyObject) arg);
-            }
-
-            evaluated[index] = arg;
-            index++;
+            evaluated[i] = arguments[i].execute(frame);
         }
 
         return evaluated;
