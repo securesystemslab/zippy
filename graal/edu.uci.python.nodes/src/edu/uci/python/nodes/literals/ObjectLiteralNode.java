@@ -47,4 +47,8 @@ public class ObjectLiteralNode extends LiteralNode {
         return object;
     }
 
+    public Object getValue() {
+        return object;
+    }
+
 }

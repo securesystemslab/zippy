@@ -24,10 +24,13 @@
  */
 package edu.uci.python.nodes.calls;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
@@ -37,11 +40,18 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @Children protected final PNode[] arguments;
 
-    private PCallable cached;
-
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
         this.callee = adoptChild(callee);
         this.arguments = adoptChildren(arguments);
+    }
+
+    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PCallable callable) {
+        if (calleeNode instanceof ReadGlobalScopeNode) {
+            Assumption globalScopeUnchanged = ((ReadGlobalScopeNode) calleeNode).getGlobaScope().getUnmodifiedAssumption();
+            return new CallFunctionNoKeywordNode.CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+        } else {
+            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
+        }
     }
 
     @Override
@@ -61,12 +71,41 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (cached == null) {
-            PCallable callable = (PCallable) callee.execute(frame);
-            cached = callable;
-        }
-
-        return executeCall(frame, cached);
+        final PCallable callable = (PCallable) callee.execute(frame);
+        return executeCall(frame, callable);
     }
 
+    @SlowPath
+    protected Object uninitialize(VirtualFrame frame) {
+        return replace(new CallFunctionNoKeywordNode(this.callee, this.arguments)).execute(frame);
+    }
+
+    /**
+     * The callee node of a cached call function node should not be local accessor node, since we
+     * don't make assumption about local variables.
+     * 
+     */
+    public static class CallFunctionNoKeywordCachedNode extends CallFunctionNoKeywordNode {
+
+        private final PCallable cached;
+
+        private final Assumption globalScopeUnchanged;
+
+        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PCallable cached, Assumption globalScopeUnchanged) {
+            super(callee, arguments);
+            this.cached = cached;
+            this.globalScopeUnchanged = globalScopeUnchanged;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            try {
+                globalScopeUnchanged.check();
+            } catch (InvalidAssumptionException e) {
+                return uninitialize(frame);
+            }
+
+            return executeCall(frame, cached);
+        }
+    }
 }

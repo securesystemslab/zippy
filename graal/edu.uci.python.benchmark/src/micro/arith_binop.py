@@ -16,17 +16,20 @@ def docompute(num):
 
 	return sum
 
+
+def measure():
+	print("Start timing...")
+	start = time.time()
+
+	for run in range(5):
+		sum = docompute(100) #10000
+
+	print("sum", sum)
+
+	duration = "%.3f\n" % (time.time() - start)
+	print("arith_binop: " + duration)
+
 for run in range(5):
 	docompute(10) #1000
 
-
-print("Start timing...")
-start = time.time()
-
-for run in range(5):
-	sum = docompute(100) #10000
-
-print("sum", sum)
-
-duration = "%.3f\n" % (time.time() - start)
-print("arith_binop: " + duration)
+measure()

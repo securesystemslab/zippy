@@ -13,20 +13,20 @@ def callFunctions(num):
 
 	return count
 
-# init
-start = 0
-sum = 0
+
+def measure():
+	print("Start timing...")
+	start = time.time()
+
+	sum = callFunctions(100000000) #1000000
+
+	print("Number of calls ", sum)
+
+	duration = "%.3f\n" % (time.time() - start)
+	print("function_call: " + duration)
 
 #warm up
 for run in range(5):
 	callFunctions(400)
 
-print("Start timing...")
-start = time.time()
-
-sum = callFunctions(100000000) #1000000
-
-print("Number of calls ", sum)
-
-duration = "%.3f\n" % (time.time() - start)
-print("function_call: " + duration)
+measure()

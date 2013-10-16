@@ -63,7 +63,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
             } else if (keywords.length == 0) {
-                CallFunctionNoKeywordNode callFunction = new CallFunctionNoKeywordNode(callee, arguments);
+                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable);
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);
             } else {

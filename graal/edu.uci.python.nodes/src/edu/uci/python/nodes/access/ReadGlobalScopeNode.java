@@ -63,6 +63,15 @@ public class ReadGlobalScopeNode extends PNode {
         return attributeId;
     }
 
+    public PythonContext getContext() {
+        return context;
+    }
+
+    public PythonModule getGlobaScope() {
+        ObjectLiteralNode node = (ObjectLiteralNode) load.getPrimary();
+        return (PythonModule) node.getValue();
+    }
+
     @Override
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
         return load.executeInt(frame);
