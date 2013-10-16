@@ -526,8 +526,15 @@ class Suite:
             raise KeyError
 
         with open(projectsFile) as f:
+            prefix = ''
             for line in f:
                 line = line.strip()
+                if line.endswith('\\'):
+                    prefix = prefix + line[:-1]
+                    continue
+                if len(prefix) != 0:
+                    line = prefix + line
+                    prefix = ''
                 if len(line) != 0 and line[0] != '#':
                     key, value = line.split('=', 1)
 
