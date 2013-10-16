@@ -46,6 +46,10 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
         return attributeId;
     }
 
+    public PNode getPrimary() {
+        return primary;
+    }
+
     @Override
     public StatementNode updateRhs(PNode newRhs) {
         return new UninitializedStoreAttributeNode(attributeId, primary, newRhs);

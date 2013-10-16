@@ -446,6 +446,10 @@ public class PythonTreeTranslator extends Visitor {
             SubscriptLoadNode read = (SubscriptLoadNode) target;
             PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
             expr = factory.createSubscriptStore(read.getPrimary(), read.getSlice(), binaryOp);
+        } else if (target instanceof StoreAttributeNode) {
+            LoadAttributeNode read = (LoadAttributeNode) ((StoreAttributeNode) target).makeReadNode();
+            PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
+            expr = factory.createStoreAttribute(read.getPrimary(), read.getAttributeId(), binaryOp);
         } else {
             throw new NotCovered();
         }
