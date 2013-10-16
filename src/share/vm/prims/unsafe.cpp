@@ -173,9 +173,7 @@ jint Unsafe_invocation_key_to_method_slot(jint key) {
 #define GET_OOP_FIELD(obj, offset, v) \
   oop p = JNIHandles::resolve(obj);   \
   oop v;                              \
-   /* Uncompression is not performed to unsafeAccess with null object. \
-    * This concerns accesses to the metaspace such as the classMirrorOffset in Graal which is not compressed.*/ \
-  if (UseCompressedOops GRAAL_ONLY(&& p != NULL && offset >= oopDesc::header_size())) {            \
+  if (UseCompressedOops) {            \
     narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
     v = oopDesc::decode_heap_oop(n);                                \
   } else {                            \
