@@ -24,9 +24,9 @@
  */
 package edu.uci.python.nodes.literals;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
-public abstract class StringLiteralNode extends LiteralNode {
+public class StringLiteralNode extends LiteralNode {
 
     private final String value;
 
@@ -38,8 +38,13 @@ public abstract class StringLiteralNode extends LiteralNode {
         return value;
     }
 
-    @Specialization
-    public String doString() {
+    @Override
+    public String executeString(VirtualFrame frame) {
+        return value;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
         return value;
     }
 

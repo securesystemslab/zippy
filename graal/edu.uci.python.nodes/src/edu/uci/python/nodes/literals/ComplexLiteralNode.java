@@ -24,11 +24,11 @@
  */
 package edu.uci.python.nodes.literals;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class ComplexLiteralNode extends LiteralNode {
+public class ComplexLiteralNode extends LiteralNode {
 
     private final PComplex value;
 
@@ -40,8 +40,13 @@ public abstract class ComplexLiteralNode extends LiteralNode {
         return value;
     }
 
-    @Specialization
-    public PComplex doComplex() {
+    @Override
+    public PComplex executePComplex(VirtualFrame frame) {
+        return value;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
         return value;
     }
 

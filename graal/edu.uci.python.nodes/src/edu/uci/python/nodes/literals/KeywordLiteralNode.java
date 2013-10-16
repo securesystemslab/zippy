@@ -24,14 +24,12 @@
  */
 package edu.uci.python.nodes.literals;
 
-
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class KeywordLiteralNode extends LiteralNode {
+public class KeywordLiteralNode extends LiteralNode {
 
     @Child private final PNode value;
 
@@ -42,8 +40,8 @@ public abstract class KeywordLiteralNode extends LiteralNode {
         this.value = adoptChild(value);
     }
 
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
+    @Override
+    public Object execute(VirtualFrame frame) {
         return new PKeyword(value.execute(frame), name);
     }
 

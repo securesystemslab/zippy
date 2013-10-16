@@ -24,9 +24,9 @@
  */
 package edu.uci.python.nodes.literals;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
-public abstract class BooleanLiteralNode extends LiteralNode {
+public class BooleanLiteralNode extends LiteralNode {
 
     private final boolean value;
 
@@ -38,9 +38,14 @@ public abstract class BooleanLiteralNode extends LiteralNode {
         return value;
     }
 
-    @Specialization
-    public boolean doBoolean() {
+    @Override
+    public boolean executeBoolean(VirtualFrame frame) {
         return value;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executeBoolean(frame);
     }
 
     @Override

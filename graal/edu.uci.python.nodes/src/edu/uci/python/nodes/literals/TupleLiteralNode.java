@@ -28,7 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-
+import edu.uci.python.runtime.datatypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 public final class TupleLiteralNode extends LiteralNode {
@@ -41,7 +41,7 @@ public final class TupleLiteralNode extends LiteralNode {
 
     @ExplodeLoop
     @Override
-    public Object execute(VirtualFrame frame) {
+    public PTuple executePTuple(VirtualFrame frame) {
         Object[] elements = new Object[values.length];
 
         for (int i = 0; i < values.length; i++) {
@@ -49,6 +49,12 @@ public final class TupleLiteralNode extends LiteralNode {
         }
 
         return createTuple(elements);
+    }
+
+    @ExplodeLoop
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return executePTuple(frame);
     }
 
     @Override

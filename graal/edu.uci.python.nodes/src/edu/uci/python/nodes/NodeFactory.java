@@ -187,23 +187,23 @@ public class NodeFactory {
     }
 
     public PNode createIntegerLiteral(int value) {
-        return IntegerLiteralNodeFactory.create(value);
+        return new IntegerLiteralNode(value);
     }
 
     public PNode createBigIntegerLiteral(BigInteger value) {
-        return BigIntegerLiteralNodeFactory.create(value);
+        return new BigIntegerLiteralNode(value);
     }
 
     public PNode createDoubleLiteral(double value) {
-        return DoubleLiteralNodeFactory.create(value);
+        return new DoubleLiteralNode(value);
     }
 
     public PNode createComplexLiteral(PComplex value) {
-        return ComplexLiteralNodeFactory.create(value);
+        return new ComplexLiteralNode(value);
     }
 
     public PNode createStringLiteral(PyString value) {
-        return StringLiteralNodeFactory.create(value.getString());
+        return new StringLiteralNode(value.getString());
     }
 
     public PNode createDictLiteral(List<PNode> keys, List<PNode> values) {
@@ -405,11 +405,11 @@ public class NodeFactory {
     }
 
     public PNode createBooleanLiteral(boolean value) {
-        return BooleanLiteralNodeFactory.create(value);
+        return new BooleanLiteralNode(value);
     }
 
     public PNode createNoneLiteral() {
-        return NoneLiteralNodeFactory.create();
+        return new NoneLiteralNode();
     }
 
     public PNode createObjectLiteral(Object obj) {
@@ -425,7 +425,7 @@ public class NodeFactory {
     }
 
     public PNode createKeywordLiteral(PNode value, String name) {
-        return KeywordLiteralNodeFactory.create(value, name);
+        return new KeywordLiteralNode(value, name);
     }
 
     public List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
