@@ -201,12 +201,21 @@ public class BinaryParser implements GraphParser {
         }
     }
     
+    private static class Port {
+        public final boolean isList;
+        public final String name;
+        private Port(boolean isList, String name) {
+            this.isList = isList;
+            this.name = name;
+        }
+    }
+    
     private static class NodeClass {
         public final String className;
         public final String nameTemplate;
-        public final List<String> inputs;
-        public final List<String> sux;
-        private NodeClass(String className, String nameTemplate, List<String> inputs, List<String> sux) {
+        public final List<Port> inputs;
+        public final List<Port> sux;
+        private NodeClass(String className, String nameTemplate, List<Port> inputs, List<Port> sux) {
             this.className = className;
             this.nameTemplate = nameTemplate;
             this.inputs = inputs;
@@ -440,14 +449,18 @@ public class BinaryParser implements GraphParser {
                 String className = readString();
                 String nameTemplate = readString();
                 int inputCount = readShort();
-                List<String> inputs = new ArrayList<>(inputCount);
+                List<Port> inputs = new ArrayList<>(inputCount);
                 for (int i = 0; i < inputCount; i++) {
-                    inputs.add(readPoolObject(String.class));
+                    boolean isList = readByte() != 0;
+                    String name = readPoolObject(String.class);
+                    inputs.add(new Port(isList, name));
                 }
                 int suxCount = readShort();
-                List<String> sux = new ArrayList<>(suxCount);
+                List<Port> sux = new ArrayList<>(suxCount);
                 for (int i = 0; i < suxCount; i++) {
-                    sux.add(readPoolObject(String.class));
+                    boolean isList = readByte() != 0;
+                    String name = readPoolObject(String.class);
+                    sux.add(new Port(isList, name));
                 }
                 obj = new NodeClass(className, nameTemplate, inputs, sux);
                 break;
@@ -684,17 +697,44 @@ public class BinaryParser implements GraphParser {
                 }
             }
             int edgesStart = edges.size();
-            int suxCount = readShort();
-            for (int j = 0; j < suxCount; j++) {
-                int sux = readInt();
-                int index = readShort();
-                edges.add(new Edge(id, sux, (char) j, nodeClass.sux.get(index), false));
+            int portNum = 0;
+            for (Port p : nodeClass.inputs) {
+                if (p.isList) {
+                    int size = readShort();
+                    for (int j = 0; j < size; j++) {
+                        int in = readInt();
+                        if (in >= 0) {
+                            edges.add(new Edge(in, id, (char) (preds + portNum), p.name + "[" + j + "]", true));
+                            portNum++;
+                        }
+                    }
+                } else {
+                    int in = readInt();
+                    if (in >= 0) {
+                        edges.add(new Edge(in, id, (char) (preds + portNum), p.name, true));
+                        portNum++;
+                    }
+                }
+                
             }
-            int inputCount = readShort();
-            for (int j = 0; j < inputCount; j++) {
-                int in = readInt();
-                int index = readShort();
-                edges.add(new Edge(in, id, (char) (preds + j), nodeClass.inputs.get(index), true));
+            portNum = 0;
+            for (Port p : nodeClass.sux) {
+                if (p.isList) {
+                    int size = readShort();
+                    for (int j = 0; j < size; j++) {
+                        int sux = readInt();
+                        if (sux >= 0) {
+                            edges.add(new Edge(id, sux, (char) portNum, p.name + "[" + j + "]", false));
+                            portNum++;
+                        }
+                    }
+                } else {
+                    int sux = readInt();
+                    if (sux >= 0) {
+                        edges.add(new Edge(id, sux, (char) portNum, p.name, false));
+                        portNum++;
+                    }
+                }
             }
             properties.setProperty("name", createName(edges.subList(edgesStart, edges.size()), props, nodeClass.nameTemplate));
             properties.setProperty("class", nodeClass.className);
