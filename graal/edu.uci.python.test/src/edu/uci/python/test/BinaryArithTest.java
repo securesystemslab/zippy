@@ -30,25 +30,12 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ForTests {
+public class BinaryArithTest {
 
-    @Test
+// @Test
     public void simple() {
-        Path script = Paths.get("simple_for_test.py");
-        assertPrints("1\n2\n3\n", script);
-    }
-
-    @Test
-    public void forTest() {
-        Path script = Paths.get("for_test.py");
-        assertPrints("1\n2\n3\n1 2\n3 4\n5 6\n", script);
-    }
-
-    // the following method tests a file with for loops that also include chains of for
-    // loops and other statements.
-    @Test
-    public void iterateAndElseInFor() {
-        Path script = Paths.get("more_complex_for_test.py");
-        assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
+        Path script = Paths.get("binary_arith_test.py");
+        assertPrints("----------- basic + - * / //\n3 2 12 3.5 3\n----------- double/BigInteger + - * / //\n346334 3090723.0028089886 -54385299999999915573 0.0056179775280898875 0.0\n----------- more double/BigInteger / // **\n1.0734391914109867e+17 1.0734391914109868e+18 -821361754992.0 16 15.625\n----------- %\n4 20 2.7440432148750915e-09\n",
+                        script);
     }
 }

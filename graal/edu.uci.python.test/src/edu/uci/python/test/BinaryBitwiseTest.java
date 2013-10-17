@@ -30,25 +30,12 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ForTests {
-
+public class BinaryBitwiseTest {
     @Test
     public void simple() {
-        Path script = Paths.get("simple_for_test.py");
-        assertPrints("1\n2\n3\n", script);
+        Path script = Paths.get("binary_bitwise_test.py");
+        assertPrints("----------- << >>\n8 2 680564733841876926926749214863536422912 0 -256 -1\n----------- & | ^\n0 441 415\n----------- & | ^ w/ BitInteger\n0 943824320482304948 544382094820482034324155\n",
+                        script);
     }
 
-    @Test
-    public void forTest() {
-        Path script = Paths.get("for_test.py");
-        assertPrints("1\n2\n3\n1 2\n3 4\n5 6\n", script);
-    }
-
-    // the following method tests a file with for loops that also include chains of for
-    // loops and other statements.
-    @Test
-    public void iterateAndElseInFor() {
-        Path script = Paths.get("more_complex_for_test.py");
-        assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
-    }
 }

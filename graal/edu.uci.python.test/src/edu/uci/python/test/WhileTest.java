@@ -30,25 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ForTests {
-
+public class WhileTest {
     @Test
     public void simple() {
-        Path script = Paths.get("simple_for_test.py");
-        assertPrints("1\n2\n3\n", script);
+        Path script = Paths.get("while_test.py");
+        assertPrints("a is true 1\n0  <  5\n0  <  4\n0  <  3\n0  <  2\n0  <  1\n1  <  5\n1  <  4\n1  <  3\n1  <  2\n1  <  1\n", script);
     }
 
-    @Test
-    public void forTest() {
-        Path script = Paths.get("for_test.py");
-        assertPrints("1\n2\n3\n1 2\n3 4\n5 6\n", script);
-    }
-
-    // the following method tests a file with for loops that also include chains of for
-    // loops and other statements.
-    @Test
-    public void iterateAndElseInFor() {
-        Path script = Paths.get("more_complex_for_test.py");
-        assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
-    }
 }
