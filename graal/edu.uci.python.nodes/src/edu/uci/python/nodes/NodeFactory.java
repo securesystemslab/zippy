@@ -66,8 +66,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
-        return new FunctionDefinitionNode(name, parameters, callTarget);
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
+        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor);
     }
 
     public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {

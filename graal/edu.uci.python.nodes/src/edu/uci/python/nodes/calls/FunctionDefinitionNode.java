@@ -25,7 +25,7 @@
 package edu.uci.python.nodes.calls;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
@@ -37,12 +37,15 @@ public class FunctionDefinitionNode extends PNode {
 
     private final CallTarget callTarget;
 
+    private final FrameDescriptor frameDescriptor;
+
     @Child protected ParametersNode parameters;
 
-    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget) {
+    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
         this.name = name;
         this.parameters = adoptChild(parameters);
         this.callTarget = callTarget;
+        this.frameDescriptor = frameDescriptor;
     }
 
     public String getName() {
@@ -52,7 +55,7 @@ public class FunctionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
-        return new PFunction(name, parameters.getParameterNames(), callTarget);
+        return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor);
     }
 
     @Override

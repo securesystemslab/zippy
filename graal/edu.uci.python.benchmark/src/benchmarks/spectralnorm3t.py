@@ -22,28 +22,28 @@ def eval_A (i, j):
 
 def eval_A_times_u (u, resulted_list):
     u_len = len (u)
-    local_eval_A = eval_A
+    #local_eval_A = eval_A
 
     for i in range (u_len):
         partial_sum = 0
 
         j = 0
         while j < u_len:
-            partial_sum += local_eval_A (i, j) * u[j]
+            partial_sum += eval_A (i, j) * u[j]
             j += 1
 
         resulted_list[i] = partial_sum
 
 def eval_At_times_u (u, resulted_list):
     u_len = len (u)
-    local_eval_A = eval_A
+    #local_eval_A = eval_A
 
     for i in range (u_len):
         partial_sum = 0
 
         j = 0
         while j < u_len:
-            partial_sum += local_eval_A (j, i) * u[j]
+            partial_sum += eval_A (j, i) * u[j]
             j += 1
 
         resulted_list[i] = partial_sum

@@ -46,15 +46,26 @@ public class FunctionRootNode extends RootNode {
 
     @Child protected PNode returnValue;
 
+    private final StatementNode uninitializedBody;
+
     public FunctionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
         this.functionName = functionName;
         this.parameters = adoptChild(parameters);
         this.body = adoptChild(body);
         this.returnValue = adoptChild(returnValue);
+        this.uninitializedBody = body != null ? NodeUtil.cloneNode(body) : null;
     }
 
     public void setBody(StatementNode body) {
         this.body = adoptChild(body);
+    }
+
+    public FunctionRootNode getClonedRootNode() {
+        return new FunctionRootNode(this.functionName, NodeUtil.cloneNode(this.parameters), NodeUtil.cloneNode(uninitializedBody), NodeUtil.cloneNode(this.returnValue));
+    }
+
+    public StatementNode getUninitializedBody() {
+        return uninitializedBody;
     }
 
     @Override

@@ -40,11 +40,11 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-print-ast")) {
-                Options.PrintAST = true;
+                PythonOptions.PrintAST = true;
             }
 
             if (arg.equals("-visualize-ast")) {
-                Options.VisualizedAST = true;
+                PythonOptions.VisualizedAST = true;
             }
 
             index++;

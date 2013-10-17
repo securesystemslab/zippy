@@ -153,7 +153,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
-        return factory.createFunctionDef(name, parameters, ct);
+        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame());
     }
 
     public PNode wrapWithWriteOrStore(PNode rhs, ScopeKind definingScope, FrameSlot slot, String name) {
@@ -299,7 +299,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(statements);
         FunctionRootNode methodRoot = factory.createFunctionRoot(name, ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
         CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct);
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct, environment.getCurrentFrame());
         environment.endScope();
 
         // The default super class is the <class 'object'>.

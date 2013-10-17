@@ -34,13 +34,13 @@ import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.Options;
+import edu.uci.python.runtime.PythonOptions;
 
 public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
-        PythonContext context = new PythonContext(new Options());
+        PythonContext context = new PythonContext(new PythonOptions());
         execfile(s, name, context);
     }
 
@@ -50,23 +50,23 @@ public class CustomConsole extends JLineConsole {
         ASTInterpreter.init(false);
         PythonParseResult result = parseToAST(s, name, CompileMode.exec, cflags, context);
 
-        if (Options.PrintAST) {
+        if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();
         }
 
-        if (Options.VisualizedAST) {
+        if (PythonOptions.VisualizedAST) {
             result.visualizeToNetwork();
         }
 
         ASTInterpreter.interpret(result, false);
 
-        if (Options.PrintAST) {
+        if (PythonOptions.PrintAST) {
             printBanner("After Specialization");
             result.printAST();
         }
 
-        if (Options.VisualizedAST) {
+        if (PythonOptions.VisualizedAST) {
             result.visualizeToNetwork();
         }
 

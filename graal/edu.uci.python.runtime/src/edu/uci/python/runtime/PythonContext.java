@@ -30,14 +30,18 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonContext {
 
-    private final Options options;
+    private final PythonOptions options;
 
     private final PythonCore pythonCore;
 
-    public PythonContext(Options opts) {
+    public PythonContext(PythonOptions opts) {
         options = opts;
         this.pythonCore = new PythonCore(this);
         this.pythonCore.initialize();
+    }
+
+    public PythonOptions getPythonOptions() {
+        return options;
     }
 
     public PrintStream getStandardOut() {
@@ -45,7 +49,7 @@ public class PythonContext {
     }
 
     public boolean getUseUnsafe() {
-        return Options.UseUnsafe;
+        return PythonOptions.UseUnsafe;
     }
 
     public PythonCore getPythonCore() {

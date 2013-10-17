@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class CallFunctionNoKeywordNode extends PNode {
@@ -45,10 +46,15 @@ public class CallFunctionNoKeywordNode extends PNode {
         this.arguments = adoptChildren(arguments);
     }
 
-    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PCallable callable) {
+    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PFunction callable) {
         if (calleeNode instanceof ReadGlobalScopeNode) {
             Assumption globalScopeUnchanged = ((ReadGlobalScopeNode) calleeNode).getGlobaScope().getUnmodifiedAssumption();
-            return new CallFunctionNoKeywordNode.CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+
+            if (PythonOptions.InlineFunctionCalls) {
+                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+            } else {
+                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+            }
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         }
@@ -77,6 +83,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @SlowPath
     protected Object uninitialize(VirtualFrame frame) {
+        CompilerDirectives.transferToInterpreter();
         return replace(new CallFunctionNoKeywordNode(this.callee, this.arguments)).execute(frame);
     }
 
@@ -87,11 +94,11 @@ public class CallFunctionNoKeywordNode extends PNode {
      */
     public static class CallFunctionNoKeywordCachedNode extends CallFunctionNoKeywordNode {
 
-        private final PCallable cached;
+        protected final PFunction cached;
 
-        private final Assumption globalScopeUnchanged;
+        protected final Assumption globalScopeUnchanged;
 
-        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PCallable cached, Assumption globalScopeUnchanged) {
+        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged) {
             super(callee, arguments);
             this.cached = cached;
             this.globalScopeUnchanged = globalScopeUnchanged;
@@ -106,6 +113,82 @@ public class CallFunctionNoKeywordNode extends PNode {
             }
 
             return executeCall(frame, cached);
+        }
+    }
+
+    public static class CallFunctionNoKeywordInlinableNode extends CallFunctionNoKeywordCachedNode implements InlinableCallSite {
+
+        @CompilationFinal private int callCount;
+
+        private final FunctionRootNode functionRoot;
+
+        public CallFunctionNoKeywordInlinableNode(PNode callee, PNode[] arguments, PFunction callable, Assumption globalScopeUnchanged) {
+            super(callee, arguments, callable, globalScopeUnchanged);
+            PFunction function = callable;
+            FunctionRootNode rootNode = (FunctionRootNode) function.getFunctionRootNode();
+            functionRoot = rootNode.getClonedRootNode();
+        }
+
+        public int getCallCount() {
+            return callCount;
+        }
+
+        public void resetCallCount() {
+            callCount = 0;
+        }
+
+        public Node getInlineTree() {
+            return functionRoot;
+        }
+
+        public CallTarget getCallTarget() {
+            return cached.getCallTarget();
+        }
+
+        public boolean inline(FrameFactory factory) {
+            if (functionRoot != null) {
+                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
+                replace(inlinedCallNode);
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (CompilerDirectives.inInterpreter()) {
+                callCount++;
+            }
+            return super.execute(frame);
+        }
+    }
+
+    public static class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
+
+        private final FunctionRootNode functionRoot;
+
+        public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot) {
+            super(callee, arguments, cached, globalScopeUnchanged);
+            this.functionRoot = functionRoot;
+        }
+
+        public CallTarget getCallTarget() {
+            return cached.getCallTarget();
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            try {
+                globalScopeUnchanged.check();
+            } catch (InvalidAssumptionException e) {
+                return uninitialize(frame);
+            }
+
+            final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+            final PArguments pargs = new PArguments(args);
+            VirtualFrame inlinedFrame = Truffle.getRuntime().createVirtualFrame(frame.pack(), pargs, cached.getFrameDescriptor());
+            return functionRoot.execute(inlinedFrame);
         }
     }
 }

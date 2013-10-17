@@ -68,7 +68,7 @@ public class PythonTests {
     }
 
     private static PythonContext getContext(PrintStream printStream) {
-        Options opts = new Options();
+        PythonOptions opts = new PythonOptions();
         opts.setStandardOut(printStream);
         return new PythonContext(opts);
     }

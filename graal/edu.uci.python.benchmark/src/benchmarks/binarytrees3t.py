@@ -42,13 +42,16 @@ def main(n):
     print("long lived tree of depth %d\t check:" % max_depth, check_tree(long_lived_tree))
 
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("binarytrees: " + duration)
+
 # warm up
 num =  int(sys.argv[1])
 for run in range(20):
     main(2)
 
-print("Start timing...")
-start = time.time()
-main(num)
-duration = "%.3f\n" % (time.time() - start)
-print("binarytrees: " + duration)
+measure()
