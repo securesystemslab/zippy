@@ -376,7 +376,7 @@ public class BinaryParser implements GraphParser {
             return (T) addPoolEntry(klass);
         }
         assert assertObjectType(klass, type);
-        int index = readInt();
+        char index = readShort();
         if (index < 0 || index >= constantPool.size()) {
             throw new IOException("Invalid constant pool index : " + index);
         }
@@ -408,7 +408,7 @@ public class BinaryParser implements GraphParser {
     }
 
     private Object addPoolEntry(Class<?> klass) throws IOException {
-        int index = readInt();
+        char index = readShort();
         int type = readByte();
         assert assertObjectType(klass, type) : "Wrong object type : " + klass + " != " + type;
         Object obj;
