@@ -301,9 +301,8 @@ public class BinaryParser implements GraphParser {
         int len = readInt();
         ensureAvailable(len * 2);
         char[] chars = new char[len];
-        for (int i = 0; i < len; i++) {
-            chars[i] = buffer.getChar();
-        }
+        buffer.asCharBuffer().get(chars);
+        buffer.position(buffer.position() + len * 2);
         return new String(chars);
     }
 
