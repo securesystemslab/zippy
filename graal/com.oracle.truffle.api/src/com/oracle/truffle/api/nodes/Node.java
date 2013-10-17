@@ -132,7 +132,7 @@ public abstract class Node implements Cloneable {
      * @param newChild the new child whose parent should be updated
      * @return the new child
      */
-    protected final <T extends Node> T adoptChild(T newChild) {
+    public final <T extends Node> T adoptChild(T newChild) {
         if (newChild != null) {
             if (newChild == this) {
                 throw new IllegalStateException("The parent of a node can never be the node itself.");
@@ -373,5 +373,23 @@ public abstract class Node implements Cloneable {
         }
         sb.append("@").append(Integer.toHexString(hashCode()));
         return sb.toString();
+    }
+
+    /**
+     * zwei: utility function to check consistency of an AST.
+     */
+    public void consistencyCheck(RootNode root) {
+        root.accept(new NodeVisitor() {
+
+            @Override
+            public boolean visit(Node node) {
+                for (Node child : node.getChildren()) {
+                    if (child != null) {
+                        assert child.getParent() == node : "[consistency] it is not my child!!!";
+                    }
+                }
+                return true;
+            }
+        });
     }
 }

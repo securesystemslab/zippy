@@ -39,11 +39,12 @@ public class FunctionDefinitionNode extends PNode {
 
     private final FrameDescriptor frameDescriptor;
 
+    // It's parked here, but not adopted.
     @Child protected ParametersNode parameters;
 
     public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
         this.name = name;
-        this.parameters = adoptChild(parameters);
+        this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
     }

@@ -148,16 +148,47 @@ public class CallFunctionNoKeywordNode extends PNode {
         public boolean inline(FrameFactory factory) {
             CompilerAsserts.neverPartOfCompilation();
             if (functionRoot != null) {
-                if (haveReplacedMyself()) {
-                    return false;
-                }
-
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
-                replace(inlinedCallNode);
+                Node parent = findRealParent();
+                NodeUtil.replaceChild(parent, this, inlinedCallNode);
+                parent.adoptChild(inlinedCallNode);
                 return true;
             }
 
             return false;
+        }
+
+        /**
+         * A fix for recursion.
+         */
+        private Node findRealParent() {
+            Node current = this;
+            RootNode root = null;
+            while (current.getParent() != null) {
+                if (current.getParent() instanceof RootNode) {
+                    root = (RootNode) current.getParent();
+                    break;
+                }
+                current = current.getParent();
+            }
+
+            assert root != null : "Wasn't able to find function root";
+            final Node[] realParent = new Node[1];
+
+            root.accept(new NodeVisitor() {
+                @Override
+                public boolean visit(Node node) {
+                    for (Node child : node.getChildren()) {
+                        if (child == CallFunctionNoKeywordInlinableNode.this) {
+                            realParent[0] = node;
+                        }
+                    }
+                    return true;
+                }
+            });
+
+            assert realParent[0] != null;
+            return realParent[0];
         }
 
         @Override
@@ -166,29 +197,6 @@ public class CallFunctionNoKeywordNode extends PNode {
                 callCount++;
             }
             return super.execute(frame);
-        }
-
-        /**
-         * This is called to detect recursion.
-         * <p>
-         * The current executing node could have been replaced as a child of its current parent.
-         * Since the ongoing recursion may not terminated yet, the current executing node need to
-         * make sure that the child field in its parent has not been replaced by an inlined call
-         * node.
-         * 
-         */
-        private boolean haveReplacedMyself() {
-            Node parent = getParent();
-            boolean haveReplacedMyself = true;
-
-            for (Node child : parent.getChildren()) {
-                if (child == this) {
-                    haveReplacedMyself = false;
-                    break;
-                }
-            }
-
-            return haveReplacedMyself;
         }
     }
 

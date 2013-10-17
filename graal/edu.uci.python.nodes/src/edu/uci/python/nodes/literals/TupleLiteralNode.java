@@ -51,7 +51,6 @@ public final class TupleLiteralNode extends LiteralNode {
         return createTuple(elements);
     }
 
-    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
         return executePTuple(frame);
