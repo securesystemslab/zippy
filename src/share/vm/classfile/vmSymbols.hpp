@@ -314,9 +314,6 @@
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
   template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
   template(com_oracle_graal_hotspot_CompilerThread,                  "com/oracle/graal/hotspot/CompilerThread")                       \
-  template(com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime,      "com/oracle/graal/hotspot/ptx/PTXHotSpotGraalRuntime")\
-  AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
-  SPARC_ONLY(template(com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime,"com/oracle/graal/hotspot/sparc/SPARCHotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
@@ -387,11 +384,11 @@
   template(createConstantObject_signature,        "(Ljava/lang/Object;)Lcom/oracle/graal/api/meta/Constant;")                         \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
-  template(getInstance_name,                      "getInstance")                                                                      \
-  template(getTruffleRuntimeInstance_signature,   "()Lcom/oracle/graal/truffle/GraalTruffleRuntime;")                                 \
+  template(runtime_name,                          "runtime")                                                                          \
+  template(runtime_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
   template(makeInstance_name,                     "makeInstance")                                                                     \
+  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/GraalTruffleRuntime;")                                 \
   template(initialize_name,                       "initialize")                                                                       \
-  template(getInstance_signature,                 "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
   template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
