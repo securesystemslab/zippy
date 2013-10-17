@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.FunctionRootNode.InlinedFunctionRootNode;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -125,8 +126,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         public CallFunctionNoKeywordInlinableNode(PNode callee, PNode[] arguments, PFunction callable, Assumption globalScopeUnchanged) {
             super(callee, arguments, callable, globalScopeUnchanged);
             PFunction function = callable;
-            FunctionRootNode rootNode = (FunctionRootNode) function.getFunctionRootNode();
-            functionRoot = rootNode.getClonedRootNode();
+            functionRoot = (FunctionRootNode) function.getFunctionRootNode();
         }
 
         public int getCallCount() {
@@ -138,7 +138,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
 
         public Node getInlineTree() {
-            return functionRoot;
+            return functionRoot.getInlinedRootNode();
         }
 
         public CallTarget getCallTarget() {
@@ -146,7 +146,12 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
 
         public boolean inline(FrameFactory factory) {
+            CompilerAsserts.neverPartOfCompilation();
             if (functionRoot != null) {
+                if (haveReplacedMyself()) {
+                    return false;
+                }
+
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
                 replace(inlinedCallNode);
                 return true;
@@ -162,15 +167,38 @@ public class CallFunctionNoKeywordNode extends PNode {
             }
             return super.execute(frame);
         }
+
+        /**
+         * This is called to detect recursion.
+         * <p>
+         * The current executing node could have been replaced as a child of its current parent.
+         * Since the ongoing recursion may not terminated yet, the current executing node need to
+         * make sure that the child field in its parent has not been replaced by an inlined call
+         * node.
+         * 
+         */
+        private boolean haveReplacedMyself() {
+            Node parent = getParent();
+            boolean haveReplacedMyself = true;
+
+            for (Node child : parent.getChildren()) {
+                if (child == this) {
+                    haveReplacedMyself = false;
+                    break;
+                }
+            }
+
+            return haveReplacedMyself;
+        }
     }
 
     public static class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
 
-        private final FunctionRootNode functionRoot;
+        @Child protected InlinedFunctionRootNode functionRoot;
 
         public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot) {
             super(callee, arguments, cached, globalScopeUnchanged);
-            this.functionRoot = functionRoot;
+            this.functionRoot = adoptChild(functionRoot.getInlinedRootNode());
         }
 
         public CallTarget getCallTarget() {

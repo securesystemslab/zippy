@@ -60,8 +60,8 @@ public class FunctionRootNode extends RootNode {
         this.body = adoptChild(body);
     }
 
-    public FunctionRootNode getClonedRootNode() {
-        return new FunctionRootNode(this.functionName, NodeUtil.cloneNode(this.parameters), NodeUtil.cloneNode(uninitializedBody), NodeUtil.cloneNode(this.returnValue));
+    public InlinedFunctionRootNode getInlinedRootNode() {
+        return new InlinedFunctionRootNode(this);
     }
 
     public StatementNode getUninitializedBody() {
@@ -84,5 +84,38 @@ public class FunctionRootNode extends RootNode {
     @Override
     public String toString() {
         return "<function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
+    }
+
+    public static class InlinedFunctionRootNode extends PNode {
+
+        private final String functionName;
+        @Child protected ParametersNode parameters;
+        @Child protected StatementNode body;
+        @Child protected PNode returnValue;
+
+        protected InlinedFunctionRootNode(FunctionRootNode node) {
+            this.functionName = node.functionName;
+            this.parameters = adoptChild(NodeUtil.cloneNode(node.parameters));
+            this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));
+            this.returnValue = adoptChild(NodeUtil.cloneNode(node.returnValue));
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            parameters.executeVoid(frame);
+
+            try {
+                return body.execute(frame);
+            } catch (ImplicitReturnException ire) {
+                return null;
+            } catch (ExplicitReturnException ere) {
+                return returnValue.execute(frame);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "<inlined function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
+        }
     }
 }
