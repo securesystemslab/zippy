@@ -556,6 +556,48 @@ class SuiteModel:
             mappair = pair.split('=')
             self.suitenamemap[mappair[0]] = mappair[1]
 
+    @staticmethod
+    def _set_suitemodel(option, suitemap):
+        if option.startswith('sibling'):
+            return SiblingSuiteModel(os.getcwd(), option, suitemap)
+        elif option.startswith('nested'):
+            return NestedImportsSuiteModel(os.getcwd(), option, suitemap)
+        elif option.startswith('path'):
+            return PathSuiteModel(option[len('path:'):])
+        else:
+            abort('unknown suitemodel type: ' + option)
+
+    @staticmethod
+    def _parse_options():
+        # suite-specific args may match the known args so there is no way at this early stage
+        # to use ArgParser to handle the suite model global arguments, so we just do it manually.
+        def _get_argvalue(arg, args, i):
+            if i < len(args):
+                return args[i]
+            else:
+                abort('value expected with ' + arg)
+
+        args = sys.argv[1:]
+        src_suitemodel_arg = dst_suitemodel_arg = 'sibling'
+        suitemap_arg = None
+
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg == '--src-suitemodel':
+                src_suitemodel_arg = _get_argvalue(arg, args, i + 1)
+            elif arg == '--dst-suitemodel':
+                dst_suitemodel_arg = _get_argvalue(arg, args, i + 1)
+            elif arg == '--suitemap':
+                suitemap_arg = _get_argvalue(arg, args, i + 1)
+            i = i + 1
+
+        global _src_suitemodel
+        _src_suitemodel = SuiteModel._set_suitemodel(src_suitemodel_arg, suitemap_arg)
+        global _dst_suitemodel
+        _dst_suitemodel = SuiteModel._set_suitemodel(dst_suitemodel_arg, suitemap_arg)
+
+
 class SiblingSuiteModel(SuiteModel):
     """All suites are siblings in the same parent directory, recorded as _suiteRootDir"""
     def __init__(self, suiteRootDir, option, suitemap):
@@ -1290,33 +1332,6 @@ class ArgParser(ArgumentParser):
 
     def _handle_conflict_resolve(self, action, conflicting_actions):
         self._handle_conflict_error(action, conflicting_actions)
-
-class SMArgParser(ArgParser):
-    """Parser that just looks for suitemodel options, which must happen before suites are loaded"""
-    def __init__(self):
-        ArgParser.__init__(self)
-
-    def _suitemodel(self, option, suitemap):
-        if option.startswith('sibling'):
-            return SiblingSuiteModel(os.getcwd(), option, suitemap)
-        elif option.startswith('nested'):
-            return NestedImportsSuiteModel(os.getcwd(), option, suitemap)
-        elif option.startswith('path'):
-            return PathSuiteModel(option[len('path:'):])
-        else:
-            abort('unknown suitemodel type: ' + option)
-
-    def _parse_suitemodel_options(self):
-        # the command line may contains args added by suites, so we only parse the currently known args
-        opts = self.parse_known_args()[0]
-        # set this early
-        global _warn
-        _warn = opts.warn
-
-        global _src_suitemodel
-        _src_suitemodel = self._suitemodel(opts.src_suitemodel, opts.suitemap)
-        global _dst_suitemodel
-        _dst_suitemodel = self._suitemodel(opts.dst_suitemodel, opts.suitemap)
 
 def _format_commands():
     msg = '\navailable commands:\n\n'
@@ -4345,7 +4360,7 @@ def _findPrimarySuiteMxDir():
     return None
 
 def main():
-    SMArgParser()._parse_suitemodel_options()
+    SuiteModel._parse_options()
 
     primarySuiteMxDir = _findPrimarySuiteMxDir()
     if primarySuiteMxDir:
