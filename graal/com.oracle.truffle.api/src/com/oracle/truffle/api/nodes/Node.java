@@ -196,6 +196,7 @@ public abstract class Node implements Cloneable {
      * @param newNode the new node that is the replacement
      * @return the new node
      */
+    // zwei: changed the accessor qualifier to public to customize node replacement.
     public final <T extends Node> T replace(T newNode) {
         return replace(newNode, "");
     }

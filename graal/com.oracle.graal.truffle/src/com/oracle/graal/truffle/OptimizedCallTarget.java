@@ -219,7 +219,15 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             boolean inlined = false;
             for (InlinableCallSiteInfo inlinableCallSite : inlinableCallSites) {
                 if (!policy.isWorthInlining(inlinableCallSite)) {
-                    break;
+                    // break;
+                    /**
+                     * zwei: instead of giving up on the first inlinableCallSite, we try all the
+                     * rests until no callsite is inlinable.
+                     */
+                    if (TraceTruffleInliningDetails.getValue()) {
+                        OUT.println("[Inlining failed] " + inlinableCallSite + " is not worth inlining");
+                    }
+                    continue;
                 }
                 if (inlinableCallSite.getCallSite().inline(target)) {
                     if (TraceTruffleInlining.getValue()) {
@@ -271,9 +279,44 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             }
 
             public boolean isWorthInlining(InlinableCallSiteInfo callSite) {
-                return callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue() && callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue() &&
-                                callSite.getCallCount() > 0 && callSite.getRecursiveDepth() < TruffleInliningMaxRecursiveDepth.getValue() &&
-                                (frequency(callSite) >= TruffleInliningMinFrequency.getValue() || callSite.getInlineNodeCount() <= TruffleInliningTrivialSize.getValue());
+// return callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue() &&
+// callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue() &&
+// callSite.getCallCount() > 0 && callSite.getRecursiveDepth() <
+// TruffleInliningMaxRecursiveDepth.getValue() &&
+// (frequency(callSite) >= TruffleInliningMinFrequency.getValue() || callSite.getInlineNodeCount()
+// <= TruffleInliningTrivialSize.getValue());
+
+                /*
+                 * zwei:
+                 */
+                String reason = "";
+                boolean isWorth = false;
+
+                isWorth = callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue();
+                reason = isWorth ? reason : reason + "Inline node count bigger than TruffleInliningMaxCalleeSize\n";
+
+                isWorth = isWorth && callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue();
+                reason = isWorth ? reason : reason + "Inline node count bigger than TruffleInliningMaxCallerSize\n";
+
+                isWorth = isWorth && callSite.getCallCount() > 0;
+                reason = isWorth ? reason : reason + "callsite call count is 0\n";
+
+                isWorth = isWorth && callSite.getRecursiveDepth() < TruffleInliningMaxRecursiveDepth.getValue();
+                reason = isWorth ? reason : reason + "callsite recursive depth has reached TruffleInliningMaxRecursiveDepth\n";
+
+                boolean higherThanMinInliningFrequency = frequency(callSite) >= TruffleInliningMinFrequency.getValue();
+                boolean smallerThanInlinigTrivialSize = callSite.getInlineNodeCount() <= TruffleInliningTrivialSize.getValue();
+
+                if (!higherThanMinInliningFrequency && !smallerThanInlinigTrivialSize) {
+                    isWorth = false;
+                    reason = reason + "frequency " + frequency(callSite) + " inline node count " + callSite.getInlineNodeCount();
+                }
+
+                if (!isWorth && TraceTruffleInliningDetails.getValue()) {
+                    OUT.println("[Inlining worthy?] " + reason);
+                }
+
+                return isWorth;
             }
 
             public double metric(InlinableCallSiteInfo callSite) {

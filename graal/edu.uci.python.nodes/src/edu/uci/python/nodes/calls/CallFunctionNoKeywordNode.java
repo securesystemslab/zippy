@@ -147,6 +147,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
         public boolean inline(FrameFactory factory) {
             CompilerAsserts.neverPartOfCompilation();
+
             if (functionRoot != null) {
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
                 Node parent = findRealParent();
