@@ -2908,8 +2908,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
         if _isAnnotationProcessorDependency(p):
             _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
-            # Refresh.launch seems to cause occasional build looping in Eclipse
-            # _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
+            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
 
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
