@@ -193,7 +193,6 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
  -define_compiler2 GRAAL \
- -define_compiler2 TIERED \
  -ignorePath_compiler2 graal/generated \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalFile_compiler2 ad_$(Platform_arch_model).cpp \
