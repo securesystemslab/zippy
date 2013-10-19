@@ -40,13 +40,13 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected WriteLocalNode target;
 
-    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
+    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body) {
+        super(body);
         this.target = adoptChild(target);
     }
 
     protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
-        this(previous.target, previous.body, previous.orelse);
+        this(previous.target, previous.body);
     }
 
     public abstract PNode getIterator();
@@ -81,7 +81,5 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
                 reportLoopCount(count);
             }
         }
-
-        orelse.executeVoid(frame);
     }
 }

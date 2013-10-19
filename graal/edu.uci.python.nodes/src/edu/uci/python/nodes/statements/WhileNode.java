@@ -36,8 +36,8 @@ public class WhileNode extends LoopNode {
 
     @Child protected BooleanCastNode condition;
 
-    public WhileNode(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
+    public WhileNode(BooleanCastNode condition, StatementNode body) {
+        super(body);
         this.condition = adoptChild(condition);
     }
 
@@ -59,7 +59,6 @@ public class WhileNode extends LoopNode {
             }
         }
 
-        orelse.executeVoid(frame);
         return PNone.NONE;
     }
 
