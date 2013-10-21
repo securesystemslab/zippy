@@ -989,8 +989,8 @@ def _basic_gate_body(args, tasks):
     global _jacoco
     _jacoco = 'off'
 
-    t = Task('CleanAndBuildGraalVisualizer')
-    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+    t = Task('CleanAndBuildIdealGraphVisualizer')
+    mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-q', 'clean', 'build'])
     tasks.append(t.stop())
 
     # Prevent Graal modifications from breaking the standard builds
