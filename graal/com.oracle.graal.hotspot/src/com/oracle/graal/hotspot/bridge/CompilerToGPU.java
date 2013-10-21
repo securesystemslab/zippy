@@ -48,8 +48,7 @@ public interface CompilerToGPU {
     int availableProcessors();
 
     /**
-     * Attempts to generate and return a bound function to the
-     * loaded method kernel on the GPU.
+     * Attempts to generate and return a bound function to the loaded method kernel on the GPU.
      * 
      * @param code the text or binary values for a method kernel
      * @return the value of the bound kernel in GPU space.
@@ -58,7 +57,5 @@ public interface CompilerToGPU {
 
     Object executeExternalMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 
-
-    Object executeParallelMethodVarargs(int dimX, int dimY, int dimZ,
-                                        Object[] args, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
+    Object executeParallelMethodVarargs(int dimX, int dimY, int dimZ, Object[] args, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 }

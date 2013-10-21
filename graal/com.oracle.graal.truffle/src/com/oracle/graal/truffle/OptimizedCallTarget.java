@@ -29,7 +29,6 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
@@ -46,7 +45,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
     protected OptimizedCallTarget(RootNode rootNode, FrameDescriptor descriptor, TruffleCompiler compiler, int invokeCounter, int compilationThreshold) {
         super(rootNode, descriptor);
         this.compiler = compiler;
-        this.compilationPolicy = new CompilationPolicy(compilationThreshold, invokeCounter);
+        this.compilationPolicy = new CompilationPolicy(compilationThreshold, invokeCounter, rootNode.toString());
         this.rootNode.setCallTarget(this);
 
         if (TruffleCallTargetProfiling.getValue()) {
@@ -54,7 +53,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
         }
     }
 
-    private HotSpotNmethod compiledMethod;
+    private InstalledCode compiledMethod;
     private final TruffleCompiler compiler;
     private final CompilationPolicy compilationPolicy;
 
@@ -129,7 +128,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
     public void compile() {
         CompilerAsserts.neverPartOfCompilation();
         try {
-            compiledMethod = (HotSpotNmethod) compiler.compile(this);
+            compiledMethod = compiler.compile(this);
             if (compiledMethod == null) {
                 throw new BailoutException(String.format("code installation failed (codeSize=%s)", codeSize));
             } else {

@@ -29,10 +29,11 @@ import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 
 /**
- * The {@code Backend} class represents a compiler backend for Graal.
+ * Represents a compiler backend for Graal.
  */
 public abstract class Backend {
 
@@ -53,6 +54,10 @@ public abstract class Backend {
     public ForeignCallsProvider getForeignCalls() {
         return providers.getForeignCalls();
     }
+
+    public abstract SuitesProvider getSuites();
+
+    public abstract DisassemblerProvider getDisassembler();
 
     public TargetDescription getTarget() {
         return providers.getCodeCache().getTarget();

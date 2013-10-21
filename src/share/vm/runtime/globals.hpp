@@ -3774,9 +3774,6 @@ class CommandLineFlags {
   product(bool, TraceGPUInteraction, false,                                 \
           "Trace external GPU Interaction")                                 \
                                                                             \
-  product(bool, UseGPU, false,                                              \
-          "Run code on GPU")                                                \
-                                                                            \
   diagnostic(ccstr, SharedArchiveFile, NULL,                                \
           "Override the default location of the CDS archive file")          \
                                                                             \

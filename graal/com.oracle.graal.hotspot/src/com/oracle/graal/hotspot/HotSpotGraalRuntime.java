@@ -38,24 +38,25 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.logging.*;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.tiers.*;
+import com.oracle.graal.runtime.*;
 
 /**
  * Singleton class holding the instance of the {@link GraalRuntime}.
- * 
- * The platform specific subclass is created by a call from the C++ HotSpot code.
  */
-public abstract class HotSpotGraalRuntime implements GraalRuntime {
+public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider {
 
-    private static final HotSpotGraalRuntime instance = (HotSpotGraalRuntime) Graal.getRuntime();
+    private static final HotSpotGraalRuntime instance = new HotSpotGraalRuntime();
+    static {
+        instance.completeInitialization();
+    }
 
     /**
      * Gets the singleton {@link HotSpotGraalRuntime} object.
      */
     public static HotSpotGraalRuntime runtime() {
+        assert instance != null;
         return instance;
     }
 
@@ -86,7 +87,7 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         this.compilerToVm = toVM;
     }
 
-    // Options must not be directly declared in HotSpotGraalRuntime - see VerifyHotSpotOptionsPhase
+    // Options must not be directly declared in HotSpotGraalRuntime - see VerifyOptionsPhase
     static class Options {
 
         // @formatter:off
@@ -95,19 +96,19 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         // @formatter:on
     }
 
-    protected static HotSpotGraalRuntimeFactory findFactory(String architecture) {
-        HotSpotGraalRuntimeFactory basic = null;
-        HotSpotGraalRuntimeFactory selected = null;
-        HotSpotGraalRuntimeFactory nonBasic = null;
+    private static HotSpotBackendFactory findFactory(String architecture) {
+        HotSpotBackendFactory basic = null;
+        HotSpotBackendFactory selected = null;
+        HotSpotBackendFactory nonBasic = null;
         int nonBasicCount = 0;
 
-        for (HotSpotGraalRuntimeFactory factory : ServiceLoader.loadInstalled(HotSpotGraalRuntimeFactory.class)) {
-            if (factory.getArchitecture().equals(architecture)) {
-                if (factory.getName().equals(GraalRuntime.getValue())) {
+        for (HotSpotBackendFactory factory : ServiceLoader.loadInstalled(HotSpotBackendFactory.class)) {
+            if (factory.getArchitecture().equalsIgnoreCase(architecture)) {
+                if (factory.getGraalRuntimeName().equals(GraalRuntime.getValue())) {
                     assert selected == null;
                     selected = factory;
                 }
-                if (factory.getName().equals("basic")) {
+                if (factory.getGraalRuntimeName().equals("basic")) {
                     assert basic == null;
                     basic = factory;
                 } else {
@@ -133,21 +134,18 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         }
     }
 
-    private static Kind wordKind;
-
     /**
-     * Gets the kind of a word value.
+     * Gets the kind of a word value on the {@linkplain #getHostBackend() host} backend.
      */
-    public static Kind wordKind() {
-        assert wordKind != null;
-        return wordKind;
+    public static Kind getHostWordKind() {
+        return instance.getHostBackend().getTarget().wordKind;
     }
 
     /**
      * Reads a word value from a given address.
      */
     public static long unsafeReadWord(long address) {
-        if (wordKind == Kind.Long) {
+        if (getHostWordKind() == Kind.Long) {
             return unsafe.getLong(address);
         }
         return unsafe.getInt(address);
@@ -164,7 +162,7 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
      * Reads a word value from a given object.
      */
     public static long unsafeReadWord(Object object, long offset) {
-        if (wordKind == Kind.Long) {
+        if (getHostWordKind() == Kind.Long) {
             return unsafe.getLong(object, offset);
         }
         return unsafe.getInt(object, offset);
@@ -174,21 +172,17 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
     protected/* final */CompilerToGPU compilerToGpu;
     protected/* final */VMToCompiler vmToCompiler;
 
-    protected final HotSpotProviders providers;
-
-    protected final TargetDescription target;
-
     private HotSpotRuntimeInterpreterInterface runtimeInterpreterInterface;
     private volatile HotSpotGraphCache cache;
 
     protected final HotSpotVMConfig config;
-    private final HotSpotBackend backend;
+    private final HotSpotBackend hostBackend;
 
-    protected HotSpotGraalRuntime() {
+    private final Map<Class<? extends Architecture>, HotSpotBackend> backends = new HashMap<>();
+
+    private HotSpotGraalRuntime() {
         CompilerToVM toVM = new CompilerToVMImpl();
         CompilerToGPU toGPU = new CompilerToGPUImpl();
-
-        // initialize VmToCompiler
         VMToCompiler toCompiler = new VMToCompilerImpl(this);
 
         compilerToVm = toVM;
@@ -213,16 +207,62 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
             printConfig(config);
         }
 
-        target = createTarget();
-        providers = createProviders();
-        assert wordKind == null || wordKind.equals(target.wordKind);
-        wordKind = target.wordKind;
+        String hostArchitecture = getHostArchitectureName();
+        hostBackend = registerBackend(findFactory(hostArchitecture).createBackend(this, null));
 
-        backend = createBackend();
+        String[] gpuArchitectures = getGPUArchitectureNames();
+        for (String arch : gpuArchitectures) {
+            HotSpotBackendFactory factory = findFactory(arch);
+            if (factory == null) {
+                throw new GraalInternalError("No backend available for specified GPU architecture \"%s\"", arch);
+            }
+            registerBackend(factory.createBackend(this, hostBackend));
+        }
+
         GraalOptions.StackShadowPages.setValue(config.stackShadowPages);
         if (GraalOptions.CacheGraphs.getValue()) {
-            cache = new HotSpotGraphCache();
+            cache = new HotSpotGraphCache(compilerToVm);
         }
+    }
+
+    private HotSpotBackend registerBackend(HotSpotBackend backend) {
+        Class<? extends Architecture> arch = backend.getTarget().arch.getClass();
+        HotSpotBackend oldValue = backends.put(arch, backend);
+        assert oldValue == null : "cannot overwrite existing backend for architecture " + arch.getSimpleName();
+        return backend;
+    }
+
+    /**
+     * Gets the host architecture name for the purpose of finding the corresponding
+     * {@linkplain HotSpotBackendFactory backend}.
+     */
+    private static String getHostArchitectureName() {
+        String arch = System.getProperty("os.arch");
+        switch (arch) {
+            case "x86_64":
+                // This is what Mac OS X reports;
+                arch = "amd64";
+                break;
+        }
+        return arch;
+    }
+
+    public static final String GRAAL_GPU_ISALIST_PROPERTY_NAME = "graal.gpu.isalist";
+
+    /**
+     * Gets the names of the supported GPU architectures for the purpose of finding the
+     * corresponding {@linkplain HotSpotBackendFactory backend} objects. This method first looks for
+     * a comma or {@link java.io.File#pathSeparatorChar} separated list of names in the
+     * {@value #GRAAL_GPU_ISALIST_PROPERTY_NAME} system property. If this property is not set, then
+     * the GPU native support code is queried.
+     */
+    private static String[] getGPUArchitectureNames() {
+        String gpuList = System.getProperty(GRAAL_GPU_ISALIST_PROPERTY_NAME);
+        if (gpuList != null && !gpuList.isEmpty()) {
+            String[] gpus = gpuList.split("[,:]");
+            return gpus;
+        }
+        return new String[0];
     }
 
     private static void printConfig(HotSpotVMConfig config) {
@@ -240,26 +280,15 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         }
     }
 
-    protected abstract HotSpotProviders createProviders();
-
-    protected abstract TargetDescription createTarget();
-
-    protected abstract HotSpotBackend createBackend();
-
-    /**
-     * Gets the registers that must be saved across a foreign call into the runtime.
-     */
-    protected abstract Value[] getNativeABICallerSaveRegisters();
-
     public HotSpotVMConfig getConfig() {
         return config;
     }
 
     public TargetDescription getTarget() {
-        return target;
+        return hostBackend.getTarget();
     }
 
-    public HotSpotGraphCache getCache() {
+    public HotSpotGraphCache getGraphCache() {
         return cache;
     }
 
@@ -309,26 +338,13 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
 
     public HotSpotRuntimeInterpreterInterface getRuntimeInterpreterInterface() {
         if (runtimeInterpreterInterface == null) {
-            runtimeInterpreterInterface = new HotSpotRuntimeInterpreterInterface(providers.getMetaAccess());
+            runtimeInterpreterInterface = new HotSpotRuntimeInterpreterInterface(getHostProviders().getMetaAccess());
         }
         return runtimeInterpreterInterface;
     }
 
-    public HotSpotProviders getProviders() {
-        return providers;
-    }
-
-    public void evictDeoptedGraphs() {
-        if (cache != null) {
-            long[] deoptedGraphs = getCompilerToVM().getDeoptedLeafGraphIds();
-            if (deoptedGraphs != null) {
-                if (deoptedGraphs.length == 0) {
-                    cache.clear();
-                } else {
-                    cache.removeGraphs(deoptedGraphs);
-                }
-            }
-        }
+    public HotSpotProviders getHostProviders() {
+        return getHostBackend().getProviders();
     }
 
     @Override
@@ -339,44 +355,23 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getCapability(Class<T> clazz) {
-        if (clazz == LoweringProvider.class) {
-            return (T) providers.getLowerer();
-        }
-        if (clazz == CodeCacheProvider.class) {
-            return (T) providers.getCodeCache();
-        }
-        if (clazz == MetaAccessProvider.class) {
-            return (T) providers.getMetaAccess();
-        }
-        if (clazz == ConstantReflectionProvider.class) {
-            return (T) providers.getConstantReflection();
-        }
-        if (clazz == ForeignCallsProvider.class) {
-            return (T) providers.getForeignCalls();
-        }
-        if (clazz == DisassemblerProvider.class) {
-            return (T) providers.getDisassembler();
-        }
-        if (clazz == BytecodeDisassemblerProvider.class) {
-            return (T) providers.getBytecodeDisassembler();
-        }
-        if (clazz == SuitesProvider.class) {
-            return (T) providers.getSuites();
-        }
-        if (clazz == Replacements.class) {
-            return (T) providers.getReplacements();
-        }
-        if (clazz == HotSpotRegistersProvider.class) {
-            return (T) providers.getRegisters();
-        }
-        if (clazz == Backend.class) {
-            return (T) getBackend();
+        if (clazz == RuntimeProvider.class) {
+            return (T) this;
         }
         return null;
     }
 
-    public HotSpotBackend getBackend() {
-        return backend;
+    public HotSpotBackend getHostBackend() {
+        return hostBackend;
+    }
+
+    public <T extends Architecture> Backend getBackend(Class<T> arch) {
+        assert arch != Architecture.class;
+        return backends.get(arch);
+    }
+
+    public Map<Class<? extends Architecture>, HotSpotBackend> getBackends() {
+        return Collections.unmodifiableMap(backends);
     }
 
     /**

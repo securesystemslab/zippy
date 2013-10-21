@@ -54,6 +54,7 @@ import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.printer.*;
+import com.oracle.graal.runtime.*;
 import com.oracle.graal.test.*;
 
 /**
@@ -78,13 +79,32 @@ import com.oracle.graal.test.*;
 public abstract class GraalCompilerTest extends GraalTest {
 
     private final Providers providers;
-    protected final Backend backend;
-    protected final Suites suites;
+    private final Backend backend;
+    private final Suites suites;
 
     public GraalCompilerTest() {
-        this.providers = GraalCompiler.getGraalProviders();
-        this.backend = Graal.getRequiredCapability(Backend.class);
-        this.suites = Graal.getRequiredCapability(SuitesProvider.class).createSuites();
+        this.backend = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend();
+        this.providers = getBackend().getProviders();
+        this.suites = backend.getSuites().createSuites();
+    }
+
+    /**
+     * Set up a test for a non-default backend. The test should check (via {@link #getBackend()} )
+     * whether the desired backend is available.
+     * 
+     * @param arch the name of the desired backend architecture
+     */
+    public GraalCompilerTest(Class<? extends Architecture> arch) {
+        RuntimeProvider runtime = Graal.getRequiredCapability(RuntimeProvider.class);
+        Backend b = runtime.getBackend(arch);
+        if (b != null) {
+            this.backend = b;
+        } else {
+            // Fall back to the default/host backend
+            this.backend = runtime.getHostBackend();
+        }
+        this.providers = backend.getProviders();
+        this.suites = backend.getSuites().createSuites();
     }
 
     @BeforeClass
@@ -155,6 +175,14 @@ public abstract class GraalCompilerTest extends GraalTest {
             }
         }
         return result.toString();
+    }
+
+    protected Backend getBackend() {
+        return backend;
+    }
+
+    protected Suites getSuites() {
+        return suites;
     }
 
     protected Providers getProviders() {
@@ -487,8 +515,8 @@ public abstract class GraalCompilerTest extends GraalTest {
                 GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(getMetaAccess(), getForeignCalls(), GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
                 phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
                 CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-                final CompilationResult compResult = GraalCompiler.compileGraph(graph, cc, method, getProviders(), backend, getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
-                                new SpeculationLog(), suites, new CompilationResult());
+                final CompilationResult compResult = GraalCompiler.compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan,
+                                OptimisticOptimizations.ALL, new SpeculationLog(), getSuites(), new CompilationResult());
                 if (printCompilation) {
                     TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
                 }
@@ -504,7 +532,7 @@ public abstract class GraalCompilerTest extends GraalTest {
                             Debug.dump(new Object[]{compResult, code}, "After code installation");
                         }
                         if (Debug.isLogEnabled()) {
-                            DisassemblerProvider dis = Graal.getRuntime().getCapability(DisassemblerProvider.class);
+                            DisassemblerProvider dis = backend.getDisassembler();
                             if (dis != null) {
                                 String text = dis.disassemble(code);
                                 if (text != null) {

@@ -23,6 +23,7 @@
 
 #include "precompiled.hpp"
 
+#include "memory/oopFactory.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalJavaAccess.hpp"
@@ -205,7 +206,7 @@ C2V_END
 #define CONSTANT_POOL         "Lcom/oracle/graal/api/meta/ConstantPool;"
 #define CONSTANT              "Lcom/oracle/graal/api/meta/Constant;"
 #define KIND                  "Lcom/oracle/graal/api/meta/Kind;"
-#define LOCAL                  "Lcom/oracle/graal/api/meta/Local;"
+#define LOCAL                 "Lcom/oracle/graal/api/meta/Local;"
 #define RUNTIME_CALL          "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define EXCEPTION_HANDLERS    "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"

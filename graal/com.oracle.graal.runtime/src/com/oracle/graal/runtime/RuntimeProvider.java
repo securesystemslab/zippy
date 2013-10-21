@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,26 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.amd64;
+package com.oracle.graal.runtime;
 
-import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.hotspot.*;
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.nodes.spi.*;
 
-@ServiceProvider(HotSpotGraalRuntimeFactory.class)
-public class AMD64HotSpotGraalRuntimeFactory implements HotSpotGraalRuntimeFactory {
+/**
+ * A runtime supporting a host backend as well, zero or more additional backends and an optional
+ * {@linkplain GraphCache graph cache}.
+ */
+public interface RuntimeProvider {
 
-    @Override
-    public HotSpotGraalRuntime createRuntime() {
-        return new AMD64HotSpotGraalRuntime();
-    }
+    /**
+     * Gets the host backend.
+     */
+    Backend getHostBackend();
 
-    @Override
-    public String getArchitecture() {
-        return "AMD64";
-    }
+    /**
+     * Gets the backend for a given architecture.
+     * 
+     * @param arch a specific architecture class
+     */
+    <T extends Architecture> Backend getBackend(Class<T> arch);
 
-    @Override
-    public String getName() {
-        return "basic";
-    }
+    /**
+     * Gets the graph cache (if any) maintained by this runtime.
+     */
+    GraphCache getGraphCache();
 }
