@@ -890,7 +890,7 @@ class Suite:
         suite.imports.append(suite_import)
         imported_suite = _loadSuite(importMxDir, False)
         if imported_suite.version != suite.version:
-            warn('import version of ' + imported_suite.name +' does not match tip of ' + suite.version)
+            warn('import version of ' + imported_suite.name + ' does not match tip of ' + suite.version)
 
     def _load_imports(self):
         self._visit_imports(self._find_and_loadsuite)
@@ -4118,7 +4118,7 @@ def _hgtip(s, abortOnError=True):
     try:
         version = subprocess.check_output(['hg', 'tip', '-R', s.dir, '--template', '{node}'])
         if s.version is not None and s.version != version:
-            abort('version of suite ' + s.name +' has changed during run')
+            abort('version of suite ' + s.name + ' has changed during run')
         return version
     except subprocess.CalledProcessError:
         if abortOnError:
