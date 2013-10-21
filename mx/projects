@@ -32,6 +32,7 @@ distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
 com.oracle.graal.hotspot.ptx,\
 com.oracle.graal.truffle,\
+com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.hsail
@@ -649,4 +650,11 @@ project@com.oracle.graal.truffle.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.test@javaCompliance=1.7
 project@com.oracle.graal.truffle.test@workingSets=Graal,Truffle,Test
 
-
+# graal.truffle.hotspot.amd64
+project@com.oracle.graal.truffle.hotspot.amd64@subDir=graal
+project@com.oracle.graal.truffle.hotspot.amd64@sourceDirs=src
+project@com.oracle.graal.truffle.hotspot.amd64@dependencies=com.oracle.graal.truffle,com.oracle.graal.hotspot.amd64
+project@com.oracle.graal.truffle.hotspot.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.truffle.hotspot.amd64@javaCompliance=1.7
+project@com.oracle.graal.truffle.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
