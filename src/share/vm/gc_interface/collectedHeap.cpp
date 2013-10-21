@@ -506,7 +506,7 @@ void CollectedHeap::ensure_parsability(bool retire_tlabs) {
          " to threads list is doomed to failure!");
   for (JavaThread *thread = Threads::first(); thread; thread = thread->next()) {
      if (use_tlab) thread->tlab().make_parsable(retire_tlabs);
-#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
      // The deferred store barriers must all have been flushed to the
      // card-table (or other remembered set structure) before GC starts
      // processing the card-table (or other remembered set).
