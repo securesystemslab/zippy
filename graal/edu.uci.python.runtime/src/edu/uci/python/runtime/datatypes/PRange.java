@@ -66,7 +66,7 @@ public class PRange extends PImmutableSequence {
         this.length = n;
     }
 
-    static int getLenOfRange(int lo, int hi, int step) {
+    public static int getLenOfRange(int lo, int hi, int step) {
         int n = 0;
         if (lo < hi) {
             // the base difference may be > Integer.MAX_VALUE
@@ -79,6 +79,14 @@ public class PRange extends PImmutableSequence {
         return n;
     }
 
+    public int getStart() {
+        return start;
+    }
+
+    public int getStep() {
+        return step;
+    }
+
     @Override
     public int len() {
         return length;
@@ -86,11 +94,7 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = idx;
-        if (index < 0) {
-            index = -idx;
-            index = length - index;
-        }
+        int index = PSequence.fixIndex(idx, length);
 
         if (index > length - 1) {
             getItemIndexOutOfBound();
@@ -121,15 +125,15 @@ public class PRange extends PImmutableSequence {
 
             private int index = 0;
 
-            public void remove() {
+            public final void remove() {
                 throw new UnsupportedOperationException();
             }
 
-            public boolean hasNext() {
+            public final boolean hasNext() {
                 return index <= length - 1;
             }
 
-            public Object next() {
+            public final Object next() {
                 return index++ * step + start;
             }
         };

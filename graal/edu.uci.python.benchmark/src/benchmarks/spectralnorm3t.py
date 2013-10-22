@@ -57,11 +57,11 @@ def main(n):
     u = array("d", [1]) * n
     v = array("d", [1]) * n
     tmp = array("d", [1]) * n
-    local_eval_AtA_times_u = eval_AtA_times_u
+    #local_eval_AtA_times_u = eval_AtA_times_u
 
     for dummy in range (10):
-        local_eval_AtA_times_u (u, v, tmp)
-        local_eval_AtA_times_u (v, u, tmp)
+        eval_AtA_times_u (u, v, tmp)
+        eval_AtA_times_u (v, u, tmp)
 
     vBv = vv = 0
 

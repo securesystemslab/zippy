@@ -97,10 +97,8 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += array.length;
-        }
-        array[idx] = (double) value;
+        int index = PSequence.fixIndex(idx, array.length);
+        array[index] = (double) value;
     }
 
     @Override

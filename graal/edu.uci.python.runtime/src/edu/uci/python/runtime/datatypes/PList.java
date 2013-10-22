@@ -81,18 +81,14 @@ public class PList extends PSequence {
 
     @Override
     public Object getItem(int idx) {
-        if (idx < 0) {
-            idx += list.size();
-        }
-        return list.get(idx);
+        int index = PSequence.fixIndex(idx, list.size());
+        return list.get(index);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += list.size();
-        }
-        list.set(idx, value);
+        int index = PSequence.fixIndex(idx, list.size());
+        list.set(index, value);
     }
 
     @Override
@@ -130,10 +126,10 @@ public class PList extends PSequence {
      */
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
-
         if (start == Integer.MIN_VALUE) {
             start = step < 0 ? list.size() - 1 : 0;
         }
+
         if (stop == Integer.MIN_VALUE) {
             stop = step < 0 ? -1 : list.size();
         }

@@ -2,12 +2,12 @@
 # micro benchmark: simple for range loop
 import time
 
-iteration = 1000000
+iteration = 50000
 
 def sumitup(iteration):
 	total = 0
 	for i in range(iteration):
-		total = total + 42
+		total = total + i
 
 	return total
 
@@ -15,7 +15,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	for i in range(1000):
+	for i in range(50000):
 		sumitup(iteration)
 
 	print(sumitup(iteration))

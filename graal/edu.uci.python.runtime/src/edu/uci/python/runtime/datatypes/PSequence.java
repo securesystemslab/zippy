@@ -93,4 +93,12 @@ public abstract class PSequence extends PObject implements Iterable<Object> {
         return length1 < length2 ? -1 : -3;
     }
 
+    public static int fixIndex(int index, int length) {
+        if (index < 0) {
+            return index + length;
+        } else {
+            return index;
+        }
+    }
+
 }

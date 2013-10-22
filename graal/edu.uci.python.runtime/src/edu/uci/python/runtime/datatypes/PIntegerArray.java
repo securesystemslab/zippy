@@ -97,10 +97,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += array.length;
-        }
-        array[idx] = (int) value;
+        int index = PSequence.fixIndex(idx, array.length);
+        array[index] = (int) value;
     }
 
     @Override
