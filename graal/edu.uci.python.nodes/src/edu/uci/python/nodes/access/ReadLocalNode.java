@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
 
@@ -67,21 +66,6 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
         return getBoolean(frame);
-    }
-
-    @Specialization(order = 5, rewriteOn = {FrameSlotTypeException.class})
-    public PComplex doComplex(VirtualFrame frame) throws FrameSlotTypeException {
-        return getPComplex(frame);
-    }
-
-    @Specialization(order = 6, rewriteOn = {FrameSlotTypeException.class})
-    public String doString(VirtualFrame frame) throws FrameSlotTypeException {
-        return getString(frame);
-    }
-
-    @Specialization(order = 7, rewriteOn = {FrameSlotTypeException.class})
-    public PSequence doPSequence(VirtualFrame frame) throws FrameSlotTypeException {
-        return getPSequence(frame);
     }
 
     @Specialization

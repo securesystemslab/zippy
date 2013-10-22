@@ -117,6 +117,10 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
         if (TruffleFunctionInlining.getValue() && inline()) {
             compilationPolicy.inlined(MIN_INVOKES_AFTER_INLINING);
         } else {
+            // zwei
+            if (TrufflePrintCompilingAST.getValue()) {
+                NodeUtil.printCompactTree(OUT, rootNode);
+            }
             compile();
         }
     }
