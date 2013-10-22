@@ -4021,7 +4021,10 @@ def _scloneimports(s, suite_import, source):
     importee_source = _src_suitemodel._importee_dir(source, suite_import.name)
     importee_dest = _dst_suitemodel._importee_dir(s.dir, suite_import.name)
     if exists(importee_dest):
+        # already exists in the suite model, but may be wrong version
         importee_suite = _scloneimports_suitehelper(importee_dest)
+        if suite_import.version is not None and importee_suite.version != suite_import.version:
+            abort("import version of " + suite_import.name + " in " + s.name + " does not match the version in already existing suite: " + importee_suite.dir)
         importee_suite._visit_imports(_scloneimports_visitor, source=importee_source)
     else:
         _sclone(importee_source, importee_dest, suite_import.version, False)
