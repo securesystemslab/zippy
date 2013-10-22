@@ -1223,6 +1223,10 @@ def bench(args):
         benchmarks += sanitycheck.getPython2Benchmarks(vm)
         vm = 'jython'
 
+    if 'pypy' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'pypy'
+
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})

@@ -494,6 +494,8 @@ class Test:
                 result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = commands.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
+            elif vm == 'pypy':
+                result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
             else:
                 result = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
 
