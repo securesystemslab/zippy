@@ -768,7 +768,8 @@ class Suite:
         self.primary = primary
         self.name = _suitename(mxDir)  # validated in _load_projects
         self.version = None  # _hg.tip checks current version if not None
-        self.version = _hg.tip(self, False)
+        # TODO this forces hg to be run every time mx is run
+        #self.version = _hg.tip(self, False)
         if load:
             # load suites bottom up to make sure command overriding works properly
             self._load_imports()
