@@ -504,44 +504,48 @@ class HgConfig:
     """
     def __init__(self):
         self.missing = 'no hg executable found'
-        try:
-            subprocess.check_output(['hg'])
-            self.has_hg = True
-        except OSError:
-            self.has_hg = False
-            warn(self.missing)
+        self.has_hg = None
 
-    def _check(self, abortOnFail=True):
+    def check(self, abortOnFail=True):
+        if self.has_hg is None:
+            try:
+                subprocess.check_output(['hg'])
+                self.has_hg = True
+            except OSError:
+                self.has_hg = False
+                warn(self.missing)
+            
         if not self.has_hg:
             if abortOnFail:
                 abort(self.missing)
             else:
                 warn(self.missing)
-        return self.has_hg
 
-    def _tip(self, s, abortOnError=True):
-        if not self.has_hg:
-            return None
+    def tip(self, s, abortOnError=True):
         try:
             version = subprocess.check_output(['hg', 'tip', '-R', s.dir, '--template', '{node}'])
             if s.version is not None and s.version != version:
                 abort('version of suite ' + s.name +' has changed during run')
             return version
+        except OSError:
+            warn(self.missing)
         except subprocess.CalledProcessError:
             if abortOnError:
                 abort('failed to get tip revision id')
             else:
                 return None
 
-    def _canpush(self, s, strict=True):
+    def can_push(self, s, strict=True):
         try:
             output = subprocess.check_output(['hg', '-R', s.dir, 'status'])
             # super strict
             return output == ''
+        except OSError:
+            warn(self.missing)
         except subprocess.CalledProcessError:
             return False
 
-    def _default_push(self, sdir):
+    def default_push(self, sdir):
         with open(join(sdir, '.hg', 'hgrc')) as f:
             for line in f:
                 line = line.rstrip()
@@ -763,8 +767,8 @@ class Suite:
         self.commands = None
         self.primary = primary
         self.name = _suitename(mxDir)  # validated in _load_projects
-        self.version = None  # _hg._tip checks current version if not None
-        self.version = _hg._tip(self, False)
+        self.version = None  # _hg.tip checks current version if not None
+        self.version = _hg.tip(self, False)
         if load:
             # load suites bottom up to make sure command overriding works properly
             self._load_imports()
@@ -3943,7 +3947,7 @@ def _kwArg(kwargs):
 
 def sclone(args):
     """clone a suite repository, and its imported suites"""
-    _hg._check(True)
+    _hg.check(True)
     parser = ArgumentParser(prog='mx sclone')
     parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
     parser.add_argument('--dest', help='destination directory (default basename of source)', metavar='<path>')
@@ -4029,7 +4033,7 @@ def _scloneimports(s, suite_import, source):
 
 def scloneimports(args):
     """clone the imports of an existing suite"""
-    _hg._check(True)
+    _hg.check(True)
     parser = ArgumentParser(prog='mx scloneimports')
     parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
     parser.add_argument('nonKWArgs', nargs=REMAINDER, metavar='source [dest]...')
@@ -4043,7 +4047,7 @@ def scloneimports(args):
 
     s = _scloneimports_suitehelper(args.source)
 
-    default_path = _hg._default_push(args.source)
+    default_path = _hg.default_push(args.source)
 
     if default_path is None:
         abort('no default path in ' + join(args.source, '.hg', 'hgrc'))
@@ -4062,13 +4066,13 @@ def _spush_import_visitor(s, suite_import, dest, checks, clonemissing, **extra_a
 
 def _spush_check_import_visitor(s, suite_import, **extra_args):
     """push check visitor for Suite._visit_imports"""
-    currentTip = _hg._tip(suite(suite_import.name))
+    currentTip = _hg.tip(suite(suite_import.name))
     if currentTip != suite_import.version:
         abort('import version of ' + suite_import.name + ' in suite ' + s.name + ' does not match tip')
 
 def _spush(s, suite_import, dest, checks, clonemissing):
     if checks:
-        if not _hg._canpush(s):
+        if not _hg.can_push(s):
             abort('working directory ' + s.dir + ' contains uncommitted changes, push aborted')
 
     # check imports first
@@ -4108,7 +4112,7 @@ def _spush(s, suite_import, dest, checks, clonemissing):
 
 def spush(args):
     """push primary suite and all its imports"""
-    _hg._check(True)
+    _hg.check(True)
     parser = ArgumentParser(prog='mx spush')
     parser.add_argument('--dest', help='url/path of repo to push to (default as per hg push)', metavar='<path>')
     parser.add_argument('--no-checks', action='store_true', help='checks on status, versions are disabled')
@@ -4146,7 +4150,7 @@ def _supdate(s, suite_import):
 def supdate(args):
     """update primary suite and all its imports"""
 
-    _hg._check(True)
+    _hg.check(True)
     s = _check_primary_suite()
 
     _supdate(s, None)
@@ -4159,7 +4163,7 @@ def _scheck_imports(s, suite_import, update_versions, updated_imports):
     # check imports recursively
     s._visit_imports(_scheck_imports_visitor, update_versions=update_versions)
 
-    currentTip = _hg._tip(s)
+    currentTip = _hg.tip(s)
     if currentTip != suite_import.version:
         print('import version of ' + s.name + ' does not match tip' + (': updating' if update_versions else ''))
 
@@ -4180,18 +4184,18 @@ def _spull_import_visitor(s, suite_import, update_versions, updated_imports):
     _spull(suite(suite_import.name), update_versions, updated_imports)
 
 def _spull(s, update_versions, updated_imports):
-    _hg._check(True)
+    _hg.check(True)
     # pull imports first
     s._visit_imports(_spull_import_visitor, update_versions=update_versions)
 
     run(['hg', '-R', s.dir, 'pull', '-u'])
     if update_versions and updated_imports is not None:
-        tip = _hg._tip(s)
+        tip = _hg.tip(s)
         updated_imports.write(SuiteImport._tostring(s.name, tip) + '\n')
 
 def spull(args):
     """pull primary suite and all its imports"""
-    _hg._check(True)
+    _hg.check(True)
     parser = ArgumentParser(prog='mx spull')
     parser.add_argument('--update-versions', action='store_true', help='update version ids of imported suites')
     args = parser.parse_args(args)
