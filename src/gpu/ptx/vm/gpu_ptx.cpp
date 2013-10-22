@@ -385,7 +385,7 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
      case T_INT:
        {
          int return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_INT_BYTE_SIZE);
          if (status != GRAAL_CUDA_SUCCESS) {
            tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
            return false;
@@ -396,7 +396,7 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
      case T_BOOLEAN:
        {
          int return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_INT_BYTE_SIZE);
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_INT_BYTE_SIZE);
          if (status != GRAAL_CUDA_SUCCESS) {
            tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
            return false;
@@ -407,7 +407,7 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
      case T_FLOAT:
        {
          float return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_FLOAT_BYTE_SIZE);
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_FLOAT_BYTE_SIZE);
          if (status != GRAAL_CUDA_SUCCESS) {
            tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
            return false;
@@ -418,7 +418,7 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
      case T_DOUBLE:
        {
          double return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_DOUBLE_BYTE_SIZE);
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_DOUBLE_BYTE_SIZE);
          if (status != GRAAL_CUDA_SUCCESS) {
            tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
            return false;
@@ -429,7 +429,7 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
      case T_LONG:
        {
          long return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._return_value_ptr, T_LONG_BYTE_SIZE);
+         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_LONG_BYTE_SIZE);
          if (status != GRAAL_CUDA_SUCCESS) {
            tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
            return false;
@@ -443,11 +443,11 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
        tty->print_cr("[CUDA] TODO *** Unhandled return type: %d", return_type);
   }
 
-  // handle post-invocation object and array arguemtn
-  ptxka.reiterate();
+  // Copy all reference arguments from device to host memory.
+  ptxka.copyRefArgsFromDtoH();
 
   // Free device memory allocated for result
-  status = gpu::Ptx::_cuda_cu_memfree(ptxka._return_value_ptr);
+  status = gpu::Ptx::_cuda_cu_memfree(ptxka._dev_return_value);
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] *** Error (%d) Failed to free device memory of return value", status);
     return false;
