@@ -89,6 +89,7 @@
 
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#include "graal/graalJavaAccess.hpp"
 #endif
 
 
@@ -1420,6 +1421,19 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       if (TraceDeoptimization) {  // make noise on the tty
         tty->print("Uncommon trap occurred in");
         nm->method()->print_short_name(tty);
+#ifdef GRAAL
+        oop installedCode = nm->graal_installed_code();
+        if (installedCode != NULL) {
+          oop installedCodeName = HotSpotNmethod::name(installedCode);
+          if (installedCodeName != NULL) {
+            tty->print(" (Graal: installedCodeName=%s) ", java_lang_String::as_utf8_string(installedCodeName));
+          } else {
+            tty->print(" (Graal: installed code has no name) ");
+          }
+        } else {
+          tty->print(" (Graal: no installed code) ");
+        }
+#endif //GRAAL
         tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d",
                    fr.pc(),
                    os::current_thread_id(),
