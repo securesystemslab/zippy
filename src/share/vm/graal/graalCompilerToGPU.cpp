@@ -190,29 +190,6 @@ C2V_VMENTRY(jint, availableProcessors, (JNIEnv *env, jobject))
   return gpu::available_processors();
 C2V_END
 
-static objArrayHandle newSingletonStringArray(const char* value, TRAPS) {
-  objArrayHandle nullRes;
-  objArrayOop res = oopFactory::new_objArray(SystemDictionary::String_klass(), 1, CHECK_(nullRes));
-  objArrayHandle res_h = objArrayHandle(THREAD, res);
-  Handle valueString = java_lang_String::create_from_str(value, CHECK_(nullRes));
-  res_h->obj_at_put(0, valueString());
-  return res_h;
-}
-
-C2V_VMENTRY(jobject, getAvailableGPUArchitectures, (JNIEnv *env, jobject))
-  if (UseGPU) {
-    if (gpu::is_available() && gpu::has_gpu_linkage()) {
-      if (gpu::get_target_il_type() == gpu::PTX) {
-        return JNIHandles::make_local(newSingletonStringArray("PTX", THREAD)());
-      }
-      if (gpu::get_target_il_type() == gpu::HSAIL) {
-        return JNIHandles::make_local(newSingletonStringArray("HSAIL", THREAD)());
-      }
-    }
-  }
-  return JNIHandles::make_local(oopFactory::new_objArray(SystemDictionary::String_klass(), 0, THREAD));
-C2V_END
-
 C2V_VMENTRY(jboolean, deviceDetach, (JNIEnv *env, jobject))
 return true;
 C2V_END
@@ -258,7 +235,6 @@ JNINativeMethod CompilerToGPU_methods[] = {
   {CC"deviceInit",                    CC"()Z",                                    FN_PTR(deviceInit)},
   {CC"deviceDetach",                  CC"()Z",                                    FN_PTR(deviceDetach)},
   {CC"availableProcessors",           CC"()I",                                    FN_PTR(availableProcessors)},
-  {CC"getAvailableGPUArchitectures",  CC"()["STRING,                              FN_PTR(getAvailableGPUArchitectures)},
   {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,    FN_PTR(executeExternalMethodVarargs)},
   {CC"executeParallelMethodVarargs",  CC"(III["OBJECT HS_INSTALLED_CODE")"OBJECT, FN_PTR(executeParallelMethodVarargs)},
 };
