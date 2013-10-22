@@ -2984,12 +2984,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                 out.close('buildCommand')
 
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
-            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
+            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
+            _genEclipseBuilder(out, p, 'Refresh', '', refresh=True, async=True)
 
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, logToFile=True, refresh=False, async=True)
 
         out.close('buildSpec')
         out.open('natures')
@@ -3051,7 +3051,8 @@ def _isAnnotationProcessorDependency(p):
     """
     return p in sorted_deps(annotation_processors())
 
-def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
+    externalToolDir = join(p.dir, '.externalToolBuilders')
     launchOut = XMLDoc()
     consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
@@ -3064,6 +3065,10 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
         launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
+    if logToFile:
+        logFile = join(externalToolDir, name + '.log')
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CAPTURE_IN_FILE', 'value': logFile})
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_APPEND_TO_FILE', 'value': 'true' if appendToLogFile else 'false'})
 
     # expect to find the OS command to invoke mx in the same directory
     baseDir = dirname(os.path.abspath(__file__))
@@ -3087,11 +3092,9 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
 
     launchOut.close('launchConfiguration')
 
-    externalToolDir = join(p.dir, '.externalToolBuilders')
-
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
-    update_file(join(externalToolDir, name), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
+    update_file(join(externalToolDir, name + '.launch'), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
 
     dotProjectDoc.open('buildCommand')
     dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
@@ -3099,7 +3102,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.open('arguments')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='LaunchConfigHandle')
-    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name + '.launch')
     dotProjectDoc.close('dictionary')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='incclean')
