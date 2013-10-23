@@ -29,6 +29,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 
 public class TryExceptNode extends StatementNode {
 
@@ -130,11 +131,10 @@ class GenericTryExceptNode extends TryExceptNode {
 
         if (exceptType != null) {
             PyObject type = (PyObject) exceptType.execute(frame);
-            if (exceptName != null) {
-                exceptName.execute(frame);
-            }
-
             if (e.type == type) {
+                if (exceptName != null) {
+                    ((WriteLocalNode) exceptName).execute(frame, excep);
+                }
                 return exceptBody.execute(frame);
             }
         }

@@ -991,10 +991,7 @@ public class PythonTreeTranslator extends Visitor {
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
             PNode exceptType = (PNode) visit(except.getInternalType());
-            PNode exceptName = null;
-            if (except.getInternalName() != null) {
-                exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
-            }
+            PNode exceptName = (except.getInternalName() == null) ? null : ((PNode) visit(except.getInternalName()));
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
 
