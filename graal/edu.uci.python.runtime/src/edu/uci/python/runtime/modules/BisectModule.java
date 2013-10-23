@@ -44,7 +44,7 @@ public class BisectModule extends PModule {
             return bisect(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<Object>(slice.getList());
+            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
             tempList.add(args[1]);
             Object[] tempArray = tempList.toArray();
             Arrays.sort(tempArray);
@@ -57,7 +57,7 @@ public class BisectModule extends PModule {
             return index + (int) args[2] - 1;
         } else if (args.length == 4 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<Object>(slice.getList());
+            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
             tempList.add(args[1]);
             Object[] tempArray = tempList.toArray();
             Arrays.sort(tempArray);
@@ -111,7 +111,7 @@ public class BisectModule extends PModule {
             return bisect_left(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<Object>(slice.getList());
+            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
             tempList.add(args[1]);
             Object[] tempArray = tempList.toArray();
             Arrays.sort(tempArray);
@@ -124,7 +124,7 @@ public class BisectModule extends PModule {
             return index + 1 + (int) args[2];
         } else if (args.length == 4 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<Object>(slice.getList());
+            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
             tempList.add(args[1]);
             Object[] tempArray = tempList.toArray();
             Arrays.sort(tempArray);

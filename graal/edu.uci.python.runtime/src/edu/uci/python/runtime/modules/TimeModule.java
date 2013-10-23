@@ -46,9 +46,4 @@ public class TimeModule extends PModule {
     public double time(Object arg) {
         return System.currentTimeMillis() / 1000.0;
     }
-
-    public double time(Object arg0, Object arg1) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
 }

@@ -59,10 +59,6 @@ public class ListAttribute extends PModule {
         return selfList;
     }
 
-    public PList append(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for append()");
-    }
-
     @ModuleMethod
     public PList extend(Object[] args, Object self) {
         if (args.length == 1) {
@@ -84,10 +80,6 @@ public class ListAttribute extends PModule {
         } else {
             throw new RuntimeException("invalid arguments for extend()");
         }
-    }
-
-    public PList extend(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for extend()");
     }
 
     @ModuleMethod
@@ -133,10 +125,6 @@ public class ListAttribute extends PModule {
         }
     }
 
-    public PList remove(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for remove()");
-    }
-
     @ModuleMethod
     public Object pop(Object[] args, Object self) {
         PList selfList = (PList) self;
@@ -165,10 +153,6 @@ public class ListAttribute extends PModule {
         }
     }
 
-    public Object pop(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for pop()");
-    }
-
     @ModuleMethod
     public int index(Object[] args, Object self) {
         if (args.length == 1) {
@@ -187,10 +171,6 @@ public class ListAttribute extends PModule {
         } else {
             throw new RuntimeException("invalid arguments for index()");
         }
-    }
-
-    public int index(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for index()");
     }
 
     @ModuleMethod
@@ -215,10 +195,6 @@ public class ListAttribute extends PModule {
         return ret;
     }
 
-    public int count(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for count()");
-    }
-
     @ModuleMethod
     public PList sort(Object[] args, Object self) {
         PList selfList = (PList) self;
@@ -240,10 +216,6 @@ public class ListAttribute extends PModule {
         throw new RuntimeException("wrong number of arguments for sort()");
     }
 
-    public PList sort(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for sort()");
-    }
-
     @ModuleMethod
     public PList reverse(Object[] args, Object self) {
         PList selfList = (PList) self;
@@ -257,10 +229,6 @@ public class ListAttribute extends PModule {
     }
 
     public PList reverse(Object arg, Object self) {
-        throw new RuntimeException("wrong number of arguments for reverse()");
-    }
-
-    public PList reverse(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for reverse()");
     }
 }
