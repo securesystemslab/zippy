@@ -156,7 +156,8 @@ _libs = dict()
 _dists = dict()
 _suites = dict()
 _annotationProcessors = None
-_mainSuite = None
+_primary_suite_path = None
+_primary_suite = None
 _src_suitemodel = None
 _dst_suitemodel = None
 _opts = None
@@ -504,44 +505,45 @@ class HgConfig:
     """
     def __init__(self):
         self.missing = 'no hg executable found'
-        try:
-            subprocess.check_output(['hg'])
-            self.has_hg = True
-        except OSError:
-            self.has_hg = False
-            warn(self.missing)
+        self.has_hg = None
 
-    def _check(self, abortOnFail=True):
+    def check(self, abortOnFail=True):
+        if self.has_hg is None:
+            try:
+                subprocess.check_output(['hg'])
+                self.has_hg = True
+            except OSError:
+                self.has_hg = False
+                warn(self.missing)
+
         if not self.has_hg:
             if abortOnFail:
                 abort(self.missing)
             else:
                 warn(self.missing)
-        return self.has_hg
 
-    def _tip(self, s, abortOnError=True):
-        if not self.has_hg:
-            return None
+    def tip(self, sDir, abortOnError=True):
         try:
-            version = subprocess.check_output(['hg', 'tip', '-R', s.dir, '--template', '{node}'])
-            if s.version is not None and s.version != version:
-                abort('version of suite ' + s.name +' has changed during run')
-            return version
+            return subprocess.check_output(['hg', 'tip', '-R', sDir, '--template', '{node}'])
+        except OSError:
+            warn(self.missing)
         except subprocess.CalledProcessError:
             if abortOnError:
                 abort('failed to get tip revision id')
             else:
                 return None
 
-    def _canpush(self, s, strict=True):
+    def can_push(self, s, strict=True):
         try:
             output = subprocess.check_output(['hg', '-R', s.dir, 'status'])
             # super strict
             return output == ''
+        except OSError:
+            warn(self.missing)
         except subprocess.CalledProcessError:
             return False
 
-    def _default_push(self, sdir):
+    def default_push(self, sdir):
         with open(join(sdir, '.hg', 'hgrc')) as f:
             for line in f:
                 line = line.rstrip()
@@ -560,19 +562,19 @@ class SuiteModel:
         self.primaryDir = None
         self.suitenamemap = {}
 
-    def _find_suite_dir(self, suitename):
+    def find_suite_dir(self, suitename):
         """locates the URL/path for suitename or None if not found"""
-        abort('_find_suite_dir not implemented')
+        abort('find_suite_dir not implemented')
 
-    def _set_primary_dir(self, d):
+    def set_primary_dir(self, d):
         """informs that d is the primary suite directory"""
         self._primaryDir = d
 
-    def _importee_dir(self, importer_dir, suitename):
+    def importee_dir(self, importer_dir, suitename):
         """returns the directory path for an import of suitename, given importer_dir"""
-        abort('_importee_dir not implemented')
+        abort('importee_dir not implemented')
 
-    def _nestedsuites_dirname(self):
+    def nestedsuites_dirname(self):
         """Returns the dirname that contains any nested suites if the model supports that"""
         return None
 
@@ -609,7 +611,7 @@ class SuiteModel:
             self.suitenamemap[mappair[0]] = mappair[1]
 
     @staticmethod
-    def _set_suitemodel(option, suitemap):
+    def set_suitemodel(option, suitemap):
         if option.startswith('sibling'):
             return SiblingSuiteModel(os.getcwd(), option, suitemap)
         elif option.startswith('nested'):
@@ -620,7 +622,7 @@ class SuiteModel:
             abort('unknown suitemodel type: ' + option)
 
     @staticmethod
-    def _parse_options():
+    def parse_options():
         # suite-specific args may match the known args so there is no way at this early stage
         # to use ArgParser to handle the suite model global arguments, so we just do it manually.
         def _get_argvalue(arg, args, i):
@@ -646,13 +648,15 @@ class SuiteModel:
                 # to get warnings on suite loading issues before command line is parsed
                 global _warn
                 _warn = True
-
+            elif arg == '-p' or arg == '--primary-suite-path':
+                global _primary_suite_path
+                _primary_suite_path = os.path.abspath(_get_argvalue(arg, args, i + 1))
             i = i + 1
 
         global _src_suitemodel
-        _src_suitemodel = SuiteModel._set_suitemodel(src_suitemodel_arg, suitemap_arg)
+        _src_suitemodel = SuiteModel.set_suitemodel(src_suitemodel_arg, suitemap_arg)
         global _dst_suitemodel
-        _dst_suitemodel = SuiteModel._set_suitemodel(dst_suitemodel_arg, suitemap_arg)
+        _dst_suitemodel = SuiteModel.set_suitemodel(dst_suitemodel_arg, suitemap_arg)
 
 
 class SiblingSuiteModel(SuiteModel):
@@ -662,14 +666,14 @@ class SiblingSuiteModel(SuiteModel):
         self._suiteRootDir = suiteRootDir
         self._create_suitenamemap(option[len('sibling:'):], suitemap)
 
-    def _find_suite_dir(self, name):
+    def find_suite_dir(self, name):
         return self._search_dir(self._suiteRootDir, self._mxDirName(name))
 
-    def _set_primary_dir(self, d):
-        SuiteModel._set_primary_dir(self, d)
+    def set_primary_dir(self, d):
+        SuiteModel.set_primary_dir(self, d)
         self._suiteRootDir = dirname(d)
 
-    def _importee_dir(self, importer_dir, suitename):
+    def importee_dir(self, importer_dir, suitename):
         if self.suitenamemap.has_key(suitename):
             suitename = self.suitenamemap[suitename]
         return join(dirname(importer_dir), suitename)
@@ -684,10 +688,10 @@ class NestedImportsSuiteModel(SuiteModel):
         self._primaryDir = primaryDir
         self._create_suitenamemap(option[len('nested:'):], suitemap)
 
-    def _find_suite_dir(self, name):
+    def find_suite_dir(self, name):
         return self._search_dir(join(self._primaryDir, self._imported_suites_dirname()), self._mxDirName(name))
 
-    def _importee_dir(self, importer_dir, suitename):
+    def importee_dir(self, importer_dir, suitename):
         if self.suitenamemap.has_key(suitename):
             suitename = self.suitenamemap[suitename]
         if basename(importer_dir) == basename(self._primaryDir):
@@ -699,7 +703,7 @@ class NestedImportsSuiteModel(SuiteModel):
         else:
             return join(dirname(importer_dir), suitename)
 
-    def _nestedsuites_dirname(self):
+    def nestedsuites_dirname(self):
         return self._imported_suites_dirname()
 
 class PathSuiteModel(SuiteModel):
@@ -718,13 +722,13 @@ class PathSuiteModel(SuiteModel):
                 suiteurl = pair[0]
             self.suit_to_url[suitename] = suiteurl
 
-    def _find_suite_dir(self, suitename):
+    def find_suite_dir(self, suitename):
         if self.suit_to_url.has_key(suitename):
             return self.suit_to_url[suitename]
         else:
             return None
 
-    def _importee_dir(self, importer_dir, suitename):
+    def importee_dir(self, importer_dir, suitename):
         if suitename in self.suit_to_url:
             return self.suit_to_url[suitename]
         else:
@@ -736,7 +740,7 @@ class SuiteImport:
         self.version = version
 
     @staticmethod
-    def _parse_specification(specification):
+    def parse_specification(specification):
         pair = specification.split(',')
         name = pair[0]
         if len(pair) > 1:
@@ -746,7 +750,7 @@ class SuiteImport:
         return SuiteImport(name, version)
 
     @staticmethod
-    def _tostring(name, version):
+    def tostring(name, version):
         return name + ',' + version
 
     def __str__(self):
@@ -763,8 +767,6 @@ class Suite:
         self.commands = None
         self.primary = primary
         self.name = _suitename(mxDir)  # validated in _load_projects
-        self.version = None  # _hg._tip checks current version if not None
-        self.version = _hg._tip(self, False)
         if load:
             # load suites bottom up to make sure command overriding works properly
             self._load_imports()
@@ -774,6 +776,10 @@ class Suite:
 
     def __str__(self):
         return self.name
+
+    def version(self, abortOnError=True):
+        # we do not cache the version
+        return _hg.tip(self.dir, abortOnError)
 
     def _load_projects(self):
         libsMap = dict()
@@ -872,7 +878,7 @@ class Suite:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _commands_name(self):
-        return 'mx_' + self.name
+        return 'mx_' + self.name.replace('-','_')
 
     def _find_commands(self, name):
         commandsPath = join(self.mxDir, name + '.py')
@@ -907,7 +913,7 @@ class Suite:
             mod.mx_init(self)
             self.commands = mod
 
-    def _visit_imports(self, visitor, **extra_args):
+    def visit_imports(self, visitor, **extra_args):
         """
         Visitor support for the imports file.
         For each line of the imports file that specifies an import, the visitor function is
@@ -917,7 +923,7 @@ class Suite:
         for writing a (possibly) updated import line to the file, and the file is (possibly) updated after
         all imports are processed.
         N.B. There is no built-in support for avoiding visiting the same suite multiple times,
-        as this function only visits the imports of a singkle suite. If a (recursive) visitor function
+        as this function only visits the imports of a single suite. If a (recursive) visitor function
         wishes to visit a suite exactly once, it must manage that through extra_args.
         """
         importsFile = join(self.mxDir, 'imports')
@@ -932,25 +938,25 @@ class Suite:
                         if out is not None:
                             out.write(sline + '\n')
                         continue
-                    suite_import = SuiteImport._parse_specification(line.strip())
+                    suite_import = SuiteImport.parse_specification(line.strip())
                     visitor(self, suite_import, **extra_args)
 
             if out is not None:
                 update_file(importsFile, out.getvalue())
 
     @staticmethod
-    def _find_and_loadsuite(suite, suite_import, **extra_args):
+    def _find_and_loadsuite(importing_suite, suite_import, **extra_args):
         """visitor for the initial suite load"""
-        importMxDir = _src_suitemodel._find_suite_dir(suite_import.name)
+        importMxDir = _src_suitemodel.find_suite_dir(suite_import.name)
         if importMxDir is None:
             abort('import ' + suite_import.name + ' not found')
-        suite.imports.append(suite_import)
-        imported_suite = _loadSuite(importMxDir, False)
-        if imported_suite.version != suite.version:
-            warn('import version of ' + imported_suite.name +' does not match tip of ' + suite.version)
+        importing_suite.imports.append(suite_import)
+        _loadSuite(importMxDir, False)
+        # we do not check at this stage whether the tip version of imported_suite
+        # matches that of the import, since during development, this can and will change
 
     def _load_imports(self):
-        self._visit_imports(self._find_and_loadsuite)
+        self.visit_imports(self._find_and_loadsuite)
 
     def _load_env(self):
         e = join(self.mxDir, 'env')
@@ -1315,7 +1321,7 @@ def _handle_missing_java_home():
         else:
             break
 
-    envPath = join(_mainSuite.mxDir, 'env')
+    envPath = join(_primary_suite.mxDir, 'env')
     if ask_yes_no('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath, 'y'):
         with open(envPath, 'a') as fp:
             print >> fp, 'JAVA_HOME=' + javaHome
@@ -1336,6 +1342,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
         self.add_argument('-V', action='store_true', dest='very_verbose', help='enable very verbose output')
         self.add_argument('-w', action='store_true', dest='warn', help='enable warning messages')
+        self.add_argument('-p', '--primary-suite-path', help='set the primary suite directory', metavar='<path>')
         self.add_argument('--dbg', type=int, dest='java_dbg_port', help='make Java processes wait on <port> for a debugger', metavar='<port>')
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
@@ -1904,7 +1911,7 @@ def build(args, parser=None):
 
     javaCompliance = java().javaCompliance
 
-    defaultEcjPath = join(_mainSuite.mxDir, 'ecj.jar')
+    defaultEcjPath = join(_primary_suite.mxDir, 'ecj.jar')
 
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
@@ -2223,7 +2230,7 @@ def eclipseformat(args):
     if len(modified) != 0:
         if args.backup:
             backup = os.path.abspath('eclipseformat.backup.zip')
-            arcbase = _mainSuite.dir
+            arcbase = _primary_suite.dir
             zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
             for fi in modified:
                 arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
@@ -2477,7 +2484,7 @@ class TimeStampFile:
         self.path = path
         self.timestamp = os.path.getmtime(path) if exists(path) else None
 
-    def outOfDate(self, arg):
+    def isOlderThan(self, arg):
         if not self.timestamp:
             return True
         if isinstance(arg, types.ListType):
@@ -2537,7 +2544,7 @@ def checkstyle(args):
             timestamp = TimeStampFile(join(p.suite.mxDir, 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp'))
             mustCheck = False
             if not args.force and timestamp.exists():
-                mustCheck = timestamp.outOfDate(javafilelist)
+                mustCheck = timestamp.isOlderThan(javafilelist)
             else:
                 mustCheck = True
 
@@ -2848,7 +2855,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
@@ -2979,12 +2986,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                 out.close('buildCommand')
 
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
-            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
+            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
+            _genEclipseBuilder(out, p, 'Refresh', '', refresh=True, async=True)
 
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, logToFile=True, refresh=False, async=True)
 
         out.close('buildSpec')
         out.open('natures')
@@ -3046,7 +3053,8 @@ def _isAnnotationProcessorDependency(p):
     """
     return p in sorted_deps(annotation_processors())
 
-def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
+    externalToolDir = join(p.dir, '.externalToolBuilders')
     launchOut = XMLDoc()
     consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
@@ -3059,6 +3067,10 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
         launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
+    if logToFile:
+        logFile = join(externalToolDir, name + '.log')
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CAPTURE_IN_FILE', 'value': logFile})
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_APPEND_TO_FILE', 'value': 'true' if appendToLogFile else 'false'})
 
     # expect to find the OS command to invoke mx in the same directory
     baseDir = dirname(os.path.abspath(__file__))
@@ -3082,11 +3094,9 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
 
     launchOut.close('launchConfiguration')
 
-    externalToolDir = join(p.dir, '.externalToolBuilders')
-
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
-    update_file(join(externalToolDir, name), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
+    update_file(join(externalToolDir, name + '.launch'), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
 
     dotProjectDoc.open('buildCommand')
     dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
@@ -3094,7 +3104,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.open('arguments')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='LaunchConfigHandle')
-    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name + '.launch')
     dotProjectDoc.close('dictionary')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='incclean')
@@ -3117,7 +3127,7 @@ def generate_eclipse_workingsets():
     if os.environ.has_key('WORKSPACE'):
         expected_wsroot = os.environ['WORKSPACE']
     else:
-        expected_wsroot = _mainSuite.dir
+        expected_wsroot = _primary_suite.dir
 
     wsroot = _find_eclipse_wsroot(expected_wsroot)
     if wsroot is None:
@@ -3255,7 +3265,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
@@ -3521,8 +3531,8 @@ def fsckprojects(args):
                 if '.hg' in dirnames:
                     dirnames.remove('.hg')
                 # if there are nested suites must not scan those now, as they are not in projectDirs
-                if _src_suitemodel._nestedsuites_dirname() in dirnames:
-                    dirnames.remove(_src_suitemodel._nestedsuites_dirname())
+                if _src_suitemodel.nestedsuites_dirname() in dirnames:
+                    dirnames.remove(_src_suitemodel.nestedsuites_dirname())
             elif dirpath in projectDirs:
                 # don't traverse subdirs of an existing project in this suite
                 dirnames[:] = []
@@ -3674,7 +3684,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
             names.append(p.name)
 
         links = ['-link', 'http://docs.oracle.com/javase/' + str(_java.javaCompliance.value) + '/docs/api/']
-        out = join(_mainSuite.dir, docDir)
+        out = join(_primary_suite.dir, docDir)
         if args.base is not None:
             out = join(args.base, docDir)
         cp = classpath()
@@ -3943,7 +3953,7 @@ def _kwArg(kwargs):
 
 def sclone(args):
     """clone a suite repository, and its imported suites"""
-    _hg._check(True)
+    _hg.check()
     parser = ArgumentParser(prog='mx sclone')
     parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
     parser.add_argument('--dest', help='destination directory (default basename of source)', metavar='<path>')
@@ -3960,11 +3970,11 @@ def sclone(args):
 
     if args.source is None:
         # must be primary suite and dest is required
-        if _mainSuite is None:
+        if _primary_suite is None:
             abort('--source missing and no primary suite found')
         if args.dest is None:
             abort('--dest required when --source is not given')
-        source = _mainSuite.dir
+        source = _primary_suite.dir
     else:
         source = args.source
 
@@ -3975,8 +3985,8 @@ def sclone(args):
 
     dest = os.path.abspath(dest)
     # We can now set the primary dir for the src/dst suitemodel
-    _dst_suitemodel._set_primary_dir(dest)
-    _src_suitemodel._set_primary_dir(source)
+    _dst_suitemodel.set_primary_dir(dest)
+    _src_suitemodel.set_primary_dir(source)
 
     _sclone(source, dest, None, args.no_imports)
 
@@ -3998,12 +4008,12 @@ def _sclone(source, dest, version, no_imports):
     # create a Suite (without loading) to enable imports visitor
     s = Suite(mxDir, False, load=False)
     if not no_imports:
-        s._visit_imports(_scloneimports_visitor, source=source)
+        s.visit_imports(_scloneimports_visitor, source=source)
     return s
 
 def _scloneimports_visitor(s, suite_import, source, **extra_args):
     """
-    cloneimports visitor for Suite._visit_imports.
+    cloneimports visitor for Suite.visit_imports.
     The destination information is encapsulated by 's'
     """
     _scloneimports(s, suite_import, source)
@@ -4018,18 +4028,21 @@ def _scloneimports_suitehelper(sdir):
 
 def _scloneimports(s, suite_import, source):
     # clone first, then visit imports once we can locate them
-    importee_source = _src_suitemodel._importee_dir(source, suite_import.name)
-    importee_dest = _dst_suitemodel._importee_dir(s.dir, suite_import.name)
+    importee_source = _src_suitemodel.importee_dir(source, suite_import.name)
+    importee_dest = _dst_suitemodel.importee_dir(s.dir, suite_import.name)
     if exists(importee_dest):
+        # already exists in the suite model, but may be wrong version
         importee_suite = _scloneimports_suitehelper(importee_dest)
-        importee_suite._visit_imports(_scloneimports_visitor, source=importee_source)
+        if suite_import.version is not None and importee_suite.version() != suite_import.version:
+            abort("imported version of " + suite_import.name + " in " + s.name + " does not match the version in already existing suite: " + importee_suite.dir)
+        importee_suite.visit_imports(_scloneimports_visitor, source=importee_source)
     else:
         _sclone(importee_source, importee_dest, suite_import.version, False)
         # _clone handles the recursive visit of the new imports
 
 def scloneimports(args):
     """clone the imports of an existing suite"""
-    _hg._check(True)
+    _hg.check()
     parser = ArgumentParser(prog='mx scloneimports')
     parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
     parser.add_argument('nonKWArgs', nargs=REMAINDER, metavar='source [dest]...')
@@ -4043,40 +4056,40 @@ def scloneimports(args):
 
     s = _scloneimports_suitehelper(args.source)
 
-    default_path = _hg._default_push(args.source)
+    default_path = _hg.default_push(args.source)
 
     if default_path is None:
         abort('no default path in ' + join(args.source, '.hg', 'hgrc'))
 
     # We can now set the primary dir for the dst suitemodel
     # N.B. source is effectively the destination and the default_path is the (original) source
-    _dst_suitemodel._set_primary_dir(args.source)
+    _dst_suitemodel.set_primary_dir(args.source)
 
-    s._visit_imports(_scloneimports_visitor, source=default_path)
+    s.visit_imports(_scloneimports_visitor, source=default_path)
 
 def _spush_import_visitor(s, suite_import, dest, checks, clonemissing, **extra_args):
-    """push visitor for Suite._visit_imports"""
+    """push visitor for Suite.visit_imports"""
     if dest is not None:
-        dest = _dst_suitemodel._importee_dir(dest, suite_import.name)
+        dest = _dst_suitemodel.importee_dir(dest, suite_import.name)
     _spush(suite(suite_import.name), suite_import, dest, checks, clonemissing)
 
 def _spush_check_import_visitor(s, suite_import, **extra_args):
-    """push check visitor for Suite._visit_imports"""
-    currentTip = _hg._tip(suite(suite_import.name))
+    """push check visitor for Suite.visit_imports"""
+    currentTip = suite(suite_import.name).version()
     if currentTip != suite_import.version:
-        abort('import version of ' + suite_import.name + ' in suite ' + s.name + ' does not match tip')
+        abort('imported version of ' + suite_import.name + ' in suite ' + s.name + ' does not match tip')
 
 def _spush(s, suite_import, dest, checks, clonemissing):
     if checks:
-        if not _hg._canpush(s):
+        if not _hg.can_push(s):
             abort('working directory ' + s.dir + ' contains uncommitted changes, push aborted')
 
     # check imports first
     if checks:
-        s._visit_imports(_spush_check_import_visitor)
+        s.visit_imports(_spush_check_import_visitor)
 
     # ok, push imports
-    s._visit_imports(_spush_import_visitor, dest=dest, checks=checks, clonemissing=clonemissing)
+    s.visit_imports(_spush_import_visitor, dest=dest, checks=checks, clonemissing=clonemissing)
 
     dest_exists = True
 
@@ -4108,7 +4121,7 @@ def _spush(s, suite_import, dest, checks, clonemissing):
 
 def spush(args):
     """push primary suite and all its imports"""
-    _hg._check(True)
+    _hg.check()
     parser = ArgumentParser(prog='mx spush')
     parser.add_argument('--dest', help='url/path of repo to push to (default as per hg push)', metavar='<path>')
     parser.add_argument('--no-checks', action='store_true', help='checks on status, versions are disabled')
@@ -4131,7 +4144,7 @@ def spush(args):
         args.nochecks = True
 
     if args.dest is not None:
-        _dst_suitemodel._set_primary_dir(args.dest)
+        _dst_suitemodel.set_primary_dir(args.dest)
 
     _spush(s, None, args.dest, not args.no_checks, args.clonemissing)
 
@@ -4139,29 +4152,29 @@ def _supdate_import_visitor(s, suite_import, **extra_args):
     _supdate(suite(suite_import.name), suite_import)
 
 def _supdate(s, suite_import):
-    s._visit_imports(_supdate_import_visitor)
+    s.visit_imports(_supdate_import_visitor)
 
     run(['hg', '-R', s.dir, 'update'])
 
 def supdate(args):
     """update primary suite and all its imports"""
 
-    _hg._check(True)
+    _hg.check()
     s = _check_primary_suite()
 
     _supdate(s, None)
 
 def _scheck_imports_visitor(s, suite_import, update_versions, updated_imports):
-    """checkimportversions visitor for Suite._visit_imports"""
-    _scheck_imports(suite(suite_import.name), suite_import, update_versions, updated_imports)
+    """scheckimports visitor for Suite.visit_imports"""
+    _scheck_imports(s, suite(suite_import.name), suite_import, update_versions, updated_imports)
 
-def _scheck_imports(s, suite_import, update_versions, updated_imports):
+def _scheck_imports(importing_suite, imported_suite, suite_import, update_versions, updated_imports):
     # check imports recursively
-    s._visit_imports(_scheck_imports_visitor, update_versions=update_versions)
+    imported_suite.visit_imports(_scheck_imports_visitor, update_versions=update_versions)
 
-    currentTip = _hg._tip(s)
+    currentTip = imported_suite.version()
     if currentTip != suite_import.version:
-        print('import version of ' + s.name + ' does not match tip' + (': updating' if update_versions else ''))
+        print('imported version of ' + imported_suite.name + ' in ' + importing_suite.name + ' does not match tip' + (': updating' if update_versions else ''))
 
     if update_versions:
         suite_import.version = currentTip
@@ -4173,25 +4186,25 @@ def scheckimports(args):
     parser = ArgumentParser(prog='mx scheckimports')
     parser.add_argument('--update-versions', help='update imported version ids', action='store_true')
     args = parser.parse_args(args)
-    _check_primary_suite()._visit_imports(_scheck_imports_visitor, update_versions=args.update_versions)
+    _check_primary_suite().visit_imports(_scheck_imports_visitor, update_versions=args.update_versions)
 
 def _spull_import_visitor(s, suite_import, update_versions, updated_imports):
-    """pull visitor for Suite._visit_imports"""
+    """pull visitor for Suite.visit_imports"""
     _spull(suite(suite_import.name), update_versions, updated_imports)
 
 def _spull(s, update_versions, updated_imports):
-    _hg._check(True)
+    _hg.check()
     # pull imports first
-    s._visit_imports(_spull_import_visitor, update_versions=update_versions)
+    s.visit_imports(_spull_import_visitor, update_versions=update_versions)
 
     run(['hg', '-R', s.dir, 'pull', '-u'])
     if update_versions and updated_imports is not None:
-        tip = _hg._tip(s)
-        updated_imports.write(SuiteImport._tostring(s.name, tip) + '\n')
+        tip = s.version()
+        updated_imports.write(SuiteImport.tostring(s.name, tip) + '\n')
 
 def spull(args):
     """pull primary suite and all its imports"""
-    _hg._check(True)
+    _hg.check()
     parser = ArgumentParser(prog='mx spull')
     parser.add_argument('--update-versions', action='store_true', help='update version ids of imported suites')
     args = parser.parse_args(args)
@@ -4372,48 +4385,74 @@ def _is_suite_dir(d, mxDirName=None):
                     return mxDir
 
 def _check_primary_suite():
-    if _mainSuite is None:
+    if _primary_suite is None:
         abort('no primary suite found')
     else:
-        return _mainSuite
+        return _primary_suite
 
 def _needs_primary_suite(command):
     return not command.startswith("sclone")
 
-def _findPrimarySuiteMxDir():
-    # try current working directory first, the look up the tree
-    curdir = os.getcwd()
-    while curdir:
-        mxDir = _is_suite_dir(curdir)
+def _needs_primary_suite_cl():
+    return not any("sclone" in s for s in sys.argv[1:])
+
+def _findPrimarySuiteMxDirFrom(d):
+    """ search for a suite directory upwards from 'd' """
+    while d:
+        mxDir = _is_suite_dir(d)
         if mxDir is not None:
             return mxDir
-        parent = dirname(curdir)
-        if curdir == parent:
+        parent = dirname(d)
+        if d == parent:
             return None
-        curdir = parent
+        d = parent
 
     return None
 
+def _findPrimarySuiteMxDir():
+    # check for explicit setting
+    if _primary_suite_path is not None:
+        mxDir = _is_suite_dir(_primary_suite_path)
+        if mxDir is not None:
+            return mxDir
+        else:
+            abort(_primary_suite_path + ' does not contain an mx suite')
+
+    # try current working directory first
+    mxDir = _findPrimarySuiteMxDirFrom(os.getcwd())
+    if mxDir is not None:
+        return mxDir
+    # backwards compatibility: search from path of this file
+    return _findPrimarySuiteMxDirFrom(dirname(__file__))
+
 def main():
-    SuiteModel._parse_options()
+    SuiteModel.parse_options()
 
     global _hg
     _hg = HgConfig()
 
+    primary_suite_error = 'no primary suite found'
     primarySuiteMxDir = _findPrimarySuiteMxDir()
     if primarySuiteMxDir:
-        _src_suitemodel._set_primary_dir(dirname(primarySuiteMxDir))
-        global _mainSuite
-        _mainSuite = _loadSuite(primarySuiteMxDir, True)
+        _src_suitemodel.set_primary_dir(dirname(primarySuiteMxDir))
+        global _primary_suite
+        _primary_suite = _loadSuite(primarySuiteMxDir, True)
+    else:
+        # in general this is an error, except for the sclone/scloneimports commands,
+        # and an extensions command will likely not parse in this case, as any extra arguments
+        # will not have been added to _argParser.
+        # If the command line does not contain a string matching one of the exceptions, we can safely abort,
+        # but not otherwise, as we can't be sure the string isn't in a value for some other option.
+        if _needs_primary_suite_cl():
+            abort(primary_suite_error)
 
     opts, commandAndArgs = _argParser._parse_cmd_line()
 
     if primarySuiteMxDir is None:
-        msg = 'no primary suite found'
         if len(commandAndArgs) > 0 and _needs_primary_suite(commandAndArgs[0]):
-            abort(msg)
+            abort(primary_suite_error)
         else:
-            warn(msg)
+            warn(primary_suite_error)
 
     global _opts, _java
     _opts = opts

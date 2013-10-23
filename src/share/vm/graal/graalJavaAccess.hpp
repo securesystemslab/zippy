@@ -85,6 +85,7 @@ void graal_compute_offsets();
   start_class(HotSpotNmethod)                                                                                                                                  \
     boolean_field(HotSpotNmethod, isDefault)                                                                                                                   \
     boolean_field(HotSpotNmethod, isExternal)                                                                                                                  \
+    oop_field(HotSpotNmethod, name, "Ljava/lang/String;")                                                                                                      \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompiledCode)                                                                                                                             \
     oop_field(HotSpotCompiledCode, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                      \
