@@ -2484,7 +2484,7 @@ class TimeStampFile:
         self.path = path
         self.timestamp = os.path.getmtime(path) if exists(path) else None
 
-    def outOfDate(self, arg):
+    def isOlderThan(self, arg):
         if not self.timestamp:
             return True
         if isinstance(arg, types.ListType):
@@ -2544,7 +2544,7 @@ def checkstyle(args):
             timestamp = TimeStampFile(join(p.suite.mxDir, 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp'))
             mustCheck = False
             if not args.force and timestamp.exists():
-                mustCheck = timestamp.outOfDate(javafilelist)
+                mustCheck = timestamp.isOlderThan(javafilelist)
             else:
                 mustCheck = True
 
@@ -2855,7 +2855,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
@@ -3069,7 +3069,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
     if logToFile:
         logFile = join(externalToolDir, name + '.log')
-        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CAPTURE_IN_FILE', 'value': logFile})
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CAPTURE_IN_FILE', 'value': logFile})
         launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_APPEND_TO_FILE', 'value': 'true' if appendToLogFile else 'false'})
 
     # expect to find the OS command to invoke mx in the same directory
@@ -3265,7 +3265,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
