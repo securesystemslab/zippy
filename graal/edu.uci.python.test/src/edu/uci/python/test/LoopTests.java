@@ -128,4 +128,13 @@ public class LoopTests {
 
         assertPrints("9\n6\n3\n0\nelse\n", source);
     }
+
+    @Test
+    public void forRangeWithStep() {
+        String source = "for i in range(1, 10, 2):\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("1\n3\n5\n7\n9\n", source);
+    }
 }

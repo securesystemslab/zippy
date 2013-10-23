@@ -53,13 +53,13 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Specialization(order = 0)
     public Object doPRange(VirtualFrame frame, PRange range) {
-        final int length = range.len();
         final int start = range.getStart();
+        final int stop = range.getStop();
         final int step = range.getStep();
         int count = 0;
 
         try {
-            for (int i = start; i < length; i += step) {
+            for (int i = start; i < stop; i += step) {
                 target.execute(frame, i);
                 body.executeVoid(frame);
 

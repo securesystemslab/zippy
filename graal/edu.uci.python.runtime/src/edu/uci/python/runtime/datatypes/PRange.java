@@ -47,7 +47,7 @@ public class PRange extends PImmutableSequence {
 
     public PRange(int low, int hi, int step) {
         if (step == 0) {
-            throw Py.ValueError("xrange() arg 3 must not be zero");
+            throw Py.ValueError("range() arg 3 must not be zero");
         }
 
         int n;
@@ -57,7 +57,7 @@ public class PRange extends PImmutableSequence {
             n = getLenOfRange(hi, low, -step);
         }
         if (n < 0) {
-            throw Py.OverflowError("xrange() result has too many items");
+            throw Py.OverflowError("range() result has too many items");
         }
 
         this.start = low;
@@ -85,6 +85,10 @@ public class PRange extends PImmutableSequence {
 
     public int getStep() {
         return step;
+    }
+
+    public int getStop() {
+        return stop;
     }
 
     @Override
