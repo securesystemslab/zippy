@@ -24,10 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.python.util.Generic;
 
@@ -243,6 +240,10 @@ public class PList extends PSequence {
         }
 
         return new PList(result);
+    }
+
+    public void reverse() {
+        Collections.reverse(list);
     }
 
     public void append(Object value) {

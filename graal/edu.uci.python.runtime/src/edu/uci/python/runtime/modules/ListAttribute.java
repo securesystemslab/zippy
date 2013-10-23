@@ -25,8 +25,6 @@
 package edu.uci.python.runtime.modules;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
@@ -72,10 +70,7 @@ public class ListAttribute extends PModule {
         PList selfList = (PList) self;
 
         if (arg instanceof PList) {
-            List<Object> list = ((PList) arg).getList();
-            for (int i = 0; i < list.size(); i++) {
-                selfList.getList().add(list.get(i));
-            }
+            selfList.extend((PList) arg);
             return selfList;
         } else {
             throw new RuntimeException("invalid arguments for extend()");
@@ -184,15 +179,14 @@ public class ListAttribute extends PModule {
 
     public int count(Object arg, Object self) {
         PList selfList = (PList) self;
-
-        int ret = 0;
-        List<Object> list = selfList.getList();
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).equals(arg)) {
-                ret++;
+        int count = 0;
+        Object[] list = selfList.getSequence();
+        for (int i = 0; i < list.length; i++) {
+            if (list[i].equals(arg)) {
+                count++;
             }
         }
-        return ret;
+        return count;
     }
 
     @ModuleMethod
@@ -200,7 +194,7 @@ public class ListAttribute extends PModule {
         PList selfList = (PList) self;
 
         if (args.length == 0) {
-            Object[] sorted = selfList.getList().toArray();
+            Object[] sorted = selfList.getSequence();
             Arrays.sort(sorted);
             int index = 0;
             for (int i = 0; i < sorted.length; i++) {
@@ -221,7 +215,7 @@ public class ListAttribute extends PModule {
         PList selfList = (PList) self;
 
         if (args.length == 0) {
-            Collections.reverse(selfList.getList());
+            selfList.reverse();
             return selfList;
         } else {
             throw new RuntimeException("wrong number of arguments for reverse()");
