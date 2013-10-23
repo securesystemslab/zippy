@@ -642,7 +642,7 @@ jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig)
   return id;
 }
 
-C2V_VMENTRY(void, dontInline,(JNIEnv *, jobject,  jlong metaspace_method, jobject hotspot_method))
+C2V_VMENTRY(void, dontInline,(JNIEnv *, jobject,  jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   method->set_not_c1_compilable();
   method->set_not_c2_compilable();
@@ -1203,7 +1203,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
-  {CC"dontInline",                    CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(dontInline)},
+  {CC"dontInline",                    CC"("METASPACE_METHOD")V",                                        FN_PTR(dontInline)},
   {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
