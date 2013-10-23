@@ -55,7 +55,7 @@ public class ListAttribute extends PModule {
     public PList append(Object arg, Object self) {
         PList selfList = (PList) self;
 
-        selfList.getList().add(arg);
+        selfList.append(arg);
         return selfList;
     }
 

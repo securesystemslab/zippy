@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.python.util.Generic;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -244,6 +245,10 @@ public class PList extends PSequence {
         return new PList(result);
     }
 
+    public void append(Object value) {
+        list.add(value);
+    }
+
     public void extend(PList appendee) {
         List<Object> tail = appendee.getList();
         for (int i = 0; i < tail.size(); i++) {
@@ -259,4 +264,29 @@ public class PList extends PSequence {
         return new PList(newList, false);
     }
 
+    @Override
+    public boolean equals(Object other) {
+        List<Object> rlist = ((PList) other).getList();
+
+        if (list.size() != rlist.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < list.size(); i++) {
+            Object l = list.get(i);
+            Object r = rlist.get(i);
+            boolean isTheSame = ArithmeticUtil.is(l, r);
+
+            if (!isTheSame) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

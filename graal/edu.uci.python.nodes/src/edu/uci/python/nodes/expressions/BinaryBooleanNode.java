@@ -28,7 +28,7 @@ import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.*;
 
-import static edu.uci.python.nodes.expressions.ArithmeticUtil.*;
+import static edu.uci.python.runtime.ArithmeticUtil.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
