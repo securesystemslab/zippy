@@ -24,9 +24,7 @@
  */
 package edu.uci.python.runtime.modules;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
@@ -44,9 +42,9 @@ public class BisectModule extends PModule {
             return bisect(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
-            tempList.add(args[1]);
-            Object[] tempArray = tempList.toArray();
+            Object[] tempArray = new Object[slice.len() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
+            tempArray[slice.len()] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -57,9 +55,8 @@ public class BisectModule extends PModule {
             return index + (int) args[2] - 1;
         } else if (args.length == 4 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
-            tempList.add(args[1]);
-            Object[] tempArray = tempList.toArray();
+            Object[] tempArray = new Object[slice.len() + 1];
+            tempArray[slice.len()] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -75,9 +72,10 @@ public class BisectModule extends PModule {
 
     public int bisect(Object arg0, Object arg1) {
         if (arg0 instanceof PList) {
-            List<Object> list = ((PList) arg0).getList();
+            PList plist = (PList) arg0;
+            Object[] list = plist.getSequence();
 
-            if (list.size() == 0) {
+            if (list.length == 0) {
                 return 0;
             }
 
@@ -110,10 +108,11 @@ public class BisectModule extends PModule {
         if (args.length == 2) {
             return bisect_left(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
-            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
-            tempList.add(args[1]);
-            Object[] tempArray = tempList.toArray();
+            PList plist = (PList) args[0];
+            PList slice = (PList) (plist).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
+            Object[] tempArray = new Object[slice.len() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
+            tempArray[tempArray.length] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -124,9 +123,9 @@ public class BisectModule extends PModule {
             return index + 1 + (int) args[2];
         } else if (args.length == 4 && args[0] instanceof PList) {
             PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            ArrayList<Object> tempList = new ArrayList<>(slice.getList());
-            tempList.add(args[1]);
-            Object[] tempArray = tempList.toArray();
+            Object[] tempArray = new Object[slice.len() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
+            tempArray[tempArray.length] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -142,9 +141,10 @@ public class BisectModule extends PModule {
 
     public int bisect_left(Object arg0, Object arg1) {
         if (arg0 instanceof PList) {
-            List<Object> list = ((PList) arg0).getList();
+            PList plist = (PList) arg0;
+            Object[] list = plist.getSequence();
 
-            if (list.size() == 0) {
+            if (list.length == 0) {
                 return 0;
             }
 
@@ -215,32 +215,32 @@ public class BisectModule extends PModule {
 
     // Checkstyle: resume method name check
 
-    public int getIndexLeft(List<Object> args, Object key) {
-        return binarySearchLeft(args, 0, args.size() - 1, key);
+    public int getIndexLeft(Object[] args, Object key) {
+        return binarySearchLeft(args, 0, args.length - 1, key);
     }
 
-    public int binarySearchLeft(List<Object> args, int start, int stop, Object key) {
+    public int binarySearchLeft(Object[] args, int start, int stop, Object key) {
         if (start <= stop) {
             int middle = (stop - start) / 2 + start;
-            if (((String) args.get(middle)).compareTo((String) key) > 0) {
-                if (middle - 1 >= 0 && ((String) args.get(middle - 1)).compareTo((String) key) < 0) {
+            if (((String) args[middle]).compareTo((String) key) > 0) {
+                if (middle - 1 >= 0 && ((String) args[middle - 1]).compareTo((String) key) < 0) {
                     return middle;
                 } else if (middle - 1 <= 0) {
                     return 0;
                 } else {
                     return binarySearchLeft(args, start, middle - 1, key);
                 }
-            } else if (((String) args.get(middle)).compareTo((String) key) < 0) {
-                if (middle + 1 < args.size() && ((String) args.get(middle + 1)).compareTo((String) key) > 0) {
+            } else if (((String) args[middle]).compareTo((String) key) < 0) {
+                if (middle + 1 < args.length && ((String) args[middle + 1]).compareTo((String) key) > 0) {
                     return middle + 1;
-                } else if (middle + 1 >= args.size() - 1) {
-                    return args.size();
+                } else if (middle + 1 >= args.length - 1) {
+                    return args.length;
                 } else {
                     return binarySearchLeft(args, middle + 1, stop, key);
                 }
             } else {
                 int i = middle - 1;
-                while (((String) args.get(i)).compareTo((String) key) == 0 && i >= 0) {
+                while (((String) args[i]).compareTo((String) key) == 0 && i >= 0) {
                     i--;
                 }
                 return i + 1;
@@ -249,36 +249,36 @@ public class BisectModule extends PModule {
         return -1; // should not happen
     }
 
-    public int getIndexRight(List<Object> args, Object key) {
+    public int getIndexRight(Object[] args, Object key) {
         if (key instanceof String) {
-            return binarySearchRightStr(args, 0, args.size() - 1, (String) key);
+            return binarySearchRightStr(args, 0, args.length - 1, (String) key);
         } else {
-            return binarySearchRightDouble(args, 0, args.size() - 1, (double) key);
+            return binarySearchRightDouble(args, 0, args.length - 1, (double) key);
         }
     }
 
-    public int binarySearchRightDouble(List<Object> args, int start, int stop, double key) {
+    public int binarySearchRightDouble(Object[] args, int start, int stop, double key) {
         if (start <= stop) {
             int middle = (stop - start) / 2 + start;
-            if (((double) args.get(middle)) > key) {
-                if (middle - 1 >= 0 && ((double) args.get(middle - 1)) < key) {
+            if (((double) args[middle]) > key) {
+                if (middle - 1 >= 0 && ((double) args[middle - 1]) < key) {
                     return middle;
                 } else if (middle - 1 <= 0) {
                     return 0;
                 } else {
                     return binarySearchRightDouble(args, start, middle - 1, key);
                 }
-            } else if (((double) args.get(middle)) < key) {
-                if (middle + 1 < args.size() && ((double) args.get(middle + 1)) > key) {
+            } else if (((double) args[middle]) < key) {
+                if (middle + 1 < args.length && ((double) args[middle + 1]) > key) {
                     return middle + 1;
-                } else if (middle + 1 >= args.size() - 1) {
-                    return args.size();
+                } else if (middle + 1 >= args.length - 1) {
+                    return args.length;
                 } else {
                     return binarySearchRightDouble(args, middle + 1, stop, key);
                 }
             } else {
                 int i = middle + 1;
-                while (((double) args.get(i)) == key && i < args.size()) {
+                while (((double) args[i]) == key && i < args.length) {
                     i++;
                 }
                 return i;
@@ -287,28 +287,28 @@ public class BisectModule extends PModule {
         return -1; // should not happen
     }
 
-    public int binarySearchRightStr(List<Object> args, int start, int stop, String key) {
+    public int binarySearchRightStr(Object[] args, int start, int stop, String key) {
         if (start <= stop) {
             int middle = (stop - start) / 2 + start;
-            if (((String) args.get(middle)).compareTo(key) > 0) {
-                if (middle - 1 >= 0 && ((String) args.get(middle - 1)).compareTo(key) < 0) {
+            if (((String) args[middle]).compareTo(key) > 0) {
+                if (middle - 1 >= 0 && ((String) args[middle - 1]).compareTo(key) < 0) {
                     return middle;
                 } else if (middle - 1 <= 0) {
                     return 0;
                 } else {
                     return binarySearchRightStr(args, start, middle - 1, key);
                 }
-            } else if (((String) args.get(middle)).compareTo(key) < 0) {
-                if (middle + 1 < args.size() && ((String) args.get(middle + 1)).compareTo(key) > 0) {
+            } else if (((String) args[middle]).compareTo(key) < 0) {
+                if (middle + 1 < args.length && ((String) args[middle + 1]).compareTo(key) > 0) {
                     return middle + 1;
-                } else if (middle + 1 >= args.size() - 1) {
-                    return args.size();
+                } else if (middle + 1 >= args.length - 1) {
+                    return args.length;
                 } else {
                     return binarySearchRightStr(args, middle + 1, stop, key);
                 }
             } else {
                 int i = middle + 1;
-                while (((String) args.get(i)).compareTo(key) == 0 && i < args.size()) {
+                while (((String) args[i]).compareTo(key) == 0 && i < args.length) {
                     i++;
                 }
                 return i;
