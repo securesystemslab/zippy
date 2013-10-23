@@ -58,9 +58,6 @@ public class PRange extends PImmutableSequence {
         } else {
             n = getLenOfRange(hi, low, -step);
         }
-        if (n < 0) {
-            throw Py.OverflowError("range() result has too many items");
-        }
 
         this.start = low;
         this.stop = hi;
@@ -77,6 +74,9 @@ public class PRange extends PImmutableSequence {
             // to a
             // negative number
             n = (int) ((diff / step) + 1);
+            if (n < 0) {
+                throw Py.OverflowError("range() result has too many items");
+            }
         }
         return n;
     }

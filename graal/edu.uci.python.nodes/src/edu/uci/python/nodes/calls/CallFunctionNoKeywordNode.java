@@ -149,7 +149,7 @@ public class CallFunctionNoKeywordNode extends PNode {
             CompilerAsserts.neverPartOfCompilation();
 
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
+                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot, factory);
                 Node parent = findRealParent();
                 NodeUtil.replaceChild(parent, this, inlinedCallNode);
                 parent.adoptChild(inlinedCallNode);
@@ -205,9 +205,12 @@ public class CallFunctionNoKeywordNode extends PNode {
 
         @Child protected InlinedFunctionRootNode functionRoot;
 
-        public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot) {
+        private final FrameFactory frameFactory;
+
+        public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
             super(callee, arguments, cached, globalScopeUnchanged);
             this.functionRoot = adoptChild(functionRoot.getInlinedRootNode());
+            this.frameFactory = frameFactory;
         }
 
         public CallTarget getCallTarget() {
@@ -224,7 +227,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
             final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
             final PArguments pargs = new PArguments(args);
-            VirtualFrame inlinedFrame = Truffle.getRuntime().createVirtualFrame(frame.pack(), pargs, cached.getFrameDescriptor());
+            VirtualFrame inlinedFrame = frameFactory.create(cached.getFrameDescriptor(), frame.pack(), pargs);
             return functionRoot.execute(inlinedFrame);
         }
     }
