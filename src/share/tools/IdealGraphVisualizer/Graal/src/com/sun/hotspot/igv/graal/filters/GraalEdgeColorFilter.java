@@ -32,6 +32,7 @@ import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
 import java.awt.Color;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Filter that colors usage and successor edges differently.
@@ -55,6 +56,7 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
+        Pattern ndf = Pattern.compile(".*#NDF(\\[[0-9]*\\])?");
         for (Figure f : figures) {
             Properties p = f.getProperties();
             int predCount;
@@ -78,7 +80,7 @@ public class GraalEdgeColorFilter extends AbstractFilter {
 
                 is.setColor(color);
                 for (Connection c : is.getConnections()) {
-                    if (c.getLabel() == null || !c.getLabel().endsWith("#NDF")) {
+                    if (c.getLabel() == null || !ndf.matcher(c.getLabel()).matches()) {
                         c.setColor(color);
                         if (c.getStyle() != ConnectionStyle.DASHED) {
                             c.setStyle(style);
