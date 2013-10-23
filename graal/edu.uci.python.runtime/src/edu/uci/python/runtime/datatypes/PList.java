@@ -32,16 +32,13 @@ import java.util.List;
 import org.python.util.Generic;
 
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class PList extends PSequence {
 
     private final List<Object> list;
 
     public static final ListAttribute listModule = new ListAttribute();
-
-    public PList() {
-        list = new ArrayList<>();
-    }
 
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
@@ -81,13 +78,13 @@ public class PList extends PSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = PSequence.fixIndex(idx, list.size());
+        int index = SequenceUtil.fixIndex(idx, list.size());
         return list.get(index);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = PSequence.fixIndex(idx, list.size());
+        int index = SequenceUtil.fixIndex(idx, list.size());
         list.set(index, value);
     }
 
@@ -245,6 +242,21 @@ public class PList extends PSequence {
         }
 
         return new PList(result);
+    }
+
+    public void extend(PList appendee) {
+        List<Object> tail = appendee.getList();
+        for (int i = 0; i < tail.size(); i++) {
+            list.add(tail.get(i));
+        }
+    }
+
+    @Override
+    public PList concat(PSequence other) {
+        List<Object> newList = new ArrayList<>();
+        newList.addAll(list);
+        newList.addAll(((PList) other).getList());
+        return new PList(newList, false);
     }
 
 }

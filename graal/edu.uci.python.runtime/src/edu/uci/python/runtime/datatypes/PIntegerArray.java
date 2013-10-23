@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PIntegerArray extends PArray implements Iterable<Integer> {
 
     private final int[] array;
@@ -97,7 +99,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = PSequence.fixIndex(idx, array.length);
+        int index = SequenceUtil.fixIndex(idx, array.length);
         array[index] = (int) value;
     }
 

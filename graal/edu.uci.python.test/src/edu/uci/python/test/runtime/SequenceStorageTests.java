@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class SequenceStorageTests {
 

@@ -30,10 +30,12 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PRange extends PImmutableSequence {
 
     private final int start;
-    @SuppressWarnings("unused") private final int stop;
+    private final int stop;
     private final int step;
     private final int length;
 
@@ -98,7 +100,7 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = PSequence.fixIndex(idx, length);
+        int index = SequenceUtil.fixIndex(idx, length);
 
         if (index > length - 1) {
             getItemIndexOutOfBound();
@@ -181,6 +183,12 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public PCallable findAttribute(String name) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public PSequence concat(PSequence sequence) {
         // TODO Auto-generated method stub
         return null;
     }
