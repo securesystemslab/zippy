@@ -209,13 +209,13 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     public abstract static class DivNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
-        int doInteger(int left, int right) {
-            return left / right;
+        double doInteger(int left, int right) {
+            return (double) left / right;
         }
 
         @Specialization(order = 1)
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right);
+        double doBigInteger(BigInteger left, BigInteger right) {
+            return left.divide(right).doubleValue();
         }
 
         @Specialization(order = 2)
