@@ -1430,7 +1430,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
           } else {
             tty->print(" (Graal: installed code has no name) ");
           }
-        } else {
+        } else if (nm->is_compiled_by_graal()) {
           tty->print(" (Graal: no installed code) ");
         }
 #endif //GRAAL
