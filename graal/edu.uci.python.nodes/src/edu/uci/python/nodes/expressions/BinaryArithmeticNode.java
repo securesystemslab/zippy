@@ -229,6 +229,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         PComplex doComplex(PComplex left, PComplex right) {
             return left.div(right);
         }
+
+        @Generic
+        Object doGeneric(Object left, Object right) {
+            throw Py.TypeError("Unsupported operand type for /: " + left + " and " + right);
+        }
     }
 
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
@@ -246,6 +251,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.floor(left / right);
+        }
+
+        @Generic
+        Object doGeneric(Object left, Object right) {
+            throw Py.TypeError("Unsupported operand type for //: " + left + " and " + right);
         }
     }
 
