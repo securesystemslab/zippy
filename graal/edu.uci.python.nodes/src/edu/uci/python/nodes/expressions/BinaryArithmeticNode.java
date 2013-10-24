@@ -193,14 +193,22 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class DivNode extends BinaryArithmeticNode {
 
+        /*
+         * double division by zero in Java doesn't throw an exception, instead it yield Infinity
+         * (NaN).
+         */
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
-        int doInteger(int left, int right) {
-            return left / right;
+        double doInteger(int left, int right) {
+            if (right == 0) {
+                throw new ArithmeticException("divide by zero");
+            }
+
+            return (double) left / right;
         }
 
         @Specialization(order = 1)
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right);
+        double doBigInteger(BigInteger left, BigInteger right) {
+            return left.divide(right).doubleValue();
         }
 
         @Specialization(order = 2)

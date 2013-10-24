@@ -55,7 +55,7 @@ public class TryTests {
                         "finally:\n" + //
                         "    print(\"executing finally clause\")\n";
 
-        assertPrints("result is  1\n" + "executing finally clause\n", source);
+        assertPrints("result is  1.0\n" + "executing finally clause\n", source);
     }
 
     @Test
