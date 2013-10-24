@@ -232,7 +232,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         ArrayList<Object> result = new ArrayList<>();
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < list.size(); j++) {

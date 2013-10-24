@@ -128,7 +128,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         char[] newArray = new char[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {

@@ -92,10 +92,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.append(right);
         }
 
+        // TODO: type info for operands in type error message.
         @SuppressWarnings("unused")
         @Generic
         Object doGeneric(Object left, Object right) {
-            throw new RuntimeException("Invalid generic!");
+            throw Py.TypeError("unsupported operand type(s) for +:");
         }
     }
 
@@ -173,15 +174,20 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.mul(right);
         }
 
+        @Specialization(order = 6)
+        PObject doIntPObject(int left, PObject right) {
+            return right.multiply(left);
+        }
+
+        @Specialization(order = 7)
+        PObject doPObjectInt(PObject left, int right) {
+            return left.multiply(right);
+        }
+
+        // TODO: better type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
-            if (left instanceof PObject && right instanceof Integer) {
-                return ((PObject) left).multiply((int) right);
-            } else if (left instanceof Integer && right instanceof PObject) {
-                return ((PObject) right).multiply((int) left);
-            } else {
-                throw new RuntimeException("Invalid generic!");
-            }
+            throw Py.TypeError("can't multiply " + left + " by " + right);
         }
     }
 

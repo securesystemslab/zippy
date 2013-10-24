@@ -154,7 +154,7 @@ public class PComplex extends PObject {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

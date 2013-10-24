@@ -123,7 +123,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
