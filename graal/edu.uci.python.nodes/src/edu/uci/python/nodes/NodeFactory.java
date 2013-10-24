@@ -42,6 +42,7 @@ import edu.uci.python.nodes.statements.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
@@ -60,6 +61,15 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class NodeFactory {
+
+    @CompilationFinal private static NodeFactory factory;
+
+    public static NodeFactory getInstance() {
+        if (factory == null) {
+            factory = new NodeFactory();
+        }
+        return factory;
+    }
 
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
         BlockNode block = createBlock(body);

@@ -30,7 +30,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.FunctionRootNode.InlinedFunctionRootNode;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -198,39 +197,6 @@ public class CallFunctionNoKeywordNode extends PNode {
                 callCount++;
             }
             return super.execute(frame);
-        }
-    }
-
-    public static class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
-
-        @Child protected InlinedFunctionRootNode functionRoot;
-
-        private final FrameFactory frameFactory;
-        @SuppressWarnings("unused") private final FrameDescriptor frameDescriptor;
-
-        public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
-            super(callee, arguments, cached, globalScopeUnchanged);
-            this.functionRoot = adoptChild(functionRoot.getInlinedRootNode());
-            this.frameFactory = frameFactory;
-            this.frameDescriptor = cached.getFrameDescriptor().copy();
-        }
-
-        public CallTarget getCallTarget() {
-            return cached.getCallTarget();
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            try {
-                globalScopeUnchanged.check();
-            } catch (InvalidAssumptionException e) {
-                return uninitialize(frame);
-            }
-
-            final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-            final PArguments pargs = new PArguments(args);
-            VirtualFrame inlinedFrame = frameFactory.create(cached.getFrameDescriptor(), frame.pack(), pargs);
-            return functionRoot.execute(inlinedFrame);
         }
     }
 }
