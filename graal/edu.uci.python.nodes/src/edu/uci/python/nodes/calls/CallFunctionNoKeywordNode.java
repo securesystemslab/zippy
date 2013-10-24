@@ -206,11 +206,13 @@ public class CallFunctionNoKeywordNode extends PNode {
         @Child protected InlinedFunctionRootNode functionRoot;
 
         private final FrameFactory frameFactory;
+        @SuppressWarnings("unused") private final FrameDescriptor frameDescriptor;
 
         public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
             super(callee, arguments, cached, globalScopeUnchanged);
             this.functionRoot = adoptChild(functionRoot.getInlinedRootNode());
             this.frameFactory = frameFactory;
+            this.frameDescriptor = cached.getFrameDescriptor().copy();
         }
 
         public CallTarget getCallTarget() {

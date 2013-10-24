@@ -47,14 +47,18 @@ public class FunctionRootNode extends RootNode {
 
     @Child protected PNode returnValue;
 
+    private final ParametersNode uninitializedParams;
     private final StatementNode uninitializedBody;
+    private final PNode unitializedReturn;
 
     public FunctionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
         this.functionName = functionName;
         this.parameters = adoptChild(parameters);
         this.body = adoptChild(body);
         this.returnValue = adoptChild(returnValue);
-        this.uninitializedBody = body != null ? NodeUtil.cloneNode(body) : null;
+        this.uninitializedParams = NodeUtil.cloneNode(parameters);
+        this.uninitializedBody = NodeUtil.cloneNode(body);
+        this.unitializedReturn = NodeUtil.cloneNode(returnValue);
     }
 
     public void setBody(StatementNode body) {
@@ -96,9 +100,9 @@ public class FunctionRootNode extends RootNode {
 
         protected InlinedFunctionRootNode(FunctionRootNode node) {
             this.functionName = node.functionName;
-            this.parameters = adoptChild(NodeUtil.cloneNode(node.parameters));
+            this.parameters = adoptChild(NodeUtil.cloneNode(node.uninitializedParams));
             this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));
-            this.returnValue = adoptChild(NodeUtil.cloneNode(node.returnValue));
+            this.returnValue = adoptChild(NodeUtil.cloneNode(node.unitializedReturn));
         }
 
         @Override
