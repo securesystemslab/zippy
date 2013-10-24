@@ -313,6 +313,14 @@ ifeq ($(USE_CLANG), true)
     OPT_CFLAGS/loopTransform.o += $(OPT_CFLAGS/NOOPT)
     OPT_CFLAGS/unsafe.o += -O1
   endif
+  # Clang 5.0
+  ifeq ($(shell expr $(CC_VER_MAJOR) = 5 \& $(CC_VER_MINOR) = 0), 1)
+    OPT_CFLAGS/graalCompilerToVM.o += -O1
+    OPT_CFLAGS/unsafe.o += -O1
+    # Specific optimization level plus precompiled headers produces:
+    #     error: __OPTIMIZE_SIZE__ predefined macro was enabled in PCH file but is currently disabled
+    USE_PRECOMPILED_HEADER = 0
+  endif
 else
   # 6835796. Problem in GCC 4.3.0 with mulnode.o optimized compilation.
   ifeq ($(shell expr $(CC_VER_MAJOR) = 4 \& $(CC_VER_MINOR) = 3), 1)
