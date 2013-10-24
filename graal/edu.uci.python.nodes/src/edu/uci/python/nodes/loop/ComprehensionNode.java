@@ -24,9 +24,7 @@
  */
 package edu.uci.python.nodes.loop;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -161,7 +159,7 @@ public abstract class ComprehensionNode extends StatementNode {
                 innerLoop.execute(frame);
             } catch (ExplicitReturnException ere) {
                 PList list = (PList) ere.getValue();
-                results.addAll(list.getList());
+                results.addAll(Arrays.asList(list.getSequence()));
             }
         }
 

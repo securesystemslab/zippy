@@ -26,6 +26,7 @@ package edu.uci.python.runtime.datatypes;
 
 import java.util.*;
 
+import org.python.core.*;
 import org.python.util.Generic;
 
 import edu.uci.python.runtime.*;
@@ -60,7 +61,7 @@ public class PList extends PSequence {
         }
     }
 
-    public List<Object> getList() {
+    protected List<Object> getList() {
         return list;
     }
 
@@ -263,6 +264,26 @@ public class PList extends PSequence {
         newList.addAll(list);
         newList.addAll(((PList) other).getList());
         return new PList(newList, false);
+    }
+
+    public int index(Object value) {
+        int index = -1;
+
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).equals(value)) {
+                index = i;
+            }
+        }
+
+        if (index != -1) {
+            return index;
+        } else {
+            throw Py.ValueError(value + " is not in list");
+        }
+    }
+
+    public void insert(int index, Object value) {
+        list.add(index, value);
     }
 
     @Override

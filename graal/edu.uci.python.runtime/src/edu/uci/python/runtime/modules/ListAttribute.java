@@ -26,6 +26,8 @@ package edu.uci.python.runtime.modules;
 
 import java.util.Arrays;
 
+import org.python.core.*;
+
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
@@ -90,7 +92,7 @@ public class ListAttribute extends PModule {
         PList selfList = (PList) self;
 
         if (arg0 instanceof Integer) {
-            selfList.getList().add((int) arg0, arg1);
+            selfList.insert((int) arg0, arg1);
             return selfList;
         } else {
             throw new RuntimeException("invalid arguments for insert()");
@@ -112,12 +114,9 @@ public class ListAttribute extends PModule {
 
     public PList remove(Object arg, Object self) {
         PList selfList = (PList) self;
-
-        if (selfList.getList().remove(arg)) {
-            return selfList;
-        } else {
-            throw new RuntimeException("invalid arguments for remove()");
-        }
+        int index = selfList.index(arg);
+        selfList.delItem(index);
+        return selfList;
     }
 
     @ModuleMethod
@@ -125,8 +124,9 @@ public class ListAttribute extends PModule {
         PList selfList = (PList) self;
 
         if (args.length == 0) {
-            Object ret = selfList.getList().get(selfList.getList().size() - 1);
-            selfList.getList().remove(selfList.getList().size() - 1);
+            Object[] array = selfList.getSequence();
+            Object ret = array[array.length - 1];
+            selfList.delItem(array.length - 1);
             return ret;
         } else if (args.length == 1) {
             return pop(args[0], self);
@@ -140,8 +140,8 @@ public class ListAttribute extends PModule {
 
         if (arg instanceof Integer) {
             int index = (int) arg;
-            Object ret = selfList.getList().get(index);
-            selfList.getList().remove(index);
+            Object ret = selfList.getItem(index);
+            selfList.delItem(index);
             return ret;
         } else {
             throw new RuntimeException("invalid arguments for pop()");
@@ -159,13 +159,7 @@ public class ListAttribute extends PModule {
 
     public int index(Object arg, Object self) {
         PList selfList = (PList) self;
-
-        int ret = selfList.getList().indexOf(arg);
-        if (ret != -1) {
-            return ret;
-        } else {
-            throw new RuntimeException("invalid arguments for index()");
-        }
+        return selfList.index(arg);
     }
 
     @ModuleMethod
@@ -196,10 +190,11 @@ public class ListAttribute extends PModule {
         if (args.length == 0) {
             Object[] sorted = selfList.getSequence();
             Arrays.sort(sorted);
-            int index = 0;
+
             for (int i = 0; i < sorted.length; i++) {
-                selfList.getList().set(index++, sorted[i]);
+                selfList.setItem(i, sorted[i]);
             }
+
             return selfList;
         } else {
             throw new RuntimeException("wrong number of arguments for sort()");
