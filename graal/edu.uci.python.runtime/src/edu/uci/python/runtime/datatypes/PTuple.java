@@ -198,7 +198,7 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

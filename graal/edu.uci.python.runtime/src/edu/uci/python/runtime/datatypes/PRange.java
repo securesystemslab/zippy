@@ -159,38 +159,32 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public boolean lessThan(PSequence sequence) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object multiply(int value) {
-        // TODO Auto-generated method stub
-        return null;
+    public PObject multiply(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public PCallable findAttribute(String name) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public PSequence concat(PSequence sequence) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -247,22 +247,22 @@ public class PModule extends PObject {
 
     @Override
     public Object getMin() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public int len() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object multiply(int value) {
-        throw new RuntimeException("Not implemented");
+    public PObject multiply(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
