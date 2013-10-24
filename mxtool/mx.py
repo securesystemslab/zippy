@@ -768,7 +768,7 @@ class Suite:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _commands_name(self):
-        return 'mx_' + self.name.replace('-','_')
+        return 'mx_' + self.name.replace('-', '_')
 
     def _find_commands(self, name):
         commandsPath = join(self.mxDir, name + '.py')
