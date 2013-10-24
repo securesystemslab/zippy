@@ -37,7 +37,7 @@ public class ObjectLayoutTests {
     @Test
     public void objectWithPrimitiveAttributes() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new Options());
+        final PythonContext context = new PythonContext(new PythonOptions());
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonBasicObject obj = new PythonBasicObject(classA);
         final ObjectLayout objLayoutBefore = obj.getObjectLayout();
@@ -54,7 +54,7 @@ public class ObjectLayoutTests {
     @Test
     public void objectPrimitiveAttributeOverflow() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new Options());
+        final PythonContext context = new PythonContext(new PythonOptions());
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonBasicObject obj = new PythonBasicObject(classA);
 
@@ -74,7 +74,7 @@ public class ObjectLayoutTests {
     @Test
     public void classAttributes() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new Options());
+        final PythonContext context = new PythonContext(new PythonOptions());
         final PythonClass classA = new PythonClass(context, null, "A");
 
         // Add class variable

@@ -26,7 +26,7 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
-public class Options {
+public class PythonOptions {
 
     // Debug flags
     public static boolean PrintAST = false;
@@ -36,6 +36,8 @@ public class Options {
     public static final boolean OptimizeNode = true;
 
     public static final boolean UseUnsafe = true;
+
+    public static final boolean InlineFunctionCalls = true;
 
     private PrintStream standardOut = System.out;
 

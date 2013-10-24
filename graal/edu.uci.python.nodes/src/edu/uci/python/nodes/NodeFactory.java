@@ -42,6 +42,7 @@ import edu.uci.python.nodes.statements.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
@@ -61,13 +62,22 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class NodeFactory {
 
+    @CompilationFinal private static NodeFactory factory;
+
+    public static NodeFactory getInstance() {
+        if (factory == null) {
+            factory = new NodeFactory();
+        }
+        return factory;
+    }
+
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
         BlockNode block = createBlock(body);
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget) {
-        return new FunctionDefinitionNode(name, parameters, callTarget);
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
+        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor);
     }
 
     public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
@@ -134,20 +144,24 @@ public class NodeFactory {
         return new ImportNode(fromModuleName, importee);
     }
 
-    public LoopNode createWhile(BooleanCastNode condition, StatementNode body, BlockNode orelse) {
-        return new WhileNode(condition, body, orelse);
+    public LoopNode createWhile(BooleanCastNode condition, StatementNode body) {
+        return new WhileNode(condition, body);
     }
 
     public StatementNode createIf(BooleanCastNode condition, BlockNode thenPart, BlockNode elsePart) {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public LoopNode createFor(PNode target, PNode iterator, StatementNode body, BlockNode orelse) {
-        return ForNodeFactory.create(target, body, orelse, iterator);
+    public LoopNode createFor(PNode target, PNode iterator, StatementNode body) {
+        return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body, BlockNode orelse) {
-        return ForWithLocalTargetNodeFactory.create(target, body, orelse, iterator);
+    public LoopNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body) {
+        return ForWithLocalTargetNodeFactory.create(target, body, iterator);
+    }
+
+    public StatementNode createElse(StatementNode then, BlockNode orelse) {
+        return new ElseNode(then, orelse);
     }
 
     public StatementNode createReturn() {
@@ -174,7 +188,7 @@ public class NodeFactory {
         return new ContinueTargetNode(child);
     }
 
-    public StatementNode createBreakTarget(LoopNode child) {
+    public StatementNode createBreakTarget(StatementNode child) {
         return new BreakTargetNode(child);
     }
 

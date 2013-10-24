@@ -27,7 +27,9 @@ package edu.uci.python.runtime.datatypes;
 import java.util.*;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.frame.PackedFrame;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.nodes.*;
 
 public class PFunction extends PCallable {
 
@@ -35,16 +37,20 @@ public class PFunction extends PCallable {
 
     private final CallTarget callTarget;
 
-    public PFunction(String name, List<String> parameters, CallTarget callTarget) {
+    private final FrameDescriptor frameDescriptor;
+
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
         super(name);
         this.parameters = parameters;
         this.callTarget = callTarget;
+        this.frameDescriptor = frameDescriptor;
     }
 
-    public PFunction(String name, List<String> parameters, CallTarget callTarget, boolean isBuiltin) {
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean isBuiltin) {
         super(name, isBuiltin);
         this.parameters = parameters;
         this.callTarget = callTarget;
+        this.frameDescriptor = frameDescriptor;
     }
 
     @Override
@@ -81,4 +87,16 @@ public class PFunction extends PCallable {
         return callTarget.call(caller, new PArguments(new Object[]{arg0, arg1}));
     }
 
+    public CallTarget getCallTarget() {
+        return callTarget;
+    }
+
+    public FrameDescriptor getFrameDescriptor() {
+        return frameDescriptor;
+    }
+
+    public RootNode getFunctionRootNode() {
+        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
+        return defaultTarget.getRootNode();
+    }
 }

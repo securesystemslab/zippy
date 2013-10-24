@@ -22,32 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.runtime.sequence;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
+public abstract class AbstractSequenceStorage {
 
-import edu.uci.python.nodes.statements.*;
+    public abstract int length();
 
-public abstract class LoopNode extends StatementNode {
+    public abstract Object[] getInternalArray();
 
-    @Child protected StatementNode body;
+    public abstract void increaseCapacity(int newSize);
 
-    public LoopNode(StatementNode body) {
-        this.body = adoptChild(body);
-    }
+    public abstract Object getItemInBound(int idx);
 
-    protected final void reportLoopCount(int count) {
-        CompilerAsserts.neverPartOfCompilation();
-        Node current = LoopNode.this.getParent();
-        while (current != null && !(current instanceof RootNode)) {
-            current = current.getParent();
-        }
-        if (current != null) {
-            RootNode root = (RootNode) current;
-            if (root.getCallTarget() instanceof LoopCountReceiver) {
-                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
-            }
-        }
-    }
+    public abstract void setItemInBound(int idx, Object value);
+
+    public abstract Object getSliceInBound(int start, int stop, int step, int length);
+
+    public abstract void setSliceInBound(int start, int stop, int step, AbstractSequenceStorage sequence);
+
+    public abstract void delItemInBound(int idx);
+
 }

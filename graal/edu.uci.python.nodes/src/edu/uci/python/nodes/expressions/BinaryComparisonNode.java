@@ -27,10 +27,10 @@ package edu.uci.python.nodes.expressions;
 import java.math.*;
 import java.util.*;
 
-
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
@@ -64,24 +64,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         boolean doPList(PList left, PList right) {
-            List<Object> llist = left.getList();
-            List<Object> rlist = right.getList();
-
-            if (llist.size() != rlist.size()) {
-                return false;
-            }
-
-            for (int i = 0; i < llist.size(); i++) {
-                Object l = llist.get(i);
-                Object r = rlist.get(i);
-                boolean isTheSame = ArithmeticUtil.is(l, r);
-
-                if (!isTheSame) {
-                    return false;
-                }
-            }
-
-            return true;
+            return left.equals(right);
         }
 
         /**

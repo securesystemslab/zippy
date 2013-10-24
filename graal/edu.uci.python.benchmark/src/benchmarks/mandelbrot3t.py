@@ -11,7 +11,7 @@ import time
 def main(num):
     cout = sys.stdout.write
     #size = float(sys.argv[1])
-    size_int = int(num)
+    size_int = num
     xr_size = range(size_int)
     xr_iter = range(50)
     bit = 128
@@ -19,7 +19,6 @@ def main(num):
 
     cout("P4\n%d %d\n" % (size_int, size_int))
 
-    loop(size_int, xr_size, xr_iter, bit, byte_acc, cout)
     size = float(size_int)
     for y in xr_size:
         fy = 2j * y / size - 1j
@@ -44,19 +43,23 @@ def main(num):
 
         # zwei: disabled this block. Because it was never executed within the parameter value range that we use.
         # All the nodes in this block is usually never specialized, which is a problem for partial evaluation.
-        # if bit != 128:
-        #     cout(chr(byte_acc))
-        #     bit = 128
-        #     byte_acc = 0
+        if bit != 128:
+             cout(chr(byte_acc))
+             bit = 128
+             byte_acc = 0
+
+def measure():
+    print("Start timing...")
+    start = time.time()
+    num = int(sys.argv[1])
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print()
+    print("mandelbrot: " + duration)
 
 # warm up
 for run in range(6):
     main(300)
     print()
 
-print("Start timing...")
-start = time.time()
-main(sys.argv[1])
-duration = "%.3f\n" % (time.time() - start)
-print()
-print("mandelbrot: " + duration)
+measure()

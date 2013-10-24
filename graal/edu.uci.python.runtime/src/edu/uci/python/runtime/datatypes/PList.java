@@ -24,24 +24,20 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
+import org.python.core.*;
 import org.python.util.Generic;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class PList extends PSequence {
 
     private final List<Object> list;
 
     public static final ListAttribute listModule = new ListAttribute();
-
-    public PList() {
-        list = new ArrayList<>();
-    }
 
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
@@ -65,7 +61,7 @@ public class PList extends PSequence {
         }
     }
 
-    public List<Object> getList() {
+    protected List<Object> getList() {
         return list;
     }
 
@@ -81,18 +77,14 @@ public class PList extends PSequence {
 
     @Override
     public Object getItem(int idx) {
-        if (idx < 0) {
-            idx += list.size();
-        }
-        return list.get(idx);
+        int index = SequenceUtil.fixIndex(idx, list.size());
+        return list.get(index);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += list.size();
-        }
-        list.set(idx, value);
+        int index = SequenceUtil.fixIndex(idx, list.size());
+        list.set(index, value);
     }
 
     @Override
@@ -130,10 +122,10 @@ public class PList extends PSequence {
      */
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
-
         if (start == Integer.MIN_VALUE) {
             start = step < 0 ? list.size() - 1 : 0;
         }
+
         if (stop == Integer.MIN_VALUE) {
             stop = step < 0 ? -1 : list.size();
         }
@@ -251,4 +243,72 @@ public class PList extends PSequence {
         return new PList(result);
     }
 
+    public void reverse() {
+        Collections.reverse(list);
+    }
+
+    public void append(Object value) {
+        list.add(value);
+    }
+
+    public void extend(PList appendee) {
+        List<Object> tail = appendee.getList();
+        for (int i = 0; i < tail.size(); i++) {
+            list.add(tail.get(i));
+        }
+    }
+
+    @Override
+    public PList concat(PSequence other) {
+        List<Object> newList = new ArrayList<>();
+        newList.addAll(list);
+        newList.addAll(((PList) other).getList());
+        return new PList(newList, false);
+    }
+
+    public int index(Object value) {
+        int index = -1;
+
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).equals(value)) {
+                index = i;
+            }
+        }
+
+        if (index != -1) {
+            return index;
+        } else {
+            throw Py.ValueError(value + " is not in list");
+        }
+    }
+
+    public void insert(int index, Object value) {
+        list.add(index, value);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        List<Object> rlist = ((PList) other).getList();
+
+        if (list.size() != rlist.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < list.size(); i++) {
+            Object l = list.get(i);
+            Object r = rlist.get(i);
+            boolean isTheSame = ArithmeticUtil.is(l, r);
+
+            if (!isTheSame) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

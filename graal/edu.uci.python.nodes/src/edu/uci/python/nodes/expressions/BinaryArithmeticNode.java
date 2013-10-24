@@ -27,8 +27,6 @@ package edu.uci.python.nodes.expressions;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.python.core.*;
 
@@ -81,31 +79,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 7)
         PList doPList(PList left, PList right) {
-            List<Object> list = new ArrayList<>();
-            List<Object> leftList = left.getList();
-            for (int i = 0; i < leftList.size(); i++) {
-                list.add(leftList.get(i));
-            }
-            List<Object> rightList = right.getList();
-            for (int i = 0; i < rightList.size(); i++) {
-                list.add(rightList.get(i));
-            }
-            return new PList(list);
+            return left.concat(right);
         }
 
         @Specialization(order = 8)
         PTuple doPTuple(PTuple left, PTuple right) {
-            Object[] newArray = new Object[left.len() + right.len()];
-            int index = 0;
-            Object[] leftArray = left.getArray();
-            for (int i = 0; i < leftArray.length; i++) {
-                newArray[index++] = leftArray[i];
-            }
-            Object[] rightArray = right.getArray();
-            for (int i = 0; i < rightArray.length; i++) {
-                newArray[index++] = rightArray[i];
-            }
-            return new PTuple(newArray);
+            return left.concat(right);
         }
 
         @Specialization(order = 10)

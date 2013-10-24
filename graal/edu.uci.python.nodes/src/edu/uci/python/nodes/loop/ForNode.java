@@ -39,13 +39,13 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    public ForNode(PNode target, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
+    public ForNode(PNode target, StatementNode body) {
+        super(body);
         this.target = adoptChild(target);
     }
 
     protected ForNode(ForNode previous) {
-        this(previous.target, previous.body, previous.orelse);
+        this(previous.target, previous.body);
     }
 
     public abstract PNode getIterator();
@@ -71,8 +71,6 @@ public abstract class ForNode extends LoopNode {
             target.execute(frame);
             body.executeVoid(frame);
         }
-
-        orelse.executeVoid(frame);
     }
 
     @Override

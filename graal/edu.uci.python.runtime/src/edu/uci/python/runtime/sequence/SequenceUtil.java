@@ -22,53 +22,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.runtime.sequence;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class WhileNode extends LoopNode {
+public class SequenceUtil {
 
-    @Child protected BooleanCastNode condition;
-
-    public WhileNode(BooleanCastNode condition, StatementNode body) {
-        super(body);
-        this.condition = adoptChild(condition);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
-
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+    /**
+     * Make step a long in case adding the start, stop and step together overflows an int.
+     */
+    public static final int sliceLength(int start, int stop, long step) {
+        int ret;
+        if (step > 0) {
+            ret = (int) ((stop - start + step - 1) / step);
+        } else {
+            ret = (int) ((stop - start + step + 1) / step);
         }
 
-        return PNone.NONE;
+        if (ret < 0) {
+            return 0;
+        }
+
+        return ret;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    /*
+     * Compare the specified object/length pairs.
+     * 
+     * @return value >= 0 is the index where the sequences differs. -1: reached the end of sequence1
+     * without a difference -2: reached the end of both seqeunces without a difference -3: reached
+     * the end of sequence2 without a difference
+     */
+    public static int cmp(PSequence sequence1, PSequence sequence2) {
+        int length1 = sequence1.len();
+        int length2 = sequence2.len();
+
+        for (int i = 0; i < length1 && i < length2; i++) {
+            if (!sequence1.getItem(i).equals(sequence2.getItem(i))) {
+                return i;
+            }
+        }
+        if (length1 == length2) {
+            return -2;
+        }
+        return length1 < length2 ? -1 : -3;
     }
 
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitWhileNode(this);
+    public static int fixIndex(int index, int length) {
+        if (index < 0) {
+            return index + length;
+        } else {
+            return index;
+        }
     }
 }

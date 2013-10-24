@@ -75,7 +75,7 @@ public class TryTests {
     @Test
     public void scriptTryTest() {
         Path script = Paths.get("raise_try_test.py");
-        assertPrints("KeyboardInterrupt! <type \'exceptions.KeyboardInterrupt\'>\n" + "executing finally clause\n", script);
+        assertPrints("KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause\n", script);
     }
 
 }

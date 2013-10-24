@@ -83,8 +83,4 @@ public class StringAttribute extends PModule {
             throw new RuntimeException("invalid arguments type for join()");
         }
     }
-
-    public String join(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for join()");
-    }
 }

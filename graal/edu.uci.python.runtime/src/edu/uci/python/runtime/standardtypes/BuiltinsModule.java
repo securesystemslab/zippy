@@ -91,8 +91,7 @@ public class BuiltinsModule extends PythonModule {
                 return max(args[0]);
             } else {
                 Object[] copy = Arrays.copyOf(args, args.length);
-                Arrays.sort(copy);
-                return copy[copy.length - 1];
+                return sortObjectArray(copy);
             }
         }
 
@@ -101,11 +100,22 @@ public class BuiltinsModule extends PythonModule {
                 return ((PObject) arg).getMax();
             } else if (arg instanceof String) {
                 char[] copy = ((String) arg).toCharArray();
-                Arrays.sort(copy);
-                return copy[copy.length - 1];
+                return sortCharArray(copy);
             } else {
                 throw new RuntimeException("Unexpected argument type for max() ");
             }
+        }
+
+        @SlowPath
+        public Object sortCharArray(char[] array) {
+            Arrays.sort(array);
+            return array[array.length - 1];
+        }
+
+        @SlowPath
+        public Object sortObjectArray(Object[] array) {
+            Arrays.sort(array);
+            return array[array.length - 1];
         }
     };
 

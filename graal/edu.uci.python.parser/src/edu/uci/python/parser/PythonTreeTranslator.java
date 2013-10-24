@@ -153,7 +153,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
-        return factory.createFunctionDef(name, parameters, ct);
+        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame());
     }
 
     public PNode wrapWithWriteOrStore(PNode rhs, ScopeKind definingScope, FrameSlot slot, String name) {
@@ -299,7 +299,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(statements);
         FunctionRootNode methodRoot = factory.createFunctionRoot(name, ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
         CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct);
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct, environment.getCurrentFrame());
         environment.endScope();
 
         // The default super class is the <class 'object'>.
@@ -832,7 +832,12 @@ public class PythonTreeTranslator extends Visitor {
             wrappedBody = factory.createContinueTarget(body);
         }
 
-        LoopNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody, orelse);
+        StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody);
+
+        if (!orelse.isEmpty()) {
+            whileNode = factory.createElse(whileNode, orelse);
+        }
+
         if (info.hasBreak()) {
             return factory.createBreakTarget(whileNode);
         } else {
@@ -869,13 +874,17 @@ public class PythonTreeTranslator extends Visitor {
             wrappedBody = factory.createContinueTarget(body);
         }
 
-        LoopNode forNode;
+        StatementNode forNode;
         if (environment.isInFunctionScope() && target instanceof WriteLocalNode) {
             WriteLocalNode wtarget = (WriteLocalNode) target;
             wtarget = (WriteLocalNode) wtarget.updateRhs(null);
-            forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody, orelse);
+            forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody);
         } else {
-            forNode = factory.createFor(target, iter, wrappedBody, orelse);
+            forNode = factory.createFor(target, iter, wrappedBody);
+        }
+
+        if (!orelse.isEmpty()) {
+            forNode = factory.createElse(forNode, orelse);
         }
 
         if (info.hasBreak()) {
@@ -982,10 +991,7 @@ public class PythonTreeTranslator extends Visitor {
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
             PNode exceptType = (PNode) visit(except.getInternalType());
-            PNode exceptName = null;
-            if (except.getInternalName() != null) {
-                exceptName = ((Amendable) visit(except.getInternalName())).updateRhs(exceptType);
-            }
+            PNode exceptName = (except.getInternalName() == null) ? null : ((PNode) visit(except.getInternalName()));
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
 

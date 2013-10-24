@@ -124,10 +124,6 @@ public class DictionaryAttribute extends PModule {
         throw new RuntimeException("wrong number of arguments for keys()");
     }
 
-    public PList keys(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for keys()");
-    }
-
     @ModuleMethod
     public PList items(Object[] args, Object self) {
         PDictionary dict = (PDictionary) self;
@@ -140,10 +136,6 @@ public class DictionaryAttribute extends PModule {
     }
 
     public PList items(Object arg, Object self) {
-        throw new RuntimeException("wrong number of arguments for items()");
-    }
-
-    public PList items(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for items()");
     }
 
@@ -160,10 +152,6 @@ public class DictionaryAttribute extends PModule {
         PDictionary dict = (PDictionary) self;
 
         return dict.getMap().containsKey(arg);
-    }
-
-    public boolean hasKey(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for has_key()");
     }
 
     @ModuleMethod
@@ -214,10 +202,6 @@ public class DictionaryAttribute extends PModule {
         throw new RuntimeException("wrong number of arguments for copy()");
     }
 
-    public PDictionary copy(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for copy()");
-    }
-
     @ModuleMethod
     public PDictionary clear(Object[] args, Object self) {
         PDictionary dict = (PDictionary) self;
@@ -234,26 +218,18 @@ public class DictionaryAttribute extends PModule {
         throw new RuntimeException("wrong number of arguments for clear()");
     }
 
-    public PDictionary clear(Object arg0, Object arg1, Object self) {
-        throw new RuntimeException("wrong number of arguments for clear()");
-    }
-
     @ModuleMethod
     public PList values(Object[] args, Object self) {
         PDictionary dict = (PDictionary) self;
 
         if (args.length == 0) {
-            return new PList(new ArrayList<Object>(dict.getMap().values()));
+            return new PList(new ArrayList<>(dict.getMap().values()));
         } else {
             throw new RuntimeException("wrong number of arguments for values()");
         }
     }
 
     public PDictionary values(Object arg, Object self) {
-        throw new RuntimeException("wrong number of arguments for values()");
-    }
-
-    public PDictionary values(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for values()");
     }
 }

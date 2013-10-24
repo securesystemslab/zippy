@@ -10,8 +10,8 @@ def docompute(num):
 		sum = 0.0
 		j = 0
 		while j < num:
-			sum += eval_A(i, j)
-			# sum += 1.0 / (((i + j) * (i + j + 1) >> 1) + i + 1)
+			#sum += eval_A(i, j)
+			sum += 1.0 / (((i + j) * (i + j + 1) >> 1) + i + 1)
 			j += 1
 
 	return sum
@@ -22,7 +22,7 @@ def measure():
 	start = time.time()
 
 	for run in range(5):
-		sum = docompute(100) #10000
+		sum = docompute(10000) #10000
 
 	print("sum", sum)
 
@@ -30,6 +30,6 @@ def measure():
 	print("arith_binop: " + duration)
 
 for run in range(5):
-	docompute(10) #1000
+	docompute(1000) #1000
 
 measure()

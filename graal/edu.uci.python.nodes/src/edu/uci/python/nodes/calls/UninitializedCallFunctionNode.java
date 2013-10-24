@@ -58,12 +58,12 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         } else if (calleeObj instanceof PCallable) {
             PCallable callable = (PCallable) calleeObj;
 
-            if (callable.isBuiltin()) {
+            if (callable.isBuiltin() || !(callable instanceof PFunction)) {
                 CallBuiltInFunctionNode callBuiltIn = CallBuiltInFunctionNodeFactory.create(callable, callable.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
             } else if (keywords.length == 0) {
-                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable);
+                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, (PFunction) callable);
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);
             } else {

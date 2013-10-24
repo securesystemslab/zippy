@@ -1,6 +1,6 @@
 
 def basic():
-    b = [ 2*i for i in xrange(5)]
+    b = [ 2*i for i in range(5)]
     print(b)
 
 basic()
