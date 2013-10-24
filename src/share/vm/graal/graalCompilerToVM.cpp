@@ -38,6 +38,8 @@
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "gc_implementation/g1/heapRegion.hpp"
+#include "runtime/javaCalls.hpp"
+#include "runtime/vmStructs.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {
@@ -307,11 +309,6 @@ C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_meth
   return code == NULL ? 0 : code->insts_size();
 C2V_END
 
-C2V_VMENTRY(jint, constantPoolLength, (JNIEnv *env, jobject, jobject type))
-  ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
-  return cp->length();
-C2V_END
-
 C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
   ResourceMark rm;
 
@@ -547,12 +544,14 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
   return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
 C2V_END
 
+// TODO move to Java
 C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return InstanceKlass::cast(klass)->is_initialized();
 C2V_END
 
+// TODO move to Java
 C2V_VMENTRY(jboolean, isTypeLinked,(JNIEnv *, jobject, jobject hotspot_klass))
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
@@ -642,152 +641,120 @@ jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig)
   return id;
 }
 
+C2V_VMENTRY(void, doNotInlineOrCompile,(JNIEnv *, jobject,  jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  method->set_not_c1_compilable();
+  method->set_not_c2_compilable();
+  method->set_dont_inline(true);
+C2V_END
+
+extern "C" {
+extern VMStructEntry* gHotSpotVMStructs;
+extern uint64_t gHotSpotVMStructEntryTypeNameOffset;
+extern uint64_t gHotSpotVMStructEntryFieldNameOffset;
+extern uint64_t gHotSpotVMStructEntryTypeStringOffset;
+extern uint64_t gHotSpotVMStructEntryIsStaticOffset;
+extern uint64_t gHotSpotVMStructEntryOffsetOffset;
+extern uint64_t gHotSpotVMStructEntryAddressOffset;
+extern uint64_t gHotSpotVMStructEntryArrayStride;
+
+extern VMTypeEntry* gHotSpotVMTypes;
+extern uint64_t gHotSpotVMTypeEntryTypeNameOffset;
+extern uint64_t gHotSpotVMTypeEntrySuperclassNameOffset;
+extern uint64_t gHotSpotVMTypeEntryIsOopTypeOffset;
+extern uint64_t gHotSpotVMTypeEntryIsIntegerTypeOffset;
+extern uint64_t gHotSpotVMTypeEntryIsUnsignedOffset;
+extern uint64_t gHotSpotVMTypeEntrySizeOffset;
+extern uint64_t gHotSpotVMTypeEntryArrayStride;
+
+extern VMIntConstantEntry* gHotSpotVMIntConstants;
+extern uint64_t gHotSpotVMIntConstantEntryNameOffset;
+extern uint64_t gHotSpotVMIntConstantEntryValueOffset;
+extern uint64_t gHotSpotVMIntConstantEntryArrayStride;
+
+extern VMLongConstantEntry* gHotSpotVMLongConstants;
+extern uint64_t gHotSpotVMLongConstantEntryNameOffset;
+extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
+extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
+}
+
 C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 #define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
 #define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
 #define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
 #define set_address(name, value) do { set_long(name, (jlong) value); } while (0)
-#define set_object(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "Ljava/lang/Object;"), value); } while (0)
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
 
-  set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
-  set_int("codeEntryAlignment", CodeEntryAlignment);
-  set_int("hubOffset", oopDesc::klass_offset_in_bytes());
-  set_int("markOffset", oopDesc::mark_offset_in_bytes());
-  set_int("prototypeMarkWordOffset", in_bytes(Klass::prototype_header_offset()));
-  set_int("superCheckOffsetOffset", in_bytes(Klass::super_check_offset_offset()));
-  set_int("secondarySuperCacheOffset", in_bytes(Klass::secondary_super_cache_offset()));
-  set_int("secondarySupersOffset", in_bytes(Klass::secondary_supers_offset()));
-  set_int("subklassOffset", in_bytes(Klass::subklass_offset()));
-  set_int("nextSiblingOffset", in_bytes(Klass::next_sibling_offset()));
+  set_address("gHotSpotVMStructs", gHotSpotVMStructs);
+  set_long("gHotSpotVMStructEntryTypeNameOffset",   gHotSpotVMStructEntryTypeNameOffset);
+  set_long("gHotSpotVMStructEntryFieldNameOffset",  gHotSpotVMStructEntryFieldNameOffset);
+  set_long("gHotSpotVMStructEntryTypeStringOffset", gHotSpotVMStructEntryTypeStringOffset);
+  set_long("gHotSpotVMStructEntryIsStaticOffset",   gHotSpotVMStructEntryIsStaticOffset);
+  set_long("gHotSpotVMStructEntryOffsetOffset",     gHotSpotVMStructEntryOffsetOffset);
+  set_long("gHotSpotVMStructEntryAddressOffset",    gHotSpotVMStructEntryAddressOffset);
+  set_long("gHotSpotVMStructEntryArrayStride",      gHotSpotVMStructEntryArrayStride);
+
+  set_address("gHotSpotVMTypes", gHotSpotVMTypes);
+  set_long("gHotSpotVMTypeEntryTypeNameOffset",       gHotSpotVMTypeEntryTypeNameOffset);
+  set_long("gHotSpotVMTypeEntrySuperclassNameOffset", gHotSpotVMTypeEntrySuperclassNameOffset);
+  set_long("gHotSpotVMTypeEntryIsOopTypeOffset",      gHotSpotVMTypeEntryIsOopTypeOffset);
+  set_long("gHotSpotVMTypeEntryIsIntegerTypeOffset",  gHotSpotVMTypeEntryIsIntegerTypeOffset);
+  set_long("gHotSpotVMTypeEntryIsUnsignedOffset",     gHotSpotVMTypeEntryIsUnsignedOffset);
+  set_long("gHotSpotVMTypeEntrySizeOffset",           gHotSpotVMTypeEntrySizeOffset);
+  set_long("gHotSpotVMTypeEntryArrayStride",          gHotSpotVMTypeEntryArrayStride);
+
+  set_address("gHotSpotVMIntConstants", gHotSpotVMIntConstants);
+  set_long("gHotSpotVMIntConstantEntryNameOffset",  gHotSpotVMIntConstantEntryNameOffset);
+  set_long("gHotSpotVMIntConstantEntryValueOffset", gHotSpotVMIntConstantEntryValueOffset);
+  set_long("gHotSpotVMIntConstantEntryArrayStride", gHotSpotVMIntConstantEntryArrayStride);
+
+  set_address("gHotSpotVMLongConstants", gHotSpotVMLongConstants);
+  set_long("gHotSpotVMLongConstantEntryNameOffset",  gHotSpotVMLongConstantEntryNameOffset);
+  set_long("gHotSpotVMLongConstantEntryValueOffset", gHotSpotVMLongConstantEntryValueOffset);
+  set_long("gHotSpotVMLongConstantEntryArrayStride", gHotSpotVMLongConstantEntryArrayStride);
+
+  //------------------------------------------------------------------------------------------------
+
   set_int("arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
-  set_int("klassStateOffset", in_bytes(InstanceKlass::init_state_offset()));
-  set_int("klassStateFullyInitialized", (int)InstanceKlass::fully_initialized);
-  set_int("threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
-  set_int("threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
-  set_int("threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
-  set_int("threadIsMethodHandleReturnOffset", in_bytes(JavaThread::is_method_handle_return_offset()));
-  set_int("osThreadOffset", in_bytes(JavaThread::osthread_offset()));
-  set_int("osThreadInterruptedOffset", in_bytes(OSThread::interrupted_offset()));
-  set_int("unlockedMask", (int) markOopDesc::unlocked_value);
-  set_int("biasedLockMaskInPlace", (int) markOopDesc::biased_lock_mask_in_place);
-  set_int("ageMaskInPlace", (int) markOopDesc::age_mask_in_place);
-  set_int("epochMaskInPlace", (int) markOopDesc::epoch_mask_in_place);
-  set_int("biasedLockPattern", (int) markOopDesc::biased_lock_pattern);
-  set_int("methodMaxLocalsOffset", in_bytes(ConstMethod::size_of_locals_offset()));
-  set_int("methodConstMethodOffset", in_bytes(Method::const_offset()));
-  set_int("constMethodMaxStackOffset", in_bytes(ConstMethod::max_stack_offset()));
-  set_int("constMethodConstantsOffset", in_bytes(ConstMethod::constants_offset()));
-  set_int("constantPoolHolderOffset", ConstantPool::pool_holder_offset_in_bytes());
+
   set_int("extraStackEntries", Method::extra_stack_entries());
-  set_int("methodAccessFlagsOffset", in_bytes(Method::access_flags_offset()));
-  set_int("methodQueuedForCompilationBit", (int) JVM_ACC_QUEUED);
-  set_int("methodIntrinsicIdOffset", Method::intrinsic_id_offset_in_bytes());
-  set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
-  set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
-  set_int("threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
-  set_long("safepointPollingAddress", (jlong)(os::get_polling_page()));
-#ifdef TARGET_ARCH_x86
-  set_boolean("isPollingPageFar", Assembler::is_polling_page_far());
-  set_int("runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
-#endif
-  set_int("classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
-  set_int("klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
-  set_int("klassAccessFlagsOffset", in_bytes(Klass::access_flags_offset()));
-  set_int("klassOffset", java_lang_Class::klass_offset_in_bytes());
-  set_int("arrayKlassOffset", java_lang_Class::array_klass_offset_in_bytes());
-  set_int("graalMirrorInClassOffset", java_lang_Class::graal_mirror_offset_in_bytes());
-  set_int("klassLayoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
-  set_int("klassSuperKlassOffset", in_bytes(Klass::super_offset()));
-  set_int("methodDataOffset", in_bytes(Method::method_data_offset()));
-  set_int("nmethodEntryOffset", nmethod::verified_entry_point_offset());
-  set_int("methodCompiledEntryOffset", in_bytes(Method::from_compiled_offset()));
-  set_int("basicLockSize", sizeof(BasicLock));
-  set_int("basicLockDisplacedHeaderOffset", BasicLock::displaced_header_offset_in_bytes());
-  set_int("uninitializedIdentityHashCodeValue", markOopDesc::no_hash);
-  set_int("identityHashCodeShift", markOopDesc::hash_shift);
-
-  set_int("arrayKlassLayoutHelperIdentifier", 0x80000000);
-  assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
-  set_int("arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
-
-
-  set_int("pendingExceptionOffset", in_bytes(ThreadShadow::pending_exception_offset()));
-  set_int("pendingDeoptimizationOffset", in_bytes(ThreadShadow::pending_deoptimization_offset()));
-
-  set_int("metaspaceArrayLengthOffset", Array<Klass*>::length_offset_in_bytes());
-  set_int("metaspaceArrayBaseOffset", Array<Klass*>::base_offset_in_bytes());
-  set_int("methodDataOopDataOffset", in_bytes(MethodData::data_offset()));
-  set_int("methodDataOopTrapHistoryOffset", in_bytes(MethodData::trap_history_offset()));
-  set_int("dataLayoutHeaderSize", DataLayout::header_size_in_bytes());
-  set_int("dataLayoutTagOffset", in_bytes(DataLayout::tag_offset()));
-  set_int("dataLayoutFlagsOffset", in_bytes(DataLayout::flags_offset()));
-  set_int("dataLayoutBCIOffset", in_bytes(DataLayout::bci_offset()));
-  set_int("dataLayoutCellsOffset", in_bytes(DataLayout::cell_offset(0)));
-  set_int("dataLayoutCellSize", DataLayout::cell_size);
 
   set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
-  set_long("tlabIntArrayMarkWord", (intptr_t)markOopDesc::prototype()->copy_set_hash(0x2));
   set_long("heapTopAddress", (jlong)(address) Universe::heap()->top_addr());
   set_long("heapEndAddress", (jlong)(address) Universe::heap()->end_addr());
-  set_int("threadTlabStartOffset", in_bytes(JavaThread::tlab_start_offset()));
-  set_int("threadTlabSizeOffset", in_bytes(JavaThread::tlab_size_offset()));
-  set_int("threadAllocatedBytesOffset", in_bytes(JavaThread::allocated_bytes_offset()));
-  set_int("threadLastJavaSpOffset", in_bytes(JavaThread::last_Java_sp_offset()));
-  set_int("threadLastJavaPcOffset", in_bytes(JavaThread::last_Java_pc_offset()));
-#ifdef TARGET_ARCH_x86
-  set_int("threadLastJavaFpOffset", in_bytes(JavaThread::last_Java_fp_offset()));
-#endif
-#ifdef TARGET_ARCH_sparc
-  set_int("threadJavaFrameAnchorFlagsOffset", in_bytes(JavaThread::frame_anchor_offset() + JavaFrameAnchor::flags_offset()));
-#endif
-  set_int("threadObjectResultOffset", in_bytes(JavaThread::vm_result_offset()));
-  set_int("tlabSlowAllocationsOffset", in_bytes(JavaThread::tlab_slow_allocations_offset()));
-  set_int("tlabFastRefillWasteOffset", in_bytes(JavaThread::tlab_fast_refill_waste_offset()));
-  set_int("tlabNumberOfRefillsOffset", in_bytes(JavaThread::tlab_number_of_refills_offset()));
-  set_int("tlabRefillWasteLimitOffset", in_bytes(JavaThread::tlab_refill_waste_limit_offset()));
-  set_int("tlabRefillWasteIncrement", (int32_t) ThreadLocalAllocBuffer::refill_waste_limit_increment());
-  set_int("klassInstanceSizeOffset", in_bytes(Klass::layout_helper_offset()));
+
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
 
-  set_address("nonOopBits", Universe::non_oop_word());
-  set_long("verifyOopCounterAddress", (jlong)(address) StubRoutines::verify_oop_count_addr());
   set_long("verifyOopMask", Universe::verify_oop_mask());
   set_long("verifyOopBits", Universe::verify_oop_bits());
 
-  set_long("arrayPrototypeMarkWord", (intptr_t)markOopDesc::prototype());
-  set_int("layoutHelperLog2ElementSizeShift", Klass::_lh_log2_element_size_shift);
-  set_int("layoutHelperLog2ElementSizeMask", Klass::_lh_log2_element_size_mask);
-  set_int("layoutHelperElementTypeShift", Klass::_lh_element_type_shift);
-  set_int("layoutHelperElementTypeMask", Klass::_lh_element_type_mask);
-  // this filters out the bit that differentiates a type array from an object array
-  set_int("layoutHelperElementTypePrimitiveInPlace", (Klass::_lh_array_tag_type_value & ~Klass::_lh_array_tag_obj_value) << Klass::_lh_array_tag_shift);
-  set_int("layoutHelperHeaderSizeShift", Klass::_lh_header_size_shift);
-  set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
-  set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
+  set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
 
-  set_address("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
+  //------------------------------------------------------------------------------------------------
+
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-  set_address("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
-  set_address("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
-  set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
-  set_address("cipherBlockChainingDecryptAESCryptStub", StubRoutines::cipherBlockChaining_decryptAESCrypt());
-  set_address("updateBytesCRC32Stub", StubRoutines::updateBytesCRC32());
+  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
+
+  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
+  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
+  set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
+
+  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
+  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
+  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
 
   set_address("newInstanceAddress", GraalRuntime::new_instance);
   set_address("newArrayAddress", GraalRuntime::new_array);
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
   set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
-  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
-  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
   set_address("vmMessageAddress", GraalRuntime::vm_message);
   set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
   set_address("exceptionHandlerForPcAddress", GraalRuntime::exception_handler_for_pc);
-  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
-  set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
   set_address("monitorenterAddress", GraalRuntime::monitorenter);
   set_address("monitorexitAddress", GraalRuntime::monitorexit);
   set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
@@ -797,82 +764,11 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("logPrintfAddress", GraalRuntime::log_printf);
   set_address("vmErrorAddress", GraalRuntime::vm_error);
   set_address("loadAndClearExceptionAddress", GraalRuntime::load_and_clear_exception);
-  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
-  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
-  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
-  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
-  set_address("crcTableAddress", StubRoutines::crc_table_addr());
-
-  set_int("deoptReasonNone", Deoptimization::Reason_none);
-  set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
-  set_int("deoptReasonRangeCheck", Deoptimization::Reason_range_check);
-  set_int("deoptReasonClassCheck", Deoptimization::Reason_class_check);
-  set_int("deoptReasonArrayCheck", Deoptimization::Reason_array_check);
-  set_int("deoptReasonUnreached0", Deoptimization::Reason_unreached0);
-  set_int("deoptReasonTypeCheckInlining", Deoptimization::Reason_type_checked_inlining);
-  set_int("deoptReasonOptimizedTypeCheck", Deoptimization::Reason_optimized_type_check);
-  set_int("deoptReasonNotCompiledExceptionHandler", Deoptimization::Reason_not_compiled_exception_handler);
-  set_int("deoptReasonUnresolved", Deoptimization::Reason_unresolved);
-  set_int("deoptReasonJsrMismatch", Deoptimization::Reason_jsr_mismatch);
-  set_int("deoptReasonDiv0Check", Deoptimization::Reason_div0_check);
-  set_int("deoptReasonConstraint", Deoptimization::Reason_constraint);
-  set_int("deoptReasonLoopLimitCheck", Deoptimization::Reason_loop_limit_check);
-
-  set_int("deoptActionNone", Deoptimization::Action_none);
-  set_int("deoptActionMaybeRecompile", Deoptimization::Action_maybe_recompile);
-  set_int("deoptActionReinterpret", Deoptimization::Action_reinterpret);
-  set_int("deoptActionMakeNotEntrant", Deoptimization::Action_make_not_entrant);
-  set_int("deoptActionMakeNotCompilable", Deoptimization::Action_make_not_compilable);
-
-  set_int("vmIntrinsicInvokeBasic", vmIntrinsics::_invokeBasic);
-  set_int("vmIntrinsicLinkToVirtual", vmIntrinsics::_linkToVirtual);
-  set_int("vmIntrinsicLinkToStatic", vmIntrinsics::_linkToStatic);
-  set_int("vmIntrinsicLinkToSpecial", vmIntrinsics::_linkToSpecial);
-  set_int("vmIntrinsicLinkToInterface", vmIntrinsics::_linkToInterface);
-
-  set_address("narrowOopBase", Universe::narrow_oop_base());
-  set_int("narrowOopShift", Universe::narrow_oop_shift());
-  set_address("narrowKlassBase", Universe::narrow_klass_base());
-  set_int("narrowKlassShift", Universe::narrow_klass_shift());
-  set_int("logKlassAlignment", LogKlassAlignmentInBytes);
-
-
-  set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
-  set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
-  set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);
-  set_int("g1SATBQueueMarkingOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_active()));
-  set_int("g1SATBQueueIndexOffset", in_bytes(JavaThread::satb_mark_queue_offset() +  PtrQueue::byte_offset_of_index()));
-  set_int("g1SATBQueueBufferOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_buf()));
   set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
   set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
-  set_address("gcTotalCollectionsAddress", (jlong)(address)(Universe::heap()->total_collections_address()));
   set_address("validateObject", GraalRuntime::validate_object);
 
-  BarrierSet* bs = Universe::heap()->barrier_set();
-  switch (bs->kind()) {
-    case BarrierSet::CardTableModRef:
-    case BarrierSet::CardTableExtension:
-    case BarrierSet::G1SATBCT:
-    case BarrierSet::G1SATBCTLogging:{
-      jlong base = (jlong)((CardTableModRefBS*)bs)->byte_map_base;
-      assert(base != 0, "unexpected byte_map_base");
-      set_long("cardtableStartAddress", base);
-      set_int("cardtableShift", CardTableModRefBS::card_shift);
-      break;
-    }
-    case BarrierSet::ModRef:
-    case BarrierSet::Other:
-      set_long("cardtableStartAddress", 0);
-      set_int("cardtableShift", 0);
-      // No post barriers
-      break;
-    default:
-      ShouldNotReachHere();
-      break;
-    }
-
-  set_int("arrayClassElementOffset", in_bytes(ObjArrayKlass::element_klass_offset()));
+  //------------------------------------------------------------------------------------------------
 
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
   set_int("graalCountersSize", (jint) GRAAL_COUNTERS_SIZE);
@@ -880,7 +776,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #undef set_boolean
 #undef set_int
 #undef set_long
-#undef set_object
 
 C2V_END
 
@@ -994,26 +889,6 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
     oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
     return JNIHandles::make_local(o);
   }
-C2V_END
-
-C2V_VMENTRY(jint, getVtableEntryOffset, (JNIEnv *, jobject, jlong metaspace_method))
-
-  Method* method = asMethod(metaspace_method);
-  assert(!InstanceKlass::cast(method->method_holder())->is_interface(), "vtableEntryOffset cannot be called for interface methods");
-  assert(InstanceKlass::cast(method->method_holder())->is_linked(), "vtableEntryOffset cannot be called is holder is not linked");
-  assert(method->vtable_index() >= 0, "vtable entry offset should not be used");
-
-  // get entry offset in words
-  int vtable_entry_offset = InstanceKlass::vtable_start_offset() + method->vtable_index() * vtableEntry::size();
-  // convert to bytes
-  vtable_entry_offset = vtable_entry_offset * wordSize + vtableEntry::method_offset_in_bytes();
-
-  return vtable_entry_offset;
-C2V_END
-
-C2V_VMENTRY(jboolean, hasVtableEntry, (JNIEnv *, jobject, jlong metaspace_method))
-  Method* method = asMethod(metaspace_method);
-  return method->vtable_index() >= 0;
 C2V_END
 
 C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
@@ -1138,7 +1013,7 @@ C2V_END
 
 C2V_VMENTRY(jobject, readUnsafeUncompressedPointer, (JNIEnv *env, jobject, jobject o, jlong offset))
   oop resolved_o = JNIHandles::resolve(o);
-  address addr = offset + (address)resolved_o;
+  address addr = ((address)resolved_o) + offset;
   return JNIHandles::make_local(*((oop*)addr));
 C2V_END
 
@@ -1196,12 +1071,10 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
+  {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
   {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
-  {CC"getVtableEntryOffset",          CC"("METASPACE_METHOD")I",                                        FN_PTR(getVtableEntryOffset)},
-  {CC"hasVtableEntry",                CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasVtableEntry)},
-  {CC"constantPoolLength",            CC"("HS_RESOLVED_TYPE")I",                                        FN_PTR(constantPoolLength)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupConstantInPool)},
   {CC"lookupAppendixInPool",          CC"("HS_RESOLVED_TYPE"IB)"OBJECT,                                 FN_PTR(lookupAppendixInPool)},
