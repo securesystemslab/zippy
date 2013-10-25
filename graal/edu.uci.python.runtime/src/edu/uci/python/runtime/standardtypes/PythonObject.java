@@ -55,4 +55,9 @@ public class PythonObject extends PythonBasicObject {
         unmodifiedAssumption.invalidate();
         super.setAttribute(name, value);
     }
+
+    @Override
+    public String toString() {
+        return "<" + pythonType.getClassName() + " object at " + hashCode() + ">";
+    }
 }

@@ -22,47 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.test.runtime;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import org.junit.*;
 
-public class PBuiltinFunction extends PCallable {
+import edu.uci.python.test.*;
 
-    private final CallTarget callTarget;
+public class PythonCoreTests {
 
-    public PBuiltinFunction(String name, CallTarget callTarget) {
-        super(name, true);
-        this.callTarget = callTarget;
+    @Test
+    public void object() {
+        String source = "print(object)\n";
+        PythonTests.assertPrints("<class 'object'>\n", source);
     }
 
-    @Override
-    public boolean isBuiltin() {
-        return true;
+    @Test
+    public void createAnObject() {
+        String source = "object()";
+        PythonTests.assertPrints("", source);
     }
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
-
-    @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        if (keywords.length == 0) {
-            return callTarget.call(caller, new PArguments(PNone.NONE, args));
-        } else {
-            PKeyword[] pkeywords = new PKeyword[keywords.length];
-            System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
-        }
-    }
-
-    public CallTarget getCallTarget() {
-        return callTarget;
-    }
-
-    @Override
-    public String toString() {
-        return "<built-in function " + name + ">";
+    @Test
+    public void inheritsObject() {
+        String source = "class Foo(object):\n" + //
+                        "    pass\n" + //
+                        "Foo()\n" + //
+                        "\n";
+        PythonTests.assertPrints("", source);
     }
 }

@@ -22,47 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.standardtypes;
 
-import com.oracle.truffle.api.*;
+import org.python.core.*;
+
 import com.oracle.truffle.api.frame.*;
 
-public class PBuiltinFunction extends PCallable {
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 
-    private final CallTarget callTarget;
+public class PythonObjectClass extends PythonBuiltinClass {
 
-    public PBuiltinFunction(String name, CallTarget callTarget) {
-        super(name, true);
-        this.callTarget = callTarget;
+    public PythonObjectClass(PythonContext context) {
+        super(context, null, "object");
+        this.addBuiltinMethodsAndConstants(PythonObjectClass.class);
+        addInit();
     }
 
-    @Override
-    public boolean isBuiltin() {
-        return true;
-    }
+    private void addInit() {
+        PythonCallTarget initCallTarget = new PythonCallTarget() {
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
+            @Override
+            public Object call(PackedFrame frame, PArguments arguments) {
+                Object[] args = arguments.getArgumentsArray();
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        if (keywords.length == 0) {
-            return callTarget.call(caller, new PArguments(PNone.NONE, args));
-        } else {
-            PKeyword[] pkeywords = new PKeyword[keywords.length];
-            System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
-        }
-    }
+                if (args.length > 1) {
+                    throw Py.TypeError("object() takes no parameters");
+                }
 
-    public CallTarget getCallTarget() {
-        return callTarget;
-    }
+                return arguments.getSelf();
+            }
+        };
 
-    @Override
-    public String toString() {
-        return "<built-in function " + name + ">";
+        final PBuiltinFunction method = new PBuiltinFunction("__init__", initCallTarget);
+        setAttribute("__init__", method);
     }
 }

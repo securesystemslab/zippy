@@ -48,11 +48,14 @@ public class PythonCore {
         assert context != null;
 
         typeClass = new PythonClass(context, null, "type");
-        objectClass = new PythonClass(context, null, "object");
+        objectClass = new PythonObjectClass(context);
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonClass(context, objectClass, "module");
 
         builtinsModule = new BuiltinsModule(moduleClass, "__builtins__", context.getBuiltins());
+	   //builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
+        builtinsModule.setAttribute("object", objectClass);
+
         mainModule = new MainModule(moduleClass, "__main__");
         mainModule.setAttribute("__builtins__", builtinsModule);
     }
