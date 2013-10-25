@@ -327,7 +327,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                             jvmCfgLines += ['-original KNOWN\n']
                         else:
                             # skip lines which we cannot parse (e.g. '-hotspot ALIASED_TO -client')
-                            pass
+                            mx.log("WARNING: skipping not parsable line \"" + line + "\"")
                     else:
                         jvmCfgLines += [line]
 
