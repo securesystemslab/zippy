@@ -28,6 +28,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PTuple extends PImmutableSequence {
 
     private final Object[] array;
@@ -140,7 +142,7 @@ public class PTuple extends PImmutableSequence {
 
     @Override
     public boolean lessThan(PSequence sequence) {
-        int i = cmp(this, sequence);
+        int i = SequenceUtil.cmp(this, sequence);
         if (i < 0) {
             return i == -1 ? true : false;
         }
@@ -149,7 +151,7 @@ public class PTuple extends PImmutableSequence {
         Object element2 = sequence.getItem(i);
 
         /**
-         * TODO Can be used a better approach instead of instanceof checks
+         * TODO: Can use a better approach instead of instanceof checks
          */
         if (element1 instanceof Integer && element1 instanceof Integer) {
             int int1 = (int) element1;
@@ -196,12 +198,22 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public PCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PTuple concat(PSequence sequence) {
+        Object[] newArray = new Object[len() + sequence.len()];
+        Object[] rightArray = ((PTuple) sequence).getArray();
+
+        System.arraycopy(getArray(), 0, newArray, 0, len());
+        System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
+        return new PTuple(newArray);
     }
 }

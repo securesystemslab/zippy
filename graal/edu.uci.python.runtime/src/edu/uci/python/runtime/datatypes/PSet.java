@@ -59,87 +59,74 @@ public class PSet extends PBaseSet {
     // intersection_update
     @Override
     public void intersectionUpdate(Iterable<Object> other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void intersectionUpdate(PBaseSet other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void intersectionUpdate(Object[] args) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     // difference_update
     @Override
     public void differenceUpdate(Iterable<Object> other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void differenceUpdate(PBaseSet other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void differenceUpdate(Object[] args) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     // symmetric_difference_update
     @Override
     public void symmetricDifferenceUpdate(Iterable<Object> other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void symmetricDifferenceUpdate(PBaseSet other) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     // add
     @Override
     public boolean add(Object o) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     // remove
     @Override
     public boolean remove(Object o) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     // discard
     @Override
     public boolean discard(Object o) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     // pop
     @Override
     public boolean pop() {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     // clear
     @Override
     public boolean clear() {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -148,7 +135,7 @@ public class PSet extends PBaseSet {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

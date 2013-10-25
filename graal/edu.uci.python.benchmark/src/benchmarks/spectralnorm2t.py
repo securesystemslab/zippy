@@ -9,41 +9,41 @@
 
 from array     import array
 from math      import sqrt
-import sys
-import time
+from sys       import argv
+import sys, time
 
-#if sys.version_info < (3, 0):
-#    from itertools import izip as zip
-#else:
-#    xrange = range
+if sys.version_info < (3, 0):
+    from itertools import izip as zip
+else:
+    xrange = range
 
 def eval_A (i, j):
     return 1.0 / (((i + j) * (i + j + 1) >> 1) + i + 1)
 
 def eval_A_times_u (u, resulted_list):
     u_len = len (u)
-    #local_eval_A = eval_A
+    local_eval_A = eval_A
 
-    for i in range (u_len):
+    for i in xrange (u_len):
         partial_sum = 0
 
         j = 0
         while j < u_len:
-            partial_sum += eval_A (i, j) * u[j]
+            partial_sum += local_eval_A (i, j) * u[j]
             j += 1
 
         resulted_list[i] = partial_sum
 
 def eval_At_times_u (u, resulted_list):
     u_len = len (u)
-    #local_eval_A = eval_A
+    local_eval_A = eval_A
 
-    for i in range (u_len):
+    for i in xrange (u_len):
         partial_sum = 0
 
         j = 0
         while j < u_len:
-            partial_sum += eval_A (j, i) * u[j]
+            partial_sum += local_eval_A (j, i) * u[j]
             j += 1
 
         resulted_list[i] = partial_sum
@@ -52,16 +52,16 @@ def eval_AtA_times_u (u, out, tmp):
     eval_A_times_u (u, tmp)
     eval_At_times_u (tmp, out)
 
-def main(n):
-    #n = int (sys.argv [1])
+def main(num):
+    n = num
     u = array("d", [1]) * n
     v = array("d", [1]) * n
     tmp = array("d", [1]) * n
-    #local_eval_AtA_times_u = eval_AtA_times_u
+    local_eval_AtA_times_u = eval_AtA_times_u
 
-    for dummy in range (10):
-        eval_AtA_times_u (u, v, tmp)
-        eval_AtA_times_u (v, u, tmp)
+    for dummy in xrange (10):
+        local_eval_AtA_times_u (u, v, tmp)
+        local_eval_AtA_times_u (v, u, tmp)
 
     vBv = vv = 0
 
@@ -71,17 +71,13 @@ def main(n):
 
     print("%0.9f" % (sqrt(vBv/vv)))
 
-
 def measure():
     print("Start timing...")
     start = time.time()
+    num = int(sys.argv[1])
     main(num)
     duration = "%.3f\n" % (time.time() - start)
     print("spectralnorm: " + duration)
 
-# warm up
-num = int(sys.argv[1])
-for i in range(1):
-    main(num)
-
 measure()
+

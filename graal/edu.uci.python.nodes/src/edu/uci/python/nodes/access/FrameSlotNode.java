@@ -166,5 +166,4 @@ public abstract class FrameSlotNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + slot + ")";
     }
-
 }

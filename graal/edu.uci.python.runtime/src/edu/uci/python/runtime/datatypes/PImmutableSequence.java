@@ -30,27 +30,27 @@ public abstract class PImmutableSequence extends PSequence {
     // exception?
     // "TypeError: 'tuple' object does not support item assignment"
     @Override
-    public void setItem(int idx, Object value) {
+    public final void setItem(int idx, Object value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void setSlice(PSlice slice, PSequence value) {
+    public final void setSlice(PSlice slice, PSequence value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void setSlice(int start, int stop, int step, PSequence value) {
+    public final void setSlice(int start, int stop, int step, PSequence value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void delItem(int idx) {
+    public final void delItem(int idx) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void delItems(int start, int stop) {
+    public final void delItems(int start, int stop) {
         throw new UnsupportedOperationException();
     }
 }

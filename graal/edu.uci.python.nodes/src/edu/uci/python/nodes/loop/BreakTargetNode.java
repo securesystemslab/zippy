@@ -32,9 +32,9 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class BreakTargetNode extends StatementNode {
 
-    @Child protected LoopNode child;
+    @Child protected StatementNode child;
 
-    public BreakTargetNode(LoopNode child) {
+    public BreakTargetNode(StatementNode child) {
         this.child = adoptChild(child);
     }
 

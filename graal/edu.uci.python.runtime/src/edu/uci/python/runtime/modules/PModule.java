@@ -164,7 +164,6 @@ public class PModule extends PObject {
                 final Method finalMethod = method;
 
                 final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class});
-                final Method method2 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
 
                 final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
@@ -175,16 +174,6 @@ public class PModule extends PObject {
                     public Object call(PackedFrame caller, Object arg) {
                         try {
                             return method1.invoke(finalDefiningModule, new Object[]{arg});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                    @SlowPath
-                    @Override
-                    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-                        try {
-                            return method2.invoke(finalDefiningModule, new Object[]{arg0, arg1});
                         } catch (IllegalAccessException | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
@@ -226,7 +215,6 @@ public class PModule extends PObject {
                 final Method finalMethod = method;
 
                 final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
-                final Method method2 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class, Object.class});
 
                 final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
@@ -236,15 +224,6 @@ public class PModule extends PObject {
                     public Object call(PackedFrame caller, Object arg) {
                         try {
                             return method1.invoke(finalDefiningModule, new Object[]{arg, this.self});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                    @Override
-                    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-                        try {
-                            return method2.invoke(finalDefiningModule, new Object[]{arg0, arg1, this.self});
                         } catch (IllegalAccessException | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
@@ -268,22 +247,22 @@ public class PModule extends PObject {
 
     @Override
     public Object getMin() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public int len() {
-        throw new RuntimeException("Not implemented");
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object multiply(int value) {
-        throw new RuntimeException("Not implemented");
+    public PObject multiply(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

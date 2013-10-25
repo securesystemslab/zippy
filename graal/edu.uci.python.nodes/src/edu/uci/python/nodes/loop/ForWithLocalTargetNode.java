@@ -40,31 +40,56 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected WriteLocalNode target;
 
-    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body, BlockNode orelse) {
-        super(body, orelse);
+    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body) {
+        super(body);
         this.target = adoptChild(target);
     }
 
     protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
-        this(previous.target, previous.body, previous.orelse);
+        this(previous.target, previous.body);
     }
 
     public abstract PNode getIterator();
 
-    @Specialization
+    @Specialization(order = 0)
+    public Object doPRange(VirtualFrame frame, PRange range) {
+        final int start = range.getStart();
+        final int stop = range.getStop();
+        final int step = range.getStep();
+        int count = 0;
+
+        try {
+            for (int i = start; i < stop; i += step) {
+                target.execute(frame, i);
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 1)
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
         loopOnIterator(frame, sequence);
         return PNone.NONE;
     }
 
-    @Specialization
+    @Specialization(order = 2)
     public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
         loopOnIterator(frame, set);
         return PNone.NONE;
     }
 
     private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
-        Iterator<?> iter = iterable.iterator();
+        final Iterator<?> iter = iterable.iterator();
         int count = 0;
 
         try {
@@ -81,7 +106,5 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
                 reportLoopCount(count);
             }
         }
-
-        orelse.executeVoid(frame);
     }
 }

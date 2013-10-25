@@ -39,7 +39,7 @@ public abstract class PObject {
 
     public abstract int len();
 
-    public abstract Object multiply(int value);
+    public abstract PObject multiply(int value);
 
     public abstract PCallable findAttribute(String name);
 }

@@ -1,13 +1,13 @@
 # The Computer Language Benchmarks Game
-# http://benchmarksgame.alioth.debian.org/
+# http://shootout.alioth.debian.org/
 #
 # originally by Kevin Carson
 # modified by Tupteq, Fredrik Johansson, and Daniel Nanz
 # modified by Maciej Fijalkowski
 # 2to3
 
-import sys 
-import time
+import sys, time
+
 
 def combinations(l):
     result = []
@@ -85,7 +85,6 @@ def advance(dt, n, bodies=SYSTEM, pairs=PAIRS):
 
 
 def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
-
     for (((x1, y1, z1), v1, m1),
          ((x2, y2, z2), v2, m2)) in pairs:
         dx = x1 - x2
@@ -97,7 +96,6 @@ def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
     print("%.9f" % e)
 
 def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
-
     for (r, [vx, vy, vz], m) in bodies:
         px -= vx * m
         py -= vy * m
@@ -106,6 +104,7 @@ def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
     v[0] = px / m
     v[1] = py / m
     v[2] = pz / m
+
 
 def main(n, ref='sun'):
     offset_momentum(BODIES[ref])
@@ -116,13 +115,9 @@ def main(n, ref='sun'):
 def measure():
     print("Start timing...")
     start = time.time()
+    num = int(sys.argv[1])
     main(num)
     duration = "%.3f\n" % (time.time() - start)
     print("nbody: " + duration)
-
-# warm up
-num =  int(sys.argv[1])
-for run in range(35):
-    main(5000)
 
 measure()

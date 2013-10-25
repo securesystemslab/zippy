@@ -30,10 +30,12 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PRange extends PImmutableSequence {
 
     private final int start;
-    @SuppressWarnings("unused") private final int stop;
+    private final int stop;
     private final int step;
     private final int length;
 
@@ -47,7 +49,7 @@ public class PRange extends PImmutableSequence {
 
     public PRange(int low, int hi, int step) {
         if (step == 0) {
-            throw Py.ValueError("xrange() arg 3 must not be zero");
+            throw Py.ValueError("range() arg 3 must not be zero");
         }
 
         int n;
@@ -56,9 +58,6 @@ public class PRange extends PImmutableSequence {
         } else {
             n = getLenOfRange(hi, low, -step);
         }
-        if (n < 0) {
-            throw Py.OverflowError("xrange() result has too many items");
-        }
 
         this.start = low;
         this.stop = hi;
@@ -66,7 +65,7 @@ public class PRange extends PImmutableSequence {
         this.length = n;
     }
 
-    static int getLenOfRange(int lo, int hi, int step) {
+    public static int getLenOfRange(int lo, int hi, int step) {
         int n = 0;
         if (lo < hi) {
             // the base difference may be > Integer.MAX_VALUE
@@ -75,8 +74,23 @@ public class PRange extends PImmutableSequence {
             // to a
             // negative number
             n = (int) ((diff / step) + 1);
+            if (n < 0) {
+                throw Py.OverflowError("range() result has too many items");
+            }
         }
         return n;
+    }
+
+    public int getStart() {
+        return start;
+    }
+
+    public int getStep() {
+        return step;
+    }
+
+    public int getStop() {
+        return stop;
     }
 
     @Override
@@ -86,11 +100,7 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = idx;
-        if (index < 0) {
-            index = -idx;
-            index = length - index;
-        }
+        int index = SequenceUtil.fixIndex(idx, length);
 
         if (index > length - 1) {
             getItemIndexOutOfBound();
@@ -121,15 +131,15 @@ public class PRange extends PImmutableSequence {
 
             private int index = 0;
 
-            public void remove() {
+            public final void remove() {
                 throw new UnsupportedOperationException();
             }
 
-            public boolean hasNext() {
+            public final boolean hasNext() {
                 return index <= length - 1;
             }
 
-            public Object next() {
+            public final Object next() {
                 return index++ * step + start;
             }
         };
@@ -149,32 +159,32 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public boolean lessThan(PSequence sequence) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object multiply(int value) {
-        // TODO Auto-generated method stub
-        return null;
+    public PObject multiply(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public PCallable findAttribute(String name) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PSequence concat(PSequence sequence) {
+        throw new UnsupportedOperationException();
     }
 
 }

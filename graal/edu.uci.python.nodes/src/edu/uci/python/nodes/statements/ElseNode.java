@@ -22,32 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.nodes.statements;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.statements.*;
+public class ElseNode extends StatementNode {
 
-public abstract class LoopNode extends StatementNode {
+    @Child protected StatementNode then;
 
-    @Child protected StatementNode body;
+    @Child protected BlockNode orelse;
 
-    public LoopNode(StatementNode body) {
-        this.body = adoptChild(body);
+    public ElseNode(StatementNode then, BlockNode orelse) {
+        this.then = adoptChild(then);
+        this.orelse = adoptChild(orelse);
     }
 
-    protected final void reportLoopCount(int count) {
-        CompilerAsserts.neverPartOfCompilation();
-        Node current = LoopNode.this.getParent();
-        while (current != null && !(current instanceof RootNode)) {
-            current = current.getParent();
-        }
-        if (current != null) {
-            RootNode root = (RootNode) current;
-            if (root.getCallTarget() instanceof LoopCountReceiver) {
-                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
-            }
-        }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        then.execute(frame);
+        return orelse.execute(frame);
+    }
+
+    @Override
+    public void executeVoid(VirtualFrame frame) {
+        then.execute(frame);
+        orelse.execute(frame);
     }
 }

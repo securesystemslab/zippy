@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PCharArray extends PArray implements Iterable<Character> {
 
     private final char[] array;
@@ -77,10 +79,8 @@ public class PCharArray extends PArray implements Iterable<Character> {
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += array.length;
-        }
-        array[idx] = (char) value;
+        int index = SequenceUtil.fixIndex(idx, array.length);
+        array[index] = (char) value;
     }
 
     @Override
@@ -104,10 +104,8 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     public void setItem(int idx, char value) {
-        if (idx < 0) {
-            idx += array.length;
-        }
-        array[idx] = value;
+        int index = SequenceUtil.fixIndex(idx, array.length);
+        array[index] = value;
     }
 
     @Override
@@ -130,7 +128,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         char[] newArray = new char[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {

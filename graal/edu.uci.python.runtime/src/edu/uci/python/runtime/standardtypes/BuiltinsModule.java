@@ -45,10 +45,10 @@ public class BuiltinsModule extends PythonModule {
     public BuiltinsModule(PythonClass pythonClass, String name, PythonBuiltins builtins) {
         super(pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
-        this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
+        // this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
         this.setAttribute(__NAME__, name);
-        // this.builtins = builtins;
-        // addBuiltins();
+        this.builtins = builtins;
+        addBuiltins();
     }
 
     private void addBuiltins() {

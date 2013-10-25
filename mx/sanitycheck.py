@@ -117,6 +117,16 @@ pythonBenchmarks = {
     'spectralnorm3t'  : '5500',
 }
 
+python2Benchmarks = {
+    'binarytrees2t'   : '19',
+    #'fannkuchredux2t' : '10',
+    #'fasta2t'         : '25000000',
+    #'mandelbrot2t'    : '4000',
+    #'meteor2t'        : '2098',
+    'nbody2t'         : '5000000',
+    'spectralnorm2t'  : '5500',   
+}
+
 specjvm2008Names = [
     'startup.helloworld',
     'startup.compiler.compiler',
@@ -313,6 +323,21 @@ def getPythonBenchmarks(vm):
     
     return tests
 
+def getPython2Benchmarks(vm):
+    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
+    error = re.compile(r"Exception")
+    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
+    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    benchmarks = python2Benchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
 class CTWMode:
     Full, NoInline, NoComplex = range(3)
 
@@ -460,7 +485,21 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-            if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+
+            # if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+            #     mx.abort("Benchmark failed (non-zero retcode)")
+            # zippy
+            result = -1
+            if vm == 'cpython':
+                result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'jython':
+                result = commands.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
+            elif vm == 'pypy':
+                result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
+            else:
+                result = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+
+            if result != 0:         
                 mx.abort("Benchmark failed (non-zero retcode)")
             # wait for subprocess to finish
             time.sleep(.5)

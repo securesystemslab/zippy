@@ -38,6 +38,10 @@ public class BlockNode extends StatementNode {
         this.statements = adoptChildren(statements);
     }
 
+    public boolean isEmpty() {
+        return statements.length == 0;
+    }
+
     @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {

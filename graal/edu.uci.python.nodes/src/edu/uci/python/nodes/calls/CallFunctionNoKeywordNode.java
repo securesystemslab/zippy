@@ -30,7 +30,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.FunctionRootNode.InlinedFunctionRootNode;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -147,8 +146,9 @@ public class CallFunctionNoKeywordNode extends PNode {
 
         public boolean inline(FrameFactory factory) {
             CompilerAsserts.neverPartOfCompilation();
+
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot);
+                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot, factory);
                 Node parent = findRealParent();
                 NodeUtil.replaceChild(parent, this, inlinedCallNode);
                 parent.adoptChild(inlinedCallNode);
@@ -197,34 +197,6 @@ public class CallFunctionNoKeywordNode extends PNode {
                 callCount++;
             }
             return super.execute(frame);
-        }
-    }
-
-    public static class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
-
-        @Child protected InlinedFunctionRootNode functionRoot;
-
-        public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot) {
-            super(callee, arguments, cached, globalScopeUnchanged);
-            this.functionRoot = adoptChild(functionRoot.getInlinedRootNode());
-        }
-
-        public CallTarget getCallTarget() {
-            return cached.getCallTarget();
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            try {
-                globalScopeUnchanged.check();
-            } catch (InvalidAssumptionException e) {
-                return uninitialize(frame);
-            }
-
-            final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-            final PArguments pargs = new PArguments(args);
-            VirtualFrame inlinedFrame = Truffle.getRuntime().createVirtualFrame(frame.pack(), pargs, cached.getFrameDescriptor());
-            return functionRoot.execute(inlinedFrame);
         }
     }
 }

@@ -11,7 +11,7 @@ import time
 w, h = 5, 10
 dir_no = 6
 S, E = w * h, 2
-SE = S + (E / 2)
+SE = S + (E // 2)
 SW = SE - E
 W, NW, NE = -E, -SE, -SW
 

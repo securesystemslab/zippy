@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PDoubleArray extends PArray implements Iterable<Double> {
 
     private final double[] array;
@@ -97,10 +99,8 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
 
     @Override
     public void setItem(int idx, Object value) {
-        if (idx < 0) {
-            idx += array.length;
-        }
-        array[idx] = (double) value;
+        int index = SequenceUtil.fixIndex(idx, array.length);
+        array[index] = (double) value;
     }
 
     @Override
@@ -123,7 +123,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public Object multiply(int value) {
+    public PObject multiply(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {

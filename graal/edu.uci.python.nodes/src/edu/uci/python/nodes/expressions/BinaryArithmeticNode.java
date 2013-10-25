@@ -27,8 +27,6 @@ package edu.uci.python.nodes.expressions;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.python.core.*;
 
@@ -81,31 +79,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 7)
         PList doPList(PList left, PList right) {
-            List<Object> list = new ArrayList<>();
-            List<Object> leftList = left.getList();
-            for (int i = 0; i < leftList.size(); i++) {
-                list.add(leftList.get(i));
-            }
-            List<Object> rightList = right.getList();
-            for (int i = 0; i < rightList.size(); i++) {
-                list.add(rightList.get(i));
-            }
-            return new PList(list);
+            return left.concat(right);
         }
 
         @Specialization(order = 8)
         PTuple doPTuple(PTuple left, PTuple right) {
-            Object[] newArray = new Object[left.len() + right.len()];
-            int index = 0;
-            Object[] leftArray = left.getArray();
-            for (int i = 0; i < leftArray.length; i++) {
-                newArray[index++] = leftArray[i];
-            }
-            Object[] rightArray = right.getArray();
-            for (int i = 0; i < rightArray.length; i++) {
-                newArray[index++] = rightArray[i];
-            }
-            return new PTuple(newArray);
+            return left.concat(right);
         }
 
         @Specialization(order = 10)
@@ -113,10 +92,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.append(right);
         }
 
+        // TODO: type info for operands in type error message.
         @SuppressWarnings("unused")
         @Generic
         Object doGeneric(Object left, Object right) {
-            throw new RuntimeException("Invalid generic!");
+            throw Py.TypeError("unsupported operand type(s) for +:");
         }
     }
 
@@ -194,28 +174,41 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.mul(right);
         }
 
+        @Specialization(order = 6)
+        PObject doIntPObject(int left, PObject right) {
+            return right.multiply(left);
+        }
+
+        @Specialization(order = 7)
+        PObject doPObjectInt(PObject left, int right) {
+            return left.multiply(right);
+        }
+
+        // TODO: better type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
-            if (left instanceof PObject && right instanceof Integer) {
-                return ((PObject) left).multiply((int) right);
-            } else if (left instanceof Integer && right instanceof PObject) {
-                return ((PObject) right).multiply((int) left);
-            } else {
-                throw new RuntimeException("Invalid generic!");
-            }
+            throw Py.TypeError("can't multiply " + left + " by " + right);
         }
     }
 
     public abstract static class DivNode extends BinaryArithmeticNode {
 
+        /*
+         * double division by zero in Java doesn't throw an exception, instead it yield Infinity
+         * (NaN).
+         */
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
-        int doInteger(int left, int right) {
-            return left / right;
+        double doInteger(int left, int right) {
+            if (right == 0) {
+                throw new ArithmeticException("divide by zero");
+            }
+
+            return (double) left / right;
         }
 
         @Specialization(order = 1)
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right);
+        double doBigInteger(BigInteger left, BigInteger right) {
+            return left.divide(right).doubleValue();
         }
 
         @Specialization(order = 2)
@@ -244,6 +237,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         PComplex doComplex(PComplex left, PComplex right) {
             return left.div(right);
         }
+
+        @Generic
+        Object doGeneric(Object left, Object right) {
+            throw Py.TypeError("Unsupported operand type for /: " + left + " and " + right);
+        }
     }
 
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
@@ -261,6 +259,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.floor(left / right);
+        }
+
+        @Generic
+        Object doGeneric(Object left, Object right) {
+            throw Py.TypeError("Unsupported operand type for //: " + left + " and " + right);
         }
     }
 

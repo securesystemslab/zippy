@@ -63,15 +63,78 @@ public class LoopTests {
     }
 
     @Test
-    public void whileWithBreak() {
+    public void whileWithBreakAndElse() {
         String source = "num = 11\n" + //
                         "while num:\n" + //
                         "    num = num - 1\n" + //
                         "    if num % 7 == 0:\n" + //
                         "        break\n" + //
                         "    print(num)\n" + //
+                        "else:\n" + //
+                        "    print(\"else\")\n" + //
                         "\n";
 
         assertPrints("10\n9\n8\n", source);
+    }
+
+    @Test
+    public void forWithElse() {
+        String source = "num = 0\n" + //
+                        "for i in range(5):\n" + //
+                        "    num += 1\n" + //
+                        "else:\n" + //
+                        "    print(num)\n" + //
+                        "\n";
+        assertPrints("5\n", source);
+    }
+
+    @Test
+    public void forWithContinueAndElse() {
+        String source = "num = 0\n" + //
+                        "for i in range(5):\n" + //
+                        "    if i % 3 == 0:\n" + //
+                        "       continue\n" + //
+                        "    num += 1\n" + //
+                        "else:\n" + //
+                        "    print(num)\n" + //
+                        "\n";
+        assertPrints("3\n", source);
+    }
+
+    @Test
+    public void forWithBreakAndElse() {
+        String source = "num = 0\n" + //
+                        "for i in range(5):\n" + //
+                        "    if i % 3 == 0:\n" + //
+                        "       break\n" + //
+                        "    num += 1\n" + //
+                        "else:\n" + //
+                        "    print(num)\n" + //
+                        "\n";
+        assertPrints("", source);
+    }
+
+    @Test
+    public void whileWithContinueAndElse() {
+        String source = "num = 11\n" + //
+                        "while num:\n" + //
+                        "    num = num - 1\n" + //
+                        "    if num % 3 != 0:\n" + //
+                        "        continue\n" + //
+                        "    print(num)\n" + //
+                        "else:\n" + //
+                        "    print(\"else\")" + //
+                        "\n";
+
+        assertPrints("9\n6\n3\n0\nelse\n", source);
+    }
+
+    @Test
+    public void forRangeWithStep() {
+        String source = "for i in range(1, 10, 2):\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("1\n3\n5\n7\n9\n", source);
     }
 }
