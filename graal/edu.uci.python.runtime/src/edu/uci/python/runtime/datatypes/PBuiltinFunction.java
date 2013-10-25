@@ -43,17 +43,17 @@ public class PBuiltinFunction extends PCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(args));
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
         if (keywords.length == 0) {
-            return callTarget.call(caller, new PArguments(args));
+            return callTarget.call(caller, new PArguments(PNone.NONE, args));
         } else {
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            return callTarget.call(caller, new PArguments(args, pkeywords));
+            return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
         }
     }
 

@@ -42,4 +42,12 @@ public class PythonCoreTests {
         PythonTests.assertPrints("", source);
     }
 
+    @Test
+    public void inheritsObject() {
+        String source = "class Foo(object):\n" + //
+                        "    pass\n" + //
+                        "Foo()\n" + //
+                        "\n";
+        PythonTests.assertPrints("", source);
+    }
 }

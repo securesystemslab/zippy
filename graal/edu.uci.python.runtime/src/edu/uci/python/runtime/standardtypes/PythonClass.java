@@ -32,6 +32,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.objects.*;
 
 public class PythonClass extends PythonObject {
 
@@ -91,6 +92,19 @@ public class PythonClass extends PythonObject {
 
     public void addMethod(PFunction method) {
         setAttribute(method.getName(), method);
+    }
+
+    @Override
+    public Object getAttribute(String name) {
+        // Find the storage location
+        final StorageLocation storageLocation = getObjectLayout().findStorageLocation(name);
+
+        // Continue the look up in PythonType.
+        if (storageLocation == null) {
+            return superClass == null ? PNone.NONE : superClass.getAttribute(name);
+        }
+
+        return storageLocation.read(this);
     }
 
     /**

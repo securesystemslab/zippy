@@ -91,7 +91,7 @@ public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCache
         }
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments(args);
+        final PArguments pargs = new PArguments(PNone.NONE, args);
         VirtualFrame inlinedFrame = frameFactory.create(frameDescriptor, frame.pack(), pargs);
         return functionRoot.execute(inlinedFrame);
     }

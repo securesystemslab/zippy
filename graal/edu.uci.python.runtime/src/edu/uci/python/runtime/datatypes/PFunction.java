@@ -55,7 +55,7 @@ public class PFunction extends PCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(args));
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
     }
 
     @Override
@@ -71,7 +71,7 @@ public class PFunction extends PCallable {
             combined[keywordIdx] = keyarg.getValue();
         }
 
-        return callTarget.call(caller, new PArguments(combined));
+        return callTarget.call(caller, new PArguments(PNone.NONE, combined));
     }
 
     /*
@@ -79,12 +79,12 @@ public class PFunction extends PCallable {
      */
     @Override
     public Object call(PackedFrame caller, Object arg) {
-        return callTarget.call(caller, new PArguments(new Object[]{arg}));
+        return callTarget.call(caller, new PArguments(PNone.NONE, new Object[]{arg}));
     }
 
     @Override
     public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return callTarget.call(caller, new PArguments(new Object[]{arg0, arg1}));
+        return callTarget.call(caller, new PArguments(PNone.NONE, new Object[]{arg0, arg1}));
     }
 
     public CallTarget getCallTarget() {
