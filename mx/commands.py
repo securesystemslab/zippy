@@ -961,7 +961,7 @@ def _basic_gate_body(args, tasks):
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
