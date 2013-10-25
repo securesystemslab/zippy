@@ -1,0 +1,361 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package edu.uci.python.builtins;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
+import edu.uci.python.datatypes.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.calls.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.PythonBuiltins;
+
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
+
+/**
+ * @author Gulfem
+ */
+
+public class PythonDefaultBuiltins extends PythonBuiltins {
+
+    public static FrameDescriptor globalFrame;
+
+    @Builtin(name = "abs", id = 1, numOfArguments = 1)
+    public abstract static class PythonAbsNode extends PythonBuiltinNode {
+
+        public PythonAbsNode(String name) {
+            super(name);
+        }
+
+        public PythonAbsNode(PythonAbsNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int absInt(int arg) {
+            return Math.abs(arg);
+        }
+
+        @Specialization
+        public double absDouble(double arg) {
+            return Math.abs(arg);
+        }
+
+        @Specialization
+        public double absPComplex(PComplex arg) {
+            return Math.hypot(arg.getReal(), arg.getImag());
+        }
+    }
+
+    @Builtin(name = "frozenset", id = 24, numOfArguments = 1)
+    public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
+
+        public PythonFrozenSetNode(String name) {
+            super(name);
+        }
+
+        public PythonFrozenSetNode(PythonFrozenSetNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(String arg) {
+            return new PFrozenSet(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PSequence sequence) {
+            return new PFrozenSet(sequence);
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PBaseSet baseSet) {
+            return new PFrozenSet(baseSet);
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PGenerator arg) {
+            return new PFrozenSet(arg);
+        }
+    }
+
+    @Builtin(name = "len", id = 37, numOfArguments = 1)
+    public abstract static class PythonLenNode extends PythonBuiltinNode {
+
+        public PythonLenNode(String name) {
+            super(name);
+        }
+
+        public PythonLenNode(PythonLenNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int len(String arg) {
+            return arg.length();
+        }
+
+        @Specialization
+        public int len(PSequence arg) {
+            return arg.len();
+        }
+
+        @Specialization
+        public int len(PDictionary arg) {
+            return arg.len();
+        }
+
+        @Specialization
+        public int len(PArray arg) {
+            return arg.len();
+        }
+    }
+
+    @Builtin(name = "list", id = 38, numOfArguments = 1)
+    public abstract static class PythonListNode extends PythonBuiltinNode {
+
+        public PythonListNode(String name) {
+            super(name);
+        }
+
+        public PythonListNode(PythonListNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PList list(String arg) {
+            return new PList(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PList list(PSequence sequence) {
+            return new PList(sequence);
+        }
+
+        @Specialization
+        public PList list(PBaseSet baseSet) {
+            return new PList(baseSet);
+        }
+
+        @Specialization
+        public PList list(PGenerator generator) {
+            return new PList(generator);
+        }
+    }
+
+    @Builtin(name = "max", id = 41, numOfArguments = 2)
+    public abstract static class PythonMaxNode extends PythonBuiltinNode {
+
+        public PythonMaxNode(String name) {
+            super(name);
+        }
+
+        public PythonMaxNode(PythonMaxNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int maxIntInt(int arg1, int arg2) {
+            return Math.max(arg1, arg2);
+        }
+
+        @Specialization
+        public double maxDoubleDouble(double arg1, double arg2) {
+            return Math.max(arg1, arg2);
+        }
+    }
+
+    @Builtin(name = "min", id = 43, numOfArguments = 2)
+    public abstract static class PythonMinNode extends PythonBuiltinNode {
+
+        public PythonMinNode(String name) {
+            super(name);
+        }
+
+        public PythonMinNode(PythonMinNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int minIntInt(int arg1, int arg2) {
+            return Math.min(arg1, arg2);
+        }
+
+        @Specialization
+        public double minDoubleDouble(double arg1, double arg2) {
+            return Math.min(arg1, arg2);
+        }
+    }
+
+    @Builtin(name = "range", id = 52, numOfArguments = 1, varArgs = true)
+    public abstract static class PythonRangeNode extends PythonBuiltinNode {
+
+        public PythonRangeNode(String name) {
+            super(name);
+        }
+
+        public PythonRangeNode(PythonRangeNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization(order = 1, guards = "caseStop")
+        public PSequence rangeStop(int stop, Object... arguments) {
+            return new PRange(stop);
+        }
+
+        @Specialization(order = 2, guards = "caseStartStop")
+        public PSequence rangeStartStop(int start, Object... args) {
+            assert args[0] instanceof Integer;
+            return new PRange(start, (int) args[0]);
+        }
+
+        @Specialization(order = 3, guards = "caseStartStopStep")
+        public PSequence rangeStartStopStep(int start, Object... args) {
+            assert args[0] instanceof Integer && args[1] instanceof Integer;
+            return new PRange(start, (int) args[0], (int) args[1]);
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStop(int start, Object... args) {
+            return args.length == 0;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStop(int start, Object... args) {
+            return args.length == 1;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStopStep(int start, Object... args) {
+            return args.length == 2;
+        }
+    }
+
+    @Builtin(name = "set", id = 56, numOfArguments = 1)
+    public abstract static class PythonSetNode extends PythonBuiltinNode {
+
+        public PythonSetNode(String name) {
+            super(name);
+        }
+
+        public PythonSetNode(PythonSetNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PSet set(String arg) {
+            return new PSet(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PSet set(PSequence sequence) {
+            return new PSet(sequence);
+        }
+
+        @Specialization
+        public PSet set(PBaseSet baseSet) {
+            return new PSet(baseSet);
+        }
+
+        @Specialization
+        public PSet set(PGenerator arg) {
+            return new PSet(arg);
+        }
+    }
+
+    private static List<Character> stringToCharList(String s) {
+        ArrayList<Character> sequence = new ArrayList<>();
+
+        char[] charArray = s.toCharArray();
+        for (int i = 0; i < charArray.length; i++) {
+            sequence.add(charArray[i]);
+        }
+        return sequence;
+    }
+
+    @Override
+    public void initialize() {
+        Class<?>[] declaredClasses = PythonDefaultBuiltins.class.getDeclaredClasses();
+
+        for (int i = 0; i < declaredClasses.length; i++) {
+            Class<?> clazz = declaredClasses[i];
+            Builtin builtin = clazz.getAnnotation(Builtin.class);
+
+            if (builtin != null) {
+                PythonBuiltinNode builtinNode = createBuiltin(builtin);
+                String methodName = builtin.name();
+                PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+                CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+                PBuiltinFunction function = new PBuiltinFunction(methodName, callTarget);
+                setBuiltin(methodName, function);
+            }
+        }
+    }
+
+    private static PythonBuiltinNode createBuiltin(Builtin builtin) {
+        PNode args[];
+        if (builtin.varArgs()) {
+            args = new PNode[builtin.numOfArguments() + 1];
+        } else {
+            args = new PNode[builtin.numOfArguments()];
+
+        }
+
+        for (int i = 0; i < builtin.numOfArguments(); i++) {
+            args[i] = new ReadArgumentNode(i);
+        }
+
+        if (builtin.varArgs()) {
+            args[builtin.numOfArguments()] = new ReadVarArgsNode(builtin.numOfArguments());
+        }
+
+        switch (builtin.id()) {
+            case 1:
+                return PythonAbsNodeFactory.create(builtin.name(), args);
+            case 24:
+                return PythonFrozenSetNodeFactory.create(builtin.name(), args);
+            case 37:
+                return PythonLenNodeFactory.create(builtin.name(), args);
+            case 38:
+                return PythonListNodeFactory.create(builtin.name(), args);
+            case 41:
+                return PythonMaxNodeFactory.create(builtin.name(), args);
+            case 43:
+                return PythonMinNodeFactory.create(builtin.name(), args);
+            case 52:
+                return PythonRangeNodeFactory.create(builtin.name(), args);
+            case 56:
+                return PythonSetNodeFactory.create(builtin.name(), args);
+            default:
+                throw new RuntimeException("Unsupported/Unexpected Builtin: " + builtin);
+        }
+    }
+}
