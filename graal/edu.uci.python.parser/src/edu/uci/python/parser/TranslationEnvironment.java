@@ -25,7 +25,6 @@
 package edu.uci.python.parser;
 
 import java.util.*;
-import java.util.List;
 
 import org.python.antlr.*;
 import org.python.antlr.base.*;

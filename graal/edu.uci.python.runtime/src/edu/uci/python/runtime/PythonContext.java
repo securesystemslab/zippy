@@ -34,8 +34,12 @@ public class PythonContext {
 
     private final PythonCore pythonCore;
 
-    public PythonContext(PythonOptions opts) {
-        options = opts;
+    private final PythonBuiltins builtins;
+
+    public PythonContext(PythonOptions opts, PythonBuiltins builtins) {
+        this.options = opts;
+        this.builtins = builtins;
+        this.builtins.initialize();
         this.pythonCore = new PythonCore(this);
         this.pythonCore.initialize();
     }
@@ -54,5 +58,9 @@ public class PythonContext {
 
     public PythonCore getPythonCore() {
         return pythonCore;
+    }
+
+    public PythonBuiltins getBuiltins() {
+        return builtins;
     }
 }

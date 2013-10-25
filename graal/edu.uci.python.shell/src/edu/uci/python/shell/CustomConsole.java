@@ -30,17 +30,17 @@ import org.python.antlr.base.*;
 import org.python.core.*;
 import org.python.util.*;
 
+import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.PythonOptions;
 
 public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
-        PythonContext context = new PythonContext(new PythonOptions());
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltins());
         execfile(s, name, context);
     }
 
@@ -49,7 +49,6 @@ public class CustomConsole extends JLineConsole {
 
         ASTInterpreter.init(false);
         PythonParseResult result = parseToAST(s, name, CompileMode.exec, cflags, context);
-
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();

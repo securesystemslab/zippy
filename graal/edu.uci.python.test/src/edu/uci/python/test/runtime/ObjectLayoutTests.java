@@ -28,6 +28,7 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
+import edu.uci.python.builtins.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -37,7 +38,7 @@ public class ObjectLayoutTests {
     @Test
     public void objectWithPrimitiveAttributes() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new PythonOptions());
+        final PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltins());
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonBasicObject obj = new PythonBasicObject(classA);
         final ObjectLayout objLayoutBefore = obj.getObjectLayout();
@@ -54,7 +55,7 @@ public class ObjectLayoutTests {
     @Test
     public void objectPrimitiveAttributeOverflow() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new PythonOptions());
+        final PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltins());
         final PythonClass classA = new PythonClass(context, null, "A");
         final PythonBasicObject obj = new PythonBasicObject(classA);
 
@@ -74,7 +75,7 @@ public class ObjectLayoutTests {
     @Test
     public void classAttributes() {
         // Create a class and an instance
-        final PythonContext context = new PythonContext(new PythonOptions());
+        final PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltins());
         final PythonClass classA = new PythonClass(context, null, "A");
 
         // Add class variable

@@ -32,6 +32,7 @@ import com.oracle.truffle.api.dsl.TypeSystemReference;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -144,6 +145,14 @@ public abstract class PNode extends Node {
 
     public PyObject executePyObject(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPyObject(execute(frame));
+    }
+
+    public PGenerator executePGenerator(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPGenerator(execute(frame));
+    }
+
+    public Object[] executeObjectArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectObjectArray(execute(frame));
     }
 
     public void executeVoid(VirtualFrame frame) {

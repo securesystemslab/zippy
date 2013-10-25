@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.runtime.datatypes.*;
@@ -47,6 +46,10 @@ public class ReadArgumentNode extends PNode {
     public Object execute(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
         return args.getArgument(index);
+    }
+
+    public int getIndex() {
+        return index;
     }
 
 }

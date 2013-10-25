@@ -40,12 +40,24 @@ import edu.uci.python.runtime.modules.annotations.*;
  */
 public class BuiltinsModule extends PythonModule {
 
-    public BuiltinsModule(PythonClass pythonClass, String name) {
-        super(pythonClass);
+    private PythonBuiltins builtins;
 
+    public BuiltinsModule(PythonClass pythonClass, String name, PythonBuiltins builtins) {
+        super(pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
         this.setAttribute(__NAME__, name);
+        // this.builtins = builtins;
+        // addBuiltins();
+    }
+
+    private void addBuiltins() {
+        Map<String, PBuiltinFunction> builtinList = this.builtins.getBuiltins();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinList.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
     }
 
     @BuiltinMethod public static final PythonCallTarget min = new PythonCallTarget() {

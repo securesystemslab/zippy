@@ -32,13 +32,14 @@ import com.oracle.truffle.api.dsl.TypeCast;
 import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 
+import edu.uci.python.datatypes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 @TypeSystem({int.class, BigInteger.class, double.class, PComplex.class, char.class, boolean.class, String.class,
 
 PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PArray.class, PSlice.class, PObject.class,
-                PCallable.class})
+                PCallable.class, PGenerator.class, Object[].class})
 public class PythonTypes {
 
     @TypeCheck
