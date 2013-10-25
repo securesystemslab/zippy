@@ -22,60 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.test.runtime;
 
-import edu.uci.python.runtime.*;
+import org.junit.*;
 
-public class PythonCore {
+import edu.uci.python.test.*;
 
-    private final PythonContext context;
+public class PythonCoreTests {
 
-    private PythonClass typeClass;
-
-    private PythonClass objectClass;
-
-    private PythonClass moduleClass;
-
-    private PythonModule builtinsModule;
-
-    private PythonModule mainModule;
-
-    public PythonCore(PythonContext context) {
-        this.context = context;
+    @Test
+    public void object() {
+        String source = "print(object)\n";
+        PythonTests.assertPrints("<class 'object'>\n", source);
     }
 
-    public void initialize() {
-        assert context != null;
-
-        typeClass = new PythonClass(context, null, "type");
-        objectClass = new PythonObjectClass(context);
-        typeClass.unsafeSetSuperClass(objectClass);
-        moduleClass = new PythonClass(context, objectClass, "module");
-
-        builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
-        builtinsModule.setAttribute("object", objectClass);
-
-        mainModule = new MainModule(moduleClass, "__main__");
-        mainModule.setAttribute("__builtins__", builtinsModule);
+    @Test
+    public void createAnObject() {
+        String source = "object()";
+        PythonTests.assertPrints("", source);
     }
 
-    public PythonClass getTypeClass() {
-        return typeClass;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
-    }
-
-    public PythonClass getModuleClass() {
-        return moduleClass;
-    }
-
-    public PythonModule getBuiltinsModule() {
-        return builtinsModule;
-    }
-
-    public PythonModule getMainModule() {
-        return mainModule;
-    }
 }

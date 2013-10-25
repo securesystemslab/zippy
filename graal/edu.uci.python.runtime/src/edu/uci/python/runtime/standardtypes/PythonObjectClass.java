@@ -24,58 +24,38 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 
-public class PythonCore {
+public class PythonObjectClass extends PythonBuiltinClass {
 
-    private final PythonContext context;
-
-    private PythonClass typeClass;
-
-    private PythonClass objectClass;
-
-    private PythonClass moduleClass;
-
-    private PythonModule builtinsModule;
-
-    private PythonModule mainModule;
-
-    public PythonCore(PythonContext context) {
-        this.context = context;
+    public PythonObjectClass(PythonContext context) {
+        super(context, null, "object");
+        this.addBuiltinMethodsAndConstants(PythonObjectClass.class);
+        addInit();
     }
 
-    public void initialize() {
-        assert context != null;
+    private void addInit() {
+        PythonCallTarget initCallTarget = new PythonCallTarget() {
 
-        typeClass = new PythonClass(context, null, "type");
-        objectClass = new PythonObjectClass(context);
-        typeClass.unsafeSetSuperClass(objectClass);
-        moduleClass = new PythonClass(context, objectClass, "module");
+            @Override
+            public Object call(PackedFrame frame, PArguments arguments) {
+                Object[] args = arguments.getArgumentsArray();
 
-        builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
-        builtinsModule.setAttribute("object", objectClass);
+                if (args.length > 1) {
+                    throw Py.TypeError("object() takes no parameters");
+                }
 
-        mainModule = new MainModule(moduleClass, "__main__");
-        mainModule.setAttribute("__builtins__", builtinsModule);
-    }
+                return arguments.getSelf();
+            }
+        };
 
-    public PythonClass getTypeClass() {
-        return typeClass;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
-    }
-
-    public PythonClass getModuleClass() {
-        return moduleClass;
-    }
-
-    public PythonModule getBuiltinsModule() {
-        return builtinsModule;
-    }
-
-    public PythonModule getMainModule() {
-        return mainModule;
+        final PBuiltinFunction method = new PBuiltinFunction("__init__", initCallTarget);
+        setAttribute("__init__", method);
     }
 }
