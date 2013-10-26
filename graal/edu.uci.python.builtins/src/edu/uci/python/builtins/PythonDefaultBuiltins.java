@@ -269,13 +269,11 @@ public class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public int len(String arg) {
-                System.out.println("String");
                 return arg.length();
             }
 
             @Specialization
             public int len(PSequence arg) {
-                System.out.println("PSequence");
                 return arg.len();
             }
 
