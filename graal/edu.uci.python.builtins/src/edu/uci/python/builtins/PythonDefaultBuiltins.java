@@ -25,8 +25,7 @@
 
 package edu.uci.python.builtins;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBasicBuiltinNodeFactory.*;
 import edu.uci.python.datatypes.*;
@@ -238,6 +237,25 @@ public class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        @Builtin(name = "iter", id = 36, numOfArguments = 2)
+        public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
+
+            public PythonIterNode(String name) {
+                super(name);
+            }
+
+            public PythonIterNode(PythonIterNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public Object iter(String arg) {
+                PString pstring = new PString(arg);
+                Iterator<Object> iterator = pstring.iterator();
+                return iterator;
+            }
+        }
+
         @Builtin(name = "len", id = 37, numOfArguments = 1)
         public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
 
@@ -360,8 +378,9 @@ public class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public int next(int arg1, int arg2) {
-                return Math.min(arg1, arg2);
+            public int next(Object iterator) {
+                System.out.println("NEXT");
+                return 10;
             }
         }
 
@@ -501,6 +520,8 @@ public class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonFrozenSetNodeFactory.create(builtin.name(), args);
             case 33:
                 return PythonIntNodeFactory.create(builtin.name(), args);
+            case 36:
+                return PythonIterNodeFactory.create(builtin.name(), args);
             case 37:
                 return PythonLenNodeFactory.create(builtin.name(), args);
             case 38:

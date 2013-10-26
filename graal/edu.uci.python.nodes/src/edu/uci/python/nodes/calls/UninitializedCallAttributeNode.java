@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.calls;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -54,6 +56,9 @@ public class UninitializedCallAttributeNode extends CallAttributeNode {
             CallMethodNode callNode = new CallMethodNode(attributeId, primary, arguments);
             replace(callNode);
             return callNode.callMethod(frame, (PythonObject) primaryObj);
+        } else if (primaryObj instanceof Iterator<?>) {
+            Iterator<Object> iterator = (Iterator<Object>) primaryObj;
+            return iterator.next();
         } else {
             replace(CallAttributeNodeFactory.create(arguments, attributeId, primary));
             return executeGenericSlowPath(frame, primaryObj);
