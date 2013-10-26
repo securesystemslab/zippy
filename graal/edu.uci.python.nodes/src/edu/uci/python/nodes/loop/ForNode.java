@@ -62,6 +62,13 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
+    @Specialization
+    public Object doString(VirtualFrame frame, String string) {
+        PString pstring = new PString(string);
+        loopOnIterator(frame, pstring);
+        return PNone.NONE;
+    }
+
     private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
         Iterator<?> iter = iterable.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
