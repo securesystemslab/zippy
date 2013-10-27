@@ -27,24 +27,26 @@ package edu.uci.python.builtins;
 
 import java.util.*;
 
-import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBasicBuiltinNodeFactory.*;
+import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
 import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
-
-import com.oracle.truffle.api.dsl.Specialization;
+import edu.uci.python.nodes.calls.*;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.*;
 
 /**
  * @author Gulfem
  */
 
-public class PythonDefaultBuiltins extends PythonBuiltins {
+public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     public abstract static class PythonBasicBuiltinNode extends PythonBuiltinNode {
 
@@ -67,411 +69,408 @@ public class PythonDefaultBuiltins extends PythonBuiltins {
         public static boolean twoArguments(Object... args) {
             return args.length == 2;
         }
+    }
 
-        @Builtin(name = "abs", id = 1, numOfArguments = 1)
-        public abstract static class PythonAbsNode extends PythonBasicBuiltinNode {
+    @Builtin(name = "abs", id = 1, numOfArguments = 1)
+    public abstract static class PythonAbsNode extends PythonBasicBuiltinNode {
 
-            public PythonAbsNode(String name) {
-                super(name);
-            }
-
-            public PythonAbsNode(PythonAbsNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public int absInt(int arg) {
-                return Math.abs(arg);
-            }
-
-            @Specialization
-            public double absDouble(double arg) {
-                return Math.abs(arg);
-            }
-
-            @Specialization
-            public double absPComplex(PComplex arg) {
-                return Math.hypot(arg.getReal(), arg.getImag());
-            }
+        public PythonAbsNode(String name) {
+            super(name);
         }
 
-        @Builtin(name = "chr", id = 10, numOfArguments = 1)
-        public abstract static class PythonChrNode extends PythonBasicBuiltinNode {
-
-            public PythonChrNode(String name) {
-                super(name);
-            }
-
-            public PythonChrNode(PythonChrNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public String charFromInt(int arg) {
-                return Character.toString((char) arg);
-            }
+        public PythonAbsNode(PythonAbsNode prev) {
+            this(prev.getName());
         }
 
-        @Builtin(name = "complex", id = 13, numOfArguments = 0, varArgs = true)
-        public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
-
-            public abstract Object executeWithTarget(VirtualFrame frame, Object target);
-
-            public PythonComplexNode(String name) {
-                super(name);
-            }
-
-            public PythonComplexNode(PythonComplexNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization(order = 1, guards = "twoArguments")
-            public PComplex complexTwoArguments(Object... args) {
-                if (args[0] instanceof Integer && args[1] instanceof Integer) {
-                    return new PComplex((int) args[0], (int) args[1]);
-                }
-                throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
-                /**
-                 * TODO real and imaginary values can be any numeric value such as int, double,
-                 * complex Currently, only ints are not supported.
-                 */
-            }
-
-            @Specialization(order = 2, guards = "oneArgument")
-            public PComplex complexOneArgument(Object... args) {
-                if (args[0] instanceof Integer) {
-                    return new PComplex((int) args[0], 0);
-                } else if (args[0] instanceof Double) {
-                    return new PComplex((double) args[0], 0);
-                }
-                throw new RuntimeException("Not implemented complex: " + args[0]);
-            }
-
-            @Specialization(order = 3, guards = "noArgument")
-            public PComplex complexNoArgument(Object... args) {
-                return new PComplex(0, 0);
-            }
+        @Specialization
+        public int absInt(int arg) {
+            return Math.abs(arg);
         }
 
-        @Builtin(name = "float", id = 22, numOfArguments = 0, varArgs = true)
-        public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
-
-            public PythonFloatNode(String name) {
-                super(name);
-            }
-
-            public PythonFloatNode(PythonFloatNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public double floatFromString(String arg) {
-                throw new RuntimeException("Not implemented integer: ");
-            }
-
-            @Specialization
-            public double floatFromInt(int arg) {
-                return arg;
-            }
+        @Specialization
+        public double absDouble(double arg) {
+            return Math.abs(arg);
         }
 
-        @Builtin(name = "frozenset", id = 24, numOfArguments = 1)
-        public abstract static class PythonFrozenSetNode extends PythonBasicBuiltinNode {
+        @Specialization
+        public double absPComplex(PComplex arg) {
+            return Math.hypot(arg.getReal(), arg.getImag());
+        }
+    }
 
-            public PythonFrozenSetNode(String name) {
-                super(name);
-            }
+    @Builtin(name = "chr", id = 10, numOfArguments = 1)
+    public abstract static class PythonChrNode extends PythonBasicBuiltinNode {
 
-            public PythonFrozenSetNode(PythonFrozenSetNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public PFrozenSet frozenset(String arg) {
-                return new PFrozenSet(stringToCharList(arg));
-            }
-
-            @Specialization
-            public PFrozenSet frozenset(PSequence sequence) {
-                return new PFrozenSet(sequence);
-            }
-
-            @Specialization
-            public PFrozenSet frozenset(PBaseSet baseSet) {
-                return new PFrozenSet(baseSet);
-            }
-
-            @Specialization
-            public PFrozenSet frozenset(PGenerator arg) {
-                return new PFrozenSet(arg);
-            }
+        public PythonChrNode(String name) {
+            super(name);
         }
 
-        @Builtin(name = "int", id = 33, numOfArguments = 0, varArgs = true)
-        public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
-
-            public PythonIntNode(String name) {
-                super(name);
-            }
-
-            public PythonIntNode(PythonIntNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization(order = 1, guards = "oneArgument")
-            public int intOneArgument(Object... args) {
-                return (int) JavaTypeConversions.toInt(args[0]);
-            }
-
-            @Specialization(order = 2, guards = "twoArguments")
-            public int intTwoArguments(Object... args) {
-                /**
-                 * TODO int(x, base=10) is not supported.
-                 */
-                throw new RuntimeException("Not implemented integer with base: " + args[0] + " " + args[1]);
-            }
-
-            @Specialization(order = 3, guards = "noArgument")
-            public int complexNoArgument(Object... args) {
-                return 0;
-            }
+        public PythonChrNode(PythonChrNode prev) {
+            this(prev.getName());
         }
 
-        @Builtin(name = "iter", id = 36, numOfArguments = 2)
-        public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
+        @Specialization
+        public String charFromInt(int arg) {
+            return Character.toString((char) arg);
+        }
+    }
 
-            public PythonIterNode(String name) {
-                super(name);
-            }
+    @Builtin(name = "complex", id = 13, numOfArguments = 0, varArgs = true)
+    public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
 
-            public PythonIterNode(PythonIterNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public Object iter(String arg) {
-                PString pstring = new PString(arg);
-                Iterator<Object> iterator = pstring.iterator();
-                return iterator;
-            }
+        public PythonComplexNode(String name) {
+            super(name);
         }
 
-        @Builtin(name = "len", id = 37, numOfArguments = 1)
-        public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
-
-            public PythonLenNode(String name) {
-                super(name);
-            }
-
-            public PythonLenNode(PythonLenNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public int len(String arg) {
-                return arg.length();
-            }
-
-            @Specialization
-            public int len(PSequence arg) {
-                return arg.len();
-            }
-
-            @Specialization
-            public int len(PDictionary arg) {
-                return arg.len();
-            }
-
-            @Specialization
-            public int len(PArray arg) {
-                return arg.len();
-            }
+        public PythonComplexNode(PythonComplexNode prev) {
+            this(prev.getName());
         }
 
-        @Builtin(name = "list", id = 38, numOfArguments = 1)
-        public abstract static class PythonListNode extends PythonBasicBuiltinNode {
-
-            public PythonListNode(String name) {
-                super(name);
+        @Specialization(order = 1, guards = "twoArguments")
+        public PComplex complexTwoArguments(Object... args) {
+            if (args[0] instanceof Integer && args[1] instanceof Integer) {
+                return new PComplex((int) args[0], (int) args[1]);
             }
-
-            public PythonListNode(PythonListNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public PList list(String arg) {
-                return new PList(stringToCharList(arg));
-            }
-
-            @Specialization
-            public PList list(PSequence sequence) {
-                return new PList(sequence);
-            }
-
-            @Specialization
-            public PList list(PBaseSet baseSet) {
-                return new PList(baseSet);
-            }
-
-            @Specialization
-            public PList list(PGenerator generator) {
-                return new PList(generator);
-            }
+            throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
+            /**
+             * TODO real and imaginary values can be any numeric value such as int, double, complex
+             * Currently, only ints are not supported.
+             */
         }
 
-        @Builtin(name = "max", id = 41, numOfArguments = 2)
-        public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
-
-            public PythonMaxNode(String name) {
-                super(name);
+        @Specialization(order = 2, guards = "oneArgument")
+        public PComplex complexOneArgument(Object... args) {
+            if (args[0] instanceof Integer) {
+                return new PComplex((int) args[0], 0);
+            } else if (args[0] instanceof Double) {
+                return new PComplex((double) args[0], 0);
             }
-
-            public PythonMaxNode(PythonMaxNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public int maxIntInt(int arg1, int arg2) {
-                return Math.max(arg1, arg2);
-            }
-
-            @Specialization
-            public double maxDoubleDouble(double arg1, double arg2) {
-                return Math.max(arg1, arg2);
-            }
+            throw new RuntimeException("Not implemented complex: " + args[0]);
         }
 
-        @Builtin(name = "min", id = 43, numOfArguments = 2)
-        public abstract static class PythonMinNode extends PythonBasicBuiltinNode {
+        @Specialization(order = 3, guards = "noArgument")
+        public PComplex complexNoArgument(Object... args) {
+            return new PComplex(0, 0);
+        }
+    }
 
-            public PythonMinNode(String name) {
-                super(name);
-            }
+    @Builtin(name = "float", id = 22, numOfArguments = 0, varArgs = true)
+    public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
-            public PythonMinNode(PythonMinNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public int minIntInt(int arg1, int arg2) {
-                return Math.min(arg1, arg2);
-            }
-
-            @Specialization
-            public double minDoubleDouble(double arg1, double arg2) {
-                return Math.min(arg1, arg2);
-            }
+        public PythonFloatNode(String name) {
+            super(name);
         }
 
-        @Builtin(name = "next", id = 44, numOfArguments = 2)
-        public abstract static class PythonNextNode extends PythonBasicBuiltinNode {
-
-            public PythonNextNode(String name) {
-                super(name);
-            }
-
-            public PythonNextNode(PythonNextNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public int next(Object iterator) {
-                System.out.println("NEXT");
-                return 10;
-            }
+        public PythonFloatNode(PythonFloatNode prev) {
+            this(prev.getName());
         }
 
-        @Builtin(name = "range", id = 52, numOfArguments = 1, varArgs = true)
-        public abstract static class PythonRangeNode extends PythonBasicBuiltinNode {
-
-            public PythonRangeNode(String name) {
-                super(name);
-            }
-
-            public PythonRangeNode(PythonRangeNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization(order = 1, guards = "caseStop")
-            public PSequence rangeStop(int stop, Object... arguments) {
-                return new PRange(stop);
-            }
-
-            @Specialization(order = 2, guards = "caseStartStop")
-            public PSequence rangeStartStop(int start, Object... args) {
-                assert args[0] instanceof Integer;
-                return new PRange(start, (int) args[0]);
-            }
-
-            @Specialization(order = 3, guards = "caseStartStopStep")
-            public PSequence rangeStartStopStep(int start, Object... args) {
-                assert args[0] instanceof Integer && args[1] instanceof Integer;
-                return new PRange(start, (int) args[0], (int) args[1]);
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean caseStop(int start, Object... args) {
-                return args.length == 0;
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean caseStartStop(int start, Object... args) {
-                return args.length == 1;
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean caseStartStopStep(int start, Object... args) {
-                return args.length == 2;
-            }
+        @Specialization
+        public double floatFromString(String arg) {
+            throw new RuntimeException("Not implemented integer: ");
         }
 
-        @Builtin(name = "set", id = 56, numOfArguments = 1)
-        public abstract static class PythonSetNode extends PythonBasicBuiltinNode {
+        @Specialization
+        public double floatFromInt(int arg) {
+            return arg;
+        }
+    }
 
-            public PythonSetNode(String name) {
-                super(name);
-            }
+    @Builtin(name = "frozenset", id = 24, numOfArguments = 1)
+    public abstract static class PythonFrozenSetNode extends PythonBasicBuiltinNode {
 
-            public PythonSetNode(PythonSetNode prev) {
-                this(prev.getName());
-            }
-
-            @Specialization
-            public PSet set(String arg) {
-                return new PSet(stringToCharList(arg));
-            }
-
-            @Specialization
-            public PSet set(PSequence sequence) {
-                return new PSet(sequence);
-            }
-
-            @Specialization
-            public PSet set(PBaseSet baseSet) {
-                return new PSet(baseSet);
-            }
-
-            @Specialization
-            public PSet set(PGenerator arg) {
-                return new PSet(arg);
-            }
+        public PythonFrozenSetNode(String name) {
+            super(name);
         }
 
-        private static List<Character> stringToCharList(String s) {
-            ArrayList<Character> sequence = new ArrayList<>();
-
-            char[] charArray = s.toCharArray();
-            for (int i = 0; i < charArray.length; i++) {
-                sequence.add(charArray[i]);
-            }
-            return sequence;
+        public PythonFrozenSetNode(PythonFrozenSetNode prev) {
+            this(prev.getName());
         }
+
+        @Specialization
+        public PFrozenSet frozenset(String arg) {
+            return new PFrozenSet(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PSequence sequence) {
+            return new PFrozenSet(sequence);
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PBaseSet baseSet) {
+            return new PFrozenSet(baseSet);
+        }
+
+        @Specialization
+        public PFrozenSet frozenset(PGenerator arg) {
+            return new PFrozenSet(arg);
+        }
+    }
+
+    @Builtin(name = "int", id = 33, numOfArguments = 0, varArgs = true)
+    public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
+
+        public PythonIntNode(String name) {
+            super(name);
+        }
+
+        public PythonIntNode(PythonIntNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization(order = 1, guards = "oneArgument")
+        public int intOneArgument(Object... args) {
+            return (int) JavaTypeConversions.toInt(args[0]);
+        }
+
+        @Specialization(order = 2, guards = "twoArguments")
+        public int intTwoArguments(Object... args) {
+            /**
+             * TODO int(x, base=10) is not supported.
+             */
+            throw new RuntimeException("Not implemented integer with base: " + args[0] + " " + args[1]);
+        }
+
+        @Specialization(order = 3, guards = "noArgument")
+        public int complexNoArgument(Object... args) {
+            return 0;
+        }
+    }
+
+    @Builtin(name = "iter", id = 36, numOfArguments = 1, varArgs = true)
+    public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
+
+        public PythonIterNode(String name) {
+            super(name);
+        }
+
+        public PythonIterNode(PythonIterNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public Object iter(String object) {
+            PString pstring = new PString(object);
+            Iterator<Object> iterator = pstring.iterator();
+            return iterator;
+        }
+    }
+
+    @Builtin(name = "len", id = 37, numOfArguments = 1)
+    public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
+
+        public PythonLenNode(String name) {
+            super(name);
+        }
+
+        public PythonLenNode(PythonLenNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int len(String arg) {
+            return arg.length();
+        }
+
+        @Specialization
+        public int len(PSequence arg) {
+            return arg.len();
+        }
+
+        @Specialization
+        public int len(PDictionary arg) {
+            return arg.len();
+        }
+
+        @Specialization
+        public int len(PArray arg) {
+            return arg.len();
+        }
+    }
+
+    @Builtin(name = "list", id = 38, numOfArguments = 1)
+    public abstract static class PythonListNode extends PythonBasicBuiltinNode {
+
+        public PythonListNode(String name) {
+            super(name);
+        }
+
+        public PythonListNode(PythonListNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PList list(String arg) {
+            return new PList(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PList list(PSequence sequence) {
+            return new PList(sequence);
+        }
+
+        @Specialization
+        public PList list(PBaseSet baseSet) {
+            return new PList(baseSet);
+        }
+
+        @Specialization
+        public PList list(PGenerator generator) {
+            return new PList(generator);
+        }
+    }
+
+    @Builtin(name = "max", id = 41, numOfArguments = 2)
+    public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
+
+        public PythonMaxNode(String name) {
+            super(name);
+        }
+
+        public PythonMaxNode(PythonMaxNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int maxIntInt(int arg1, int arg2) {
+            return Math.max(arg1, arg2);
+        }
+
+        @Specialization
+        public double maxDoubleDouble(double arg1, double arg2) {
+            return Math.max(arg1, arg2);
+        }
+    }
+
+    @Builtin(name = "min", id = 43, numOfArguments = 2)
+    public abstract static class PythonMinNode extends PythonBasicBuiltinNode {
+
+        public PythonMinNode(String name) {
+            super(name);
+        }
+
+        public PythonMinNode(PythonMinNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int minIntInt(int arg1, int arg2) {
+            return Math.min(arg1, arg2);
+        }
+
+        @Specialization
+        public double minDoubleDouble(double arg1, double arg2) {
+            return Math.min(arg1, arg2);
+        }
+    }
+
+    @Builtin(name = "next", id = 44, numOfArguments = 1, varArgs = true)
+    public abstract static class PythonNextNode extends PythonBasicBuiltinNode {
+
+        public PythonNextNode(String name) {
+            super(name);
+        }
+
+        public PythonNextNode(PythonNextNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public int next(Object iterator) {
+            return 10;
+        }
+    }
+
+    @Builtin(name = "range", id = 52, numOfArguments = 1, varArgs = true)
+    public abstract static class PythonRangeNode extends PythonBasicBuiltinNode {
+
+        public PythonRangeNode(String name) {
+            super(name);
+        }
+
+        public PythonRangeNode(PythonRangeNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization(order = 1, guards = "caseStop")
+        public PSequence rangeStop(int stop, Object... arguments) {
+            return new PRange(stop);
+        }
+
+        @Specialization(order = 2, guards = "caseStartStop")
+        public PSequence rangeStartStop(int start, Object... args) {
+            assert args[0] instanceof Integer;
+            return new PRange(start, (int) args[0]);
+        }
+
+        @Specialization(order = 3, guards = "caseStartStopStep")
+        public PSequence rangeStartStopStep(int start, Object... args) {
+            assert args[0] instanceof Integer && args[1] instanceof Integer;
+            return new PRange(start, (int) args[0], (int) args[1]);
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStop(int start, Object... args) {
+            return args.length == 0;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStop(int start, Object... args) {
+            return args.length == 1;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStopStep(int start, Object... args) {
+            return args.length == 2;
+        }
+    }
+
+    @Builtin(name = "set", id = 56, numOfArguments = 1)
+    public abstract static class PythonSetNode extends PythonBasicBuiltinNode {
+
+        public PythonSetNode(String name) {
+            super(name);
+        }
+
+        public PythonSetNode(PythonSetNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PSet set(String arg) {
+            return new PSet(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PSet set(PSequence sequence) {
+            return new PSet(sequence);
+        }
+
+        @Specialization
+        public PSet set(PBaseSet baseSet) {
+            return new PSet(baseSet);
+        }
+
+        @Specialization
+        public PSet set(PGenerator arg) {
+            return new PSet(arg);
+        }
+    }
+
+    private static List<Character> stringToCharList(String s) {
+        ArrayList<Character> sequence = new ArrayList<>();
+
+        char[] charArray = s.toCharArray();
+        for (int i = 0; i < charArray.length; i++) {
+            sequence.add(charArray[i]);
+        }
+        return sequence;
     }
 
     @Override
     public void initialize() {
-        Class<?>[] declaredClasses = PythonDefaultBuiltins.PythonBasicBuiltinNode.class.getDeclaredClasses();
+        Class<?>[] declaredClasses = PythonDefaultBuiltins.class.getDeclaredClasses();
 
         for (int i = 0; i < declaredClasses.length; i++) {
             Class<?> clazz = declaredClasses[i];
