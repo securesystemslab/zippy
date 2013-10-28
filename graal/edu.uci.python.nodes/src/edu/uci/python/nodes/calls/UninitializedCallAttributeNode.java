@@ -47,6 +47,7 @@ public class UninitializedCallAttributeNode extends CallAttributeNode {
         return primary;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();

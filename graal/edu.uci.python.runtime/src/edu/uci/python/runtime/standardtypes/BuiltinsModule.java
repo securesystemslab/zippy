@@ -30,6 +30,7 @@ import java.util.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.modules.annotations.*;
@@ -45,10 +46,14 @@ public class BuiltinsModule extends PythonModule {
     public BuiltinsModule(PythonClass pythonClass, String name, PythonBuiltins builtins) {
         super(pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
-        // this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
         this.setAttribute(__NAME__, name);
-        this.builtins = builtins;
-        addBuiltins();
+
+        if (!PythonOptions.UseSpecializedBuiltins) {
+            this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
+        } else {
+            this.builtins = builtins;
+            addBuiltins();
+        }
     }
 
     private void addBuiltins() {

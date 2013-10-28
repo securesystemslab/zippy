@@ -22,7 +22,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package edu.uci.python.builtins;
 
 import java.math.*;
@@ -506,7 +505,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     private static PythonBuiltinNode createBuiltin(Builtin builtin) {
-        PNode args[];
+        PNode[] args;
         if (builtin.varArgs()) {
             args = new PNode[builtin.numOfArguments() + 1];
         } else {
