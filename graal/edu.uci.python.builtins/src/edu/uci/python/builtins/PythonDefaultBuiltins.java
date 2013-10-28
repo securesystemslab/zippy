@@ -22,7 +22,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package edu.uci.python.builtins;
 
 import java.util.*;
@@ -34,13 +33,9 @@ import edu.uci.python.nodes.calls.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
-import edu.uci.python.nodes.calls.*;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.*;
 
 /**
  * @author Gulfem
@@ -488,7 +483,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     private static PythonBuiltinNode createBuiltin(Builtin builtin) {
-        PNode args[];
+        PNode[] args;
         if (builtin.varArgs()) {
             args = new PNode[builtin.numOfArguments() + 1];
         } else {
