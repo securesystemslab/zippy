@@ -25,6 +25,7 @@
 
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
@@ -33,14 +34,11 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
-import edu.uci.python.nodes.calls.*;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.*;
 
 /**
  * @author Gulfem
@@ -131,11 +129,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             if (args[0] instanceof Integer && args[1] instanceof Integer) {
                 return new PComplex((int) args[0], (int) args[1]);
             }
-            throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
+
             /**
              * TODO real and imaginary values can be any numeric value such as int, double, complex
              * Currently, only ints are not supported.
              */
+            throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
         }
 
         @Specialization(order = 2, guards = "oneArgument")
@@ -208,7 +207,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "int", id = 33, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "int", id = 33, numOfArguments = 1, varArgs = true)
     public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
 
         public PythonIntNode(String name) {
@@ -219,22 +218,41 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "oneArgument")
-        public int intOneArgument(Object... args) {
-            return (int) JavaTypeConversions.toInt(args[0]);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public int createInt(int arg, Object... args) {
+            return arg;
         }
 
-        @Specialization(order = 2, guards = "twoArguments")
-        public int intTwoArguments(Object... args) {
-            /**
-             * TODO int(x, base=10) is not supported.
-             */
-            throw new RuntimeException("Not implemented integer with base: " + args[0] + " " + args[1]);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public Object createInt(double arg, Object... args) {
+            return JavaTypeConversions.doubleToInt(arg);
         }
 
-        @Specialization(order = 3, guards = "noArgument")
-        public int complexNoArgument(Object... args) {
-            return 0;
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public Object createInt(String arg, Object... args) {
+            return JavaTypeConversions.stringToInt(arg, 10);
+        }
+
+        @Specialization
+        public Object createInt(Object arg, Object... args) {
+            // Covers the case for x = int()
+            if (arg instanceof Undefined) {
+                return 0;
+            }
+
+            if (args.length == 0) {
+                return JavaTypeConversions.toInt(arg);
+            } else {
+                throw new RuntimeException("Not implemented integer with base: " + arg);
+            }
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noVariableArguments(Object arg, Object... args) {
+            return args.length == 0;
         }
     }
 

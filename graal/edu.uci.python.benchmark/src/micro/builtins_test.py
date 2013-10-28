@@ -18,6 +18,23 @@ print(x)
 x = complex(2,3)
 print(x)
 
+
+# test builtin int
+x = int(3)
+print(x)
+
+x = int(2.9)
+print(x)
+
+x = int("4")
+print(x)
+
+x = int(2147483648)
+print(x)
+
+x = int()
+print(x)
+
 # test builtin len
 value = "hello"
 print(len(value))

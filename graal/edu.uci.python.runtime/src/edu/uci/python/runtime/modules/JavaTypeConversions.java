@@ -61,7 +61,7 @@ public class JavaTypeConversions {
         }
     }
 
-    private static Object doubleToInt(Double num) {
+    public static Object doubleToInt(Double num) {
         if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE) {
             return BigInteger.valueOf(num.longValue());
         } else {
