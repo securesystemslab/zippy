@@ -144,7 +144,8 @@ ifeq ($(USE_CLANG), true)
     PCH_FLAG/sharedRuntimeTrig.o = $(PCH_FLAG/NO_PCH)
     PCH_FLAG/sharedRuntimeTrans.o = $(PCH_FLAG/NO_PCH)
     PCH_FLAG/unsafe.o = $(PCH_FLAG/NO_PCH)
-  
+    PCH_FLAG/graalCompilerToVM.o = $(PCH_FLAG/NO_PCH)
+
   endif
 else # ($(USE_CLANG), true)
   # check for precompiled headers support
@@ -309,22 +310,29 @@ OPT_CFLAGS/NOOPT=-O0
 
 # Work around some compiler bugs.
 ifeq ($(USE_CLANG), true)
+  # Clang 4.2
   ifeq ($(shell expr $(CC_VER_MAJOR) = 4 \& $(CC_VER_MINOR) = 2), 1)
     OPT_CFLAGS/loopTransform.o += $(OPT_CFLAGS/NOOPT)
     OPT_CFLAGS/unsafe.o += -O1
   endif
   # Clang 5.0
   ifeq ($(shell expr $(CC_VER_MAJOR) = 5 \& $(CC_VER_MINOR) = 0), 1)
-    OPT_CFLAGS/graalCompilerToVM.o += -O1
+    OPT_CFLAGS/loopTransform.o += $(OPT_CFLAGS/NOOPT)
     OPT_CFLAGS/unsafe.o += -O1
-    # Specific optimization level plus precompiled headers produces:
-    #     error: __OPTIMIZE_SIZE__ predefined macro was enabled in PCH file but is currently disabled
-    USE_PRECOMPILED_HEADER = 0
+    OPT_CFLAGS/graalCompilerToVM.o += -O1
   endif
 else
   # 6835796. Problem in GCC 4.3.0 with mulnode.o optimized compilation.
   ifeq ($(shell expr $(CC_VER_MAJOR) = 4 \& $(CC_VER_MINOR) = 3), 1)
     OPT_CFLAGS/mulnode.o += $(OPT_CFLAGS/NOOPT)
+  endif
+endif
+
+# We want to use libc++ on Clang 5.0
+ifeq ($(USE_CLANG), true)
+  # Clang 5.0
+  ifeq ($(shell expr $(CC_VER_MAJOR) = 5 \& $(CC_VER_MINOR) = 0), 1)
+    CFLAGS += -stdlib=libc++
   endif
 endif
 
