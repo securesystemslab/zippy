@@ -99,4 +99,9 @@ public class PFunction extends PCallable {
         DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
         return defaultTarget.getRootNode();
     }
+
+    @Override
+    public String toString() {
+        return "<fucntion " + name + " at " + hashCode() + ">";
+    }
 }

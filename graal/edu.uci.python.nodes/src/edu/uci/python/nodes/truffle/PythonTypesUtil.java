@@ -112,6 +112,12 @@ public class PythonTypesUtil {
             return new PyArray(double.class, ((PDoubleArray) value).getSequence());
         } else if (value instanceof PCharArray) {
             return new PyArray(char.class, ((PCharArray) value).getSequence());
+        } else if (value instanceof PFunction) {
+            /**
+             * zwei: This is a fix to deal with string modulo operation. It only works if this
+             * static function is invoked by the binary modulo node.
+             */
+            return new PyString(value.toString());
         }
 
         throw new RuntimeException("unexpected type! " + value.getClass());
