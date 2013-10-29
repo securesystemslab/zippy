@@ -24,53 +24,33 @@
  */
 package edu.uci.python.nodes.statements;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import org.python.core.*;
 
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class IfNode extends StatementNode {
+public class AssertNode extends StatementNode {
 
     @Child protected BooleanCastNode condition;
 
-    @Child protected BlockNode then;
+    @Child protected PNode message;
 
-    @Child protected BlockNode orelse;
-
-    public IfNode(BooleanCastNode condition, BlockNode then, BlockNode orelse) {
+    public AssertNode(BooleanCastNode condition, PNode message) {
         this.condition = adoptChild(condition);
-        this.then = adoptChild(then);
-        this.orelse = adoptChild(orelse);
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        if (condition.executeBoolean(frame)) {
-            then.executeVoid(frame);
-        } else {
-            orelse.executeVoid(frame);
-        }
+        this.message = adoptChild(message);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (condition.executeBoolean(frame)) {
-            then.executeVoid(frame);
-        } else {
-            orelse.executeVoid(frame);
+        if (!condition.executeBoolean(frame)) {
+            String assertionMessage = message == null ? "" : (String) message.execute(frame);
+            throw Py.AssertionError(assertionMessage);
         }
 
         return PNone.NONE;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitIfNode(this);
-    }
 }

@@ -41,6 +41,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
+import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
@@ -429,7 +430,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitAugAssign(AugAssign node) throws Exception {
+        isLeftHandSide = true;
         PNode target = (PNode) visit(node.getInternalTarget());
+        isLeftHandSide = false;
         PNode value = (PNode) visit(node.getInternalValue());
 
         /**
@@ -1018,6 +1021,14 @@ public class PythonTreeTranslator extends Visitor {
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
 // PNode tback = (node.getInternalTback() == null) ? null : (PNode) visit(node.getInternalTback());
         return factory.createRaiseNode(type, inst);
+    }
+
+    @Override
+    public Object visitAssert(Assert node) throws Exception {
+        PNode test = (PNode) visit(node.getInternalTest());
+        BooleanCastNode condition = factory.toBooleanCastNode(test);
+        PNode msg = node.getInternalMsg() == null ? null : (PNode) visit(node.getInternalMsg());
+        return factory.createAssert(condition, msg);
     }
 
     // Checkstyle: resume

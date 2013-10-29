@@ -489,6 +489,10 @@ public class NodeFactory {
         return new RaiseNode(type, inst);
     }
 
+    public StatementNode createAssert(BooleanCastNode condition, PNode message) {
+        return new AssertNode(condition, message);
+    }
+
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
