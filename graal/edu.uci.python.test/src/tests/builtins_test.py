@@ -9,13 +9,16 @@ x = abs(1 + 2j)
 print(x)
 
 # test builtin complex
-x = complex()
+x = complex(2, 3)
+print(x)
+
+x = complex(3.4, 4.9)
 print(x)
 
 x = complex(2)
 print(x)
 
-x = complex(2,3)
+x = complex()
 print(x)
 
 # test builtin float

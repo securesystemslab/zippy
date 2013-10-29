@@ -26,6 +26,8 @@ package edu.uci.python.runtime.modules;
 
 import java.math.*;
 
+import edu.uci.python.runtime.datatypes.*;
+
 public class JavaTypeConversions {
 
     public static Object stringToInt(String num, int base) {
@@ -172,7 +174,7 @@ public class JavaTypeConversions {
         for (int i = 0; i < n; i++) {
             char ch = str.charAt(i);
             if (ch == '\u0000') {
-                throw new RuntimeException("null byte in argument for float()");
+                throw new RuntimeException("ValueError: null byte in argument for float()");
             }
             if (Character.isDigit(ch)) {
                 if (s == null)
@@ -196,7 +198,136 @@ public class JavaTypeConversions {
                 return Double.NEGATIVE_INFINITY;
             return Double.valueOf(sval).doubleValue();
         } catch (NumberFormatException exc) {
-            throw new RuntimeException("could not convert string to float: " + str);
+            throw new RuntimeException("ValueError: could not convert string to float: " + str);
         }
+    }
+
+    // Taken from Jython PyString's __complex__ method
+    public static PComplex convertStringToComplex(String str) {
+        boolean got_re = false;
+        boolean got_im = false;
+        boolean done = false;
+        boolean sw_error = false;
+
+        int s = 0;
+        int n = str.length();
+        while (s < n && Character.isSpaceChar(str.charAt(s)))
+            s++;
+
+        if (s == n) {
+            // throw Py.ValueError("empty string for complex()");
+        }
+
+        double z = -1.0;
+        double x = 0.0;
+        double y = 0.0;
+
+        int sign = 1;
+        do {
+            char c = str.charAt(s);
+            switch (c) {
+                case '-':
+                    sign = -1;
+                    /* Fallthrough */
+                case '+':
+                    if (done || s + 1 == n) {
+                        sw_error = true;
+                        break;
+                    }
+                    // a character is guaranteed, but it better be a digit
+                    // or J or j
+                    c = str.charAt(++s);  // eat the sign character
+                    // and check the next
+                    if (!Character.isDigit(c) && c != 'J' && c != 'j')
+                        sw_error = true;
+                    break;
+
+                case 'J':
+                case 'j':
+                    if (got_im || done) {
+                        sw_error = true;
+                        break;
+                    }
+                    if (z < 0.0) {
+                        y = sign;
+                    } else {
+                        y = sign * z;
+                    }
+                    got_im = true;
+                    done = got_re;
+                    sign = 1;
+                    s++; // eat the J or j
+                    break;
+
+                case ' ':
+                    while (s < n && Character.isSpaceChar(str.charAt(s)))
+                        s++;
+                    if (s != n)
+                        sw_error = true;
+                    break;
+
+                default:
+                    boolean digit_or_dot = (c == '.' || Character.isDigit(c));
+                    if (!digit_or_dot) {
+                        sw_error = true;
+                        break;
+                    }
+                    int end = endDouble(str, s);
+                    z = Double.valueOf(str.substring(s, end)).doubleValue();
+                    if (z == Double.POSITIVE_INFINITY) {
+                        throw new RuntimeException("ValueError:" + String.format("float() out of range: %.150s", str));
+                    }
+
+                    s = end;
+                    if (s < n) {
+                        c = str.charAt(s);
+                        if (c == 'J' || c == 'j') {
+                            break;
+                        }
+                    }
+                    if (got_re) {
+                        sw_error = true;
+                        break;
+                    }
+
+                    /* accept a real part */
+                    x = sign * z;
+                    got_re = true;
+                    done = got_im;
+                    z = -1.0;
+                    sign = 1;
+                    break;
+
+            } /* end of switch */
+
+        } while (s < n && !sw_error);
+
+        if (sw_error) {
+            throw new RuntimeException("ValueError: malformed string for complex() " + str.substring(s));
+        }
+
+        return new PComplex(x, y);
+    }
+
+    // Taken from Jython PyString directly
+    private static int endDouble(String string, int s) {
+        int n = string.length();
+        while (s < n) {
+            char c = string.charAt(s++);
+            if (Character.isDigit(c))
+                continue;
+            if (c == '.')
+                continue;
+            if (c == 'e' || c == 'E') {
+                if (s < n) {
+                    c = string.charAt(s);
+                    if (c == '+' || c == '-')
+                        s++;
+                    continue;
+                }
+            }
+            return s - 1;
+        }
+        return s;
     }
 }

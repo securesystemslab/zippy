@@ -112,7 +112,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "complex", id = 13, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "complex", id = 13, numOfArguments = 2, varArgs = false)
     public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
 
         public PythonComplexNode(String name) {
@@ -124,35 +124,69 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization(order = 1, guards = "twoArguments")
-        public PComplex complexTwoArguments(Object... args) {
-            if (args[0] instanceof Integer && args[1] instanceof Integer) {
-                return new PComplex((int) args[0], (int) args[1]);
-            }
-
-            /**
-             * TODO real and imaginary values can be any numeric value such as int, double, complex
-             * Currently, only ints are not supported.
-             */
-            throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
+        public PComplex complexFromIntInt(int real, int imag) {
+            return new PComplex(real, imag);
         }
 
-        @Specialization(order = 2, guards = "oneArgument")
-        public PComplex complexOneArgument(Object... args) {
-            if (args[0] instanceof Integer) {
-                return new PComplex((int) args[0], 0);
-            } else if (args[0] instanceof Double) {
-                return new PComplex((double) args[0], 0);
-            }
-            throw new RuntimeException("Not implemented complex: " + args[0]);
+        @Specialization(order = 2, guards = "twoArguments")
+        public PComplex complexFromDoubleDouble(double real, double imag) {
+            return new PComplex(real, imag);
         }
 
-        @Specialization(order = 3, guards = "noArgument")
-        public PComplex complexNoArgument(Object... args) {
-            return new PComplex(0, 0);
+        @SuppressWarnings("unused")
+        @Specialization(order = 3, guards = "oneArgument")
+        public PComplex complexFromInt(int real, int imag) {
+            return new PComplex(real, 0);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 4, guards = "oneArgument")
+        public PComplex complexFromDouble(double real, double imag) {
+            return new PComplex(real, 0);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "oneArgument")
+        public PComplex complexFromString(String real, Object imag) {
+            return JavaTypeConversions.convertStringToComplex(real);
+        }
+
+        @Specialization
+        public PComplex complexFromObjectObject(Object real, Object imag) {
+            if (real instanceof PNone) {
+                return new PComplex(0, 0);
+            }
+
+            if (real instanceof Integer || real instanceof Double) {
+                double realPart = (double) real;
+                if (imag instanceof PNone) {
+                    return new PComplex(realPart, 0);
+                } else if (imag instanceof Integer || imag instanceof Double) {
+                    double imagPart = (double) imag;
+                    return new PComplex(realPart, imagPart);
+                }
+            } else if (real instanceof String) {
+                if (!(imag instanceof PNone)) {
+                    throw new RuntimeException("Type error: complex() can't take second arg if first is a string");
+                }
+
+                String realPart = (String) real;
+                return JavaTypeConversions.convertStringToComplex(realPart);
+            }
+
+            throw new RuntimeException("Type error: can't convert real " + real + " imag " + imag);
+        }
+
+        public static boolean oneArgument(Object real, Object imag) {
+            return !(real instanceof PNone) && (imag instanceof PNode);
+        }
+
+        public static boolean twoArguments(Object real, Object imag) {
+            return !(real instanceof PNone) && !(imag instanceof PNode);
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 1, varArgs = true)
+    @Builtin(name = "float", id = 22, numOfArguments = 1, varArgs = false)
     public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
         public PythonFloatNode(String name) {
@@ -179,7 +213,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return 0.0;
             }
             /**
-             * Exceptions need to be implemented similar to the ones in Jython
+             * TODO Exceptions need to be implemented similar to the ones in Jython
              */
             throw new RuntimeException("Type error: can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
