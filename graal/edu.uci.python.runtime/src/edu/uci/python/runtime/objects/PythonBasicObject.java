@@ -35,7 +35,7 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonBasicObject {
 
-    @CompilationFinal protected PythonClass pythonType;
+    @CompilationFinal protected PythonClass pythonClass;
 
     private ObjectLayout objectLayout;
 
@@ -63,15 +63,15 @@ public class PythonBasicObject {
         if (pythonClass != null) {
             unsafeSetPythonClass(pythonClass);
         } else {
-            this.pythonType = null;
+            this.pythonClass = null;
         }
 
         objectLayout = ObjectLayout.EMPTY;
     }
 
     public PythonClass getPythonClass() {
-        assert pythonType != null;
-        return pythonType;
+        assert pythonClass != null;
+        return pythonClass;
     }
 
     public ObjectLayout getObjectLayout() {
@@ -95,14 +95,9 @@ public class PythonBasicObject {
         }
     }
 
-    @Override
-    public String toString() {
-        return "#<" + pythonType.getClassName() + ">";
-    }
-
     public void unsafeSetPythonClass(PythonClass newPythonClass) {
-        assert pythonType == null;
-        pythonType = newPythonClass;
+        assert pythonClass == null;
+        pythonClass = newPythonClass;
     }
 
     /**
@@ -124,7 +119,7 @@ public class PythonBasicObject {
 
         // Continue the look up in PythonType.
         if (storageLocation == null) {
-            return pythonType == null ? PNone.NONE : pythonType.getAttribute(name);
+            return pythonClass == null ? PNone.NONE : pythonClass.getAttribute(name);
         }
 
         return storageLocation.read(this);
@@ -141,7 +136,7 @@ public class PythonBasicObject {
              * It doesn't exist, so create a new layout for the class that includes it and update
              * the layout of this object.
              */
-            updateLayout(objectLayout.withNewVariable(pythonType.getContext(), name, value.getClass()));
+            updateLayout(objectLayout.withNewVariable(pythonClass.getContext(), name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
 
@@ -153,7 +148,7 @@ public class PythonBasicObject {
              * It might not be able to store the type that we passed, if not generalize the class's
              * layout and update the layout of this object.
              */
-            updateLayout(objectLayout.withGeneralisedVariable(pythonType.getContext(), name));
+            updateLayout(objectLayout.withGeneralisedVariable(pythonClass.getContext(), name));
 
             storageLocation = objectLayout.findStorageLocation(name);
 
