@@ -166,7 +166,7 @@ public class PythonTypesUtil {
     }
 
     /**
-     * TODO This method should be extended to support the remaining types
+     * TODO This method should be extended to support the remaining types.
      */
     public static String getPythonTypeName(Object object) {
         if (object instanceof Integer || object instanceof BigInteger) {

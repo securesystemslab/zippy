@@ -61,6 +61,45 @@ public class ClassTests {
     }
 
     @Test
+    public void instanceAttributes() {
+        String source = "class Foo:\n" + //
+                        "    def __init__(self, num):\n" + //
+                        "        self.num = num\n" + //
+                        "\n" + //
+                        "foo = Foo(42)\n" + //
+                        "print(foo.num)\n";
+
+        assertPrints("42\n", source);
+    }
+
+    @Test
+    public void classAttributes() {
+        String source = "class Foo:\n" + //
+                        "    class_attr = 2\n" + //
+                        "    def __init__(self, num):\n" + //
+                        "       self.num = num\n" + //
+                        "\n" + //
+                        "foo = Foo(42)\n" + //
+                        "print(foo.num)\n" + //
+                        "print(Foo.class_attr)\n" + //
+                        "print(foo.class_attr)\n";
+
+        assertPrints("42\n2\n2\n", source);
+    }
+
+    @Test
+    public void userClassInheritance() {
+        String source = "class ClassA(object):\n" + //
+                        "    pass\n" + //
+                        "\n" + //
+                        "class ClassB(ClassA):\n" + //
+                        "    pass\n" + //
+                        "";
+
+        assertPrints("", source);
+    }
+
+    @Test
     public void scriptClassTest() {
         Path script = Paths.get("class_test.py");
         assertPrints("42\n", script);

@@ -22,42 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.nodes.objects;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.assumptions.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public class PythonObject extends PythonBasicObject {
+@NodeInfo(shortName = "add-class-attr")
+public class AddClassAttributeNode extends PNode implements Amendable {
 
-    /**
-     * Assumption used by attribute call sites or attribute access sites that access attribute
-     * stored in this object.
-     * <p>
-     * The unmodifiedAssumption is invalidated whenever the object itself is modified. <br>
-     * 1. Invalidated by setAttribute slow path here. <br>
-     * 2. Invalidated by StoreObjectAttributeNode... (TODO:)
-     */
-    protected final CyclicAssumption unmodifiedAssumption;
+    private final String attributeId;
+    @Child protected PNode rhs;
 
-    public PythonObject(PythonClass pythonClass) {
-        super(pythonClass);
-        unmodifiedAssumption = new CyclicAssumption("unmodified");
-    }
-
-    public Assumption getUnmodifiedAssumption() {
-        return unmodifiedAssumption.getAssumption();
+    public AddClassAttributeNode(String attributeId, PNode rhs) {
+        this.attributeId = attributeId;
+        this.rhs = adoptChild(rhs);
     }
 
     @Override
-    public void setAttribute(String name, Object value) {
-        unmodifiedAssumption.invalidate();
-        super.setAttribute(name, value);
+    public PNode updateRhs(PNode newRhs) {
+        return new AddClassAttributeNode(this.attributeId, newRhs);
+    }
+
+    private static PythonClass getClass(VirtualFrame frame) {
+        PArguments args = frame.getArguments(PArguments.class);
+        Object arg = args.getArgument(0);
+        assert arg != null && arg instanceof PythonClass : "AddClassAttributeNode expects the first argument of the class definition method call to be the defining class";
+        return (PythonClass) arg;
     }
 
     @Override
-    public String toString() {
-        return "<" + pythonClass.getClassName() + " object at " + hashCode() + ">";
+    public Object execute(VirtualFrame frame) {
+        PythonClass clazz = getClass(frame);
+        clazz.setAttribute(attributeId, rhs.execute(frame));
+        return PNone.NONE;
     }
 }

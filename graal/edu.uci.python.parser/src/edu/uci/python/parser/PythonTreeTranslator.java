@@ -395,6 +395,7 @@ public class PythonTreeTranslator extends Visitor {
                 }
                 return factory.createWriteLocal(PNode.EMPTYNODE, slot);
             case Class:
+                return factory.createAddClassAttribute(name, PNode.EMPTYNODE);
             default:
                 throw new RuntimeException("Unexpected scopeKind " + environment.getScopeKind());
         }

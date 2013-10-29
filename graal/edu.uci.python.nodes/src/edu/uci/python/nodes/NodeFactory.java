@@ -88,6 +88,10 @@ public class NodeFactory {
         return new GeneratorRootNode(functionName, parameters, body, returnValue);
     }
 
+    public PNode createAddClassAttribute(String attributeId, PNode rhs) {
+        return new AddClassAttributeNode(attributeId, rhs);
+    }
+
     public PNode createAddMethodNode(FunctionDefinitionNode methodDef) {
         return new AddMethodNode(methodDef);
     }

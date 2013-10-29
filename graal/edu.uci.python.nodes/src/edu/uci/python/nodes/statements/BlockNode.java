@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class BlockNode extends StatementNode {
 
@@ -57,7 +58,7 @@ public class BlockNode extends StatementNode {
             statements[i].executeVoid(frame);
         }
 
-        return null;
+        return PNone.NONE;
     }
 
     @Override

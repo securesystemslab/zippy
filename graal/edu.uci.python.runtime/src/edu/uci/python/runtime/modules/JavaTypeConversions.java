@@ -177,8 +177,9 @@ public class JavaTypeConversions {
                 throw new RuntimeException("ValueError: null byte in argument for float()");
             }
             if (Character.isDigit(ch)) {
-                if (s == null)
+                if (s == null) {
                     s = new StringBuilder(str);
+                }
                 int val = Character.digit(ch, 10);
                 s.setCharAt(i, Character.forDigit(val, 10));
             }
@@ -190,12 +191,13 @@ public class JavaTypeConversions {
         try {
             // Double.valueOf allows format specifier ("d" or "f") at the end
             String lowSval = sval.toLowerCase();
-            if (lowSval.equals("nan"))
+            if (lowSval.equals("nan")) {
                 return Double.NaN;
-            else if (lowSval.equals("inf"))
+            } else if (lowSval.equals("inf")) {
                 return Double.POSITIVE_INFINITY;
-            else if (lowSval.equals("-inf"))
+            } else if (lowSval.equals("-inf")) {
                 return Double.NEGATIVE_INFINITY;
+            }
             return Double.valueOf(sval).doubleValue();
         } catch (NumberFormatException exc) {
             throw new RuntimeException("ValueError: could not convert string to float: " + str);
@@ -204,15 +206,16 @@ public class JavaTypeConversions {
 
     // Taken from Jython PyString's __complex__() method
     public static PComplex convertStringToComplex(String str) {
-        boolean got_re = false;
-        boolean got_im = false;
+        boolean gotRe = false;
+        boolean gotIm = false;
         boolean done = false;
-        boolean sw_error = false;
+        boolean swError = false;
 
         int s = 0;
         int n = str.length();
-        while (s < n && Character.isSpaceChar(str.charAt(s)))
+        while (s < n && Character.isSpaceChar(str.charAt(s))) {
             s++;
+        }
 
         if (s == n) {
             // throw Py.ValueError("empty string for complex()");
@@ -231,21 +234,22 @@ public class JavaTypeConversions {
                     /* Fallthrough */
                 case '+':
                     if (done || s + 1 == n) {
-                        sw_error = true;
+                        swError = true;
                         break;
                     }
                     // a character is guaranteed, but it better be a digit
                     // or J or j
                     c = str.charAt(++s);  // eat the sign character
                     // and check the next
-                    if (!Character.isDigit(c) && c != 'J' && c != 'j')
-                        sw_error = true;
+                    if (!Character.isDigit(c) && c != 'J' && c != 'j') {
+                        swError = true;
+                    }
                     break;
 
                 case 'J':
                 case 'j':
-                    if (got_im || done) {
-                        sw_error = true;
+                    if (gotIm || done) {
+                        swError = true;
                         break;
                     }
                     if (z < 0.0) {
@@ -253,23 +257,25 @@ public class JavaTypeConversions {
                     } else {
                         y = sign * z;
                     }
-                    got_im = true;
-                    done = got_re;
+                    gotIm = true;
+                    done = gotRe;
                     sign = 1;
                     s++; // eat the J or j
                     break;
 
                 case ' ':
-                    while (s < n && Character.isSpaceChar(str.charAt(s)))
+                    while (s < n && Character.isSpaceChar(str.charAt(s))) {
                         s++;
-                    if (s != n)
-                        sw_error = true;
+                    }
+                    if (s != n) {
+                        swError = true;
+                    }
                     break;
 
                 default:
                     boolean digit_or_dot = (c == '.' || Character.isDigit(c));
                     if (!digit_or_dot) {
-                        sw_error = true;
+                        swError = true;
                         break;
                     }
                     int end = endDouble(str, s);
@@ -285,24 +291,24 @@ public class JavaTypeConversions {
                             break;
                         }
                     }
-                    if (got_re) {
-                        sw_error = true;
+                    if (gotRe) {
+                        swError = true;
                         break;
                     }
 
                     /* accept a real part */
                     x = sign * z;
-                    got_re = true;
-                    done = got_im;
+                    gotRe = true;
+                    done = gotIm;
                     z = -1.0;
                     sign = 1;
                     break;
 
             } /* end of switch */
 
-        } while (s < n && !sw_error);
+        } while (s < n && !swError);
 
-        if (sw_error) {
+        if (swError) {
             throw new RuntimeException("ValueError: malformed string for complex() " + str.substring(s));
         }
 
@@ -314,15 +320,18 @@ public class JavaTypeConversions {
         int n = string.length();
         while (s < n) {
             char c = string.charAt(s++);
-            if (Character.isDigit(c))
+            if (Character.isDigit(c)) {
                 continue;
-            if (c == '.')
+            }
+            if (c == '.') {
                 continue;
+            }
             if (c == 'e' || c == 'E') {
                 if (s < n) {
                     c = string.charAt(s);
-                    if (c == '+' || c == '-')
+                    if (c == '+' || c == '-') {
                         s++;
+                    }
                     continue;
                 }
             }
