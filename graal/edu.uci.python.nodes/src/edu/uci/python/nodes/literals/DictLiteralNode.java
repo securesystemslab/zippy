@@ -36,9 +36,9 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class DictLiteralNode extends LiteralNode {
 
-    @Children protected PNode[] keys;
+    @Children final PNode[] keys;
 
-    @Children protected PNode[] values;
+    @Children final PNode[] values;
 
     public DictLiteralNode(PNode[] keys, PNode[] values) {
         this.keys = adoptChildren(keys);

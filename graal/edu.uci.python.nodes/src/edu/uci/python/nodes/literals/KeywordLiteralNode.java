@@ -31,7 +31,7 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class KeywordLiteralNode extends LiteralNode {
 
-    @Child private final PNode value;
+    @Child protected PNode value;
 
     private final String name;
 
