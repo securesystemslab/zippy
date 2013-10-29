@@ -8,14 +8,59 @@ print(x)
 x = abs(1 + 2j)
 print(x)
 
+# test builtin chr
+x = chr(65)
+print(x)
+
 # test builtin complex
-x = complex()
+x = complex(2, 3)
+print(x)
+
+x = complex(3.4, 4.9)
 print(x)
 
 x = complex(2)
 print(x)
 
-x = complex(2,3)
+x = complex()
+print(x)
+
+# test builtin float
+x = float(2)
+print(x)
+
+x = float('+1.23')
+print(x)
+
+x = float('   -12345\n')
+print(x)
+
+x = float('1e-003')
+print(x)
+
+x = float('+1E6')
+print(x)
+
+x = float('-Infinity')
+print(x)
+
+x = float()
+print(x)
+
+# test builtin int
+x = int(3)
+print(x)
+
+x = int(2.9)
+print(x)
+
+x = int("4")
+print(x)
+
+x = int(2147483648)
+print(x)
+
+x = int()
 print(x)
 
 # test builtin len
@@ -41,7 +86,7 @@ print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
      
 # test builtin iter and next
-str = "gulfem"
+str = "hello"
 it = iter(str)
 print it.next()
 print it.next()

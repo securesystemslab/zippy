@@ -24,14 +24,17 @@
  */
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
 import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CallTarget;
@@ -89,7 +92,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public double absPComplex(PComplex arg) {
-            return Math.hypot(arg.getReal(), arg.getImag());
+            return FastMathUtil.hypot(arg.getReal(), arg.getImag());
         }
     }
 
@@ -105,12 +108,23 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public String charFromInt(int arg) {
-            return Character.toString((char) arg);
+        public char charFromInt(int arg) {
+            return JavaTypeConversions.convertIntToChar(arg);
+        }
+
+        @Specialization
+        public char charFromInt(Object arg) {
+            if (arg instanceof PNone) {
+                throw new RuntimeException("TypeError: chr() takes exactly 1 argument (0 given)");
+            } else if (arg instanceof Double) {
+                throw new RuntimeException("TypeError: integer argument expected, got float");
+            }
+
+            throw new RuntimeException("TypeError: an integer is required");
         }
     }
 
-    @Builtin(name = "complex", id = 13, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "complex", id = 13, numOfArguments = 2)
     public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
 
         public PythonComplexNode(String name) {
@@ -122,34 +136,69 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization(order = 1, guards = "twoArguments")
-        public PComplex complexTwoArguments(Object... args) {
-            if (args[0] instanceof Integer && args[1] instanceof Integer) {
-                return new PComplex((int) args[0], (int) args[1]);
-            }
-            throw new RuntimeException("Not implemented complex: " + args[0] + " " + args[1]);
-            /**
-             * TODO real and imaginary values can be any numeric value such as int, double, complex
-             * Currently, only ints are not supported.
-             */
+        public PComplex complexFromIntInt(int real, int imag) {
+            return new PComplex(real, imag);
         }
 
-        @Specialization(order = 2, guards = "oneArgument")
-        public PComplex complexOneArgument(Object... args) {
-            if (args[0] instanceof Integer) {
-                return new PComplex((int) args[0], 0);
-            } else if (args[0] instanceof Double) {
-                return new PComplex((double) args[0], 0);
-            }
-            throw new RuntimeException("Not implemented complex: " + args[0]);
+        @Specialization(order = 2, guards = "twoArguments")
+        public PComplex complexFromDoubleDouble(double real, double imag) {
+            return new PComplex(real, imag);
         }
 
-        @Specialization(order = 3, guards = "noArgument")
-        public PComplex complexNoArgument(Object... args) {
-            return new PComplex(0, 0);
+        @SuppressWarnings("unused")
+        @Specialization(order = 3, guards = "oneArgument")
+        public PComplex complexFromInt(int real, int imag) {
+            return new PComplex(real, 0);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 4, guards = "oneArgument")
+        public PComplex complexFromDouble(double real, double imag) {
+            return new PComplex(real, 0);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "oneArgument")
+        public PComplex complexFromString(String real, Object imag) {
+            return JavaTypeConversions.convertStringToComplex(real);
+        }
+
+        @Specialization
+        public PComplex complexFromObjectObject(Object real, Object imag) {
+            if (real instanceof PNone) {
+                return new PComplex(0, 0);
+            }
+
+            if (real instanceof Integer || real instanceof Double) {
+                double realPart = (double) real;
+                if (imag instanceof PNone) {
+                    return new PComplex(realPart, 0);
+                } else if (imag instanceof Integer || imag instanceof Double) {
+                    double imagPart = (double) imag;
+                    return new PComplex(realPart, imagPart);
+                }
+            } else if (real instanceof String) {
+                if (!(imag instanceof PNone)) {
+                    throw new RuntimeException("Type error: complex() can't take second arg if first is a string");
+                }
+
+                String realPart = (String) real;
+                return JavaTypeConversions.convertStringToComplex(realPart);
+            }
+
+            throw new RuntimeException("Type error: can't convert real " + real + " imag " + imag);
+        }
+
+        public static boolean oneArgument(Object real, Object imag) {
+            return !(real instanceof PNone) && (imag instanceof PNode);
+        }
+
+        public static boolean twoArguments(Object real, Object imag) {
+            return !(real instanceof PNone) && !(imag instanceof PNode);
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "float", id = 22, numOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
         public PythonFloatNode(String name) {
@@ -161,13 +210,24 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public double floatFromString(String arg) {
-            throw new RuntimeException("Not implemented integer: ");
+        public double floatFromInt(int arg) {
+            return arg;
         }
 
         @Specialization
-        public double floatFromInt(int arg) {
-            return arg;
+        public double floatFromString(String arg) {
+            return JavaTypeConversions.convertStringToDouble(arg);
+        }
+
+        @Specialization
+        public double floatFromObject(Object arg) {
+            if (arg instanceof PNone) {
+                return 0.0;
+            }
+            /**
+             * TODO Exceptions need to be implemented similar to the ones in Jython
+             */
+            throw new RuntimeException("Type error: can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
     }
 
@@ -203,7 +263,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "int", id = 33, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "int", id = 33, numOfArguments = 1, varArgs = true)
     public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
 
         public PythonIntNode(String name) {
@@ -214,22 +274,41 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "oneArgument")
-        public int intOneArgument(Object... args) {
-            return (int) JavaTypeConversions.toInt(args[0]);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public int createInt(int arg, Object... args) {
+            return arg;
         }
 
-        @Specialization(order = 2, guards = "twoArguments")
-        public int intTwoArguments(Object... args) {
-            /**
-             * TODO int(x, base=10) is not supported.
-             */
-            throw new RuntimeException("Not implemented integer with base: " + args[0] + " " + args[1]);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public Object createInt(double arg, Object... args) {
+            return JavaTypeConversions.doubleToInt(arg);
         }
 
-        @Specialization(order = 3, guards = "noArgument")
-        public int complexNoArgument(Object... args) {
-            return 0;
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noVariableArguments")
+        public Object createInt(String arg, Object... args) {
+            return JavaTypeConversions.stringToInt(arg, 10);
+        }
+
+        @Specialization
+        public Object createInt(Object arg, Object... args) {
+            // Covers the case for x = int()
+            if (arg instanceof PNone) {
+                return 0;
+            }
+
+            if (args.length == 0) {
+                return JavaTypeConversions.toInt(arg);
+            } else {
+                throw new RuntimeException("Not implemented integer with base: " + arg);
+            }
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noVariableArguments(Object arg, Object... args) {
+            return args.length == 0;
         }
     }
 
@@ -281,6 +360,26 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public int len(PArray arg) {
             return arg.len();
+        }
+
+        @Specialization
+        public int len(Object arg) {
+            if (arg instanceof PNone) {
+                throw new RuntimeException("TypeError: len() takes exactly 1 argument (0 given)");
+            } else if (arg instanceof String) {
+                String argument = (String) arg;
+                return argument.length();
+            } else if (arg instanceof PSequence) {
+                PSequence argument = (PSequence) arg;
+                return argument.len();
+            } else if (arg instanceof PDictionary) {
+                PDictionary argument = (PDictionary) arg;
+                return argument.len();
+            } else if (arg instanceof PArray) {
+                PArray argument = (PArray) arg;
+                return argument.len();
+            }
+            throw new RuntimeException("TypeError: object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
     }
 

@@ -26,6 +26,8 @@ package edu.uci.python.runtime.modules;
 
 import java.math.*;
 
+import edu.uci.python.runtime.datatypes.*;
+
 public class JavaTypeConversions {
 
     public static Object stringToInt(String num, int base) {
@@ -61,7 +63,7 @@ public class JavaTypeConversions {
         }
     }
 
-    private static Object doubleToInt(Double num) {
+    public static Object doubleToInt(Double num) {
         if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE) {
             return BigInteger.valueOf(num.longValue());
         } else {
@@ -162,5 +164,188 @@ public class JavaTypeConversions {
             bi = new BigInteger(s, base);
         }
         return bi;
+    }
+
+    // Taken from Jython PyString's atof() method
+    public static double convertStringToDouble(String str) {
+        StringBuilder s = null;
+        int n = str.length();
+
+        for (int i = 0; i < n; i++) {
+            char ch = str.charAt(i);
+            if (ch == '\u0000') {
+                throw new RuntimeException("ValueError: null byte in argument for float()");
+            }
+            if (Character.isDigit(ch)) {
+                if (s == null) {
+                    s = new StringBuilder(str);
+                }
+                int val = Character.digit(ch, 10);
+                s.setCharAt(i, Character.forDigit(val, 10));
+            }
+        }
+        String sval = str;
+        if (s != null) {
+            sval = s.toString();
+        }
+        try {
+            // Double.valueOf allows format specifier ("d" or "f") at the end
+            String lowSval = sval.toLowerCase();
+            if (lowSval.equals("nan")) {
+                return Double.NaN;
+            } else if (lowSval.equals("inf")) {
+                return Double.POSITIVE_INFINITY;
+            } else if (lowSval.equals("-inf")) {
+                return Double.NEGATIVE_INFINITY;
+            }
+            return Double.valueOf(sval).doubleValue();
+        } catch (NumberFormatException exc) {
+            throw new RuntimeException("ValueError: could not convert string to float: " + str);
+        }
+    }
+
+    // Taken from Jython PyString's __complex__() method
+    public static PComplex convertStringToComplex(String str) {
+        boolean gotRe = false;
+        boolean gotIm = false;
+        boolean done = false;
+        boolean swError = false;
+
+        int s = 0;
+        int n = str.length();
+        while (s < n && Character.isSpaceChar(str.charAt(s))) {
+            s++;
+        }
+
+        if (s == n) {
+            // throw Py.ValueError("empty string for complex()");
+        }
+
+        double z = -1.0;
+        double x = 0.0;
+        double y = 0.0;
+
+        int sign = 1;
+        do {
+            char c = str.charAt(s);
+            switch (c) {
+                case '-':
+                    sign = -1;
+                    /* Fallthrough */
+                case '+':
+                    if (done || s + 1 == n) {
+                        swError = true;
+                        break;
+                    }
+                    // a character is guaranteed, but it better be a digit
+                    // or J or j
+                    c = str.charAt(++s);  // eat the sign character
+                    // and check the next
+                    if (!Character.isDigit(c) && c != 'J' && c != 'j') {
+                        swError = true;
+                    }
+                    break;
+
+                case 'J':
+                case 'j':
+                    if (gotIm || done) {
+                        swError = true;
+                        break;
+                    }
+                    if (z < 0.0) {
+                        y = sign;
+                    } else {
+                        y = sign * z;
+                    }
+                    gotIm = true;
+                    done = gotRe;
+                    sign = 1;
+                    s++; // eat the J or j
+                    break;
+
+                case ' ':
+                    while (s < n && Character.isSpaceChar(str.charAt(s))) {
+                        s++;
+                    }
+                    if (s != n) {
+                        swError = true;
+                    }
+                    break;
+
+                default:
+                    boolean digit_or_dot = (c == '.' || Character.isDigit(c));
+                    if (!digit_or_dot) {
+                        swError = true;
+                        break;
+                    }
+                    int end = endDouble(str, s);
+                    z = Double.valueOf(str.substring(s, end)).doubleValue();
+                    if (z == Double.POSITIVE_INFINITY) {
+                        throw new RuntimeException("ValueError:" + String.format("float() out of range: %.150s", str));
+                    }
+
+                    s = end;
+                    if (s < n) {
+                        c = str.charAt(s);
+                        if (c == 'J' || c == 'j') {
+                            break;
+                        }
+                    }
+                    if (gotRe) {
+                        swError = true;
+                        break;
+                    }
+
+                    /* accept a real part */
+                    x = sign * z;
+                    gotRe = true;
+                    done = gotIm;
+                    z = -1.0;
+                    sign = 1;
+                    break;
+
+            } /* end of switch */
+
+        } while (s < n && !swError);
+
+        if (swError) {
+            throw new RuntimeException("ValueError: malformed string for complex() " + str.substring(s));
+        }
+
+        return new PComplex(x, y);
+    }
+
+    // Taken from Jython PyString directly
+    private static int endDouble(String string, int s) {
+        int n = string.length();
+        while (s < n) {
+            char c = string.charAt(s++);
+            if (Character.isDigit(c)) {
+                continue;
+            }
+            if (c == '.') {
+                continue;
+            }
+            if (c == 'e' || c == 'E') {
+                if (s < n) {
+                    c = string.charAt(s);
+                    if (c == '+' || c == '-') {
+                        s++;
+                    }
+                    continue;
+                }
+            }
+            return s - 1;
+        }
+        return s;
+    }
+
+    // Taken from Jython __builtin__ class chr(int i) method
+    // Upper bound is modified to 1114111(0x10FFFF) based on Python 3 semantics
+    public static char convertIntToChar(int i) {
+        if (i < 0 || i > 0x10FFFF) {
+            throw new RuntimeException("ValueError: chr() arg not in range(0x110000)");
+        }
+        return (char) i;
     }
 }
