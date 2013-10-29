@@ -34,6 +34,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
+import socket
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
@@ -2534,7 +2535,7 @@ def clean(args, parser=None):
 
     suppliedParser = parser is not None
 
-    parser = parser if suppliedParser else ArgumentParser(prog='mx build')
+    parser = parser if suppliedParser else ArgumentParser(prog='mx clean')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
 
@@ -2600,8 +2601,56 @@ Given a command name, print help for that command."""
     print 'mx {0} {1}\n\n{2}\n'.format(name, usage, doc)
 
 def projectgraph(args, suite=None):
-    """create dot graph for project structure ("mx projectgraph | dot -Tpdf -oprojects.pdf")"""
+    """create graph for project structure ("mx projectgraph | dot -Tpdf -oprojects.pdf" or "mx projectgraph --igv")"""
 
+    parser = ArgumentParser(prog='mx projectgraph')
+    parser.add_argument('--igv', action='store_true', help='output to IGV listening on 127.0.0.1:4444')
+    parser.add_argument('--igv-format', action='store_true', help='output graph in IGV format')
+
+    args = parser.parse_args(args)
+
+    if args.igv or args.igv_format:
+        ids = {}
+        nextToIndex = {}
+        igv = XMLDoc()
+        igv.open('graphDocument')
+        igv.open('group')
+        igv.open('properties')
+        igv.element('p', {'name' : 'name'}, 'GraalProjectDependencies')
+        igv.close('properties')
+        igv.open('graph', {'name' : 'dependencies'})
+        igv.open('nodes')
+        for p in sorted_deps(includeLibs=True):
+            ident = len(ids)
+            ids[p.name] = str(ident)
+            igv.open('node', {'id' : str(ident)})
+            igv.open('properties')
+            igv.element('p', {'name' : 'name'}, p.name)
+            igv.close('properties')
+            igv.close('node')
+        igv.close('nodes')
+        igv.open('edges')
+        for p in projects():
+            fromIndex = 0
+            for dep in p.canonical_deps():
+                toIndex = nextToIndex.get(dep, 0)
+                nextToIndex[dep] = toIndex + 1
+                igv.element('edge', {'from' : ids[p.name], 'fromIndex' : str(fromIndex), 'to' : ids[dep], 'toIndex' : str(toIndex), 'label' : 'dependsOn'})
+                fromIndex = fromIndex + 1
+        igv.close('edges')
+        igv.close('graph')
+        igv.close('group')
+        igv.close('graphDocument')
+        
+        if args.igv:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', 4444))
+            s.send(igv.xml())
+        else:
+            print igv.xml(indent='  ', newl='\n');
+        return
+        
+            
     print 'digraph projects {'
     print 'rankdir=BT;'
     print 'node [shape=rect];'
