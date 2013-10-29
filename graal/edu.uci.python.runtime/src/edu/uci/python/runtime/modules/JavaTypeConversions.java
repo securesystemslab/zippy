@@ -332,7 +332,7 @@ public class JavaTypeConversions {
     }
 
     // Taken from Jython __builtin__ class chr(int i) method
-    // Upper bound is modified to 1114111 based on Python 3 semantics
+    // Upper bound is modified to 1114111(0x10FFFF) based on Python 3 semantics
     public static char convertIntToChar(int i) {
         if (i < 0 || i > 0x10FFFF) {
             throw new RuntimeException("ValueError: chr() arg not in range(0x110000)");

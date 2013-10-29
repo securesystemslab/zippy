@@ -110,6 +110,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public char charFromInt(int arg) {
             return JavaTypeConversions.convertIntToChar(arg);
         }
+
+        @Specialization
+        public char charFromInt(Object arg) {
+            if (arg instanceof PNone) {
+                throw new RuntimeException("TypeError: chr() takes exactly 1 argument (0 given)");
+            } else if (arg instanceof Double) {
+                throw new RuntimeException("TypeError: integer argument expected, got float");
+            }
+
+            throw new RuntimeException("TypeError: an integer is required");
+        }
     }
 
     @Builtin(name = "complex", id = 13, numOfArguments = 2)
