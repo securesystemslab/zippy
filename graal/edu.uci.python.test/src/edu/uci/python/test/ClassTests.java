@@ -81,9 +81,22 @@ public class ClassTests {
                         "\n" + //
                         "foo = Foo(42)\n" + //
                         "print(foo.num)\n" + //
-                        "print(Foo.class_attr)\n";
+                        "print(Foo.class_attr)\n" + //
+                        "print(foo.class_attr)\n";
 
-        assertPrints("42\n2\n", source);
+        assertPrints("42\n2\n2\n", source);
+    }
+
+    @Test
+    public void userClassInheritance() {
+        String source = "class ClassA(object):\n" + //
+                        "    pass\n" + //
+                        "\n" + //
+                        "class ClassB(ClassA):\n" + //
+                        "    pass\n" + //
+                        "";
+
+        assertPrints("", source);
     }
 
     @Test
