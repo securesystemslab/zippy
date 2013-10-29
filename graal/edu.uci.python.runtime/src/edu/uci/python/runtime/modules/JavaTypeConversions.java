@@ -166,7 +166,7 @@ public class JavaTypeConversions {
         return bi;
     }
 
-    // Taken from Jython PyString's atof method
+    // Taken from Jython PyString's atof() method
     public static double convertStringToDouble(String str) {
         StringBuilder s = null;
         int n = str.length();
@@ -202,7 +202,7 @@ public class JavaTypeConversions {
         }
     }
 
-    // Taken from Jython PyString's __complex__ method
+    // Taken from Jython PyString's __complex__() method
     public static PComplex convertStringToComplex(String str) {
         boolean got_re = false;
         boolean got_im = false;
@@ -329,5 +329,14 @@ public class JavaTypeConversions {
             return s - 1;
         }
         return s;
+    }
+
+    // Taken from Jython __builtin__ class chr(int i) method
+    // Upper bound is modified to 1114111 based on Python 3 semantics
+    public static char convertIntToChar(int i) {
+        if (i < 0 || i > 0x10FFFF) {
+            throw new RuntimeException("ValueError: chr() arg not in range(0x110000)");
+        }
+        return (char) i;
     }
 }

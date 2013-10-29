@@ -8,6 +8,10 @@ print(x)
 x = abs(1 + 2j)
 print(x)
 
+# test builtin chr
+x = chr(65)
+print(x)
+
 # test builtin complex
 x = complex(2, 3)
 print(x)

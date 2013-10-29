@@ -91,7 +91,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public double absPComplex(PComplex arg) {
-            return Math.hypot(arg.getReal(), arg.getImag());
+            return FastMathUtil.hypot(arg.getReal(), arg.getImag());
         }
     }
 
@@ -107,12 +107,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public String charFromInt(int arg) {
-            return Character.toString((char) arg);
+        public char charFromInt(int arg) {
+            return JavaTypeConversions.convertIntToChar(arg);
         }
     }
 
-    @Builtin(name = "complex", id = 13, numOfArguments = 2, varArgs = false)
+    @Builtin(name = "complex", id = 13, numOfArguments = 2)
     public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
 
         public PythonComplexNode(String name) {
@@ -186,7 +186,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 1, varArgs = false)
+    @Builtin(name = "float", id = 22, numOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
         public PythonFloatNode(String name) {
