@@ -31,6 +31,7 @@ import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
 import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.objects.*;
@@ -359,6 +360,26 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public int len(PArray arg) {
             return arg.len();
+        }
+
+        @Specialization
+        public int len(Object arg) {
+            if (arg instanceof PNone) {
+                throw new RuntimeException("TypeError: len() takes exactly 1 argument (0 given)");
+            } else if (arg instanceof String) {
+                String argument = (String) arg;
+                return argument.length();
+            } else if (arg instanceof PSequence) {
+                PSequence argument = (PSequence) arg;
+                return argument.len();
+            } else if (arg instanceof PDictionary) {
+                PDictionary argument = (PDictionary) arg;
+                return argument.len();
+            } else if (arg instanceof PArray) {
+                PArray argument = (PArray) arg;
+                return argument.len();
+            }
+            throw new RuntimeException("TypeError: object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
     }
 

@@ -165,4 +165,28 @@ public class PythonTypesUtil {
         return unboxed;
     }
 
+    /**
+     * TODO This method should be extended to support the remaining types
+     */
+    public static String getPythonTypeName(Object object) {
+        if (object instanceof Integer || object instanceof BigInteger) {
+            return "int";
+        } else if (object instanceof Double) {
+            return "float";
+        } else if (object instanceof PComplex) {
+            return "complex";
+        } else if (object instanceof String) {
+            return "str";
+        } else if (object instanceof PList) {
+            return "list";
+        } else if (object instanceof PTuple) {
+            return "tuple";
+        } else if (object instanceof PRange) {
+            return "range";
+        } else if (object instanceof PSet) {
+            return "set";
+        }
+
+        throw new RuntimeException("Unsupported type name " + object.getClass());
+    }
 }
