@@ -238,7 +238,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public Object createInt(Object arg, Object... args) {
             // Covers the case for x = int()
-            if (arg instanceof Undefined) {
+            if (arg instanceof PNone) {
                 return 0;
             }
 

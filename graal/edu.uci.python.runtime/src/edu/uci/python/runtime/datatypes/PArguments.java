@@ -63,7 +63,7 @@ public class PArguments extends Arguments {
 
     public final Object getArgument(int index) {
         if (index >= arguments.length) {
-            return Undefined.instance;
+            return PNone.NONE;
         }
 
         return arguments[index];
