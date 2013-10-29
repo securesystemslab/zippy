@@ -152,7 +152,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 0, varArgs = true)
+    @Builtin(name = "float", id = 22, numOfArguments = 1, varArgs = true)
     public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
         public PythonFloatNode(String name) {
@@ -164,13 +164,24 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public double floatFromString(String arg) {
-            throw new RuntimeException("Not implemented integer: ");
+        public double floatFromInt(int arg) {
+            return arg;
         }
 
         @Specialization
-        public double floatFromInt(int arg) {
-            return arg;
+        public double floatFromString(String arg) {
+            return JavaTypeConversions.convertStringToDouble(arg);
+        }
+
+        @Specialization
+        public double floatFromObject(Object arg) {
+            if (arg instanceof PNone) {
+                return 0.0;
+            }
+            /**
+             * Exceptions need to be implemented similar to the ones in Jython
+             */
+            throw new RuntimeException("Type error: can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
     }
 

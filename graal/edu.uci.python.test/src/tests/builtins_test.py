@@ -18,6 +18,27 @@ print(x)
 x = complex(2,3)
 print(x)
 
+# test builtin float
+x = float(2)
+print(x)
+
+x = float('+1.23')
+print(x)
+
+x = float('   -12345\n')
+print(x)
+
+x = float('1e-003')
+print(x)
+
+x = float('+1E6')
+print(x)
+
+x = float('-Infinity')
+print(x)
+
+x = float()
+print(x)
 
 # test builtin int
 x = int(3)
@@ -58,7 +79,7 @@ print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
      
 # test builtin iter and next
-str = "gulfem"
+str = "hello"
 it = iter(str)
 print it.next()
 print it.next()

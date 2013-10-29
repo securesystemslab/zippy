@@ -163,4 +163,40 @@ public class JavaTypeConversions {
         }
         return bi;
     }
+
+    // Taken from Jython PyString's atof method
+    public static double convertStringToDouble(String str) {
+        StringBuilder s = null;
+        int n = str.length();
+
+        for (int i = 0; i < n; i++) {
+            char ch = str.charAt(i);
+            if (ch == '\u0000') {
+                throw new RuntimeException("null byte in argument for float()");
+            }
+            if (Character.isDigit(ch)) {
+                if (s == null)
+                    s = new StringBuilder(str);
+                int val = Character.digit(ch, 10);
+                s.setCharAt(i, Character.forDigit(val, 10));
+            }
+        }
+        String sval = str;
+        if (s != null) {
+            sval = s.toString();
+        }
+        try {
+            // Double.valueOf allows format specifier ("d" or "f") at the end
+            String lowSval = sval.toLowerCase();
+            if (lowSval.equals("nan"))
+                return Double.NaN;
+            else if (lowSval.equals("inf"))
+                return Double.POSITIVE_INFINITY;
+            else if (lowSval.equals("-inf"))
+                return Double.NEGATIVE_INFINITY;
+            return Double.valueOf(sval).doubleValue();
+        } catch (NumberFormatException exc) {
+            throw new RuntimeException("could not convert string to float: " + str);
+        }
+    }
 }
