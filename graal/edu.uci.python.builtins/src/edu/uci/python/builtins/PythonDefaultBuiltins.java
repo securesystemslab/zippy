@@ -29,6 +29,8 @@ import static edu.uci.python.nodes.truffle.PythonTypesGen.*;
 import java.math.*;
 import java.util.*;
 
+import org.python.core.*;
+
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
 import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.*;
@@ -105,12 +107,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public char charFromInt(Object arg) {
             if (arg instanceof PNone) {
-                throw new RuntimeException("TypeError: chr() takes exactly 1 argument (0 given)");
+                throw Py.TypeError("chr() takes exactly 1 argument (0 given)");
             } else if (arg instanceof Double) {
-                throw new RuntimeException("TypeError: integer argument expected, got float");
+                throw Py.TypeError("integer argument expected, got float");
             }
 
-            throw new RuntimeException("TypeError: an integer is required");
+            throw Py.TypeError("an integer is required");
         }
     }
 
@@ -331,7 +333,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public int len(Object arg) {
             if (arg instanceof PNone) {
-                throw new RuntimeException("TypeError: len() takes exactly 1 argument (0 given)");
+                throw Py.TypeError("len() takes exactly 1 argument (0 given)");
             } else if (arg instanceof String) {
                 String argument = (String) arg;
                 return argument.length();
@@ -346,7 +348,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return argument.len();
             }
 
-            throw new RuntimeException("TypeError: object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+            throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
     }
 
@@ -408,7 +410,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public Object max(Object arg1, Object arg2, Object... args) {
             if (arg1 instanceof PNone) {
-                throw new RuntimeException("TypeError: max expected 1 arguments, got 0");
+                throw Py.TypeError("max expected 1 arguments, got 0");
             } else if (arg2 instanceof PNone) {
                 if (arg1 instanceof String) {
                     /**
@@ -427,7 +429,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     PDictionary dictionary = (PDictionary) arg1;
                     return dictionary.getMax();
                 } else {
-                    throw new RuntimeException("TypeError: ' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                    throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
                 }
             } else if (args.length == 0) {
                 if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
