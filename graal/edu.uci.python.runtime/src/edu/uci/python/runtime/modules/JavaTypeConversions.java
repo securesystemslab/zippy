@@ -218,7 +218,7 @@ public class JavaTypeConversions {
         }
 
         if (s == n) {
-            // throw Py.ValueError("empty string for complex()");
+            throw new RuntimeException("ValueError: empty string for complex()");
         }
 
         double z = -1.0;
@@ -228,11 +228,13 @@ public class JavaTypeConversions {
         int sign = 1;
         do {
             char c = str.charAt(s);
+
             switch (c) {
                 case '-':
-                    sign = -1;
-                    /* Fallthrough */
                 case '+':
+                    if (c == '-') {
+                        sign = -1;
+                    }
                     if (done || s + 1 == n) {
                         swError = true;
                         break;
@@ -273,8 +275,8 @@ public class JavaTypeConversions {
                     break;
 
                 default:
-                    boolean digit_or_dot = (c == '.' || Character.isDigit(c));
-                    if (!digit_or_dot) {
+                    boolean digitOrDot = (c == '.' || Character.isDigit(c));
+                    if (!digitOrDot) {
                         swError = true;
                         break;
                     }
