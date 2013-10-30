@@ -16,6 +16,7 @@
 \.checkstyle$
 \.classpath
 \.factorypath
+\.currentAnnotationProcessors
 \.externalToolBuilders
 \.project
 \.settings/
