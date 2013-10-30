@@ -3,6 +3,7 @@
 ^mx/eclipseinit.timestamp
 ^mx/netbeansinit.timestamp
 ^mx/eclipse-launches
+^mx/currentAnnotationProcessors
 ^mx/ecj.jar
 ^mx/includes
 ^build/
@@ -16,7 +17,6 @@
 \.checkstyle$
 \.classpath
 \.factorypath
-\.currentAnnotationProcessors
 \.externalToolBuilders
 \.project
 \.settings/
