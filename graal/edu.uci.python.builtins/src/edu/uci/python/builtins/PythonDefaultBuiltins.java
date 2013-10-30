@@ -26,7 +26,6 @@ package edu.uci.python.builtins;
 
 import static edu.uci.python.nodes.truffle.PythonTypesGen.*;
 
-import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -38,7 +37,6 @@ import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CallTarget;
@@ -61,7 +59,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "abs", id = 1, numOfArguments = 1)
+    @Builtin(name = "abs", id = 1, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonAbsNode extends PythonBasicBuiltinNode {
 
         public PythonAbsNode(String name) {
@@ -86,9 +84,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public double absPComplex(PComplex arg) {
             return FastMathUtil.hypot(arg.getReal(), arg.getImag());
         }
+
+        @Specialization
+        public double absObject(Object arg) {
+            throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(arg) + "'");
+        }
     }
 
-    @Builtin(name = "chr", id = 10, numOfArguments = 1)
+    @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonChrNode extends PythonBasicBuiltinNode {
 
         public PythonChrNode(String name) {
@@ -116,7 +119,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "complex", id = 13, numOfArguments = 2)
+    @Builtin(name = "complex", id = 13, minNumOfArguments = 0, maxNumOfArguments = 2)
     public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
 
         public PythonComplexNode(String name) {
@@ -153,14 +156,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 }
             } else if (real instanceof String) {
                 if (!(imag instanceof PNone)) {
-                    throw new RuntimeException("Type error: complex() can't take second arg if first is a string");
+                    throw Py.TypeError("complex() can't take second arg if first is a string");
                 }
 
                 String realPart = (String) real;
                 return JavaTypeConversions.convertStringToComplex(realPart);
             }
 
-            throw new RuntimeException("Type error: can't convert real " + real + " imag " + imag);
+            throw Py.TypeError("can't convert real " + real + " imag " + imag);
         }
 
         public static boolean onlyReal(Object real, Object imag) {
@@ -172,7 +175,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 1)
+    @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
 
         public PythonFloatNode(String name) {
@@ -198,14 +201,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             if (arg instanceof PNone) {
                 return 0.0;
             }
-            /**
-             * TODO Exceptions need to be implemented similar to the ones in Jython
-             */
-            throw new RuntimeException("Type error: can't convert " + arg.getClass().getSimpleName() + " to float ");
+
+            throw Py.TypeError("can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
     }
 
-    @Builtin(name = "frozenset", id = 24, numOfArguments = 1)
+    @Builtin(name = "frozenset", id = 24, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFrozenSetNode extends PythonBasicBuiltinNode {
 
         public PythonFrozenSetNode(String name) {
@@ -237,7 +238,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "int", id = 33, numOfArguments = 1, varArgs = true)
+    @Builtin(name = "int", id = 33, minNumOfArguments = 0, maxNumOfArguments = 2, takesKeywordArguments = true)
     public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
 
         public PythonIntNode(String name) {
@@ -280,7 +281,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "iter", id = 36, numOfArguments = 1, varArgs = true)
+    @Builtin(name = "iter", id = 36, minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
 
         public PythonIterNode(String name) {
@@ -299,7 +300,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "len", id = 37, numOfArguments = 1)
+    @Builtin(name = "len", id = 37, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
 
         public PythonLenNode(String name) {
@@ -352,7 +353,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "list", id = 38, numOfArguments = 1)
+    @Builtin(name = "list", id = 38, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonListNode extends PythonBasicBuiltinNode {
 
         public PythonListNode(String name) {
@@ -384,7 +385,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "max", id = 41, numOfArguments = 2, varArgs = true)
+    @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
     public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
 
         public PythonMaxNode(String name) {
@@ -453,7 +454,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "min", id = 43, numOfArguments = 2)
+    @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
     public abstract static class PythonMinNode extends PythonBasicBuiltinNode {
 
         public PythonMinNode(String name) {
@@ -475,7 +476,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "next", id = 44, numOfArguments = 1, varArgs = true)
+    @Builtin(name = "next", id = 44, minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonNextNode extends PythonBasicBuiltinNode {
 
         public PythonNextNode(String name) {
@@ -492,7 +493,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "range", id = 52, numOfArguments = 1, varArgs = true)
+    @Builtin(name = "range", id = 52, minNumOfArguments = 1, maxNumOfArguments = 3)
     public abstract static class PythonRangeNode extends PythonBasicBuiltinNode {
 
         public PythonRangeNode(String name) {
@@ -503,40 +504,35 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "caseStop")
-        public PSequence rangeStop(int stop, Object... arguments) {
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStop")
+        public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
-        @Specialization(order = 2, guards = "caseStartStop")
-        public PSequence rangeStartStop(int start, Object... args) {
-            assert args[0] instanceof Integer;
-            return new PRange(start, (int) args[0]);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStartStop")
+        public PSequence rangeStartStop(int start, int stop, Object step) {
+            return new PRange(start, stop);
         }
 
-        @Specialization(order = 3, guards = "caseStartStopStep")
-        public PSequence rangeStartStopStep(int start, Object... args) {
-            assert args[0] instanceof Integer && args[1] instanceof Integer;
-            return new PRange(start, (int) args[0], (int) args[1]);
+        @Specialization
+        public PSequence rangeStartStopStep(int start, int stop, int step) {
+            return new PRange(start, stop, step);
         }
 
         @SuppressWarnings("unused")
-        public static boolean caseStop(int start, Object... args) {
-            return args.length == 0;
+        public static boolean caseStop(int stop, Object start, Object step) {
+            return (start instanceof PNone) && (step instanceof PNone);
         }
 
         @SuppressWarnings("unused")
-        public static boolean caseStartStop(int start, Object... args) {
-            return args.length == 1;
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean caseStartStopStep(int start, Object... args) {
-            return args.length == 2;
+        public static boolean caseStartStop(int start, int stop, Object step) {
+            return (step instanceof PNone);
         }
     }
 
-    @Builtin(name = "set", id = 56, numOfArguments = 1)
+    @Builtin(name = "set", id = 56, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonSetNode extends PythonBasicBuiltinNode {
 
         public PythonSetNode(String name) {
@@ -591,7 +587,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 String methodName = builtin.name();
                 PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
                 CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-                PBuiltinFunction function = new PBuiltinFunction(methodName, callTarget);
+                PBuiltinFunction function;
+                if (builtin.hasFixedNumOfArguments()) {
+                    function = new PBuiltinFunction(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                                    callTarget);
+                } else {
+                    function = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(), callTarget);
+                }
                 setBuiltin(methodName, function);
             }
         }
@@ -599,19 +601,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     private static PythonBuiltinNode createBuiltin(Builtin builtin) {
         PNode[] args;
-        if (builtin.varArgs()) {
-            args = new PNode[builtin.numOfArguments() + 1];
-        } else {
-            args = new PNode[builtin.numOfArguments()];
+        int totalNumOfArgs;
 
+        if (builtin.hasFixedNumOfArguments()) {
+            totalNumOfArgs = builtin.fixedNumOfArguments();
+        } else {
+            totalNumOfArgs = builtin.maxNumOfArguments();
         }
 
-        for (int i = 0; i < builtin.numOfArguments(); i++) {
+        args = new PNode[totalNumOfArgs];
+        for (int i = 0; i < totalNumOfArgs; i++) {
             args[i] = new ReadArgumentNode(i);
         }
 
-        if (builtin.varArgs()) {
-            args[builtin.numOfArguments()] = new ReadVarArgsNode(builtin.numOfArguments());
+        if (builtin.takesKeywordArguments()) {
+            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
         }
 
         switch (builtin.id()) {

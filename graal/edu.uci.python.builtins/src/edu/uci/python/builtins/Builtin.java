@@ -37,8 +37,16 @@ public @interface Builtin {
 
     int id() default -1;
 
-    int numOfArguments() default -1;
+    int fixedNumOfArguments() default -1;
 
-    boolean varArgs() default false;
+    int minNumOfArguments() default -1;
+
+    int maxNumOfArguments() default -1;
+
+    int numOfOptionalArguments() default -1;
+
+    boolean hasFixedNumOfArguments() default false;
+
+    boolean takesKeywordArguments() default false;
 
 }
