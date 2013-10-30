@@ -721,6 +721,11 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createSubscriptLoad(primary, slice);
         } else if (node.getInternalCtx() == expr_contextType.Store) {
             assert isLeftHandSide;
+
+            if (primary instanceof StoreAttributeNode) {
+                primary = ((StoreAttributeNode) primary).makeReadNode();
+            }
+
             return factory.createSubscriptStore(primary, slice, PNode.EMPTYNODE);
         } else {
             return factory.createSubscriptLoad(primary, slice);
