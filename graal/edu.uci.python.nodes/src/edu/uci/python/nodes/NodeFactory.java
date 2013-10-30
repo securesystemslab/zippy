@@ -309,7 +309,7 @@ public class NodeFactory {
     }
 
     public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return new UninitializedCallAttributeNode(name, primary, args);
+        return CallAttributeNodeFactory.create(args, name, primary);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
@@ -487,6 +487,10 @@ public class NodeFactory {
 
     public PNode createRaiseNode(PNode type, PNode inst) {
         return new RaiseNode(type, inst);
+    }
+
+    public StatementNode createAssert(BooleanCastNode condition, PNode message) {
+        return new AssertNode(condition, message);
     }
 
     public PNode createRuntimeValueNode() {

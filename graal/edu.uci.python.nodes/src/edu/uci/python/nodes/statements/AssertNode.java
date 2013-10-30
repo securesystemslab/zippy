@@ -22,63 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
-
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+package edu.uci.python.nodes.statements;
 
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-public class CallMethodNode extends CallAttributeNode {
+public class AssertNode extends StatementNode {
 
-    @Child protected PNode primary;
+    @Child protected BooleanCastNode condition;
 
-    public CallMethodNode(String attributeId, PNode primary, PNode[] arguments) {
-        super(arguments, attributeId);
-        this.primary = adoptChild(primary);
+    @Child protected PNode message;
+
+    public AssertNode(BooleanCastNode condition, PNode message) {
+        this.condition = adoptChild(condition);
+        this.message = adoptChild(message);
     }
 
-    @Override
-    public PNode getPrimary() {
-        return primary;
-    }
-
-    // TODO: specialize return type
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonObject self = (PythonObject) primary.execute(frame);
-        return callMethod(frame, self);
-    }
-
-    protected Object callMethod(VirtualFrame frame, PythonObject self) {
-        PCallable method = self.getPythonClass().lookUpMethod(attributeId);
-        Object[] args = doArgumentsWithSelf(frame, self);
-        return method.call(frame.pack(), args);
-    }
-
-    @ExplodeLoop
-    protected Object[] doArgumentsWithSelf(VirtualFrame frame, Object self) {
-        Object[] evaluated = new Object[arguments.length + 1];
-        evaluated[0] = self;
-        int index = 0;
-
-        for (int i = 0; i < arguments.length; i++) {
-            Object arg = arguments[i].execute(frame);
-
-            if (arg instanceof PyObject) {
-                arg = unboxPyObject((PyObject) arg);
-            }
-
-            evaluated[index + 1] = arg;
-            index++;
+        if (!condition.executeBoolean(frame)) {
+            String assertionMessage = message == null ? "" : (String) message.execute(frame);
+            throw Py.AssertionError(assertionMessage);
         }
 
-        return evaluated;
+        return PNone.NONE;
     }
+
 }

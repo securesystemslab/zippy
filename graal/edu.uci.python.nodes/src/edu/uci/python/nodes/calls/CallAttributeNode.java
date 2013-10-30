@@ -35,7 +35,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
-
+import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild("primary")
@@ -72,6 +72,20 @@ public abstract class CallAttributeNode extends PNode {
     public Object doPObject(VirtualFrame frame, PObject prim) {
         Object[] args = doArguments(frame);
         return prim.findAttribute(attributeId).call(null, args);
+    }
+
+    @Specialization
+    public Object doPythonClass(VirtualFrame frame, PythonClass prim) {
+        Object[] args = doArguments(frame);
+        PCallable callable = (PCallable) prim.getAttribute(attributeId);
+        return callable.call(frame.pack(), args);
+    }
+
+    @Specialization
+    public Object doPythonObject(VirtualFrame frame, PythonObject prim) {
+        Object[] args = doArgumentsWithSelf(frame, prim);
+        PCallable callable = (PCallable) prim.getAttribute(attributeId);
+        return callable.call(frame.pack(), args);
     }
 
     @Generic
@@ -113,6 +127,26 @@ public abstract class CallAttributeNode extends PNode {
             }
 
             evaluated[index] = arg;
+            index++;
+        }
+
+        return evaluated;
+    }
+
+    @ExplodeLoop
+    protected Object[] doArgumentsWithSelf(VirtualFrame frame, Object self) {
+        Object[] evaluated = new Object[arguments.length + 1];
+        evaluated[0] = self;
+        int index = 0;
+
+        for (int i = 0; i < arguments.length; i++) {
+            Object arg = arguments[i].execute(frame);
+
+            if (arg instanceof PyObject) {
+                arg = unboxPyObject((PyObject) arg);
+            }
+
+            evaluated[index + 1] = arg;
             index++;
         }
 
