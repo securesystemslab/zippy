@@ -309,7 +309,7 @@ public class NodeFactory {
     }
 
     public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return new UninitializedCallAttributeNode(name, primary, args);
+        return CallAttributeNodeFactory.create(args, name, primary);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
