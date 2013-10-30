@@ -138,6 +138,7 @@ project@com.oracle.graal.hotspot.sparc@subDir=graal
 project@com.oracle.graal.hotspot.sparc@sourceDirs=src
 project@com.oracle.graal.hotspot.sparc@dependencies=com.oracle.graal.compiler.sparc
 project@com.oracle.graal.hotspot.sparc@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.sparc@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.sparc@javaCompliance=1.7
 project@com.oracle.graal.hotspot.sparc@workingSets=Graal,HotSpot,SPARC
 
