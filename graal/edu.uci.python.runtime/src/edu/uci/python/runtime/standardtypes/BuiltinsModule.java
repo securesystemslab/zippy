@@ -27,6 +27,8 @@ package edu.uci.python.runtime.standardtypes;
 import java.math.*;
 import java.util.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
@@ -560,5 +562,36 @@ public class BuiltinsModule extends PythonModule {
             return new PList(tuples);
         }
 
+    };
+
+    @BuiltinMethod public static final PythonCallTarget isinstance = new PythonCallTarget() {
+
+        @Override
+        public Object call(PackedFrame frame, PArguments arguments) {
+            Object[] args = arguments.getArgumentsArray();
+            if (args[1] instanceof PythonClass) {
+                PythonClass clazz = (PythonClass) args[1];
+                PythonObject obj = (PythonObject) args[0];
+
+                if (obj.getPythonClass().equals(clazz)) {
+                    return true;
+                }
+
+                PythonClass superClass = obj.getPythonClass().getSuperClass();
+
+                while (superClass != null) {
+                    if (superClass.equals(clazz)) {
+                        return true;
+                    }
+
+                    superClass = superClass.getSuperClass();
+                }
+
+                return false;
+            }
+
+            // TODO: tuple case is not supported yet.
+            throw Py.TypeError("isinstance() arg 2 must be a type or tuple of types");
+        }
     };
 }
