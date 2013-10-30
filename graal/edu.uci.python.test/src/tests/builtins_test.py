@@ -77,6 +77,20 @@ value = {'id' : 17, 'name' : "gulfem"}
 print(len(value))
 
 
+# test builtin max
+x = max(10, 20)
+print(x)
+
+x = max(20.8, 10.3)
+print(x)
+
+x = max([20, 10, 90])
+print(x)
+
+#x = max("hello")
+#print(x)
+
+
 # test builtin range
 print(list(range(10))) # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 

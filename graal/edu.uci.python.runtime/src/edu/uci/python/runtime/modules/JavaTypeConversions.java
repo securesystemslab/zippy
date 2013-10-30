@@ -26,6 +26,8 @@ package edu.uci.python.runtime.modules;
 
 import java.math.*;
 
+import org.python.core.*;
+
 import edu.uci.python.runtime.datatypes.*;
 
 public class JavaTypeConversions {
@@ -167,6 +169,7 @@ public class JavaTypeConversions {
     }
 
     // Taken from Jython PyString's atof() method
+    // The last statement throw Py.ValueError is modified
     public static double convertStringToDouble(String str) {
         StringBuilder s = null;
         int n = str.length();
@@ -174,7 +177,7 @@ public class JavaTypeConversions {
         for (int i = 0; i < n; i++) {
             char ch = str.charAt(i);
             if (ch == '\u0000') {
-                throw new RuntimeException("ValueError: null byte in argument for float()");
+                throw Py.ValueError("empty string for complex()");
             }
             if (Character.isDigit(ch)) {
                 if (s == null) {
@@ -200,7 +203,8 @@ public class JavaTypeConversions {
             }
             return Double.valueOf(sval).doubleValue();
         } catch (NumberFormatException exc) {
-            throw new RuntimeException("ValueError: could not convert string to float: " + str);
+            // throw Py.ValueError("invalid literal for __float__: " + str);
+            throw Py.ValueError("could not convert string to float: " + str);
         }
     }
 
@@ -218,7 +222,7 @@ public class JavaTypeConversions {
         }
 
         if (s == n) {
-            // throw Py.ValueError("empty string for complex()");
+            throw Py.ValueError("empty string for complex()");
         }
 
         double z = -1.0;
@@ -228,11 +232,13 @@ public class JavaTypeConversions {
         int sign = 1;
         do {
             char c = str.charAt(s);
+
             switch (c) {
                 case '-':
-                    sign = -1;
-                    /* Fallthrough */
                 case '+':
+                    if (c == '-') {
+                        sign = -1;
+                    }
                     if (done || s + 1 == n) {
                         swError = true;
                         break;
@@ -273,15 +279,15 @@ public class JavaTypeConversions {
                     break;
 
                 default:
-                    boolean digit_or_dot = (c == '.' || Character.isDigit(c));
-                    if (!digit_or_dot) {
+                    boolean digitOrDot = (c == '.' || Character.isDigit(c));
+                    if (!digitOrDot) {
                         swError = true;
                         break;
                     }
                     int end = endDouble(str, s);
                     z = Double.valueOf(str.substring(s, end)).doubleValue();
                     if (z == Double.POSITIVE_INFINITY) {
-                        throw new RuntimeException("ValueError:" + String.format("float() out of range: %.150s", str));
+                        throw Py.ValueError(String.format("float() out of range: %.150s", str));
                     }
 
                     s = end;
@@ -309,7 +315,7 @@ public class JavaTypeConversions {
         } while (s < n && !swError);
 
         if (swError) {
-            throw new RuntimeException("ValueError: malformed string for complex() " + str.substring(s));
+            throw Py.ValueError("malformed string for complex() " + str.substring(s));
         }
 
         return new PComplex(x, y);
@@ -344,7 +350,7 @@ public class JavaTypeConversions {
     // Upper bound is modified to 1114111(0x10FFFF) based on Python 3 semantics
     public static char convertIntToChar(int i) {
         if (i < 0 || i > 0x10FFFF) {
-            throw new RuntimeException("ValueError: chr() arg not in range(0x110000)");
+            throw Py.ValueError("chr() arg not in range(0x110000)");
         }
         return (char) i;
     }

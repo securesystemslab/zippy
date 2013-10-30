@@ -24,8 +24,12 @@
  */
 package edu.uci.python.builtins;
 
+import static edu.uci.python.nodes.truffle.PythonTypesGen.*;
+
 import java.math.*;
 import java.util.*;
+
+import org.python.core.*;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.*;
 import edu.uci.python.datatypes.*;
@@ -54,18 +58,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         public PythonBasicBuiltinNode(PythonBasicBuiltinNode prev) {
             super(prev.getName());
-        }
-
-        public static boolean noArgument(Object... args) {
-            return args.length == 0;
-        }
-
-        public static boolean oneArgument(Object... args) {
-            return args.length == 1;
-        }
-
-        public static boolean twoArguments(Object... args) {
-            return args.length == 2;
         }
     }
 
@@ -115,12 +107,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public char charFromInt(Object arg) {
             if (arg instanceof PNone) {
-                throw new RuntimeException("TypeError: chr() takes exactly 1 argument (0 given)");
+                throw Py.TypeError("chr() takes exactly 1 argument (0 given)");
             } else if (arg instanceof Double) {
-                throw new RuntimeException("TypeError: integer argument expected, got float");
+                throw Py.TypeError("integer argument expected, got float");
             }
 
-            throw new RuntimeException("TypeError: an integer is required");
+            throw Py.TypeError("an integer is required");
         }
     }
 
@@ -135,32 +127,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "twoArguments")
+        @Specialization(order = 1, guards = "realAndImag")
         public PComplex complexFromIntInt(int real, int imag) {
             return new PComplex(real, imag);
         }
 
-        @Specialization(order = 2, guards = "twoArguments")
+        @Specialization(order = 2, guards = "realAndImag")
         public PComplex complexFromDoubleDouble(double real, double imag) {
             return new PComplex(real, imag);
-        }
-
-        @SuppressWarnings("unused")
-        @Specialization(order = 3, guards = "oneArgument")
-        public PComplex complexFromInt(int real, int imag) {
-            return new PComplex(real, 0);
-        }
-
-        @SuppressWarnings("unused")
-        @Specialization(order = 4, guards = "oneArgument")
-        public PComplex complexFromDouble(double real, double imag) {
-            return new PComplex(real, 0);
-        }
-
-        @SuppressWarnings("unused")
-        @Specialization(guards = "oneArgument")
-        public PComplex complexFromString(String real, Object imag) {
-            return JavaTypeConversions.convertStringToComplex(real);
         }
 
         @Specialization
@@ -189,11 +163,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             throw new RuntimeException("Type error: can't convert real " + real + " imag " + imag);
         }
 
-        public static boolean oneArgument(Object real, Object imag) {
+        public static boolean onlyReal(Object real, Object imag) {
             return !(real instanceof PNone) && (imag instanceof PNode);
         }
 
-        public static boolean twoArguments(Object real, Object imag) {
+        public static boolean realAndImag(Object real, Object imag) {
             return !(real instanceof PNone) && !(imag instanceof PNode);
         }
     }
@@ -286,12 +260,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             return JavaTypeConversions.doubleToInt(arg);
         }
 
-        @SuppressWarnings("unused")
-        @Specialization(guards = "noVariableArguments")
-        public Object createInt(String arg, Object... args) {
-            return JavaTypeConversions.stringToInt(arg, 10);
-        }
-
         @Specialization
         public Object createInt(Object arg, Object... args) {
             // Covers the case for x = int()
@@ -365,7 +333,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public int len(Object arg) {
             if (arg instanceof PNone) {
-                throw new RuntimeException("TypeError: len() takes exactly 1 argument (0 given)");
+                throw Py.TypeError("len() takes exactly 1 argument (0 given)");
             } else if (arg instanceof String) {
                 String argument = (String) arg;
                 return argument.length();
@@ -379,7 +347,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 PArray argument = (PArray) arg;
                 return argument.len();
             }
-            throw new RuntimeException("TypeError: object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+
+            throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
     }
 
@@ -415,7 +384,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "max", id = 41, numOfArguments = 2)
+    @Builtin(name = "max", id = 41, numOfArguments = 2, varArgs = true)
     public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
 
         public PythonMaxNode(String name) {
@@ -426,14 +395,61 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization
-        public int maxIntInt(int arg1, int arg2) {
+        @SuppressWarnings("unused")
+        @Specialization(guards = "twoArguments")
+        public int maxIntInt(int arg1, int arg2, Object... args) {
+            return Math.max(arg1, arg2);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "twoArguments")
+        public double maxDoubleDouble(double arg1, double arg2, Object... args) {
             return Math.max(arg1, arg2);
         }
 
         @Specialization
-        public double maxDoubleDouble(double arg1, double arg2) {
-            return Math.max(arg1, arg2);
+        public Object max(Object arg1, Object arg2, Object... args) {
+            if (arg1 instanceof PNone) {
+                throw Py.TypeError("max expected 1 arguments, got 0");
+            } else if (arg2 instanceof PNone) {
+                if (arg1 instanceof String) {
+                    /**
+                     * TODO String is not implemented
+                     */
+                    String str = (String) arg1;
+                    PString pstring = new PString(str);
+                    return pstring.getMax();
+                } else if (arg1 instanceof PSequence) {
+                    PSequence sequence = (PSequence) arg1;
+                    return sequence.getMax();
+                } else if (arg1 instanceof PArray) {
+                    PArray array = (PArray) arg1;
+                    return array.getMax();
+                } else if (arg1 instanceof PDictionary) {
+                    PDictionary dictionary = (PDictionary) arg1;
+                    return dictionary.getMax();
+                } else {
+                    throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                }
+            } else if (args.length == 0) {
+                if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
+                    double arg1Double = (Double) arg1;
+                    double arg2Double = (Double) arg2;
+                    return Math.max(arg1Double, arg2Double);
+                }
+            }
+
+            throw new RuntimeException("Optional keyword-only key argument is not supported");
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean oneArgument(Object arg1, Object arg2, Object... args) {
+            return (arg2 instanceof PNone && args.length == 0);
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean twoArguments(Object arg1, Object arg2, Object... args) {
+            return args.length == 0;
         }
     }
 
