@@ -1989,7 +1989,7 @@ def build(args, parser=None):
             continue
 
         # Ensure that the output directories are clean
-        prepareOutputDirs(p, True)
+        #prepareOutputDirs(p, True)
 
         built.add(p.name)
 
