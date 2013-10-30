@@ -326,6 +326,24 @@ class Project(Dependency):
             self._annotationProcessors = list(ap)
         return self._annotationProcessors
 
+    def update_current_annotation_processors_file(self):
+        aps = self.annotation_processors()
+        outOfDate = False
+        currentApsFile = join(self.dir, '.currentAnnotationProcessors')
+        if exists(currentApsFile):
+            with open(currentApsFile) as fp:
+                currentAps = [l.strip() for l in fp.readlines()]
+                if currentAps != aps:
+                    outOfDate = True
+        else:
+            outOfDate = True
+        if outOfDate:
+            with open(currentApsFile, 'w') as fp:
+                for ap in aps:
+                    print >> fp, ap
+        return outOfDate
+
+
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
         Dependency.__init__(self, suite, name)
@@ -1853,6 +1871,22 @@ def build(args, parser=None):
     if args.java:
         ideinit([], refreshOnly=True, buildProcessorJars=False)
 
+    def prepareOutputDirs(p, clean):
+        outputDir = p.output_dir()
+        if exists(outputDir):
+            if clean:
+                log('Cleaning {0}...'.format(outputDir))
+                shutil.rmtree(outputDir)
+                os.mkdir(outputDir)
+        else:
+            os.mkdir(outputDir)
+        genDir = p.source_gen_dir()
+        if genDir != '' and exists(genDir) and clean:
+            log('Cleaning {0}...'.format(genDir))
+            for f in os.listdir(genDir):
+                shutil.rmtree(join(genDir, f))
+        return outputDir
+
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -1875,14 +1909,7 @@ def build(args, parser=None):
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
             continue
 
-        outputDir = p.output_dir()
-        if exists(outputDir):
-            if args.clean:
-                log('Cleaning {0}...'.format(outputDir))
-                shutil.rmtree(outputDir)
-                os.mkdir(outputDir)
-        else:
-            os.mkdir(outputDir)
+        outputDir = prepareOutputDirs(p, args.clean)
 
         cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
@@ -1891,6 +1918,7 @@ def build(args, parser=None):
             for dep in p.all_deps([], False):
                 if dep.name in built:
                     mustBuild = True
+
 
         jasminAvailable = None
         javafilelist = []
@@ -1941,10 +1969,16 @@ def build(args, parser=None):
 
                 if not mustBuild:
                     for javafile in javafiles:
-                        classfile = outputDir + javafile[len(sourceDir):-len('java')] + 'class'
-                        if not exists(classfile) or os.path.getmtime(javafile) > os.path.getmtime(classfile):
+                        classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
+                        if not classfile.exists() or classfile.isOlderThan(javafile):
                             mustBuild = True
                             break
+
+        aps = p.annotation_processors()
+        apsOutOfDate = p.update_current_annotation_processors_file()
+        if apsOutOfDate:
+            logv('[annotation processors for {0} changed]'.format(p.name))
+            mustBuild = True
 
         if not mustBuild:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
@@ -1953,6 +1987,9 @@ def build(args, parser=None):
         if len(javafilelist) == 0:
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
+
+        # Ensure that the output directories are clean
+        prepareOutputDirs(p, True)
 
         built.add(p.name)
 
@@ -1963,9 +2000,8 @@ def build(args, parser=None):
 
         processorArgs = []
 
-        ap = p.annotation_processors()
-        if len(ap) > 0:
-            processorPath = classpath(ap, resolve=True)
+        if len(aps) > 0:
+            processorPath = classpath(aps, resolve=True)
             genDir = p.source_gen_dir()
             if exists(genDir):
                 shutil.rmtree(genDir)
