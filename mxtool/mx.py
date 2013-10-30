@@ -769,7 +769,7 @@ class Suite:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _commands_name(self):
-        return 'mx_' + self.name.replace('-', '_')
+        return 'mx_' + self.name.replace('-','_')
 
     def _find_commands(self, name):
         commandsPath = join(self.mxDir, name + '.py')
@@ -804,6 +804,12 @@ class Suite:
             mod.mx_init(self)
             self.commands = mod
 
+    def _imports_file(self):
+        return join(self.mxDir, 'imports')
+
+    def import_timestamp(self):
+        return TimeStampFile(self._imports_file())
+
     def visit_imports(self, visitor, **extra_args):
         """
         Visitor support for the imports file.
@@ -817,7 +823,7 @@ class Suite:
         as this function only visits the imports of a single suite. If a (recursive) visitor function
         wishes to visit a suite exactly once, it must manage that through extra_args.
         """
-        importsFile = join(self.mxDir, 'imports')
+        importsFile = self._imports_file()
         if exists(importsFile):
             update_versions = extra_args.has_key('update_versions') and extra_args['update_versions']
             out = StringIO.StringIO() if update_versions else None
@@ -2132,13 +2138,17 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
+    for s in suites(True):
+        _processorjars_suite(s)
 
+def _processorjars_suite(s):
     projs = set()
-    for p in sorted_deps():
+    candidates = sorted_project_deps(s.projects)
+    for p in candidates:
         if _isAnnotationProcessorDependency(p):
             projs.add(p)
 
-    if len(projs) < 0:
+    if len(projs) <= 0:
         return
 
     pnames = [p.name for p in projs]
@@ -2378,7 +2388,12 @@ class TimeStampFile:
     def isOlderThan(self, arg):
         if not self.timestamp:
             return True
-        if isinstance(arg, types.ListType):
+        if isinstance(arg, TimeStampFile):
+            if arg.timestamp is None:
+                return False
+            else:
+                return arg.timestamp > self.timestamp
+        elif isinstance(arg, types.ListType):
             files = arg
         else:
             files = [arg]
@@ -2641,16 +2656,15 @@ def projectgraph(args, suite=None):
         igv.close('graph')
         igv.close('group')
         igv.close('graphDocument')
-        
+
         if args.igv:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect(('127.0.0.1', 4444))
             s.send(igv.xml())
         else:
-            print igv.xml(indent='  ', newl='\n');
+            print igv.xml(indent='  ', newl='\n')
         return
-        
-            
+
     print 'digraph projects {'
     print 'rankdir=BT;'
     print 'node [shape=rect];'
@@ -2787,20 +2801,26 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
     generate_eclipse_workingsets()
 
+def _check_ide_timestamp(suite, timestamp):
+    """return True if and only if the projects file, imports file, and mx itself are all older than timestamp"""
+    projectsFile = join(suite.mxDir, 'projects')
+    projectsFileOlder = not timestamp.isOlderThan(projectsFile)
+    importsFileOlder = not timestamp.isOlderThan(suite.import_timestamp())
+    # Assume that any mx change might imply changes to the generated IDE files
+    mxOlder = not timestamp.isOlderThan(__file__)
+    return projectsFileOlder and importsFileOlder and mxOlder
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
-    projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
+    if _check_ide_timestamp(suite, timestamp):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
     if buildProcessorJars:
-        # todo suite specific
-        processorjars()
+        _processorjars_suite(suite)
 
     projToDist = dict()
     for dist in _dists.values():
@@ -3199,12 +3219,11 @@ def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
         _netbeansinit_suite(args, suite, refreshOnly, buildProcessorJars)
 
 def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
-    projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'netbeansinit.timestamp'))
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.isOlderThan(projectsFile) and not TimeStampFile(projectsFile).isOlderThan(__file__):
+    if _check_ide_timestamp(suite, timestamp):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
