@@ -98,9 +98,10 @@ void GraalCompiler::initialize() {
     VMToCompiler::finalizeOptions(CITime);
 
     if (UseCompiler) {
-      VMToCompiler::startCompiler(BootstrapGraal);
+      bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
+      VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
-      if (BootstrapGraal) {
+      if (bootstrap) {
         // We turn off CompileTheWorld and complete the VM startup so that
         // Graal can be compiled by C1/C2 when we do a CTW.
         NOT_PRODUCT(CompileTheWorld = false);
