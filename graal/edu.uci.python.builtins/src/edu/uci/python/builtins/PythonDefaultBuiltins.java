@@ -48,19 +48,8 @@ import com.oracle.truffle.api.Truffle;
 
 public final class PythonDefaultBuiltins extends PythonBuiltins {
 
-    public abstract static class PythonBasicBuiltinNode extends PythonBuiltinNode {
-
-        public PythonBasicBuiltinNode(String name) {
-            super(name);
-        }
-
-        public PythonBasicBuiltinNode(PythonBasicBuiltinNode prev) {
-            super(prev.getName());
-        }
-    }
-
     @Builtin(name = "abs", id = 1, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonAbsNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonAbsNode extends PythonBuiltinNode {
 
         public PythonAbsNode(String name) {
             super(name);
@@ -92,7 +81,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonChrNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonChrNode extends PythonBuiltinNode {
 
         public PythonChrNode(String name) {
             super(name);
@@ -120,7 +109,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "complex", id = 13, minNumOfArguments = 0, maxNumOfArguments = 2)
-    public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonComplexNode extends PythonBuiltinNode {
 
         public PythonComplexNode(String name) {
             super(name);
@@ -176,7 +165,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
-    public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonFloatNode extends PythonBuiltinNode {
 
         public PythonFloatNode(String name) {
             super(name);
@@ -207,7 +196,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "frozenset", id = 24, minNumOfArguments = 0, maxNumOfArguments = 1)
-    public abstract static class PythonFrozenSetNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
 
         public PythonFrozenSetNode(String name) {
             super(name);
@@ -239,7 +228,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "int", id = 33, minNumOfArguments = 0, maxNumOfArguments = 2, takesKeywordArguments = true)
-    public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonIntNode extends PythonBuiltinNode {
 
         public PythonIntNode(String name) {
             super(name);
@@ -282,7 +271,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "iter", id = 36, minNumOfArguments = 1, maxNumOfArguments = 2)
-    public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonIterNode extends PythonBuiltinNode {
 
         public PythonIterNode(String name) {
             super(name);
@@ -301,7 +290,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "len", id = 37, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonLenNode extends PythonBuiltinNode {
 
         public PythonLenNode(String name) {
             super(name);
@@ -354,7 +343,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "list", id = 38, minNumOfArguments = 0, maxNumOfArguments = 1)
-    public abstract static class PythonListNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonListNode extends PythonBuiltinNode {
 
         public PythonListNode(String name) {
             super(name);
@@ -386,7 +375,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
-    public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
         public PythonMaxNode(String name) {
             super(name);
@@ -455,7 +444,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
-    public abstract static class PythonMinNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonMinNode extends PythonBuiltinNode {
 
         public PythonMinNode(String name) {
             super(name);
@@ -477,7 +466,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "next", id = 44, minNumOfArguments = 1, maxNumOfArguments = 2)
-    public abstract static class PythonNextNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonNextNode extends PythonBuiltinNode {
 
         public PythonNextNode(String name) {
             super(name);
@@ -494,7 +483,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "range", id = 52, minNumOfArguments = 1, maxNumOfArguments = 3)
-    public abstract static class PythonRangeNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonRangeNode extends PythonBuiltinNode {
 
         public PythonRangeNode(String name) {
             super(name);
@@ -533,7 +522,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "set", id = 56, minNumOfArguments = 0, maxNumOfArguments = 1)
-    public abstract static class PythonSetNode extends PythonBasicBuiltinNode {
+    public abstract static class PythonSetNode extends PythonBuiltinNode {
 
         public PythonSetNode(String name) {
             super(name);
