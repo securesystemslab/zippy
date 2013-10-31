@@ -380,7 +380,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     // max(iterable, *[, key])
     // max(arg1, arg2, *args[, key])
-    @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
+    @Builtin(name = "max", id = 41, minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
         public PythonMaxNode(String name) {
@@ -392,22 +392,20 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "twoArguments")
+        @Specialization(guards = "hasTwoArguments")
         public int maxIntInt(int arg1, int arg2, Object... args) {
             return Math.max(arg1, arg2);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "twoArguments")
+        @Specialization(guards = "hasTwoArguments")
         public double maxDoubleDouble(double arg1, double arg2, Object... args) {
             return Math.max(arg1, arg2);
         }
 
         @Specialization
         public Object max(Object arg1, Object arg2, Object... args) {
-            if (arg1 instanceof PNone) {
-                throw Py.TypeError("max expected 1 arguments, got 0");
-            } else if (arg2 instanceof PNone) {
+            if (arg2 instanceof PNone) {
                 if (arg1 instanceof String) {
                     /**
                      * TODO String is not implemented
@@ -435,23 +433,23 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 }
             }
 
+            /**
+             * TODO Does not support var args {max(10, 20, 30, 40)} or keyword {max(10, 20, key =
+             * func)}
+             */
             throw new RuntimeException("Optional keyword-only key argument is not supported");
+
         }
 
         @SuppressWarnings("unused")
-        public static boolean oneArgument(Object arg1, Object arg2, Object... args) {
-            return (arg2 instanceof PNone && args.length == 0);
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean twoArguments(Object arg1, Object arg2, Object... args) {
+        public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
             return args.length == 0;
         }
     }
 
     // min(iterable, *[, key])
     // min(arg1, arg2, *args[, key])
-    @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
+    @Builtin(name = "min", id = 43, minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMinNode extends PythonBuiltinNode {
 
         public PythonMinNode(String name) {
@@ -462,14 +460,59 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization
-        public int minIntInt(int arg1, int arg2) {
+        @SuppressWarnings("unused")
+        @Specialization(guards = "hasTwoArguments")
+        public int minIntInt(int arg1, int arg2, Object... args) {
+            return Math.min(arg1, arg2);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "hasTwoArguments")
+        public double minDoubleDouble(double arg1, double arg2, Object... args) {
             return Math.min(arg1, arg2);
         }
 
         @Specialization
-        public double minDoubleDouble(double arg1, double arg2) {
-            return Math.min(arg1, arg2);
+        public Object min(Object arg1, Object arg2, Object... args) {
+            if (arg2 instanceof PNone) {
+                if (arg1 instanceof String) {
+                    /**
+                     * TODO String is not implemented
+                     */
+                    String str = (String) arg1;
+                    PString pstring = new PString(str);
+                    return pstring.getMin();
+                } else if (arg1 instanceof PSequence) {
+                    PSequence sequence = (PSequence) arg1;
+                    return sequence.getMin();
+                } else if (arg1 instanceof PArray) {
+                    PArray array = (PArray) arg1;
+                    return array.getMin();
+                } else if (arg1 instanceof PDictionary) {
+                    PDictionary dictionary = (PDictionary) arg1;
+                    return dictionary.getMin();
+                } else {
+                    throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                }
+            } else if (args.length == 0) {
+                if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
+                    double arg1Double = (Double) arg1;
+                    double arg2Double = (Double) arg2;
+                    return Math.min(arg1Double, arg2Double);
+                }
+            }
+
+            /**
+             * TODO Does not support var args {min(10, 20, 30, 40)} or keyword {min(10, 20, key =
+             * func)}
+             */
+            throw new RuntimeException("Optional keyword-only key argument is not supported");
+
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
+            return args.length == 0;
         }
     }
 
@@ -602,9 +645,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 PBuiltinFunction function;
                 if (builtin.hasFixedNumOfArguments()) {
                     function = new PBuiltinFunction(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                    callTarget);
+                                    builtin.takesVariableArguments(), callTarget);
                 } else {
-                    function = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(), callTarget);
+                    function = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                                    builtin.takesVariableArguments(), callTarget);
                 }
                 setBuiltin(methodName, function);
             }
@@ -615,8 +659,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         PNode[] args;
         int totalNumOfArgs;
 
-        if (builtin.hasFixedNumOfArguments()) {
+        /**
+         * TODO Come up with a better solution for max and min
+         */
+        if (builtin.name().equals("max") || builtin.name().equals("min")) {
+            totalNumOfArgs = 3;
+        } else if (builtin.hasFixedNumOfArguments()) {
             totalNumOfArgs = builtin.fixedNumOfArguments();
+        } else if (builtin.takesVariableArguments()) {
+            totalNumOfArgs = builtin.minNumOfArguments() + 1;
         } else {
             totalNumOfArgs = builtin.maxNumOfArguments();
         }

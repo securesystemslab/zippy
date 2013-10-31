@@ -43,13 +43,16 @@ public class PBuiltinFunction extends PCallable {
 
     private boolean takesFixedNumOfArgs;
 
-    public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, CallTarget callTarget) {
+    private boolean takesVarArgs;
+
+    public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, CallTarget callTarget) {
         super(name, true);
         this.callTarget = callTarget;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
         this.takesFixedNumOfArgs = takesFixedNumOfArgs;
         this.takesKeywordArg = takesKeywordArg;
+        this.takesVarArgs = takesKeywordArg;
     }
 
     public PBuiltinFunction(String name, CallTarget callTarget) {
@@ -108,7 +111,7 @@ public class PBuiltinFunction extends PCallable {
              * For ex, iter(object[, sentinel]) takes at least 1 argument.
              */
             throw Py.TypeError(String.format("%s() expected at least %d arguments (%d) given", name, minNumOfArgs, numOfArgs));
-        } else if (numOfArgs > maxNumOfArgs) {
+        } else if (!takesVarArgs && numOfArgs > maxNumOfArgs) {
             /**
              * For ex, complex([real[, imag]]) takes at most 2 arguments.
              */
