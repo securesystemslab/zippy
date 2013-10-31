@@ -175,12 +175,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 6)
-        PObject doIntPObject(int left, PObject right) {
+        PythonBuiltinObject doIntPObject(int left, PythonBuiltinObject right) {
             return right.multiply(left);
         }
 
         @Specialization(order = 7)
-        PObject doPObjectInt(PObject left, int right) {
+        PythonBuiltinObject doPObjectInt(PythonBuiltinObject left, int right) {
             return left.multiply(right);
         }
 

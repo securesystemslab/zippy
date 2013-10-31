@@ -69,7 +69,7 @@ public abstract class CallAttributeNode extends PNode {
     }
 
     @Specialization
-    public Object doPObject(VirtualFrame frame, PObject prim) {
+    public Object doPObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
         return prim.findAttribute(attributeId).call(null, args);
     }

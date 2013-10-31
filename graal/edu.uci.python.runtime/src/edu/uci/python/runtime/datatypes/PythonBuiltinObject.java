@@ -24,14 +24,25 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.standardtypes.*;
+
 /**
- * 
- * PObject is the base class for all Truffle data types PObject contains commonly used methods those
- * should be shared by all Truffle data types.
+ * The base class of all Python built-in data types (int, complex, tuple...). Subclasses of
+ * PythonBuiltinObject are immutable. In other words, PythonBuiltinObjects don't have the __dict__
+ * attribute. PythonObject models mutable Python data types that have __dict__.
+ * <p>
+ * Special methods for PythonBuiltinObjects are implemented as Java methods and dispatched at Java
+ * level. Any explicit user level access to a PythonBuiltinObject's attributes is considered as slow
+ * path and implemented presumably using Java reflection...
  * 
  */
 
-public abstract class PObject {
+public abstract class PythonBuiltinObject {
+
+    // Checkstyle: stop field name check
+    public static PythonClass __class__;
+
+    // Checkstyle: resume field name check
 
     public abstract Object getMin();
 
@@ -39,7 +50,7 @@ public abstract class PObject {
 
     public abstract int len();
 
-    public abstract PObject multiply(int value);
+    public abstract PythonBuiltinObject multiply(int value);
 
     public abstract PCallable findAttribute(String name);
 }

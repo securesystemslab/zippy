@@ -26,8 +26,6 @@ package edu.uci.python.runtime.datatypes;
 
 import com.oracle.truffle.api.Arguments;
 
-import edu.uci.python.runtime.objects.*;
-
 public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];

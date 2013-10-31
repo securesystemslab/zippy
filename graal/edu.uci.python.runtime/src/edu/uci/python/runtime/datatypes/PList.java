@@ -232,7 +232,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         ArrayList<Object> result = new ArrayList<>();
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < list.size(); j++) {

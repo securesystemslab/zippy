@@ -42,8 +42,8 @@ public class LoadGenericAttributeNode extends LoadAttributeNode {
     public static Object executeGeneric(Object primary, String attributeId) {
         if (primary instanceof PythonBasicObject) {
             return ((PythonBasicObject) primary).getAttribute(attributeId);
-        } else if (primary instanceof PObject) {
-            return ((PObject) primary).findAttribute(attributeId);
+        } else if (primary instanceof PythonBuiltinObject) {
+            return ((PythonBuiltinObject) primary).findAttribute(attributeId);
         } else if (primary instanceof PyObject) {
             PyObject pyObj = (PyObject) primary;
             return unboxPyObject(pyObj.__findattr__(attributeId));
@@ -65,7 +65,7 @@ public class LoadGenericAttributeNode extends LoadAttributeNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return ((PObject) primary.execute(frame)).findAttribute(attributeId);
+            return ((PythonBuiltinObject) primary.execute(frame)).findAttribute(attributeId);
         }
     }
 

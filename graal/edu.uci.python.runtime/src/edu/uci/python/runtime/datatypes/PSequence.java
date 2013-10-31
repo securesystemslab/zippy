@@ -26,7 +26,7 @@ package edu.uci.python.runtime.datatypes;
 
 import java.util.Iterator;
 
-public abstract class PSequence extends PObject implements Iterable<Object> {
+public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
 
     @Override
     public abstract int len();

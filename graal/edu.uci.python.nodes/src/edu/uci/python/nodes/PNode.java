@@ -135,8 +135,8 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPSlice(execute(frame));
     }
 
-    public PObject executePObject(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPObject(execute(frame));
+    public PythonBuiltinObject executePObject(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPythonBuiltinObject(execute(frame));
     }
 
     public PCallable executePCallable(VirtualFrame frame) throws UnexpectedResultException {

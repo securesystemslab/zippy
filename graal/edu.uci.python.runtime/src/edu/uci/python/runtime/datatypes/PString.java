@@ -30,7 +30,7 @@ import java.util.List;
 
 import edu.uci.python.runtime.modules.*;
 
-public class PString extends PObject implements Iterable<Object> {
+public class PString extends PythonBuiltinObject implements Iterable<Object> {
 
     private final String value;
 
@@ -64,7 +64,7 @@ public class PString extends PObject implements Iterable<Object> {
 
     @SuppressWarnings("hiding")
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

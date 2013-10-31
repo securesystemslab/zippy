@@ -135,7 +135,7 @@ public class PSet extends PBaseSet {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

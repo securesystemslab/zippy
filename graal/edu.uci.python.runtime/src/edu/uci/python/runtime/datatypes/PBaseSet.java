@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public abstract class PBaseSet extends PObject implements Iterable<Object> {
+public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object> {
 
     protected Set<Object> set;
 

@@ -83,8 +83,9 @@ public class BuiltinsModule extends PythonModule {
         }
 
         public Object min(Object arg) {
-            if (arg instanceof PObject) {
-                return ((PObject) arg).getMin();
+            if (arg instanceof PythonBuiltinObject) {
+// return ((PythonBuiltinObject) arg).getMin();
+                throw new RuntimeException("min on PBO");
             } else if (arg instanceof String) {
                 return findMin((String) arg);
             } else {
@@ -115,8 +116,8 @@ public class BuiltinsModule extends PythonModule {
         }
 
         public Object max(Object arg) {
-            if (arg instanceof PObject) {
-                return ((PObject) arg).getMax();
+            if (arg instanceof PythonBuiltinObject) {
+                return ((PythonBuiltinObject) arg).getMax();
             } else if (arg instanceof String) {
                 char[] copy = ((String) arg).toCharArray();
                 return sortCharArray(copy);
@@ -152,8 +153,8 @@ public class BuiltinsModule extends PythonModule {
         }
 
         public int len(Object arg) {
-            if (arg instanceof PObject) {
-                return ((PObject) arg).len();
+            if (arg instanceof PythonBuiltinObject) {
+                return ((PythonBuiltinObject) arg).len();
             } else if (arg instanceof String) {
                 return ((String) arg).length();
             } else {

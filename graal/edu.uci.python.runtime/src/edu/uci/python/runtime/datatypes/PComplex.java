@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-public class PComplex extends PObject {
+public class PComplex extends PythonBuiltinObject {
 
     private double real;
     private double imag;
@@ -154,7 +154,7 @@ public class PComplex extends PObject {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import edu.uci.python.runtime.modules.*;
 
-public class PDictionary extends PObject {
+public class PDictionary extends PythonBuiltinObject {
 
     private final Map<Object, Object> map;
 
@@ -121,7 +121,7 @@ public class PDictionary extends PObject {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new RuntimeException("unimplemented");
     }
 

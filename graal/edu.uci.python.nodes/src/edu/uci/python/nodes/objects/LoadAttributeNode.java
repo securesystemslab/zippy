@@ -54,7 +54,7 @@ public abstract class LoadAttributeNode extends PNode {
             return new LoadGenericAttributeNode.LoadPyObjectAttributeNode(this);
         }
 
-        if (primaryObj instanceof PObject) {
+        if (primaryObj instanceof PythonBuiltinObject) {
             return new LoadGenericAttributeNode.LoadPObjectAttributeNode(this);
         }
 

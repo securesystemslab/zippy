@@ -37,7 +37,7 @@ import edu.uci.python.runtime.modules.annotations.*;
 /**
  * The Python <code>Module</code> class.
  */
-public class PModule extends PObject {
+public class PModule extends PythonBuiltinObject {
 
     private final String name;
 
@@ -261,7 +261,7 @@ public class PModule extends PObject {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 

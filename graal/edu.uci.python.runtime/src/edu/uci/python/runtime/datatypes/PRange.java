@@ -173,7 +173,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PObject multiply(int value) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 
