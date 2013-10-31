@@ -49,4 +49,6 @@ public @interface Builtin {
 
     boolean takesKeywordArguments() default false;
 
+    boolean takesVariableArguments() default false;
+
 }

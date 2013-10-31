@@ -98,9 +98,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public char charFromInt(Object arg) {
-            if (arg instanceof PNone) {
-                throw Py.TypeError("chr() takes exactly 1 argument (0 given)");
-            } else if (arg instanceof Double) {
+            if (arg instanceof Double) {
                 throw Py.TypeError("integer argument expected, got float");
             }
 
@@ -119,32 +117,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "realAndImag")
-        public PComplex complexFromIntInt(int real, int imag) {
-            return new PComplex(real, imag);
+        @Specialization(guards = "hasRealAndImaginary")
+        public PComplex complexFromIntInt(int real, int imaginary) {
+            return new PComplex(real, imaginary);
         }
 
-        @Specialization(order = 2, guards = "realAndImag")
-        public PComplex complexFromDoubleDouble(double real, double imag) {
-            return new PComplex(real, imag);
+        @Specialization(guards = "hasRealAndImaginary")
+        public PComplex complexFromDoubleDouble(double real, double imaginary) {
+            return new PComplex(real, imaginary);
         }
 
         @Specialization
-        public PComplex complexFromObjectObject(Object real, Object imag) {
+        public PComplex complexFromObjectObject(Object real, Object imaginary) {
             if (real instanceof PNone) {
                 return new PComplex(0, 0);
             }
 
             if (real instanceof Integer || real instanceof Double) {
                 double realPart = (double) real;
-                if (imag instanceof PNone) {
+                if (imaginary instanceof PNone) {
                     return new PComplex(realPart, 0);
-                } else if (imag instanceof Integer || imag instanceof Double) {
-                    double imagPart = (double) imag;
+                } else if (imaginary instanceof Integer || imaginary instanceof Double) {
+                    double imagPart = (double) imaginary;
                     return new PComplex(realPart, imagPart);
                 }
             } else if (real instanceof String) {
-                if (!(imag instanceof PNone)) {
+                if (!(imaginary instanceof PNone)) {
                     throw Py.TypeError("complex() can't take second arg if first is a string");
                 }
 
@@ -152,15 +150,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return JavaTypeConversions.convertStringToComplex(realPart);
             }
 
-            throw Py.TypeError("can't convert real " + real + " imag " + imag);
+            throw Py.TypeError("can't convert real " + real + " imag " + imaginary);
         }
 
-        public static boolean onlyReal(Object real, Object imag) {
-            return !(real instanceof PNone) && (imag instanceof PNode);
-        }
-
-        public static boolean realAndImag(Object real, Object imag) {
-            return !(real instanceof PNone) && !(imag instanceof PNode);
+        public static boolean hasRealAndImaginary(Object real, Object imaginary) {
+            return !(real instanceof PNone) && !(imaginary instanceof PNode);
         }
     }
 
@@ -239,34 +233,34 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noVariableArguments")
-        public int createInt(int arg, Object... args) {
+        @Specialization(guards = "noKeywordArg")
+        public int createInt(int arg, Object keywordArg) {
             return arg;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noVariableArguments")
-        public Object createInt(double arg, Object... args) {
+        @Specialization(guards = "noKeywordArg")
+        public Object createInt(double arg, Object keywordArg) {
             return JavaTypeConversions.doubleToInt(arg);
         }
 
         @Specialization
-        public Object createInt(Object arg, Object... args) {
+        public Object createInt(Object arg, Object keywordArg) {
             // Covers the case for x = int()
             if (arg instanceof PNone) {
                 return 0;
             }
 
-            if (args.length == 0) {
+            if (keywordArg instanceof PNone) {
                 return JavaTypeConversions.toInt(arg);
             } else {
-                throw new RuntimeException("Not implemented integer with base: " + arg);
+                throw new RuntimeException("Not implemented integer with base: " + keywordArg);
             }
         }
 
         @SuppressWarnings("unused")
-        public static boolean noVariableArguments(Object arg, Object... args) {
-            return args.length == 0;
+        public static boolean noKeywordArg(Object arg, Object keywordArg) {
+            return (keywordArg instanceof PNone);
         }
     }
 
@@ -374,7 +368,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
+    @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
         public PythonMaxNode(String name) {
@@ -443,7 +437,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true)
+    @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMinNode extends PythonBuiltinNode {
 
         public PythonMinNode(String name) {
@@ -613,6 +607,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         if (builtin.takesKeywordArguments()) {
+            /**
+             * int(x, base = 20) Takes keyword argument, but no variableArgument
+             */
+            if (!builtin.takesVariableArguments()) {
+                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
+            } else {
+                args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+            }
+        } else if (builtin.takesVariableArguments()) {
             args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
         }
 
