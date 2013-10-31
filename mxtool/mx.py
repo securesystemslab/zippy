@@ -330,14 +330,13 @@ class Project(Dependency):
         aps = self.annotation_processors()
         outOfDate = False
         currentApsFile = join(self.suite.mxDir, 'currentAnnotationProcessors', self.name)
-        if exists(currentApsFile):
+        currentApsFileExists = exists(currentApsFile)
+        if currentApsFileExists:
             with open(currentApsFile) as fp:
                 currentAps = [l.strip() for l in fp.readlines()]
                 if currentAps != aps:
                     outOfDate = True
-        else:
-            outOfDate = True
-        if outOfDate:
+        if outOfDate or not currentApsFileExists:
             if not exists(dirname(currentApsFile)):
                 os.mkdir(dirname(currentApsFile))
             with open(currentApsFile, 'w') as fp:
