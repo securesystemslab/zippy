@@ -196,6 +196,51 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     }
 
+    // bool([x])
+    @Builtin(name = "bool", id = 6, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonBoolNode extends PythonBuiltinNode {
+
+        public PythonBoolNode(String name) {
+            super(name);
+        }
+
+        public PythonBoolNode(PythonBoolNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean bool(Object object) {
+            if (object instanceof PNone) {
+                return false;
+            }
+            return JavaTypeConversions.toBoolean(object);
+        }
+    }
+
+    // callable(object)
+    @Builtin(name = "callable", id = 9, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonCallableNode extends PythonBuiltinNode {
+
+        public PythonCallableNode(String name) {
+            super(name);
+        }
+
+        public PythonCallableNode(PythonCallableNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean callable(Object object) {
+            if (object instanceof PFunction) {
+                return true;
+            } else if (object instanceof PBuiltinFunction) {
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     // chr(i)
     @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonChrNode extends PythonBuiltinNode {
@@ -912,6 +957,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonAllNodeFactory.create(builtin.name(), args);
             case 3:
                 return PythonAnyNodeFactory.create(builtin.name(), args);
+            case 6:
+                return PythonBoolNodeFactory.create(builtin.name(), args);
+            case 9:
+                return PythonCallableNodeFactory.create(builtin.name(), args);
             case 10:
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:

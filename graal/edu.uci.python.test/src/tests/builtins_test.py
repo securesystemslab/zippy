@@ -1,6 +1,8 @@
+# test builtin all
 x = all([10, 0, 30])
 print(x)
 
+# test builtin any
 x = any([0, 10, 30])
 print(x)
 
@@ -12,6 +14,35 @@ x = abs(10.25)
 print(x)
 
 x = abs(1 + 2j)
+print(x)
+
+# test builtin bool
+x = bool(10)
+print(x)
+
+x = bool(0.0)
+print(x)
+
+x = bool()
+print(x)
+
+# test builtin callable
+def foo():
+    m = 20;
+
+x = callable(foo);
+print(x)
+
+x = callable(int);
+print(x)
+
+x = callable(10);
+print(x)
+
+x = bool(0.0)
+print(x)
+
+x = bool()
 print(x)
 
 # test builtin chr
