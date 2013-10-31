@@ -873,6 +873,62 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // tuple([iterable])
+    @Builtin(name = "tuple", id = 65, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonTupleNode extends PythonBuiltinNode {
+
+        public PythonTupleNode(String name) {
+            super(name);
+        }
+
+        public PythonTupleNode(PythonTupleNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PTuple tuple(String arg) {
+            return new PTuple(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PTuple tuple(PSequence sequence) {
+            return new PTuple(sequence);
+        }
+
+        @Specialization
+        public PTuple tuple(PBaseSet baseSet) {
+            return new PTuple(baseSet);
+        }
+
+        @Specialization
+        public PTuple tuple(PGenerator arg) {
+            return new PTuple(arg);
+        }
+
+        @Specialization
+        public PTuple tuple(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PTuple(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PTuple(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PTuple(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PTuple(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("tuple does not support iterable object " + arg);
+            }
+        }
+    }
+
     /*
      * zip(*iterables)
      * 
@@ -989,6 +1045,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonRangeNodeFactory.create(builtin.name(), args);
             case 56:
                 return PythonSetNodeFactory.create(builtin.name(), args);
+            case 65:
+                return PythonTupleNodeFactory.create(builtin.name(), args);
             default:
                 throw new RuntimeException("Unsupported/Unexpected Builtin: " + builtin);
         }
