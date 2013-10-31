@@ -48,6 +48,7 @@ import com.oracle.truffle.api.Truffle;
 
 public final class PythonDefaultBuiltins extends PythonBuiltins {
 
+    // abs(x)
     @Builtin(name = "abs", id = 1, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonAbsNode extends PythonBuiltinNode {
 
@@ -80,6 +81,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // chr(i)
     @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonChrNode extends PythonBuiltinNode {
 
@@ -106,6 +108,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // complex([real[, imag]])
     @Builtin(name = "complex", id = 13, minNumOfArguments = 0, maxNumOfArguments = 2)
     public abstract static class PythonComplexNode extends PythonBuiltinNode {
 
@@ -158,6 +161,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // float([x])
     @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBuiltinNode {
 
@@ -189,6 +193,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // frozenset([iterable])
     @Builtin(name = "frozenset", id = 24, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
 
@@ -221,6 +226,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // int(x=0)
+    // int(x, base=10)
     @Builtin(name = "int", id = 33, minNumOfArguments = 0, maxNumOfArguments = 2, takesKeywordArguments = true)
     public abstract static class PythonIntNode extends PythonBuiltinNode {
 
@@ -264,6 +271,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // iter(object[, sentinel])
     @Builtin(name = "iter", id = 36, minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonIterNode extends PythonBuiltinNode {
 
@@ -283,6 +291,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // len(s)
     @Builtin(name = "len", id = 37, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonLenNode extends PythonBuiltinNode {
 
@@ -336,6 +345,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // list([iterable])
     @Builtin(name = "list", id = 38, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonListNode extends PythonBuiltinNode {
 
@@ -368,6 +378,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // max(iterable, *[, key])
+    // max(arg1, arg2, *args[, key])
     @Builtin(name = "max", id = 41, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
@@ -437,6 +449,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // min(iterable, *[, key])
+    // min(arg1, arg2, *args[, key])
     @Builtin(name = "min", id = 43, minNumOfArguments = 1, maxNumOfArguments = 3, takesKeywordArguments = true, takesVariableArguments = true)
     public abstract static class PythonMinNode extends PythonBuiltinNode {
 
@@ -459,6 +473,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // next(iterator[, default])
     @Builtin(name = "next", id = 44, minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonNextNode extends PythonBuiltinNode {
 
@@ -476,6 +491,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // range(stop)
+    // range(start, stop[, step])
     @Builtin(name = "range", id = 52, minNumOfArguments = 1, maxNumOfArguments = 3)
     public abstract static class PythonRangeNode extends PythonBuiltinNode {
 
@@ -515,6 +532,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // set([iterable])
     @Builtin(name = "set", id = 56, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonSetNode extends PythonBuiltinNode {
 
@@ -548,6 +566,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     /*
+     * zip(*iterables)
+     * 
      * @Builtin(name = "zip", id = 67, minNumOfArguments = 0) public abstract static class
      * PythonZipNode extends PythonBuiltinNode {
      * 
@@ -606,17 +626,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             args[i] = new ReadArgumentNode(i);
         }
 
-        if (builtin.takesKeywordArguments()) {
-            /**
-             * int(x, base = 20) Takes keyword argument, but no variableArgument
-             */
-            if (!builtin.takesVariableArguments()) {
-                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
-            } else {
-                args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
-            }
-        } else if (builtin.takesVariableArguments()) {
+        if (builtin.takesVariableArguments()) {
             args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+        } else {
+            if (builtin.takesKeywordArguments()) {
+                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
+            }
         }
 
         switch (builtin.id()) {
