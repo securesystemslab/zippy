@@ -37,7 +37,8 @@ import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.standardtypes.PythonBuiltins;
+import edu.uci.python.runtime.standardtypes.*;
+
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -271,6 +272,43 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // isinstance(object, classinfo)
+    @Builtin(name = "isinstance", id = 34, fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
+
+        public PythonIsIntanceNode(String name) {
+            super(name);
+        }
+
+        public PythonIsIntanceNode(PythonIsIntanceNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public Object isintance(PythonObject object, PythonClass clazz) {
+            if (object.getPythonClass().equals(clazz)) {
+                return true;
+            }
+
+            PythonClass superClass = object.getPythonClass().getSuperClass();
+
+            while (superClass != null) {
+                if (superClass.equals(clazz)) {
+                    return true;
+                }
+
+                superClass = superClass.getSuperClass();
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public Object isintance(Object object, Object clazz) {
+            throw new RuntimeException("isintance is not supported for " + object + " , " + clazz);
+        }
+    }
+
     // iter(object[, sentinel])
     @Builtin(name = "iter", id = 36, minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonIterNode extends PythonBuiltinNode {
@@ -283,11 +321,30 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization
-        public Object iter(String object) {
-            PString pstring = new PString(object);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noSentinel")
+        public Object iter(String str, Object sentinel) {
+            PString pstring = new PString(str);
             Iterator<Object> iterator = pstring.iterator();
             return iterator;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(PSequence sequence, Object sentinel) {
+            Iterator<Object> iterator = sequence.iterator();
+            return iterator;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(Object object, Object sentinel) {
+            throw new RuntimeException("Not supported sentinel case");
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noSentinel(String object, Object sentinel) {
+            return (sentinel instanceof PNone);
         }
     }
 
@@ -325,9 +382,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public int len(Object arg) {
-            if (arg instanceof PNone) {
-                throw Py.TypeError("len() takes exactly 1 argument (0 given)");
-            } else if (arg instanceof String) {
+            if (arg instanceof String) {
                 String argument = (String) arg;
                 return argument.length();
             } else if (arg instanceof PSequence) {
@@ -698,6 +753,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonFrozenSetNodeFactory.create(builtin.name(), args);
             case 33:
                 return PythonIntNodeFactory.create(builtin.name(), args);
+            case 34:
+                return PythonIsIntanceNodeFactory.create(builtin.name(), args);
             case 36:
                 return PythonIterNodeFactory.create(builtin.name(), args);
             case 37:
