@@ -285,7 +285,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object isintance(PythonObject object, PythonClass clazz) {
+        public Object isinstance(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -304,8 +304,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object isintance(Object object, Object clazz) {
-            throw new RuntimeException("isintance is not supported for " + object + " , " + clazz);
+        public Object isinstance(Object object, Object clazz) {
+            throw new RuntimeException("isintance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
         }
     }
 
@@ -430,6 +430,29 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public PList list(PGenerator generator) {
             return new PList(generator);
+        }
+
+        @Specialization
+        public PList list(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PList(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PList(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PList(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PList(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("list does not support iterable object " + arg);
+            }
         }
     }
 
@@ -603,20 +626,25 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStop")
+        @Specialization(order = 1, guards = "caseStop")
         public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStartStop")
+        @Specialization(order = 2, guards = "caseStartStop")
         public PSequence rangeStartStop(int start, int stop, Object step) {
             return new PRange(start, stop);
         }
 
-        @Specialization
+        @Specialization(order = 3)
         public PSequence rangeStartStopStep(int start, int stop, int step) {
             return new PRange(start, stop, step);
+        }
+
+        @Specialization
+        public PSequence rangeStartStopStep(Object start, Object stop, Object step) {
+            throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
         }
 
         @SuppressWarnings("unused")
@@ -660,6 +688,29 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public PSet set(PGenerator arg) {
             return new PSet(arg);
+        }
+
+        @Specialization
+        public PSet set(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PSet(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PSet(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PSet(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PSet(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("set does not support iterable object " + arg);
+            }
         }
     }
 
