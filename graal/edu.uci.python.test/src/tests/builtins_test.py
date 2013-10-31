@@ -1,3 +1,9 @@
+x = all([10, 0, 30])
+print(x)
+
+x = any([0, 10, 30])
+print(x)
+
 # test builtin abs
 x = abs(10)
 print(x)

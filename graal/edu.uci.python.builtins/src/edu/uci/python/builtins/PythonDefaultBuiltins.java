@@ -82,6 +82,120 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // all(iterable)
+    @Builtin(name = "all", id = 2, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonAllNode extends PythonBuiltinNode {
+
+        public PythonAllNode(String name) {
+            super(name);
+        }
+
+        public PythonAllNode(PythonAllNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean all(PSequence sequence) {
+            if (sequence.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = sequence.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (!JavaTypeConversions.toBoolean(element)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Specialization
+        public boolean all(PBaseSet baseset) {
+            if (baseset.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = baseset.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (!JavaTypeConversions.toBoolean(element)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Specialization
+        public boolean all(Object object) {
+            if (!(object instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("all does not support iterable object " + object);
+            }
+        }
+
+    }
+
+    // any(iterable)
+    @Builtin(name = "any", id = 3, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonAnyNode extends PythonBuiltinNode {
+
+        public PythonAnyNode(String name) {
+            super(name);
+        }
+
+        public PythonAnyNode(PythonAnyNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean any(PSequence sequence) {
+            if (sequence.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = sequence.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (JavaTypeConversions.toBoolean(element)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public boolean any(PBaseSet baseset) {
+            if (baseset.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = baseset.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (JavaTypeConversions.toBoolean(element)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public boolean any(Object object) {
+            if (!(object instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("any does not support iterable object " + object);
+            }
+        }
+
+    }
+
     // chr(i)
     @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonChrNode extends PythonBuiltinNode {
@@ -794,6 +908,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         switch (builtin.id()) {
             case 1:
                 return PythonAbsNodeFactory.create(builtin.name(), args);
+            case 2:
+                return PythonAllNodeFactory.create(builtin.name(), args);
+            case 3:
+                return PythonAnyNodeFactory.create(builtin.name(), args);
             case 10:
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:
