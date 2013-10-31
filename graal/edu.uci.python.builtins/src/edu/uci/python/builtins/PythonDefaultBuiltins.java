@@ -553,6 +553,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    /*
+     * @Builtin(name = "zip", id = 67, minNumOfArguments = 0) public abstract static class
+     * PythonZipNode extends PythonBuiltinNode {
+     * 
+     * public PythonZipNode(String name) { super(name); }
+     * 
+     * public PythonZipNode(PythonZipNode prev) { this(prev.getName()); } }
+     */
+
     private static List<Character> stringToCharList(String s) {
         ArrayList<Character> sequence = new ArrayList<>();
 

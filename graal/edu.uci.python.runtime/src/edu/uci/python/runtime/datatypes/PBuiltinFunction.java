@@ -39,9 +39,9 @@ public class PBuiltinFunction extends PCallable {
 
     private int maxNumOfArgs;
 
-    private boolean takesFixedNumOfArgs;
-
     private boolean takesKeywordArg;
+
+    private boolean takesFixedNumOfArgs;
 
     public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, CallTarget callTarget) {
         super(name, true);
@@ -85,22 +85,35 @@ public class PBuiltinFunction extends PCallable {
     }
 
     // Taken from Jython PyBuiltinCallable's unexpectedCall() method, and modified
-    public void checkForUnexpectedCall(int numOfArgs, int numOfKeywords) {
+    private void checkForUnexpectedCall(int numOfArgs, int numOfKeywords) {
         if (!takesKeywordArg && numOfKeywords > 0) {
             throw Py.TypeError(name + "() takes no keyword arguments");
         }
 
-        String argsblurb;
-        if (takesFixedNumOfArgs && numOfArgs != maxNumOfArgs) {
-            if (minNumOfArgs == 0) {
-                argsblurb = "no arguments";
-            } else if (minNumOfArgs == 1) {
-                argsblurb = "exactly one argument";
-            } else {
-                argsblurb = minNumOfArgs + " arguments";
+        String argMessage;
+        if (takesFixedNumOfArgs) {
+            assert (minNumOfArgs == maxNumOfArgs);
+            if (numOfArgs != minNumOfArgs) {
+                if (minNumOfArgs == 0) {
+                    argMessage = "no arguments";
+                } else if (minNumOfArgs == 1) {
+                    argMessage = "exactly one argument";
+                } else {
+                    argMessage = minNumOfArgs + " arguments";
+                }
+                throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
             }
-
-            throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argsblurb, numOfArgs));
+        } else if (numOfArgs < minNumOfArgs) {
+            /**
+             * For ex, iter(object[, sentinel]) takes at least 1 argument.
+             */
+            throw Py.TypeError(String.format("%s() expected at least %d arguments (%d) given", name, minNumOfArgs, numOfArgs));
+        } else if (numOfArgs > maxNumOfArgs) {
+            /**
+             * For ex, complex([real[, imag]]) takes at most 2 arguments.
+             */
+            argMessage = "at most " + maxNumOfArgs + " arguments";
+            throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
         }
     }
 
