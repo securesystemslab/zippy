@@ -46,6 +46,13 @@
 #define GRAAL_CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES              4
 #define GRAAL_CUDA_ERROR_NO_BINARY_FOR_GPU                 209
 
+/*
+ * Flags for cuMemHostRegister
+ */
+
+#define GRAAL_CU_MEMHOSTREGISTER_PORTABLE                    1
+#define GRAAL_CU_MEMHOSTREGISTER_DEVICEMAP                   2
+
 /**
  * End of array terminator for the extra parameter to
  * ::cuLaunchKernel
@@ -73,6 +80,12 @@
  */
 #define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void*) 0x02)
 
+/*
+ * Context creation flags
+ */
+
+#define GRAAL_CU_CTX_MAP_HOST 0x08
+
 class Ptx {
   friend class gpu;
 
@@ -90,9 +103,11 @@ public:
   typedef unsigned int CUdeviceptr;
 #endif
 
+typedef int CUdevice;     /**< CUDA device */
+
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int);
-  typedef int (*cuda_cu_ctx_create_func_t)(void*, int, int);
+  typedef int (*cuda_cu_ctx_create_func_t)(void*, unsigned int, CUdevice);
   typedef int (*cuda_cu_ctx_destroy_func_t)(void*);
   typedef int (*cuda_cu_ctx_synchronize_func_t)(void);
   typedef int (*cuda_cu_ctx_set_current_func_t)(void*);
@@ -107,10 +122,13 @@ private:
                                               unsigned int, void*, void**, void**);
   typedef int (*cuda_cu_module_get_function_func_t)(void*, void*, const char*);
   typedef int (*cuda_cu_module_load_data_ex_func_t)(void*, void*, unsigned int, void*, void**);
-  typedef int (*cuda_cu_memalloc_func_t)(void*, size_t);
+  typedef int (*cuda_cu_memalloc_func_t)(gpu::Ptx::CUdeviceptr*, size_t);
   typedef int (*cuda_cu_memfree_func_t)(gpu::Ptx::CUdeviceptr);
   typedef int (*cuda_cu_memcpy_htod_func_t)(gpu::Ptx::CUdeviceptr, const void*, unsigned int);
   typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, gpu::Ptx::CUdeviceptr,  unsigned int);
+  typedef int (*cuda_cu_mem_host_register_func_t)(void*, size_t, unsigned int);
+  typedef int (*cuda_cu_mem_host_get_device_pointer_func_t)(gpu::Ptx::CUdeviceptr*, void*, unsigned int);
+  typedef int (*cuda_cu_mem_host_unregister_func_t)(void*);
 
 public:
   static cuda_cu_init_func_t                      _cuda_cu_init;
@@ -130,6 +148,9 @@ public:
   static cuda_cu_memcpy_htod_func_t               _cuda_cu_memcpy_htod;
   static cuda_cu_memcpy_dtoh_func_t               _cuda_cu_memcpy_dtoh;
   static cuda_cu_ctx_set_current_func_t           _cuda_cu_ctx_set_current;
+  static cuda_cu_mem_host_register_func_t         _cuda_cu_mem_host_register;
+  static cuda_cu_mem_host_get_device_pointer_func_t _cuda_cu_mem_host_get_device_pointer;
+  static cuda_cu_mem_host_unregister_func_t        _cuda_cu_mem_host_unregister;
 
 protected:
   static void* _device_context;
