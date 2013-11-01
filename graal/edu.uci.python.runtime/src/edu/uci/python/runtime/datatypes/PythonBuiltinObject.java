@@ -24,12 +24,13 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * The base class of all Python built-in data types (int, complex, tuple...). Subclasses of
  * PythonBuiltinObject are immutable. In other words, PythonBuiltinObjects don't have the __dict__
- * attribute. PythonObject models mutable Python data types that have __dict__.
+ * attribute. On the other hand, PythonObject models mutable Python data type that has __dict__.
  * <p>
  * Special methods for PythonBuiltinObjects are implemented as Java methods and dispatched at Java
  * level. Any explicit user level access to a PythonBuiltinObject's attributes is considered as slow
@@ -39,10 +40,12 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PythonBuiltinObject {
 
-    // Checkstyle: stop field name check
-    public static PythonClass __class__;
+    // Checkstyle: stop method name check
+    public static PythonClass __class__(PythonContext context) {
+        return context.getPythonCore().getObjectClass();
+    }
 
-    // Checkstyle: resume field name check
+    // Checkstyle: resume method name check
 
     public abstract Object getMin();
 
