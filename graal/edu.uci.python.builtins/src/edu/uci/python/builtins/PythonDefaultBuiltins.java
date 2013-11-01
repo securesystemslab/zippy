@@ -209,6 +209,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
+        public boolean bool(int arg) {
+            return arg != 0;
+        }
+
+        @Specialization
+        public boolean bool(double arg) {
+            return arg != 0.0;
+        }
+
+        @Specialization
+        public boolean bool(String arg) {
+            return !arg.isEmpty();
+        }
+
+        @Specialization
         public boolean bool(Object object) {
             if (object instanceof PNone) {
                 return false;
@@ -227,6 +242,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         public PythonCallableNode(PythonCallableNode prev) {
             this(prev.getName());
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean callable(PCallable callable) {
+            return true;
         }
 
         @Specialization
