@@ -130,12 +130,15 @@ print(list(range(1, 11))) # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
-# test builtin iter and next
-#str = "hello"
-#it = iter(str)
-#print it.next()
-#print it.next()
-
+# test builtin iter
+for element in iter("hello"):
+    print(element)
+    
+for element in iter([10, 20, 30]):
+    print(element)
+    
+for element in iter({"a", "b", "c"}):
+    print(element)
 
 # test isintance
 class Student:

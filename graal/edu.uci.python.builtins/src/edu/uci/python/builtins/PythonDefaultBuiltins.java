@@ -321,6 +321,24 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // dir([object])
+    @Builtin(name = "dir", id = 16, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonDirNode extends PythonBuiltinNode {
+
+        public PythonDirNode(String name) {
+            super(name);
+        }
+
+        public PythonDirNode(PythonDirNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PList dir() {
+            return null;
+        }
+    }
+
     // float([x])
     @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBuiltinNode {
@@ -492,6 +510,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public Object iter(PSequence sequence, Object sentinel) {
             Iterator<Object> iterator = sequence.iterator();
+            return iterator;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(PBaseSet set, Object sentinel) {
+            Iterator<Object> iterator = set.iterator();
             return iterator;
         }
 
@@ -980,9 +1005,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         PNode[] args;
         int totalNumOfArgs;
 
-        /**
-         * TODO Come up with a better solution for max and min
-         */
+        // max and min are special cases
+        // They have two possibilities:
+        // max(iterable, *[, key])
+        // max(arg1, arg2, *args[, key])
+        // In order to specialize correctly, they should have 3 arguments
+        // arg1, arg2, vararg
+        // arg2 is PNone if nothing in max(iterable, *[, key])
         if (builtin.name().equals("max") || builtin.name().equals("min")) {
             totalNumOfArgs = 3;
         } else if (builtin.hasFixedNumOfArguments()) {
@@ -1021,6 +1050,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:
                 return PythonComplexNodeFactory.create(builtin.name(), args);
+            case 16:
+                return PythonDirNodeFactory.create(builtin.name(), args);
             case 22:
                 return PythonFloatNodeFactory.create(builtin.name(), args);
             case 24:

@@ -65,6 +65,10 @@ public class PythonTypesUtil {
         return new PList(values);
     }
 
+    public static PSet createSet(List<Object> values) {
+        return new PSet(values);
+    }
+
     public static PDictionary createDictionary(Map<Object, Object> map) {
         return new PDictionary(map);
     }

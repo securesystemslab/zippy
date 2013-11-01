@@ -26,6 +26,7 @@ package edu.uci.python.parser;
 
 import java.util.*;
 import java.util.List;
+import java.util.Set;
 
 import org.python.antlr.*;
 import org.python.antlr.ast.*;
@@ -412,6 +413,18 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> elts = walkExprList(node.getInternalElts());
         assert !isLeftHandSide : "Left hand side node should not reach here!";
         return factory.createListLiteral(elts);
+    }
+
+    @Override
+    public Object visitSet(org.python.antlr.ast.Set node) throws Exception {
+        List<PNode> elts = walkExprList(node.getInternalElts());
+        assert !isLeftHandSide : "Left hand side node should not reach here!";
+        Set<PNode> setFromLost = new HashSet<PNode>();
+        for (PNode listNode : elts) {
+            setFromLost.add(listNode);
+        }
+
+        return factory.createSetLiteral(setFromLost);
     }
 
     @Override

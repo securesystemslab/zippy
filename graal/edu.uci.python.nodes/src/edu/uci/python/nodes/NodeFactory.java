@@ -27,6 +27,7 @@ package edu.uci.python.nodes;
 import java.math.*;
 import java.util.*;
 import java.util.List;
+import java.util.Set;
 
 import org.python.antlr.PythonTree;
 import org.python.antlr.ast.*;
@@ -236,6 +237,11 @@ public class NodeFactory {
     }
 
     public PNode createListLiteral(List<PNode> values) {
+        PNode[] convertedValues = values.toArray(new PNode[values.size()]);
+        return new ListLiteralNode(convertedValues);
+    }
+
+    public PNode createSetLiteral(Set<PNode> values) {
         PNode[] convertedValues = values.toArray(new PNode[values.size()]);
         return new ListLiteralNode(convertedValues);
     }
