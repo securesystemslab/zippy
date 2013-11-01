@@ -26,7 +26,6 @@ package edu.uci.python.builtins;
 
 import static edu.uci.python.nodes.truffle.PythonTypesGen.*;
 
-import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -38,8 +37,8 @@ import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.PythonBuiltins;
+import edu.uci.python.runtime.standardtypes.*;
+
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -50,19 +49,9 @@ import com.oracle.truffle.api.Truffle;
 
 public final class PythonDefaultBuiltins extends PythonBuiltins {
 
-    public abstract static class PythonBasicBuiltinNode extends PythonBuiltinNode {
-
-        public PythonBasicBuiltinNode(String name) {
-            super(name);
-        }
-
-        public PythonBasicBuiltinNode(PythonBasicBuiltinNode prev) {
-            super(prev.getName());
-        }
-    }
-
-    @Builtin(name = "abs", id = 1, numOfArguments = 1)
-    public abstract static class PythonAbsNode extends PythonBasicBuiltinNode {
+    // abs(x)
+    @Builtin(name = "abs", id = 1, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonAbsNode extends PythonBuiltinNode {
 
         public PythonAbsNode(String name) {
             super(name);
@@ -86,10 +75,175 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public double absPComplex(PComplex arg) {
             return FastMathUtil.hypot(arg.getReal(), arg.getImag());
         }
+
+        @Specialization
+        public double absObject(Object arg) {
+            throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(arg) + "'");
+        }
     }
 
-    @Builtin(name = "chr", id = 10, numOfArguments = 1)
-    public abstract static class PythonChrNode extends PythonBasicBuiltinNode {
+    // all(iterable)
+    @Builtin(name = "all", id = 2, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonAllNode extends PythonBuiltinNode {
+
+        public PythonAllNode(String name) {
+            super(name);
+        }
+
+        public PythonAllNode(PythonAllNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean all(PSequence sequence) {
+            if (sequence.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = sequence.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (!JavaTypeConversions.toBoolean(element)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Specialization
+        public boolean all(PBaseSet baseset) {
+            if (baseset.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = baseset.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (!JavaTypeConversions.toBoolean(element)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Specialization
+        public boolean all(Object object) {
+            if (!(object instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("all does not support iterable object " + object);
+            }
+        }
+
+    }
+
+    // any(iterable)
+    @Builtin(name = "any", id = 3, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonAnyNode extends PythonBuiltinNode {
+
+        public PythonAnyNode(String name) {
+            super(name);
+        }
+
+        public PythonAnyNode(PythonAnyNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean any(PSequence sequence) {
+            if (sequence.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = sequence.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (JavaTypeConversions.toBoolean(element)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public boolean any(PBaseSet baseset) {
+            if (baseset.len() == 0) {
+                return false;
+            }
+
+            Iterator<Object> iterator = baseset.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (JavaTypeConversions.toBoolean(element)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public boolean any(Object object) {
+            if (!(object instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("any does not support iterable object " + object);
+            }
+        }
+
+    }
+
+    // bool([x])
+    @Builtin(name = "bool", id = 6, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonBoolNode extends PythonBuiltinNode {
+
+        public PythonBoolNode(String name) {
+            super(name);
+        }
+
+        public PythonBoolNode(PythonBoolNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean bool(Object object) {
+            if (object instanceof PNone) {
+                return false;
+            }
+            return JavaTypeConversions.toBoolean(object);
+        }
+    }
+
+    // callable(object)
+    @Builtin(name = "callable", id = 9, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonCallableNode extends PythonBuiltinNode {
+
+        public PythonCallableNode(String name) {
+            super(name);
+        }
+
+        public PythonCallableNode(PythonCallableNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public boolean callable(Object object) {
+            if (object instanceof PFunction) {
+                return true;
+            } else if (object instanceof PBuiltinFunction) {
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    // chr(i)
+    @Builtin(name = "chr", id = 10, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonChrNode extends PythonBuiltinNode {
 
         public PythonChrNode(String name) {
             super(name);
@@ -106,9 +260,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public char charFromInt(Object arg) {
-            if (arg instanceof PNone) {
-                throw Py.TypeError("chr() takes exactly 1 argument (0 given)");
-            } else if (arg instanceof Double) {
+            if (arg instanceof Double) {
                 throw Py.TypeError("integer argument expected, got float");
             }
 
@@ -116,8 +268,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "complex", id = 13, numOfArguments = 2)
-    public abstract static class PythonComplexNode extends PythonBasicBuiltinNode {
+    // complex([real[, imag]])
+    @Builtin(name = "complex", id = 13, minNumOfArguments = 0, maxNumOfArguments = 2)
+    public abstract static class PythonComplexNode extends PythonBuiltinNode {
 
         public PythonComplexNode(String name) {
             super(name);
@@ -127,53 +280,50 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization(order = 1, guards = "realAndImag")
-        public PComplex complexFromIntInt(int real, int imag) {
-            return new PComplex(real, imag);
+        @Specialization(guards = "hasRealAndImaginary")
+        public PComplex complexFromIntInt(int real, int imaginary) {
+            return new PComplex(real, imaginary);
         }
 
-        @Specialization(order = 2, guards = "realAndImag")
-        public PComplex complexFromDoubleDouble(double real, double imag) {
-            return new PComplex(real, imag);
+        @Specialization(guards = "hasRealAndImaginary")
+        public PComplex complexFromDoubleDouble(double real, double imaginary) {
+            return new PComplex(real, imaginary);
         }
 
         @Specialization
-        public PComplex complexFromObjectObject(Object real, Object imag) {
+        public PComplex complexFromObjectObject(Object real, Object imaginary) {
             if (real instanceof PNone) {
                 return new PComplex(0, 0);
             }
 
             if (real instanceof Integer || real instanceof Double) {
                 double realPart = (double) real;
-                if (imag instanceof PNone) {
+                if (imaginary instanceof PNone) {
                     return new PComplex(realPart, 0);
-                } else if (imag instanceof Integer || imag instanceof Double) {
-                    double imagPart = (double) imag;
+                } else if (imaginary instanceof Integer || imaginary instanceof Double) {
+                    double imagPart = (double) imaginary;
                     return new PComplex(realPart, imagPart);
                 }
             } else if (real instanceof String) {
-                if (!(imag instanceof PNone)) {
-                    throw new RuntimeException("Type error: complex() can't take second arg if first is a string");
+                if (!(imaginary instanceof PNone)) {
+                    throw Py.TypeError("complex() can't take second arg if first is a string");
                 }
 
                 String realPart = (String) real;
                 return JavaTypeConversions.convertStringToComplex(realPart);
             }
 
-            throw new RuntimeException("Type error: can't convert real " + real + " imag " + imag);
+            throw Py.TypeError("can't convert real " + real + " imag " + imaginary);
         }
 
-        public static boolean onlyReal(Object real, Object imag) {
-            return !(real instanceof PNone) && (imag instanceof PNode);
-        }
-
-        public static boolean realAndImag(Object real, Object imag) {
-            return !(real instanceof PNone) && !(imag instanceof PNode);
+        public static boolean hasRealAndImaginary(Object real, Object imaginary) {
+            return !(real instanceof PNone) && !(imaginary instanceof PNode);
         }
     }
 
-    @Builtin(name = "float", id = 22, numOfArguments = 1)
-    public abstract static class PythonFloatNode extends PythonBasicBuiltinNode {
+    // float([x])
+    @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonFloatNode extends PythonBuiltinNode {
 
         public PythonFloatNode(String name) {
             super(name);
@@ -198,15 +348,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             if (arg instanceof PNone) {
                 return 0.0;
             }
-            /**
-             * TODO Exceptions need to be implemented similar to the ones in Jython
-             */
-            throw new RuntimeException("Type error: can't convert " + arg.getClass().getSimpleName() + " to float ");
+
+            throw Py.TypeError("can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
     }
 
-    @Builtin(name = "frozenset", id = 24, numOfArguments = 1)
-    public abstract static class PythonFrozenSetNode extends PythonBasicBuiltinNode {
+    // frozenset([iterable])
+    @Builtin(name = "frozenset", id = 24, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
 
         public PythonFrozenSetNode(String name) {
             super(name);
@@ -237,8 +386,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "int", id = 33, numOfArguments = 1, varArgs = true)
-    public abstract static class PythonIntNode extends PythonBasicBuiltinNode {
+    // int(x=0)
+    // int(x, base=10)
+    @Builtin(name = "int", id = 33, minNumOfArguments = 0, maxNumOfArguments = 2, takesKeywordArguments = true)
+    public abstract static class PythonIntNode extends PythonBuiltinNode {
 
         public PythonIntNode(String name) {
             super(name);
@@ -249,39 +400,77 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noVariableArguments")
-        public int createInt(int arg, Object... args) {
+        @Specialization(guards = "noKeywordArg")
+        public int createInt(int arg, Object keywordArg) {
             return arg;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noVariableArguments")
-        public Object createInt(double arg, Object... args) {
+        @Specialization(guards = "noKeywordArg")
+        public Object createInt(double arg, Object keywordArg) {
             return JavaTypeConversions.doubleToInt(arg);
         }
 
         @Specialization
-        public Object createInt(Object arg, Object... args) {
+        public Object createInt(Object arg, Object keywordArg) {
             // Covers the case for x = int()
             if (arg instanceof PNone) {
                 return 0;
             }
 
-            if (args.length == 0) {
+            if (keywordArg instanceof PNone) {
                 return JavaTypeConversions.toInt(arg);
             } else {
-                throw new RuntimeException("Not implemented integer with base: " + arg);
+                throw new RuntimeException("Not implemented integer with base: " + keywordArg);
             }
         }
 
         @SuppressWarnings("unused")
-        public static boolean noVariableArguments(Object arg, Object... args) {
-            return args.length == 0;
+        public static boolean noKeywordArg(Object arg, Object keywordArg) {
+            return (keywordArg instanceof PNone);
         }
     }
 
-    @Builtin(name = "iter", id = 36, numOfArguments = 1, varArgs = true)
-    public abstract static class PythonIterNode extends PythonBasicBuiltinNode {
+    // isinstance(object, classinfo)
+    @Builtin(name = "isinstance", id = 34, fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
+
+        public PythonIsIntanceNode(String name) {
+            super(name);
+        }
+
+        public PythonIsIntanceNode(PythonIsIntanceNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public Object isinstance(PythonObject object, PythonClass clazz) {
+            if (object.getPythonClass().equals(clazz)) {
+                return true;
+            }
+
+            PythonClass superClass = object.getPythonClass().getSuperClass();
+
+            while (superClass != null) {
+                if (superClass.equals(clazz)) {
+                    return true;
+                }
+
+                superClass = superClass.getSuperClass();
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public Object isinstance(Object object, Object clazz) {
+            throw new RuntimeException("isintance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
+        }
+    }
+
+    // iter(object[, sentinel])
+    @Builtin(name = "iter", id = 36, minNumOfArguments = 1, maxNumOfArguments = 2)
+    public abstract static class PythonIterNode extends PythonBuiltinNode {
 
         public PythonIterNode(String name) {
             super(name);
@@ -291,16 +480,36 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization
-        public Object iter(String object) {
-            PString pstring = new PString(object);
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noSentinel")
+        public Object iter(String str, Object sentinel) {
+            PString pstring = new PString(str);
             Iterator<Object> iterator = pstring.iterator();
             return iterator;
         }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(PSequence sequence, Object sentinel) {
+            Iterator<Object> iterator = sequence.iterator();
+            return iterator;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(Object object, Object sentinel) {
+            throw new RuntimeException("Not supported sentinel case");
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noSentinel(String object, Object sentinel) {
+            return (sentinel instanceof PNone);
+        }
     }
 
-    @Builtin(name = "len", id = 37, numOfArguments = 1)
-    public abstract static class PythonLenNode extends PythonBasicBuiltinNode {
+    // len(s)
+    @Builtin(name = "len", id = 37, fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonLenNode extends PythonBuiltinNode {
 
         public PythonLenNode(String name) {
             super(name);
@@ -332,9 +541,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         @Specialization
         public int len(Object arg) {
-            if (arg instanceof PNone) {
-                throw Py.TypeError("len() takes exactly 1 argument (0 given)");
-            } else if (arg instanceof String) {
+            if (arg instanceof String) {
                 String argument = (String) arg;
                 return argument.length();
             } else if (arg instanceof PSequence) {
@@ -352,8 +559,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "list", id = 38, numOfArguments = 1)
-    public abstract static class PythonListNode extends PythonBasicBuiltinNode {
+    // list([iterable])
+    @Builtin(name = "list", id = 38, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonListNode extends PythonBuiltinNode {
 
         public PythonListNode(String name) {
             super(name);
@@ -382,10 +590,35 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public PList list(PGenerator generator) {
             return new PList(generator);
         }
+
+        @Specialization
+        public PList list(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PList(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PList(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PList(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PList(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("list does not support iterable object " + arg);
+            }
+        }
     }
 
-    @Builtin(name = "max", id = 41, numOfArguments = 2, varArgs = true)
-    public abstract static class PythonMaxNode extends PythonBasicBuiltinNode {
+    // max(iterable, *[, key])
+    // max(arg1, arg2, *args[, key])
+    @Builtin(name = "max", id = 41, minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true)
+    public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
         public PythonMaxNode(String name) {
             super(name);
@@ -396,22 +629,20 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "twoArguments")
+        @Specialization(guards = "hasTwoArguments")
         public int maxIntInt(int arg1, int arg2, Object... args) {
             return Math.max(arg1, arg2);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "twoArguments")
+        @Specialization(guards = "hasTwoArguments")
         public double maxDoubleDouble(double arg1, double arg2, Object... args) {
             return Math.max(arg1, arg2);
         }
 
         @Specialization
         public Object max(Object arg1, Object arg2, Object... args) {
-            if (arg1 instanceof PNone) {
-                throw Py.TypeError("max expected 1 arguments, got 0");
-            } else if (arg2 instanceof PNone) {
+            if (arg2 instanceof PNone) {
                 if (arg1 instanceof String) {
                     /**
                      * TODO String is not implemented
@@ -439,22 +670,24 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 }
             }
 
+            /**
+             * TODO Does not support var args {max(10, 20, 30, 40)} or keyword {max(10, 20, key =
+             * func)}
+             */
             throw new RuntimeException("Optional keyword-only key argument is not supported");
+
         }
 
         @SuppressWarnings("unused")
-        public static boolean oneArgument(Object arg1, Object arg2, Object... args) {
-            return (arg2 instanceof PNone && args.length == 0);
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean twoArguments(Object arg1, Object arg2, Object... args) {
+        public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
             return args.length == 0;
         }
     }
 
-    @Builtin(name = "min", id = 43, numOfArguments = 2)
-    public abstract static class PythonMinNode extends PythonBasicBuiltinNode {
+    // min(iterable, *[, key])
+    // min(arg1, arg2, *args[, key])
+    @Builtin(name = "min", id = 43, minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true)
+    public abstract static class PythonMinNode extends PythonBuiltinNode {
 
         public PythonMinNode(String name) {
             super(name);
@@ -464,19 +697,65 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
-        @Specialization
-        public int minIntInt(int arg1, int arg2) {
+        @SuppressWarnings("unused")
+        @Specialization(guards = "hasTwoArguments")
+        public int minIntInt(int arg1, int arg2, Object... args) {
+            return Math.min(arg1, arg2);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "hasTwoArguments")
+        public double minDoubleDouble(double arg1, double arg2, Object... args) {
             return Math.min(arg1, arg2);
         }
 
         @Specialization
-        public double minDoubleDouble(double arg1, double arg2) {
-            return Math.min(arg1, arg2);
+        public Object min(Object arg1, Object arg2, Object... args) {
+            if (arg2 instanceof PNone) {
+                if (arg1 instanceof String) {
+                    /**
+                     * TODO String is not implemented
+                     */
+                    String str = (String) arg1;
+                    PString pstring = new PString(str);
+                    return pstring.getMin();
+                } else if (arg1 instanceof PSequence) {
+                    PSequence sequence = (PSequence) arg1;
+                    return sequence.getMin();
+                } else if (arg1 instanceof PArray) {
+                    PArray array = (PArray) arg1;
+                    return array.getMin();
+                } else if (arg1 instanceof PDictionary) {
+                    PDictionary dictionary = (PDictionary) arg1;
+                    return dictionary.getMin();
+                } else {
+                    throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                }
+            } else if (args.length == 0) {
+                if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
+                    double arg1Double = (Double) arg1;
+                    double arg2Double = (Double) arg2;
+                    return Math.min(arg1Double, arg2Double);
+                }
+            }
+
+            /**
+             * TODO Does not support var args {min(10, 20, 30, 40)} or keyword {min(10, 20, key =
+             * func)}
+             */
+            throw new RuntimeException("Optional keyword-only key argument is not supported");
+
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
+            return args.length == 0;
         }
     }
 
-    @Builtin(name = "next", id = 44, numOfArguments = 1, varArgs = true)
-    public abstract static class PythonNextNode extends PythonBasicBuiltinNode {
+    // next(iterator[, default])
+    @Builtin(name = "next", id = 44, minNumOfArguments = 1, maxNumOfArguments = 2)
+    public abstract static class PythonNextNode extends PythonBuiltinNode {
 
         public PythonNextNode(String name) {
             super(name);
@@ -492,8 +771,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "range", id = 52, numOfArguments = 1, varArgs = true)
-    public abstract static class PythonRangeNode extends PythonBasicBuiltinNode {
+    // range(stop)
+    // range(start, stop[, step])
+    @Builtin(name = "range", id = 52, minNumOfArguments = 1, maxNumOfArguments = 3)
+    public abstract static class PythonRangeNode extends PythonBuiltinNode {
 
         public PythonRangeNode(String name) {
             super(name);
@@ -503,41 +784,42 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
+        @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "caseStop")
-        public PSequence rangeStop(int stop, Object... arguments) {
+        public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
+        @SuppressWarnings("unused")
         @Specialization(order = 2, guards = "caseStartStop")
-        public PSequence rangeStartStop(int start, Object... args) {
-            assert args[0] instanceof Integer;
-            return new PRange(start, (int) args[0]);
+        public PSequence rangeStartStop(int start, int stop, Object step) {
+            return new PRange(start, stop);
         }
 
-        @Specialization(order = 3, guards = "caseStartStopStep")
-        public PSequence rangeStartStopStep(int start, Object... args) {
-            assert args[0] instanceof Integer && args[1] instanceof Integer;
-            return new PRange(start, (int) args[0], (int) args[1]);
+        @Specialization(order = 3)
+        public PSequence rangeStartStopStep(int start, int stop, int step) {
+            return new PRange(start, stop, step);
         }
 
-        @SuppressWarnings("unused")
-        public static boolean caseStop(int start, Object... args) {
-            return args.length == 0;
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean caseStartStop(int start, Object... args) {
-            return args.length == 1;
+        @Specialization
+        public PSequence rangeStartStopStep(Object start, Object stop, Object step) {
+            throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
         }
 
         @SuppressWarnings("unused")
-        public static boolean caseStartStopStep(int start, Object... args) {
-            return args.length == 2;
+        public static boolean caseStop(int stop, Object start, Object step) {
+            return (start instanceof PNone) && (step instanceof PNone);
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStop(int start, int stop, Object step) {
+            return (step instanceof PNone);
         }
     }
 
-    @Builtin(name = "set", id = 56, numOfArguments = 1)
-    public abstract static class PythonSetNode extends PythonBasicBuiltinNode {
+    // set([iterable])
+    @Builtin(name = "set", id = 56, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonSetNode extends PythonBuiltinNode {
 
         public PythonSetNode(String name) {
             super(name);
@@ -566,7 +848,97 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public PSet set(PGenerator arg) {
             return new PSet(arg);
         }
+
+        @Specialization
+        public PSet set(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PSet(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PSet(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PSet(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PSet(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("set does not support iterable object " + arg);
+            }
+        }
     }
+
+    // tuple([iterable])
+    @Builtin(name = "tuple", id = 65, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonTupleNode extends PythonBuiltinNode {
+
+        public PythonTupleNode(String name) {
+            super(name);
+        }
+
+        public PythonTupleNode(PythonTupleNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PTuple tuple(String arg) {
+            return new PTuple(stringToCharList(arg));
+        }
+
+        @Specialization
+        public PTuple tuple(PSequence sequence) {
+            return new PTuple(sequence);
+        }
+
+        @Specialization
+        public PTuple tuple(PBaseSet baseSet) {
+            return new PTuple(baseSet);
+        }
+
+        @Specialization
+        public PTuple tuple(PGenerator arg) {
+            return new PTuple(arg);
+        }
+
+        @Specialization
+        public PTuple tuple(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PTuple(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PTuple(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PTuple(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PTuple(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("tuple does not support iterable object " + arg);
+            }
+        }
+    }
+
+    /*
+     * zip(*iterables)
+     * 
+     * @Builtin(name = "zip", id = 67, minNumOfArguments = 0) public abstract static class
+     * PythonZipNode extends PythonBuiltinNode {
+     * 
+     * public PythonZipNode(String name) { super(name); }
+     * 
+     * public PythonZipNode(PythonZipNode prev) { this(prev.getName()); } }
+     */
 
     private static List<Character> stringToCharList(String s) {
         ArrayList<Character> sequence = new ArrayList<>();
@@ -591,7 +963,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 String methodName = builtin.name();
                 PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
                 CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-                PBuiltinFunction function = new PBuiltinFunction(methodName, callTarget);
+                PBuiltinFunction function;
+                if (builtin.hasFixedNumOfArguments()) {
+                    function = new PBuiltinFunction(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                                    builtin.takesVariableArguments(), callTarget);
+                } else {
+                    function = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                                    builtin.takesVariableArguments(), callTarget);
+                }
                 setBuiltin(methodName, function);
             }
         }
@@ -599,24 +978,45 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     private static PythonBuiltinNode createBuiltin(Builtin builtin) {
         PNode[] args;
-        if (builtin.varArgs()) {
-            args = new PNode[builtin.numOfArguments() + 1];
-        } else {
-            args = new PNode[builtin.numOfArguments()];
+        int totalNumOfArgs;
 
+        /**
+         * TODO Come up with a better solution for max and min
+         */
+        if (builtin.name().equals("max") || builtin.name().equals("min")) {
+            totalNumOfArgs = 3;
+        } else if (builtin.hasFixedNumOfArguments()) {
+            totalNumOfArgs = builtin.fixedNumOfArguments();
+        } else if (builtin.takesVariableArguments()) {
+            totalNumOfArgs = builtin.minNumOfArguments() + 1;
+        } else {
+            totalNumOfArgs = builtin.maxNumOfArguments();
         }
 
-        for (int i = 0; i < builtin.numOfArguments(); i++) {
+        args = new PNode[totalNumOfArgs];
+        for (int i = 0; i < totalNumOfArgs; i++) {
             args[i] = new ReadArgumentNode(i);
         }
 
-        if (builtin.varArgs()) {
-            args[builtin.numOfArguments()] = new ReadVarArgsNode(builtin.numOfArguments());
+        if (builtin.takesVariableArguments()) {
+            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+        } else {
+            if (builtin.takesKeywordArguments()) {
+                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
+            }
         }
 
         switch (builtin.id()) {
             case 1:
                 return PythonAbsNodeFactory.create(builtin.name(), args);
+            case 2:
+                return PythonAllNodeFactory.create(builtin.name(), args);
+            case 3:
+                return PythonAnyNodeFactory.create(builtin.name(), args);
+            case 6:
+                return PythonBoolNodeFactory.create(builtin.name(), args);
+            case 9:
+                return PythonCallableNodeFactory.create(builtin.name(), args);
             case 10:
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:
@@ -627,6 +1027,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonFrozenSetNodeFactory.create(builtin.name(), args);
             case 33:
                 return PythonIntNodeFactory.create(builtin.name(), args);
+            case 34:
+                return PythonIsIntanceNodeFactory.create(builtin.name(), args);
             case 36:
                 return PythonIterNodeFactory.create(builtin.name(), args);
             case 37:
@@ -643,6 +1045,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonRangeNodeFactory.create(builtin.name(), args);
             case 56:
                 return PythonSetNodeFactory.create(builtin.name(), args);
+            case 65:
+                return PythonTupleNodeFactory.create(builtin.name(), args);
             default:
                 throw new RuntimeException("Unsupported/Unexpected Builtin: " + builtin);
         }

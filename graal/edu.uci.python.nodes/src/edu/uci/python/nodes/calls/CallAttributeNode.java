@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.calls;
 
+import java.util.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.dsl.Generic;
@@ -95,6 +97,9 @@ public abstract class CallAttributeNode extends PNode {
         PyObject primary;
         if (prim instanceof PyObject) {
             primary = (PyObject) prim;
+        } else if (prim instanceof Iterator<?>) {
+            Iterator<?> iterator = (Iterator<?>) prim;
+            return iterator.next();
         } else if (prim instanceof PModule) {
             return ((PModule) prim).lookupMethod(attributeId).call(null, args, null);
         } else {

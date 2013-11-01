@@ -24,12 +24,36 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.runtime.*;
 
 public class PBuiltinFunction extends PCallable {
 
     private final CallTarget callTarget;
+
+    private int minNumOfArgs;
+
+    private int maxNumOfArgs;
+
+    private boolean takesKeywordArg;
+
+    private boolean takesFixedNumOfArgs;
+
+    private boolean takesVarArgs;
+
+    public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, CallTarget callTarget) {
+        super(name, true);
+        this.callTarget = callTarget;
+        this.minNumOfArgs = minNumOfArgs;
+        this.maxNumOfArgs = maxNumOfArgs;
+        this.takesFixedNumOfArgs = takesFixedNumOfArgs;
+        this.takesKeywordArg = takesKeywordArg;
+        this.takesVarArgs = takesKeywordArg;
+    }
 
     public PBuiltinFunction(String name, CallTarget callTarget) {
         super(name, true);
@@ -49,11 +73,50 @@ public class PBuiltinFunction extends PCallable {
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
         if (keywords.length == 0) {
+            if (PythonOptions.UseSpecializedBuiltins) {
+                checkForUnexpectedCall(args.length, keywords.length);
+            }
             return callTarget.call(caller, new PArguments(PNone.NONE, args));
         } else {
+            if (PythonOptions.UseSpecializedBuiltins) {
+                checkForUnexpectedCall(args.length, keywords.length);
+            }
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
+        }
+    }
+
+    // Taken from Jython PyBuiltinCallable's unexpectedCall() method, and modified
+    private void checkForUnexpectedCall(int numOfArgs, int numOfKeywords) {
+        if (!takesKeywordArg && numOfKeywords > 0) {
+            throw Py.TypeError(name + "() takes no keyword arguments");
+        }
+
+        String argMessage;
+        if (takesFixedNumOfArgs) {
+            assert (minNumOfArgs == maxNumOfArgs);
+            if (numOfArgs != minNumOfArgs) {
+                if (minNumOfArgs == 0) {
+                    argMessage = "no arguments";
+                } else if (minNumOfArgs == 1) {
+                    argMessage = "exactly one argument";
+                } else {
+                    argMessage = minNumOfArgs + " arguments";
+                }
+                throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
+            }
+        } else if (numOfArgs < minNumOfArgs) {
+            /**
+             * For ex, iter(object[, sentinel]) takes at least 1 argument.
+             */
+            throw Py.TypeError(String.format("%s() expected at least %d arguments (%d) given", name, minNumOfArgs, numOfArgs));
+        } else if (!takesVarArgs && numOfArgs > maxNumOfArgs) {
+            /**
+             * For ex, complex([real[, imag]]) takes at most 2 arguments.
+             */
+            argMessage = "at most " + maxNumOfArgs + " arguments";
+            throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
         }
     }
 

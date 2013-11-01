@@ -1,3 +1,11 @@
+# test builtin all
+x = all([10, 0, 30])
+print(x)
+
+# test builtin any
+x = any([0, 10, 30])
+print(x)
+
 # test builtin abs
 x = abs(10)
 print(x)
@@ -6,6 +14,35 @@ x = abs(10.25)
 print(x)
 
 x = abs(1 + 2j)
+print(x)
+
+# test builtin bool
+x = bool(10)
+print(x)
+
+x = bool(0.0)
+print(x)
+
+x = bool()
+print(x)
+
+# test builtin callable
+def foo():
+    m = 20;
+
+x = callable(foo);
+print(x)
+
+x = callable(int);
+print(x)
+
+x = callable(10);
+print(x)
+
+x = bool(0.0)
+print(x)
+
+x = bool()
 print(x)
 
 # test builtin chr
@@ -76,7 +113,6 @@ print(len(value))
 value = {'id' : 17, 'name' : "gulfem"}
 print(len(value))
 
-
 # test builtin max
 x = max(10, 20)
 print(x)
@@ -87,10 +123,6 @@ print(x)
 x = max([20, 10, 90])
 print(x)
 
-#x = max("hello")
-#print(x)
-
-
 # test builtin range
 print(list(range(10))) # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -98,9 +130,17 @@ print(list(range(1, 11))) # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
-     
 # test builtin iter and next
-str = "hello"
-it = iter(str)
-print it.next()
-print it.next()
+#str = "hello"
+#it = iter(str)
+#print it.next()
+#print it.next()
+
+
+# test isintance
+class Student:
+    id = 1234
+
+student = Student()
+x = isinstance(student, Student)
+print(x)

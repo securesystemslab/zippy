@@ -84,8 +84,7 @@ public class BuiltinsModule extends PythonModule {
 
         public Object min(Object arg) {
             if (arg instanceof PythonBuiltinObject) {
-// return ((PythonBuiltinObject) arg).getMin();
-                throw new RuntimeException("min on PBO");
+                return ((PythonBuiltinObject) arg).getMin();
             } else if (arg instanceof String) {
                 return findMin((String) arg);
             } else {

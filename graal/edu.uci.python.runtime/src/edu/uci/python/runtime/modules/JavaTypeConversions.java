@@ -45,6 +45,30 @@ public class JavaTypeConversions {
         }
     }
 
+    public static boolean toBoolean(Object arg) {
+        if (arg instanceof Integer) {
+            int intArg = (Integer) arg;
+            return intArg != 0;
+        } else if (arg instanceof BigInteger) {
+            BigInteger bitIntArg = (BigInteger) arg;
+            return (bitIntArg.compareTo(BigInteger.ZERO) != 0);
+        } else if (arg instanceof Double) {
+            double doubleArg = (Double) arg;
+            return doubleArg != 0.0;
+        } else if (arg instanceof String) {
+            String stringArg = (String) arg;
+            return !(stringArg.isEmpty());
+        } else if (arg instanceof PSequence) {
+            PSequence sequence = (PSequence) arg;
+            return sequence.len() != 0;
+        } else if (arg instanceof PythonBuiltinObject) {
+            PythonBuiltinObject object = (PythonBuiltinObject) arg;
+            return object.len() != 0;
+        } else {
+            throw new RuntimeException("invalid value for boolean()");
+        }
+    }
+
     public static Object toInt(Object arg) {
         if (arg instanceof Integer || arg instanceof BigInteger) {
             return arg;

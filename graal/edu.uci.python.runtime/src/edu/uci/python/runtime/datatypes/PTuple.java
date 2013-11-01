@@ -24,9 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import edu.uci.python.runtime.sequence.*;
 
@@ -47,6 +45,19 @@ public class PTuple extends PImmutableSequence {
             array = new Object[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         }
+    }
+
+    public PTuple(Iterable<?> iterable) {
+        /**
+         * TODO Can be improved Currently creates a list, and then creates an array
+         */
+        List list = new ArrayList<>();
+
+        for (Object o : iterable) {
+            list.add(o);
+        }
+
+        array = list.toArray();
     }
 
     /**
