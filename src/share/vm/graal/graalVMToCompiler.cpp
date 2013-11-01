@@ -162,7 +162,16 @@ void VMToCompiler::bootstrap() {
   JavaCallArguments args;
   args.push_oop(instance());
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::bootstrap_name(), vmSymbols::void_method_signature(), &args, THREAD);
-  check_pending_exception("Error while calling boostrap");
+  check_pending_exception("Error while calling bootstrap");
+}
+
+void VMToCompiler::compileTheWorld() {
+  JavaThread* THREAD = JavaThread::current();
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileTheWorld_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  check_pending_exception("Error while calling compileTheWorld");
 }
 
 oop VMToCompiler::createJavaField(Handle holder, Handle name, Handle type, int index, int flags, jboolean internal, TRAPS) {

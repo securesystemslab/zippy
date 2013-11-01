@@ -101,13 +101,20 @@ void GraalCompiler::initialize() {
       bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
+      CompilationPolicy::completed_vm_startup();
       if (bootstrap) {
-        // We turn off CompileTheWorld and complete the VM startup so that
-        // Graal can be compiled by C1/C2 when we do a CTW.
-        NOT_PRODUCT(CompileTheWorld = false);
-        CompilationPolicy::completed_vm_startup();
         VMToCompiler::bootstrap();
       }
+
+
+#ifndef PRODUCT
+      if (CompileTheWorld) {
+        // We turn off CompileTheWorld so that Graal can
+        // be compiled by C1/C2 when Graal does a CTW.
+        CompileTheWorld = false;
+        VMToCompiler::compileTheWorld();
+      }
+#endif
     }
   }
 }
