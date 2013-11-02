@@ -62,6 +62,11 @@ print(x)
 x = complex()
 print(x)
 
+# test builtin enumerate
+seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+for s in enumerate(seasons):
+    print (s)
+
 # test builtin float
 x = float(2)
 print(x)

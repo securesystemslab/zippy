@@ -360,6 +360,68 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
+    // enumerate(iterable, start=0)
+    @Builtin(name = "enumerate", id = 18, minNumOfArguments = 1, maxNumOfArguments = 2, takesKeywordArguments = true)
+    public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
+
+        public PythonEnumerateNode(String name) {
+            super(name);
+        }
+
+        public PythonEnumerateNode(PythonEnumerateNode prev) {
+            this(prev.getName());
+        }
+
+        /**
+         * TODO enumerate can take a keyword argument start, and currently that's not supporteed
+         */
+
+        // @SuppressWarnings("unused")
+        // @Specialization(guards = "noKeywordArg")
+        @Specialization
+        public PEnumerate enumerate(String str) {
+            return new PEnumerate(new PString(str));
+        }
+
+        @Specialization
+        public PEnumerate enumerate(PSequence sequence) {
+            return new PEnumerate(sequence);
+        }
+
+        @Specialization
+        public PEnumerate enumerate(PBaseSet set) {
+            return new PEnumerate(set);
+        }
+
+        @Specialization
+        public PEnumerate enumerate(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PEnumerate(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PEnumerate(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PEnumerate(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PEnumerate(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("enumerate does not support iterable object " + arg);
+            }
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noKeywordArg(Object arg, Object keywordArg) {
+            return (keywordArg instanceof PNone);
+        }
+    }
+
     // float([x])
     @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
     public abstract static class PythonFloatNode extends PythonBuiltinNode {
@@ -1073,6 +1135,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonComplexNodeFactory.create(builtin.name(), args);
             case 16:
                 return PythonDirNodeFactory.create(builtin.name(), args);
+            case 18:
+                return PythonEnumerateNodeFactory.create(builtin.name(), args);
             case 22:
                 return PythonFloatNodeFactory.create(builtin.name(), args);
             case 24:

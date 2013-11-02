@@ -75,6 +75,12 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
+    @Specialization
+    public Object doEnumerate(VirtualFrame frame, PEnumerate enumerate) {
+        loopOnIterator(frame, enumerate.iterator());
+        return PNone.NONE;
+    }
+
     private void loopOnIterator(VirtualFrame frame, Iterator iter) {
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 

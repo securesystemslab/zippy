@@ -22,46 +22,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.datatypes;
+package edu.uci.python.runtime.datatypes;
 
 import java.util.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
+public class PEnumerate implements Iterable<Object> {
 
-public class PGenerator implements Iterable<Object>, Iterator<Object> {
+    private int start;
+    private List<PTuple> list;
 
-    private final GeneratorRootNode root;
-
-    private boolean hasNext = true;
-
-    public PGenerator(GeneratorRootNode root) {
-        this.root = root;
+    public PEnumerate(Iterable<?> iterable) {
+        this(iterable, 0);
     }
 
-    @Override
-    public Object next() {
-        try {
-            return root.next();
-        } catch (ImplicitReturnException ire) {
-            hasNext = false;
-            throw new BreakException();
+    public PEnumerate(Iterable<?> iterable, int start) {
+        this.list = new ArrayList<>();
+        this.start = start;
+        int index = start;
+        for (Object object : iterable) {
+            this.list.add(new PTuple(new Object[]{index, object}));
+            index++;
         }
     }
 
     @Override
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Iterator<Object> iterator() {
-        return this;
+        return new Iterator<Object>() {
+
+            private final Iterator<PTuple> iter = list.iterator();
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+
+            public Object next() {
+                return iter.next();
+            }
+        };
     }
 
 }

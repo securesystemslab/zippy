@@ -136,6 +136,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPSlice(execute(frame));
     }
 
+    public PEnumerate executePEnumerate(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPEnumerate(execute(frame));
+    }
+
     public PObject executePObject(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPObject(execute(frame));
     }
