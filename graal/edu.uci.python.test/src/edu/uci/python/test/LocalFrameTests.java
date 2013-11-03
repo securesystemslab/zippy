@@ -83,4 +83,17 @@ public class LocalFrameTests {
 
         assertPrints("True\n43\n", source);
     }
+
+    @Test
+    public void bool2Float() {
+        String source = "def foo():\n" + //
+                        "    a = True\n" + //
+                        "    print(a)\n" + //
+                        "    a = 4.2 + True\n" + //
+                        "    print(a)\n" + //
+                        "\n" + //
+                        "foo()\n";
+
+        assertPrints("True\n5.2\n", source);
+    }
 }

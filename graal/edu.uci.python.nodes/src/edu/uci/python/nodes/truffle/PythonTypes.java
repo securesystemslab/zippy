@@ -43,6 +43,14 @@ PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class,
                 PEnumerate.class, PythonBuiltinObject.class, PythonObject.class, PCallable.class, PGenerator.class, Object[].class, Iterator.class})
 public class PythonTypes {
 
+    /**
+     * Type coercion: Python bool to Python int (Integer).
+     */
+    @TypeCast
+    public int asInteger(boolean value) {
+        return value ? 1 : 0;
+    }
+
     @TypeCheck
     public boolean isInteger(Object value) {
         return value instanceof Integer || value instanceof Boolean;
@@ -59,18 +67,18 @@ public class PythonTypes {
         return (int) value;
     }
 
+    /**
+     * Type coercion: Python bool to Python int (BigInteger); Python int to int (Integer to
+     * BigInteger).
+     */
     @TypeCheck
     public boolean isBigInteger(Object value) {
-        return value instanceof BigInteger || value instanceof Integer;
+        return value instanceof BigInteger || value instanceof Integer || value instanceof Boolean;
     }
 
     @TypeCast
-    public BigInteger asBigInteger(Object value) {
-        if (value instanceof BigInteger) {
-            return (BigInteger) value;
-        } else {
-            return BigInteger.valueOf((int) value);
-        }
+    public BigInteger asBigInteger(boolean value) {
+        return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
 
     @TypeCast
@@ -78,27 +86,51 @@ public class PythonTypes {
         return BigInteger.valueOf(value);
     }
 
+    @TypeCast
+    public BigInteger asBigInteger(Object value) {
+        if (value instanceof Integer) {
+            return BigInteger.valueOf((int) value);
+        } else if (value instanceof Boolean) {
+            int intValue = (boolean) value ? 1 : 0;
+            return BigInteger.valueOf(intValue);
+        }
+
+        return (BigInteger) value;
+    }
+
+    /**
+     * Type coercion: Python bool to Python float (double); Python int to float (Integer or
+     * BigInteger to double).
+     */
+
     @TypeCheck
     public boolean isDouble(Object value) {
-        return value instanceof Double || value instanceof Integer || value instanceof BigInteger;
+        return value instanceof Double || value instanceof Integer || value instanceof BigInteger || value instanceof Boolean;
     }
 
     @TypeCast
-    public double asDouble(Object value) {
-        if (value instanceof Double) {
-            return (double) value;
-        } else if (value instanceof Integer) {
-            Integer integer = (Integer) value;
-            return integer.doubleValue();
-        } else {
-            BigInteger bigInteger = (BigInteger) value;
-            return bigInteger.doubleValue();
-        }
+    public double asDouble(boolean value) {
+        return value ? 1.0D : 0.0D;
     }
 
     @TypeCast
     public double asDouble(int value) {
         return value;
+    }
+
+    @TypeCast
+    public double asDouble(Object value) {
+        if (value instanceof Integer) {
+            Integer integer = (Integer) value;
+            return integer.doubleValue();
+        } else if (value instanceof BigInteger) {
+            BigInteger bigInteger = (BigInteger) value;
+            return bigInteger.doubleValue();
+        } else if (value instanceof Boolean) {
+            return (boolean) value ? 1.0D : 0.0D;
+        }
+
+        return (double) value;
     }
 
     @TypeCheck
