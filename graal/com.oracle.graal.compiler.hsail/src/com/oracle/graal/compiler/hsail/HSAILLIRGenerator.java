@@ -34,7 +34,6 @@ import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.hsail.*;
@@ -50,12 +49,8 @@ import com.oracle.graal.lir.hsail.HSAILControlFlow.ForeignCall1ArgOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.ForeignCallNoArgOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.ReturnOp;
 import com.oracle.graal.lir.hsail.HSAILMove.LeaOp;
-import com.oracle.graal.lir.hsail.HSAILMove.LoadCompressedPointer;
-import com.oracle.graal.lir.hsail.HSAILMove.LoadOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveFromRegOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveToRegOp;
-import com.oracle.graal.lir.hsail.HSAILMove.StoreCompressedPointer;
-import com.oracle.graal.lir.hsail.HSAILMove.StoreOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
@@ -64,11 +59,7 @@ import com.oracle.graal.phases.util.*;
 /**
  * This class implements the HSAIL specific portion of the LIR generator.
  */
-public class HSAILLIRGenerator extends LIRGenerator {
-
-    private HotSpotRuntime runtime() {
-        return (HotSpotRuntime) codeCache;
-    }
+public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     public static class HSAILSpillMoveFactory implements LIR.SpillMoveFactory {
 
@@ -84,8 +75,8 @@ public class HSAILLIRGenerator extends LIRGenerator {
         }
     }
 
-    public HSAILLIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, providers, target, frameMap, cc, lir);
+    public HSAILLIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, frameMap, cc, lir);
         lir.spillMoveFactory = new HSAILSpillMoveFactory();
     }
 
@@ -99,7 +90,7 @@ public class HSAILLIRGenerator extends LIRGenerator {
     public boolean canInlineConstant(Constant c) {
         switch (c.getKind()) {
             case Long:
-                return NumUtil.isInt(c.asLong()) && !codeCache.needsDataPatch(c);
+                return NumUtil.isInt(c.asLong()) && !getCodeCache().needsDataPatch(c);
             case Object:
                 return c.isNull();
             default:
@@ -171,41 +162,9 @@ public class HSAILLIRGenerator extends LIRGenerator {
         return new HSAILAddressValue(target().wordKind, baseRegister, finalDisp);
     }
 
-    private static boolean isCompressCandidate(DeoptimizingNode access) {
-        return access != null && ((HeapAccess) access).isCompressible();
-    }
-
-    @Override
-    public Variable emitLoad(Kind kind, Value address, DeoptimizingNode access) {
-        HSAILAddressValue loadAddress = asAddressValue(address);
-        Variable result = newVariable(kind);
-        LIRFrameState state = access != null ? state(access) : null;
-        assert access == null || access instanceof HeapAccess;
-        if (runtime().config.useCompressedOops && isCompressCandidate(access)) {
-            Variable scratch = newVariable(Kind.Long);
-            append(new LoadCompressedPointer(kind, result, scratch, loadAddress, state, runtime().config.narrowOopBase, runtime().config.narrowOopShift, runtime().config.logMinObjAlignment));
-        } else {
-            append(new LoadOp(kind, result, loadAddress, state));
-        }
-        return result;
-    }
-
-    @Override
-    public void emitStore(Kind kind, Value address, Value inputVal, DeoptimizingNode access) {
-        HSAILAddressValue storeAddress = asAddressValue(address);
-        LIRFrameState state = access != null ? state(access) : null;
-        Variable input = load(inputVal);
-        if (runtime().config.useCompressedOops && isCompressCandidate(access)) {
-            Variable scratch = newVariable(Kind.Long);
-            append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, runtime().config.narrowOopBase, runtime().config.narrowOopShift, runtime().config.logMinObjAlignment));
-        } else {
-            append(new StoreOp(kind, storeAddress, input, state));
-        }
-    }
-
     @Override
     public Variable emitAddress(StackSlot address) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -253,12 +212,12 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitOverflowCheckBranch(LabelRef label, boolean negated) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -284,15 +243,32 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitIntegerTestMove(Value left, Value right, Value trueValue, Value falseValue) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
+    /**
+     * Generates the LIR instruction for a negation operation.
+     * 
+     * @param input the value that is being negated
+     * @return Variable that represents the result of the negation
+     */
     @Override
     public Variable emitNegate(Value input) {
         Variable result = newVariable(input.getKind());
         switch (input.getKind()) {
             case Int:
+                // Note: The Int case also handles the negation of shorts, bytes, and chars because
+                // Java treats these types as ints at the bytecode level.
                 append(new Op1Stack(INEG, result, input));
+                break;
+            case Long:
+                append(new Op1Stack(LNEG, result, input));
+                break;
+            case Double:
+                append(new Op1Stack(DNEG, result, input));
+                break;
+            case Float:
+                append(new Op1Stack(FNEG, result, input));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -301,12 +277,23 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     }
 
+    /**
+     * Generates the LIR instruction for a bitwise NOT operation.
+     * 
+     * @param input the source operand
+     * @return Variable that represents the result of the operation
+     */
     @Override
     public Variable emitNot(Value input) {
         Variable result = newVariable(input.getKind());
         switch (input.getKind()) {
             case Int:
+                // Note: The Int case also covers other primitive integral types smaller than an int
+                // (char, byte, short) because Java treats these types as ints.
                 append(new Op1Stack(INOT, result, input));
+                break;
+            case Long:
+                append(new Op1Stack(LNOT, result, input));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -476,12 +463,12 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitUDiv(Value a, Value b, DeoptimizingNode deopting) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public Variable emitURem(Value a, Value b, DeoptimizingNode deopting) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -502,19 +489,50 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitOr(Value a, Value b) {
-        throw new InternalError("NYI");
+        Variable result = newVariable(a.getKind());
+        switch (a.getKind()) {
+            case Int:
+                append(new Op2Stack(IOR, result, a, loadNonConst(b)));
+                break;
+            case Long:
+                append(new Op2Stack(LOR, result, a, loadNonConst(b)));
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+        return result;
     }
 
     @Override
     public Variable emitXor(Value a, Value b) {
-        throw new InternalError("NYI");
+        Variable result = newVariable(a.getKind());
+        switch (a.getKind()) {
+            case Int:
+                append(new Op2Stack(IXOR, result, a, loadNonConst(b)));
+                break;
+            case Long:
+                append(new Op2Stack(LXOR, result, a, loadNonConst(b)));
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+        return result;
     }
 
+    /**
+     * Generates the LIR instruction for a shift left operation.
+     * 
+     * @param a The value that is being shifted
+     * @param b The shift amount
+     * @return Variable that represents the result of the operation
+     */
     @Override
     public Variable emitShl(Value a, Value b) {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
+                // Note: The Int case also covers the shifting of bytes, shorts and chars because
+                // Java treats these types as ints at the bytecode level.
                 append(new ShiftOp(ISHL, result, a, b));
                 break;
             case Long:
@@ -526,11 +544,38 @@ public class HSAILLIRGenerator extends LIRGenerator {
         return result;
     }
 
+    /**
+     * Generates the LIR instruction for a shift right operation.
+     * 
+     * @param a The value that is being shifted
+     * @param b The shift amount
+     * @return Variable that represents the result of the operation
+     */
     @Override
     public Variable emitShr(Value a, Value b) {
-        throw new InternalError("NYI");
+        Variable result = newVariable(a.getKind());
+        switch (a.getKind()) {
+            case Int:
+                // Note: The Int case also covers the shifting of bytes, shorts and chars because
+                // Java treats these types as ints at the bytecode level.
+                append(new ShiftOp(ISHR, result, a, b));
+                break;
+            case Long:
+                append(new ShiftOp(LSHR, result, a, b));
+                break;
+            default:
+                GraalInternalError.shouldNotReachHere();
+        }
+        return result;
     }
 
+    /**
+     * Generates the LIR instruction for an unsigned shift right operation.
+     * 
+     * @param a The value that is being shifted
+     * @param b The shift amount
+     * @return Variable that represents the result of the operation
+     */
     @Override
     public Variable emitUShr(Value a, Value b) {
         Variable result = newVariable(a.getKind());
@@ -558,20 +603,41 @@ public class HSAILLIRGenerator extends LIRGenerator {
             case I2L:
                 append(new Op1Stack(I2L, result, input));
                 break;
+            case I2S:
+                append(new Op1Stack(I2S, result, input));
+                break;
+            case I2C:
+                append(new Op1Stack(I2C, result, input));
+                break;
+            case I2B:
+                append(new Op1Stack(I2B, result, input));
+                break;
             case I2D:
                 append(new Op1Stack(I2D, result, input));
                 break;
             case D2I:
                 append(new Op1Stack(D2I, result, input));
                 break;
+            case D2F:
+                append(new Op1Stack(D2F, result, input));
+                break;
+            case D2L:
+                append(new Op1Stack(D2L, result, input));
+                break;
             case L2I:
                 append(new Op1Stack(L2I, result, input));
+                break;
+            case L2F:
+                append(new Op1Stack(L2F, result, input));
+                break;
+            case L2D:
+                append(new Op1Stack(L2D, result, input));
                 break;
             case F2D:
                 append(new Op1Stack(F2D, result, input));
                 break;
-            case D2F:
-                append(new Op1Stack(D2F, result, input));
+            case F2L:
+                append(new Op1Stack(F2L, result, input));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -586,17 +652,17 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitMembar(int barriers) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     protected void emitDirectCall(DirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -612,11 +678,11 @@ public class HSAILLIRGenerator extends LIRGenerator {
                     append(new ForeignCall1ArgOp(callName, result, arguments[0]));
                     break;
                 default:
-                    throw new InternalError("NYI emitForeignCall");
+                    throw GraalInternalError.unimplemented();
             }
 
         } else {
-            throw new InternalError("NYI emitForeignCall");
+            throw GraalInternalError.unimplemented();
         }
     }
 
@@ -631,17 +697,17 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitBitScanForward(Variable result, Value value) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public void emitBitScanReverse(Variable result, Value value) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public Value emitMathAbs(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -653,27 +719,27 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public Value emitMathLog(Value input, boolean base10) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public Value emitMathCos(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public Value emitMathSin(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public Value emitMathTan(Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public void emitByteSwap(Variable result, Value input) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -683,27 +749,27 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     protected void emitSequentialSwitch(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     protected void emitSwitchRanges(int[] lowKeys, int[] highKeys, LabelRef[] targets, LabelRef defaultTarget, Value key) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     protected void emitTableSwitch(int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value key) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public void visitCompareAndSwap(LoweredCompareAndSwapNode node, Value address) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
     public void visitBreakpointNode(BreakpointNode node) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -713,7 +779,7 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitUnwind(Value operand) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 
     @Override
@@ -726,6 +792,6 @@ public class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void visitInfopointNode(InfopointNode i) {
-        throw new InternalError("NYI");
+        throw GraalInternalError.unimplemented();
     }
 }

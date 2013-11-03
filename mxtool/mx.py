@@ -27,122 +27,14 @@
 #
 
 r"""
-mx is a command line tool inspired by mvn (http://maven.apache.org/)
-and hg (http://mercurial.selenic.com/). It includes a mechanism for
-managing the dependencies between a set of projects (like Maven)
-as well as making it simple to run commands
-(like hg is the interface to the Mercurial commands).
+mx is a command line tool for managing the development of Java code organized as suites of projects.
 
-The organizing principle of mx is a project suite. A suite is a directory
-containing one or more projects. It's not coincidental that this closely
-matches the layout of one or more projects in a Mercurial repository.
-The configuration information for a suite lives in an 'mx' sub-directory
-at the top level of the suite. A suite is given a name by a 'suite=name'
-property in the 'mx/projects' file (if omitted the name is suite directory).
-An 'mx' subdirectory can be named as plain 'mx' or 'mx.name', where
-'name' is typically the name as the suite name.
-The latter is useful to avoid clashes in IDE project names.
-
-When launched, mx treats the current working directory as a suite.
-This is the primary suite. All other suites are called included suites.
-
-The configuration files (i.e. in the 'mx' sub-directory) of a suite are:
-
-  projects
-      Defines the projects and libraries in the suite and the
-      dependencies between them.
-
-  commands.py
-      Suite specific extensions to the commands available to mx.
-
-  includes
-      Other suites to be loaded. This is recursive. Each
-      line in an includes file is a path to a suite directory.
-
-  env
-      A set of environment variable definitions. These override any
-      existing environment variables. Common properties set here
-      include JAVA_HOME and IGNORED_PROJECTS.
-
-The includes and env files are typically not put under version control
-as they usually contain local file-system paths.
-
-The projects file is like the pom.xml file from Maven except that
-it is a properties file (not XML). Each non-comment line
-in the file specifies an attribute of a project or library. The main
-difference between a project and a library is that the former contains
-source code built by the mx tool where as the latter is an external
-dependency. The format of the projects file is
-
-Library specification format:
-
-    library@<name>@<prop>=<value>
-
-Built-in library properties (* = required):
-
-   *path
-        The file system path for the library to appear on a class path.
-
-    urls
-        A comma separated list of URLs from which the library (jar) can
-        be downloaded and saved in the location specified by 'path'.
-
-    optional
-        If "true" then this library will be omitted from a class path
-        if it doesn't exist on the file system and no URLs are specified.
-
-    sourcePath
-        The file system path for a jar file containing the library sources.
-
-    sourceUrls
-        A comma separated list of URLs from which the library source jar can
-        be downloaded and saved in the location specified by 'sourcePath'.
-
-Project specification format:
-
-    project@<name>@<prop>=<value>
-
-The name of a project also denotes the directory it is in.
-
-Built-in project properties (* = required):
-
-    subDir
-        The sub-directory of the suite in which the project directory is
-        contained. If not specified, the project directory is directly
-        under the suite directory.
-
-   *sourceDirs
-        A comma separated list of source directory names (relative to
-        the project directory).
-
-    dependencies
-        A comma separated list of the libraries and project the project
-        depends upon (transitive dependencies should be omitted).
-
-    checkstyle
-        The project whose Checkstyle configuration
-        (i.e. <project>/.checkstyle_checks.xml) is used.
-
-    native
-        "true" if the project is native.
-
-    javaCompliance
-        The minimum JDK version (format: x.y) to which the project's
-        sources comply (required for non-native projects).
-
-    workingSets
-        A comma separated list of working set names. The project belongs
-        to the given working sets, for which the eclipseinit command
-        will generate Eclipse configurations.
-
-Other properties can be specified for projects and libraries for use
-by extension commands.
-
-Property values can use environment variables with Bash syntax (e.g. ${HOME}).
+Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/The+mx+Tool
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
+import socket
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
@@ -155,10 +47,15 @@ _libs = dict()
 _dists = dict()
 _suites = dict()
 _annotationProcessors = None
-_mainSuite = None
+_primary_suite_path = None
+_primary_suite = None
+_src_suitemodel = None
+_dst_suitemodel = None
 _opts = None
 _java = None
 _check_global_structures = True  # can be set False to allow suites with duplicate definitions to load without aborting
+_warn = False
+_hg = None
 
 
 """
@@ -429,6 +326,25 @@ class Project(Dependency):
             self._annotationProcessors = list(ap)
         return self._annotationProcessors
 
+    def update_current_annotation_processors_file(self):
+        aps = self.annotation_processors()
+        outOfDate = False
+        currentApsFile = join(self.suite.mxDir, 'currentAnnotationProcessors', self.name)
+        currentApsFileExists = exists(currentApsFile)
+        if currentApsFileExists:
+            with open(currentApsFile) as fp:
+                currentAps = [l.strip() for l in fp.readlines()]
+                if currentAps != aps:
+                    outOfDate = True
+        if outOfDate or not currentApsFileExists:
+            if not exists(dirname(currentApsFile)):
+                os.mkdir(dirname(currentApsFile))
+            with open(currentApsFile, 'w') as fp:
+                for ap in aps:
+                    print >> fp, ap
+        return outOfDate
+
+
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
         Dependency.__init__(self, suite, name)
@@ -493,41 +409,306 @@ class Library(Dependency):
         deps.append(self)
         return deps
 
+class HgConfig:
+    """
+    Encapsulates access to Mercurial (hg)
+    """
+    def __init__(self):
+        self.missing = 'no hg executable found'
+        self.has_hg = None
+
+    def check(self, abortOnFail=True):
+        if self.has_hg is None:
+            try:
+                subprocess.check_output(['hg'])
+                self.has_hg = True
+            except OSError:
+                self.has_hg = False
+                warn(self.missing)
+
+        if not self.has_hg:
+            if abortOnFail:
+                abort(self.missing)
+            else:
+                warn(self.missing)
+
+    def tip(self, sDir, abortOnError=True):
+        try:
+            return subprocess.check_output(['hg', 'tip', '-R', sDir, '--template', '{node}'])
+        except OSError:
+            warn(self.missing)
+        except subprocess.CalledProcessError:
+            if abortOnError:
+                abort('failed to get tip revision id')
+            else:
+                return None
+
+    def can_push(self, s, strict=True):
+        try:
+            output = subprocess.check_output(['hg', '-R', s.dir, 'status'])
+            # super strict
+            return output == ''
+        except OSError:
+            warn(self.missing)
+        except subprocess.CalledProcessError:
+            return False
+
+    def default_push(self, sdir):
+        with open(join(sdir, '.hg', 'hgrc')) as f:
+            for line in f:
+                line = line.rstrip()
+                if line.startswith('default = '):
+                    return line[len('default = '):]
+        return None
+
+class SuiteModel:
+    """
+    Defines how to locate a URL/path for a suite, including imported suites.
+    Conceptually a SuiteModel is defined by a primary suite URL/path and a
+    map from suite name to URL/path for imported suites.
+    Subclasses define a specfic implementation.
+    """
+    def __init__(self):
+        self.primaryDir = None
+        self.suitenamemap = {}
+
+    def find_suite_dir(self, suitename):
+        """locates the URL/path for suitename or None if not found"""
+        abort('find_suite_dir not implemented')
+
+    def set_primary_dir(self, d):
+        """informs that d is the primary suite directory"""
+        self._primaryDir = d
+
+    def importee_dir(self, importer_dir, suitename):
+        """returns the directory path for an import of suitename, given importer_dir"""
+        abort('importee_dir not implemented')
+
+    def nestedsuites_dirname(self):
+        """Returns the dirname that contains any nested suites if the model supports that"""
+        return None
+
+    def _mxDirName(self, name):
+        # temporary workaround until mx.graal exists
+        if name == 'graal':
+            return 'mx'
+        else:
+            return 'mx.' + name
+
+    def _search_dir(self, searchDir, mxDirName):
+        for dd in os.listdir(searchDir):
+            sd = _is_suite_dir(join(searchDir, dd), mxDirName)
+            if sd is not None:
+                return sd
+
+    def _create_suitenamemap(self, optionspec, suitemap):
+        """Three ways to specify a suite name mapping, in order of precedence:
+        1. Explicitly in optionspec.
+        2. In suitemap.
+        3. in MXSUITEMAP environment variable.
+        """
+        if optionspec != '':
+            spec = optionspec
+        elif suitemap is not None:
+            spec = suitemap
+        elif get_env('MXSUITEMAP') is not None:
+            spec = get_env('MXSUITEMAP')
+        else:
+            return
+        pairs = spec.split(',')
+        for pair in pairs:
+            mappair = pair.split('=')
+            self.suitenamemap[mappair[0]] = mappair[1]
+
+    @staticmethod
+    def set_suitemodel(option, suitemap):
+        if option.startswith('sibling'):
+            return SiblingSuiteModel(os.getcwd(), option, suitemap)
+        elif option.startswith('nested'):
+            return NestedImportsSuiteModel(os.getcwd(), option, suitemap)
+        elif option.startswith('path'):
+            return PathSuiteModel(option[len('path:'):])
+        else:
+            abort('unknown suitemodel type: ' + option)
+
+    @staticmethod
+    def parse_options():
+        # suite-specific args may match the known args so there is no way at this early stage
+        # to use ArgParser to handle the suite model global arguments, so we just do it manually.
+        def _get_argvalue(arg, args, i):
+            if i < len(args):
+                return args[i]
+            else:
+                abort('value expected with ' + arg)
+
+        args = sys.argv[1:]
+        src_suitemodel_arg = dst_suitemodel_arg = 'sibling'
+        suitemap_arg = None
+
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg == '--src-suitemodel':
+                src_suitemodel_arg = _get_argvalue(arg, args, i + 1)
+            elif arg == '--dst-suitemodel':
+                dst_suitemodel_arg = _get_argvalue(arg, args, i + 1)
+            elif arg == '--suitemap':
+                suitemap_arg = _get_argvalue(arg, args, i + 1)
+            elif arg == '-w':
+                # to get warnings on suite loading issues before command line is parsed
+                global _warn
+                _warn = True
+            elif arg == '-p' or arg == '--primary-suite-path':
+                global _primary_suite_path
+                _primary_suite_path = os.path.abspath(_get_argvalue(arg, args, i + 1))
+            i = i + 1
+
+        global _src_suitemodel
+        _src_suitemodel = SuiteModel.set_suitemodel(src_suitemodel_arg, suitemap_arg)
+        global _dst_suitemodel
+        _dst_suitemodel = SuiteModel.set_suitemodel(dst_suitemodel_arg, suitemap_arg)
+
+
+class SiblingSuiteModel(SuiteModel):
+    """All suites are siblings in the same parent directory, recorded as _suiteRootDir"""
+    def __init__(self, suiteRootDir, option, suitemap):
+        SuiteModel.__init__(self)
+        self._suiteRootDir = suiteRootDir
+        self._create_suitenamemap(option[len('sibling:'):], suitemap)
+
+    def find_suite_dir(self, name):
+        return self._search_dir(self._suiteRootDir, self._mxDirName(name))
+
+    def set_primary_dir(self, d):
+        SuiteModel.set_primary_dir(self, d)
+        self._suiteRootDir = dirname(d)
+
+    def importee_dir(self, importer_dir, suitename):
+        if self.suitenamemap.has_key(suitename):
+            suitename = self.suitenamemap[suitename]
+        return join(dirname(importer_dir), suitename)
+
+class NestedImportsSuiteModel(SuiteModel):
+    """Imported suites are all siblings in an 'imported_suites' directory of the primary suite"""
+    def _imported_suites_dirname(self):
+        return "imported_suites"
+
+    def __init__(self, primaryDir, option, suitemap):
+        SuiteModel.__init__(self)
+        self._primaryDir = primaryDir
+        self._create_suitenamemap(option[len('nested:'):], suitemap)
+
+    def find_suite_dir(self, name):
+        return self._search_dir(join(self._primaryDir, self._imported_suites_dirname()), self._mxDirName(name))
+
+    def importee_dir(self, importer_dir, suitename):
+        if self.suitenamemap.has_key(suitename):
+            suitename = self.suitenamemap[suitename]
+        if basename(importer_dir) == basename(self._primaryDir):
+            # primary is importer
+            this_imported_suites_dirname = join(importer_dir, self._imported_suites_dirname())
+            if not exists(this_imported_suites_dirname):
+                os.mkdir(this_imported_suites_dirname)
+            return join(this_imported_suites_dirname, suitename)
+        else:
+            return join(dirname(importer_dir), suitename)
+
+    def nestedsuites_dirname(self):
+        return self._imported_suites_dirname()
+
+class PathSuiteModel(SuiteModel):
+    """The most general model. Uses a map from suitename to URL/path provided by the user"""
+    def __init__(self, path):
+        SuiteModel.__init__(self)
+        paths = path.split(',')
+        self.suit_to_url = {}
+        for path in paths:
+            pair = path.split('=')
+            if len(pair) > 1:
+                suitename = pair[0]
+                suiteurl = pair[1]
+            else:
+                suitename = basename(pair[0])
+                suiteurl = pair[0]
+            self.suit_to_url[suitename] = suiteurl
+
+    def find_suite_dir(self, suitename):
+        if self.suit_to_url.has_key(suitename):
+            return self.suit_to_url[suitename]
+        else:
+            return None
+
+    def importee_dir(self, importer_dir, suitename):
+        if suitename in self.suit_to_url:
+            return self.suit_to_url[suitename]
+        else:
+            abort('suite ' + suitename + ' not found')
+
+class SuiteImport:
+    def __init__(self, name, version):
+        self.name = name
+        self.version = version
+
+    @staticmethod
+    def parse_specification(specification):
+        pair = specification.split(',')
+        name = pair[0]
+        if len(pair) > 1:
+            version = pair[1]
+        else:
+            version = None
+        return SuiteImport(name, version)
+
+    @staticmethod
+    def tostring(name, version):
+        return name + ',' + version
+
+    def __str__(self):
+        return self.name + ',' + self.version
+
 class Suite:
-    def __init__(self, d, mxDir, primary):
-        self.dir = d
+    def __init__(self, mxDir, primary, load=True):
+        self.dir = dirname(mxDir)
         self.mxDir = mxDir
         self.projects = []
         self.libs = []
         self.dists = []
-        self.includes = []
+        self.imports = []
         self.commands = None
         self.primary = primary
-        self._load_env(mxDir)
-        self._load_commands(mxDir)
-        self._load_includes(mxDir)
-        self.name = d  # re-initialized in _load_projects
+        self.name = _suitename(mxDir)  # validated in _load_projects
+        if load:
+            # load suites bottom up to make sure command overriding works properly
+            self._load_imports()
+            self._load_env()
+            self._load_commands()
+        _suites[self.name] = self
 
     def __str__(self):
         return self.name
 
-    def _load_projects(self, mxDir):
+    def version(self, abortOnError=True):
+        # we do not cache the version
+        return _hg.tip(self.dir, abortOnError)
+
+    def _load_projects(self):
         libsMap = dict()
         projsMap = dict()
         distsMap = dict()
-        projectsFile = join(mxDir, 'projects')
+        projectsFile = join(self.mxDir, 'projects')
         if not exists(projectsFile):
             return
 
-        def _find_suite_key():
-            for items in _suites.items():
-                if items[1].dir == self.dir:
-                    return items[0]
-            raise KeyError
-
         with open(projectsFile) as f:
+            prefix = ''
             for line in f:
                 line = line.strip()
+                if line.endswith('\\'):
+                    prefix = prefix + line[:-1]
+                    continue
+                if len(prefix) != 0:
+                    line = prefix + line
+                    prefix = ''
                 if len(line) != 0 and line[0] != '#':
                     key, value = line.split('=', 1)
 
@@ -537,10 +718,7 @@ class Suite:
                         if parts[0] != 'suite':
                             abort('Single part property must be "suite": ' + key)
                         if self.name != value:
-                            currentKey = _find_suite_key()
-                            _suites.pop(currentKey)
-                            self.name = value
-                            _suites[value] = self
+                            abort('suite name in project file does not match ' + _suitename(self.mxDir))
                         continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
@@ -609,38 +787,95 @@ class Suite:
         if self.name is None:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
-    def _load_commands(self, mxDir):
-        commandsPath = join(mxDir, 'commands.py')
-        if exists(commandsPath):
-            # temporarily extend the Python path
-            sys.path.insert(0, mxDir)
-            mod = __import__('commands')
+    def _commands_name(self):
+        return 'mx_' + self.name.replace('-', '_')
 
-            self.commands = sys.modules.pop('commands')
-            sys.modules[join(mxDir, 'commands')] = self.commands
+    def _find_commands(self, name):
+        commandsPath = join(self.mxDir, name + '.py')
+        if exists(commandsPath):
+            return name
+        else:
+            return None
+
+    def _load_commands(self):
+        commandsName = self._find_commands(self._commands_name())
+        if commandsName is None:
+            # backwards compatibility
+            commandsName = self._find_commands('commands')
+        if commandsName is not None:
+            if commandsName in sys.modules:
+                abort(commandsName + '.py in suite ' + self.name + ' duplicates ' + sys.modules[commandsName].__file__)
+            # temporarily extend the Python path
+            sys.path.insert(0, self.mxDir)
+            mod = __import__(commandsName)
+
+            self.commands = sys.modules.pop(commandsName)
+            sys.modules[commandsName] = self.commands
 
             # revert the Python path
             del sys.path[0]
 
             if not hasattr(mod, 'mx_init'):
-                abort(commandsPath + ' must define an mx_init(env) function')
+                abort(commandsName + '.py in suite ' + self.name + ' must define an mx_init(suite) function')
             if hasattr(mod, 'mx_post_parse_cmd_line'):
                 self.mx_post_parse_cmd_line = mod.mx_post_parse_cmd_line
 
             mod.mx_init(self)
             self.commands = mod
 
-    def _load_includes(self, mxDir):
-        includes = join(mxDir, 'includes')
-        if exists(includes):
-            with open(includes) as f:
-                for line in f:
-                    include = expandvars_in_property(line.strip())
-                    self.includes.append(include)
-                    _loadSuite(os.path.abspath(include), False)
+    def _imports_file(self):
+        return join(self.mxDir, 'imports')
 
-    def _load_env(self, mxDir):
-        e = join(mxDir, 'env')
+    def import_timestamp(self):
+        return TimeStampFile(self._imports_file())
+
+    def visit_imports(self, visitor, **extra_args):
+        """
+        Visitor support for the imports file.
+        For each line of the imports file that specifies an import, the visitor function is
+        called with this suite, a SuiteImport instance created from the line and any extra args
+        passed to this call. In addition, if extra_args contains a key 'update_versions' that is True,
+        a StringIO value is added to extra_args with key 'updated_imports', and the visitor is responsible
+        for writing a (possibly) updated import line to the file, and the file is (possibly) updated after
+        all imports are processed.
+        N.B. There is no built-in support for avoiding visiting the same suite multiple times,
+        as this function only visits the imports of a single suite. If a (recursive) visitor function
+        wishes to visit a suite exactly once, it must manage that through extra_args.
+        """
+        importsFile = self._imports_file()
+        if exists(importsFile):
+            update_versions = extra_args.has_key('update_versions') and extra_args['update_versions']
+            out = StringIO.StringIO() if update_versions else None
+            extra_args['updated_imports'] = out
+            with open(importsFile) as f:
+                for line in f:
+                    sline = line.strip()
+                    if len(sline) == 0 or sline.startswith('#'):
+                        if out is not None:
+                            out.write(sline + '\n')
+                        continue
+                    suite_import = SuiteImport.parse_specification(line.strip())
+                    visitor(self, suite_import, **extra_args)
+
+            if out is not None:
+                update_file(importsFile, out.getvalue())
+
+    @staticmethod
+    def _find_and_loadsuite(importing_suite, suite_import, **extra_args):
+        """visitor for the initial suite load"""
+        importMxDir = _src_suitemodel.find_suite_dir(suite_import.name)
+        if importMxDir is None:
+            abort('import ' + suite_import.name + ' not found')
+        importing_suite.imports.append(suite_import)
+        _loadSuite(importMxDir, False)
+        # we do not check at this stage whether the tip version of imported_suite
+        # matches that of the import, since during development, this can and will change
+
+    def _load_imports(self):
+        self.visit_imports(self._find_and_loadsuite)
+
+    def _load_env(self):
+        e = join(self.mxDir, 'env')
         if exists(e):
             with open(e) as f:
                 lineNum = 0
@@ -654,8 +889,8 @@ class Suite:
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
 
     def _post_init(self, opts):
-        self._load_projects(self.mxDir)
-        # set the global data structures, checking for conflicts unless _global_structures is False
+        self._load_projects()
+        # set the global data structures, checking for conflicts unless _check_global_structures is False
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None and _check_global_structures:
@@ -673,7 +908,7 @@ class Suite:
             if existing is not None and _check_global_structures:
                 # allow redefinition, so use path from existing
                 # abort('cannot redefine distribution  ' + d.name)
-                print('WARNING: distribution ' + d.name + ' redefined')
+                warn('distribution ' + d.name + ' redefined')
                 d.path = existing.path
             _dists[d.name] = d
         if hasattr(self, 'mx_post_parse_cmd_line'):
@@ -770,28 +1005,16 @@ def get_os():
     else:
         abort('Unknown operating system ' + sys.platform)
 
-def _loadSuite(d, primary=False):
+def _loadSuite(mxDir, primary=False):
     """
-    Load a suite from the 'mx' or 'mx.bbb' subdirectory of d, where 'bbb' is basename of d
+    Load a suite from 'mxDir'.
     """
-    mxDefaultDir = join(d, 'mx')
-    name = os.path.basename(d)
-    mxTaggedDir = mxDefaultDir + '.' + name
-    mxDir = None
-    if exists(mxTaggedDir) and isdir(mxTaggedDir):
-        mxDir = mxTaggedDir
-    else:
-        if exists(mxDefaultDir) and isdir(mxDefaultDir):
-            mxDir = mxDefaultDir
-
-
-    if mxDir is None:
-        return None
-    if len([s for s in _suites.itervalues() if s.dir == d]) == 0:
-        s = Suite(d, mxDir, primary)
-        # N.B. this will be updated once the projects file has been read
-        _suites[name] = s
-        return s
+    for s in _suites.itervalues():
+        if s.mxDir == mxDir:
+            return s
+    # create the new suite
+    s = Suite(mxDir, primary)
+    return s
 
 def suites(opt_limit_to_suite=False):
     """
@@ -814,6 +1037,7 @@ def suite(name, fatalIfMissing=True):
     if s is None and fatalIfMissing:
         abort('suite named ' + name + ' not found')
     return s
+
 
 def projects_from_names(projectNames):
     """
@@ -1013,7 +1237,7 @@ def _handle_missing_java_home():
         else:
             break
 
-    envPath = join(_mainSuite.dir, 'mx', 'env')
+    envPath = join(_primary_suite.mxDir, 'env')
     if ask_yes_no('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath, 'y'):
         with open(envPath, 'a') as fp:
             print >> fp, 'JAVA_HOME=' + javaHome
@@ -1021,7 +1245,6 @@ def _handle_missing_java_home():
     return javaHome
 
 class ArgParser(ArgumentParser):
-
     # Override parent to append the list of available commands
     def format_help(self):
         return ArgumentParser.format_help(self) + _format_commands()
@@ -1034,6 +1257,8 @@ class ArgParser(ArgumentParser):
 
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
         self.add_argument('-V', action='store_true', dest='very_verbose', help='enable very verbose output')
+        self.add_argument('-w', action='store_true', dest='warn', help='enable warning messages')
+        self.add_argument('-p', '--primary-suite-path', help='set the primary suite directory', metavar='<path>')
         self.add_argument('--dbg', type=int, dest='java_dbg_port', help='make Java processes wait on <port> for a debugger', metavar='<port>')
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
@@ -1045,6 +1270,9 @@ class ArgParser(ArgumentParser):
         self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
         self.add_argument('--suite', action='append', dest='specific_suites', help='limit command to given suite', default=[])
+        self.add_argument('--src-suitemodel', help='mechanism for locating imported suites', metavar='<arg>', default='sibling')
+        self.add_argument('--dst-suitemodel', help='mechanism for placing cloned/pushed suites', metavar='<arg>', default='sibling')
+        self.add_argument('--suitemap', help='explicit remapping of suite names', metavar='<args>')
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -1599,7 +1827,7 @@ def build(args, parser=None):
 
     javaCompliance = java().javaCompliance
 
-    defaultEcjPath = join(_mainSuite.dir, 'mx', 'ecj.jar')
+    defaultEcjPath = join(_primary_suite.mxDir, 'ecj.jar')
 
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
@@ -1644,6 +1872,22 @@ def build(args, parser=None):
     if args.java:
         ideinit([], refreshOnly=True, buildProcessorJars=False)
 
+    def prepareOutputDirs(p, clean):
+        outputDir = p.output_dir()
+        if exists(outputDir):
+            if clean:
+                log('Cleaning {0}...'.format(outputDir))
+                shutil.rmtree(outputDir)
+                os.mkdir(outputDir)
+        else:
+            os.mkdir(outputDir)
+        genDir = p.source_gen_dir()
+        if genDir != '' and exists(genDir) and clean:
+            log('Cleaning {0}...'.format(genDir))
+            for f in os.listdir(genDir):
+                shutil.rmtree(join(genDir, f))
+        return outputDir
+
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -1666,14 +1910,7 @@ def build(args, parser=None):
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
             continue
 
-        outputDir = p.output_dir()
-        if exists(outputDir):
-            if args.clean:
-                log('Cleaning {0}...'.format(outputDir))
-                shutil.rmtree(outputDir)
-                os.mkdir(outputDir)
-        else:
-            os.mkdir(outputDir)
+        outputDir = prepareOutputDirs(p, args.clean)
 
         cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
@@ -1682,6 +1919,7 @@ def build(args, parser=None):
             for dep in p.all_deps([], False):
                 if dep.name in built:
                     mustBuild = True
+
 
         jasminAvailable = None
         javafilelist = []
@@ -1732,10 +1970,16 @@ def build(args, parser=None):
 
                 if not mustBuild:
                     for javafile in javafiles:
-                        classfile = outputDir + javafile[len(sourceDir):-len('java')] + 'class'
-                        if not exists(classfile) or os.path.getmtime(javafile) > os.path.getmtime(classfile):
+                        classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
+                        if not classfile.exists() or classfile.isOlderThan(javafile):
                             mustBuild = True
                             break
+
+        aps = p.annotation_processors()
+        apsOutOfDate = p.update_current_annotation_processors_file()
+        if apsOutOfDate:
+            logv('[annotation processors for {0} changed]'.format(p.name))
+            mustBuild = True
 
         if not mustBuild:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
@@ -1744,6 +1988,9 @@ def build(args, parser=None):
         if len(javafilelist) == 0:
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
+
+        # Ensure that the output directories are clean
+        # prepareOutputDirs(p, True)
 
         built.add(p.name)
 
@@ -1754,9 +2001,8 @@ def build(args, parser=None):
 
         processorArgs = []
 
-        ap = p.annotation_processors()
-        if len(ap) > 0:
-            processorPath = classpath(ap, resolve=True)
+        if len(aps) > 0:
+            processorPath = classpath(aps, resolve=True)
             genDir = p.source_gen_dir()
             if exists(genDir):
                 shutil.rmtree(genDir)
@@ -1796,7 +2042,7 @@ def build(args, parser=None):
 
 
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
-                rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
+                rootJdtProperties = join(p.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
                     # Try to fix a missing properties file by running eclipseinit
                     eclipseinit([], buildProcessorJars=False)
@@ -1918,7 +2164,7 @@ def eclipseformat(args):
     if len(modified) != 0:
         if args.backup:
             backup = os.path.abspath('eclipseformat.backup.zip')
-            arcbase = _mainSuite.dir
+            arcbase = _primary_suite.dir
             zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
             for fi in modified:
                 arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
@@ -1929,13 +2175,17 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
+    for s in suites(True):
+        _processorjars_suite(s)
 
+def _processorjars_suite(s):
     projs = set()
-    for p in sorted_deps():
+    candidates = sorted_project_deps(s.projects)
+    for p in candidates:
         if _isAnnotationProcessorDependency(p):
             projs.add(p)
 
-    if len(projs) < 0:
+    if len(projs) <= 0:
         return
 
     pnames = [p.name for p in projs]
@@ -2115,7 +2365,7 @@ def canonicalizeprojects(args):
     The exit code of this command reflects how many files were updated."""
 
     changedFiles = 0
-    for s in suites():
+    for s in suites(True):
         projectsFile = join(s.mxDir, 'projects')
         if not exists(projectsFile):
             continue
@@ -2172,10 +2422,15 @@ class TimeStampFile:
         self.path = path
         self.timestamp = os.path.getmtime(path) if exists(path) else None
 
-    def outOfDate(self, arg):
+    def isOlderThan(self, arg):
         if not self.timestamp:
             return True
-        if isinstance(arg, types.ListType):
+        if isinstance(arg, TimeStampFile):
+            if arg.timestamp is None:
+                return False
+            else:
+                return arg.timestamp > self.timestamp
+        elif isinstance(arg, types.ListType):
             files = arg
         else:
             files = [arg]
@@ -2232,7 +2487,7 @@ def checkstyle(args):
             timestamp = TimeStampFile(join(p.suite.mxDir, 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp'))
             mustCheck = False
             if not args.force and timestamp.exists():
-                mustCheck = timestamp.outOfDate(javafilelist)
+                mustCheck = timestamp.isOlderThan(javafilelist)
             else:
                 mustCheck = True
 
@@ -2332,7 +2587,7 @@ def clean(args, parser=None):
 
     suppliedParser = parser is not None
 
-    parser = parser if suppliedParser else ArgumentParser(prog='mx build')
+    parser = parser if suppliedParser else ArgumentParser(prog='mx clean')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
 
@@ -2398,7 +2653,54 @@ Given a command name, print help for that command."""
     print 'mx {0} {1}\n\n{2}\n'.format(name, usage, doc)
 
 def projectgraph(args, suite=None):
-    """create dot graph for project structure ("mx projectgraph | dot -Tpdf -oprojects.pdf")"""
+    """create graph for project structure ("mx projectgraph | dot -Tpdf -oprojects.pdf" or "mx projectgraph --igv")"""
+
+    parser = ArgumentParser(prog='mx projectgraph')
+    parser.add_argument('--igv', action='store_true', help='output to IGV listening on 127.0.0.1:4444')
+    parser.add_argument('--igv-format', action='store_true', help='output graph in IGV format')
+
+    args = parser.parse_args(args)
+
+    if args.igv or args.igv_format:
+        ids = {}
+        nextToIndex = {}
+        igv = XMLDoc()
+        igv.open('graphDocument')
+        igv.open('group')
+        igv.open('properties')
+        igv.element('p', {'name' : 'name'}, 'GraalProjectDependencies')
+        igv.close('properties')
+        igv.open('graph', {'name' : 'dependencies'})
+        igv.open('nodes')
+        for p in sorted_deps(includeLibs=True):
+            ident = len(ids)
+            ids[p.name] = str(ident)
+            igv.open('node', {'id' : str(ident)})
+            igv.open('properties')
+            igv.element('p', {'name' : 'name'}, p.name)
+            igv.close('properties')
+            igv.close('node')
+        igv.close('nodes')
+        igv.open('edges')
+        for p in projects():
+            fromIndex = 0
+            for dep in p.canonical_deps():
+                toIndex = nextToIndex.get(dep, 0)
+                nextToIndex[dep] = toIndex + 1
+                igv.element('edge', {'from' : ids[p.name], 'fromIndex' : str(fromIndex), 'to' : ids[dep], 'toIndex' : str(toIndex), 'label' : 'dependsOn'})
+                fromIndex = fromIndex + 1
+        igv.close('edges')
+        igv.close('graph')
+        igv.close('group')
+        igv.close('graphDocument')
+
+        if args.igv:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', 4444))
+            s.send(igv.xml())
+        else:
+            print igv.xml(indent='  ', newl='\n')
+        return
 
     print 'digraph projects {'
     print 'rankdir=BT;'
@@ -2536,20 +2838,26 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
     generate_eclipse_workingsets()
 
+def _check_ide_timestamp(suite, timestamp):
+    """return True if and only if the projects file, imports file, and mx itself are all older than timestamp"""
+    projectsFile = join(suite.mxDir, 'projects')
+    projectsFileOlder = not timestamp.isOlderThan(projectsFile)
+    importsFileOlder = not timestamp.isOlderThan(suite.import_timestamp())
+    # Assume that any mx change might imply changes to the generated IDE files
+    mxOlder = not timestamp.isOlderThan(__file__)
+    return projectsFileOlder and importsFileOlder and mxOlder
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
-    projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if _check_ide_timestamp(suite, timestamp):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
     if buildProcessorJars:
-        # todo suite specific
-        processorjars()
+        _processorjars_suite(suite)
 
     projToDist = dict()
     for dist in _dists.values():
@@ -2674,12 +2982,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                 out.close('buildCommand')
 
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
-            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
+            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
+            _genEclipseBuilder(out, p, 'Refresh', '', refresh=True, async=True)
 
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, logToFile=True, refresh=False, async=True)
 
         out.close('buildSpec')
         out.open('natures')
@@ -2741,7 +3049,8 @@ def _isAnnotationProcessorDependency(p):
     """
     return p in sorted_deps(annotation_processors())
 
-def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
+    externalToolDir = join(p.dir, '.externalToolBuilders')
     launchOut = XMLDoc()
     consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
@@ -2754,13 +3063,25 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
         launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
+    if logToFile:
+        logFile = join(externalToolDir, name + '.log')
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CAPTURE_IN_FILE', 'value': logFile})
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_APPEND_TO_FILE', 'value': 'true' if appendToLogFile else 'false'})
 
-    baseDir = dirname(dirname(os.path.abspath(__file__)))
+    # expect to find the OS command to invoke mx in the same directory
+    baseDir = dirname(os.path.abspath(__file__))
 
     cmd = 'mx.sh'
     if get_os() == 'windows':
         cmd = 'mx.cmd'
-    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION', 'value': join(baseDir, cmd) })
+    cmdPath = join(baseDir, cmd)
+    if not os.path.exists(cmdPath):
+        # backwards compatibility for when the commands lived in parent of mxtool
+        cmdPath = join(dirname(baseDir), cmd)
+        if not os.path.exists(cmdPath):
+            abort('cannot locate ' + cmd)
+
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION', 'value':  cmdPath})
     launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS', 'value': 'auto,full,incremental'})
     launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS', 'value': mxCommand})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED', 'value': 'true'})
@@ -2769,11 +3090,9 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
 
     launchOut.close('launchConfiguration')
 
-    externalToolDir = join(p.dir, '.externalToolBuilders')
-
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
-    update_file(join(externalToolDir, name), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
+    update_file(join(externalToolDir, name + '.launch'), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
 
     dotProjectDoc.open('buildCommand')
     dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
@@ -2781,7 +3100,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.open('arguments')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='LaunchConfigHandle')
-    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name + '.launch')
     dotProjectDoc.close('dictionary')
     dotProjectDoc.open('dictionary')
     dotProjectDoc.element('key', data='incclean')
@@ -2804,7 +3123,7 @@ def generate_eclipse_workingsets():
     if os.environ.has_key('WORKSPACE'):
         expected_wsroot = os.environ['WORKSPACE']
     else:
-        expected_wsroot = _mainSuite.dir
+        expected_wsroot = _primary_suite.dir
 
     wsroot = _find_eclipse_wsroot(expected_wsroot)
     if wsroot is None:
@@ -2937,12 +3256,11 @@ def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
         _netbeansinit_suite(args, suite, refreshOnly, buildProcessorJars)
 
 def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
-    projectsFile = join(suite.mxDir, 'projects')
     timestamp = TimeStampFile(join(suite.mxDir, 'netbeansinit.timestamp'))
     if refreshOnly and not timestamp.exists():
         return
 
-    if not timestamp.outOfDate(projectsFile):
+    if _check_ide_timestamp(suite, timestamp):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
@@ -3202,18 +3520,24 @@ def fsckprojects(args):
     """find directories corresponding to deleted Java projects and delete them"""
     for suite in suites(True):
         projectDirs = [p.dir for p in suite.projects]
-        for root, dirnames, files in os.walk(suite.dir):
-            currentDir = join(suite.dir, root)
-            if currentDir in projectDirs:
-                # don't traverse subdirs of an existing project
+        for dirpath, dirnames, files in os.walk(suite.dir):
+            if dirpath == suite.dir:
+                # no point in traversing .hg
+                if '.hg' in dirnames:
+                    dirnames.remove('.hg')
+                # if there are nested suites must not scan those now, as they are not in projectDirs
+                if _src_suitemodel.nestedsuites_dirname() in dirnames:
+                    dirnames.remove(_src_suitemodel.nestedsuites_dirname())
+            elif dirpath in projectDirs:
+                # don't traverse subdirs of an existing project in this suite
                 dirnames[:] = []
             else:
                 projectConfigFiles = frozenset(['.classpath', 'nbproject'])
                 indicators = projectConfigFiles.intersection(files)
                 if len(indicators) != 0:
-                    if not sys.stdout.isatty() or ask_yes_no(currentDir + ' looks like a removed project -- delete it', 'n'):
-                        shutil.rmtree(currentDir)
-                        log('Deleted ' + currentDir)
+                    if not sys.stdout.isatty() or ask_yes_no(dirpath + ' looks like a removed project -- delete it', 'n'):
+                        shutil.rmtree(dirpath)
+                        log('Deleted ' + dirpath)
 
 def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=True):
     """generate javadoc for some/all Java projects"""
@@ -3355,7 +3679,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
             names.append(p.name)
 
         links = ['-link', 'http://docs.oracle.com/javase/' + str(_java.javaCompliance.value) + '/docs/api/']
-        out = join(_mainSuite.dir, docDir)
+        out = join(_primary_suite.dir, docDir)
         if args.base is not None:
             out = join(args.base, docDir)
         cp = classpath()
@@ -3617,9 +3941,273 @@ def site(args):
         if exists(tmpbase):
             shutil.rmtree(tmpbase)
 
+def _kwArg(kwargs):
+    if len(kwargs) > 0:
+        return kwargs.pop(0)
+    return None
+
+def sclone(args):
+    """clone a suite repository, and its imported suites"""
+    _hg.check()
+    parser = ArgumentParser(prog='mx sclone')
+    parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
+    parser.add_argument('--dest', help='destination directory (default basename of source)', metavar='<path>')
+    parser.add_argument("--no-imports", action='store_true', help='do not clone imported suites')
+    parser.add_argument('nonKWArgs', nargs=REMAINDER, metavar='source [dest]...')
+    args = parser.parse_args(args)
+    # check for non keyword args
+    if args.source is None:
+        args.source = _kwArg(args.nonKWArgs)
+    if args.dest is None:
+        args.dest = _kwArg(args.nonKWArgs)
+    if len(args.nonKWArgs) > 0:
+        abort('unrecognized args: ' + ' '.join(args.nonKWArgs))
+
+    if args.source is None:
+        # must be primary suite and dest is required
+        if _primary_suite is None:
+            abort('--source missing and no primary suite found')
+        if args.dest is None:
+            abort('--dest required when --source is not given')
+        source = _primary_suite.dir
+    else:
+        source = args.source
+
+    if args.dest is not None:
+        dest = args.dest
+    else:
+        dest = basename(source)
+
+    dest = os.path.abspath(dest)
+    # We can now set the primary dir for the src/dst suitemodel
+    _dst_suitemodel.set_primary_dir(dest)
+    _src_suitemodel.set_primary_dir(source)
+
+    _sclone(source, dest, None, args.no_imports)
+
+def _sclone(source, dest, version, no_imports):
+    cmd = ['hg', 'clone']
+    if version is not None:
+        cmd.append('-r')
+        cmd.append(version)
+    cmd.append(source)
+    cmd.append(dest)
+
+    run(cmd)
+
+    mxDir = _is_suite_dir(dest)
+    if mxDir is None:
+        warn(source + ' is not an mx suite')
+        return None
+
+    # create a Suite (without loading) to enable imports visitor
+    s = Suite(mxDir, False, load=False)
+    if not no_imports:
+        s.visit_imports(_scloneimports_visitor, source=source)
+    return s
+
+def _scloneimports_visitor(s, suite_import, source, **extra_args):
+    """
+    cloneimports visitor for Suite.visit_imports.
+    The destination information is encapsulated by 's'
+    """
+    _scloneimports(s, suite_import, source)
+
+def _scloneimports_suitehelper(sdir):
+    mxDir = _is_suite_dir(sdir)
+    if mxDir is None:
+        abort(sdir + ' is not an mx suite')
+    else:
+        # create a Suite (without loading) to enable imports visitor
+        return Suite(mxDir, False, load=False)
+
+def _scloneimports(s, suite_import, source):
+    # clone first, then visit imports once we can locate them
+    importee_source = _src_suitemodel.importee_dir(source, suite_import.name)
+    importee_dest = _dst_suitemodel.importee_dir(s.dir, suite_import.name)
+    if exists(importee_dest):
+        # already exists in the suite model, but may be wrong version
+        importee_suite = _scloneimports_suitehelper(importee_dest)
+        if suite_import.version is not None and importee_suite.version() != suite_import.version:
+            abort("imported version of " + suite_import.name + " in " + s.name + " does not match the version in already existing suite: " + importee_suite.dir)
+        importee_suite.visit_imports(_scloneimports_visitor, source=importee_source)
+    else:
+        _sclone(importee_source, importee_dest, suite_import.version, False)
+        # _clone handles the recursive visit of the new imports
+
+def scloneimports(args):
+    """clone the imports of an existing suite"""
+    _hg.check()
+    parser = ArgumentParser(prog='mx scloneimports')
+    parser.add_argument('--source', help='url/path of repo containing suite', metavar='<url>')
+    parser.add_argument('nonKWArgs', nargs=REMAINDER, metavar='source [dest]...')
+    args = parser.parse_args(args)
+    # check for non keyword args
+    if args.source is None:
+        args.source = _kwArg(args.nonKWArgs)
+
+    if not os.path.isdir(args.source):
+        abort(args.source + ' is not a directory')
+
+    s = _scloneimports_suitehelper(args.source)
+
+    default_path = _hg.default_push(args.source)
+
+    if default_path is None:
+        abort('no default path in ' + join(args.source, '.hg', 'hgrc'))
+
+    # We can now set the primary dir for the dst suitemodel
+    # N.B. source is effectively the destination and the default_path is the (original) source
+    _dst_suitemodel.set_primary_dir(args.source)
+
+    s.visit_imports(_scloneimports_visitor, source=default_path)
+
+def _spush_import_visitor(s, suite_import, dest, checks, clonemissing, **extra_args):
+    """push visitor for Suite.visit_imports"""
+    if dest is not None:
+        dest = _dst_suitemodel.importee_dir(dest, suite_import.name)
+    _spush(suite(suite_import.name), suite_import, dest, checks, clonemissing)
+
+def _spush_check_import_visitor(s, suite_import, **extra_args):
+    """push check visitor for Suite.visit_imports"""
+    currentTip = suite(suite_import.name).version()
+    if currentTip != suite_import.version:
+        abort('imported version of ' + suite_import.name + ' in suite ' + s.name + ' does not match tip')
+
+def _spush(s, suite_import, dest, checks, clonemissing):
+    if checks:
+        if not _hg.can_push(s):
+            abort('working directory ' + s.dir + ' contains uncommitted changes, push aborted')
+
+    # check imports first
+    if checks:
+        s.visit_imports(_spush_check_import_visitor)
+
+    # ok, push imports
+    s.visit_imports(_spush_import_visitor, dest=dest, checks=checks, clonemissing=clonemissing)
+
+    dest_exists = True
+
+    if clonemissing:
+        if not os.path.exists(dest):
+            dest_exists = False
+
+    def add_version(cmd, suite_import):
+        if suite_import is not None and suite_import.version is not None:
+            cmd.append('-r')
+            cmd.append(suite_import.version)
+
+    if dest_exists:
+        cmd = ['hg', '-R', s.dir, 'push']
+        add_version(cmd, suite_import)
+        if dest is not None:
+            cmd.append(dest)
+        rc = run(cmd, nonZeroIsFatal=False)
+        if rc != 0:
+            # rc of 1 not an error,  means no changes
+            if rc != 1:
+                abort("push failed, exit code " + str(rc))
+    else:
+        cmd = ['hg', 'clone']
+        add_version(cmd, suite_import)
+        cmd.append(s.dir)
+        cmd.append(dest)
+        run(cmd)
+
+def spush(args):
+    """push primary suite and all its imports"""
+    _hg.check()
+    parser = ArgumentParser(prog='mx spush')
+    parser.add_argument('--dest', help='url/path of repo to push to (default as per hg push)', metavar='<path>')
+    parser.add_argument('--no-checks', action='store_true', help='checks on status, versions are disabled')
+    parser.add_argument('--clonemissing', action='store_true', help='clone missing imported repos at destination (forces --no-checks)')
+    parser.add_argument('nonKWArgs', nargs=REMAINDER, metavar='source [dest]...')
+    args = parser.parse_args(args)
+    if args.dest is None:
+        args.dest = _kwArg(args.nonKWArgs)
+    if len(args.nonKWArgs) > 0:
+        abort('unrecognized args: ' + ' '.join(args.nonKWArgs))
+
+    if args.dest is not None and not os.path.isdir(args.dest):
+        abort('destination must be a directory')
+
+    s = _check_primary_suite()
+
+    if args.clonemissing:
+        if args.dest is None:
+            abort('--dest required with --clonemissing')
+        args.nochecks = True
+
+    if args.dest is not None:
+        _dst_suitemodel.set_primary_dir(args.dest)
+
+    _spush(s, None, args.dest, not args.no_checks, args.clonemissing)
+
+def _supdate_import_visitor(s, suite_import, **extra_args):
+    _supdate(suite(suite_import.name), suite_import)
+
+def _supdate(s, suite_import):
+    s.visit_imports(_supdate_import_visitor)
+
+    run(['hg', '-R', s.dir, 'update'])
+
+def supdate(args):
+    """update primary suite and all its imports"""
+
+    _hg.check()
+    s = _check_primary_suite()
+
+    _supdate(s, None)
+
+def _scheck_imports_visitor(s, suite_import, update_versions, updated_imports):
+    """scheckimports visitor for Suite.visit_imports"""
+    _scheck_imports(s, suite(suite_import.name), suite_import, update_versions, updated_imports)
+
+def _scheck_imports(importing_suite, imported_suite, suite_import, update_versions, updated_imports):
+    # check imports recursively
+    imported_suite.visit_imports(_scheck_imports_visitor, update_versions=update_versions)
+
+    currentTip = imported_suite.version()
+    if currentTip != suite_import.version:
+        print('imported version of ' + imported_suite.name + ' in ' + importing_suite.name + ' does not match tip' + (': updating' if update_versions else ''))
+
+    if update_versions:
+        suite_import.version = currentTip
+        line = str(suite_import)
+        updated_imports.write(line + '\n')
+
+def scheckimports(args):
+    """check that suite import versions are up to date"""
+    parser = ArgumentParser(prog='mx scheckimports')
+    parser.add_argument('--update-versions', help='update imported version ids', action='store_true')
+    args = parser.parse_args(args)
+    _check_primary_suite().visit_imports(_scheck_imports_visitor, update_versions=args.update_versions)
+
+def _spull_import_visitor(s, suite_import, update_versions, updated_imports):
+    """pull visitor for Suite.visit_imports"""
+    _spull(suite(suite_import.name), update_versions, updated_imports)
+
+def _spull(s, update_versions, updated_imports):
+    _hg.check()
+    # pull imports first
+    s.visit_imports(_spull_import_visitor, update_versions=update_versions)
+
+    run(['hg', '-R', s.dir, 'pull', '-u'])
+    if update_versions and updated_imports is not None:
+        tip = s.version()
+        updated_imports.write(SuiteImport.tostring(s.name, tip) + '\n')
+
+def spull(args):
+    """pull primary suite and all its imports"""
+    _hg.check()
+    parser = ArgumentParser(prog='mx spull')
+    parser.add_argument('--update-versions', action='store_true', help='update version ids of imported suites')
+    args = parser.parse_args(args)
+
+    _spull(_check_primary_suite(), args.update_versions, None)
+
 def findclass(args, logToConsole=True):
     """find all classes matching a given substring"""
-
     matches = []
     for entry, filename in classpath_walk(includeBootClasspath=True):
         if filename.endswith('.class'):
@@ -3726,17 +4314,19 @@ def add_argument(*args, **kwargs):
 
 def update_commands(suite, new_commands):
     for key, value in new_commands.iteritems():
-        if _commands.has_key(key) and not suite.primary:
-            pass
-            # print("WARNING: attempt to redefine command '" + key + "' in suite " + suite.dir)
-        else:
-            _commands[key] = value
+        if _commands.has_key(key):
+            warn("redefining command '" + key + "' in suite " + suite.name)
+        _commands[key] = value
+
+def warn(msg):
+    if _warn:
+        print('WARNING: ' + msg)
 
 # Table of commands in alphabetical order.
 # Keys are command names, value are lists: [<function>, <usage msg>, <format args to doc string of function>...]
 # If any of the format args are instances of Callable, then they are called with an 'env' are before being
 # used in the call to str.format().
-# Extensions should update this table directly
+# Suite extensions should not update this table directly, but use update_commands
 _commands = {
     'about': [about, ''],
     'build': [build, '[options]'],
@@ -3752,6 +4342,12 @@ _commands = {
     'ideinit': [ideinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
+    'sclone': [sclone, '[options]'],
+    'scheckimports': [scheckimports, ''],
+    'scloneimports': [scloneimports, '[options]'],
+    'spull': [spull, '[options'],
+    'spush': [spush, '[options'],
+    'supdate': [supdate, ''],
     'pylint': [pylint, ''],
     'javap': [javap, '<class name patterns>'],
     'javadoc': [javadoc, '[options]'],
@@ -3762,35 +4358,96 @@ _commands = {
 
 _argParser = ArgParser()
 
-def _findPrimarySuite():
-    def is_suite_dir(d):
+def _suitename(mxDir):
+    base = os.path.basename(mxDir)
+    parts = base.split('.')
+    # temporary workaround until mx.graal exists
+    if len(parts) == 1:
+        return 'graal'
+    else:
+        return parts[1]
+
+def _is_suite_dir(d, mxDirName=None):
+    """
+    Checks if d contains a suite.
+    If mxDirName is None, matches any suite name, otherwise checks for exactly that suite.
+    """
+    if os.path.isdir(d):
         for f in os.listdir(d):
-            if f == 'mx' or fnmatch.fnmatch(f, 'mx.*'):
+            if (mxDirName == None and (f == 'mx' or fnmatch.fnmatch(f, 'mx.*'))) or f == mxDirName:
                 mxDir = join(d, f)
                 if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
-                    return dirname(mxDir)
+                    return mxDir
 
+def _check_primary_suite():
+    if _primary_suite is None:
+        abort('no primary suite found')
+    else:
+        return _primary_suite
 
-    # try current working directory first
-    if is_suite_dir(os.getcwd()):
-        return os.getcwd()
+def _needs_primary_suite(command):
+    return not command.startswith("sclone")
 
-    # now search path of my executable
-    me = sys.argv[0]
-    parent = dirname(me)
-    while parent:
-        if is_suite_dir(parent):
-            return parent
-        parent = dirname(parent)
+def _needs_primary_suite_cl():
+    return not any("sclone" in s for s in sys.argv[1:])
+
+def _findPrimarySuiteMxDirFrom(d):
+    """ search for a suite directory upwards from 'd' """
+    while d:
+        mxDir = _is_suite_dir(d)
+        if mxDir is not None:
+            return mxDir
+        parent = dirname(d)
+        if d == parent:
+            return None
+        d = parent
+
     return None
 
+def _findPrimarySuiteMxDir():
+    # check for explicit setting
+    if _primary_suite_path is not None:
+        mxDir = _is_suite_dir(_primary_suite_path)
+        if mxDir is not None:
+            return mxDir
+        else:
+            abort(_primary_suite_path + ' does not contain an mx suite')
+
+    # try current working directory first
+    mxDir = _findPrimarySuiteMxDirFrom(os.getcwd())
+    if mxDir is not None:
+        return mxDir
+    # backwards compatibility: search from path of this file
+    return _findPrimarySuiteMxDirFrom(dirname(__file__))
+
 def main():
-    primarySuiteDir = _findPrimarySuite()
-    if primarySuiteDir:
-        global _mainSuite
-        _mainSuite = _loadSuite(primarySuiteDir, True)
+    SuiteModel.parse_options()
+
+    global _hg
+    _hg = HgConfig()
+
+    primary_suite_error = 'no primary suite found'
+    primarySuiteMxDir = _findPrimarySuiteMxDir()
+    if primarySuiteMxDir:
+        _src_suitemodel.set_primary_dir(dirname(primarySuiteMxDir))
+        global _primary_suite
+        _primary_suite = _loadSuite(primarySuiteMxDir, True)
+    else:
+        # in general this is an error, except for the sclone/scloneimports commands,
+        # and an extensions command will likely not parse in this case, as any extra arguments
+        # will not have been added to _argParser.
+        # If the command line does not contain a string matching one of the exceptions, we can safely abort,
+        # but not otherwise, as we can't be sure the string isn't in a value for some other option.
+        if _needs_primary_suite_cl():
+            abort(primary_suite_error)
 
     opts, commandAndArgs = _argParser._parse_cmd_line()
+
+    if primarySuiteMxDir is None:
+        if len(commandAndArgs) > 0 and _needs_primary_suite(commandAndArgs[0]):
+            abort(primary_suite_error)
+        else:
+            warn(primary_suite_error)
 
     global _opts, _java
     _opts = opts

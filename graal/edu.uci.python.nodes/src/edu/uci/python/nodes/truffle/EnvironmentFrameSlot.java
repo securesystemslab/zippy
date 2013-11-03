@@ -28,13 +28,14 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 
-public class EnvironmentFrameSlot implements FrameSlot {
+public class EnvironmentFrameSlot extends FrameSlot {
 
     private final FrameSlot slot;
 
     private final int level;
 
     public EnvironmentFrameSlot(FrameSlot slot, int level) {
+        super(slot.getFrameDescriptor(), slot.getIdentifier(), slot.getIndex(), slot.getKind());
         this.slot = slot;
         this.level = level;
     }

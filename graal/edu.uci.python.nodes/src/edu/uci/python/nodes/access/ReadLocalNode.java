@@ -40,12 +40,12 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     }
 
     public ReadLocalNode(ReadLocalNode specialized) {
-        this(specialized.slot);
+        this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteLocalNodeFactory.create(slot, rhs);
+        return WriteLocalNodeFactory.create(frameSlot, rhs);
     }
 
     @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})

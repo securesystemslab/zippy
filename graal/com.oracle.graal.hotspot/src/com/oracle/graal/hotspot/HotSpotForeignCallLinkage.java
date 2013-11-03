@@ -120,13 +120,13 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
      *            re-executed.
      * @param killedLocations the memory locations killed by the call
      */
-    public static HotSpotForeignCallLinkage create(ForeignCallDescriptor descriptor, long address, RegisterEffect effect, Type outgoingCcType, Type incomingCcType, Transition transition,
-                    boolean reexecutable, LocationIdentity... killedLocations) {
-        CallingConvention outgoingCc = createCallingConvention(descriptor, outgoingCcType);
-        CallingConvention incomingCc = incomingCcType == null ? null : createCallingConvention(descriptor, incomingCcType);
+    public static HotSpotForeignCallLinkage create(MetaAccessProvider metaAccess, CodeCacheProvider codeCache, HotSpotForeignCallsProvider foreignCalls, ForeignCallDescriptor descriptor,
+                    long address, RegisterEffect effect, Type outgoingCcType, Type incomingCcType, Transition transition, boolean reexecutable, LocationIdentity... killedLocations) {
+        CallingConvention outgoingCc = createCallingConvention(metaAccess, codeCache, descriptor, outgoingCcType);
+        CallingConvention incomingCc = incomingCcType == null ? null : createCallingConvention(metaAccess, codeCache, descriptor, incomingCcType);
         HotSpotForeignCallLinkage linkage = new HotSpotForeignCallLinkage(descriptor, address, effect, transition, outgoingCc, incomingCc, reexecutable, killedLocations);
         if (outgoingCcType == Type.NativeCall) {
-            linkage.temporaries = graalRuntime().getNativeABICallerSaveRegisters();
+            linkage.temporaries = foreignCalls.getNativeABICallerSaveRegisters();
         }
         return linkage;
     }
@@ -134,24 +134,24 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
     /**
      * Gets a calling convention for a given descriptor and call type.
      */
-    public static CallingConvention createCallingConvention(ForeignCallDescriptor descriptor, Type ccType) {
+    public static CallingConvention createCallingConvention(MetaAccessProvider metaAccess, CodeCacheProvider codeCache, ForeignCallDescriptor descriptor, Type ccType) {
         assert ccType != null;
-        HotSpotRuntime runtime = graalRuntime().getRuntime();
         Class<?>[] argumentTypes = descriptor.getArgumentTypes();
         JavaType[] parameterTypes = new JavaType[argumentTypes.length];
         for (int i = 0; i < parameterTypes.length; ++i) {
-            parameterTypes[i] = asJavaType(argumentTypes[i], runtime);
+            parameterTypes[i] = asJavaType(argumentTypes[i], metaAccess, codeCache);
         }
-        TargetDescription target = graalRuntime().getTarget();
-        JavaType returnType = asJavaType(descriptor.getResultType(), runtime);
-        return runtime.getRegisterConfig().getCallingConvention(ccType, returnType, parameterTypes, target, false);
+        TargetDescription target = codeCache.getTarget();
+        JavaType returnType = asJavaType(descriptor.getResultType(), metaAccess, codeCache);
+        RegisterConfig regConfig = codeCache.getRegisterConfig();
+        return regConfig.getCallingConvention(ccType, returnType, parameterTypes, target, false);
     }
 
-    private static JavaType asJavaType(Class type, HotSpotRuntime runtime) {
+    private static JavaType asJavaType(Class type, MetaAccessProvider metaAccess, CodeCacheProvider codeCache) {
         if (WordBase.class.isAssignableFrom(type)) {
-            return runtime.lookupJavaType(wordKind().toJavaClass());
+            return metaAccess.lookupJavaType(codeCache.getTarget().wordKind.toJavaClass());
         } else {
-            return runtime.lookupJavaType(type);
+            return metaAccess.lookupJavaType(type);
         }
     }
 
@@ -206,7 +206,7 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
     }
 
     public long getMaxCallTargetOffset() {
-        return graalRuntime().getCompilerToVM().getMaxCallTargetOffset(address);
+        return runtime().getCompilerToVM().getMaxCallTargetOffset(address);
     }
 
     public ForeignCallDescriptor getDescriptor() {

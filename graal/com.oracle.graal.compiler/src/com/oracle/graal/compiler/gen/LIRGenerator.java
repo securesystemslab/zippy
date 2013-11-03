@@ -26,6 +26,7 @@ import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.api.meta.Value.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
+import static com.oracle.graal.nodes.ConstantNode.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
@@ -60,15 +61,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public final LIR lir;
 
     protected final StructuredGraph graph;
-    protected final MetaAccessProvider metaAccess;
-    protected final CodeCacheProvider codeCache;
-    protected final ForeignCallsProvider foreignCalls;
-    protected final TargetDescription target;
+    private final Providers providers;
     protected final CallingConvention cc;
 
     protected final DebugInfoBuilder debugInfoBuilder;
 
     protected Block currentBlock;
+
+    /**
+     * Maps constants the variables within the scope of a single block to avoid loading a constant
+     * more than once per block.
+     */
+    private Map<Constant, Variable> constantsLoadedInCurrentBlock;
+
     private ValueNode currentInstruction;
     private ValueNode lastInstructionPrinted; // Debugging only
 
@@ -87,18 +92,15 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
      */
     public abstract boolean canStoreConstant(Constant c);
 
-    public LIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+    public LIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
         this.graph = graph;
-        this.metaAccess = providers.getMetaAccess();
-        this.codeCache = providers.getCodeCache();
-        this.foreignCalls = providers.getForeignCalls();
-        this.target = target;
+        this.providers = providers;
         this.frameMap = frameMap;
         if (graph.getEntryBCI() == StructuredGraph.INVOCATION_ENTRY_BCI) {
             this.cc = cc;
         } else {
-            JavaType[] parameterTypes = new JavaType[]{metaAccess.lookupJavaType(long.class)};
-            CallingConvention tmp = frameMap.registerConfig.getCallingConvention(JavaCallee, metaAccess.lookupJavaType(void.class), parameterTypes, target, false);
+            JavaType[] parameterTypes = new JavaType[]{getMetaAccess().lookupJavaType(long.class)};
+            CallingConvention tmp = frameMap.registerConfig.getCallingConvention(JavaCallee, getMetaAccess().lookupJavaType(void.class), parameterTypes, target(), false);
             this.cc = new CallingConvention(cc.getStackSize(), cc.getReturn(), tmp.getArgument(0));
         }
         this.nodeOperands = graph.createNodeMap();
@@ -113,22 +115,26 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     @Override
     public TargetDescription target() {
-        return target;
+        return getCodeCache().getTarget();
+    }
+
+    protected Providers getProviders() {
+        return providers;
     }
 
     @Override
     public MetaAccessProvider getMetaAccess() {
-        return metaAccess;
+        return providers.getMetaAccess();
     }
 
     @Override
     public CodeCacheProvider getCodeCache() {
-        return codeCache;
+        return providers.getCodeCache();
     }
 
     @Override
     public ForeignCallsProvider getForeignCalls() {
-        return foreignCalls;
+        return providers.getForeignCalls();
     }
 
     public StructuredGraph getGraph() {
@@ -153,7 +159,38 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         if (nodeOperands == null) {
             return null;
         }
-        return nodeOperands.get(node);
+        Value operand = nodeOperands.get(node);
+        if (operand == null) {
+            return getConstantOperand(node);
+        }
+        return operand;
+    }
+
+    private Value getConstantOperand(ValueNode node) {
+        if (!ConstantNodeRecordsUsages) {
+            Constant value = node.asConstant();
+            if (value != null) {
+                if (canInlineConstant(value)) {
+                    return setResult(node, value);
+                } else {
+                    Variable loadedValue;
+                    if (constantsLoadedInCurrentBlock == null) {
+                        constantsLoadedInCurrentBlock = new HashMap<>();
+                        loadedValue = null;
+                    } else {
+                        loadedValue = constantsLoadedInCurrentBlock.get(value);
+                    }
+                    if (loadedValue == null) {
+                        loadedValue = emitMove(value);
+                        constantsLoadedInCurrentBlock.put(value, loadedValue);
+                    }
+                    return loadedValue;
+                }
+            }
+        } else {
+            // Constant is loaded by ConstantNode.generate()
+        }
+        return null;
     }
 
     public ValueNode valueForOperand(Value value) {
@@ -190,7 +227,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     @Override
     public Value setResult(ValueNode x, Value operand) {
         assert (!isRegister(operand) || !attributes(asRegister(operand)).isAllocatable());
-        assert operand(x) == null : "operand cannot be set twice";
+        assert nodeOperands == null || nodeOperands.get(x) == null : "operand cannot be set twice";
         assert operand != null && isLegal(operand) : "operand must be legal";
         assert operand.getKind().getStackKind() == x.kind() || x.kind() == Kind.Illegal : operand.getKind().getStackKind() + " must match " + x.kind();
         assert !(x instanceof VirtualObjectNode);
@@ -298,6 +335,8 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
 
         currentBlock = block;
+        resetLoadedConstants();
+
         // set up the list of LIR instructions
         assert lir.lir(block) == null : "LIR list already computed for this block";
         lir.setLir(block, new ArrayList<LIRInstruction>());
@@ -321,7 +360,9 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             if (TraceLIRGeneratorLevel.getValue() >= 3) {
                 TTY.println("LIRGen for " + instr);
             }
-            if (instr instanceof ValueNode) {
+            if (!ConstantNodeRecordsUsages && instr instanceof ConstantNode) {
+                // Loading of constants is done lazily by operand()
+            } else if (instr instanceof ValueNode) {
                 ValueNode valueNode = (ValueNode) instr;
                 if (operand(valueNode) == null) {
                     if (!peephole(valueNode)) {
@@ -354,6 +395,12 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
         if (PrintIRWithLIR.getValue()) {
             TTY.println();
+        }
+    }
+
+    private void resetLoadedConstants() {
+        if (constantsLoadedInCurrentBlock != null && !constantsLoadedInCurrentBlock.isEmpty()) {
+            constantsLoadedInCurrentBlock.clear();
         }
     }
 
@@ -565,7 +612,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     @Override
     public void emitInvoke(Invoke x) {
         LoweredCallTargetNode callTarget = (LoweredCallTargetNode) x.callTarget();
-        CallingConvention invokeCc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.asNode().stamp().javaType(metaAccess), callTarget.signature(), target(), false);
+        CallingConvention invokeCc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.asNode().stamp().javaType(getMetaAccess()), callTarget.signature(), target(), false);
         frameMap.callsMethod(invokeCc);
 
         Value[] parameters = visitInvokeArguments(invokeCc, callTarget.arguments());

@@ -26,11 +26,11 @@ package edu.uci.python.nodes.access;
 
 import java.math.BigInteger;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.FrameUtil;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -43,71 +43,30 @@ import edu.uci.python.runtime.datatypes.*;
  */
 public abstract class FrameSlotNode extends PNode {
 
-    protected final FrameSlot slot;
+    protected final FrameSlot frameSlot;
 
     public FrameSlotNode(FrameSlot slot) {
-        this.slot = slot;
+        this.frameSlot = slot;
     }
 
     public final FrameSlot getSlot() {
-        return slot;
-    }
-
-    protected final void setInteger(Frame frame, int value) throws FrameSlotTypeException {
-        frame.setInt(slot, value);
-    }
-
-    protected final void setBoolean(Frame frame, boolean value) throws FrameSlotTypeException {
-        frame.setBoolean(slot, value);
-    }
-
-    /**
-     * Promoting int slot to double slot. Promotion from BigInteger(Object) to double is not
-     * included yet.
-     */
-    protected final void setDouble(Frame frame, double value) throws FrameSlotTypeException {
-        try {
-            frame.setDouble(slot, value);
-        } catch (FrameSlotTypeException e) {
-            if (slot.getKind() == FrameSlotKind.Int) {
-                FrameUtil.setDoubleSafe(frame, slot, value);
-            } else {
-                throw e;
-            }
-        }
-    }
-
-    /**
-     * Promoting int slot to BigInteger(Object) slot.
-     */
-    protected final void setBigInteger(Frame frame, BigInteger value) throws FrameSlotTypeException {
-        FrameSlotKind slotKind = slot.getKind();
-
-        if (slotKind != FrameSlotKind.Object) {
-            if (slotKind == FrameSlotKind.Illegal) {
-                slot.setKind(FrameSlotKind.Object);
-            } else {
-                throw new FrameSlotTypeException();
-            }
-        }
-
-        frame.setObject(slot, value);
+        return frameSlot;
     }
 
     protected final void setObject(Frame frame, Object value) {
-        frame.setObject(slot, value);
+        frame.setObject(frameSlot, value);
     }
 
     protected final int getInteger(Frame frame) throws FrameSlotTypeException {
-        return frame.getInt(slot);
+        return frame.getInt(frameSlot);
     }
 
     protected final boolean getBoolean(Frame frame) throws FrameSlotTypeException {
-        return frame.getBoolean(slot);
+        return frame.getBoolean(frameSlot);
     }
 
     protected final double getDouble(Frame frame) throws FrameSlotTypeException {
-        return frame.getDouble(slot);
+        return frame.getDouble(frameSlot);
     }
 
     /**
@@ -115,7 +74,7 @@ public abstract class FrameSlotNode extends PNode {
      * of FrameSlot cannot be made different from {@link #setObject(Frame, Object) };
      */
     protected final BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(slot);
+        Object object = frame.getObject(frameSlot);
 
         if (object instanceof BigInteger) {
             return (BigInteger) object;
@@ -125,7 +84,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final PComplex getPComplex(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(slot);
+        Object object = frame.getObject(frameSlot);
 
         if (object instanceof PComplex) {
             return (PComplex) object;
@@ -135,7 +94,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final String getString(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(slot);
+        Object object = frame.getObject(frameSlot);
 
         if (object instanceof String) {
             return (String) object;
@@ -145,7 +104,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final PSequence getPSequence(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(slot);
+        Object object = frame.getObject(frameSlot);
 
         if (object instanceof PSequence) {
             return (PSequence) object;
@@ -156,14 +115,63 @@ public abstract class FrameSlotNode extends PNode {
 
     protected final Object getObject(Frame frame) {
         try {
-            return frame.getObject(slot);
+            return frame.getObject(frameSlot);
         } catch (FrameSlotTypeException e) {
             throw new IllegalStateException();
         }
     }
 
+    protected final boolean isBooleanKind() {
+        return isKind(FrameSlotKind.Boolean);
+    }
+
+    protected final boolean isIntegerKind() {
+        return isKind(FrameSlotKind.Int);
+    }
+
+    protected final boolean isDoubleKind() {
+        if (isKind(FrameSlotKind.Double) || intToDouble()) {
+            return true;
+        }
+        if (frameSlot.getKind() != FrameSlotKind.Double) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Double);
+        }
+        return true;
+    }
+
+    protected final boolean isIntOrObjectKind() {
+        return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
+    }
+
+    protected final boolean isObjectKind() {
+        return isKind(FrameSlotKind.Object);
+    }
+
+    private boolean isKind(FrameSlotKind kind) {
+        return frameSlot.getKind() == kind || initialSetKind(kind);
+    }
+
+    private boolean initialSetKind(FrameSlotKind kind) {
+        if (frameSlot.getKind() == FrameSlotKind.Illegal) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(kind);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean intToDouble() {
+        if (frameSlot.getKind() == FrameSlotKind.Int) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Double);
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "(" + slot + ")";
+        return this.getClass().getSimpleName() + "(" + frameSlot + ")";
     }
 }

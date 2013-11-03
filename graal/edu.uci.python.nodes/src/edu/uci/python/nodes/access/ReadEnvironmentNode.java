@@ -44,12 +44,12 @@ public abstract class ReadEnvironmentNode extends FrameSlotNode implements ReadN
     }
 
     public ReadEnvironmentNode(ReadEnvironmentNode specialized) {
-        this(specialized.slot, specialized.level);
+        this(specialized.frameSlot, specialized.level);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteLocalNodeFactory.create(slot, rhs);
+        return WriteLocalNodeFactory.create(frameSlot, rhs);
     }
 
     @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})

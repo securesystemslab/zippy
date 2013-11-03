@@ -36,8 +36,6 @@ import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.spi.*;
-import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
@@ -51,12 +49,11 @@ import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.CanonicalizerPhase.CustomCanonicalizer;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
+import com.oracle.graal.runtime.*;
 import com.oracle.graal.truffle.nodes.asserts.*;
 import com.oracle.graal.truffle.nodes.frame.*;
 import com.oracle.graal.truffle.nodes.frame.NewFrameNode.VirtualOnlyInstanceNode;
 import com.oracle.graal.truffle.phases.*;
-import com.oracle.graal.truffle.printer.*;
-import com.oracle.graal.truffle.printer.method.*;
 import com.oracle.graal.virtual.phases.ea.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
@@ -72,15 +69,15 @@ public class PartialEvaluator {
     private final CanonicalizerPhase canonicalizer;
     private final ResolvedJavaType[] skippedExceptionTypes;
     private Set<Constant> constantReceivers;
-    private final HotSpotGraphCache cache;
+    private final GraphCache cache;
     private final TruffleCache truffleCache;
 
-    public PartialEvaluator(Providers providers, TruffleCache truffleCache) {
+    public PartialEvaluator(RuntimeProvider runtime, Providers providers, TruffleCache truffleCache) {
         this.providers = providers;
         CustomCanonicalizer customCanonicalizer = new PartialEvaluatorCanonicalizer(providers.getMetaAccess(), providers.getConstantReflection());
         this.canonicalizer = new CanonicalizerPhase(!AOTCompilation.getValue(), customCanonicalizer);
         this.skippedExceptionTypes = TruffleCompilerImpl.getSkippedExceptionTypes(providers.getMetaAccess());
-        this.cache = HotSpotGraalRuntime.graalRuntime().getCache();
+        this.cache = runtime.getGraphCache();
         this.truffleCache = truffleCache;
 
         try {
@@ -106,10 +103,6 @@ public class PartialEvaluator {
         config.setSkippedExceptionTypes(skippedExceptionTypes);
 
         final StructuredGraph graph = new StructuredGraph(executeHelperMethod);
-
-        if (TruffleInlinePrinter.getValue()) {
-            InlinePrinterProcessor.initialize();
-        }
 
         Debug.scope("createGraph", graph, new Runnable() {
 
@@ -138,12 +131,11 @@ public class PartialEvaluator {
                 // Make sure frame does not escape.
                 expandTree(graph, assumptions);
 
-                new VerifyFrameDoesNotEscapePhase().apply(graph, false);
-
-                if (TruffleInlinePrinter.getValue()) {
-                    InlinePrinterProcessor.printTree();
-                    InlinePrinterProcessor.reset();
+                if (Thread.interrupted()) {
+                    return;
                 }
+
+                new VerifyFrameDoesNotEscapePhase().apply(graph, false);
 
                 if (TraceTruffleCompilationDetails.getValue() && constantReceivers != null) {
                     DebugHistogram histogram = Debug.createHistogram("Expanded Truffle Nodes");
@@ -164,7 +156,7 @@ public class PartialEvaluator {
                 }
 
                 // EA frame and clean up.
-                new PartialEscapePhase(false, canonicalizer).apply(graph, tierContext);
+                new PartialEscapePhase(true, canonicalizer).apply(graph, tierContext);
                 new VerifyNoIntrinsicsLeftPhase().apply(graph, false);
                 for (MaterializeFrameNode materializeNode : graph.getNodes(MaterializeFrameNode.class).snapshot()) {
                     materializeNode.replaceAtUsages(materializeNode.getFrame());
@@ -196,9 +188,6 @@ public class PartialEvaluator {
             for (MethodCallTargetNode methodCallTargetNode : graph.getNodes(MethodCallTargetNode.class)) {
                 InvokeKind kind = methodCallTargetNode.invokeKind();
                 if (kind == InvokeKind.Static || (kind == InvokeKind.Special && (methodCallTargetNode.receiver().isConstant() || methodCallTargetNode.receiver() instanceof NewFrameNode))) {
-                    if (TruffleInlinePrinter.getValue()) {
-                        InlinePrinterProcessor.addInlining(MethodHolder.getNewTruffleExecuteMethod(methodCallTargetNode));
-                    }
                     if (TraceTruffleCompilationDetails.getValue() && kind == InvokeKind.Special) {
                         ConstantNode constantNode = (ConstantNode) methodCallTargetNode.arguments().first();
                         constantReceivers.add(constantNode.asConstant());
@@ -233,6 +222,10 @@ public class PartialEvaluator {
                     }
                 }
 
+                if (Thread.interrupted()) {
+                    return;
+                }
+
                 if (graph.getNodeCount() > TruffleCompilerOptions.TruffleGraphMaxNodes.getValue()) {
                     throw new BailoutException("Truffle compilation is exceeding maximum node count: " + graph.getNodeCount());
                 }
@@ -252,13 +245,12 @@ public class PartialEvaluator {
                 ValueNode arg = arguments.get(local.index());
                 if (arg.isConstant()) {
                     Constant constant = arg.asConstant();
-                    ConstantNode constantNode = ConstantNode.forConstant(constant, phaseContext.getMetaAccess(), graphCopy);
-                    local.replaceAndDelete(constantNode);
-                    for (Node usage : constantNode.usages()) {
+                    for (Node usage : local.usages()) {
                         if (usage instanceof Canonicalizable) {
                             modifiedNodes.add(usage);
                         }
                     }
+                    local.replaceAndDelete(ConstantNode.forConstant(constant, phaseContext.getMetaAccess(), graphCopy));
                 }
             }
             Debug.scope("TruffleUnrollLoop", targetMethod, new Runnable() {

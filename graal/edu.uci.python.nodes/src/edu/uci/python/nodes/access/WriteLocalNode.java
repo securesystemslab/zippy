@@ -29,7 +29,6 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
@@ -45,12 +44,12 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
     }
 
     public WriteLocalNode(WriteLocalNode specialized) {
-        this(specialized.slot);
+        this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeReadNode() {
-        return ReadLocalNodeFactory.create(slot);
+        return ReadLocalNodeFactory.create(frameSlot);
     }
 
     @Override
@@ -60,48 +59,48 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
 
     @Override
     public PNode updateRhs(PNode newRhs) {
-        return WriteLocalNodeFactory.create(this.slot, newRhs);
+        return WriteLocalNodeFactory.create(this.frameSlot, newRhs);
     }
 
     public abstract Object execute(VirtualFrame frame, Object value);
 
-    @Specialization(order = 1, rewriteOn = FrameSlotTypeException.class)
-    public int write(VirtualFrame frame, int value) throws FrameSlotTypeException {
-        setInteger(frame, value);
+    @Specialization(guards = "isIntegerKind")
+    public int doInteger(VirtualFrame frame, int value) {
+        frame.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(order = 2, rewriteOn = FrameSlotTypeException.class)
-    public BigInteger write(VirtualFrame frame, BigInteger value) throws FrameSlotTypeException {
-        setBigInteger(frame, value);
+    @Specialization(guards = "isIntOrObjectKind")
+    public BigInteger write(VirtualFrame frame, BigInteger value) {
+        setObject(frame, value);
         return value;
     }
 
-    @Specialization(order = 3, rewriteOn = FrameSlotTypeException.class)
-    public double write(VirtualFrame frame, double right) throws FrameSlotTypeException {
-        setDouble(frame, right);
+    @Specialization(guards = "isDoubleKind")
+    public double doDouble(VirtualFrame frame, double right) {
+        frame.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 4)
+    @Specialization(guards = "isObjectKind")
     public PComplex write(VirtualFrame frame, PComplex right) {
         setObject(frame, right);
         return right;
     }
 
-    @Specialization(order = 5, rewriteOn = FrameSlotTypeException.class)
-    public boolean write(VirtualFrame frame, boolean right) throws FrameSlotTypeException {
-        setBoolean(frame, right);
+    @Specialization(guards = "isBooleanKind")
+    public boolean write(VirtualFrame frame, boolean right) {
+        frame.setBoolean(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 6)
+    @Specialization(guards = "isObjectKind")
     public String write(VirtualFrame frame, String right) {
         setObject(frame, right);
         return right;
     }
 
-    @Specialization(order = 10)
+    @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;

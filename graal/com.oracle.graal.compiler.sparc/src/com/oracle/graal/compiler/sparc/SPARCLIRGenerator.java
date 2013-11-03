@@ -78,8 +78,8 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         }
     }
 
-    public SPARCLIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, providers, target, frameMap, cc, lir);
+    public SPARCLIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, frameMap, cc, lir);
         lir.spillMoveFactory = new SPARCSpillMoveFactory();
     }
 
@@ -99,9 +99,9 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public boolean canInlineConstant(Constant c) {
         switch (c.getKind()) {
             case Int:
-                return SPARCAssembler.isSimm13(c.asInt()) && !codeCache.needsDataPatch(c);
+                return SPARCAssembler.isSimm13(c.asInt()) && !getCodeCache().needsDataPatch(c);
             case Long:
-                return SPARCAssembler.isSimm13(c.asLong()) && !codeCache.needsDataPatch(c);
+                return SPARCAssembler.isSimm13(c.asLong()) && !getCodeCache().needsDataPatch(c);
             case Object:
                 return c.isNull();
             default:
@@ -242,14 +242,14 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
             case Object:
                 append(new BranchOp(finalCondition, label, kind));
                 break;
-// case Float:
-// append(new CompareOp(FCMP, x, y));
-// append(new BranchOp(condition, label));
-// break;
-// case Double:
-// append(new CompareOp(DCMP, x, y));
-// append(new BranchOp(condition, label));
-// break;
+            // case Float:
+            // append(new CompareOp(FCMP, x, y));
+            // append(new BranchOp(condition, label));
+            // break;
+            // case Double:
+            // append(new CompareOp(DCMP, x, y));
+            // append(new BranchOp(condition, label));
+            // break;
             default:
                 throw GraalInternalError.shouldNotReachHere("" + left.getKind());
         }
@@ -377,7 +377,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         // Making a copy of the switch value is necessary because jump table destroys the input
         // value
         Variable tmp = emitMove(key);
-        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target.wordKind)));
+        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target().wordKind)));
     }
 
     @Override
@@ -631,7 +631,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public Value emitUDiv(Value a, Value b, DeoptimizingNode deopting) {
-// LIRFrameState state = state(deopting);
+        // LIRFrameState state = state(deopting);
         switch (a.getKind().getStackKind()) {
             case Int:
                 // emitDivRem(IUDIV, a, b, state);
@@ -646,7 +646,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public Value emitURem(Value a, Value b, DeoptimizingNode deopting) {
-// LIRFrameState state = state(deopting);
+        // LIRFrameState state = state(deopting);
         switch (a.getKind().getStackKind()) {
             case Int:
                 // emitDivRem(IUREM, a, b, state);
@@ -831,8 +831,8 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitMembar(int barriers) {
-        int necessaryBarriers = target.arch.requiredBarriers(barriers);
-        if (target.isMP && necessaryBarriers != 0) {
+        int necessaryBarriers = target().arch.requiredBarriers(barriers);
+        if (target().isMP && necessaryBarriers != 0) {
             append(new MembarOp(necessaryBarriers));
         }
     }
@@ -851,7 +851,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public void visitBreakpointNode(BreakpointNode node) {
         JavaType[] sig = new JavaType[node.arguments().size()];
         for (int i = 0; i < sig.length; i++) {
-            sig[i] = node.arguments().get(i).stamp().javaType(metaAccess);
+            sig[i] = node.arguments().get(i).stamp().javaType(getMetaAccess());
         }
 
         Value[] parameters = visitInvokeArguments(frameMap.registerConfig.getCallingConvention(CallingConvention.Type.JavaCall, null, sig, target(), false), node.arguments());

@@ -32,7 +32,6 @@ import java.util.concurrent.*;
 import com.oracle.graal.alloc.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
@@ -133,38 +132,50 @@ public class GraalCompiler {
      *            argument can be null.
      * @return the result of the compilation
      */
-    public static CompilationResult compileGraph(final StructuredGraph graph, final CallingConvention cc, final ResolvedJavaMethod installedCodeOwner, final Providers providers,
+    public static <T extends CompilationResult> T compileGraph(final StructuredGraph graph, final CallingConvention cc, final ResolvedJavaMethod installedCodeOwner, final Providers providers,
                     final Backend backend, final TargetDescription target, final GraphCache cache, final PhasePlan plan, final OptimisticOptimizations optimisticOpts,
-                    final SpeculationLog speculationLog, final Suites suites, final CompilationResult compilationResult) {
+                    final SpeculationLog speculationLog, final Suites suites, final T compilationResult) {
         Debug.scope("GraalCompiler", new Object[]{graph, providers.getCodeCache()}, new Runnable() {
 
             public void run() {
-                final Assumptions assumptions = new Assumptions(OptAssumptions.getValue());
-                final LIR lir = Debug.scope("FrontEnd", new Callable<LIR>() {
+                compileGraphNoScope(graph, cc, installedCodeOwner, providers, backend, target, cache, plan, optimisticOpts, speculationLog, suites, compilationResult);
+            }
+        });
 
-                    public LIR call() {
-                        try (TimerCloseable a = FrontEnd.start()) {
-                            return emitHIR(providers, target, graph, assumptions, cache, plan, optimisticOpts, speculationLog, suites);
-                        }
-                    }
-                });
-                try (TimerCloseable a = BackEnd.start()) {
-                    final LIRGenerator lirGen = Debug.scope("BackEnd", lir, new Callable<LIRGenerator>() {
+        return compilationResult;
+    }
 
-                        public LIRGenerator call() {
-                            return emitLIR(backend, target, lir, graph, cc);
-                        }
-                    });
-                    Debug.scope("CodeGen", lirGen, new Runnable() {
+    /**
+     * Same as {@link #compileGraph} but without entering a
+     * {@linkplain Debug#scope(String, Object[], Runnable) debug scope}.
+     */
+    public static <T extends CompilationResult> T compileGraphNoScope(final StructuredGraph graph, final CallingConvention cc, final ResolvedJavaMethod installedCodeOwner, final Providers providers,
+                    final Backend backend, final TargetDescription target, final GraphCache cache, final PhasePlan plan, final OptimisticOptimizations optimisticOpts,
+                    final SpeculationLog speculationLog, final Suites suites, final T compilationResult) {
+        final Assumptions assumptions = new Assumptions(OptAssumptions.getValue());
+        final LIR lir = Debug.scope("FrontEnd", new Callable<LIR>() {
 
-                        public void run() {
-                            emitCode(backend, getLeafGraphIdArray(graph), assumptions, lirGen, compilationResult, installedCodeOwner);
-                        }
-
-                    });
+            public LIR call() {
+                try (TimerCloseable a = FrontEnd.start()) {
+                    return emitHIR(providers, target, graph, assumptions, cache, plan, optimisticOpts, speculationLog, suites);
                 }
             }
         });
+        try (TimerCloseable a = BackEnd.start()) {
+            final LIRGenerator lirGen = Debug.scope("BackEnd", lir, new Callable<LIRGenerator>() {
+
+                public LIRGenerator call() {
+                    return emitLIR(backend, target, lir, graph, cc);
+                }
+            });
+            Debug.scope("CodeGen", lirGen, new Runnable() {
+
+                public void run() {
+                    emitCode(backend, getLeafGraphIdArray(graph), assumptions, lirGen, compilationResult, installedCodeOwner);
+                }
+
+            });
+        }
 
         return compilationResult;
     }
@@ -284,19 +295,10 @@ public class GraalCompiler {
         }
         result.setLeafGraphIds(leafGraphIds);
 
-        Debug.dump(result, "After code generation");
-    }
+        if (Debug.isLogEnabled()) {
+            Debug.log("%s", backend.getProviders().getCodeCache().disassemble(result, null));
+        }
 
-    /**
-     * Creates a set of providers via {@link Graal#getRequiredCapability(Class)}.
-     */
-    public static Providers getGraalProviders() {
-        MetaAccessProvider metaAccess = Graal.getRequiredCapability(MetaAccessProvider.class);
-        CodeCacheProvider codeCache = Graal.getRequiredCapability(CodeCacheProvider.class);
-        ConstantReflectionProvider constantReflection = Graal.getRequiredCapability(ConstantReflectionProvider.class);
-        ForeignCallsProvider foreignCalls = Graal.getRequiredCapability(ForeignCallsProvider.class);
-        LoweringProvider lowerer = Graal.getRequiredCapability(LoweringProvider.class);
-        Replacements replacements = Graal.getRequiredCapability(Replacements.class);
-        return new Providers(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements);
+        Debug.dump(result, "After code generation");
     }
 }

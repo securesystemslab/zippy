@@ -52,18 +52,18 @@ public class IntegerStampTest {
     public void testByteConstant() {
         assertEquals(new IntegerStamp(Kind.Int, 0, 0, 0x0, 0x0), ConstantNode.forByte((byte) 0, graph).stamp());
         assertEquals(new IntegerStamp(Kind.Int, 16, 16, 0x10, 0x10), ConstantNode.forByte((byte) 16, graph).stamp());
-        assertEquals(new IntegerStamp(Kind.Int, -16, -16, 0xf0, 0xf0), ConstantNode.forByte((byte) -16, graph).stamp());
+        assertEquals(new IntegerStamp(Kind.Int, -16, -16, 0xfffffff0L, 0xfffffff0L), ConstantNode.forByte((byte) -16, graph).stamp());
         assertEquals(new IntegerStamp(Kind.Int, 127, 127, 0x7f, 0x7f), ConstantNode.forByte((byte) 127, graph).stamp());
-        assertEquals(new IntegerStamp(Kind.Int, -128, -128, 0x80, 0x80), ConstantNode.forByte((byte) -128, graph).stamp());
+        assertEquals(new IntegerStamp(Kind.Int, -128, -128, 0xffffff80L, 0xffffff80L), ConstantNode.forByte((byte) -128, graph).stamp());
     }
 
     @Test
     public void testShortConstant() {
         assertEquals(new IntegerStamp(Kind.Int, 0, 0, 0x0, 0x0), ConstantNode.forShort((short) 0, graph).stamp());
         assertEquals(new IntegerStamp(Kind.Int, 128, 128, 0x80, 0x80), ConstantNode.forShort((short) 128, graph).stamp());
-        assertEquals(new IntegerStamp(Kind.Int, -128, -128, 0xff80, 0xff80), ConstantNode.forShort((short) -128, graph).stamp());
+        assertEquals(new IntegerStamp(Kind.Int, -128, -128, 0xffffff80L, 0xffffff80L), ConstantNode.forShort((short) -128, graph).stamp());
         assertEquals(new IntegerStamp(Kind.Int, 32767, 32767, 0x7fff, 0x7fff), ConstantNode.forShort((short) 32767, graph).stamp());
-        assertEquals(new IntegerStamp(Kind.Int, -32768, -32768, 0x8000, 0x8000), ConstantNode.forShort((short) -32768, graph).stamp());
+        assertEquals(new IntegerStamp(Kind.Int, -32768, -32768, 0xffff8000L, 0xffff8000L), ConstantNode.forShort((short) -32768, graph).stamp());
     }
 
     @Test
@@ -174,6 +174,13 @@ public class IntegerStampTest {
                         StampTool.add(StampFactory.forInteger(Kind.Long, Long.MIN_VALUE, Long.MIN_VALUE + 1), StampFactory.forInteger(Kind.Long, Integer.MIN_VALUE, Integer.MAX_VALUE)));
         assertEquals(StampFactory.forInteger(Kind.Int, -2147483647, 31 - 2147483647),
                         StampTool.add(StampFactory.forInteger(Kind.Int, 0, 31), StampFactory.forInteger(Kind.Int, -2147483647, -2147483647)));
+
+        assertEquals(StampFactory.forInteger(Kind.Int, 0x8000007e, 0x8000007f, 0x8000007eL, 0x8000007fL),
+                        StampTool.add(StampFactory.forInteger(Kind.Int, 0x7ffffffe, 0x7fffffff, 0x7ffffffeL, 0x7fffffffL), StampFactory.forInteger(Kind.Int, 128, 128)));
+
+        assertEquals(StampFactory.forInteger(Kind.Long, -9223372036854775808L, 9223372036854775806L, 0, 0xfffffffffffffffeL),
+                        StampTool.add(StampFactory.forInteger(Kind.Long, -9223372036854775808L, 9223372036854775806L, 0, 0xfffffffffffffffeL),
+                                        StampFactory.forInteger(Kind.Long, -9223372036854775808L, 9223372036854775806L, 0, 0xfffffffffffffffeL)));
     }
 
     @Test

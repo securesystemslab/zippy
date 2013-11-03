@@ -51,7 +51,7 @@ public class PTuple extends PImmutableSequence {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
          */
-        List list = new ArrayList<>();
+        List<Object> list = new ArrayList<>();
 
         for (Object o : iterable) {
             list.add(o);

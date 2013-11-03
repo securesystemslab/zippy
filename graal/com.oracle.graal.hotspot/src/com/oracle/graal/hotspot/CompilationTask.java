@@ -34,6 +34,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.CompilerThreadFactory.CompilerThread;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -42,7 +43,6 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
-import com.oracle.graal.phases.util.*;
 
 public final class CompilationTask implements Runnable {
 
@@ -58,9 +58,8 @@ public final class CompilationTask implements Runnable {
         Queued, Running
     }
 
-    private final HotSpotGraalRuntime graalRuntime;
+    private final HotSpotBackend backend;
     private final PhasePlan plan;
-    private final SuitesProvider suitesProvider;
     private final OptimisticOptimizations optimisticOpts;
     private final HotSpotResolvedJavaMethod method;
     private final int entryBCI;
@@ -69,15 +68,14 @@ public final class CompilationTask implements Runnable {
 
     private StructuredGraph graph;
 
-    public static CompilationTask create(HotSpotGraalRuntime graalRuntime, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
-        return new CompilationTask(graalRuntime, plan, optimisticOpts, method, entryBCI, id);
+    public static CompilationTask create(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
+        return new CompilationTask(backend, plan, optimisticOpts, method, entryBCI, id);
     }
 
-    private CompilationTask(HotSpotGraalRuntime graalRuntime, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
+    private CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
         assert id >= 0;
-        this.graalRuntime = graalRuntime;
+        this.backend = backend;
         this.plan = plan;
-        this.suitesProvider = graalRuntime.getCapability(SuitesProvider.class);
         this.method = method;
         this.optimisticOpts = optimisticOpts;
         this.entryBCI = entryBCI;
@@ -143,8 +141,13 @@ public final class CompilationTask implements Runnable {
 
                     @Override
                     public CompilationResult call() throws Exception {
-                        graalRuntime.evictDeoptedGraphs();
-                        Replacements replacements = graalRuntime.getReplacements();
+                        GraphCache graphCache = backend.getRuntime().getGraphCache();
+                        if (graphCache != null) {
+                            graphCache.removeStaleGraphs();
+                        }
+
+                        HotSpotProviders providers = backend.getProviders();
+                        Replacements replacements = providers.getReplacements();
                         graph = replacements.getMethodSubstitution(method);
                         if (graph == null || entryBCI != INVOCATION_ENTRY_BCI) {
                             graph = new StructuredGraph(method, entryBCI);
@@ -153,11 +156,10 @@ public final class CompilationTask implements Runnable {
                             graph = graph.copy();
                         }
                         InliningUtil.InlinedBytecodes.add(method.getCodeSize());
-                        HotSpotRuntime runtime = graalRuntime.getRuntime();
-                        CallingConvention cc = getCallingConvention(runtime, Type.JavaCallee, graph.method(), false);
-                        Providers providers = new Providers(runtime, runtime, runtime, runtime, runtime, replacements);
-                        return GraalCompiler.compileGraph(graph, cc, method, providers, graalRuntime.getBackend(), graalRuntime.getTarget(), graalRuntime.getCache(), plan, optimisticOpts,
-                                        method.getSpeculationLog(), suitesProvider.getDefaultSuites(), new CompilationResult());
+                        CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
+                        Suites suites = providers.getSuites().getDefaultSuites();
+                        return GraalCompiler.compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, plan, optimisticOpts, method.getSpeculationLog(), suites,
+                                        new CompilationResult());
                     }
                 });
             } finally {
@@ -213,16 +215,17 @@ public final class CompilationTask implements Runnable {
     }
 
     private void installMethod(final CompilationResult compResult) {
-        Debug.scope("CodeInstall", new Object[]{new DebugDumpScope(String.valueOf(id), true), graalRuntime.getRuntime(), method}, new Runnable() {
+        final HotSpotCodeCacheProvider codeCache = backend.getProviders().getCodeCache();
+        Debug.scope("CodeInstall", new Object[]{new DebugDumpScope(String.valueOf(id), true), codeCache, method}, new Runnable() {
 
             @Override
             public void run() {
-                HotSpotInstalledCode installedCode = graalRuntime.getRuntime().installMethod(method, entryBCI, compResult);
+                HotSpotInstalledCode installedCode = codeCache.installMethod(method, entryBCI, compResult);
                 if (Debug.isDumpEnabled()) {
                     Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
                 }
                 if (Debug.isLogEnabled()) {
-                    Debug.log("%s", graalRuntime.getRuntime().disassemble(installedCode));
+                    Debug.log("%s", backend.getProviders().getDisassembler().disassemble(installedCode));
                 }
             }
 

@@ -89,6 +89,7 @@
 
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#include "graal/graalJavaAccess.hpp"
 #endif
 
 
@@ -913,7 +914,8 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
   fields->sort(compare);
   for (int i = 0; i < fields->length(); i++) {
     intptr_t val;
-    StackValue* value = StackValue::create_stack_value(fr, reg_map, sv->field_at(svIndex));
+    ScopeValue* scope_field = sv->field_at(svIndex);
+    StackValue* value = StackValue::create_stack_value(fr, reg_map, scope_field);
     int offset = fields->at(i)._offset;
     BasicType type = fields->at(i)._type;
     switch (type) {
@@ -921,6 +923,37 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
         assert(value->type() == T_OBJECT, "Agreement.");
         obj->obj_field_put(offset, value->get_obj()());
         break;
+
+      // Have to cast to INT (32 bits) pointer to avoid little/big-endian problem.
+      case T_INT: case T_FLOAT: { // 4 bytes.
+        assert(value->type() == T_INT, "Agreement.");
+        bool big_value = false;
+        if (i+1 < fields->length() && fields->at(i+1)._type == T_INT) {
+          if (scope_field->is_location()) {
+            Location::Type type = ((LocationValue*) scope_field)->location().type();
+            if (type == Location::dbl || type == Location::lng) {
+              big_value = true;
+            }
+          }
+          if (scope_field->is_constant_int()) {
+            ScopeValue* next_scope_field = sv->field_at(svIndex + 1);
+            if (next_scope_field->is_constant_long() || next_scope_field->is_constant_double()) {
+              big_value = true;
+            }
+          }
+        }
+
+        if (big_value) {
+          i++;
+          assert(i < fields->length(), "second T_INT field needed");
+          assert(fields->at(i)._type == T_INT, "T_INT field needed");
+        } else {
+          val = value->get_int();
+          obj->int_field_put(offset, (jint)*((jint*)&val));
+          break;
+        }
+      }
+        /* no break */
 
       case T_LONG: case T_DOUBLE: {
         assert(value->type() == T_INT, "Agreement.");
@@ -938,12 +971,6 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
         obj->long_field_put(offset, res);
         break;
       }
-      // Have to cast to INT (32 bits) pointer to avoid little/big-endian problem.
-      case T_INT: case T_FLOAT: // 4 bytes.
-        assert(value->type() == T_INT, "Agreement.");
-        val = value->get_int();
-        obj->int_field_put(offset, (jint)*((jint*)&val));
-        break;
 
       case T_SHORT: case T_CHAR: // 2 bytes
         assert(value->type() == T_INT, "Agreement.");
@@ -1420,6 +1447,19 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       if (TraceDeoptimization) {  // make noise on the tty
         tty->print("Uncommon trap occurred in");
         nm->method()->print_short_name(tty);
+#ifdef GRAAL
+        oop installedCode = nm->graal_installed_code();
+        if (installedCode != NULL) {
+          oop installedCodeName = HotSpotNmethod::name(installedCode);
+          if (installedCodeName != NULL) {
+            tty->print(" (Graal: installedCodeName=%s) ", java_lang_String::as_utf8_string(installedCodeName));
+          } else {
+            tty->print(" (Graal: installed code has no name) ");
+          }
+        } else if (nm->is_compiled_by_graal()) {
+          tty->print(" (Graal: no installed code) ");
+        }
+#endif //GRAAL
         tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d",
                    fr.pc(),
                    os::current_thread_id(),

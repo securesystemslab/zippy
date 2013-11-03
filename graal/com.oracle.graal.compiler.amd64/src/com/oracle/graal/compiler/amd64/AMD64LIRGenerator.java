@@ -86,8 +86,8 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         }
     }
 
-    public AMD64LIRGenerator(StructuredGraph graph, Providers providers, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, providers, target, frameMap, cc, lir);
+    public AMD64LIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, providers, frameMap, cc, lir);
         lir.spillMoveFactory = new AMD64SpillMoveFactory();
     }
 
@@ -96,7 +96,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         // there is no immediate move of 64-bit constants on Intel
         switch (c.getKind()) {
             case Long:
-                return Util.isInt(c.asLong()) && !codeCache.needsDataPatch(c);
+                return Util.isInt(c.asLong()) && !getCodeCache().needsDataPatch(c);
             case Double:
                 return false;
             case Object:
@@ -110,7 +110,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     public boolean canInlineConstant(Constant c) {
         switch (c.getKind()) {
             case Long:
-                return NumUtil.isInt(c.asLong()) && !codeCache.needsDataPatch(c);
+                return NumUtil.isInt(c.asLong()) && !getCodeCache().needsDataPatch(c);
             case Object:
                 return c.isNull();
             default:
@@ -147,7 +147,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         if (isConstant(base)) {
             if (asConstant(base).isNull()) {
                 baseRegister = Value.ILLEGAL;
-            } else if (asConstant(base).getKind() != Kind.Object && !codeCache.needsDataPatch(asConstant(base))) {
+            } else if (asConstant(base).getKind() != Kind.Object && !getCodeCache().needsDataPatch(asConstant(base))) {
                 finalDisp += asConstant(base).asLong();
                 baseRegister = Value.ILLEGAL;
             } else {
@@ -690,19 +690,33 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         Variable input = load(inputVal);
         Variable result = newVariable(opcode.to);
         switch (opcode) {
+            case B2L:
+            case S2L:
+            case C2L:
+                // x2L == x2I . I2L
+                // since byte, short and char are stored as int in registers, x2I is a nop
             case I2L:
                 append(new Unary2Op(I2L, result, input));
                 break;
             case L2I:
                 append(new Unary1Op(L2I, result, input));
                 break;
+            case C2B:
+            case S2B:
             case I2B:
+            case L2B:
                 append(new Unary2Op(I2B, result, input));
                 break;
+            case B2C:
+            case S2C:
             case I2C:
+            case L2C:
                 append(new Unary1Op(I2C, result, input));
                 break;
+            case B2S:
+            case C2S:
             case I2S:
+            case L2S:
                 append(new Unary2Op(I2S, result, input));
                 break;
             case F2D:
@@ -751,6 +765,9 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
                 // Instructions that move or generate 32-bit register values also set the upper 32
                 // bits of the register to zero.
                 // Consequently, there is no need for a special zero-extension move.
+            case B2I:
+            case C2I:
+            case S2I:
                 emitMove(result, input);
                 break;
             default:
@@ -761,8 +778,8 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
 
     @Override
     public void emitMembar(int barriers) {
-        int necessaryBarriers = target.arch.requiredBarriers(barriers);
-        if (target.isMP && necessaryBarriers != 0) {
+        int necessaryBarriers = target().arch.requiredBarriers(barriers);
+        if (target().isMP && necessaryBarriers != 0) {
             append(new MembarOp(necessaryBarriers));
         }
     }
@@ -874,14 +891,14 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         // Making a copy of the switch value is necessary because jump table destroys the input
         // value
         Variable tmp = emitMove(key);
-        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target.wordKind)));
+        append(new TableSwitchOp(lowKey, defaultTarget, targets, tmp, newVariable(target().wordKind)));
     }
 
     @Override
     public void visitBreakpointNode(BreakpointNode node) {
         JavaType[] sig = new JavaType[node.arguments().size()];
         for (int i = 0; i < sig.length; i++) {
-            sig[i] = node.arguments().get(i).stamp().javaType(metaAccess);
+            sig[i] = node.arguments().get(i).stamp().javaType(getMetaAccess());
         }
 
         Value[] parameters = visitInvokeArguments(frameMap.registerConfig.getCallingConvention(CallingConvention.Type.JavaCall, null, sig, target(), false), node.arguments());

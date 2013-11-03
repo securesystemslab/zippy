@@ -23,7 +23,9 @@
 package com.oracle.graal.truffle;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.truffle.TruffleCompilerOptions.*;
 
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -33,10 +35,10 @@ import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.CompilerThreadFactory.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
-import com.oracle.graal.hotspot.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -45,6 +47,7 @@ import com.oracle.graal.phases.PhasePlan.PhasePosition;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.printer.*;
+import com.oracle.graal.runtime.*;
 import com.oracle.graal.truffle.nodes.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
@@ -54,13 +57,16 @@ import com.oracle.truffle.api.nodes.*;
  */
 public class TruffleCompilerImpl implements TruffleCompiler {
 
+    private static final PrintStream OUT = TTY.out().out();
+
     private final Providers providers;
     private final Suites suites;
     private final PartialEvaluator partialEvaluator;
     private final Backend backend;
     private final ResolvedJavaType[] skippedExceptionTypes;
-    private final HotSpotGraalRuntime graalRuntime;
+    private final RuntimeProvider runtime;
     private final TruffleCache truffleCache;
+    private final ThreadPoolExecutor compileQueue;
 
     private static final Class[] SKIPPED_EXCEPTION_CLASSES = new Class[]{SlowPathException.class, UnexpectedResultException.class, ArithmeticException.class};
 
@@ -68,18 +74,26 @@ public class TruffleCompilerImpl implements TruffleCompiler {
                     OptimisticOptimizations.Optimization.RemoveNeverExecutedCode, OptimisticOptimizations.Optimization.UseTypeCheckedInlining, OptimisticOptimizations.Optimization.UseTypeCheckHints);
 
     public TruffleCompilerImpl() {
+        this.runtime = Graal.getRequiredCapability(RuntimeProvider.class);
+        this.backend = runtime.getHostBackend();
         Replacements truffleReplacements = ((GraalTruffleRuntime) Truffle.getRuntime()).getReplacements();
-        this.providers = GraalCompiler.getGraalProviders().copyWith(truffleReplacements);
-        this.suites = Graal.getRequiredCapability(SuitesProvider.class).createSuites();
-        this.backend = Graal.getRequiredCapability(Backend.class);
-        this.graalRuntime = HotSpotGraalRuntime.graalRuntime();
+        this.providers = backend.getProviders().copyWith(truffleReplacements);
+        this.suites = backend.getSuites().createSuites();
         this.skippedExceptionTypes = getSkippedExceptionTypes(providers.getMetaAccess());
+
+        // Create compilation queue.
+        CompilerThreadFactory factory = new CompilerThreadFactory("TruffleCompilerThread", new DebugConfigAccess() {
+            public GraalDebugConfig getDebugConfig() {
+                return Debug.isEnabled() ? DebugEnvironment.initialize(TTY.out().out()) : null;
+            }
+        });
+        compileQueue = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), factory);
 
         final GraphBuilderConfiguration config = GraphBuilderConfiguration.getEagerDefault();
         config.setSkippedExceptionTypes(skippedExceptionTypes);
         this.truffleCache = new TruffleCache(providers, config, TruffleCompilerImpl.Optimizations);
 
-        this.partialEvaluator = new PartialEvaluator(providers, truffleCache);
+        this.partialEvaluator = new PartialEvaluator(runtime, providers, truffleCache);
 
         if (Debug.isEnabled()) {
             DebugEnvironment.initialize(System.out);
@@ -94,15 +108,22 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         return skippedExceptionTypes;
     }
 
-    public InstalledCode compile(final OptimizedCallTarget compilable) {
-        Object[] debug = new Object[]{new DebugDumpScope("Truffle: " + compilable)};
-        return Debug.scope("Truffle", debug, new Callable<InstalledCode>() {
+    public Future<InstalledCode> compile(final OptimizedCallTarget compilable) {
+        Future<InstalledCode> future = compileQueue.submit(new Callable<InstalledCode>() {
 
             @Override
             public InstalledCode call() throws Exception {
-                return compileMethodImpl(compilable);
+                Object[] debug = new Object[]{new TruffleDebugJavaMethod(compilable)};
+                return Debug.scope("Truffle", debug, new Callable<InstalledCode>() {
+
+                    @Override
+                    public InstalledCode call() throws Exception {
+                        return compileMethodImpl(compilable);
+                    }
+                });
             }
         });
+        return future;
     }
 
     public static final DebugTimer PartialEvaluationTime = Debug.timer("PartialEvaluationTime");
@@ -113,29 +134,77 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         final StructuredGraph graph;
         final GraphBuilderConfiguration config = GraphBuilderConfiguration.getDefault();
         config.setSkippedExceptionTypes(skippedExceptionTypes);
-        graalRuntime.evictDeoptedGraphs();
+        GraphCache graphCache = runtime.getGraphCache();
+        if (graphCache != null) {
+            graphCache.removeStaleGraphs();
+        }
 
-        compilable.timeCompilationStarted = System.nanoTime();
+        if (TraceTruffleInliningTree.getValue()) {
+            printInlineTree(compilable.getRootNode());
+        }
+
+        long timeCompilationStarted = System.nanoTime();
         Assumptions assumptions = new Assumptions(true);
         try (TimerCloseable a = PartialEvaluationTime.start()) {
             graph = partialEvaluator.createGraph(compilable, assumptions);
         }
-        compilable.timePartialEvaluationFinished = System.nanoTime();
-        compilable.nodeCountPartialEval = graph.getNodeCount();
-        InstalledCode compiledMethod = compileMethodHelper(graph, config, compilable, assumptions);
-        compilable.timeCompilationFinished = System.nanoTime();
-        compilable.nodeCountLowered = graph.getNodeCount();
+        if (Thread.interrupted()) {
+            return null;
+        }
+        long timePartialEvaluationFinished = System.nanoTime();
+        int nodeCountPartialEval = graph.getNodeCount();
+        InstalledCode compiledMethod = compileMethodHelper(graph, config, assumptions);
+        long timeCompilationFinished = System.nanoTime();
+        int nodeCountLowered = graph.getNodeCount();
+
+        if (compiledMethod == null) {
+            throw new BailoutException("Could not install method, code cache is full!");
+        }
+
+        if (TraceTruffleCompilation.getValue()) {
+            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode());
+            OUT.printf("[truffle] optimized %-50s %d |Nodes %7d |Time %5.0f(%4.0f+%-4.0f)ms |Nodes %5d/%5d |CodeSize %d\n", compilable.getRootNode(), compilable.hashCode(), nodeCountTruffle,
+                            (timeCompilationFinished - timeCompilationStarted) / 1e6, (timePartialEvaluationFinished - timeCompilationStarted) / 1e6,
+                            (timeCompilationFinished - timePartialEvaluationFinished) / 1e6, nodeCountPartialEval, nodeCountLowered, compiledMethod.getCode().length);
+        }
         return compiledMethod;
     }
 
-    public InstalledCode compileMethodHelper(final StructuredGraph graph, final GraphBuilderConfiguration config, final Assumptions assumptions) {
-        return compileMethodHelper(graph, config, null, assumptions);
+    private void printInlineTree(RootNode rootNode) {
+        OUT.println();
+        OUT.println("Inlining tree for: " + rootNode);
+        rootNode.accept(new InlineTreeVisitor());
     }
 
-    public InstalledCode compileMethodHelper(final StructuredGraph graph, final GraphBuilderConfiguration config, final OptimizedCallTarget compilable, final Assumptions assumptions) {
+    private class InlineTreeVisitor implements NodeVisitor {
+
+        public boolean visit(Node node) {
+            if (node instanceof InlinedCallSite) {
+                InlinedCallSite inlinedCallSite = (InlinedCallSite) node;
+                int indent = this.indent(node);
+                for (int i = 0; i < indent; ++i) {
+                    OUT.print("   ");
+                }
+                OUT.println(inlinedCallSite.getCallTarget());
+            }
+            return true;
+        }
+
+        private int indent(Node n) {
+            if (n instanceof RootNode) {
+                return 0;
+            } else if (n instanceof InlinedCallSite) {
+                return indent(n.getParent()) + 1;
+            } else {
+                return indent(n.getParent());
+            }
+        }
+    }
+
+    public InstalledCode compileMethodHelper(final StructuredGraph graph, final GraphBuilderConfiguration config, final Assumptions assumptions) {
         final PhasePlan plan = createPhasePlan(config);
 
-        Debug.scope("TruffleFinal", graph, new Runnable() {
+        Debug.scope("TruffleFinal", new Runnable() {
 
             @Override
             public void run() {
@@ -148,10 +217,15 @@ public class TruffleCompilerImpl implements TruffleCompiler {
             @Override
             public CompilationResult call() {
                 try (TimerCloseable a = CompilationTime.start()) {
-                    CodeCacheProvider codeCache = providers.getCodeCache();
-                    CallingConvention cc = getCallingConvention(codeCache, Type.JavaCallee, graph.method(), false);
-                    return GraalCompiler.compileGraph(graph, cc, graph.method(), providers, backend, codeCache.getTarget(), null, plan, OptimisticOptimizations.ALL, new SpeculationLog(), suites,
-                                    new CompilationResult());
+                    return Debug.scope("GraalCompiler", new Object[]{graph, providers.getCodeCache()}, new Callable<CompilationResult>() {
+                        public CompilationResult call() {
+                            CodeCacheProvider codeCache = providers.getCodeCache();
+                            CallingConvention cc = getCallingConvention(codeCache, Type.JavaCallee, graph.method(), false);
+                            CompilationResult compilationResult = new CompilationResult(graph.method().toString());
+                            return GraalCompiler.compileGraphNoScope(graph, cc, graph.method(), providers, backend, codeCache.getTarget(), null, plan, OptimisticOptimizations.ALL,
+                                            new SpeculationLog(), suites, compilationResult);
+                        }
+                    });
                 }
             }
         });
@@ -172,7 +246,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
         result.setAssumptions(newAssumptions);
 
-        InstalledCode compiledMethod = Debug.scope("CodeInstall", new Object[]{graph.method()}, new Callable<InstalledCode>() {
+        InstalledCode compiledMethod = Debug.scope("CodeInstall", new Object[]{providers.getCodeCache()}, new Callable<InstalledCode>() {
 
             @Override
             public InstalledCode call() throws Exception {
@@ -192,9 +266,6 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
         if (Debug.isLogEnabled()) {
             Debug.log(providers.getCodeCache().disassemble(result, compiledMethod));
-        }
-        if (compilable != null) {
-            compilable.codeSize = result.getTargetCodeSize();
         }
         return compiledMethod;
     }

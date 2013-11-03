@@ -563,6 +563,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(Space,                       _bottom,                                       HeapWord*)                             \
   nonstatic_field(Space,                       _end,                                          HeapWord*)                             \
                                                                                                                                      \
+     static_field(HeapRegion,                  LogOfHRGrainBytes,                             int)                                   \
+                                                                                                                                     \
   nonstatic_field(ThreadLocalAllocBuffer,      _start,                                        HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _top,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _end,                                          HeapWord*)                             \
@@ -890,6 +892,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
      static_field(Threads,                     _return_code,                                  int)                                   \
                                                                                                                                      \
   nonstatic_field(ThreadShadow,                _pending_exception,                            oop)                                   \
+  nonstatic_field(ThreadShadow,                _pending_deoptimization,                       int)                                   \
   nonstatic_field(ThreadShadow,                _exception_file,                               const char*)                           \
   nonstatic_field(ThreadShadow,                _exception_line,                               int)                                   \
    volatile_nonstatic_field(Thread,            _suspend_flags,                                uint32_t)                              \
@@ -1243,6 +1246,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   static_field(java_lang_Class,                _array_klass_offset,                           int)                                   \
   static_field(java_lang_Class,                _oop_size_offset,                              int)                                   \
   static_field(java_lang_Class,                _static_oop_field_count_offset,                int)                                   \
+  GRAAL_ONLY(static_field(java_lang_Class,     _graal_mirror_offset,                          int))                                  \
                                                                                                                                      \
   /************************/                                                                                                         \
   /* Miscellaneous fields */                                                                                                         \
@@ -1482,6 +1486,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
            declare_type(EdenSpace,                    ContiguousSpace)    \
            declare_type(OffsetTableContigSpace,       ContiguousSpace)    \
            declare_type(TenuredSpace,                 OffsetTableContigSpace) \
+           declare_type(G1OffsetTableContigSpace,     ContiguousSpace)    \
+           declare_type(HeapRegion,                   G1OffsetTableContigSpace) \
   declare_toplevel_type(BarrierSet)                                       \
            declare_type(ModRefBarrierSet,             BarrierSet)         \
            declare_type(CardTableModRefBS,            ModRefBarrierSet)   \

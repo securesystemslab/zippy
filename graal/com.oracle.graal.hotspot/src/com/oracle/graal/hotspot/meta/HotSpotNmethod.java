@@ -46,17 +46,17 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
     private final HotSpotResolvedJavaMethod method;
     private final boolean isDefault;
     private final boolean isExternal;
+    private final String name;
 
-    public HotSpotNmethod(HotSpotResolvedJavaMethod method, boolean isDefault) {
-        this.method = method;
-        this.isDefault = isDefault;
-        this.isExternal = false;
+    public HotSpotNmethod(HotSpotResolvedJavaMethod method, String name, boolean isDefault) {
+        this(method, name, isDefault, false);
     }
 
-    public HotSpotNmethod(HotSpotResolvedJavaMethod method, boolean isDefault, boolean isExternal) {
+    public HotSpotNmethod(HotSpotResolvedJavaMethod method, String name, boolean isDefault, boolean isExternal) {
         this.method = method;
         this.isDefault = isDefault;
         this.isExternal = isExternal;
+        this.name = name;
     }
 
     public boolean isDefault() {
@@ -79,12 +79,12 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
 
     @Override
     public void invalidate() {
-        graalRuntime().getCompilerToVM().invalidateInstalledCode(this);
+        runtime().getCompilerToVM().invalidateInstalledCode(this);
     }
 
     @Override
     public String toString() {
-        return String.format("InstalledNmethod[method=%s, codeBlob=0x%x, isDefault=%b]", method, getCodeBlob(), isDefault);
+        return String.format("InstalledNmethod[method=%s, codeBlob=0x%x, isDefault=%b, name=]", method, getCodeBlob(), isDefault, name);
     }
 
     @Override
@@ -120,7 +120,7 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
 
         assert isExternal(); // for now
 
-        return graalRuntime().getCompilerToGPU().executeParallelMethodVarargs(dimX, dimY, dimZ, args, this);
+        return runtime().getCompilerToGPU().executeParallelMethodVarargs(dimX, dimY, dimZ, args, this);
 
     }
 
@@ -128,9 +128,9 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
     public Object executeVarargs(Object... args) throws InvalidInstalledCodeException {
         assert checkArgs(args);
         if (isExternal()) {
-            return graalRuntime().getCompilerToGPU().executeExternalMethodVarargs(args, this);
+            return runtime().getCompilerToGPU().executeExternalMethodVarargs(args, this);
         } else {
-            return graalRuntime().getCompilerToVM().executeCompiledMethodVarargs(args, this);
+            return runtime().getCompilerToVM().executeCompiledMethodVarargs(args, this);
         }
     }
 

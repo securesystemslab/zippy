@@ -34,6 +34,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.nodes.virtual.*;
+import com.oracle.graal.runtime.*;
 import com.oracle.graal.truffle.*;
 import com.oracle.graal.truffle.nodes.*;
 import com.oracle.truffle.api.*;
@@ -45,7 +46,7 @@ import com.oracle.truffle.api.frame.*;
  */
 public class NewFrameNode extends FixedWithNextNode implements IterableNodeType, VirtualizableAllocation, Canonicalizable {
 
-    static final ResolvedJavaType FRAME_TYPE = Graal.getRequiredCapability(MetaAccessProvider.class).lookupJavaType(FrameWithoutBoxing.class);
+    static final ResolvedJavaType FRAME_TYPE = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getProviders().getMetaAccess().lookupJavaType(FrameWithoutBoxing.class);
 
     @Input private ValueNode descriptor;
     @Input private ValueNode caller;
@@ -147,7 +148,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
         ResolvedJavaField primitiveLocalsField = findField(frameFields, "primitiveLocals");
         ResolvedJavaField tagsField = findField(frameFields, "tags");
 
-        VirtualObjectNode virtualFrame = new VirtualOnlyInstanceNode(frameType, frameFields);
+        VirtualObjectNode virtualFrame = new VirtualInstanceNode(frameType, frameFields, false);
         VirtualObjectNode virtualFrameObjectArray = new VirtualArrayNode((ResolvedJavaType) localsField.getType().getComponentType(), frameSize);
         VirtualObjectNode virtualFramePrimitiveArray = new VirtualArrayNode((ResolvedJavaType) primitiveLocalsField.getType().getComponentType(), frameSize);
         VirtualObjectNode virtualFrameTagArray = new VirtualArrayNode((ResolvedJavaType) tagsField.getType().getComponentType(), frameSize);
@@ -162,7 +163,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
             ConstantNode tagDefault = ConstantNode.forByte((byte) 0, graph());
             for (int i = 0; i < frameSize; i++) {
                 objectArrayEntryState[i] = objectDefault;
-                primitiveArrayEntryState[i] = initialValue(frameDescriptor.getSlots().get(i).getKind());
+                primitiveArrayEntryState[i] = initialPrimitiveValue(frameDescriptor.getSlots().get(i).getKind());
                 tagArrayEntryState[i] = tagDefault;
             }
             tool.getAssumptions().record(new AssumptionValidAssumption((OptimizedAssumption) frameDescriptor.getVersion()));
@@ -185,9 +186,15 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
         tool.replaceWithVirtual(virtualFrame);
     }
 
-    private ValueNode initialValue(FrameSlotKind kind) {
-        Kind graalKind = Kind.Long;
+    private ValueNode initialPrimitiveValue(FrameSlotKind kind) {
+        Kind graalKind = null;
         switch (kind) {
+            case Boolean:
+                graalKind = Kind.Boolean;
+                break;
+            case Byte:
+                graalKind = Kind.Byte;
+                break;
             case Int:
                 graalKind = Kind.Int;
                 break;
@@ -197,9 +204,16 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
             case Float:
                 graalKind = Kind.Float;
                 break;
-            case Boolean:
-                graalKind = Kind.Boolean;
+            case Long:
+                graalKind = Kind.Long;
                 break;
+            case Object:
+            case Illegal:
+                // won't be stored in the primitive array, so default to long
+                graalKind = Kind.Long;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected frame slot kind: " + kind);
         }
 
         return ConstantNode.defaultForKind(graalKind, graph());

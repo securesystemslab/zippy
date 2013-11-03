@@ -223,62 +223,44 @@ public class NodeParser extends TemplateParser<NodeData> {
             return;
         }
 
-        Signature genericSignature = node.getGenericSpecialization().getSignature();
-        Set<Signature> signatures = new TreeSet<>();
+        SpecializationData generic = node.getGenericSpecialization();
 
-        for (SpecializationData specialization1 : node.getSpecializations()) {
-            Signature signature = specialization1.getSignature();
+        List<TypeData> polymorphicSignature = new ArrayList<>();
+        // TODO we should support more optimized for boxing
+        // List<ActualParameter> updatePolymorphic = generic.getReturnTypeAndParameters();
+        List<ActualParameter> updatePolymorphic = Arrays.asList();
+        for (ActualParameter genericParameter : updatePolymorphic) {
+            if (!genericParameter.getSpecification().isSignature()) {
+                continue;
+            }
 
-            for (SpecializationData specialization2 : node.getSpecializations()) {
-                if (specialization1 == specialization2) {
+            Set<TypeData> usedTypes = new HashSet<>();
+            for (SpecializationData specialization : node.getSpecializations()) {
+                if (!specialization.isSpecialized()) {
                     continue;
                 }
-                signatures.add(signature.combine(genericSignature, specialization2.getSignature()));
-            }
-        }
-
-        while (true) {
-            List<Signature> newSignatures = new ArrayList<>();
-            for (Signature signature1 : signatures) {
-                for (Signature signature2 : signatures) {
-                    if (signature1 == signature2) {
-                        continue;
-                    }
-                    newSignatures.add(signature1.combine(genericSignature, signature2));
+                ActualParameter parameter = specialization.findParameter(genericParameter.getLocalName());
+                if (parameter == null) {
+                    throw new AssertionError("Parameter existed in generic specialization but not in specialized. param = " + genericParameter.getLocalName());
                 }
+                usedTypes.add(parameter.getTypeSystemType());
             }
-            if (!signatures.addAll(newSignatures)) {
-                break;
+
+            TypeData polymorphicType;
+            if (usedTypes.size() == 1) {
+                polymorphicType = usedTypes.iterator().next();
+            } else {
+                polymorphicType = node.getTypeSystem().getGenericTypeData();
             }
+            polymorphicSignature.add(polymorphicType);
         }
 
-        List<Signature> sortedSignatures = new ArrayList<>(signatures);
-
-        SpecializationData polymorphicGeneric = null;
-        List<SpecializationData> specializations = new ArrayList<>();
-        SpecializationData generic = node.getGenericSpecialization();
-        for (Signature signature : sortedSignatures) {
-            SpecializationData specialization = new SpecializationData(generic, false, false, true);
-
-            for (Iterator<ActualParameter> iterator = specialization.getParameters().iterator(); iterator.hasNext();) {
-                ActualParameter param = iterator.next();
-                if (param.getSpecification().isLocal()) {
-                    iterator.remove();
-                }
-            }
-
-            specialization.forceFrame(context.getTruffleTypes().getFrame());
-            specialization.setNode(node);
-            specialization.updateSignature(signature);
-            specializations.add(specialization);
-
-            if (genericSignature.equals(signature)) {
-                polymorphicGeneric = specialization;
-            }
-        }
-
-        node.setGenericPolymorphicSpecialization(polymorphicGeneric);
-        node.setPolymorphicSpecializations(specializations);
+        SpecializationData specialization = new SpecializationData(generic, false, false, true);
+        specialization.updateSignature(new Signature(polymorphicSignature));
+        specialization.setNode(node);
+        node.setGenericPolymorphicSpecialization(specialization);
+        // TODO remove polymoprhic specializations
+        node.setPolymorphicSpecializations(Collections.<SpecializationData> emptyList());
     }
 
     private NodeData parseNodeData(TypeElement templateType, TypeMirror nodeType, List<? extends Element> elements, List<TypeElement> typeHierarchy) {
@@ -681,7 +663,7 @@ public class NodeParser extends TemplateParser<NodeData> {
 
         // calculate reachability
         SpecializationData prev = null;
-        int specializationCount = 0;
+        int polymorphicCombinations = 0;
         boolean reachable = true;
         for (SpecializationData specialization : specializations) {
             if (specialization.isUninitialized()) {
@@ -698,14 +680,23 @@ public class NodeParser extends TemplateParser<NodeData> {
                 reachable = false;
             }
             if (!specialization.isGeneric()) {
-                specializationCount++;
+                int combinations = 1;
+                for (ActualParameter parameter : specialization.getParameters()) {
+                    if (!parameter.getSpecification().isSignature()) {
+                        continue;
+                    }
+                    TypeData type = parameter.getTypeSystemType();
+                    combinations *= node.getTypeSystem().lookupSourceTypes(type).size();
+                }
+                polymorphicCombinations += combinations;
             }
+
             prev = specialization;
         }
 
         // initialize polymorphic depth
         if (node.getPolymorphicDepth() < 0) {
-            node.setPolymorphicDepth(specializationCount - 1);
+            node.setPolymorphicDepth(polymorphicCombinations - 1);
         }
 
         // reduce polymorphicness if generic is not reachable

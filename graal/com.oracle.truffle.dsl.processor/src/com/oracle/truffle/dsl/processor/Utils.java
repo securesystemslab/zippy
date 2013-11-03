@@ -306,7 +306,7 @@ public class Utils {
             case LONG:
                 return "Long";
             case DECLARED:
-                return ((DeclaredType) mirror).asElement().getSimpleName().toString();
+                return fixECJBinaryNameIssue(((DeclaredType) mirror).asElement().getSimpleName().toString());
             case ARRAY:
                 return getTypeId(((ArrayType) mirror).getComponentType()) + "Array";
             case VOID:
@@ -379,7 +379,7 @@ public class Utils {
     }
 
     private static String getDeclaredName(DeclaredType element) {
-        String simpleName = element.asElement().getSimpleName().toString();
+        String simpleName = fixECJBinaryNameIssue(element.asElement().getSimpleName().toString());
 
         if (element.getTypeArguments().size() == 0) {
             return simpleName;
@@ -399,8 +399,28 @@ public class Utils {
         return b.toString();
     }
 
+    public static String fixECJBinaryNameIssue(String name) {
+        if (name.contains("$")) {
+            int lastIndex = name.lastIndexOf('$');
+            return name.substring(lastIndex + 1, name.length());
+        }
+        return name;
+    }
+
     public static String getQualifiedName(TypeElement element) {
-        return element.getQualifiedName().toString();
+        String qualifiedName = element.getQualifiedName().toString();
+        if (qualifiedName.contains("$")) {
+            /*
+             * If a class gets loaded in its binary form by the ECJ compiler it fails to produce the
+             * proper canonical class name. It leaves the $ in the qualified name of the class. So
+             * one instance of a TypeElement may be loaded in binary and one in source form. The
+             * current type comparison in #typeEquals compares by the qualified name so the
+             * qualified name must match. This is basically a hack to fix the returned qualified
+             * name of eclipse.
+             */
+            qualifiedName = qualifiedName.replace('$', '.');
+        }
+        return qualifiedName;
     }
 
     public static String getQualifiedName(TypeMirror mirror) {
@@ -866,6 +886,8 @@ public class Utils {
             return true;
         } else if (type1 == null || type2 == null) {
             return false;
+        } else if (type1 == type2) {
+            return true;
         }
         String qualified1 = getQualifiedName(type1);
         String qualified2 = getQualifiedName(type2);

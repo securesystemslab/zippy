@@ -244,7 +244,7 @@ def _arch():
     if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
     if machine in ['sun4v', 'sun4u']:
-        return 'sparc'
+        return 'sparcv9'
     if machine == 'i386' and mx.get_os() == 'darwin':
         try:
             # Support for Snow Leopard and earlier version of MacOSX
@@ -320,11 +320,14 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 for line in f:
                     if line.startswith('-') and defaultVM is None:
                         parts = line.split()
-                        assert len(parts) == 2, parts
-                        assert parts[1] == 'KNOWN', parts[1]
-                        defaultVM = parts[0][1:]
-                        jvmCfgLines += ['# default VM is a copy of the unmodified ' + defaultVM + ' VM\n']
-                        jvmCfgLines += ['-original KNOWN\n']
+                        if len(parts) == 2:
+                            assert parts[1] == 'KNOWN', parts[1]
+                            defaultVM = parts[0][1:]
+                            jvmCfgLines += ['# default VM is a copy of the unmodified ' + defaultVM + ' VM\n']
+                            jvmCfgLines += ['-original KNOWN\n']
+                        else:
+                            # skip lines which we cannot parse (e.g. '-hotspot ALIASED_TO -client')
+                            mx.log("WARNING: skipping not parsable line \"" + line + "\"")
                     else:
                         jvmCfgLines += [line]
 
@@ -818,7 +821,7 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if not isGraalEnabled(_get_vm()):
+        if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
@@ -955,12 +958,11 @@ def _basic_gate_body(args, tasks):
         vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
-    # temporarily disable G1 verification until merge issues are resolved
-    # with VM('graal', 'product'):
-    #     t = Task('BootstrapWithG1GCVerification:product')
-    #     out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-    #     vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
-    #     tasks.append(t.stop())
+    with VM('graal', 'product'):
+        t = Task('BootstrapWithG1GCVerification:product')
+        out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithRegisterPressure:product')
@@ -990,8 +992,8 @@ def _basic_gate_body(args, tasks):
     global _jacoco
     _jacoco = 'off'
 
-    t = Task('CleanAndBuildGraalVisualizer')
-    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+    t = Task('CleanAndBuildIdealGraphVisualizer')
+    mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-q', 'clean', 'build'])
     tasks.append(t.stop())
 
     # Prevent Graal modifications from breaking the standard builds

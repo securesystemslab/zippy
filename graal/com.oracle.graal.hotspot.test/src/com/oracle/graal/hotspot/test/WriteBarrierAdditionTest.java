@@ -43,6 +43,7 @@ import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
+import com.oracle.graal.runtime.*;
 
 /**
  * The following unit tests assert the presence of write barriers for both Serial and G1 GCs.
@@ -58,7 +59,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     private final MetaAccessProvider metaAccess;
 
     public WriteBarrierAdditionTest() {
-        this.metaAccess = Graal.getRequiredCapability(MetaAccessProvider.class);
+        this.metaAccess = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getProviders().getMetaAccess();
     }
 
     public static class Container {
@@ -72,13 +73,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test1() throws Exception {
-        int expectedBarriers = 0;
-        if (useG1GC()) {
-            expectedBarriers = (useDeferredInitBarriers() ? 0 : 4);
-        } else {
-            expectedBarriers = (useDeferredInitBarriers() ? 0 : 2);
-        }
-        test("test1Snippet", expectedBarriers);
+        test("test1Snippet", (useG1GC()) ? 4 : 2);
     }
 
     public static void test1Snippet() {
@@ -94,13 +89,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test2() throws Exception {
-        int expectedBarriers = 0;
-        if (useG1GC()) {
-            expectedBarriers = (useDeferredInitBarriers() ? 0 : 8);
-        } else {
-            expectedBarriers = (useDeferredInitBarriers() ? 0 : 4);
-        }
-        test("test2Snippet", expectedBarriers);
+        test("test2Snippet", (useG1GC()) ? 8 : 4);
     }
 
     public static void test2Snippet(boolean test) {
@@ -146,13 +135,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test4() throws Exception {
-        int expectedBarriers = 0;
-        if (useG1GC()) {
-            expectedBarriers = (useDeferredInitBarriers() ? 1 : 5);
-        } else {
-            expectedBarriers = (useDeferredInitBarriers() ? 0 : 2);
-        }
-        test("test4Snippet", expectedBarriers);
+        test("test4Snippet", (useG1GC()) ? 5 : 2);
     }
 
     public static Object test4Snippet() {
@@ -174,7 +157,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     }
 
     public static Object test5Snippet() throws Exception {
-        return UnsafeLoadNode.load(wr, useCompressedOops() ? 12 : 16, Kind.Object);
+        return UnsafeLoadNode.load(wr, useCompressedOops() ? 12 : 16, Kind.Object, LocationIdentity.ANY_LOCATION);
     }
 
     /**
@@ -249,7 +232,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
     public static Object testUnsafeLoad(Object a, Object b, Object c) throws Exception {
         final int offset = (c == null ? 0 : ((Integer) c).intValue());
         final long displacement = (b == null ? 0 : ((Long) b).longValue());
-        return UnsafeLoadNode.load(a, offset + displacement, Kind.Object);
+        return UnsafeLoadNode.load(a, offset + displacement, Kind.Object, LocationIdentity.ANY_LOCATION);
     }
 
     private HotSpotInstalledCode getInstalledCode(String name) throws Exception {

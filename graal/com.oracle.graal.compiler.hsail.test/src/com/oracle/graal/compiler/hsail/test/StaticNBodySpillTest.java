@@ -27,7 +27,7 @@ import java.util.*;
 
 import org.junit.*;
 
-import com.oracle.graal.compiler.hsail.test.infra.GraalKernelTester;
+import com.oracle.graal.compiler.hsail.test.infra.*;
 
 /**
  * This version of NBody causes Graal to generate register spilling code.
@@ -100,5 +100,4 @@ public class StaticNBodySpillTest extends GraalKernelTester {
     public void test() {
         testGeneratedHsail();
     }
-
 }

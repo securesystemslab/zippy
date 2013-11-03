@@ -24,7 +24,7 @@ package com.oracle.graal.hotspot.replacements;
 
 import static com.oracle.graal.graph.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
-import static com.oracle.graal.hotspot.meta.HotSpotRuntime.*;
+import static com.oracle.graal.hotspot.meta.HotSpotHostForeignCallsProvider.*;
 import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 import sun.misc.*;
 
@@ -34,7 +34,6 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.replacements.Snippet.Fold;
 import com.oracle.graal.replacements.nodes.*;
@@ -48,7 +47,7 @@ import com.oracle.graal.word.*;
 public class HotSpotReplacementsUtil {
 
     public static HotSpotVMConfig config() {
-        return graalRuntime().getConfig();
+        return runtime().getConfig();
     }
 
     @Fold
@@ -82,21 +81,21 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int threadTlabTopOffset() {
-        return config().threadTlabTopOffset;
+        return config().threadTlabTopOffset();
     }
 
     public static final LocationIdentity TLAB_END_LOCATION = new NamedLocationIdentity("TlabEnd");
 
     @Fold
     private static int threadTlabEndOffset() {
-        return config().threadTlabEndOffset;
+        return config().threadTlabEndOffset();
     }
 
     public static final LocationIdentity TLAB_START_LOCATION = new NamedLocationIdentity("TlabStart");
 
     @Fold
     private static int threadTlabStartOffset() {
-        return config().threadTlabStartOffset;
+        return config().threadTlabStartOffset();
     }
 
     public static final LocationIdentity PENDING_EXCEPTION_LOCATION = new NamedLocationIdentity("PendingException");
@@ -199,22 +198,22 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static Kind getWordKind() {
-        return graalRuntime().getTarget().wordKind;
+        return runtime().getTarget().wordKind;
     }
 
     @Fold
     public static Register threadRegister() {
-        return graalRuntime().getRuntime().threadRegister();
+        return runtime().getHostProviders().getRegisters().getThreadRegister();
     }
 
     @Fold
     public static Register stackPointerRegister() {
-        return graalRuntime().getRuntime().stackPointerRegister();
+        return runtime().getHostProviders().getRegisters().getStackPointerRegister();
     }
 
     @Fold
     public static int wordSize() {
-        return graalRuntime().getTarget().wordSize;
+        return runtime().getTarget().wordSize;
     }
 
     @Fold
@@ -231,7 +230,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static long arrayPrototypeMarkWord() {
-        return config().arrayPrototypeMarkWord;
+        return config().arrayPrototypeMarkWord();
     }
 
     @Fold
@@ -344,12 +343,12 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int arrayBaseOffset(Kind elementKind) {
-        return HotSpotRuntime.getArrayBaseOffset(elementKind);
+        return HotSpotGraalRuntime.getArrayBaseOffset(elementKind);
     }
 
     @Fold
     public static int arrayIndexScale(Kind elementKind) {
-        return HotSpotRuntime.getArrayIndexScale(elementKind);
+        return HotSpotGraalRuntime.getArrayIndexScale(elementKind);
     }
 
     @Fold
@@ -359,22 +358,22 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int cardTableShift() {
-        return config().cardtableShift;
+        return config().cardtableShift();
     }
 
     @Fold
     public static long cardTableStart() {
-        return config().cardtableStartAddress;
+        return config().cardtableStartAddress();
     }
 
     @Fold
     public static int g1CardQueueIndexOffset() {
-        return config().g1CardQueueIndexOffset;
+        return config().g1CardQueueIndexOffset();
     }
 
     @Fold
     public static int g1CardQueueBufferOffset() {
-        return config().g1CardQueueBufferOffset;
+        return config().g1CardQueueBufferOffset();
     }
 
     @Fold
@@ -384,17 +383,17 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int g1SATBQueueMarkingOffset() {
-        return config().g1SATBQueueMarkingOffset;
+        return config().g1SATBQueueMarkingOffset();
     }
 
     @Fold
     public static int g1SATBQueueIndexOffset() {
-        return config().g1SATBQueueIndexOffset;
+        return config().g1SATBQueueIndexOffset();
     }
 
     @Fold
     public static int g1SATBQueueBufferOffset() {
-        return config().g1SATBQueueBufferOffset;
+        return config().g1SATBQueueBufferOffset();
     }
 
     @Fold
@@ -486,7 +485,7 @@ public class HotSpotReplacementsUtil {
 
     public static Word loadWordFromObject(Object object, int offset) {
         assert offset != hubOffset() : "Use loadHubIntrinsic instead";
-        return loadWordFromObjectIntrinsic(object, offset, getWordKind());
+        return loadWordFromObjectIntrinsic(object, offset, getWordKind(), LocationIdentity.ANY_LOCATION);
     }
 
     @NodeIntrinsic(value = ReadRegisterNode.class, setStampFromReturnType = true)
@@ -494,7 +493,7 @@ public class HotSpotReplacementsUtil {
 
     @SuppressWarnings("unused")
     @NodeIntrinsic(value = UnsafeLoadNode.class, setStampFromReturnType = true)
-    private static Word loadWordFromObjectIntrinsic(Object object, long offset, @ConstantNodeParameter Kind wordKind) {
+    private static Word loadWordFromObjectIntrinsic(Object object, long offset, @ConstantNodeParameter Kind wordKind, @ConstantNodeParameter LocationIdentity locationIdentity) {
         return Word.unsigned(unsafeReadWord(object, offset));
     }
 
@@ -562,7 +561,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static long tlabIntArrayMarkWord() {
-        return config().tlabIntArrayMarkWord;
+        return config().tlabIntArrayMarkWord();
     }
 
     @Fold
@@ -579,7 +578,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int threadTlabSizeOffset() {
-        return config().threadTlabSizeOffset;
+        return config().threadTlabSizeOffset();
     }
 
     public static final LocationIdentity TLAB_THREAD_ALLOCATED_BYTES_LOCATION = new NamedLocationIdentity("TlabThreadAllocatedBytes");
@@ -593,28 +592,28 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int tlabRefillWasteLimitOffset() {
-        return config().tlabRefillWasteLimitOffset;
+        return config().tlabRefillWasteLimitOffset();
     }
 
     public static final LocationIdentity TLAB_NOF_REFILLS_LOCATION = new NamedLocationIdentity("TlabNOfRefills");
 
     @Fold
     public static int tlabNumberOfRefillsOffset() {
-        return config().tlabNumberOfRefillsOffset;
+        return config().tlabNumberOfRefillsOffset();
     }
 
     public static final LocationIdentity TLAB_FAST_REFILL_WASTE_LOCATION = new NamedLocationIdentity("TlabFastRefillWaste");
 
     @Fold
     public static int tlabFastRefillWasteOffset() {
-        return config().tlabFastRefillWasteOffset;
+        return config().tlabFastRefillWasteOffset();
     }
 
     public static final LocationIdentity TLAB_SLOW_ALLOCATIONS_LOCATION = new NamedLocationIdentity("TlabSlowAllocations");
 
     @Fold
     public static int tlabSlowAllocationsOffset() {
-        return config().tlabSlowAllocationsOffset;
+        return config().tlabSlowAllocationsOffset();
     }
 
     @Fold
@@ -664,7 +663,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int layoutHelperElementTypePrimitiveInPlace() {
-        return config().layoutHelperElementTypePrimitiveInPlace;
+        return config().layoutHelperElementTypePrimitiveInPlace();
     }
 
     static {
@@ -706,7 +705,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static long gcTotalCollectionsAddress() {
-        return config().gcTotalCollectionsAddress;
+        return config().gcTotalCollectionsAddress();
     }
 
     @Fold

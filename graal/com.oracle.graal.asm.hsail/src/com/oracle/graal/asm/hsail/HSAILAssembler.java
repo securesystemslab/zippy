@@ -223,19 +223,49 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
         }
     }
 
+    public static final String getArgTypeBitwiseLogical(Value src) {
+        String length = getArgType(src);
+        String prefix = "_b" + (length.endsWith("64") ? "64" : "32");
+        return prefix;
+    }
+
     public void emitCompare(Value src0, Value src1, String condition, boolean unordered, boolean isUnsignedCompare) {
         String prefix = "cmp_" + condition + (unordered ? "u" : "") + "_b1_" + (isUnsignedCompare ? getArgTypeForceUnsigned(src1) : getArgType(src1));
         String comment = (isConstant(src1) && (src1.getKind() == Kind.Object) && (asConstant(src1).asObject() == null) ? " // null test " : "");
         emitString(prefix + " $c0, " + mapRegOrConstToString(src0) + ", " + mapRegOrConstToString(src1) + ";" + comment);
     }
 
+    /**
+     * I2S requires special handling because Graal passes an int for the destination operand instead
+     * of a short.
+     */
+    public void emitConvertIntToShort(Value dest, Value src) {
+        emitString("cvt_s16_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
+    }
+
+    /**
+     * I2C requires special handling because Graal passes an int for the destination operand instead
+     * of a char.
+     */
+    public void emitConvertIntToChar(Value dest, Value src) {
+        emitString("cvt_u16_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
+    }
+
+    /**
+     * I2B requires special handling because Graal passes an int for the destination operand instead
+     * of a byte.
+     */
+    public void emitConvertIntToByte(Value dest, Value src) {
+        emitString("cvt_s8_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
+    }
+
+    /**
+     * Generic handler for all other conversions.
+     * 
+     */
     public void emitConvert(Value dest, Value src) {
         String prefix = (getArgType(dest).equals("f32") && getArgType(src).equals("f64")) ? "cvt_near_" : "cvt_";
         emitString(prefix + getArgType(dest) + "_" + getArgType(src) + " " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
-    }
-
-    public void emitArg1(String mnemonic, Value dest, Value src) {
-        emitString(mnemonic + "_" + getArgType(src) + " " + HSAIL.mapRegister(dest) + ", " + mapRegOrConstToString(src) + ";" + "");
     }
 
     public static String mapAddress(HSAILAddress addr) {
@@ -270,29 +300,84 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
 
     }
 
-    public final void emit(String mnemonic, Value dest, Value src0, Value src1) {
+    /**
+     * Emits an instruction.
+     * 
+     * @param mnemonic the instruction mnemonic
+     * @param dest the destination operand
+     * @param sources the source operands
+     */
+    public final void emit(String mnemonic, Value dest, Value... sources) {
         String prefix = getArgType(dest);
-        emit(mnemonic + "_" + prefix, dest, "", src0, src1);
+        emitTextFormattedInstruction(mnemonic + "_" + prefix, dest, sources);
     }
 
-    public final void emitForceUnsigned(String mnemonic, Value dest, Value src0, Value src1) {
+    /**
+     * Emits an unsigned instruction.
+     * 
+     * @param mnemonic the instruction mnemonic
+     * @param dest the destination argument
+     * @param sources the source arguments
+     * 
+     */
+    public final void emitForceUnsigned(String mnemonic, Value dest, Value... sources) {
         String prefix = getArgTypeForceUnsigned(dest);
-        emit(mnemonic + "_" + prefix, dest, "", src0, src1);
+        emitTextFormattedInstruction(mnemonic + "_" + prefix, dest, sources);
     }
 
-    private void emit(String instr, Value dest, String controlRegString, Value src0, Value src1) {
+    /**
+     * Emits an instruction for a bitwise logical operation.
+     * 
+     * @param mnemonic the instruction mnemonic
+     * @param dest the destination
+     * @param sources the source operands
+     */
+    public final void emitForceBitwise(String mnemonic, Value dest, Value... sources) {
+        String prefix = getArgTypeBitwiseLogical(dest);
+        emitTextFormattedInstruction(mnemonic + prefix, dest, sources);
+    }
+
+    /**
+     * Central helper routine that emits a text formatted HSAIL instruction via call to
+     * AbstractAssembler.emitString. All the emit routines in the assembler end up calling this one.
+     * 
+     * @param instr the full instruction mnenomics including any prefixes
+     * @param dest the destination operand
+     * @param sources the source operand
+     */
+    private void emitTextFormattedInstruction(String instr, Value dest, Value... sources) {
+        /**
+         * Destination can't be a constant and no instruction has > 3 source operands.
+         */
+        assert (!isConstant(dest) && sources.length <= 3);
+        switch (sources.length) {
+            case 3:
+                // Emit an instruction with three source operands.
+                emitString(String.format("%s %s, %s, %s, %s;", instr, HSAIL.mapRegister(dest), mapRegOrConstToString(sources[0]), mapRegOrConstToString(sources[1]), mapRegOrConstToString(sources[2])));
+                break;
+            case 2:
+                // Emit an instruction with two source operands.
+                emitString(String.format("%s %s, %s, %s;", instr, HSAIL.mapRegister(dest), mapRegOrConstToString(sources[0]), mapRegOrConstToString(sources[1])));
+                break;
+            default:
+                // Emit an instruction with one source operand.
+                emitString(String.format("%s %s, %s;", instr, HSAIL.mapRegister(dest), mapRegOrConstToString(sources[0])));
+                break;
+        }
+    }
+
+    /**
+     * Emits a conditional move instruction.
+     * 
+     * @param dest the destination operand storing result of the move
+     * @param trueReg the register that should be copied to dest if the condition is true
+     * @param falseReg the register that should be copied to dest if the condition is false
+     * @param width the width of the instruction (32 or 64 bits)
+     */
+    public final void emitConditionalMove(Value dest, Value trueReg, Value falseReg, int width) {
         assert (!isConstant(dest));
-        emitString(String.format("%s %s, %s%s, %s;", instr, HSAIL.mapRegister(dest), controlRegString, mapRegOrConstToString(src0), mapRegOrConstToString(src1)));
-    }
-
-    private void emit(String instr, Value dest, Value src0, Value src1, Value src2) {
-        assert (!isConstant(dest));
-        emitString(String.format("%s %s, %s, %s, %s;", instr, HSAIL.mapRegister(dest), mapRegOrConstToString(src0), mapRegOrConstToString(src1), mapRegOrConstToString(src2)));
-    }
-
-    public final void cmovCommon(Value dest, Value trueReg, Value falseReg, int width) {
         String instr = (width == 32 ? "cmov_b32" : "cmov_b64");
-        emit(instr, dest, "$c0, ", trueReg, falseReg);
+        emitString(String.format("%s %s, %s%s, %s;", instr, HSAIL.mapRegister(dest), "$c0, ", mapRegOrConstToString(trueReg), mapRegOrConstToString(falseReg)));
     }
 
     /**
@@ -306,12 +391,12 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
             // only use add if result is not starting as null (unsigned compare)
             emitCompare(result, Constant.forLong(0), "eq", false, true);
             emit("add", result, result, Constant.forLong(narrowOopBase));
-            cmovCommon(result, Constant.forLong(0), result, 64);
+            emitConditionalMove(result, Constant.forLong(0), result, 64);
         } else {
             // only use mad if result is not starting as null (unsigned compare)
             emitCompare(result, Constant.forLong(0), "eq", false, true);
-            emit("mad_u64 ", result, result, Constant.forInt(1 << narrowOopShift), Constant.forLong(narrowOopBase));
-            cmovCommon(result, Constant.forLong(0), result, 64);
+            emitTextFormattedInstruction("mad_u64 ", result, result, Constant.forInt(1 << narrowOopShift), Constant.forLong(narrowOopBase));
+            emitConditionalMove(result, Constant.forLong(0), result, 64);
         }
     }
 
@@ -324,13 +409,18 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
             // only use sub if result is not starting as null (unsigned compare)
             emitCompare(result, Constant.forLong(0), "eq", false, true);
             emit("sub", result, result, Constant.forLong(narrowOopBase));
-            cmovCommon(result, Constant.forLong(0), result, 64);
+            emitConditionalMove(result, Constant.forLong(0), result, 64);
         }
         if (narrowOopShift != 0) {
             emit("shr", result, result, Constant.forInt(narrowOopShift));
         }
     }
 
+    /**
+     * Emits a comment. Useful for debugging purposes.
+     * 
+     * @param comment
+     */
     public void emitComment(String comment) {
         emitString(comment);
     }

@@ -39,27 +39,25 @@ import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.asm.amd64.AMD64Assembler.ConditionFlag;
 import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
-import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 
 /**
  * HotSpot AMD64 specific backend.
  */
-public class AMD64HotSpotBackend extends HotSpotBackend {
+public class AMD64HotSpotBackend extends HotSpotHostBackend {
 
     private static final Unsafe unsafe = Unsafe.getUnsafe();
 
-    public AMD64HotSpotBackend(HotSpotRuntime runtime, TargetDescription target) {
-        super(runtime, target);
+    public AMD64HotSpotBackend(HotSpotGraalRuntime runtime, HotSpotProviders providers) {
+        super(runtime, providers);
     }
 
     @Override
@@ -69,12 +67,12 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
 
     @Override
     public FrameMap newFrameMap() {
-        return new AMD64FrameMap(getCodeCache(), target, getCodeCache().getRegisterConfig());
+        return new AMD64FrameMap(getCodeCache());
     }
 
     @Override
     public LIRGenerator newLIRGenerator(StructuredGraph graph, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        return new AMD64HotSpotLIRGenerator(graph, getProviders(), target, frameMap, cc, lir);
+        return new AMD64HotSpotLIRGenerator(graph, getProviders(), getRuntime().getConfig(), frameMap, cc, lir);
     }
 
     /**
@@ -154,7 +152,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
 
     @Override
     protected AbstractAssembler createAssembler(FrameMap frameMap) {
-        return new AMD64MacroAssembler(target, frameMap.registerConfig);
+        return new AMD64MacroAssembler(getTarget(), frameMap.registerConfig);
     }
 
     @Override
@@ -174,7 +172,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         Stub stub = gen.getStub();
         AbstractAssembler masm = createAssembler(frameMap);
         HotSpotFrameContext frameContext = omitFrame ? null : new HotSpotFrameContext(stub != null);
-        TargetMethodAssembler tasm = new TargetMethodAssembler(target, getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
+        TargetMethodAssembler tasm = new TargetMethodAssembler(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
         tasm.setFrameSize(frameMap.frameSize());
         StackSlot deoptimizationRescueSlot = gen.deoptimizationRescueSlot;
         if (deoptimizationRescueSlot != null && stub == null) {
@@ -182,52 +180,11 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         }
 
         if (stub != null) {
-
-            final Set<Register> definedRegisters = gatherDefinedRegisters(lir);
-            stub.initDestroyedRegisters(definedRegisters);
-
-            // Eliminate unnecessary register preservation and
-            // record where preserved registers are saved
-            for (Map.Entry<LIRFrameState, AMD64RegistersPreservationOp> e : gen.calleeSaveInfo.entrySet()) {
-                AMD64RegistersPreservationOp save = e.getValue();
-                DebugInfo info = e.getKey() == null ? null : e.getKey().debugInfo();
-                save.update(definedRegisters, info, frameMap);
-            }
+            Set<Register> definedRegisters = gatherDefinedRegisters(lir);
+            updateStub(stub, definedRegisters, gen.calleeSaveInfo, frameMap);
         }
 
         return tasm;
-    }
-
-    /**
-     * Finds all the registers that are defined by some given LIR.
-     * 
-     * @param lir the LIR to examine
-     * @return the registers that are defined by or used as temps for any instruction in {@code lir}
-     */
-    private static Set<Register> gatherDefinedRegisters(LIR lir) {
-        final Set<Register> definedRegisters = new HashSet<>();
-        ValueProcedure defProc = new ValueProcedure() {
-
-            @Override
-            public Value doValue(Value value) {
-                if (ValueUtil.isRegister(value)) {
-                    final Register reg = ValueUtil.asRegister(value);
-                    definedRegisters.add(reg);
-                }
-                return value;
-            }
-        };
-        for (Block block : lir.codeEmittingOrder()) {
-            for (LIRInstruction op : lir.lir(block)) {
-                if (op instanceof LabelOp) {
-                    // Don't consider this as a definition
-                } else {
-                    op.forEachTemp(defProc);
-                    op.forEachOutput(defProc);
-                }
-            }
-        }
-        return definedRegisters;
     }
 
     @Override
@@ -235,23 +192,36 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
         FrameMap frameMap = tasm.frameMap;
         RegisterConfig regConfig = frameMap.registerConfig;
-        HotSpotVMConfig config = getRuntime().config;
+        HotSpotVMConfig config = getRuntime().getConfig();
         Label verifiedStub = new Label();
 
         // Emit the prefix
+        emitCodePrefix(installedCodeOwner, tasm, asm, regConfig, config, verifiedStub);
+
+        // Emit code for the LIR
+        emitCodeBody(installedCodeOwner, tasm, lirGen);
+
+        // Emit the suffix
+        emitCodeSuffix(installedCodeOwner, tasm, lirGen, asm, frameMap);
+    }
+
+    /**
+     * @param installedCodeOwner see {@link Backend#emitCode}
+     */
+    public void emitCodePrefix(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, AMD64MacroAssembler asm, RegisterConfig regConfig, HotSpotVMConfig config, Label verifiedStub) {
+        HotSpotProviders providers = getProviders();
         if (installedCodeOwner != null && !isStatic(installedCodeOwner.getModifiers())) {
             tasm.recordMark(Marks.MARK_UNVERIFIED_ENTRY);
-            CallingConvention cc = regConfig.getCallingConvention(JavaCallee, null, new JavaType[]{getRuntime().lookupJavaType(Object.class)}, target, false);
+            CallingConvention cc = regConfig.getCallingConvention(JavaCallee, null, new JavaType[]{providers.getMetaAccess().lookupJavaType(Object.class)}, getTarget(), false);
             Register inlineCacheKlass = rax; // see definition of IC_Klass in
                                              // c1_LIRAssembler_x86.cpp
             Register receiver = asRegister(cc.getArgument(0));
             AMD64Address src = new AMD64Address(receiver, config.hubOffset);
 
-            AMD64HotSpotLIRGenerator gen = (AMD64HotSpotLIRGenerator) lirGen;
-            AMD64HotSpotRuntime hr = ((AMD64HotSpotRuntime) gen.getCodeCache());
-            if (hr.useCompressedKlassPointers()) {
+            if (config.useCompressedClassPointers) {
                 Register register = r10;
-                AMD64HotSpotMove.decodeKlassPointer(asm, register, hr.heapBaseRegister(), src, config.narrowKlassBase, config.narrowOopBase, config.narrowKlassShift, config.logKlassAlignment);
+                AMD64HotSpotMove.decodeKlassPointer(asm, register, providers.getRegisters().getHeapBaseRegister(), src, config.narrowKlassBase, config.narrowOopBase, config.narrowKlassShift,
+                                config.logKlassAlignment);
                 asm.cmpq(inlineCacheKlass, register);
             } else {
                 asm.cmpq(inlineCacheKlass, src);
@@ -263,16 +233,27 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         tasm.recordMark(Marks.MARK_OSR_ENTRY);
         asm.bind(verifiedStub);
         tasm.recordMark(Marks.MARK_VERIFIED_ENTRY);
+    }
 
-        // Emit code for the LIR
+    /**
+     * @param installedCodeOwner see {@link Backend#emitCode}
+     */
+    public void emitCodeBody(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, LIRGenerator lirGen) {
         lirGen.lir.emitCode(tasm);
+    }
 
+    /**
+     * @param installedCodeOwner see {@link Backend#emitCode}
+     */
+    public void emitCodeSuffix(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, LIRGenerator lirGen, AMD64MacroAssembler asm, FrameMap frameMap) {
+        HotSpotProviders providers = getProviders();
         HotSpotFrameContext frameContext = (HotSpotFrameContext) tasm.frameContext;
         if (frameContext != null && !frameContext.isStub) {
+            HotSpotForeignCallsProvider foreignCalls = providers.getForeignCalls();
             tasm.recordMark(Marks.MARK_EXCEPTION_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, getRuntime().lookupForeignCall(EXCEPTION_HANDLER), null, false, null);
+            AMD64Call.directCall(tasm, asm, foreignCalls.lookupForeignCall(EXCEPTION_HANDLER), null, false, null);
             tasm.recordMark(Marks.MARK_DEOPT_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, getRuntime().lookupForeignCall(DEOPT_HANDLER), null, false, null);
+            AMD64Call.directCall(tasm, asm, foreignCalls.lookupForeignCall(DEOPT_HANDLER), null, false, null);
         } else {
             // No need to emit the stubs for entries back into the method since
             // it has no calls that can cause such "return" entries

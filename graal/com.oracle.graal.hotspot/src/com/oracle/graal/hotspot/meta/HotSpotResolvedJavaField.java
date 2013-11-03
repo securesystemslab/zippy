@@ -20,7 +20,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 package com.oracle.graal.hotspot.meta;
 
 import static com.oracle.graal.api.meta.MetaUtil.*;
@@ -93,14 +92,13 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
      * only called for snippets or replacements.
      */
     private static boolean isCalledForSnippets() {
-        HotSpotRuntime runtime = graalRuntime().getRuntime();
-
+        MetaAccessProvider metaAccess = runtime().getHostProviders().getMetaAccess();
         ResolvedJavaMethod makeGraphMethod = null;
         ResolvedJavaMethod initMethod = null;
         try {
             Class<?> rjm = ResolvedJavaMethod.class;
-            makeGraphMethod = runtime.lookupJavaMethod(ReplacementsImpl.class.getDeclaredMethod("makeGraph", rjm, rjm, SnippetInliningPolicy.class, boolean.class));
-            initMethod = runtime.lookupJavaMethod(SnippetTemplate.AbstractTemplates.class.getDeclaredMethod("template", Arguments.class));
+            makeGraphMethod = metaAccess.lookupJavaMethod(ReplacementsImpl.class.getDeclaredMethod("makeGraph", rjm, rjm, SnippetInliningPolicy.class, boolean.class));
+            initMethod = metaAccess.lookupJavaMethod(SnippetTemplate.AbstractTemplates.class.getDeclaredMethod("template", Arguments.class));
         } catch (NoSuchMethodException | SecurityException e) {
             throw new GraalInternalError(e);
         }
@@ -121,8 +119,8 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
     private static final Set<ResolvedJavaField> notEmbeddable = new HashSet<>();
 
     private static void addResolvedToSet(Field field) {
-        HotSpotRuntime runtime = graalRuntime().getRuntime();
-        notEmbeddable.add(runtime.lookupJavaField(field));
+        MetaAccessProvider metaAccess = runtime().getHostProviders().getMetaAccess();
+        notEmbeddable.add(metaAccess.lookupJavaField(field));
     }
 
     static {
@@ -196,21 +194,39 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
              */
             assert !Modifier.isStatic(flags);
             Object object = receiver.asObject();
-            if (Modifier.isFinal(getModifiers())) {
-                Constant value = readValue(receiver);
-                if (assumeNonStaticFinalFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
-                    return value;
-                }
-            } else {
-                Class<?> clazz = object.getClass();
-                if (StableOptionValue.class.isAssignableFrom(clazz)) {
-                    assert getName().equals("value") : "Unexpected field in " + StableOptionValue.class.getName() + " hierarchy:" + this;
-                    StableOptionValue<?> option = (StableOptionValue<?>) object;
-                    return Constant.forObject(option.getValue());
+
+            // Canonicalization may attempt to process an unsafe read before
+            // processing a guard (e.g. a type check) for this read
+            // so we need to type check the object being read
+            if (isInObject(object)) {
+                if (Modifier.isFinal(getModifiers())) {
+                    Constant value = readValue(receiver);
+                    if (assumeNonStaticFinalFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
+                        return value;
+                    }
+                } else if (isStable()) {
+                    Constant value = readValue(receiver);
+                    if (assumeDefaultStableFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
+                        return value;
+                    }
+                } else {
+                    Class<?> clazz = object.getClass();
+                    if (StableOptionValue.class.isAssignableFrom(clazz)) {
+                        assert getName().equals("value") : "Unexpected field in " + StableOptionValue.class.getName() + " hierarchy:" + this;
+                        StableOptionValue<?> option = (StableOptionValue<?>) object;
+                        return Constant.forObject(option.getValue());
+                    }
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Determines if a given object contains this field.
+     */
+    public boolean isInObject(Object object) {
+        return getDeclaringClass().isAssignableFrom(HotSpotResolvedObjectType.fromClass(object.getClass()));
     }
 
     @Override
@@ -218,17 +234,33 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
         if (receiver == null) {
             assert Modifier.isStatic(flags);
             if (holder.isInitialized()) {
-                return graalRuntime().getRuntime().readUnsafeConstant(getKind(), holder.mirror(), offset, getKind() == Kind.Object);
+                return runtime().getHostProviders().getConstantReflection().readUnsafeConstant(getKind(), holder.mirror(), offset, getKind() == Kind.Object);
             }
             return null;
         } else {
             assert !Modifier.isStatic(flags);
-            return graalRuntime().getRuntime().readUnsafeConstant(getKind(), receiver.asObject(), offset, getKind() == Kind.Object);
+            Object object = receiver.asObject();
+            assert object != null && isInObject(object);
+            return runtime().getHostProviders().getConstantReflection().readUnsafeConstant(getKind(), object, offset, getKind() == Kind.Object);
         }
     }
 
     private static boolean assumeNonStaticFinalFieldsAsFinal(Class<?> clazz) {
         return clazz == SnippetCounter.class;
+    }
+
+    /**
+     * Usually {@link Stable} fields are not considered constant if the value is the
+     * {@link Constant#isDefaultForKind default value}. For some special classes we want to override
+     * this behavior.
+     */
+    private static boolean assumeDefaultStableFieldsAsFinal(Class<?> clazz) {
+        // HotSpotVMConfig has a lot of zero-value fields which we know are stable and want to be
+        // considered as constants.
+        if (clazz == HotSpotVMConfig.class) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -267,6 +299,16 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
             return javaField.isSynthetic();
         }
         return false;
+    }
+
+    /**
+     * Checks if this field has the {@link Stable} annotation.
+     * 
+     * @return true if field has {@link Stable} annotation, false otherwise
+     */
+    public boolean isStable() {
+        Annotation annotation = getAnnotation(Stable.class);
+        return annotation != null;
     }
 
     @Override

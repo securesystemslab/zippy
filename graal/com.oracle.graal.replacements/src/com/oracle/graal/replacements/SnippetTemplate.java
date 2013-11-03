@@ -71,6 +71,8 @@ public class SnippetTemplate {
         protected final ResolvedJavaMethod method;
         protected final boolean[] constantParameters;
         protected final boolean[] varargsParameters;
+        private final DebugMetric instantiationCounter;
+        private final DebugTimer instantiationTimer;
 
         /**
          * The parameter names, taken from the local variables table. Only used for assertion
@@ -80,7 +82,8 @@ public class SnippetTemplate {
 
         protected SnippetInfo(ResolvedJavaMethod method) {
             this.method = method;
-
+            instantiationCounter = Debug.metric("SnippetInstantiationCount[" + method.getName() + "]");
+            instantiationTimer = Debug.timer("SnippetInstantiationTime[" + method.getName() + "]");
             assert Modifier.isStatic(method.getModifiers()) : "snippet method must be static: " + MetaUtil.format("%H.%n", method);
             int count = method.getSignature().getParameterCount(false);
             constantParameters = new boolean[count];
@@ -270,6 +273,20 @@ public class SnippetTemplate {
         }
     }
 
+    static class VarargsPlaceholderNode extends FloatingNode implements ArrayLengthProvider {
+
+        final Varargs varargs;
+
+        public VarargsPlaceholderNode(Varargs varargs, MetaAccessProvider metaAccess) {
+            super(StampFactory.exactNonNull(metaAccess.lookupJavaType(varargs.componentType).getArrayClass()));
+            this.varargs = varargs;
+        }
+
+        public ValueNode length() {
+            return ConstantNode.forInt(varargs.length, graph());
+        }
+    }
+
     static class CacheKey {
 
         private final ResolvedJavaMethod method;
@@ -316,6 +333,7 @@ public class SnippetTemplate {
     }
 
     private static final DebugTimer SnippetCreationAndSpecialization = Debug.timer("SnippetCreationAndSpecialization");
+    private static final DebugMetric SnippetSpecializations = Debug.metric("SnippetSpecializations");
 
     /**
      * Base class for snippet classes. It provides a cache for {@link SnippetTemplate}s.
@@ -355,6 +373,7 @@ public class SnippetTemplate {
         protected SnippetTemplate template(final Arguments args) {
             SnippetTemplate template = templates.get(args.cacheKey);
             if (template == null) {
+                SnippetSpecializations.increment();
                 try (TimerCloseable a = SnippetCreationAndSpecialization.start()) {
                     template = Debug.scope("SnippetSpecialization", args.info.method, new Callable<SnippetTemplate>() {
 
@@ -385,9 +404,6 @@ public class SnippetTemplate {
         return false;
     }
 
-    private final DebugMetric instantiationCounter;
-    private final DebugTimer instantiationTimer;
-
     /**
      * Creates a snippet template.
      */
@@ -409,7 +425,7 @@ public class SnippetTemplate {
         assert checkTemplate(metaAccess, args, method, signature);
 
         int parameterCount = args.info.getParameterCount();
-        ConstantNode[] placeholders = new ConstantNode[parameterCount];
+        VarargsPlaceholderNode[] placeholders = new VarargsPlaceholderNode[parameterCount];
 
         for (int i = 0; i < parameterCount; i++) {
             if (args.info.isConstantParameter(i)) {
@@ -424,8 +440,7 @@ public class SnippetTemplate {
                 nodeReplacements.put(snippetGraph.getLocal(i), ConstantNode.forConstant(constantArg, metaAccess, snippetCopy));
             } else if (args.info.isVarargsParameter(i)) {
                 Varargs varargs = (Varargs) args.values[i];
-                Object array = Array.newInstance(varargs.componentType, varargs.length);
-                ConstantNode placeholder = ConstantNode.forObject(array, metaAccess, snippetCopy);
+                VarargsPlaceholderNode placeholder = snippetCopy.unique(new VarargsPlaceholderNode(varargs, providers.getMetaAccess()));
                 nodeReplacements.put(snippetGraph.getLocal(i), placeholder);
                 placeholders[i] = placeholder;
             }
@@ -459,7 +474,7 @@ public class SnippetTemplate {
                 }
                 parameters[i] = locals;
 
-                ConstantNode placeholder = placeholders[i];
+                VarargsPlaceholderNode placeholder = placeholders[i];
                 assert placeholder != null;
                 for (Node usage : placeholder.usages().snapshot()) {
                     if (usage instanceof LoadIndexedNode) {
@@ -580,12 +595,9 @@ public class SnippetTemplate {
         this.deoptNodes = curDeoptNodes;
         this.stampNodes = curStampNodes;
         this.returnNode = retNode;
-
-        this.instantiationCounter = Debug.metric("SnippetInstantiationCount[" + method.getName() + "]");
-        this.instantiationTimer = Debug.timer("SnippetInstantiationTime[" + method.getName() + "]");
     }
 
-    private static boolean checkAllVarargPlaceholdersAreDeleted(int parameterCount, ConstantNode[] placeholders) {
+    private static boolean checkAllVarargPlaceholdersAreDeleted(int parameterCount, VarargsPlaceholderNode[] placeholders) {
         for (int i = 0; i < parameterCount; i++) {
             if (placeholders[i] != null) {
                 assert placeholders[i].isDeleted() : placeholders[i];
@@ -801,7 +813,7 @@ public class SnippetTemplate {
             // check if some node in snippet graph also kills the same location
             LocationIdentity locationIdentity = ((MemoryCheckpoint.Single) replacee).getLocationIdentity();
             if (locationIdentity == ANY_LOCATION) {
-                assert !(memoryMap.getLastLocationAccess(ANY_LOCATION) instanceof StartNode);
+                assert !(memoryMap.getLastLocationAccess(ANY_LOCATION) instanceof StartNode) : replacee + " kills ANY_LOCATION, but snippet does not";
             }
             assert kills.contains(locationIdentity) : replacee + " kills " + locationIdentity + ", but snippet doesn't contain a kill to this location";
             return true;
@@ -865,8 +877,8 @@ public class SnippetTemplate {
      */
     public Map<Node, Node> instantiate(MetaAccessProvider metaAccess, FixedNode replacee, UsageReplacer replacer, Arguments args) {
         assert checkSnippetKills(replacee);
-        try (TimerCloseable a = instantiationTimer.start()) {
-            instantiationCounter.increment();
+        try (TimerCloseable a = args.info.instantiationTimer.start()) {
+            args.info.instantiationCounter.increment();
             // Inline the snippet nodes, replacing parameters with the given args in the process
             StartNode entryPointNode = snippet.start();
             FixedNode firstCFGNode = entryPointNode.next();
@@ -958,8 +970,8 @@ public class SnippetTemplate {
      */
     public void instantiate(MetaAccessProvider metaAccess, FloatingNode replacee, UsageReplacer replacer, LoweringTool tool, Arguments args) {
         assert checkSnippetKills(replacee);
-        try (TimerCloseable a = instantiationTimer.start()) {
-            instantiationCounter.increment();
+        try (TimerCloseable a = args.info.instantiationTimer.start()) {
+            args.info.instantiationCounter.increment();
 
             // Inline the snippet nodes, replacing parameters with the given args in the process
             String name = snippet.name == null ? "{copy}" : snippet.name + "{copy}";

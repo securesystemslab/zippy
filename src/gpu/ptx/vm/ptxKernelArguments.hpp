@@ -42,7 +42,13 @@ public:
   char _kernelArgBuffer[1024];
   // Current offset into _kernelArgBuffer
   size_t _bufferOffset;
-  gpu::Ptx::CUdeviceptr _return_value_ptr;
+  // Device pointer holding return value
+  gpu::Ptx::CUdeviceptr _dev_return_value;
+
+  // Indicates if signature iteration is being done during kernel
+  // setup i.e., java arguments are being copied to device pointers.
+  bool _kernelArgSetup;
+
 private:
   // Array of java argument oops
   arrayOop _args;
@@ -51,7 +57,6 @@ private:
   // Flag to indicate successful creation of kernel argument buffer
   bool _success;
 
-    bool _afterInvoocation;
   // Get next java argument
   oop next_arg(BasicType expectedType);
 
@@ -62,7 +67,9 @@ private:
     _args = args;
     _success = true;
     _bufferOffset = 0;
-    _return_value_ptr = 0;
+    _dev_return_value = 0;
+    _kernelArgSetup = true;
+    //_dev_call_by_reference_args_index = 0;
     if (!is_static) {
       // TODO : Create a device argument for receiver object and add it to _kernelBuffer
       tty->print_cr("{CUDA] ****** TODO: Support for execution of non-static java methods not implemented yet.");
@@ -80,23 +87,23 @@ private:
     return _bufferOffset;
   }
 
-    void reiterate() {
-        _afterInvoocation = true;
-        _bufferOffset = 0;
-        _index = 0;
-        iterate();
-    }
+  void copyRefArgsFromDtoH() {
+    _kernelArgSetup = false;
+    _bufferOffset = 0;
+    _index = 0;
+    iterate();
+  }
 
-    inline bool is_after_invocation() {
-        return _afterInvoocation;
-    }
+  inline bool is_kernel_arg_setup() {
+    return _kernelArgSetup;
+  }
 
   // Get the return oop value
   oop get_return_oop();
 
   // get device return value ptr
-  gpu::Ptx::CUdeviceptr get_return_value_ptr() {
-      return _return_value_ptr;
+  gpu::Ptx::CUdeviceptr get_dev_return_value() {
+      return _dev_return_value;
   }
 
 
