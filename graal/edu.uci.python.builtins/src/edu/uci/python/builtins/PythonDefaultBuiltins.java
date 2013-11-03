@@ -209,6 +209,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         @Specialization
+        public boolean bool(int arg) {
+            return arg != 0;
+        }
+
+        @Specialization
+        public boolean bool(double arg) {
+            return arg != 0.0;
+        }
+
+        @Specialization
+        public boolean bool(String arg) {
+            return !arg.isEmpty();
+        }
+
+        @Specialization
         public boolean bool(Object object) {
             if (object instanceof PNone) {
                 return false;
@@ -227,6 +242,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         public PythonCallableNode(PythonCallableNode prev) {
             this(prev.getName());
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean callable(PCallable callable) {
+            return true;
         }
 
         @Specialization
@@ -318,6 +339,86 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
         public static boolean hasRealAndImaginary(Object real, Object imaginary) {
             return !(real instanceof PNone) && !(imaginary instanceof PNode);
+        }
+    }
+
+    // dir([object])
+    @Builtin(name = "dir", id = 16, minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonDirNode extends PythonBuiltinNode {
+
+        public PythonDirNode(String name) {
+            super(name);
+        }
+
+        public PythonDirNode(PythonDirNode prev) {
+            this(prev.getName());
+        }
+
+        @Specialization
+        public PList dir() {
+            return null;
+        }
+    }
+
+    // enumerate(iterable, start=0)
+    @Builtin(name = "enumerate", id = 18, minNumOfArguments = 1, maxNumOfArguments = 2, takesKeywordArguments = true)
+    public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
+
+        public PythonEnumerateNode(String name) {
+            super(name);
+        }
+
+        public PythonEnumerateNode(PythonEnumerateNode prev) {
+            this(prev.getName());
+        }
+
+        /**
+         * TODO enumerate can take a keyword argument start, and currently that's not supported.
+         */
+
+        // @SuppressWarnings("unused")
+        // @Specialization(guards = "noKeywordArg")
+        @Specialization
+        public PEnumerate enumerate(String str) {
+            return new PEnumerate(new PString(str));
+        }
+
+        @Specialization
+        public PEnumerate enumerate(PSequence sequence) {
+            return new PEnumerate(sequence);
+        }
+
+        @Specialization
+        public PEnumerate enumerate(PBaseSet set) {
+            return new PEnumerate(set);
+        }
+
+        @Specialization
+        public PEnumerate enumerate(Object arg) {
+            if (arg instanceof String) {
+                String str = (String) arg;
+                return new PEnumerate(stringToCharList(str));
+            } else if (arg instanceof PSequence) {
+                PSequence sequence = (PSequence) arg;
+                return new PEnumerate(sequence);
+            } else if (arg instanceof PBaseSet) {
+                PBaseSet baseSet = (PBaseSet) arg;
+                return new PEnumerate(baseSet);
+            } else if (arg instanceof PGenerator) {
+                PGenerator generator = (PGenerator) arg;
+                return new PEnumerate(generator);
+            }
+
+            if (!(arg instanceof Iterable<?>)) {
+                throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+            } else {
+                throw new RuntimeException("enumerate does not support iterable object " + arg);
+            }
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean noKeywordArg(Object arg, Object keywordArg) {
+            return (keywordArg instanceof PNone);
         }
     }
 
@@ -492,6 +593,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Specialization
         public Object iter(PSequence sequence, Object sentinel) {
             Iterator<Object> iterator = sequence.iterator();
+            return iterator;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object iter(PBaseSet set, Object sentinel) {
+            Iterator<Object> iterator = set.iterator();
             return iterator;
         }
 
@@ -980,9 +1088,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         PNode[] args;
         int totalNumOfArgs;
 
-        /**
-         * TODO Come up with a better solution for max and min
-         */
+        // max and min are special cases
+        // They have two possibilities:
+        // max(iterable, *[, key])
+        // max(arg1, arg2, *args[, key])
+        // In order to specialize correctly, they should have 3 arguments
+        // arg1, arg2, vararg
+        // arg2 is PNone if nothing in max(iterable, *[, key])
         if (builtin.name().equals("max") || builtin.name().equals("min")) {
             totalNumOfArgs = 3;
         } else if (builtin.hasFixedNumOfArguments()) {
@@ -1021,6 +1133,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:
                 return PythonComplexNodeFactory.create(builtin.name(), args);
+            case 16:
+                return PythonDirNodeFactory.create(builtin.name(), args);
+            case 18:
+                return PythonEnumerateNodeFactory.create(builtin.name(), args);
             case 22:
                 return PythonFloatNodeFactory.create(builtin.name(), args);
             case 24:

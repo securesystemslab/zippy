@@ -52,25 +52,36 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence);
+        loopOnIterator(frame, sequence.iterator());
         return PNone.NONE;
     }
 
     @Specialization
     public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set);
+        loopOnIterator(frame, set.iterator());
         return PNone.NONE;
     }
 
     @Specialization
     public Object doString(VirtualFrame frame, String string) {
         PString pstring = new PString(string);
-        loopOnIterator(frame, pstring);
+        loopOnIterator(frame, pstring.iterator());
         return PNone.NONE;
     }
 
-    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
-        Iterator<?> iter = iterable.iterator();
+    @Specialization
+    public Object doIterator(VirtualFrame frame, Iterator iterator) {
+        loopOnIterator(frame, iterator);
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doEnumerate(VirtualFrame frame, PEnumerate enumerate) {
+        loopOnIterator(frame, enumerate.iterator());
+        return PNone.NONE;
+    }
+
+    private void loopOnIterator(VirtualFrame frame, Iterator iter) {
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         while (iter.hasNext()) {

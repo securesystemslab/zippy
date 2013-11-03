@@ -22,46 +22,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.datatypes;
+package edu.uci.python.nodes.literals;
 
 import java.util.*;
 
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class PGenerator implements Iterable<Object>, Iterator<Object> {
+public class SetLiteralNode extends LiteralNode {
 
-    private final GeneratorRootNode root;
+    @Children protected final PNode[] values;
 
-    private boolean hasNext = true;
-
-    public PGenerator(GeneratorRootNode root) {
-        this.root = root;
+    public SetLiteralNode(PNode[] values) {
+        this.values = adoptChildren(values);
     }
 
+    protected SetLiteralNode(SetLiteralNode node) {
+        this(node.values);
+    }
+
+    @ExplodeLoop
     @Override
-    public Object next() {
-        try {
-            return root.next();
-        } catch (ImplicitReturnException ire) {
-            hasNext = false;
-            throw new BreakException();
+    public PSet executePSet(VirtualFrame frame) {
+        List<Object> elements = new ArrayList<>();
+
+        for (PNode v : this.values) {
+            elements.add(v.execute(frame));
         }
+
+        return PythonTypesUtil.createSet(elements);
     }
 
     @Override
-    public boolean hasNext() {
-        return hasNext;
+    public Object execute(VirtualFrame frame) {
+        return executePSet(frame);
     }
 
     @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
+    public String toString() {
+        return "list";
     }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return this;
-    }
-
 }

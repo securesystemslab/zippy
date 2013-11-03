@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.truffle;
 
 import java.math.BigInteger;
+import java.util.*;
 
 import org.python.core.*;
 
@@ -39,7 +40,7 @@ import edu.uci.python.runtime.standardtypes.*;
 @TypeSystem({int.class, BigInteger.class, double.class, PComplex.class, char.class, boolean.class, String.class,
 
 PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class, PRange.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PArray.class, PSlice.class,
-                PythonBuiltinObject.class, PythonObject.class, PCallable.class, PGenerator.class, Object[].class})
+                PEnumerate.class, PythonBuiltinObject.class, PythonObject.class, PCallable.class, PGenerator.class, Object[].class, Iterator.class})
 public class PythonTypes {
 
     @TypeCheck
