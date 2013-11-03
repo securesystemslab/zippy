@@ -1229,6 +1229,10 @@ def bench(args):
         benchmarks += sanitycheck.getPython2Benchmarks(vm)
         vm = 'pypy'
 
+    if 'pypy3' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'pypy3'
+
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})
