@@ -149,46 +149,11 @@ public class CallFunctionNoKeywordNode extends PNode {
 
             if (functionRoot != null) {
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot, factory);
-                Node parent = findRealParent();
-                NodeUtil.replaceChild(parent, this, inlinedCallNode);
-                parent.adoptChild(inlinedCallNode);
+                replace(inlinedCallNode);
                 return true;
             }
 
             return false;
-        }
-
-        /**
-         * A fix for recursion.
-         */
-        private Node findRealParent() {
-            Node current = this;
-            RootNode root = null;
-            while (current.getParent() != null) {
-                if (current.getParent() instanceof RootNode) {
-                    root = (RootNode) current.getParent();
-                    break;
-                }
-                current = current.getParent();
-            }
-
-            assert root != null : "Wasn't able to find function root";
-            final Node[] realParent = new Node[1];
-
-            root.accept(new NodeVisitor() {
-                @Override
-                public boolean visit(Node node) {
-                    for (Node child : node.getChildren()) {
-                        if (child == CallFunctionNoKeywordInlinableNode.this) {
-                            realParent[0] = node;
-                        }
-                    }
-                    return true;
-                }
-            });
-
-            assert realParent[0] != null;
-            return realParent[0];
         }
 
         @Override
