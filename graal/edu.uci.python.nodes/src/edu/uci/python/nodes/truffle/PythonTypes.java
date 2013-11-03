@@ -37,11 +37,27 @@ import edu.uci.python.datatypes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-@TypeSystem({int.class, BigInteger.class, double.class, PComplex.class, char.class, boolean.class, String.class,
+@TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
 
 PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class, PRange.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PArray.class, PSlice.class,
                 PEnumerate.class, PythonBuiltinObject.class, PythonObject.class, PCallable.class, PGenerator.class, Object[].class, Iterator.class})
 public class PythonTypes {
+
+    @TypeCheck
+    public boolean isInteger(Object value) {
+        return value instanceof Integer || value instanceof Boolean;
+    }
+
+    @TypeCast
+    public int asInteger(Object value) {
+        if (value instanceof Integer) {
+            return (int) value;
+        } else if (value instanceof Boolean) {
+            return (boolean) value ? 1 : 0;
+        }
+
+        return (int) value;
+    }
 
     @TypeCheck
     public boolean isBigInteger(Object value) {

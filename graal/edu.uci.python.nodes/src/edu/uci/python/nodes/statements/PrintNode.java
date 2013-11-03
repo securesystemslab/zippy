@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class PrintNode extends StatementNode {
 
@@ -45,29 +46,6 @@ public class PrintNode extends StatementNode {
 
     @ExplodeLoop
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < values.length; i++) {
-            PNode e = values[i];
-
-            if (i == values.length - 1) {
-                sb.append(e.execute(frame));
-            } else {
-                sb.append(e.execute(frame) + " ");
-            }
-        }
-
-        if (nl) {
-            sb.append(System.getProperty("line.separator"));
-        }
-        // CheckStyle: stop system..print check
-        context.getStandardOut().print(sb.toString());
-        // CheckStyle: resume system..print check
-    }
-
-    @ExplodeLoop
-    @Override
     public Object execute(VirtualFrame frame) {
         StringBuilder sb = new StringBuilder();
 
@@ -75,9 +53,9 @@ public class PrintNode extends StatementNode {
             PNode e = values[i];
 
             if (i == values.length - 1) {
-                sb.append(e.execute(frame));
+                sb.append(executeToString(frame, e));
             } else {
-                sb.append(e.execute(frame) + " ");
+                sb.append(executeToString(frame, e) + " ");
             }
         }
 
@@ -87,6 +65,16 @@ public class PrintNode extends StatementNode {
         // CheckStyle: stop system..print check
         context.getStandardOut().print(sb.toString());
         // CheckStyle: resume system..print check
-        return null;
+        return PNone.NONE;
+    }
+
+    private static String executeToString(VirtualFrame frame, PNode node) {
+        Object value = node.execute(frame);
+
+        if (value instanceof Boolean) {
+            return (boolean) value ? "True" : "False";
+        } else {
+            return value.toString();
+        }
     }
 }

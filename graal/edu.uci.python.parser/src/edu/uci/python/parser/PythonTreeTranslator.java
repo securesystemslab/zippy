@@ -419,7 +419,7 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitSet(org.python.antlr.ast.Set node) throws Exception {
         List<PNode> elts = walkExprList(node.getInternalElts());
         assert !isLeftHandSide : "Left hand side node should not reach here!";
-        Set<PNode> setFromLost = new HashSet<PNode>();
+        Set<PNode> setFromLost = new HashSet<>();
         for (PNode listNode : elts) {
             setFromLost.add(listNode);
         }

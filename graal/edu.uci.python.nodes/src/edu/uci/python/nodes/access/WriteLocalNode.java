@@ -64,6 +64,12 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
 
     public abstract Object execute(VirtualFrame frame, Object value);
 
+    @Specialization(order = 0, guards = "isBooleanKind")
+    public boolean write(VirtualFrame frame, boolean right) {
+        frame.setBoolean(frameSlot, right);
+        return right;
+    }
+
     @Specialization(guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
         frame.setInt(frameSlot, value);
@@ -85,12 +91,6 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
     @Specialization(guards = "isObjectKind")
     public PComplex write(VirtualFrame frame, PComplex right) {
         setObject(frame, right);
-        return right;
-    }
-
-    @Specialization(guards = "isBooleanKind")
-    public boolean write(VirtualFrame frame, boolean right) {
-        frame.setBoolean(frameSlot, right);
         return right;
     }
 

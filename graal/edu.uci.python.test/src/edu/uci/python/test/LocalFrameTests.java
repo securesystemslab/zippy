@@ -70,4 +70,17 @@ public class LocalFrameTests {
 
         assertPrints("42\n4294929942949294929429\n1.0226023673688797E21\n", source);
     }
+
+    @Test
+    public void bool2Int() {
+        String source = "def foo():\n" + //
+                        "    a = True\n" + //
+                        "    print(a)\n" + //
+                        "    a = 42 + True\n" + //
+                        "    print(a)\n" + //
+                        "\n" + //
+                        "foo()\n";
+
+        assertPrints("True\n43\n", source);
+    }
 }
