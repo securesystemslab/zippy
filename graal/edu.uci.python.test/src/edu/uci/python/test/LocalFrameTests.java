@@ -96,4 +96,17 @@ public class LocalFrameTests {
 
         assertPrints("True\n5.2\n", source);
     }
+
+    @Test
+    public void bool2Complex() {
+        String source = "def foo():\n" + //
+                        "    a = True\n" + //
+                        "    print(a)\n" + //
+                        "    a = complex(1, 0) + True\n" + //
+                        "    print(a)\n" + //
+                        "\n" + //
+                        "foo()\n";
+
+        assertPrints("True\n(2+0j)\n", source);
+    }
 }

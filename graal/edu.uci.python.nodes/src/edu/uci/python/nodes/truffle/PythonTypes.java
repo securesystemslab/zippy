@@ -44,7 +44,8 @@ PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class,
 public class PythonTypes {
 
     /**
-     * Type coercion: Python bool to Python int (Integer).
+     * Type coercion: <br>
+     * Python bool to Python int (Integer).
      */
     @TypeCast
     public int asInteger(boolean value) {
@@ -68,8 +69,9 @@ public class PythonTypes {
     }
 
     /**
-     * Type coercion: Python bool to Python int (BigInteger); Python int to int (Integer to
-     * BigInteger).
+     * Type coercion: <br>
+     * Python bool to Python int (BigInteger); <br>
+     * Python int to int (Integer to BigInteger).
      */
     @TypeCheck
     public boolean isBigInteger(Object value) {
@@ -99,10 +101,10 @@ public class PythonTypes {
     }
 
     /**
-     * Type coercion: Python bool to Python float (double); Python int to float (Integer or
-     * BigInteger to double).
+     * Type coercion: <br>
+     * Python bool to Python float (double); <br>
+     * Python int to float (Integer or BigInteger to double).
      */
-
     @TypeCheck
     public boolean isDouble(Object value) {
         return value instanceof Double || value instanceof Integer || value instanceof BigInteger || value instanceof Boolean;
@@ -133,17 +135,20 @@ public class PythonTypes {
         return (double) value;
     }
 
+    /**
+     * Type coercion: <br>
+     * Python bool to Python complex; <br>
+     * Python int to Python complex (Integer or BigInteger to PComplex); <br>
+     * Python float to Python complex (double to PComplex).
+     */
     @TypeCheck
     public boolean isPComplex(Object value) {
-        return value instanceof PComplex || value instanceof Integer || value instanceof Double || value instanceof BigInteger;
+        return value instanceof PComplex || value instanceof Integer || value instanceof Double || value instanceof BigInteger || value instanceof Boolean;
     }
 
     @TypeCast
     public PComplex asPComplex(Object value) {
-        if (value instanceof PComplex) {
-            PComplex complex = (PComplex) value;
-            return complex;
-        } else if (value instanceof Integer) {
+        if (value instanceof Integer) {
             PComplex complex = new PComplex((Integer) value, 0);
             return complex;
         } else if (value instanceof BigInteger) {
@@ -153,10 +158,11 @@ public class PythonTypes {
         } else if (value instanceof Double) {
             PComplex complex = new PComplex((Double) value, 0);
             return complex;
-        } else {
-            PComplex complex = (PComplex) value;
-            return complex;
+        } else if (value instanceof Boolean) {
+            return (boolean) value ? new PComplex(1, 0) : new PComplex(0, 0);
         }
+
+        return (PComplex) value;
     }
 
 }

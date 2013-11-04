@@ -145,7 +145,11 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final boolean isObjectKind() {
-        return isKind(FrameSlotKind.Object);
+        if (frameSlot.getKind() != FrameSlotKind.Object) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Object);
+        }
+        return true;
     }
 
     private boolean isKind(FrameSlotKind kind) {

@@ -526,6 +526,19 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
+    @BuiltinMethod public static final PythonCallTarget complex = new PythonCallTarget() {
+
+        @Override
+        public Object call(PackedFrame frame, PArguments arguments) {
+            Object[] args = arguments.getArgumentsArray();
+
+            double real = JavaTypeConversions.toDouble(args[0]);
+            double image = JavaTypeConversions.toDouble(args[1]);
+            return new PComplex(real, image);
+        }
+
+    };
+
     @BuiltinMethod public static final PythonCallTarget zip = new PythonCallTarget() {
 
         /**
