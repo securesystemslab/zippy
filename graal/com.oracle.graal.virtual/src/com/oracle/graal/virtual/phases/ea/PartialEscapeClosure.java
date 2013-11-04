@@ -245,7 +245,7 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
             if (obj.isVirtual()) {
                 for (int i = 0; i < obj.getEntries().length; i++) {
                     ValueNode value = obj.getEntry(i);
-                    if (!(value instanceof VirtualObjectNode)) {
+                    if (!(value instanceof VirtualObjectNode || value.isConstant())) {
                         if (exitNode.loopBegin().isPhiAtMerge(value) || initialObj == null || !initialObj.isVirtual() || initialObj.getEntry(i) != value) {
                             ProxyNode proxy = new ProxyNode(value, exitNode, PhiType.Value, null);
                             obj.setEntry(i, proxy);
@@ -616,7 +616,7 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
     }
 
     public ObjectState getObjectState(PartialEscapeBlockState<?> state, ValueNode value) {
-        if (value == null) {
+        if (value == null || value.isExternal()) {
             return null;
         }
         if (value.isAlive() && !aliases.isNew(value)) {

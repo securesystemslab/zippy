@@ -72,6 +72,9 @@ public:
   // public abstract void bootstrap();
   static void bootstrap();
 
+  // public abstract void compileTheWorld();
+  static void compileTheWorld();
+
   // public abstract JavaField createJavaField(JavaType holder, String name, JavaType type, int flags, int offset);
   static oop createJavaField(Handle holder, Handle name, Handle type, int index, int flags, jboolean internal, TRAPS);
 

@@ -49,8 +49,8 @@
   product(bool, DebugGraal, true,                                           \
           "Enable JVMTI for the compiler thread")                           \
                                                                             \
-  product(bool, BootstrapGraal, GRAALVM_ONLY(true) NOT_GRAALVM(false),      \
-          "Bootstrap Graal before running Java main method")                \
+  GRAALVM_ONLY(product(bool, BootstrapGraal, true,                          \
+          "Bootstrap Graal before running Java main method"))               \
                                                                             \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \

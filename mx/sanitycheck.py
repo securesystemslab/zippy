@@ -277,8 +277,8 @@ def getCTW(vm, mode):
 
 
     args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
-    if commands.isGraalEnabled(vm):
-        args += ['-XX:+BootstrapGraal', '-G:-Debug']
+    if vm == 'graal':
+        args += ['-XX:+BootstrapGraal']
     if mode >= CTWMode.NoInline:
         if not commands.isGraalEnabled(vm):
             args.append('-XX:-Inline')

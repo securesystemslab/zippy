@@ -328,15 +328,16 @@ class Project(Dependency):
     def update_current_annotation_processors_file(self):
         aps = self.annotation_processors()
         outOfDate = False
-        currentApsFile = join(self.dir, '.currentAnnotationProcessors')
-        if exists(currentApsFile):
+        currentApsFile = join(self.suite.mxDir, 'currentAnnotationProcessors', self.name)
+        currentApsFileExists = exists(currentApsFile)
+        if currentApsFileExists:
             with open(currentApsFile) as fp:
                 currentAps = [l.strip() for l in fp.readlines()]
                 if currentAps != aps:
                     outOfDate = True
-        else:
-            outOfDate = True
-        if outOfDate:
+        if outOfDate or not currentApsFileExists:
+            if not exists(dirname(currentApsFile)):
+                os.mkdir(dirname(currentApsFile))
             with open(currentApsFile, 'w') as fp:
                 for ap in aps:
                     print >> fp, ap
@@ -786,7 +787,7 @@ class Suite:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _commands_name(self):
-        return 'mx_' + self.name.replace('-','_')
+        return 'mx_' + self.name.replace('-', '_')
 
     def _find_commands(self, name):
         commandsPath = join(self.mxDir, name + '.py')
@@ -1988,7 +1989,7 @@ def build(args, parser=None):
             continue
 
         # Ensure that the output directories are clean
-        #prepareOutputDirs(p, True)
+        # prepareOutputDirs(p, True)
 
         built.add(p.name)
 

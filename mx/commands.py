@@ -821,7 +821,7 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if not isGraalEnabled(_get_vm()):
+        if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
