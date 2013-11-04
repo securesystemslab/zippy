@@ -154,7 +154,7 @@ project@com.oracle.graal.hotspot.ptx@workingSets=Graal,HotSpot,PTX
 # graal.hotspot.hsail
 project@com.oracle.graal.hotspot.hsail@subDir=graal
 project@com.oracle.graal.hotspot.hsail@sourceDirs=src
-project@com.oracle.graal.hotspot.hsail@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.hsail
+project@com.oracle.graal.hotspot.hsail@dependencies=com.oracle.graal.compiler.hsail,com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.hsail@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.hsail@javaCompliance=1.7
