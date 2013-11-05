@@ -2983,10 +2983,10 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         # The path should always be p.name/dir. independent of where the workspace actually is.
         # So we use the parent folder of the project, whatever that is, to generate such a relative path.
         logicalWorkspaceRoot = os.path.dirname(p.dir)
-        binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot) 
-        
+        binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot)
+
         if _isAnnotationProcessorDependency(p):
-            refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'),  logicalWorkspaceRoot)
+            refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
             _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
 
         if projToDist.has_key(p.name):
@@ -3068,18 +3068,18 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshF
             refreshScope = '${project}'
         else:
             refreshScope = '${working_set:<?xml version="1.0" encoding="UTF-8"?><resources><item path="' + refreshFile + '" type="1"/></resources>}'
-        
-        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_RECURSIVE', 'value':  'false'})  
+
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_RECURSIVE', 'value':  'false'})
         launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value':  refreshScope})
 
     if relevantResources is not None:
         resources = '${working_set:<?xml version="1.0" encoding="UTF-8"?><resources>'
         for relevantResource in relevantResources:
-            resources += '<item path="' + relevantResource +'" type="2" />'
+            resources += '<item path="' + relevantResource + '" type="2" />'
         resources += '</resources>}'
         launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_BUILD_SCOPE', 'value': resources})
-        
-    
+
+
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
     if logToFile:
