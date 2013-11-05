@@ -129,8 +129,7 @@ bool nmethod::is_compiled_by_shark() const {
 
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
-static
-struct nmethod_stats_struct {
+struct java_nmethod_stats_struct {
   int nmethod_count;
   int total_size;
   int relocation_size;
@@ -158,9 +157,9 @@ struct nmethod_stats_struct {
     handler_table_size  += nm->handler_table_size();
     nul_chk_table_size  += nm->nul_chk_table_size();
   }
-  void print_nmethod_stats() {
+  void print_nmethod_stats(const char* name) {
     if (nmethod_count == 0)  return;
-    tty->print_cr("Statistics for %d bytecoded nmethods:", nmethod_count);
+    tty->print_cr("Statistics for %d bytecoded nmethods for %s:", nmethod_count, name);
     if (total_size != 0)          tty->print_cr(" total in heap  = %d", total_size);
     if (relocation_size != 0)     tty->print_cr(" relocation     = %d", relocation_size);
     if (consts_size != 0)         tty->print_cr(" constants      = %d", consts_size);
@@ -173,7 +172,9 @@ struct nmethod_stats_struct {
     if (handler_table_size != 0)  tty->print_cr(" handler table  = %d", handler_table_size);
     if (nul_chk_table_size != 0)  tty->print_cr(" nul chk table  = %d", nul_chk_table_size);
   }
+};
 
+struct native_nmethod_stats_struct {
   int native_nmethod_count;
   int native_total_size;
   int native_relocation_size;
@@ -194,7 +195,9 @@ struct nmethod_stats_struct {
     if (native_insts_size != 0)       tty->print_cr(" N. main code   = %d", native_insts_size);
     if (native_oops_size != 0)        tty->print_cr(" N. oops        = %d", native_oops_size);
   }
+};
 
+struct pc_nmethod_stats_struct {
   int pc_desc_resets;   // number of resets (= number of caches)
   int pc_desc_queries;  // queries to nmethod::find_pc_desc
   int pc_desc_approx;   // number of those which have approximate true
@@ -215,7 +218,38 @@ struct nmethod_stats_struct {
                   pc_desc_repeats, pc_desc_hits,
                   pc_desc_tests, pc_desc_searches, pc_desc_adds);
   }
-} nmethod_stats;
+};
+
+#ifdef COMPILER1
+static java_nmethod_stats_struct c1_java_nmethod_stats;
+#endif
+#ifdef COMPILER2
+static java_nmethod_stats_struct c2_java_nmethod_stats;
+#endif
+#ifdef GRAAL
+static java_nmethod_stats_struct graal_java_nmethod_stats;
+#endif
+
+static native_nmethod_stats_struct native_nmethod_stats;
+static pc_nmethod_stats_struct pc_nmethod_stats;
+
+static void note_java_nmethod(nmethod* nm) {
+#ifdef COMPILER1
+  if (nm->is_compiled_by_c1()) {
+    c1_java_nmethod_stats.note_nmethod(nm);
+  }
+#endif
+#ifdef COMPILER2
+  if (nm->is_compiled_by_c2()) {
+    c2_java_nmethod_stats.note_nmethod(nm);
+  }
+#endif
+#ifdef GRAAL
+  if (nm->is_compiled_by_graal()) {
+    graal_java_nmethod_stats.note_nmethod(nm);
+  }
+#endif
+}
 
 
 //---------------------------------------------------------------------------------
@@ -296,7 +330,7 @@ ExceptionCache* nmethod::exception_cache_entry_for_exception(Handle exception) {
 
 // Helper used by both find_pc_desc methods.
 static inline bool match_desc(PcDesc* pc, int pc_offset, bool approximate) {
-  NOT_PRODUCT(++nmethod_stats.pc_desc_tests);
+  NOT_PRODUCT(++pc_nmethod_stats.pc_desc_tests);
   if (!approximate)
     return pc->pc_offset() == pc_offset;
   else
@@ -308,7 +342,7 @@ void PcDescCache::reset_to(PcDesc* initial_pc_desc) {
     _pc_descs[0] = NULL; // native method; no PcDescs at all
     return;
   }
-  NOT_PRODUCT(++nmethod_stats.pc_desc_resets);
+  NOT_PRODUCT(++pc_nmethod_stats.pc_desc_resets);
   // reset the cache by filling it with benign (non-null) values
   assert(initial_pc_desc->pc_offset() < 0, "must be sentinel");
   for (int i = 0; i < cache_size; i++)
@@ -316,8 +350,8 @@ void PcDescCache::reset_to(PcDesc* initial_pc_desc) {
 }
 
 PcDesc* PcDescCache::find_pc_desc(int pc_offset, bool approximate) {
-  NOT_PRODUCT(++nmethod_stats.pc_desc_queries);
-  NOT_PRODUCT(if (approximate) ++nmethod_stats.pc_desc_approx);
+  NOT_PRODUCT(++pc_nmethod_stats.pc_desc_queries);
+  NOT_PRODUCT(if (approximate) ++pc_nmethod_stats.pc_desc_approx);
 
   // Note: one might think that caching the most recently
   // read value separately would be a win, but one would be
@@ -333,7 +367,7 @@ PcDesc* PcDescCache::find_pc_desc(int pc_offset, bool approximate) {
   res = _pc_descs[0];
   if (res == NULL) return NULL;  // native method; no PcDescs at all
   if (match_desc(res, pc_offset, approximate)) {
-    NOT_PRODUCT(++nmethod_stats.pc_desc_repeats);
+    NOT_PRODUCT(++pc_nmethod_stats.pc_desc_repeats);
     return res;
   }
 
@@ -342,7 +376,7 @@ PcDesc* PcDescCache::find_pc_desc(int pc_offset, bool approximate) {
     res = _pc_descs[i];
     if (res->pc_offset() < 0) break;  // optimization: skip empty cache
     if (match_desc(res, pc_offset, approximate)) {
-      NOT_PRODUCT(++nmethod_stats.pc_desc_hits);
+      NOT_PRODUCT(++pc_nmethod_stats.pc_desc_hits);
       return res;
     }
   }
@@ -352,7 +386,7 @@ PcDesc* PcDescCache::find_pc_desc(int pc_offset, bool approximate) {
 }
 
 void PcDescCache::add_pc_desc(PcDesc* pc_desc) {
-  NOT_PRODUCT(++nmethod_stats.pc_desc_adds);
+  NOT_PRODUCT(++pc_nmethod_stats.pc_desc_adds);
   // Update the LRU cache by shifting pc_desc forward.
   for (int i = 0; i < cache_size; i++)  {
     PcDesc* next = _pc_descs[i];
@@ -519,7 +553,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
                                             code_buffer, frame_size,
                                             basic_lock_owner_sp_offset,
                                             basic_lock_sp_offset, oop_maps);
-    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
+    if (nm != NULL)  native_nmethod_stats.note_native_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -555,7 +589,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
     nm = new (nmethod_size) nmethod(method(), nmethod_size,
                                     &offsets, code_buffer, frame_size);
 
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    if (nm != NULL)  note_java_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -640,7 +674,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    if (nm != NULL)  note_java_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -2168,7 +2202,7 @@ static PcDesc* linear_search(nmethod* nm, int pc_offset, bool approximate) {
   lower += 1; // exclude initial sentinel
   PcDesc* res = NULL;
   for (PcDesc* p = lower; p < upper; p++) {
-    NOT_PRODUCT(--nmethod_stats.pc_desc_tests);  // don't count this call to match_desc
+    NOT_PRODUCT(--pc_nmethod_stats.pc_desc_tests);  // don't count this call to match_desc
     if (match_desc(p, pc_offset, approximate)) {
       if (res == NULL)
         res = p;
@@ -2215,7 +2249,7 @@ PcDesc* nmethod::find_pc_desc_internal(address pc, bool approximate) {
 
   // Use the last successful return as a split point.
   PcDesc* mid = _pc_desc_cache.last_pc_desc();
-  NOT_PRODUCT(++nmethod_stats.pc_desc_searches);
+  NOT_PRODUCT(++pc_nmethod_stats.pc_desc_searches);
   if (mid->pc_offset() < pc_offset) {
     lower = mid;
   } else {
@@ -2228,7 +2262,7 @@ PcDesc* nmethod::find_pc_desc_internal(address pc, bool approximate) {
   for (int step = (1 << (LOG2_RADIX*3)); step > 1; step >>= LOG2_RADIX) {
     while ((mid = lower + step) < upper) {
       assert_LU_OK;
-      NOT_PRODUCT(++nmethod_stats.pc_desc_searches);
+      NOT_PRODUCT(++pc_nmethod_stats.pc_desc_searches);
       if (mid->pc_offset() < pc_offset) {
         lower = mid;
       } else {
@@ -2243,7 +2277,7 @@ PcDesc* nmethod::find_pc_desc_internal(address pc, bool approximate) {
   while (true) {
     assert_LU_OK;
     mid = lower + 1;
-    NOT_PRODUCT(++nmethod_stats.pc_desc_searches);
+    NOT_PRODUCT(++pc_nmethod_stats.pc_desc_searches);
     if (mid->pc_offset() < pc_offset) {
       lower = mid;
     } else {
@@ -3043,10 +3077,18 @@ void nmethod::print_nul_chk_table() {
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
-  nmethod_stats.print_native_nmethod_stats();
-  nmethod_stats.print_nmethod_stats();
+  native_nmethod_stats.print_native_nmethod_stats();
+#ifdef COMPILER1
+  c1_java_nmethod_stats.print_nmethod_stats("C1");
+#endif
+#ifdef COMPILER2
+  c2_java_nmethod_stats.print_nmethod_stats("C2");
+#endif
+#ifdef GRAAL
+  graal_java_nmethod_stats.print_nmethod_stats("Graal");
+#endif
   DebugInformationRecorder::print_statistics();
-  nmethod_stats.print_pc_stats();
+  pc_nmethod_stats.print_pc_stats();
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }

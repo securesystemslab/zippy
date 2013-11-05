@@ -299,13 +299,17 @@ address GraalRuntime::exception_handler_for_pc(JavaThread* thread) {
 }
 
 JRT_ENTRY(void, GraalRuntime::create_null_exception(JavaThread* thread))
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
+  SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException());
+  thread->set_vm_result(PENDING_EXCEPTION);
+  CLEAR_PENDING_EXCEPTION;
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::create_out_of_bounds_exception(JavaThread* thread, jint index))
   char message[jintAsStringSize];
   sprintf(message, "%d", index);
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
+  SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message);
+  thread->set_vm_result(PENDING_EXCEPTION);
+  CLEAR_PENDING_EXCEPTION;
 JRT_END
 
 JRT_ENTRY_NO_ASYNC(void, GraalRuntime::monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))

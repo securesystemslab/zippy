@@ -25,7 +25,6 @@
 #
 # ----------------------------------------------------------------------------------------------------
 #
-
 r"""
 mx is a command line tool for managing the development of Java code organized as suites of projects.
 
@@ -2981,13 +2980,18 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                 out.element('arguments', data='')
                 out.close('buildCommand')
 
+        # The path should always be p.name/dir. independent of where the workspace actually is.
+        # So we use the parent folder of the project, whatever that is, to generate such a relative path.
+        logicalWorkspaceRoot = os.path.dirname(p.dir)
+        binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot) 
+        
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
-            _genEclipseBuilder(out, p, 'Refresh', '', refresh=True, async=True)
+            refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'),  logicalWorkspaceRoot)
+            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
 
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, logToFile=True, refresh=False, async=True)
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=[binFolder], logToFile=True, refresh=False, async=True)
 
         out.close('buildSpec')
         out.open('natures')
@@ -3049,7 +3053,7 @@ def _isAnnotationProcessorDependency(p):
     """
     return p in sorted_deps(annotation_processors())
 
-def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshFile=None, relevantResources=None, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
     externalToolDir = join(p.dir, '.externalToolBuilders')
     launchOut = XMLDoc()
     consoleOn = 'true' if logToConsole else 'false'
@@ -3060,7 +3064,22 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     launchOut.close('mapAttribute')
 
     if refresh:
-        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value': '${project}'})
+        if refreshFile is None:
+            refreshScope = '${project}'
+        else:
+            refreshScope = '${working_set:<?xml version="1.0" encoding="UTF-8"?><resources><item path="' + refreshFile + '" type="1"/></resources>}'
+        
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_RECURSIVE', 'value':  'false'})  
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value':  refreshScope})
+
+    if relevantResources is not None:
+        resources = '${working_set:<?xml version="1.0" encoding="UTF-8"?><resources>'
+        for relevantResource in relevantResources:
+            resources += '<item path="' + relevantResource +'" type="2" />'
+        resources += '</resources>}'
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_BUILD_SCOPE', 'value': resources})
+        
+    
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
     if logToFile:
@@ -3082,7 +3101,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
             abort('cannot locate ' + cmd)
 
     launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION', 'value':  cmdPath})
-    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS', 'value': 'auto,full,incremental'})
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS', 'value': 'full,incremental,auto,'})
     launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS', 'value': mxCommand})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED', 'value': 'true'})
     launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY', 'value': p.suite.dir})
