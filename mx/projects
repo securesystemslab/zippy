@@ -200,6 +200,14 @@ project@com.oracle.graal.options@javaCompliance=1.7
 project@com.oracle.graal.options@annotationProcessorForDependents=true
 project@com.oracle.graal.options@workingSets=Graal,Codegen
 
+# graal.options.test
+project@com.oracle.graal.options.test@subDir=graal
+project@com.oracle.graal.options.test@sourceDirs=src
+project@com.oracle.graal.options.test@dependencies=com.oracle.graal.options,JUNIT
+project@com.oracle.graal.options.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.options.test@javaCompliance=1.7
+project@com.oracle.graal.options.test@workingSets=Graal
+
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
