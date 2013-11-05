@@ -38,9 +38,23 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        RunScript.runScript(new String[0], source, getContext(printStream));
+        RunScript.runScript(new String[0], source, getContext(printStream, System.err));
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
+    }
+
+    public static void assertError(String expected, String source) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+        String error = "no error!";
+
+        try {
+            RunScript.runScript(new String[0], source, getContext(System.out, printStream));
+        } catch (Throwable err) {
+            error = err.toString();
+        }
+
+        assertEquals(expected, error);
     }
 
     public static void assertPrints(String expected, Path scriptName) {
@@ -63,14 +77,15 @@ public class PythonTests {
             throw new RuntimeException();
         }
 
-        RunScript.runScript(new String[0], scriptStream, getContext(printStream));
+        RunScript.runScript(new String[0], scriptStream, getContext(printStream, System.err));
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
     }
 
-    private static PythonContext getContext(PrintStream printStream) {
+    private static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
         PythonOptions opts = new PythonOptions();
-        opts.setStandardOut(printStream);
+        opts.setStandardOut(stdout);
+        opts.setStandardErr(stderr);
         return new PythonContext(opts, new PythonDefaultBuiltins());
     }
 }

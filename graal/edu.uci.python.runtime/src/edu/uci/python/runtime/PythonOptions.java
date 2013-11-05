@@ -43,6 +43,8 @@ public class PythonOptions {
 
     private PrintStream standardOut = System.out;
 
+    private PrintStream standardErr = System.err;
+
     public void setStandardOut(PrintStream stdout) {
         standardOut = stdout;
     }
@@ -51,4 +53,11 @@ public class PythonOptions {
         return standardOut;
     }
 
+    public void setStandardErr(PrintStream stderr) {
+        standardErr = stderr;
+    }
+
+    public PrintStream getStandardErr() {
+        return standardErr;
+    }
 }

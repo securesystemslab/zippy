@@ -115,26 +115,9 @@ public class RunScript {
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
         if (script != null) {
-            try {
-                Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
-
-                InputStream stream = new ByteArrayInputStream(script.getBytes());
-                interp.execfile(stream, "(test)", context);
-            } catch (Throwable t) {
-                if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
-                    // Shutdown this instance...
-                    shutdownInterpreter();
-                    interp.cleanup();
-                    // ..reset the state...
-                    Py.setSystemState(new PySystemState());
-                    // ...and start again
-                    return;
-                } else {
-                    Py.printException(t);
-                    interp.cleanup();
-                    System.exit(-1);
-                }
-            }
+            Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
+            InputStream stream = new ByteArrayInputStream(script.getBytes());
+            interp.execfile(stream, "(test)", context);
         }
     }
 
