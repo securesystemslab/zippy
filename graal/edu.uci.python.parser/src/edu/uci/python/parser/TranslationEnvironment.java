@@ -25,7 +25,6 @@
 package edu.uci.python.parser;
 
 import java.util.*;
-import java.util.List;
 
 import org.python.antlr.*;
 import org.python.antlr.base.*;
@@ -45,8 +44,6 @@ public class TranslationEnvironment {
     private ScopeInfo currentScope;
     private ScopeInfo globalScope;
     private int scopeLevel;
-
-    private List<PNode> defaultArgs;
 
     public static final String RETURN_SLOT_ID = "<return_val>";
 
@@ -175,13 +172,13 @@ public class TranslationEnvironment {
         return currentScope.getFrameDescriptor().getSize();
     }
 
-    // TODO: Not pretty. Probably to be removed...
-    protected void setDefaultArgs(List<PNode> defaultArgs) {
-        this.defaultArgs = defaultArgs;
+    protected void setDefaultArgumentNodes(List<PNode> defaultArgs) {
+        currentScope.setDefaultArgumentNodes(defaultArgs);
     }
 
-    protected List<PNode> getDefaultArgs() {
-        assert defaultArgs != null : "default args is null";
+    protected List<PNode> getDefaultArgumentNodes() {
+        List<PNode> defaultArgs = currentScope.getDefaultArgumentNodes();
+        assert defaultArgs != null;
         return defaultArgs;
     }
 

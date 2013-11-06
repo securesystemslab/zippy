@@ -24,7 +24,11 @@
  */
 package edu.uci.python.parser;
 
+import java.util.*;
+
 import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.*;
 
 public class ScopeInfo {
 
@@ -33,10 +37,15 @@ public class ScopeInfo {
     }
 
     private final String scopeId;
-
     private final ScopeKind scopeKind;
-
     private final FrameDescriptor frameDescriptor;
+
+    /**
+     * An optional field that stores translated nodes of default argument values.
+     * {@link #defaultArgumentNodes} is not null only when {@link #scopeKind} is Function, and the
+     * function has default arguments.
+     */
+    private List<PNode> defaultArgumentNodes;
 
     public ScopeInfo(String scopeId, ScopeInfo.ScopeKind kind, FrameDescriptor frameDescriptor) {
         this.scopeId = scopeId;
@@ -54,6 +63,16 @@ public class ScopeInfo {
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
+    }
+
+    public void setDefaultArgumentNodes(List<PNode> defaultArgumentNodes) {
+        this.defaultArgumentNodes = defaultArgumentNodes;
+    }
+
+    public List<PNode> getDefaultArgumentNodes() {
+        assert scopeKind == ScopeKind.Function;
+        assert defaultArgumentNodes != null;
+        return defaultArgumentNodes;
     }
 
     @Override

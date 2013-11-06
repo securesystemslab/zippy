@@ -120,12 +120,12 @@ public class PythonTreeTranslator extends Visitor {
          * translate default arguments in FunctionDef's declaring scope.
          */
         List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
-        environment.setDefaultArgs(defaultArgs);
 
         String name = node.getInternalName();
         FrameSlot slot = environment.findSlot(name);
         ScopeInfo.ScopeKind definingScopeKind = environment.getScopeKind();
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
+        environment.setDefaultArgumentNodes(defaultArgs);
         isGenerator = false;
 
         ParametersNode parameters = visitArgs(node.getInternalArgs());
@@ -200,7 +200,7 @@ public class PythonTreeTranslator extends Visitor {
             }
         }
 
-        return factory.createParametersWithDefaults(args, environment.getDefaultArgs(), paramNames);
+        return factory.createParametersWithDefaults(args, environment.getDefaultArgumentNodes(), paramNames);
     }
 
     List<PNode> walkExprList(List<expr> exprs) throws Exception {
