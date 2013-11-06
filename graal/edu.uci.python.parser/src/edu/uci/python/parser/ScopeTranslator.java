@@ -35,12 +35,12 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-public class PythonTreeProcessor extends Visitor {
+public class ScopeTranslator extends Visitor {
 
     private final TranslationEnvironment environment;
 
-    public PythonTreeProcessor(TranslationEnvironment environment) {
-        this.environment = environment.resetScopeLevel();
+    public ScopeTranslator(TranslationEnvironment environment) {
+        this.environment = environment.reset();
     }
 
     public mod process(PythonTree node) {
@@ -203,15 +203,8 @@ public class PythonTreeProcessor extends Visitor {
         String name = node.getInternalId();
 
         if (node.getInternalCtx() != expr_contextType.Load) {
-            if (environment.getScopeLevel() == 1) {
-                // Module global scope
-                /**
-                 * Variables in module's scope are also treated as globals This is why slot is not
-                 * set for variables in module's scope WriteGlobal or ReadGlobal
-                 */
-// if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
-// environment.createLocal(name);
-// }
+            if (environment.atModuleLevel()) {
+                // Module global scope. No frame info needed.
             } else if (!environment.isLocalGlobals(name)) {
                 // function scope
                 environment.createLocal(name);
@@ -219,7 +212,7 @@ public class PythonTreeProcessor extends Visitor {
         } else {
             FrameSlot slot = environment.findSlot(name);
 
-            if (slot == null && environment.getScopeLevel() > 1) {
+            if (slot == null && environment.atNonModuleLevel()) {
                 slot = environment.probeEnclosingScopes(name);
             }
         }
@@ -254,10 +247,6 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
-        // The first iterator is evaluated in the outer scope
-// if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
-// visit(node.getInternalGenerators().get(0).getInternalIter());
-// }
         String boundexp = "_(x)";
         String tmp = "_(" + node.getLine() + "_" + node.getCharPositionInLine() + ")";
         environment.createLocal(tmp);

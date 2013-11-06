@@ -53,17 +53,13 @@ public class TranslationEnvironment {
         scopeStack = new Stack<>();
     }
 
-    public TranslationEnvironment resetScopeLevel() {
+    public TranslationEnvironment reset() {
         scopeLevel = 0;
         return this;
     }
 
     protected mod getModule() {
         return module;
-    }
-
-    protected int getScopeLevel() {
-        return scopeLevel;
     }
 
     public void beginScope(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
@@ -87,6 +83,16 @@ public class TranslationEnvironment {
         if (!scopeStack.isEmpty()) {
             currentScope = scopeStack.pop();
         }
+    }
+
+    public boolean atModuleLevel() {
+        assert scopeLevel > 0;
+        return scopeLevel == 1;
+    }
+
+    public boolean atNonModuleLevel() {
+        assert scopeLevel > 0;
+        return scopeLevel > 1;
     }
 
     public ScopeInfo.ScopeKind getScopeKind() {

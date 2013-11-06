@@ -70,7 +70,7 @@ public class PythonTreeTranslator extends Visitor {
     public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
         this.context = context;
         this.factory = new NodeFactory();
-        this.environment = environment.resetScopeLevel();
+        this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
         this.result = new PythonParseResult();
     }
