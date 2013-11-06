@@ -39,11 +39,12 @@ public class ScopeInfo {
     private final String scopeId;
     private final ScopeKind scopeKind;
     private final FrameDescriptor frameDescriptor;
+    private boolean needsDeclaringScope;
 
     /**
      * Symbols declared using 'global' statement.
      */
-    private List<String> explicitGlobalSymbols;
+    private List<String> explicitGlobalVariables;
 
     /**
      * An optional field that stores translated nodes of default argument values.
@@ -52,10 +53,11 @@ public class ScopeInfo {
      */
     private List<PNode> defaultArgumentNodes;
 
-    public ScopeInfo(String scopeId, ScopeInfo.ScopeKind kind, FrameDescriptor frameDescriptor) {
+    public ScopeInfo(String scopeId, ScopeKind kind, FrameDescriptor frameDescriptor) {
         this.scopeId = scopeId;
         this.scopeKind = kind;
         this.frameDescriptor = frameDescriptor;
+        this.needsDeclaringScope = false;
     }
 
     public String getScopeId() {
@@ -70,16 +72,24 @@ public class ScopeInfo {
         return frameDescriptor;
     }
 
-    public void addExplicitGlobalSymbol(String identifier) {
-        if (explicitGlobalSymbols == null) {
-            explicitGlobalSymbols = new ArrayList<>();
-        }
-
-        explicitGlobalSymbols.add(identifier);
+    public void setNeedsDeclaringScope() {
+        needsDeclaringScope = true;
     }
 
-    public boolean isExplicitGlobal(String identifier) {
-        return explicitGlobalSymbols != null ? explicitGlobalSymbols.contains(identifier) : false;
+    public boolean needsDeclaringScope() {
+        return needsDeclaringScope;
+    }
+
+    public void addExplicitGlobalVariable(String identifier) {
+        if (explicitGlobalVariables == null) {
+            explicitGlobalVariables = new ArrayList<>();
+        }
+
+        explicitGlobalVariables.add(identifier);
+    }
+
+    public boolean isExplicitGlobalVariable(String identifier) {
+        return explicitGlobalVariables != null ? explicitGlobalVariables.contains(identifier) : false;
     }
 
     public void setDefaultArgumentNodes(List<PNode> defaultArgumentNodes) {

@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ListComprehensionNode extends PNode {
 
@@ -50,7 +51,7 @@ public abstract class ListComprehensionNode extends PNode {
             return ere.getValue();
         }
 
-        return null;
+        return PNone.NONE;
     }
 
 }

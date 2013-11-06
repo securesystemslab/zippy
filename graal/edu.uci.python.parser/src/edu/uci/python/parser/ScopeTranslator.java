@@ -204,7 +204,7 @@ public class ScopeTranslator extends Visitor {
 
         if (node.getInternalCtx() != expr_contextType.Load) {
             if (environment.atModuleLevel()) {
-                // Module global scope. No frame info needed.
+                // Module/global scope. No frame info needed.
             } else if (!environment.isLocalGlobals(name)) {
                 // function scope
                 environment.createLocal(name);

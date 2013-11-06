@@ -135,17 +135,18 @@ public class TranslationEnvironment {
 
     public void addLocalGlobals(String name) {
         assert name != null : "name is null!";
-        currentScope.addExplicitGlobalSymbol(name);
+        currentScope.addExplicitGlobalVariable(name);
     }
 
     public boolean isLocalGlobals(String name) {
         assert name != null : "name is null!";
-        return currentScope.isExplicitGlobal(name);
+        return currentScope.isExplicitGlobalVariable(name);
     }
 
     protected FrameSlot probeEnclosingScopes(String name) {
         assert name != null : "name is null!";
         int level = 0;
+        currentScope.needsDeclaringScope();
 
         for (int i = scopeStack.size() - 1; i > 0; i--) {
             level++;
@@ -159,6 +160,8 @@ public class TranslationEnvironment {
             if (candidate != null) {
                 return EnvironmentFrameSlot.pack(candidate, level);
             }
+
+            info.needsDeclaringScope();
         }
 
         return null;

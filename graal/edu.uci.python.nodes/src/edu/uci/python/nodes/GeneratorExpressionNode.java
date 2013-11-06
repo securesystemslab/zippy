@@ -32,7 +32,7 @@ import edu.uci.python.nodes.access.*;
 
 public abstract class GeneratorExpressionNode extends PNode {
 
-    @Child GeneratorNode generator;
+    @Child protected GeneratorNode generator;
 
     private final FrameDescriptor frameDescriptor;
 

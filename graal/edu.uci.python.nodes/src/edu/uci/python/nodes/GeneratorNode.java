@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class GeneratorNode extends FunctionRootNode {
 
@@ -44,7 +45,7 @@ public class GeneratorNode extends FunctionRootNode {
         } catch (ExplicitReturnException ere) {
             return ere.getValue();
         } catch (ImplicitReturnException ire) {
-            return null;
+            return PNone.NONE;
         }
     }
 
