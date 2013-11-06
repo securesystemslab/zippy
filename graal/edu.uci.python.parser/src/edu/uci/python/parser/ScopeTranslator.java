@@ -32,8 +32,7 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
-
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.parser.TranslationUtil.*;
 
 public class ScopeTranslator extends Visitor {
 
@@ -88,7 +87,7 @@ public class ScopeTranslator extends Visitor {
         }
 
         visitArgs(node.getInternalArgs(), ac);
-        List<PythonTree> argsInit = TranslationUtil.castToPythonTreeList(ac.init_code);
+        List<PythonTree> argsInit = castToPythonTreeList(ac.init_code);
         node.addChildren(argsInit);
         node.getInternalBody().addAll(0, ac.init_code);
 
@@ -202,18 +201,12 @@ public class ScopeTranslator extends Visitor {
     public Object visitName(Name node) throws Exception {
         String name = node.getInternalId();
 
-        if (node.getInternalCtx() != expr_contextType.Load) {
+        if (!isLoad(node)) {
             if (environment.atModuleLevel()) {
                 // Module/global scope. No frame info needed.
             } else if (!environment.isLocalGlobals(name)) {
                 // function scope
                 environment.createLocal(name);
-            }
-        } else {
-            FrameSlot slot = environment.findSlot(name);
-
-            if (slot == null && environment.atNonModuleLevel()) {
-                slot = environment.probeEnclosingScopes(name);
             }
         }
 

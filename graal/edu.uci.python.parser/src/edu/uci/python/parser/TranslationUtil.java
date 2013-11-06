@@ -31,6 +31,8 @@ import org.python.antlr.*;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
+import edu.uci.python.nodes.*;
+
 public class TranslationUtil {
 
     public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
@@ -41,6 +43,42 @@ public class TranslationUtil {
         }
 
         return pythonTreeList;
+    }
+
+    public static boolean isLoad(Subscript subcript) {
+        return subcript.getInternalCtx() == expr_contextType.Load;
+    }
+
+    public static boolean isStore(Subscript subcript) {
+        return subcript.getInternalCtx() == expr_contextType.Store;
+    }
+
+    public static boolean isLoad(Name name) {
+        return name.getInternalCtx() == expr_contextType.Load;
+    }
+
+    public static boolean isParam(Name name) {
+        return name.getInternalCtx() == expr_contextType.Param;
+    }
+
+    public static boolean isBoolOrNone(Name name) {
+        String symbol = name.getInternalId();
+        return symbol.equals("None") || symbol.equals("True") || symbol.equals("False");
+    }
+
+    public static PNode getBoolOrNode(Name node) {
+        String name = node.getInternalId();
+        NodeFactory factory = NodeFactory.getInstance();
+
+        if (name.equals("None")) {
+            return factory.createNoneLiteral();
+        } else if (name.equals("True")) {
+            return factory.createBooleanLiteral(true);
+        } else if (name.equals("False")) {
+            return factory.createBooleanLiteral(false);
+        }
+
+        throw notCovered();
     }
 
     public static String getScopeId(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {

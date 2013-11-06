@@ -333,29 +333,21 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitName(Name node) throws Exception {
-        String name = node.getInternalId();
-
-        if (name.equals("None")) {
-            return factory.createNoneLiteral();
-        } else if (name.equals("True")) {
-            return factory.createBooleanLiteral(true);
-        } else if (name.equals("False")) {
-            return factory.createBooleanLiteral(false);
+        if (isBoolOrNone(node)) {
+            return getBoolOrNode(node);
         }
 
-        expr_contextType econtext = node.getInternalCtx();
-
-        if (econtext == expr_contextType.Param) {
+        if (isParam(node)) {
             FrameSlot slot = environment.findSlot(node.getInternalId());
             ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
             return factory.createWriteLocalVariable(right, slot);
         }
 
-        if (node.getInternalCtx() != expr_contextType.Load) {
+        if (!isLoad(node)) {
             return convertWrite(node);
+        } else {
+            return convertRead(node);
         }
-
-        return convertRead(node);
     }
 
     PNode convertRead(Name node) {
@@ -730,9 +722,9 @@ public class PythonTreeTranslator extends Visitor {
         PNode primary = (PNode) visit(node.getInternalValue());
         PNode slice = (PNode) visit(node.getInternalSlice());
 
-        if (node.getInternalCtx() == expr_contextType.Load) {
+        if (isLoad(node)) {
             return factory.createSubscriptLoad(primary, slice);
-        } else if (node.getInternalCtx() == expr_contextType.Store) {
+        } else if (isStore(node)) {
             assert isLeftHandSide;
 
             if (primary instanceof StoreAttributeNode) {
