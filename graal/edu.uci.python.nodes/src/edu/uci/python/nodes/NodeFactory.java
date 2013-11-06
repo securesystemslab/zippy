@@ -86,7 +86,7 @@ public class NodeFactory {
     }
 
     public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode(functionName, parameters, body, returnValue);
+        return new GeneratorDefinitionNode(functionName, parameters, body, returnValue);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -259,7 +259,7 @@ public class NodeFactory {
     }
 
     public PNode createGeneratorExpression(GeneratorNode generator, FrameDescriptor descriptor) {
-        return GeneratorExpressionNodeFactory.create(generator, descriptor);
+        return GeneratorExpressionDefinitionNodeFactory.create(generator, descriptor);
     }
 
     public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {

@@ -24,38 +24,47 @@
  */
 package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public abstract class GeneratorExpressionNode extends PNode {
+public class GeneratorDefinitionNode extends FunctionRootNode {
 
-    @Child protected GeneratorNode generator;
+    private StatementNode continuingNode;
 
-    private final FrameDescriptor frameDescriptor;
+    private VirtualFrame continuingFrame;
 
-    public GeneratorExpressionNode(GeneratorNode generator, FrameDescriptor descriptor) {
-        this.generator = adoptChild(generator);
-        this.frameDescriptor = descriptor;
+    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
-    protected GeneratorExpressionNode(GeneratorExpressionNode node) {
-        this(node.generator, node.frameDescriptor);
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
+    @Override
+    public Object execute(VirtualFrame frame) {
+        parameters.executeVoid(frame);
+        continuingNode = body;
+        this.continuingFrame = frame;
+        return new PGenerator(null, null);
+
     }
 
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        CallTarget ct = Truffle.getRuntime().createCallTarget(generator, frameDescriptor);
+    public Object next() throws ImplicitReturnException {
+        StatementNode current = continuingNode;
 
-        // TODO: This is probably not the best way to determine whether the
-        // generator should be evaluated immediately or not.
-        if (getParent() instanceof WriteLocalNode) {
-            return ct;
-        } else {
-            return ct.call(frame.pack());
+        while (current != null) {
+            try {
+                current.executeVoid(continuingFrame);
+                current = current.next();
+            } catch (ExplicitYieldException eye) {
+                continuingNode = eye.getResumingNode();
+                return eye.getValue();
+            }
         }
-    }
 
+        throw new ImplicitReturnException();
+    }
 }

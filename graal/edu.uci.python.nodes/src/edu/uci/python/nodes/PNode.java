@@ -33,7 +33,6 @@ import com.oracle.truffle.api.dsl.TypeSystemReference;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;

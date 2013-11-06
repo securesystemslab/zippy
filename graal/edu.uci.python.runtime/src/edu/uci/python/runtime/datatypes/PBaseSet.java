@@ -128,8 +128,6 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         return result;
     }
 
-    // TODO
-
     // intersection
     public PBaseSet intersection(Iterable<Object> other) {
         return this.intersection(new PSet(other));

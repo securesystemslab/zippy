@@ -22,31 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.datatypes;
+package edu.uci.python.runtime.datatypes;
 
 import java.util.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-public class PGenerator implements Iterable<Object>, Iterator<Object> {
+public class PGenerator extends PCallable implements Iterator<Object>, Iterable<Object> {
 
-    private final GeneratorRootNode root;
+    private final CallTarget callTarget;
 
     private boolean hasNext = true;
 
-    public PGenerator(GeneratorRootNode root) {
-        this.root = root;
+    public PGenerator(String name, CallTarget callTarget) {
+        super(name);
+        this.callTarget = callTarget;
     }
 
     @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+    }
+
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
+    @Override
     public Object next() {
-        try {
-            return root.next();
-        } catch (ImplicitReturnException ire) {
-            hasNext = false;
-            throw new BreakException();
-        }
+        return call(null, null);
     }
 
     @Override
