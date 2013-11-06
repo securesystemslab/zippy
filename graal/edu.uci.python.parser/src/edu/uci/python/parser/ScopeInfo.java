@@ -34,9 +34,9 @@ public class ScopeInfo {
 
     private final String scopeId;
 
-    private ScopeInfo.ScopeKind scopeKind;
+    private final ScopeKind scopeKind;
 
-    private FrameDescriptor frameDescriptor;
+    private final FrameDescriptor frameDescriptor;
 
     public ScopeInfo(String scopeId, ScopeInfo.ScopeKind kind, FrameDescriptor frameDescriptor) {
         this.scopeId = scopeId;
