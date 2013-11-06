@@ -68,6 +68,14 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
+            } else if (!(callable instanceof PFunction)) {
+                /**
+                 * TODO This for the methods in PModules such as array, list. This can be improved
+                 */
+                PCallable pcallable = (PCallable) callable;
+                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(pcallable, pcallable.getName(), arguments, keywords);
+                replace(callBuiltIn);
+                return callBuiltIn.doGeneric(frame);
             } else if (keywords.length == 0) {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, (PFunction) callable);
                 replace(callFunction);

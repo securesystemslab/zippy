@@ -906,7 +906,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         if (step instanceof PNone) {
                             return new PRange(intStart, intStop);
                         } else {
-                            int intStep = (int) stop;
+                            int intStep = (int) step;
                             return new PRange(intStart, intStop, intStep);
                         }
                     }
