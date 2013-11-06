@@ -86,7 +86,7 @@ public class NodeFactory {
     }
 
     public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode(functionName, parameters, body, returnValue);
+        return new GeneratorDefinitionNode(functionName, parameters, body, returnValue);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -125,7 +125,7 @@ public class NodeFactory {
         for (ReadDefaultArgumentNode read : defaultReads) {
             FrameSlotNode slotNode = (FrameSlotNode) parameters.get(index + offset);
             FrameSlot slot = slotNode.getSlot();
-            defaultWrites[index] = createWriteLocal(read, slot);
+            defaultWrites[index] = createWriteLocalVariable(read, slot);
             index++;
         }
 
@@ -258,12 +258,12 @@ public class NodeFactory {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
-    public PNode createGeneratorExpression(GeneratorNode generator, FrameDescriptor descriptor) {
-        return GeneratorExpressionNodeFactory.create(generator, descriptor);
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
+        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor);
     }
 
-    public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
-        return new GeneratorNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+    public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
+        return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -411,16 +411,16 @@ public class NodeFactory {
         return SubscriptStoreNodeFactory.create(primary, slice, value);
     }
 
-    public PNode createReadLocal(FrameSlot slot) {
+    public PNode createReadLocalVariable(FrameSlot slot) {
         assert slot != null;
         return ReadLocalNodeFactory.create(slot);
     }
 
-    public PNode createReadEnvironment(FrameSlot slot, int level) {
-        return ReadEnvironmentNodeFactory.create(slot, level);
+    public PNode createReadLevelVariable(FrameSlot slot, int level) {
+        return ReadLevelVariableNodeFactory.create(slot, level);
     }
 
-    public PNode createWriteLocal(PNode right, FrameSlot slot) {
+    public PNode createWriteLocalVariable(PNode right, FrameSlot slot) {
         return WriteLocalNodeFactory.create(slot, right);
     }
 

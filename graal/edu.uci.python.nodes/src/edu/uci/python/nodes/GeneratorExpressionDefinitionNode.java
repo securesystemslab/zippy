@@ -22,36 +22,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class ListComprehensionNode extends PNode {
+public class GeneratorExpressionDefinitionNode extends PNode {
 
-    @Child ComprehensionNode comprehension;
+    private final CallTarget callTarget;
+    private final FrameDescriptor frameDescriptor;
 
-    public ListComprehensionNode(ComprehensionNode comprehension) {
-        this.comprehension = adoptChild(comprehension);
+    @Child protected GeneratorExpressionRootNode rootNode;
+
+    public GeneratorExpressionDefinitionNode(CallTarget callTarget, GeneratorExpressionRootNode rootNode, FrameDescriptor descriptor) {
+        this.callTarget = callTarget;
+        this.rootNode = adoptChild(rootNode);
+        this.frameDescriptor = descriptor;
     }
 
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.comprehension);
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        try {
-            comprehension.execute(frame);
-        } catch (ExplicitReturnException ere) {
-            return ere.getValue();
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor);
+        // TODO: It's a bad way to determine whether the
+        // generator should be evaluated immediately or not.
+        if (getParent() instanceof WriteLocalNode) {
+            return generator;
+        } else {
+            return generator.call(frame.pack(), null);
         }
-
-        return PNone.NONE;
     }
-
 }

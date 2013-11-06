@@ -75,9 +75,9 @@ public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCache
             assert newSlot != null;
 
             if (node instanceof ReadLocalNode) {
-                node.replace(factory.createReadLocal(newSlot));
+                node.replace(factory.createReadLocalVariable(newSlot));
             } else if (node instanceof WriteLocalNode) {
-                node.replace(factory.createWriteLocal(((WriteLocalNode) node).getRhs(), newSlot));
+                node.replace(factory.createWriteLocalVariable(((WriteLocalNode) node).getRhs(), newSlot));
             }
         }
     }

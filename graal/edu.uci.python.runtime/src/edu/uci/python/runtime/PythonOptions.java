@@ -33,8 +33,12 @@ public class PythonOptions {
 
     public static boolean VisualizedAST = false;
 
+    // Translation flags
+    public static final boolean ReturnValueInFrame = true;
+
     public static final boolean OptimizeNode = true;
 
+    // Runtime flags
     public static final boolean UseUnsafe = true;
 
     public static final boolean InlineFunctionCalls = true;
@@ -42,6 +46,8 @@ public class PythonOptions {
     public static final boolean UseSpecializedBuiltins = false;
 
     private PrintStream standardOut = System.out;
+
+    private PrintStream standardErr = System.err;
 
     public void setStandardOut(PrintStream stdout) {
         standardOut = stdout;
@@ -51,4 +57,11 @@ public class PythonOptions {
         return standardOut;
     }
 
+    public void setStandardErr(PrintStream stderr) {
+        standardErr = stderr;
+    }
+
+    public PrintStream getStandardErr() {
+        return standardErr;
+    }
 }

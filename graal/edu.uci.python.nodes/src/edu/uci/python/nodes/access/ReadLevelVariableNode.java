@@ -34,16 +34,16 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class ReadEnvironmentNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadLevelVariableNode extends FrameSlotNode implements ReadNode {
 
     final int level;
 
-    public ReadEnvironmentNode(FrameSlot slot, int level) {
+    public ReadLevelVariableNode(FrameSlot slot, int level) {
         super(slot);
         this.level = level;
     }
 
-    public ReadEnvironmentNode(ReadEnvironmentNode specialized) {
+    public ReadLevelVariableNode(ReadLevelVariableNode specialized) {
         this(specialized.frameSlot, specialized.level);
     }
 

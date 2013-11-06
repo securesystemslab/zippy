@@ -22,12 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.test;
 
-public interface WriteNode {
+import static edu.uci.python.test.PythonTests.*;
 
-    PNode makeReadNode();
+import org.junit.*;
 
-    PNode getRhs();
+public class ScopeTests {
 
+// @Test
+    public void implicitNonLocal() {
+        String source = "def foo():\n" + //
+                        "    a = 42\n" + //
+                        "    def bar():\n" + //
+                        "        print(a)\n" + //
+                        "    \n" + //
+                        "    return bar\n" + //
+                        "\n" + //
+                        "foo()()\n";
+
+        assertPrints("42\n", source);
+    }
 }

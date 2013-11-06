@@ -32,7 +32,6 @@ import org.python.core.*;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinFunctionsFactory.*;
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinClassesFactory.*;
-import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;

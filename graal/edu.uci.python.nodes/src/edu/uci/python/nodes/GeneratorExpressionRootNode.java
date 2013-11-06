@@ -22,46 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.datatypes;
+package edu.uci.python.nodes;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class PGenerator implements Iterable<Object>, Iterator<Object> {
+public class GeneratorExpressionRootNode extends FunctionRootNode {
 
-    private final GeneratorRootNode root;
-
-    private boolean hasNext = true;
-
-    public PGenerator(GeneratorRootNode root) {
-        this.root = root;
+    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
     @Override
-    public Object next() {
+    public Object execute(VirtualFrame frame) {
+        parameters.executeVoid(frame);
+
         try {
-            return root.next();
+            return body.execute(frame);
+        } catch (ExplicitReturnException ere) {
+            return ere.getValue();
         } catch (ImplicitReturnException ire) {
-            hasNext = false;
-            throw new BreakException();
+            return PNone.NONE;
         }
-    }
-
-    @Override
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return this;
     }
 
 }

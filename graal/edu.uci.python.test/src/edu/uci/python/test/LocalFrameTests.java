@@ -109,4 +109,16 @@ public class LocalFrameTests {
 
         assertPrints("True\n(2+0j)\n", source);
     }
+
+    @Test
+    public void unboundLocalError() {
+        String source = "def foo(y):\n" + //
+                        "    if y > .5: x = 'big'\n" + //
+                        "    else: pass\n" + //
+                        "    return x\n" + //
+                        "\n" + //
+                        "foo(0)\n";
+
+        assertError("UnboundLocalError: local variable 'x' referenced before assignment\n", source);
+    }
 }

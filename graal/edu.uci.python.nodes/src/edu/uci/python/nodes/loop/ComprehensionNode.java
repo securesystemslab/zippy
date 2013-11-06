@@ -26,12 +26,12 @@ package edu.uci.python.nodes.loop;
 
 import java.util.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
@@ -73,10 +73,10 @@ public abstract class ComprehensionNode extends StatementNode {
     @Specialization
     public Object doGeneric(VirtualFrame frame, Object sequence) {
         PList seq;
-        if (sequence instanceof CallTarget) {
-            CallTarget ct = (CallTarget) sequence;
-            Object ret = ct.call(frame.pack());
-            seq = (PList) ret;
+
+        if (sequence instanceof PGenerator) {
+            PGenerator generator = (PGenerator) sequence;
+            seq = (PList) generator.call(frame.pack(), null);
         } else {
             throw new RuntimeException("Unhandled sequence");
         }

@@ -22,30 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.utils.*;
+import org.junit.*;
 
-public class GeneratorNode extends FunctionRootNode {
+public class GeneratorExpressionTests {
 
-    public GeneratorNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    @Test
+    public void simple() {
+        String source = "genexp = (x*2 for x in range(5))\n" + //
+                        "for i in genexp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("0\n2\n4\n6\n8\n", source);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
+    @Test
+    public void generatorWithListComp() {
+        String source = "genexp = (x*2 for x in range(5))\n" + //
+                        "listcomp = [y for y in genexp]\n" + //
+                        "for i in listcomp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
 
-        try {
-            return body.execute(frame);
-        } catch (ExplicitReturnException ere) {
-            return ere.getValue();
-        } catch (ImplicitReturnException ire) {
-            return null;
-        }
+        assertPrints("0\n2\n4\n6\n8\n", source);
     }
-
 }

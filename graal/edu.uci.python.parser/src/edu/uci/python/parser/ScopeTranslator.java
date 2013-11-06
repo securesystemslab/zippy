@@ -32,17 +32,14 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
+import static edu.uci.python.parser.TranslationUtil.*;
 
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.parser.TranslationEnvironment.ScopeKind;
-
-public class PythonTreeProcessor extends Visitor {
+public class ScopeTranslator extends Visitor {
 
     private final TranslationEnvironment environment;
 
-    public PythonTreeProcessor(TranslationEnvironment environment) {
-        this.environment = environment.resetScopeLevel();
+    public ScopeTranslator(TranslationEnvironment environment) {
+        this.environment = environment.reset();
     }
 
     public mod process(PythonTree node) {
@@ -55,11 +52,9 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
-        environment.beginScope(node, ScopeKind.Module);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Module);
         visitStatements(node.getInternalBody());
-
-        FrameDescriptor fd = environment.endScope();
-        environment.setFrameDescriptor(node, fd);
+        environment.endScope(node);
         return node;
     }
 
@@ -85,20 +80,19 @@ public class PythonTreeProcessor extends Visitor {
             visit(decs.get(i));
         }
 
-        environment.beginScope(node, ScopeKind.Function);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         int n = ac.names.size();
         for (int i = 0; i < n; i++) {
             environment.createLocal(ac.names.get(i));
         }
 
         visitArgs(node.getInternalArgs(), ac);
-        List<PythonTree> argsInit = TranslationUtil.castToPythonTreeList(ac.init_code);
+        List<PythonTree> argsInit = castToPythonTreeList(ac.init_code);
         node.addChildren(argsInit);
         node.getInternalBody().addAll(0, ac.init_code);
 
         visitStatements(node.getInternalBody());
-        FrameDescriptor fd = environment.endScope();
-        environment.setFrameDescriptor(node, fd);
+        environment.endScope(node);
         return null;
     }
 
@@ -123,14 +117,14 @@ public class PythonTreeProcessor extends Visitor {
             visit(defaults.get(i));
         }
 
-        environment.beginScope(node, ScopeKind.Function);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
 
         for (Object o : ac.init_code) {
             visit((stmt) o);
         }
 
         visit(node.getInternalBody());
-        environment.endScope();
+        environment.endScope(node);
         return null;
     }
 
@@ -197,9 +191,9 @@ public class PythonTreeProcessor extends Visitor {
             visit(node.getInternalBases().get(i));
         }
 
-        environment.beginScope(node, ScopeKind.Class);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         visitStatements(node.getInternalBody());
-        environment.endScope();
+        environment.endScope(node);
         return null;
     }
 
@@ -207,25 +201,12 @@ public class PythonTreeProcessor extends Visitor {
     public Object visitName(Name node) throws Exception {
         String name = node.getInternalId();
 
-        if (node.getInternalCtx() != expr_contextType.Load) {
-            if (environment.getScopeLevel() == 1) {
-                // Module global scope
-                /**
-                 * Variables in module's scope are also treated as globals This is why slot is not
-                 * set for variables in module's scope WriteGlobal or ReadGlobal
-                 */
-// if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
-// environment.createLocal(name);
-// }
+        if (!isLoad(node)) {
+            if (environment.atModuleLevel()) {
+                // Module/global scope. No frame info needed.
             } else if (!environment.isLocalGlobals(name)) {
                 // function scope
                 environment.createLocal(name);
-            }
-        } else {
-            FrameSlot slot = environment.findSlot(name);
-
-            if (slot == null && environment.getScopeLevel() > 1) {
-                slot = environment.probeEnclosingScopes(name);
             }
         }
 
@@ -259,10 +240,6 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
-        // The first iterator is evaluated in the outer scope
-// if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
-// visit(node.getInternalGenerators().get(0).getInternalIter());
-// }
         String boundexp = "_(x)";
         String tmp = "_(" + node.getLine() + "_" + node.getCharPositionInLine() + ")";
         environment.createLocal(tmp);
@@ -270,7 +247,7 @@ public class PythonTreeProcessor extends Visitor {
         List<expr> args = new ArrayList<>();
         args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
-        environment.beginScope(node, ScopeKind.Function);
+        environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
 
         // visit first iterator in the new scope
         if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
@@ -312,8 +289,7 @@ public class PythonTreeProcessor extends Visitor {
             visit(node.getInternalElt());
         }
 
-        FrameDescriptor fd = environment.endScope();
-        environment.setFrameDescriptor(node, fd);
+        environment.endScope(node);
         return null;
     }
 

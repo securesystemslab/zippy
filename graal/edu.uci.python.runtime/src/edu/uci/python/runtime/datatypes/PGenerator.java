@@ -22,10 +22,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.runtime.datatypes;
 
-public interface ReadNode {
+import java.util.*;
 
-    PNode makeWriteNode(PNode rhs);
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
+public class PGenerator extends PCallable implements Iterator<Object>, Iterable<Object> {
+
+    private final CallTarget callTarget;
+    private final FrameDescriptor frameDescriptor;
+
+    private boolean hasNext = true;
+
+    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor) {
+        super(name);
+        this.callTarget = callTarget;
+        this.frameDescriptor = frameDescriptor;
+    }
+
+    public FrameDescriptor getFrameDescriptor() {
+        return frameDescriptor;
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+    }
+
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
+    @Override
+    public Object next() {
+        return call(null, null);
+    }
+
+    @Override
+    public boolean hasNext() {
+        return hasNext;
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Iterator<Object> iterator() {
+        return this;
+    }
 }

@@ -22,45 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.nodes.*;
 
-import edu.uci.python.datatypes.*;
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.utils.*;
+public interface ReadNode {
 
-public class GeneratorRootNode extends FunctionRootNode {
+    PNode makeWriteNode(PNode rhs);
 
-    private StatementNode continuingNode;
-
-    private VirtualFrame continuingFrame;
-
-    public GeneratorRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-        continuingNode = body;
-        this.continuingFrame = frame;
-        return new PGenerator(this);
-    }
-
-    public Object next() throws ImplicitReturnException {
-        StatementNode current = continuingNode;
-
-        while (current != null) {
-            try {
-                current.executeVoid(continuingFrame);
-                current = current.next();
-            } catch (ExplicitYieldException eye) {
-                continuingNode = eye.getResumingNode();
-                return eye.getValue();
-            }
-        }
-
-        throw new ImplicitReturnException();
-    }
 }

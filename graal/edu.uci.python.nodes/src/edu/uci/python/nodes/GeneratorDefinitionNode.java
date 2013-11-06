@@ -22,10 +22,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.nodes;
 
-public class TranslationOptions {
+import com.oracle.truffle.api.frame.*;
 
-    public static final boolean RETURN_VALUE_IN_FRAME = true;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.datatypes.*;
 
+public class GeneratorDefinitionNode extends FunctionRootNode {
+
+    private StatementNode continuingNode;
+
+    private VirtualFrame continuingFrame;
+
+    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
+    }
+
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
+    @Override
+    public Object execute(VirtualFrame frame) {
+        parameters.executeVoid(frame);
+        continuingNode = body;
+        this.continuingFrame = frame;
+        return new PGenerator(null, null, null);
+
+    }
+
+    public Object next() throws ImplicitReturnException {
+        StatementNode current = continuingNode;
+
+        while (current != null) {
+            try {
+                current.executeVoid(continuingFrame);
+                current = current.next();
+            } catch (ExplicitYieldException eye) {
+                continuingNode = eye.getResumingNode();
+                return eye.getValue();
+            }
+        }
+
+        throw new ImplicitReturnException();
+    }
 }

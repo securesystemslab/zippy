@@ -22,40 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.nodes.*;
 
-import edu.uci.python.nodes.access.*;
+public interface WriteNode {
 
-public abstract class GeneratorExpressionNode extends PNode {
+    PNode makeReadNode();
 
-    @Child GeneratorNode generator;
-
-    private final FrameDescriptor frameDescriptor;
-
-    public GeneratorExpressionNode(GeneratorNode generator, FrameDescriptor descriptor) {
-        this.generator = adoptChild(generator);
-        this.frameDescriptor = descriptor;
-    }
-
-    protected GeneratorExpressionNode(GeneratorExpressionNode node) {
-        this(node.generator, node.frameDescriptor);
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        CallTarget ct = Truffle.getRuntime().createCallTarget(generator, frameDescriptor);
-
-        // TODO: This is probably not the best way to determine whether the
-        // generator should be evaluated immediately or not.
-        if (getParent() instanceof WriteLocalNode) {
-            return ct;
-        } else {
-            return ct.call(frame.pack());
-        }
-    }
+    PNode getRhs();
 
 }
