@@ -44,7 +44,8 @@ public class PModule extends PythonBuiltinObject {
     private final Map<String, PCallable> methods = new HashMap<>();
     private final Map<String, Object> constants = new HashMap<>();
 
-    // The context is stored here - objects can obtain it via their class (which is a module)
+    // The context is stored here - objects can obtain it via their class (which
+    // is a module)
     private final PythonContext context;
 
     public PModule(PythonContext context, String name) {
@@ -73,8 +74,8 @@ public class PModule extends PythonBuiltinObject {
     }
 
     /**
-     * Add a method to the module. Only adds it to the module itself - not the singleton class of
-     * the module instance.
+     * Add a method to the module. Only adds it to the module itself - not the
+     * singleton class of the module instance.
      */
     public void addMethod(PCallable method) {
         methods.put(method.getName(), method);
@@ -116,41 +117,49 @@ public class PModule extends PythonBuiltinObject {
     }
 
     /**
-     * Load constants that are marked with @ModuleConstant in this class into the module.
+     * Load constants that are marked with @ModuleConstant in this class into
+     * the module.
      */
     public void addConstants() {
         for (Field field : this.getClass().getFields()) {
             final int m = field.getModifiers();
 
-            if (Modifier.isPublic(m) && Modifier.isStatic(m) && Modifier.isFinal(m) && field.getAnnotation(ModuleConstant.class) != null) {
+            if (Modifier.isPublic(m) && Modifier.isStatic(m)
+                    && Modifier.isFinal(m)
+                    && field.getAnnotation(ModuleConstant.class) != null) {
                 try {
                     setConstant(field.getName(), field.get(null));
                 } catch (IllegalAccessException e) {
-                    throw new RuntimeException("access error when populating constants", e);
+                    throw new RuntimeException(
+                            "access error when populating constants", e);
                 }
             }
         }
     }
 
     /**
-     * Load methods that are marked with @ModuleMethod in this class into the module.
+     * Load methods that are marked with @ModuleMethod in this class into the
+     * module.
      */
     public void addBuiltInMethods() {
         try {
             addBuiltInMethods(this.getClass());
         } catch (NoSuchMethodException | SecurityException e) {
-            throw new RuntimeException("Error when adding methods for Module " + this.getClass().getSimpleName());
+            throw new RuntimeException("Error when adding methods for Module "
+                    + this.getClass().getSimpleName());
         }
     }
 
     /**
-     * Load methods that are marked with @ModuleMethod in the supplied class into the module.
+     * Load methods that are marked with @ModuleMethod in the supplied class
+     * into the module.
      * 
      * @throws SecurityException
      * @throws NoSuchMethodException
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void addBuiltInMethods(final Class definingClass) throws NoSuchMethodException, SecurityException {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public void addBuiltInMethods(final Class definingClass)
+            throws NoSuchMethodException, SecurityException {
 
         for (Method method : definingClass.getMethods()) {
 
@@ -158,14 +167,17 @@ public class PModule extends PythonBuiltinObject {
 
             final int m = method.getModifiers();
 
-            final ModuleMethod modmethod = method.getAnnotation(ModuleMethod.class);
+            final ModuleMethod modmethod = method
+                    .getAnnotation(ModuleMethod.class);
 
             if (Modifier.isPublic(m) && modmethod != null) {
                 final Method finalMethod = method;
 
-                final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class});
+                final Method method1 = definingClass.getMethod(
+                        finalMethod.getName(), new Class[] { Object.class });
 
-                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
+                final String methodName = modmethod.value().length() > 0 ? modmethod
+                        .value() : finalMethod.getName();
 
                 final PCallable pythonMethod = new PCallable(methodName) {
 
@@ -173,18 +185,23 @@ public class PModule extends PythonBuiltinObject {
                     @Override
                     public Object call(PackedFrame caller, Object arg) {
                         try {
-                            return method1.invoke(finalDefiningModule, new Object[]{arg});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            return method1.invoke(finalDefiningModule,
+                                    new Object[] { arg });
+                        } catch (IllegalAccessException
+                                | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
                     }
 
                     @SlowPath
                     @Override
-                    public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
+                    public Object call(PackedFrame frame, Object[] args,
+                            Object[] keywords) {
                         try {
-                            return finalMethod.invoke(finalDefiningModule, new Object[]{args, keywords});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            return finalMethod.invoke(finalDefiningModule,
+                                    new Object[] { args, keywords });
+                        } catch (IllegalAccessException
+                                | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
                     }
@@ -195,12 +212,14 @@ public class PModule extends PythonBuiltinObject {
         }
     }
 
-    public void addAttributeMethods() throws NoSuchMethodException, SecurityException {
+    public void addAttributeMethods() throws NoSuchMethodException,
+            SecurityException {
         addAttributeMethods(this.getClass());
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void addAttributeMethods(final Class definingClass) throws NoSuchMethodException, SecurityException {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public void addAttributeMethods(final Class definingClass)
+            throws NoSuchMethodException, SecurityException {
 
         for (Method method : definingClass.getMethods()) {
 
@@ -208,32 +227,41 @@ public class PModule extends PythonBuiltinObject {
 
             final int m = method.getModifiers();
 
-            final ModuleMethod modmethod = method.getAnnotation(ModuleMethod.class);
+            final ModuleMethod modmethod = method
+                    .getAnnotation(ModuleMethod.class);
 
             if (Modifier.isPublic(m) && modmethod != null) {
 
                 final Method finalMethod = method;
 
-                final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
+                final Method method1 = definingClass.getMethod(
+                        finalMethod.getName(), new Class[] { Object.class,
+                                Object.class });
 
-                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
+                final String methodName = modmethod.value().length() > 0 ? modmethod
+                        .value() : finalMethod.getName();
 
                 final PCallable pythonMethod = new PCallable(methodName, true) {
 
                     @Override
                     public Object call(PackedFrame caller, Object arg) {
                         try {
-                            return method1.invoke(finalDefiningModule, new Object[]{arg, this.self});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            return method1.invoke(finalDefiningModule,
+                                    new Object[] { arg, this.self });
+                        } catch (IllegalAccessException
+                                | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
                     }
 
                     @Override
-                    public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
+                    public Object call(PackedFrame frame, Object[] args,
+                            Object[] keywords) {
                         try {
-                            return finalMethod.invoke(finalDefiningModule, new Object[]{args, this.self});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
+                            return finalMethod.invoke(finalDefiningModule,
+                                    new Object[] { args, this.self });
+                        } catch (IllegalAccessException
+                                | InvocationTargetException e) {
                             throw new RuntimeException(e);
                         }
                     }

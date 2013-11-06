@@ -70,7 +70,12 @@ public class CallFunctionNoKeywordNode extends PNode {
         return PythonTypesGen.PYTHONTYPES.expectDouble(execute(frame));
     }
 
-    public Object executeCall(VirtualFrame frame, PCallable callable) {
+// public Object executeCall(VirtualFrame frame, PCallable callable) {
+// final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+// return callable.call(frame.pack(), args);
+// }
+
+    public Object executeCall(VirtualFrame frame, PythonCallable callable) {
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         return callable.call(frame.pack(), args);
     }

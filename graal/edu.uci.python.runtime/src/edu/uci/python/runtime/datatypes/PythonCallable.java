@@ -22,45 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.runtime.datatypes;
 
-import java.io.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.standardtypes.*;
+public interface PythonCallable {
 
-public class PythonContext {
+    Object call(PackedFrame caller, Object[] args);
 
-    private final PythonOptions options;
+    Object call(PackedFrame caller, Object[] args, Object[] keywords);
 
-    private final PythonCore pythonCore;
-
-    private final PythonBuiltins builtins;
-
-    public PythonContext(PythonOptions opts, PythonBuiltins builtins) {
-        this.options = opts;
-        this.builtins = builtins;
-        this.pythonCore = new PythonCore(this);
-        this.builtins.initialize();
-        this.pythonCore.initialize();
-    }
-
-    public PythonOptions getPythonOptions() {
-        return options;
-    }
-
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
-    }
-
-    public boolean getUseUnsafe() {
-        return PythonOptions.UseUnsafe;
-    }
-
-    public PythonCore getPythonCore() {
-        return pythonCore;
-    }
-
-    public PythonBuiltins getBuiltins() {
-        return builtins;
-    }
 }

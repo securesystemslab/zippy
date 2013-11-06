@@ -33,15 +33,25 @@ import edu.uci.python.runtime.datatypes.*;
  */
 public abstract class PythonBuiltins {
 
-    private final Map<String, PBuiltinFunction> builtins = new HashMap<>();
+    private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
+
+    private final Map<String, PBuiltinClass> builtinClasses = new HashMap<>();
 
     public abstract void initialize();
 
-    public void setBuiltin(String name, PBuiltinFunction function) {
-        builtins.put(name, function);
+    public void setBuiltinFunction(String name, PBuiltinFunction function) {
+        builtinFunctions.put(name, function);
     }
 
-    public Map<String, PBuiltinFunction> getBuiltins() {
-        return builtins;
+    public void setBuiltinClass(String name, PBuiltinClass clazz) {
+        builtinClasses.put(name, clazz);
+    }
+
+    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
+        return builtinFunctions;
+    }
+
+    public Map<String, PBuiltinClass> getBuiltinClasses() {
+        return builtinClasses;
     }
 }

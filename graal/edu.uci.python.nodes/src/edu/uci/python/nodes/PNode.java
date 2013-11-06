@@ -172,6 +172,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectIterator(execute(frame));
     }
 
+    public PythonCallable executePythonCallable(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPythonCallable(execute(frame));
+    }
+
     public void executeVoid(VirtualFrame frame) {
         execute(frame);
     }

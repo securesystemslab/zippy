@@ -444,9 +444,10 @@ public class NodeFactory {
         return new UninitializedCallFunctionNode(callee, arguments, keywords);
     }
 
-    public PNode createCallBuiltIn(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {
-        return CallBuiltInFunctionNodeFactory.create(callee, name, arguments, keywords);
-    }
+    // public PNode createCallBuiltIn(PCallable callee, String name, PNode[] arguments, PNode[]
+// keywords) {
+    // return CallBuiltInFunctionNodeFactory.create(callee, name, arguments, keywords);
+    // }
 
     public PNode createKeywordLiteral(PNode value, String name) {
         return new KeywordLiteralNode(value, name);
