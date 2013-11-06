@@ -41,6 +41,11 @@ public class ScopeInfo {
     private final FrameDescriptor frameDescriptor;
 
     /**
+     * Symbols declared using 'global' statement.
+     */
+    private List<String> explicitGlobalSymbols;
+
+    /**
      * An optional field that stores translated nodes of default argument values.
      * {@link #defaultArgumentNodes} is not null only when {@link #scopeKind} is Function, and the
      * function has default arguments.
@@ -63,6 +68,18 @@ public class ScopeInfo {
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
+    }
+
+    public void addExplicitGlobalSymbol(String identifier) {
+        if (explicitGlobalSymbols == null) {
+            explicitGlobalSymbols = new ArrayList<>();
+        }
+
+        explicitGlobalSymbols.add(identifier);
+    }
+
+    public boolean isExplicitGlobal(String identifier) {
+        return explicitGlobalSymbols != null ? explicitGlobalSymbols.contains(identifier) : false;
     }
 
     public void setDefaultArgumentNodes(List<PNode> defaultArgumentNodes) {

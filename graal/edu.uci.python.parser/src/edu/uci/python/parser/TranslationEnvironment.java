@@ -47,11 +47,6 @@ public class TranslationEnvironment {
 
     public static final String RETURN_SLOT_ID = "<return_val>";
 
-    /*
-     * used to keep track of explicitly declared globals in the current scope
-     */
-    private List<String> localGlobals = new ArrayList<>();
-
     public TranslationEnvironment(mod module) {
         this.module = module;
         scopeInfos = new HashMap<>();
@@ -85,18 +80,13 @@ public class TranslationEnvironment {
         }
     }
 
-    public FrameDescriptor endScope(PythonTree scopeEntity) throws Exception {
+    public void endScope(PythonTree scopeEntity) throws Exception {
         scopeLevel--;
-        FrameDescriptor fd = currentScope.getFrameDescriptor();
         scopeInfos.put(scopeEntity, currentScope);
 
         if (!scopeStack.isEmpty()) {
             currentScope = scopeStack.pop();
         }
-
-        // reset locally declared globals
-        localGlobals.clear();
-        return fd;
     }
 
     public ScopeInfo.ScopeKind getScopeKind() {
@@ -139,12 +129,12 @@ public class TranslationEnvironment {
 
     public void addLocalGlobals(String name) {
         assert name != null : "name is null!";
-        localGlobals.add(name);
+        currentScope.addExplicitGlobalSymbol(name);
     }
 
     public boolean isLocalGlobals(String name) {
         assert name != null : "name is null!";
-        return localGlobals.contains(name);
+        return currentScope.isExplicitGlobal(name);
     }
 
     protected FrameSlot probeEnclosingScopes(String name) {

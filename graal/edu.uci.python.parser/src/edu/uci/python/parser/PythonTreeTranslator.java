@@ -94,7 +94,8 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeInfo.ScopeKind.Module);
 
         List<PNode> body = visitStatements(node.getInternalBody());
-        FrameDescriptor fd = environment.endScope(node);
+        FrameDescriptor fd = environment.getCurrentFrame();
+        environment.endScope(node);
         RootNode newNode = new NodeFactory().createModule(body, fd);
         return newNode;
     }
@@ -789,7 +790,8 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
         ComprehensionNode comprehension = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
-        FrameDescriptor fd = environment.endScope(node);
+        FrameDescriptor fd = environment.getCurrentFrame();
+        environment.endScope(node);
         return factory.createGeneratorExpression(gnode, fd);
     }
 
