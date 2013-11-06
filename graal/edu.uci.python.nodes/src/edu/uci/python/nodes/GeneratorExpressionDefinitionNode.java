@@ -25,31 +25,26 @@
 package edu.uci.python.nodes;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
 
-public abstract class GeneratorExpressionDefinitionNode extends PNode {
+public class GeneratorExpressionDefinitionNode extends PNode {
 
-    @Child protected GeneratorNode generator;
+    @Child protected GeneratorExpressionRootNode generator;
 
     private final FrameDescriptor frameDescriptor;
 
-    public GeneratorExpressionDefinitionNode(GeneratorNode generator, FrameDescriptor descriptor) {
+    public GeneratorExpressionDefinitionNode(GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
         this.generator = adoptChild(generator);
         this.frameDescriptor = descriptor;
     }
 
-    protected GeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode node) {
-        this(node.generator, node.frameDescriptor);
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
+    @Override
+    public Object execute(VirtualFrame frame) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(generator, frameDescriptor);
 
-        // TODO: This is probably not the best way to determine whether the
+        // TODO: It's an ad-hoc way to determine whether the
         // generator should be evaluated immediately or not.
         if (getParent() instanceof WriteLocalNode) {
             return ct;
@@ -57,5 +52,4 @@ public abstract class GeneratorExpressionDefinitionNode extends PNode {
             return ct.call(frame.pack());
         }
     }
-
 }

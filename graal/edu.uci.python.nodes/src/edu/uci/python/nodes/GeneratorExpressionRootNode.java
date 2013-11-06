@@ -30,9 +30,9 @@ import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class GeneratorNode extends FunctionRootNode {
+public class GeneratorExpressionRootNode extends FunctionRootNode {
 
-    public GeneratorNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
         super(functionName, parameters, body, returnValue);
     }
 

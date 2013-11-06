@@ -258,12 +258,12 @@ public class NodeFactory {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
-    public PNode createGeneratorExpression(GeneratorNode generator, FrameDescriptor descriptor) {
-        return GeneratorExpressionDefinitionNodeFactory.create(generator, descriptor);
+    public PNode createGeneratorExpression(GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
+        return new GeneratorExpressionDefinitionNode(generator, descriptor);
     }
 
-    public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
-        return new GeneratorNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+    public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
+        return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
