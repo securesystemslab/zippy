@@ -22,21 +22,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import java.util.*;
+
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.exception.*;
+import edu.uci.python.nodes.loop.*;
+import edu.uci.python.runtime.datatypes.*;
 
 /**
- * Exception handling iteration termination.
+ * A wrapper node for {@link ComprehensionNode}s.<br>
  * 
- * @author zwei
+ * It evaluates its children {@link ComprehensionNode}s and returns the result {@link PList}.
  * 
  */
-public class IteratorTerminationException extends ControlFlowException {
+public class ListComprehensionNode extends PNode {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 5719376557318686389L;
+    @Child protected ComprehensionNode comprehension;
 
+    public ListComprehensionNode(ComprehensionNode comprehension) {
+        this.comprehension = comprehension;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        List<Object> results = new ArrayList<>();
+
+        try {
+            while (true) {
+                results.add(comprehension.execute(frame));
+            }
+        } catch (StopIterationException e) {
+            PList list = (PList) e.getValue();
+            results.addAll(Arrays.asList(list.getSequence()));
+        }
+
+        return new PList(results);
+    }
 }

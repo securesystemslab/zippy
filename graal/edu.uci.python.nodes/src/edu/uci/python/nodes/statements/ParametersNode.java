@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class ParametersNode extends PNode {
 
@@ -58,7 +59,7 @@ public class ParametersNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return null;
+        return PNone.NONE;
     }
 
 }

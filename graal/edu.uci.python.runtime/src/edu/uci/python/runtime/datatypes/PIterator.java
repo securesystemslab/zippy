@@ -22,55 +22,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.runtime.datatypes;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.exception.*;
-import edu.uci.python.runtime.datatypes.*;
+public abstract class PIterator extends PythonBuiltinObject {
 
-public class ReturnNode extends StatementNode {
+    // Checkstyle: stop method name check
 
-    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
+    public abstract PIterator __iter__();
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
-    }
+    public abstract Object __next__(VirtualFrame frame);
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
-    }
-
-    public static class ExplicitReturnNode extends ReturnNode {
-
-        @Child protected PNode right;
-
-        public ExplicitReturnNode(PNode right) {
-            this.right = adoptChild(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            Object returnValue = right.execute(frame);
-            throw new ExplicitReturnException(returnValue);
-        }
-    }
-
-    public static class FrameReturnNode extends ExplicitReturnNode {
-
-        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
-
-        public FrameReturnNode(PNode right) {
-            super(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            right.execute(frame);
-            throw RETURN_EXCEPTION;
-        }
-    }
+    // Checkstyle: resume method name check
 }

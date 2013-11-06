@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.exception.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -67,6 +68,23 @@ public abstract class ForNode extends LoopNode {
     public Object doString(VirtualFrame frame, String string) {
         PString pstring = new PString(string);
         loopOnIterator(frame, pstring.iterator());
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+        List<Object> results = new ArrayList<>();
+
+        try {
+            while (true) {
+                results.add(iterator.__next__(frame));
+            }
+        } catch (StopIterationException e) {
+            PList list = (PList) e.getValue();
+            results.addAll(Arrays.asList(list.getSequence()));
+        }
+
+        loopOnIterator(frame, results.iterator());
         return PNone.NONE;
     }
 

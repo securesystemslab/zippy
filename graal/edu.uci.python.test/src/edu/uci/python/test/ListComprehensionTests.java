@@ -22,15 +22,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.nodes.ControlFlowException;
+import static edu.uci.python.test.PythonTests.*;
 
-public class ImplicitReturnException extends ControlFlowException {
+import org.junit.*;
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+public class ListComprehensionTests {
+
+    @Test
+    public void simple() {
+        String source = "llist = [x*2 for x in range(5)]\n" + //
+                        "for i in llist:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("0\n2\n4\n6\n8\n", source);
+    }
 
 }

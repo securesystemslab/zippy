@@ -47,13 +47,25 @@ public abstract class PythonBuiltinObject {
 
     // Checkstyle: resume method name check
 
-    public abstract Object getMin();
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract Object getMax();
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract int len();
+    public int len() {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract PythonBuiltinObject multiply(int value);
+    @SuppressWarnings("unused")
+    public PythonBuiltinObject multiply(int value) {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract PCallable findAttribute(String name);
+    @SuppressWarnings("unused")
+    public PCallable findAttribute(String name) {
+        throw new UnsupportedOperationException();
+    }
 }

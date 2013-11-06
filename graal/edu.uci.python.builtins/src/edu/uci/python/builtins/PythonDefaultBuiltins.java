@@ -480,10 +480,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             return new PFrozenSet(baseSet);
         }
 
-        @Specialization
-        public PFrozenSet frozenset(PGenerator arg) {
-            return new PFrozenSet(arg);
-        }
+// @Specialization
+// public PFrozenSet frozenset(PGenerator arg) {
+// return new PFrozenSet(arg);
+// }
     }
 
     // int(x=0)
@@ -693,10 +693,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             return new PList(baseSet);
         }
 
-        @Specialization
-        public PList list(PGenerator generator) {
-            return new PList(generator);
-        }
+//
+// @Specialization
+// public PList list(PGenerator generator) {
+// return new PList(generator);
+// }
 
         @Specialization
         public PList list(Object arg) {
@@ -951,10 +952,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             return new PSet(baseSet);
         }
 
-        @Specialization
-        public PSet set(PGenerator arg) {
-            return new PSet(arg);
-        }
+// @Specialization
+// public PSet set(PGenerator arg) {
+// return new PSet(arg);
+// }
 
         @Specialization
         public PSet set(Object arg) {
@@ -1007,10 +1008,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             return new PTuple(baseSet);
         }
 
-        @Specialization
-        public PTuple tuple(PGenerator arg) {
-            return new PTuple(arg);
-        }
+// @Specialization
+// public PTuple tuple(PGenerator arg) {
+// return new PTuple(arg);
+// }
 
         @Specialization
         public PTuple tuple(Object arg) {

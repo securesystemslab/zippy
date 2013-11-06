@@ -22,35 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes.exception;
 
+import com.oracle.truffle.api.nodes.ControlFlowException;
 
-import com.oracle.truffle.api.nodes.*;
+public final class BreakException extends ControlFlowException {
 
-import edu.uci.python.nodes.statements.*;
-
-public class ExplicitYieldException extends ControlFlowException {
-
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    private final Object value;
-
-    private final StatementNode resumingNode;
-
-    public ExplicitYieldException(StatementNode resumingNode, Object value) {
-        this.resumingNode = resumingNode;
-        this.value = value;
-    }
-
-    public StatementNode getResumingNode() {
-        return resumingNode;
-    }
-
-    public Object getValue() {
-        return value;
-    }
-
+    private static final long serialVersionUID = -91013036379258890L;
+    public static final BreakException instance = new BreakException();
 }

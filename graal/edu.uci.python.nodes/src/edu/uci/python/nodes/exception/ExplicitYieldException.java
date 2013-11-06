@@ -22,55 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.exception;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.exception.*;
-import edu.uci.python.runtime.datatypes.*;
+import com.oracle.truffle.api.nodes.*;
 
-public class ReturnNode extends StatementNode {
+import edu.uci.python.nodes.statements.*;
 
-    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
+public class ExplicitYieldException extends ControlFlowException {
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    private final Object value;
+
+    private final StatementNode resumingNode;
+
+    public ExplicitYieldException(StatementNode resumingNode, Object value) {
+        this.resumingNode = resumingNode;
+        this.value = value;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
+    public StatementNode getResumingNode() {
+        return resumingNode;
     }
 
-    public static class ExplicitReturnNode extends ReturnNode {
-
-        @Child protected PNode right;
-
-        public ExplicitReturnNode(PNode right) {
-            this.right = adoptChild(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            Object returnValue = right.execute(frame);
-            throw new ExplicitReturnException(returnValue);
-        }
+    public Object getValue() {
+        return value;
     }
 
-    public static class FrameReturnNode extends ExplicitReturnNode {
-
-        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
-
-        public FrameReturnNode(PNode right) {
-            super(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            right.execute(frame);
-            throw RETURN_EXCEPTION;
-        }
-    }
 }
