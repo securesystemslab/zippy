@@ -28,28 +28,30 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
-    @Child protected GeneratorExpressionRootNode generator;
-
+    private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
 
-    public GeneratorExpressionDefinitionNode(GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
-        this.generator = adoptChild(generator);
+    @Child protected GeneratorExpressionRootNode rootNode;
+
+    public GeneratorExpressionDefinitionNode(CallTarget callTarget, GeneratorExpressionRootNode rootNode, FrameDescriptor descriptor) {
+        this.callTarget = callTarget;
+        this.rootNode = adoptChild(rootNode);
         this.frameDescriptor = descriptor;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        CallTarget ct = Truffle.getRuntime().createCallTarget(generator, frameDescriptor);
-
-        // TODO: It's an ad-hoc way to determine whether the
+        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor);
+        // TODO: It's a bad way to determine whether the
         // generator should be evaluated immediately or not.
         if (getParent() instanceof WriteLocalNode) {
-            return ct;
+            return generator;
         } else {
-            return ct.call(frame.pack());
+            return generator.call(frame.pack(), null);
         }
     }
 }

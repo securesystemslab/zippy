@@ -783,8 +783,9 @@ public class PythonTreeTranslator extends Visitor {
         ComprehensionNode comprehension = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorExpressionRootNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
         FrameDescriptor fd = environment.getCurrentFrame();
+        CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
         environment.endScope(node);
-        return factory.createGeneratorExpression(gnode, fd);
+        return factory.createGeneratorExpression(ct, gnode, fd);
     }
 
     @Override

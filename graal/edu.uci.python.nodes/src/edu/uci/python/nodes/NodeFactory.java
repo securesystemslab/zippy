@@ -258,8 +258,8 @@ public class NodeFactory {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
-    public PNode createGeneratorExpression(GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
-        return new GeneratorExpressionDefinitionNode(generator, descriptor);
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
+        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor);
     }
 
     public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {

@@ -22,60 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.test;
 
-import java.util.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import org.junit.*;
 
-public class PGenerator extends PCallable implements Iterator<Object>, Iterable<Object> {
+public class GeneratorExpressionTests {
 
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
+    @Test
+    public void simple() {
+        String source = "genexp = (x*2 for x in range(5))\n" + //
+                        "for i in genexp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
 
-    private boolean hasNext = true;
-
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor) {
-        super(name);
-        this.callTarget = callTarget;
-        this.frameDescriptor = frameDescriptor;
+        assertPrints("0\n2\n4\n6\n8\n", source);
     }
 
-    public FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
-    }
+    @Test
+    public void generatorWithListComp() {
+        String source = "genexp = (x*2 for x in range(5))\n" + //
+                        "listcomp = [y for y in genexp]\n" + //
+                        "for i in listcomp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
-
-    @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
-
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
-    @Override
-    public Object next() {
-        return call(null, null);
-    }
-
-    @Override
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return this;
+        assertPrints("0\n2\n4\n6\n8\n", source);
     }
 }
