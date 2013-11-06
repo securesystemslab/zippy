@@ -806,7 +806,7 @@ public class PythonTreeTranslator extends Visitor {
 
         if (value == null) {
             returnNode = factory.createReturn();
-        } else if (TranslationOptions.RETURN_VALUE_IN_FRAME) {
+        } else if (PythonOptions.ReturnValueInFrame) {
             PNode write = factory.createWriteLocalVariable(value, environment.getReturnSlot());
             returnNode = factory.createFrameReturn(write);
         } else {

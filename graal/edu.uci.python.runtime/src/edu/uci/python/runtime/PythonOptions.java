@@ -33,8 +33,12 @@ public class PythonOptions {
 
     public static boolean VisualizedAST = false;
 
+    // Translation flags
+    public static final boolean ReturnValueInFrame = true;
+
     public static final boolean OptimizeNode = true;
 
+    // Runtime flags
     public static final boolean UseUnsafe = true;
 
     public static final boolean InlineFunctionCalls = true;
