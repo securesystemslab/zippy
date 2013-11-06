@@ -25,6 +25,7 @@
 package edu.uci.python.parser;
 
 import java.util.*;
+import java.util.List;
 
 import org.python.antlr.*;
 import org.python.antlr.base.*;
@@ -39,23 +40,11 @@ public class TranslationEnvironment {
 
     private final mod module;
 
-    private Map<PythonTree, FrameDescriptor> frameDescriptors = new HashMap<>();
-
-    private Stack<FrameDescriptor> frames;
-
+    private Map<PythonTree, ScopeInfo> scopeInfos = new HashMap<>();
+    private Stack<ScopeInfo> scopeStack;
+    private ScopeInfo currentScope;
+    private ScopeInfo globalScope;
     private int scopeLevel;
-
-    public static enum ScopeKind {
-        Module, Function, Class,
-    }
-
-    private ScopeKind scopeKind;
-
-    private Stack<ScopeKind> scopes;
-
-    private FrameDescriptor currentFrame;
-
-    private FrameDescriptor globalFrame;
 
     private List<PNode> defaultArgs;
 
@@ -68,12 +57,10 @@ public class TranslationEnvironment {
 
     public TranslationEnvironment(mod module) {
         this.module = module;
-        this.scopeKind = ScopeKind.Module;
-        this.scopes = new Stack<>();
+        scopeStack = new Stack<>();
     }
 
     public TranslationEnvironment resetScopeLevel() {
-        frames = new Stack<>();
         scopeLevel = 0;
         return this;
     }
@@ -86,41 +73,27 @@ public class TranslationEnvironment {
         return scopeLevel;
     }
 
-    public void beginScope(PythonTree scopeEntity, ScopeKind kind) {
+    public void beginScope(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
+        if (currentScope != null) {
+            scopeStack.push(currentScope);
+        }
+
         scopeLevel++;
+        ScopeInfo info = scopeInfos.get(scopeEntity);
+        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(DefaultFrameTypeConversion.getInstance()));
 
-        if (currentFrame != null) {
-            frames.push(currentFrame);
+        if (globalScope == null) {
+            globalScope = currentScope;
         }
-
-        // FIXME: temporary fix!
-        FrameDescriptor fd = frameDescriptors.get(scopeEntity);
-        if (fd != null) {
-            currentFrame = fd;
-        } else {
-            currentFrame = new FrameDescriptor(DefaultFrameTypeConversion.getInstance());
-        }
-
-        if (globalFrame == null) {
-            globalFrame = currentFrame;
-        }
-
-        if (scopeKind != null) {
-            scopes.push(scopeKind);
-        }
-
-        scopeKind = kind;
     }
 
-    public FrameDescriptor endScope() throws Exception {
+    public FrameDescriptor endScope(PythonTree scopeEntity) throws Exception {
         scopeLevel--;
-        FrameDescriptor fd = currentFrame;
-        if (!frames.empty()) {
-            currentFrame = frames.pop();
-        }
+        FrameDescriptor fd = currentScope.getFrameDescriptor();
+        scopeInfos.put(scopeEntity, currentScope);
 
-        if (!scopes.isEmpty()) {
-            scopeKind = scopes.pop();
+        if (!scopeStack.isEmpty()) {
+            currentScope = scopeStack.pop();
         }
 
         // reset locally declared globals
@@ -128,40 +101,42 @@ public class TranslationEnvironment {
         return fd;
     }
 
-    public ScopeKind getScopeKind() {
-        return scopeKind;
+    public ScopeInfo.ScopeKind getScopeKind() {
+        return currentScope.getScopeKind();
     }
 
     public boolean isInModuleScope() {
-        return scopeKind == ScopeKind.Module;
+        return getScopeKind() == ScopeInfo.ScopeKind.Module;
     }
 
     public boolean isInFunctionScope() {
-        return scopeKind == ScopeKind.Function;
+        return getScopeKind() == ScopeInfo.ScopeKind.Function;
     }
 
     public boolean isInClassScope() {
-        return scopeKind == ScopeKind.Class;
+        return getScopeKind() == ScopeInfo.ScopeKind.Class;
     }
 
     public FrameDescriptor getCurrentFrame() {
-        return currentFrame;
+        FrameDescriptor frameDescriptor = currentScope.getFrameDescriptor();
+        assert frameDescriptor != null;
+        return frameDescriptor;
     }
 
     public FrameSlot createLocal(String name) {
         assert name != null : "name is null!";
-        return currentFrame.findOrAddFrameSlot(name);
+        return currentScope.getFrameDescriptor().findOrAddFrameSlot(name);
     }
 
     public FrameSlot findSlot(String name) {
         assert name != null : "name is null!";
-        FrameSlot slot = currentFrame.findFrameSlot(name);
+        FrameSlot slot = currentScope.getFrameDescriptor().findFrameSlot(name);
         return slot != null ? slot : probeEnclosingScopes(name);
     }
 
     public FrameSlot createGlobal(String name) {
         assert name != null : "name is null!";
-        return globalFrame.findOrAddFrameSlot(name);
+        return globalScope.getFrameDescriptor().findOrAddFrameSlot(name);
     }
 
     public void addLocalGlobals(String name) {
@@ -177,15 +152,16 @@ public class TranslationEnvironment {
     protected FrameSlot probeEnclosingScopes(String name) {
         assert name != null : "name is null!";
         int level = 0;
-        for (int i = frames.size() - 1; i > 0; i--) {
-            FrameDescriptor fd = frames.get(i);
+
+        for (int i = scopeStack.size() - 1; i > 0; i--) {
             level++;
 
-            if (fd == globalFrame) {
+            ScopeInfo info = scopeStack.get(i);
+            if (info == globalScope) {
                 break;
             }
 
-            FrameSlot candidate = fd.findFrameSlot(name);
+            FrameSlot candidate = info.getFrameDescriptor().findFrameSlot(name);
             if (candidate != null) {
                 return EnvironmentFrameSlot.pack(candidate, level);
             }
@@ -195,15 +171,7 @@ public class TranslationEnvironment {
     }
 
     public int getCurrentFrameSize() {
-        return currentFrame.getSize();
-    }
-
-    protected void setFrameDescriptor(PythonTree scopeEntity, FrameDescriptor descriptor) {
-        frameDescriptors.put(scopeEntity, descriptor);
-    }
-
-    protected FrameDescriptor getFrameDescriptor(PythonTree scopeEntity) {
-        return frameDescriptors.get(scopeEntity);
+        return currentScope.getFrameDescriptor().getSize();
     }
 
     // TODO: Not pretty. Probably to be removed...
@@ -217,7 +185,7 @@ public class TranslationEnvironment {
     }
 
     public FrameSlot getReturnSlot() {
-        return currentFrame.findOrAddFrameSlot(RETURN_SLOT_ID);
+        return currentScope.getFrameDescriptor().findOrAddFrameSlot(RETURN_SLOT_ID);
     }
 
 }

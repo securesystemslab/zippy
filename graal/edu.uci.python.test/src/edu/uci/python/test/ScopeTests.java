@@ -22,40 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.test;
 
-import java.util.*;
-import java.util.List;
+import static edu.uci.python.test.PythonTests.*;
 
-import org.python.antlr.*;
-import org.python.antlr.ast.*;
-import org.python.antlr.base.*;
+import org.junit.*;
 
-public class TranslationUtil {
+public class ScopeTests {
 
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
+// @Test
+    public void implicitNonLocal() {
+        String source = "def foo():\n" + //
+                        "    a = 42\n" + //
+                        "    def bar():\n" + //
+                        "        print(a)\n" + //
+                        "    \n" + //
+                        "    return bar\n" + //
+                        "\n" + //
+                        "foo()()\n";
 
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
-    }
-
-    public static String getScopeId(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
-        String scopeId = "unknown scope";
-
-        if (kind == ScopeInfo.ScopeKind.Module) {
-            scopeId = scopeEntity.toString();
-        } else if (kind == ScopeInfo.ScopeKind.Function) {
-            scopeId = ((FunctionDef) scopeEntity).getInternalName();
-        } else if (kind == ScopeInfo.ScopeKind.Class) {
-            scopeId = ((ClassDef) scopeEntity).getInternalName();
-        } else if (kind == ScopeInfo.ScopeKind.GeneratorExpr) {
-            scopeId = scopeEntity.toString();
-        }
-
-        return scopeId;
+        assertPrints("42\n", source);
     }
 }

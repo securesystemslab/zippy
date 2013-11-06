@@ -24,38 +24,40 @@
  */
 package edu.uci.python.parser;
 
-import java.util.*;
-import java.util.List;
+import com.oracle.truffle.api.frame.*;
 
-import org.python.antlr.*;
-import org.python.antlr.ast.*;
-import org.python.antlr.base.*;
+public class ScopeInfo {
 
-public class TranslationUtil {
-
-    public static List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<>();
-
-        for (stmt s : argsInit) {
-            pythonTreeList.add(s);
-        }
-
-        return pythonTreeList;
+    public static enum ScopeKind {
+        Module, Function, Class, GeneratorExpr
     }
 
-    public static String getScopeId(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
-        String scopeId = "unknown scope";
+    private final String scopeId;
 
-        if (kind == ScopeInfo.ScopeKind.Module) {
-            scopeId = scopeEntity.toString();
-        } else if (kind == ScopeInfo.ScopeKind.Function) {
-            scopeId = ((FunctionDef) scopeEntity).getInternalName();
-        } else if (kind == ScopeInfo.ScopeKind.Class) {
-            scopeId = ((ClassDef) scopeEntity).getInternalName();
-        } else if (kind == ScopeInfo.ScopeKind.GeneratorExpr) {
-            scopeId = scopeEntity.toString();
-        }
+    private ScopeInfo.ScopeKind scopeKind;
 
+    private FrameDescriptor frameDescriptor;
+
+    public ScopeInfo(String scopeId, ScopeInfo.ScopeKind kind, FrameDescriptor frameDescriptor) {
+        this.scopeId = scopeId;
+        this.scopeKind = kind;
+        this.frameDescriptor = frameDescriptor;
+    }
+
+    public String getScopeId() {
+        return scopeId;
+    }
+
+    public ScopeInfo.ScopeKind getScopeKind() {
+        return scopeKind;
+    }
+
+    public FrameDescriptor getFrameDescriptor() {
+        return frameDescriptor;
+    }
+
+    @Override
+    public String toString() {
         return scopeId;
     }
 }
