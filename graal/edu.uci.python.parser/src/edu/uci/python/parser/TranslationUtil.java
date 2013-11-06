@@ -58,4 +58,26 @@ public class TranslationUtil {
 
         return scopeId;
     }
+
+    public static NotCovered notCovered() {
+        throw new NotCovered();
+    }
+
+    public static NotCovered notCovered(String message) {
+        throw new NotCovered(message);
+    }
+
+    private static class NotCovered extends RuntimeException {
+
+        private static final long serialVersionUID = 2485134940559018951L;
+
+        public NotCovered() {
+            super("This case is not covered!");
+        }
+
+        public NotCovered(String message) {
+            super(message);
+        }
+
+    }
 }

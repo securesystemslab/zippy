@@ -48,7 +48,7 @@ public class ScopeInfo {
         return scopeId;
     }
 
-    public ScopeInfo.ScopeKind getScopeKind() {
+    public ScopeKind getScopeKind() {
         return scopeKind;
     }
 

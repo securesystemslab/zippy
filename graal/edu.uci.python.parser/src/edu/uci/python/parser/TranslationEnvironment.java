@@ -40,7 +40,7 @@ public class TranslationEnvironment {
 
     private final mod module;
 
-    private Map<PythonTree, ScopeInfo> scopeInfos = new HashMap<>();
+    private Map<PythonTree, ScopeInfo> scopeInfos;
     private Stack<ScopeInfo> scopeStack;
     private ScopeInfo currentScope;
     private ScopeInfo globalScope;
@@ -57,6 +57,7 @@ public class TranslationEnvironment {
 
     public TranslationEnvironment(mod module) {
         this.module = module;
+        scopeInfos = new HashMap<>();
         scopeStack = new Stack<>();
     }
 
@@ -187,5 +188,4 @@ public class TranslationEnvironment {
     public FrameSlot getReturnSlot() {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(RETURN_SLOT_ID);
     }
-
 }

@@ -51,6 +51,7 @@ import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import static edu.uci.python.parser.TranslationUtil.*;
 
 public class PythonTreeTranslator extends Visitor {
 
@@ -183,7 +184,7 @@ public class PythonTreeTranslator extends Visitor {
                 args.add((PNode) visit(arg));
                 paramNames.add(((Name) arg).getInternalId());
             } else {
-                throw new RuntimeException("Unexpected parameter type " + arg.getClass().getSimpleName());
+                throw notCovered("Unexpected parameter type " + arg.getClass().getSimpleName());
             }
         }
         isLeftHandSide = false;
@@ -466,7 +467,7 @@ public class PythonTreeTranslator extends Visitor {
             PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
             expr = factory.createStoreAttribute(read.getPrimary(), read.getAttributeId(), binaryOp);
         } else {
-            throw new NotCovered();
+            throw notCovered();
         }
 
         return expr;
@@ -491,7 +492,7 @@ public class PythonTreeTranslator extends Visitor {
                 if (targets.size() == rights.size()) {
                     return transformBalancedMultiAssignment(targets, rights);
                 } else {
-                    throw new RuntimeException("Unbalanced multi-assignment");
+                    throw new IllegalStateException("Unbalanced multi-assignment");
                 }
             } else {
                 return transformUnpackingAssignment(targets, rhs);
@@ -533,7 +534,7 @@ public class PythonTreeTranslator extends Visitor {
             Tuple tuple = (Tuple) node;
             return tuple.getInternalElts();
         } else {
-            throw new RuntimeException("Unexpected decomposable type");
+            throw notCovered("Unexpected decomposable type");
         }
     }
 
@@ -647,13 +648,13 @@ public class PythonTreeTranslator extends Visitor {
         return sload;
     }
 
-    private PNode processSingleAssignment(Node target, PNode right) throws Exception {
+    private static PNode processSingleAssignment(Node target, PNode right) throws Exception {
         if (target instanceof Amendable) {
             Amendable lhTarget = (Amendable) target;
             return lhTarget.updateRhs(right);
         }
 
-        throw new NotCovered();
+        throw notCovered();
     }
 
     @Override
@@ -950,7 +951,7 @@ public class PythonTreeTranslator extends Visitor {
             PComplex complex = new PComplex(pyComplex.real, pyComplex.imag);
             return factory.createComplexLiteral(complex);
         } else {
-            throw new NotCovered();
+            throw notCovered();
         }
     }
 
@@ -1035,7 +1036,6 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitRaise(Raise node) throws Exception {
         PNode type = (PNode) visit(node.getInternalType());
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
-// PNode tback = (node.getInternalTback() == null) ? null : (PNode) visit(node.getInternalTback());
         return factory.createRaiseNode(type, inst);
     }
 
@@ -1045,16 +1045,5 @@ public class PythonTreeTranslator extends Visitor {
         BooleanCastNode condition = factory.toBooleanCastNode(test);
         PNode msg = node.getInternalMsg() == null ? null : (PNode) visit(node.getInternalMsg());
         return factory.createAssert(condition, msg);
-    }
-
-    // Checkstyle: resume
-
-    @SuppressWarnings("serial")
-    class NotCovered extends RuntimeException {
-
-        public NotCovered() {
-            super("This case is not covered!");
-        }
-
     }
 }
