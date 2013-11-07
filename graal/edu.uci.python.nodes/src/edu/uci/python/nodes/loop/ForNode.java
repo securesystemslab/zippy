@@ -31,10 +31,10 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
 public abstract class ForNode extends LoopNode {

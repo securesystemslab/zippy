@@ -32,10 +32,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
 public abstract class ComprehensionNode extends StatementNode {

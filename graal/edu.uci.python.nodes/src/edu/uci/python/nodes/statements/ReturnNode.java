@@ -27,8 +27,8 @@ package edu.uci.python.nodes.statements;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 public class ReturnNode extends StatementNode {
 

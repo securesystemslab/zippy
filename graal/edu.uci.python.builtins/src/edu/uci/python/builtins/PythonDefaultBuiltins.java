@@ -299,9 +299,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PEnumerate(baseSet);
-                } else if (arg instanceof PGenerator) {
-                    PGenerator generator = (PGenerator) arg;
-                    return new PEnumerate(generator);
+// } else if (arg instanceof PGenerator) {
+// PGenerator generator = (PGenerator) arg;
+// return new PEnumerate(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -851,9 +851,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PList(baseSet);
-                } else if (arg instanceof PGenerator) {
-                    PGenerator generator = (PGenerator) arg;
-                    return new PList(generator);
+// } else if (arg instanceof PGenerator) {
+// PGenerator generator = (PGenerator) arg;
+// return new PList(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -968,9 +968,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PSet(baseSet);
-                } else if (arg instanceof PGenerator) {
-                    PGenerator generator = (PGenerator) arg;
-                    return new PSet(generator);
+// } else if (arg instanceof PGenerator) {
+// PGenerator generator = (PGenerator) arg;
+// return new PSet(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -1025,9 +1025,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PTuple(baseSet);
-                } else if (arg instanceof PGenerator) {
-                    PGenerator generator = (PGenerator) arg;
-                    return new PTuple(generator);
+// } else if (arg instanceof PGenerator) {
+// PGenerator generator = (PGenerator) arg;
+// return new PTuple(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

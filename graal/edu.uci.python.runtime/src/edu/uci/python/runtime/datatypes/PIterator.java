@@ -24,7 +24,11 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import java.util.*;
+
 import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.runtime.exception.*;
 
 public abstract class PIterator extends PythonBuiltinObject {
 
@@ -35,4 +39,19 @@ public abstract class PIterator extends PythonBuiltinObject {
     public abstract Object __next__(VirtualFrame frame);
 
     // Checkstyle: resume method name check
+
+    public Iterator<?> evaluateToJavaIterable(VirtualFrame frame) {
+        List<Object> results = new ArrayList<>();
+
+        try {
+            while (true) {
+                results.add(__next__(frame));
+            }
+        } catch (StopIterationException e) {
+            PList list = (PList) e.getValue();
+            results.addAll(Arrays.asList(list.getSequence()));
+        }
+
+        return results.iterator();
+    }
 }

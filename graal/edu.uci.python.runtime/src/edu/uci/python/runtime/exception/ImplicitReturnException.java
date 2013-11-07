@@ -22,26 +22,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.exception;
+package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-public class StopIterationException extends ControlFlowException {
+public class ImplicitReturnException extends ControlFlowException {
 
-    private static final long serialVersionUID = 5719376557318686389L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
-    private final Object value;
-
-    public StopIterationException(Object value) {
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        return "StopIteration()";
-    }
 }

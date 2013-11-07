@@ -30,8 +30,8 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 

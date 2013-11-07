@@ -28,9 +28,9 @@ import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 /**
  * A wrapper node for {@link ComprehensionNode}s.<br>

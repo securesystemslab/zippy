@@ -28,8 +28,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.exception.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 public abstract class ListComprehensionNode extends PNode {
 

@@ -22,15 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.exception;
+package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-public class ImplicitReturnException extends ControlFlowException {
+public final class BreakException extends ControlFlowException {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
+    private static final long serialVersionUID = -91013036379258890L;
+    public static final BreakException instance = new BreakException();
 }

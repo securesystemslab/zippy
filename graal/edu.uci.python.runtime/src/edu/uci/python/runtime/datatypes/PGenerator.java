@@ -24,18 +24,14 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-public class PGenerator extends PIterator implements Iterator<Object>, Iterable<Object> {
+public class PGenerator extends PIterator {
 
     private final String name;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
-
-    private boolean hasNext = true;
 
     public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor) {
         this.name = name;
@@ -61,31 +57,8 @@ public class PGenerator extends PIterator implements Iterator<Object>, Iterable<
 
     // Checkstyle: resume method name check
 
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
-    @Override
-    public Object next() {
-        return callTarget.call(null, new PArguments());
-    }
-
-    @Override
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return this;
-    }
-
     @Override
     public String toString() {
-        return "<generator object " + name + " at " + hashCode() + ">";
+        return "<generator object '" + name + "' at " + hashCode() + ">";
     }
 }
