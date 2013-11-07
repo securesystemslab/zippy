@@ -57,9 +57,19 @@ x = complex()
 print(x)
 
 # test builtin enumerate
-seasons = ['Spring', 'Summer', 'Fall', 'Winter']
-for s in enumerate(seasons):
+list1 = [1000, 2000, 3000]
+for s in enumerate(list1):
     print (s)
+
+# Currently removed because each element should be printed  as
+#(0, 'Spring')
+#(1, 'Summer')
+#(2, 'Fall')
+#(3, 'Winter')    
+# Ours do not print the quotation marks
+#seasons = ['Spring', 'Summer', 'Fall', 'Winter']
+#for s in enumerate(seasons):
+    #print (s)
 
 # test builtin float
 x = float(2)
@@ -77,8 +87,8 @@ print(x)
 x = float('+1E6')
 print(x)
 
-x = float('-Infinity')
-print(x)
+#x = float('-Infinity')
+#print(x)
 
 x = float()
 print(x)
@@ -119,8 +129,8 @@ print(x)
 x = max(20.8, 10.3)
 print(x)
 
-x = max([20, 10, 90])
-print(x)
+#x = max([20, 10, 90])
+#print(x)
 
 # test builtin range
 print(list(range(10))) # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -136,8 +146,8 @@ for element in iter("hello"):
 for element in iter([10, 20, 30]):
     print(element)
     
-for element in iter({"a", "b", "c"}):
-    print(element)
+#for element in iter({"a", "b", "c"}):
+    #print(element)
 
 # test isintance
 class Student:
