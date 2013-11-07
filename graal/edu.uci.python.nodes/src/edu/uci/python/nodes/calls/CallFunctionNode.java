@@ -61,7 +61,7 @@ public abstract class CallFunctionNode extends PNode {
     }
 
     @Specialization
-    public Object doPCallable(VirtualFrame frame, PCallable callee) {
+    public Object doPCallable(VirtualFrame frame, PythonCallable callee) {
         Object[] args = executeArguments(frame, arguments);
         Object[] kwords = executeArguments(frame, keywords);
         return callee.call(frame.pack(), args, kwords);
@@ -87,7 +87,7 @@ public abstract class CallFunctionNode extends PNode {
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(pyargs));
         } else {
-            throw Py.SystemError("Unexpected callable type");
+            throw Py.SystemError("Unexpected callable type " + callee + " " + callee.getClass());
         }
     }
 

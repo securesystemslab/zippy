@@ -35,24 +35,24 @@ import edu.uci.python.runtime.datatypes.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
-public abstract class CallBuiltInFunctionNode extends PNode {
-
-    protected final PCallable callee;
+public abstract class CallBuiltInNode extends PNode {
 
     protected final String name;
+
+    protected final PythonCallable callee;
 
     @Children protected final PNode[] arguments;
 
     @Children protected final PNode[] keywords;
 
-    public CallBuiltInFunctionNode(PCallable callee, String name, PNode[] arguments, PNode[] keywords) {
+    public CallBuiltInNode(PythonCallable callee, String name, PNode[] arguments, PNode[] keywords) {
         this.callee = callee;
         this.name = name;
         this.arguments = adoptChildren(arguments);
         this.keywords = adoptChildren(keywords);
     }
 
-    protected CallBuiltInFunctionNode(CallBuiltInFunctionNode node) {
+    protected CallBuiltInNode(CallBuiltInNode node) {
         this(node.callee, node.name, node.arguments, node.keywords);
     }
 

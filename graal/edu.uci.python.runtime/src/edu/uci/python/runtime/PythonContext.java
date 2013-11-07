@@ -39,8 +39,8 @@ public class PythonContext {
     public PythonContext(PythonOptions opts, PythonBuiltins builtins) {
         this.options = opts;
         this.builtins = builtins;
-        this.builtins.initialize();
         this.pythonCore = new PythonCore(this);
+        this.builtins.initialize();
         this.pythonCore.initialize();
     }
 

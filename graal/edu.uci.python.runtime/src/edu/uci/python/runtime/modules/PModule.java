@@ -44,7 +44,8 @@ public class PModule extends PythonBuiltinObject {
     private final Map<String, PCallable> methods = new HashMap<>();
     private final Map<String, Object> constants = new HashMap<>();
 
-    // The context is stored here - objects can obtain it via their class (which is a module)
+    // The context is stored here - objects can obtain it via their class (which
+    // is a module)
     private final PythonContext context;
 
     public PModule(PythonContext context, String name) {

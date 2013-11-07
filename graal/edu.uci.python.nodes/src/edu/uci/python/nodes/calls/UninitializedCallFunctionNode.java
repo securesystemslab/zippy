@@ -55,11 +55,25 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             replace(specialized);
             Object[] args = CallFunctionNode.executeArguments(frame, arguments);
             return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
-        } else if (calleeObj instanceof PCallable) {
-            PCallable callable = (PCallable) calleeObj;
+        } else if (calleeObj instanceof PythonCallable) {
+            PythonCallable callable = (PythonCallable) calleeObj;
 
-            if (callable.isBuiltin() || !(callable instanceof PFunction)) {
-                CallBuiltInFunctionNode callBuiltIn = CallBuiltInFunctionNodeFactory.create(callable, callable.getName(), arguments, keywords);
+            if (callable instanceof PBuiltinFunction) {
+                PBuiltinFunction builtinFunction = (PBuiltinFunction) calleeObj;
+                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinFunction.getName(), arguments, keywords);
+                replace(callBuiltIn);
+                return callBuiltIn.doGeneric(frame);
+            } else if (callable instanceof PBuiltinClass) {
+                PBuiltinClass builtinClass = (PBuiltinClass) calleeObj;
+                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getName(), arguments, keywords);
+                replace(callBuiltIn);
+                return callBuiltIn.doGeneric(frame);
+            } else if (!(callable instanceof PFunction)) {
+                /**
+                 * TODO This for the methods in PModules such as array, list. This can be improved
+                 */
+                PCallable pcallable = (PCallable) callable;
+                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(pcallable, pcallable.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
             } else if (keywords.length == 0) {

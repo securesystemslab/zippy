@@ -38,7 +38,8 @@ public class PythonClass extends PythonObject {
 
     private final String className;
 
-    // The context is stored here - objects can obtain it via their class (which is a module)
+    // The context is stored here - objects can obtain it via their class (which
+    // is a module)
     private final PythonContext context;
 
     // TODO: Multiple inheritance and MRO...
@@ -79,12 +80,12 @@ public class PythonClass extends PythonObject {
         return context;
     }
 
-    public PCallable lookUpMethod(String methodName) {
+    public PythonCallable lookUpMethod(String methodName) {
         Object attr = getAttribute(methodName);
         assert attr != null;
 
-        if (attr instanceof PCallable) {
-            return (PCallable) attr;
+        if (attr instanceof PythonCallable) {
+            return (PythonCallable) attr;
         }
 
         throw Py.TypeError(attr + " object is not callable");

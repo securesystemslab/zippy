@@ -39,12 +39,6 @@ print(x)
 x = callable(10);
 print(x)
 
-x = bool(0.0)
-print(x)
-
-x = bool()
-print(x)
-
 # test builtin chr
 x = chr(65)
 print(x)

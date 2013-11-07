@@ -59,10 +59,17 @@ public class BuiltinsModule extends PythonModule {
     }
 
     private void addBuiltins() {
-        Map<String, PBuiltinFunction> builtinList = this.builtins.getBuiltins();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinList.entrySet()) {
+        Map<String, PBuiltinFunction> builtinFunctions = this.builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
+
+        Map<String, PBuiltinClass> builtinClasses = this.builtins.getBuiltinClasses();
+        for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinClass function = entry.getValue();
             setAttribute(methodName, function);
         }
     }
@@ -464,12 +471,12 @@ public class BuiltinsModule extends PythonModule {
         }
 
         public PList map(Object arg0, Object arg1) {
-            PCallable callee = (PCallable) arg0;
+            PythonCallable callee = (PythonCallable) arg0;
             Iterator iter = getIterable(arg1);
 
             ArrayList<Object> sequence = new ArrayList<>();
             while (iter.hasNext()) {
-                sequence.add(callee.call(null, iter.next()));
+                sequence.add(callee.call(null, new Object[]{iter.next()}));
             }
 
             return new PList(sequence);

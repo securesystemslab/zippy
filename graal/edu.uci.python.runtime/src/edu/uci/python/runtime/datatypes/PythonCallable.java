@@ -26,52 +26,10 @@ package edu.uci.python.runtime.datatypes;
 
 import com.oracle.truffle.api.frame.*;
 
-public abstract class PCallable implements PythonCallable {
+public interface PythonCallable {
 
-    protected String name;
+    Object call(PackedFrame caller, Object[] args);
 
-    protected Object self = null;
-
-    private final boolean isBuiltin;
-
-    public PCallable(String name) {
-        this.name = name;
-        this.isBuiltin = false;
-    }
-
-    public PCallable(String name, boolean isBuiltin) {
-        this.name = name;
-        this.isBuiltin = isBuiltin;
-    }
-
-    public boolean isBuiltin() {
-        return isBuiltin;
-    }
-
-    public Object call(PackedFrame caller, Object[] args) {
-        return call(caller, args, null);
-    }
-
-    // Specialized. To be overwritten by PFunction
-    public Object call(PackedFrame caller, Object arg) {
-        return call(caller, new Object[]{arg});
-    }
-
-    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return call(caller, new Object[]{arg0, arg1});
-    }
-
-    public void setSelf(Object self) {
-        this.self = self;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " " + name;
-    }
+    Object call(PackedFrame caller, Object[] args, Object[] keywords);
 
 }
