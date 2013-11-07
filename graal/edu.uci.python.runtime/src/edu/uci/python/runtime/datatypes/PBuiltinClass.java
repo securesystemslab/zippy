@@ -35,8 +35,7 @@ import edu.uci.python.runtime.*;
  * @author gulfem
  * 
  */
-public class PBuiltinClass extends PythonBuiltinObject implements
-        PythonCallable {
+public class PBuiltinClass extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
 
@@ -53,13 +52,11 @@ public class PBuiltinClass extends PythonBuiltinObject implements
     private boolean takesVarArgs;
 
     /**
-     * TODO Currently PBuiltinClass behaves exactly like PBuiltinFunction. It
-     * should be extended to support other functionalities of a class
+     * TODO Currently PBuiltinClass behaves exactly like PBuiltinFunction. It should be extended to
+     * support other functionalities of a class
      * 
      */
-    public PBuiltinClass(String name, int minNumOfArgs, int maxNumOfArgs,
-            boolean takesFixedNumOfArgs, boolean takesKeywordArg,
-            boolean takesVarArgs, CallTarget callTarget) {
+    public PBuiltinClass(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
         this.minNumOfArgs = minNumOfArgs;
@@ -87,8 +84,7 @@ public class PBuiltinClass extends PythonBuiltinObject implements
             }
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            return callTarget.call(caller, new PArguments(PNone.NONE, args,
-                    pkeywords));
+            return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
         }
     }
 
@@ -110,23 +106,19 @@ public class PBuiltinClass extends PythonBuiltinObject implements
                 } else {
                     argMessage = minNumOfArgs + " arguments";
                 }
-                throw Py.TypeError(String.format("%s() takes %s (%d given)",
-                        name, argMessage, numOfArgs));
+                throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
             }
         } else if (numOfArgs < minNumOfArgs) {
             /**
              * For ex, iter(object[, sentinel]) takes at least 1 argument.
              */
-            throw Py.TypeError(String.format(
-                    "%s() expected at least %d arguments (%d) given", name,
-                    minNumOfArgs, numOfArgs));
+            throw Py.TypeError(String.format("%s() expected at least %d arguments (%d) given", name, minNumOfArgs, numOfArgs));
         } else if (!takesVarArgs && numOfArgs > maxNumOfArgs) {
             /**
              * For ex, complex([real[, imag]]) takes at most 2 arguments.
              */
             argMessage = "at most " + maxNumOfArgs + " arguments";
-            throw Py.TypeError(String.format("%s() takes %s (%d given)", name,
-                    argMessage, numOfArgs));
+            throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
         }
     }
 
@@ -134,42 +126,12 @@ public class PBuiltinClass extends PythonBuiltinObject implements
         return callTarget;
     }
 
-    @Override
-    public String toString() {
-        return "<built-in class " + name + ">";
-    }
-
     public String getName() {
         return name;
     }
 
     @Override
-    public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public int len() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public PCallable findAttribute(String name) {
-        // TODO Auto-generated method stub
-        return null;
+    public String toString() {
+        return "<built-in class " + name + ">";
     }
 }

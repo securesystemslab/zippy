@@ -121,42 +121,12 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         return callTarget;
     }
 
-    @Override
-    public String toString() {
-        return "<built-in function " + name + ">";
-    }
-
     public String getName() {
         return name;
     }
 
     @Override
-    public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public int len() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public PCallable findAttribute(String name) {
-        // TODO Auto-generated method stub
-        return null;
+    public String toString() {
+        return "<built-in function " + name + ">";
     }
 }

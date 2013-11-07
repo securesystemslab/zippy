@@ -45,8 +45,7 @@ public class BuiltinsModule extends PythonModule {
 
     private PythonBuiltins builtins;
 
-    public BuiltinsModule(PythonClass pythonClass, String name,
-            PythonBuiltins builtins) {
+    public BuiltinsModule(PythonClass pythonClass, String name, PythonBuiltins builtins) {
         super(pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.setAttribute(__NAME__, name);
@@ -60,17 +59,14 @@ public class BuiltinsModule extends PythonModule {
     }
 
     private void addBuiltins() {
-        Map<String, PBuiltinFunction> builtinFunctions = this.builtins
-                .getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions
-                .entrySet()) {
+        Map<String, PBuiltinFunction> builtinFunctions = this.builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinFunction function = entry.getValue();
             setAttribute(methodName, function);
         }
 
-        Map<String, PBuiltinClass> builtinClasses = this.builtins
-                .getBuiltinClasses();
+        Map<String, PBuiltinClass> builtinClasses = this.builtins.getBuiltinClasses();
         for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinClass function = entry.getValue();
@@ -78,8 +74,7 @@ public class BuiltinsModule extends PythonModule {
         }
     }
 
-    @BuiltinMethod
-    public static final PythonCallTarget min = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget min = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -100,8 +95,7 @@ public class BuiltinsModule extends PythonModule {
             } else if (arg instanceof String) {
                 return findMin((String) arg);
             } else {
-                throw new RuntimeException(
-                        "Unexpected argument type for min() ");
+                throw new RuntimeException("Unexpected argument type for min() ");
             }
         }
 
@@ -113,8 +107,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget max = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget max = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -135,8 +128,7 @@ public class BuiltinsModule extends PythonModule {
                 char[] copy = ((String) arg).toCharArray();
                 return sortCharArray(copy);
             } else {
-                throw new RuntimeException(
-                        "Unexpected argument type for max() ");
+                throw new RuntimeException("Unexpected argument type for max() ");
             }
         }
 
@@ -153,8 +145,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget len = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget len = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -163,8 +154,7 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 1) {
                 return len(args[0]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for len() ");
+                throw new RuntimeException("wrong number of arguments for len() ");
             }
         }
 
@@ -174,14 +164,12 @@ public class BuiltinsModule extends PythonModule {
             } else if (arg instanceof String) {
                 return ((String) arg).length();
             } else {
-                throw new RuntimeException(
-                        "Unexpected argument type for len() ");
+                throw new RuntimeException("Unexpected argument type for len() ");
             }
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget print = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget print = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -208,8 +196,7 @@ public class BuiltinsModule extends PythonModule {
             return print(values, sep, end);
         }
 
-        private Object print(Object[] values, String possibleSep,
-                String possibleEnd) {
+        private Object print(Object[] values, String possibleSep, String possibleEnd) {
             String sep = possibleSep;
             String end = possibleEnd;
             // CheckStyle: stop system..print check
@@ -237,8 +224,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget set = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget set = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -258,8 +244,7 @@ public class BuiltinsModule extends PythonModule {
             } else if (arg instanceof Iterable) {
                 return new PSet((Iterable<Object>) arg);
             } else {
-                throw new RuntimeException(
-                        "Unexpected argument type for set() ");
+                throw new RuntimeException("Unexpected argument type for set() ");
             }
         }
     };
@@ -274,8 +259,7 @@ public class BuiltinsModule extends PythonModule {
         return sequence;
     }
 
-    @BuiltinMethod
-    public static final PythonCallTarget frozenset = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget frozenset = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -295,21 +279,18 @@ public class BuiltinsModule extends PythonModule {
             } else if (arg instanceof Iterable) {
                 return new PFrozenSet((Iterable<Object>) arg);
             } else {
-                throw new RuntimeException(
-                        "Unexpected argument type for frozenset() ");
+                throw new RuntimeException("Unexpected argument type for frozenset() ");
             }
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget enumerate = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget enumerate = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
             Object[] args = arguments.getArgumentsArray();
             if (args.length != 1) {
-                throw new RuntimeException(
-                        "wrong number of arguments for enumerate() ");
+                throw new RuntimeException("wrong number of arguments for enumerate() ");
             }
             return enumerate(args[0]);
         }
@@ -321,21 +302,18 @@ public class BuiltinsModule extends PythonModule {
                 int index = 0;
 
                 for (int i = 0; i < sequence.len(); i++) {
-                    results.add(new PTuple(new Object[] { index,
-                            sequence.getItem(i) }));
+                    results.add(new PTuple(new Object[]{index, sequence.getItem(i)}));
                     index++;
                 }
 
                 return new PList(results);
             } else {
-                throw new RuntimeException(
-                        "Unsupported argument type for enumerate() ");
+                throw new RuntimeException("Unsupported argument type for enumerate() ");
             }
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget dict = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget dict = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -346,8 +324,7 @@ public class BuiltinsModule extends PythonModule {
             } else if (args.length == 1) {
                 return dict(args[0]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for dict()");
+                throw new RuntimeException("wrong number of arguments for dict()");
             }
         }
 
@@ -362,10 +339,8 @@ public class BuiltinsModule extends PythonModule {
                 while (iter.hasNext()) {
                     Object obj = iter.next();
 
-                    if (obj instanceof PSequence
-                            && ((PSequence) obj).len() == 2) {
-                        newMap.put(((PSequence) obj).getItem(0),
-                                ((PSequence) obj).getItem(1));
+                    if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+                        newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
                     } else {
                         throw new RuntimeException("invalid args for dict()");
                     }
@@ -378,8 +353,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget abs = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget abs = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -388,8 +362,7 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 1) {
                 return abs(args[0]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for abs()");
+                throw new RuntimeException("wrong number of arguments for abs()");
             }
         }
 
@@ -423,8 +396,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget list = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget list = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -433,8 +405,7 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 1) {
                 return list(args[0]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for list()");
+                throw new RuntimeException("wrong number of arguments for list()");
             }
         }
 
@@ -450,8 +421,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget range = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget range = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -462,22 +432,18 @@ public class BuiltinsModule extends PythonModule {
             } else if (args.length == 2) {
                 return new PRange((int) args[0], (int) args[1]);
             } else if (args.length == 3) {
-                if (args[0] instanceof Integer && args[1] instanceof Integer
-                        && args[2] instanceof Integer) {
-                    return new PRange((int) args[0], (int) args[1],
-                            (int) args[2]);
+                if (args[0] instanceof Integer && args[1] instanceof Integer && args[2] instanceof Integer) {
+                    return new PRange((int) args[0], (int) args[1], (int) args[2]);
                 } else {
                     throw new RuntimeException("wrong arguments for range() ");
                 }
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for range() ");
+                throw new RuntimeException("wrong number of arguments for range() ");
             }
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget str = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget str = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -486,14 +452,12 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 1) {
                 return args[0].toString();
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for str() ");
+                throw new RuntimeException("wrong number of arguments for str() ");
             }
         }
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget map = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget map = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -502,18 +466,17 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 2) {
                 return map(args[0], args[1]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for str() ");
+                throw new RuntimeException("wrong number of arguments for str() ");
             }
         }
 
         public PList map(Object arg0, Object arg1) {
-            PCallable callee = (PCallable) arg0;
+            PythonCallable callee = (PythonCallable) arg0;
             Iterator iter = getIterable(arg1);
 
             ArrayList<Object> sequence = new ArrayList<>();
             while (iter.hasNext()) {
-                sequence.add(callee.call(null, iter.next()));
+                sequence.add(callee.call(null, new Object[]{iter.next()}));
             }
 
             return new PList(sequence);
@@ -531,8 +494,7 @@ public class BuiltinsModule extends PythonModule {
         }
     }
 
-    @BuiltinMethod
-    public static final PythonCallTarget chr = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget chr = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -541,8 +503,7 @@ public class BuiltinsModule extends PythonModule {
             if (args.length == 1) {
                 return chr(args[0]);
             } else {
-                throw new RuntimeException(
-                        "wrong number of arguments for chr() ");
+                throw new RuntimeException("wrong number of arguments for chr() ");
             }
         }
 
@@ -552,8 +513,7 @@ public class BuiltinsModule extends PythonModule {
         }
     };
 
-    @BuiltinMethod(unmangledName = "int")
-    public static final PythonCallTarget Int = new PythonCallTarget() {
+    @BuiltinMethod(unmangledName = "int") public static final PythonCallTarget Int = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -563,8 +523,7 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
-    @BuiltinMethod(unmangledName = "float")
-    public static final PythonCallTarget Float = new PythonCallTarget() {
+    @BuiltinMethod(unmangledName = "float") public static final PythonCallTarget Float = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -574,8 +533,7 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget complex = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget complex = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -588,12 +546,10 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget zip = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget zip = new PythonCallTarget() {
 
         /**
-         * zip() method, should return a python iterator, but we use list as a
-         * temporary solution.
+         * zip() method, should return a python iterator, but we use list as a temporary solution.
          */
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {
@@ -628,8 +584,7 @@ public class BuiltinsModule extends PythonModule {
 
     };
 
-    @BuiltinMethod
-    public static final PythonCallTarget isinstance = new PythonCallTarget() {
+    @BuiltinMethod public static final PythonCallTarget isinstance = new PythonCallTarget() {
 
         @Override
         public Object call(PackedFrame frame, PArguments arguments) {

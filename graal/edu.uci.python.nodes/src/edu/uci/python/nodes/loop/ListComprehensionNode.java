@@ -28,8 +28,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 public abstract class ListComprehensionNode extends PNode {
 
@@ -47,7 +47,7 @@ public abstract class ListComprehensionNode extends PNode {
     public Object doGeneric(VirtualFrame frame) {
         try {
             comprehension.execute(frame);
-        } catch (ExplicitReturnException ere) {
+        } catch (StopIterationException ere) {
             return ere.getValue();
         }
 

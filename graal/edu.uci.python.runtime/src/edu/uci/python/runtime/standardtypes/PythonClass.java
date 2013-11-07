@@ -43,22 +43,19 @@ public class PythonClass extends PythonObject {
     private final PythonContext context;
 
     // TODO: Multiple inheritance and MRO...
-    @CompilationFinal
-    private PythonClass superClass;
+    @CompilationFinal private PythonClass superClass;
 
-    private final Set<PythonClass> subClasses = Collections
-            .newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
+    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
     }
 
     /**
-     * This constructor supports initialization and solves boot-order problems
-     * and should not normally be used from outside this class.
+     * This constructor supports initialization and solves boot-order problems and should not
+     * normally be used from outside this class.
      */
-    public PythonClass(PythonContext context, PythonClass superClass,
-            String name) {
+    public PythonClass(PythonContext context, PythonClass superClass, String name) {
         super(context.getPythonCore().getTypeClass());
         this.context = context;
         this.className = name;
@@ -101,21 +98,19 @@ public class PythonClass extends PythonObject {
     @Override
     public Object getAttribute(String name) {
         // Find the storage location
-        final StorageLocation storageLocation = getObjectLayout()
-                .findStorageLocation(name);
+        final StorageLocation storageLocation = getObjectLayout().findStorageLocation(name);
 
         // Continue the look up in PythonType.
         if (storageLocation == null) {
-            return superClass == null ? PNone.NONE : superClass
-                    .getAttribute(name);
+            return superClass == null ? PNone.NONE : superClass.getAttribute(name);
         }
 
         return storageLocation.read(this);
     }
 
     /**
-     * Invalidate the unmodified assumption of the PythonClass itself and
-     * propagate the invalidation to its subclasses too.
+     * Invalidate the unmodified assumption of the PythonClass itself and propagate the invalidation
+     * to its subclasses too.
      */
     @Override
     public void setAttribute(String name, Object value) {
@@ -129,8 +124,8 @@ public class PythonClass extends PythonObject {
     }
 
     /**
-     * This method supports initialization and solves boot-order problems and
-     * should not normally be used.
+     * This method supports initialization and solves boot-order problems and should not normally be
+     * used.
      */
     public void unsafeSetSuperClass(PythonClass newSuperClass) {
         assert superClass == null;

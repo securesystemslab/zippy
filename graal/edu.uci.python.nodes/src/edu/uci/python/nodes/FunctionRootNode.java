@@ -28,8 +28,8 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 /**
  * RootNode of a Python Function body. It should invoked by a CallTarget Object.

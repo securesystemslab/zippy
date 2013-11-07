@@ -22,21 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-/**
- * Exception handling iteration termination.
- * 
- * @author zwei
- * 
- */
-public class IteratorTerminationException extends ControlFlowException {
+public final class BreakException extends ControlFlowException {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 5719376557318686389L;
-
+    private static final long serialVersionUID = -91013036379258890L;
+    public static final BreakException instance = new BreakException();
 }

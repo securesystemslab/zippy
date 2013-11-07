@@ -22,35 +22,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.utils;
+package edu.uci.python.nodes;
 
+import java.util.*;
 
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.loop.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
-public class ExplicitYieldException extends ControlFlowException {
+/**
+ * A wrapper node for {@link ComprehensionNode}s.<br>
+ * 
+ * It evaluates its children {@link ComprehensionNode}s and returns the result {@link PList}.
+ * 
+ */
+public class ListComprehensionNode extends PNode {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+    @Child protected ComprehensionNode comprehension;
 
-    private final Object value;
-
-    private final StatementNode resumingNode;
-
-    public ExplicitYieldException(StatementNode resumingNode, Object value) {
-        this.resumingNode = resumingNode;
-        this.value = value;
+    public ListComprehensionNode(ComprehensionNode comprehension) {
+        this.comprehension = comprehension;
     }
 
-    public StatementNode getResumingNode() {
-        return resumingNode;
-    }
+    @Override
+    public Object execute(VirtualFrame frame) {
+        List<Object> results = new ArrayList<>();
 
-    public Object getValue() {
-        return value;
-    }
+        try {
+            while (true) {
+                results.add(comprehension.execute(frame));
+            }
+        } catch (StopIterationException e) {
+            PList list = (PList) e.getValue();
+            results.addAll(Arrays.asList(list.getSequence()));
+        }
 
+        return new PList(results);
+    }
 }

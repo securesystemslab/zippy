@@ -22,55 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.runtime.exception;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ControlFlowException;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
+public class ExplicitReturnException extends ControlFlowException {
 
-public class ReturnNode extends StatementNode {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
 
-    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
+    private final Object value;
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
+    public ExplicitReturnException(Object value) {
+        this.value = value;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
+    public Object getValue() {
+        return value;
     }
 
-    public static class ExplicitReturnNode extends ReturnNode {
-
-        @Child protected PNode right;
-
-        public ExplicitReturnNode(PNode right) {
-            this.right = adoptChild(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            Object returnValue = right.execute(frame);
-            throw new ExplicitReturnException(returnValue);
-        }
-    }
-
-    public static class FrameReturnNode extends ExplicitReturnNode {
-
-        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
-
-        public FrameReturnNode(PNode right) {
-            super(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            right.execute(frame);
-            throw RETURN_EXCEPTION;
-        }
-    }
 }

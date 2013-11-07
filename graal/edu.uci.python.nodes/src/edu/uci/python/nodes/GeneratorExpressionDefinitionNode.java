@@ -24,11 +24,14 @@
  */
 package edu.uci.python.nodes;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
@@ -48,10 +51,28 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor);
         // TODO: It's a bad way to determine whether the
         // generator should be evaluated immediately or not.
-        if (getParent() instanceof WriteLocalNode) {
+        if (getParent() instanceof WriteNode) {
             return generator;
         } else {
-            return generator.call(frame.pack(), null);
+            return executeGenerator(frame, generator);
         }
+    }
+
+    /**
+     * This logic should belong to another node that wraps this definition node.
+     */
+    public static Object executeGenerator(VirtualFrame frame, PGenerator generator) {
+        List<Object> results = new ArrayList<>();
+
+        try {
+            while (true) {
+                results.add(generator.__next__(frame));
+            }
+        } catch (StopIterationException e) {
+            PList list = (PList) e.getValue();
+            results.addAll(Arrays.asList(list.getSequence()));
+        }
+
+        return new PList(results);
     }
 }

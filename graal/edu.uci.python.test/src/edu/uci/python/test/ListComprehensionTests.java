@@ -22,55 +22,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
+import org.junit.*;
 
-public class ReturnNode extends StatementNode {
+public class ListComprehensionTests {
 
-    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
+    @Test
+    public void simple() {
+        String source = "llist = [x*2 for x in range(5)]\n" + //
+                        "for i in llist:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
+        assertPrints("0\n2\n4\n6\n8\n", source);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
-    }
-
-    public static class ExplicitReturnNode extends ReturnNode {
-
-        @Child protected PNode right;
-
-        public ExplicitReturnNode(PNode right) {
-            this.right = adoptChild(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            Object returnValue = right.execute(frame);
-            throw new ExplicitReturnException(returnValue);
-        }
-    }
-
-    public static class FrameReturnNode extends ExplicitReturnNode {
-
-        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
-
-        public FrameReturnNode(PNode right) {
-            super(right);
-        }
-
-        @Override
-        public void executeVoid(VirtualFrame frame) {
-            right.execute(frame);
-            throw RETURN_EXCEPTION;
-        }
-    }
 }

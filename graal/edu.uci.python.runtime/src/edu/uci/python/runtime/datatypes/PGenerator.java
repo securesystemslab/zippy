@@ -24,20 +24,17 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-public class PGenerator extends PCallable implements Iterator<Object>, Iterable<Object> {
+public class PGenerator extends PIterator {
 
+    private final String name;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
 
-    private boolean hasNext = true;
-
     public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor) {
-        super(name);
+        this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
     }
@@ -46,36 +43,22 @@ public class PGenerator extends PCallable implements Iterator<Object>, Iterable<
         return frameDescriptor;
     }
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
+    // Checkstyle: stop method name check
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
-    }
-
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
-    @Override
-    public Object next() {
-        return call(null, null);
-    }
-
-    @Override
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
+    public PGenerator __iter__() {
         return this;
+    }
+
+    @Override
+    public Object __next__(VirtualFrame frame) {
+        return callTarget.call(frame.pack(), new PArguments());
+    }
+
+    // Checkstyle: resume method name check
+
+    @Override
+    public String toString() {
+        return "<generator object '" + name + "' at " + hashCode() + ">";
     }
 }

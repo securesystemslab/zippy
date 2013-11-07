@@ -34,8 +34,8 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
 public abstract class ComprehensionNode extends StatementNode {
@@ -67,7 +67,7 @@ public abstract class ComprehensionNode extends StatementNode {
             evaluateNextItem(frame, value, results);
         }
 
-        throw new ExplicitReturnException(new PList(results));
+        throw new StopIterationException(new PList(results));
     }
 
     @Specialization
@@ -76,7 +76,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
         if (sequence instanceof PGenerator) {
             PGenerator generator = (PGenerator) sequence;
-            seq = (PList) generator.call(frame.pack(), null);
+            seq = (PList) GeneratorExpressionDefinitionNode.executeGenerator(frame, generator);
         } else {
             throw new RuntimeException("Unhandled sequence");
         }
@@ -91,7 +91,7 @@ public abstract class ComprehensionNode extends StatementNode {
             evaluateNextItem(frame, value, results);
         }
 
-        throw new ExplicitReturnException(new PList(results));
+        throw new StopIterationException(new PList(results));
     }
 
     protected boolean evaluateCondition(VirtualFrame frame) {
@@ -157,7 +157,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
             try {
                 innerLoop.execute(frame);
-            } catch (ExplicitReturnException ere) {
+            } catch (StopIterationException ere) {
                 PList list = (PList) ere.getValue();
                 results.addAll(Arrays.asList(list.getSequence()));
             }

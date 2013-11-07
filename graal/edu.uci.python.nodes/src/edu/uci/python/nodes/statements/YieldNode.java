@@ -24,11 +24,10 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.utils.*;
+import edu.uci.python.runtime.exception.*;
 
 /**
  * Yield doesn't work yet.
@@ -47,13 +46,13 @@ public class YieldNode extends StatementNode {
     @Override
     public void executeVoid(VirtualFrame frame) {
         Object returnValue = right.execute(frame);
-        throw new ExplicitYieldException(next(), returnValue);
+        throw new ExplicitYieldException(returnValue);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         Object returnValue = right.execute(frame);
-        throw new ExplicitYieldException(next(), returnValue);
+        throw new ExplicitYieldException(returnValue);
     }
 
 }

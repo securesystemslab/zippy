@@ -26,7 +26,6 @@ package edu.uci.python.runtime.datatypes;
 
 import com.oracle.truffle.api.frame.*;
 
-//public abstract class PCallable {
 public abstract class PCallable implements PythonCallable {
 
     protected String name;
@@ -52,8 +51,6 @@ public abstract class PCallable implements PythonCallable {
     public Object call(PackedFrame caller, Object[] args) {
         return call(caller, args, null);
     }
-
-    // public abstract Object call(PackedFrame caller, Object[] args, Object[] keywords);
 
     // Specialized. To be overwritten by PFunction
     public Object call(PackedFrame caller, Object arg) {
