@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -59,5 +60,28 @@ public class AddClassAttributeNode extends PNode implements Amendable {
         PythonClass clazz = getClass(frame);
         clazz.setAttribute(attributeId, rhs.execute(frame));
         return PNone.NONE;
+    }
+
+    /**
+     * This class exists only to make ReadNode -> WriteNode logic consistent in PythonTree
+     * translation. Should be removed whenever {@link AddClassAttributeNode} is not longer needed.
+     * 
+     */
+    public static class ReadClassAttributeNode extends PNode implements ReadNode {
+
+        private final String attributeId;
+
+        public ReadClassAttributeNode(String attributeId) {
+            this.attributeId = attributeId;
+        }
+
+        public PNode makeWriteNode(PNode rhs) {
+            return new AddClassAttributeNode(this.attributeId, rhs);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

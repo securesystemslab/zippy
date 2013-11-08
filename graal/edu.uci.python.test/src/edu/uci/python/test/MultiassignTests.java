@@ -30,7 +30,8 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class MultiassignTest {
+public class MultiassignTests {
+
     @Test
     public void forTest() {
         Path script = Paths.get("multiassign_test.py");

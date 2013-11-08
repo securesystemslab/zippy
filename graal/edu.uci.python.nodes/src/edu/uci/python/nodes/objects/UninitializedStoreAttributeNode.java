@@ -56,5 +56,4 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
         replace(specialize(primaryObj));
         return PNone.NONE;
     }
-
 }

@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class SubscriptLoadNode extends BinaryOpNode {
+public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
 
     public PNode getPrimary() {
         return getLeftNode();
@@ -39,6 +39,11 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
 
     public PNode getSlice() {
         return getRightNode();
+    }
+
+    @Override
+    public PNode makeWriteNode(PNode rhs) {
+        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), rhs);
     }
 
     @Specialization(order = 0)

@@ -33,11 +33,15 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 
 public class TranslationEnvironment {
 
     private final mod module;
+    private final PythonContext context;
+    private final NodeFactory factory;
 
     private Map<PythonTree, ScopeInfo> scopeInfos;
     private ScopeInfo currentScope;
@@ -48,8 +52,10 @@ public class TranslationEnvironment {
     public static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
     private int listComprehensionSlotCounter = 0;
 
-    public TranslationEnvironment(mod module) {
+    public TranslationEnvironment(mod module, PythonContext context) {
         this.module = module;
+        this.context = context;
+        this.factory = NodeFactory.getInstance();
         scopeInfos = new HashMap<>();
     }
 
@@ -120,6 +126,33 @@ public class TranslationEnvironment {
         assert name != null : "name is null!";
         FrameSlot slot = currentScope.getFrameDescriptor().findFrameSlot(name);
         return slot != null ? slot : probeEnclosingScopes(name);
+    }
+
+    public ReadNode findVariable(String name) {
+        assert name != null : "name is null!";
+        FrameSlot slot = findSlot(name);
+
+        switch (getScopeKind()) {
+            case Module:
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+            case GeneratorExpr:
+            case ListComp:
+            case Function:
+                if (slot == null) {
+                    return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+                }
+
+                if (slot instanceof EnvironmentFrameSlot) {
+                    EnvironmentFrameSlot eslot = (EnvironmentFrameSlot) slot;
+                    return (ReadNode) factory.createReadLevelVariable(eslot.unpack(), eslot.getLevel());
+                }
+
+                return (ReadNode) factory.createReadLocalVariable(slot);
+            case Class:
+                return (ReadNode) factory.createReadClassAttribute(name);
+            default:
+                throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
+        }
     }
 
     public FrameSlot createGlobal(String name) {

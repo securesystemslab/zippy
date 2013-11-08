@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -54,5 +55,22 @@ public class AddMethodNode extends PNode {
     public Object execute(VirtualFrame frame) {
         addMethod(frame);
         return PNone.NONE;
+    }
+
+    /**
+     * This class exists only to make ReadNode -> WriteNode logic consistent in PythonTree
+     * translation. Should be removed whenever {@link AddMethodNode} is not longer needed.
+     * 
+     */
+    public static class ReadMethodNode extends PNode implements ReadNode {
+
+        public PNode makeWriteNode(PNode rhs) {
+            return new AddMethodNode((FunctionDefinitionNode) rhs);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

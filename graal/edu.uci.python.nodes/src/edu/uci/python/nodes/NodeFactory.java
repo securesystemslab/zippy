@@ -98,6 +98,14 @@ public class NodeFactory {
         return new AddMethodNode(methodDef);
     }
 
+    public PNode createReadClassAttribute(String attributeId) {
+        return new AddClassAttributeNode.ReadClassAttributeNode(attributeId);
+    }
+
+    public PNode createReadMethod() {
+        return new AddMethodNode.ReadMethodNode();
+    }
+
     public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
         return new ParametersOfSizeOneNode(paramNames, parameter);
     }

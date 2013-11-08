@@ -49,7 +49,6 @@ import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import static edu.uci.python.parser.TranslationUtil.*;
@@ -346,59 +345,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createWriteLocalVariable(right, slot);
         }
 
-        if (!isLoad(node)) {
-            return convertWrite(node);
-        } else {
-            return convertRead(node);
-        }
-    }
-
-    PNode convertRead(Name node) {
-        String name = node.getInternalId();
-        FrameSlot slot = environment.findSlot(name);
-
-        switch (environment.getScopeKind()) {
-            case Module:
-                return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
-            case GeneratorExpr:
-            case ListComp:
-            case Function:
-                if (slot == null) {
-                    return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
-                }
-
-                if (slot instanceof EnvironmentFrameSlot) {
-                    EnvironmentFrameSlot eslot = (EnvironmentFrameSlot) slot;
-                    return factory.createReadLevelVariable(eslot.unpack(), eslot.getLevel());
-                }
-
-                return factory.createReadLocalVariable(slot);
-            case Class:
-            default:
-                throw new IllegalStateException("Unexpected scopeKind " + environment.getScopeKind());
-        }
-    }
-
-    PNode convertWrite(Name node) {
-        String name = node.getInternalId();
-        FrameSlot slot = environment.findSlot(name);
-        PNode main = factory.createObjectLiteral(context.getPythonCore().getMainModule());
-
-        switch (environment.getScopeKind()) {
-            case Module:
-                return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
-            case GeneratorExpr:
-            case ListComp:
-            case Function:
-                if (slot == null) {
-                    return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
-                }
-                return factory.createWriteLocalVariable(PNode.EMPTYNODE, slot);
-            case Class:
-                return factory.createAddClassAttribute(name, PNode.EMPTYNODE);
-            default:
-                throw new IllegalStateException("Unexpected scopeKind " + environment.getScopeKind());
-        }
+        return environment.findVariable(node.getInternalId());
     }
 
     @Override
@@ -447,29 +394,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode value = (PNode) visit(node.getInternalValue());
 
         /**
-         * TODO: AugAssign should be translated to in-place operations.<br>
-         * The assignment should be ScopeKind sensitive too!
+         * TODO: Translate AugAssign to in-place operations ?
          */
-        PNode expr;
-        if (target instanceof FrameSlotNode) {
-            FrameSlot slot = ((FrameSlotNode) target).getSlot();
-            // Only works for locals
-            PNode read = factory.createReadLocalVariable(slot);
-            PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
-            expr = factory.createWriteLocalVariable(binaryOp, slot);
-        } else if (target instanceof SubscriptLoadNode) {
-            SubscriptLoadNode read = (SubscriptLoadNode) target;
-            PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
-            expr = factory.createSubscriptStore(read.getPrimary(), read.getSlice(), binaryOp);
-        } else if (target instanceof StoreAttributeNode) {
-            LoadAttributeNode read = (LoadAttributeNode) ((StoreAttributeNode) target).makeReadNode();
-            PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), read, value);
-            expr = factory.createStoreAttribute(read.getPrimary(), read.getAttributeId(), binaryOp);
-        } else {
-            throw notCovered();
-        }
-
-        return expr;
+        PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
+        return ((ReadNode) target).makeWriteNode(binaryOp);
     }
 
     @Override
@@ -552,7 +480,13 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < targets.size(); i++) {
             if (i < lhs.size()) {
                 PNode read = ((WriteNode) tempWrites.get(i)).makeReadNode();
-                PNode tempWrite = ((Amendable) targets.get(i)).updateRhs(read);
+                PNode incomplete = targets.get(i);
+                PNode tempWrite;
+                if (incomplete instanceof Amendable) {
+                    tempWrite = ((Amendable) targets.get(i)).updateRhs(read);
+                } else {
+                    tempWrite = ((ReadNode) targets.get(i)).makeWriteNode(read);
+                }
                 tempWrites.add(tempWrite);
             } else {
                 tempWrites.add(targets.get(i));
@@ -613,7 +547,13 @@ public class PythonTreeTranslator extends Visitor {
                     transformedRhs = ((WriteNode) tempWrite).makeReadNode();
                 }
 
-                PNode write = ((Amendable) nestedWrites.get(idx)).updateRhs(transformedRhs);
+                PNode incomplete = nestedWrites.get(idx);
+                PNode write;
+                if (incomplete instanceof Amendable) {
+                    write = ((Amendable) nestedWrites.get(idx)).updateRhs(transformedRhs);
+                } else {
+                    write = ((ReadNode) nestedWrites.get(idx)).makeWriteNode(transformedRhs);
+                }
                 nestedWrites.set(idx, write);
             }
         }
@@ -651,6 +591,10 @@ public class PythonTreeTranslator extends Visitor {
         if (target instanceof Amendable) {
             Amendable lhTarget = (Amendable) target;
             return lhTarget.updateRhs(right);
+        }
+
+        if (target instanceof ReadNode) {
+            return ((ReadNode) target).makeWriteNode(right);
         }
 
         throw notCovered();
@@ -761,8 +705,8 @@ public class PythonTreeTranslator extends Visitor {
             comprehension comp = reversed.get(i);
 
             // target and iterator
-            Amendable incomplete = (Amendable) visit(comp.getInternalTarget());
-            PNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
+            PNode incomplete = (PNode) visit(comp.getInternalTarget());
+            PNode target = ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
             PNode iterator = (PNode) visit(comp.getInternalIter());
 
             if (i == 0) {
@@ -795,8 +739,8 @@ public class PythonTreeTranslator extends Visitor {
             comprehension comp = reversed.get(i);
 
             // target and iterator
-            Amendable incomplete = (Amendable) visit(comp.getInternalTarget());
-            PNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
+            PNode incomplete = (PNode) visit(comp.getInternalTarget());
+            PNode target = ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
             PNode iterator = (PNode) visit(comp.getInternalIter());
 
             // Just deal with one condition.
@@ -915,9 +859,14 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> targets = walkLeftHandSideList(lhs);
         isLeftHandSide = false;
 
-        Amendable incomplete = (Amendable) targets.remove(0);
+        PNode incomplete = targets.remove(0);
         PNode runtimeValue = factory.createRuntimeValueNode();
-        PNode iteratorWrite = incomplete.updateRhs(runtimeValue);
+        PNode iteratorWrite;
+        if (incomplete instanceof Amendable) {
+            iteratorWrite = ((Amendable) incomplete).updateRhs(runtimeValue);
+        } else {
+            iteratorWrite = ((ReadNode) incomplete).makeWriteNode(runtimeValue);
+        }
 
         PNode iter = (PNode) visit(node.getInternalIter());
         List<PNode> body = visitStatements(node.getInternalBody());
@@ -1051,7 +1000,7 @@ public class PythonTreeTranslator extends Visitor {
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
             PNode exceptType = (PNode) visit(except.getInternalType());
-            PNode exceptName = (except.getInternalName() == null) ? null : ((PNode) visit(except.getInternalName()));
+            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
 

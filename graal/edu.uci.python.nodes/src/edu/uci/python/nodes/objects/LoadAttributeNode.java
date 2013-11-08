@@ -27,10 +27,11 @@ package edu.uci.python.nodes.objects;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
-public abstract class LoadAttributeNode extends PNode {
+public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
     protected final String attributeId;
 
@@ -47,6 +48,11 @@ public abstract class LoadAttributeNode extends PNode {
 
     public PNode getPrimary() {
         return primary;
+    }
+
+    @Override
+    public PNode makeWriteNode(PNode rhs) {
+        return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs);
     }
 
     public LoadAttributeNode specialize(Object primaryObj) {
