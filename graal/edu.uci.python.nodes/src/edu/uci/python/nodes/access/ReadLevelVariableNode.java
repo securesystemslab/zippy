@@ -46,7 +46,7 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteLocalNodeFactory.create(frameSlot, rhs);
+        return WriteLocalVariableNodeFactory.create(frameSlot, rhs);
     }
 
     @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})

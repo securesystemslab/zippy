@@ -35,21 +35,21 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "rightNode", type = PNode.class)
-public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode, Amendable {
+public abstract class WriteLocalVariableNode extends FrameSlotNode implements WriteNode, Amendable {
 
     public abstract PNode getRightNode();
 
-    public WriteLocalNode(FrameSlot slot) {
+    public WriteLocalVariableNode(FrameSlot slot) {
         super(slot);
     }
 
-    public WriteLocalNode(WriteLocalNode specialized) {
+    public WriteLocalVariableNode(WriteLocalVariableNode specialized) {
         this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeReadNode() {
-        return ReadLocalNodeFactory.create(frameSlot);
+        return ReadLocalVariableNodeFactory.create(frameSlot);
     }
 
     @Override
@@ -59,7 +59,7 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
 
     @Override
     public PNode updateRhs(PNode newRhs) {
-        return WriteLocalNodeFactory.create(this.frameSlot, newRhs);
+        return WriteLocalVariableNodeFactory.create(this.frameSlot, newRhs);
     }
 
     public abstract Object execute(VirtualFrame frame, Object value);

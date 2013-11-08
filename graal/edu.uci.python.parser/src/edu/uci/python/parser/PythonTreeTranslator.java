@@ -608,7 +608,7 @@ public class PythonTreeTranslator extends Visitor {
                 PNode transformedRhs;
 
                 if (isUnpacking) {
-                    transformedRhs = makeSubscriptLoad((WriteLocalNode) tempWrite, idx);
+                    transformedRhs = makeSubscriptLoad((WriteLocalVariableNode) tempWrite, idx);
                 } else {
                     transformedRhs = ((WriteNode) tempWrite).makeReadNode();
                 }
@@ -640,7 +640,7 @@ public class PythonTreeTranslator extends Visitor {
         return tempWrite;
     }
 
-    private PNode makeSubscriptLoad(WriteLocalNode write, int index) {
+    private PNode makeSubscriptLoad(WriteLocalVariableNode write, int index) {
         PNode read = write.makeReadNode();
         PNode indexNode = factory.createIntegerLiteral(index);
         PNode sload = factory.createSubscriptLoad(read, indexNode);
@@ -780,7 +780,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private LoopNode createForInScope(PNode target, PNode iterator, StatementNode body) {
         if (environment.isInFunctionScope()) {
-            return factory.createForWithLocalTarget((WriteLocalNode) target, iterator, body);
+            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, iterator, body);
         } else {
             return factory.createFor(target, iterator, body);
         }
@@ -935,9 +935,9 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         StatementNode forNode;
-        if (environment.isInFunctionScope() && target instanceof WriteLocalNode) {
-            WriteLocalNode wtarget = (WriteLocalNode) target;
-            wtarget = (WriteLocalNode) wtarget.updateRhs(null);
+        if (environment.isInFunctionScope() && target instanceof WriteLocalVariableNode) {
+            WriteLocalVariableNode wtarget = (WriteLocalVariableNode) target;
+            wtarget = (WriteLocalVariableNode) wtarget.updateRhs(null);
             forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody);
         } else {
             forNode = factory.createFor(target, iter, wrappedBody);

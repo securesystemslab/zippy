@@ -33,19 +33,19 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 
-public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadLocalVariableNode extends FrameSlotNode implements ReadNode {
 
-    public ReadLocalNode(FrameSlot slot) {
+    public ReadLocalVariableNode(FrameSlot slot) {
         super(slot);
     }
 
-    public ReadLocalNode(ReadLocalNode specialized) {
+    public ReadLocalVariableNode(ReadLocalVariableNode specialized) {
         this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteLocalNodeFactory.create(frameSlot, rhs);
+        return WriteLocalVariableNodeFactory.create(frameSlot, rhs);
     }
 
     @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})

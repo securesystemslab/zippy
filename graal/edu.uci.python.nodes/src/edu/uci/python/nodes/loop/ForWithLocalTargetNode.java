@@ -38,9 +38,9 @@ import edu.uci.python.runtime.datatypes.*;
 @NodeChild(value = "iterator", type = PNode.class)
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected WriteLocalNode target;
+    @Child protected WriteLocalVariableNode target;
 
-    public ForWithLocalTargetNode(WriteLocalNode target, StatementNode body) {
+    public ForWithLocalTargetNode(WriteLocalVariableNode target, StatementNode body) {
         super(body);
         this.target = adoptChild(target);
     }

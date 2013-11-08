@@ -166,7 +166,7 @@ public class NodeFactory {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalNode target, PNode iterator, StatementNode body) {
+    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, PNode iterator, StatementNode body) {
         return ForWithLocalTargetNodeFactory.create(target, body, iterator);
     }
 
@@ -422,7 +422,7 @@ public class NodeFactory {
 
     public PNode createReadLocalVariable(FrameSlot slot) {
         assert slot != null;
-        return ReadLocalNodeFactory.create(slot);
+        return ReadLocalVariableNodeFactory.create(slot);
     }
 
     public PNode createReadLevelVariable(FrameSlot slot, int level) {
@@ -430,7 +430,7 @@ public class NodeFactory {
     }
 
     public PNode createWriteLocalVariable(PNode right, FrameSlot slot) {
-        return WriteLocalNodeFactory.create(slot, right);
+        return WriteLocalVariableNodeFactory.create(slot, right);
     }
 
     public PNode createReadGlobalScope(PythonContext context, PythonModule globalScope, String attributeId) {

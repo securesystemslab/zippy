@@ -74,10 +74,10 @@ public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCache
             FrameSlot newSlot = frameDescriptor.findFrameSlot(origSlot.getIdentifier());
             assert newSlot != null;
 
-            if (node instanceof ReadLocalNode) {
+            if (node instanceof ReadLocalVariableNode) {
                 node.replace(factory.createReadLocalVariable(newSlot));
-            } else if (node instanceof WriteLocalNode) {
-                node.replace(factory.createWriteLocalVariable(((WriteLocalNode) node).getRhs(), newSlot));
+            } else if (node instanceof WriteLocalVariableNode) {
+                node.replace(factory.createWriteLocalVariable(((WriteLocalVariableNode) node).getRhs(), newSlot));
             }
         }
     }
