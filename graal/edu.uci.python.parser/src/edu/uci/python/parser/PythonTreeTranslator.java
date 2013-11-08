@@ -153,7 +153,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
-        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame());
+        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
     }
 
     public PNode wrapWithWriteOrStore(PNode rhs, ScopeInfo.ScopeKind definingScope, FrameSlot slot, String name) {
@@ -301,7 +301,8 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(statements);
         FunctionRootNode methodRoot = factory.createFunctionRoot(name, ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
         CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct, environment.getCurrentFrame());
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct, environment.getCurrentFrame(),
+                        environment.needsDeclarationFrame());
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.
@@ -367,7 +368,8 @@ public class PythonTreeTranslator extends Visitor {
                 }
 
                 if (slot instanceof EnvironmentFrameSlot) {
-                    return factory.createReadLevelVariable(slot, ((EnvironmentFrameSlot) slot).getLevel());
+                    EnvironmentFrameSlot eslot = (EnvironmentFrameSlot) slot;
+                    return factory.createReadLevelVariable(eslot.unpack(), eslot.getLevel());
                 }
 
                 return factory.createReadLocalVariable(slot);
@@ -825,8 +827,9 @@ public class PythonTreeTranslator extends Visitor {
         GeneratorExpressionRootNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
+        boolean needsDeclarationFrame = environment.needsDeclarationFrame();
         environment.endScope(node);
-        return factory.createGeneratorExpression(ct, gnode, fd);
+        return factory.createGeneratorExpression(ct, gnode, fd, needsDeclarationFrame);
     }
 
     @Override

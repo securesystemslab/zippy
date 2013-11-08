@@ -78,8 +78,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
-        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor);
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
@@ -267,8 +267,8 @@ public class NodeFactory {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
-        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor);
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor, needsDeclarationFrame);
     }
 
     public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {

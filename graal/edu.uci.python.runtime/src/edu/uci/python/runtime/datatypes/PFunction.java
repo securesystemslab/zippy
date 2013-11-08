@@ -34,28 +34,29 @@ import com.oracle.truffle.api.nodes.*;
 public class PFunction extends PCallable {
 
     private final List<String> parameters;
-
     private final CallTarget callTarget;
-
     private final FrameDescriptor frameDescriptor;
+    private final MaterializedFrame declarationFrame;
 
-    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         super(name);
         this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
+        this.declarationFrame = declarationFrame;
     }
 
-    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean isBuiltin) {
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, boolean isBuiltin) {
         super(name, isBuiltin);
         this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
+        this.declarationFrame = declarationFrame;
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, args));
     }
 
     @Override
@@ -71,7 +72,7 @@ public class PFunction extends PCallable {
             combined[keywordIdx] = keyarg.getValue();
         }
 
-        return callTarget.call(caller, new PArguments(PNone.NONE, combined));
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
     }
 
     /*
@@ -79,12 +80,12 @@ public class PFunction extends PCallable {
      */
     @Override
     public Object call(PackedFrame caller, Object arg) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, new Object[]{arg}));
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg}));
     }
 
     @Override
     public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, new Object[]{arg0, arg1}));
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg0, arg1}));
     }
 
     public CallTarget getCallTarget() {

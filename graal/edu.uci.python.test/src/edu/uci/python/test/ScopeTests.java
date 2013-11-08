@@ -30,7 +30,7 @@ import org.junit.*;
 
 public class ScopeTests {
 
-// @Test
+    @Test
     public void implicitNonLocal() {
         String source = "def foo():\n" + //
                         "    a = 42\n" + //

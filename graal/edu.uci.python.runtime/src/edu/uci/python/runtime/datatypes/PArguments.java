@@ -35,25 +35,23 @@ public class PArguments extends Arguments {
     private final Object[] arguments;
     private final PKeyword[] keywards;
 
-    public PArguments() {
-        this.self = null;
-        this.declarationFrame = null;
-        this.arguments = new Object[0];
-        this.keywards = PKeyword.EMPTY_KEYWORDS;
-    }
-
-    public PArguments(Object self, Object[] arguments) {
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywards) {
         this.self = self;
-        this.declarationFrame = null;
-        this.arguments = arguments;
-        this.keywards = PKeyword.EMPTY_KEYWORDS;
-    }
-
-    public PArguments(Object self, Object[] arguments, PKeyword[] keywards) {
-        this.self = self;
-        this.declarationFrame = null;
+        this.declarationFrame = declarationFrame;
         this.arguments = arguments;
         this.keywards = keywards;
+    }
+
+    public PArguments() {
+        this(null, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public PArguments(MaterializedFrame declarationFrame) {
+        this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {
+        this(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public static PArguments get(Frame frame) {

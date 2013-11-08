@@ -34,19 +34,19 @@ import edu.uci.python.runtime.datatypes.*;
 public class FunctionDefinitionNode extends PNode {
 
     private final String name;
-
     private final CallTarget callTarget;
-
     private final FrameDescriptor frameDescriptor;
+    private final boolean needsDeclarationFrame;
 
     // It's parked here, but not adopted.
     @Child protected ParametersNode parameters;
 
-    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
+    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
         this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
+        this.needsDeclarationFrame = needsDeclarationFrame;
     }
 
     public String getName() {
@@ -56,7 +56,8 @@ public class FunctionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
-        return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor);
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
+        return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override
