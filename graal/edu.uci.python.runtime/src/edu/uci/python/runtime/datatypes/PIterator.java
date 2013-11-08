@@ -40,7 +40,7 @@ public abstract class PIterator extends PythonBuiltinObject {
 
     // Checkstyle: resume method name check
 
-    public Iterator<?> evaluateToJavaIterable(VirtualFrame frame) {
+    public Iterator<?> evaluateToJavaIteratore(VirtualFrame frame) {
         List<Object> results = new ArrayList<>();
 
         try {

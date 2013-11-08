@@ -33,7 +33,11 @@ import edu.uci.python.nodes.*;
 public class ScopeInfo {
 
     public static enum ScopeKind {
-        Module, Function, Class, GeneratorExpr
+        Module, Function, Class,
+        // generator expression
+        GeneratorExpr,
+        // list comprehension
+        ListComp
     }
 
     private final String scopeId;

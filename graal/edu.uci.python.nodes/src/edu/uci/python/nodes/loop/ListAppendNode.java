@@ -22,53 +22,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.loop;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.junit.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class ListComprehensionTests {
+/**
+ * Implements LIST_APPEND bytecode in CPython.
+ * 
+ */
+@NodeChild(value = "rightNode", type = PNode.class)
+public abstract class ListAppendNode extends FrameSlotNode {
 
-    @Test
-    public void simple() {
-        String source = "llist = [x*2 for x in range(5)]\n" + //
-                        "print(llist)\n";
+    public abstract PNode getRightNode();
 
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
+    public ListAppendNode(FrameSlot frameSlot) {
+        super(frameSlot);
     }
 
-    @Test
-    public void doubleLoop() {
-        String source = "llist = [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
+    protected ListAppendNode(ListAppendNode node) {
+        this(node.frameSlot);
     }
 
-    @Test
-    public void nestedListComp() {
-        String source = "llist = [[x for x in range(5)] for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]\n", source);
+    @Specialization
+    public boolean doBoolean(VirtualFrame frame, boolean right) {
+        getPList(frame).append(right);
+        return right;
     }
 
-    @Test
-    public void simpleWithLocalTarget() {
-        String source = "def foo():\n" + //
-                        "    return [x*2 for x in range(5)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
+    @Specialization
+    public int doInteger(VirtualFrame frame, int right) {
+        getPList(frame).append(right);
+        return right;
     }
 
-    @Test
-    public void doubleLoopWithLocalTarget() {
-        String source = "def foo():" + //
-                        "    return [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
+    @Specialization
+    public double doDouble(VirtualFrame frame, double right) {
+        getPList(frame).append(right);
+        return right;
     }
+
+    @Specialization
+    public Object doObject(VirtualFrame frame, Object right) {
+        getPList(frame).append(right);
+        return right;
+    }
+
+    protected final PList getPList(Frame frame) {
+        return (PList) getObject(frame);
+    }
+
 }

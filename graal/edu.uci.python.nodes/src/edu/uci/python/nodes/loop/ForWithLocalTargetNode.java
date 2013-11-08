@@ -78,18 +78,17 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Specialization(order = 1)
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence);
+        loopOnIterator(frame, sequence.iterator());
         return PNone.NONE;
     }
 
     @Specialization(order = 2)
     public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set);
+        loopOnIterator(frame, set.iterator());
         return PNone.NONE;
     }
 
-    private void loopOnIterator(VirtualFrame frame, Iterable iterable) {
-        final Iterator<?> iter = iterable.iterator();
+    private void loopOnIterator(VirtualFrame frame, Iterator iter) {
         int count = 0;
 
         try {
@@ -106,5 +105,12 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
                 reportLoopCount(count);
             }
         }
+    }
+
+    @Specialization
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+        Iterator result = iterator.evaluateToJavaIteratore(frame);
+        loopOnIterator(frame, result);
+        return PNone.NONE;
     }
 }

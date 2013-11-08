@@ -32,6 +32,7 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
+
 import static edu.uci.python.parser.TranslationUtil.*;
 
 public class ScopeTranslator extends Visitor {

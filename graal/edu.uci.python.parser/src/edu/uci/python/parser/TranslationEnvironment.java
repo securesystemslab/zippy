@@ -46,6 +46,8 @@ public class TranslationEnvironment {
     private int scopeLevel;
 
     public static final String RETURN_SLOT_ID = "<return_val>";
+    public static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private int listComprehensionSlotCounter = 0;
 
     public TranslationEnvironment(mod module) {
         this.module = module;
@@ -55,6 +57,7 @@ public class TranslationEnvironment {
 
     public TranslationEnvironment reset() {
         scopeLevel = 0;
+        listComprehensionSlotCounter = 0;
         return this;
     }
 
@@ -183,5 +186,14 @@ public class TranslationEnvironment {
 
     public FrameSlot getReturnSlot() {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(RETURN_SLOT_ID);
+    }
+
+    public FrameSlot nextListComprehensionSlot() {
+        listComprehensionSlotCounter++;
+        return getListComprehensionSlot();
+    }
+
+    public FrameSlot getListComprehensionSlot() {
+        return currentScope.getFrameDescriptor().findOrAddFrameSlot(LIST_COMPREHENSION_SLOT_ID + listComprehensionSlotCounter);
     }
 }

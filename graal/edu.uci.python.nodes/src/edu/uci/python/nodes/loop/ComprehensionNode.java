@@ -72,17 +72,16 @@ public abstract class ComprehensionNode extends StatementNode {
 
     @Specialization
     public Object doGeneric(VirtualFrame frame, Object sequence) {
-        PList seq;
+        Iterator<?> iter;
 
         if (sequence instanceof PGenerator) {
             PGenerator generator = (PGenerator) sequence;
-            seq = (PList) GeneratorExpressionDefinitionNode.executeGenerator(frame, generator);
+            iter = generator.evaluateToJavaIteratore(frame);
         } else {
             throw new RuntimeException("Unhandled sequence");
         }
 
         List<Object> results = new ArrayList<>();
-        Iterator<?> iter = seq.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         while (iter.hasNext()) {

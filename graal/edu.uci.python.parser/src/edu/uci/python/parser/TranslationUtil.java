@@ -92,6 +92,8 @@ public class TranslationUtil {
             scopeId = "class " + ((ClassDef) scopeEntity).getInternalName();
         } else if (kind == ScopeInfo.ScopeKind.GeneratorExpr) {
             scopeId = scopeEntity.toString();
+        } else if (kind == ScopeInfo.ScopeKind.ListComp) {
+            scopeId = scopeEntity.toString();
         }
 
         return scopeId;

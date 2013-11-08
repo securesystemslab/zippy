@@ -24,41 +24,35 @@
  */
 package edu.uci.python.nodes;
 
-import java.util.*;
-
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
 /**
  * A wrapper node for {@link ComprehensionNode}s.<br>
  * 
- * It evaluates its children {@link ComprehensionNode}s and returns the result {@link PList}.
+ * It evaluates its children {@link ComprehensionNode}s and returns the result as a {@link PList}.
  * 
  */
-public class ListComprehensionNode extends PNode {
+public class ListComprehensionNode extends FrameSlotNode {
 
-    @Child protected ComprehensionNode comprehension;
+    @Child protected PNode comprehension;
 
-    public ListComprehensionNode(ComprehensionNode comprehension) {
-        this.comprehension = comprehension;
+    public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+        super(frameSlot);
+        this.comprehension = adoptChild(comprehension);
+    }
+
+    protected ListComprehensionNode(ListComprehensionNode node) {
+        this(node.frameSlot, node.comprehension);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        List<Object> results = new ArrayList<>();
-
-        try {
-            while (true) {
-                results.add(comprehension.execute(frame));
-            }
-        } catch (StopIterationException e) {
-            PList list = (PList) e.getValue();
-            results.addAll(Arrays.asList(list.getSequence()));
-        }
-
-        return new PList(results);
+        setObject(frame, new PList(new Object[]{}));
+        comprehension.execute(frame);
+        return getObject(frame);
     }
 }

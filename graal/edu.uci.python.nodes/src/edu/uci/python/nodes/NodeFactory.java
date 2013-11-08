@@ -140,6 +140,10 @@ public class NodeFactory {
         return new ClassDefinitionNode(name, superclass, definitnionFunction);
     }
 
+    public BlockNode createSingleStatementBlock(PNode stmt) {
+        return new BlockNode(new PNode[]{stmt});
+    }
+
     public BlockNode createBlock(List<PNode> statements) {
         PNode[] array = statements.toArray(new PNode[statements.size()]);
         return new BlockNode(array);
@@ -246,8 +250,12 @@ public class NodeFactory {
         return new ListLiteralNode(convertedValues);
     }
 
-    public PNode createListComprehension(ComprehensionNode comprehension) {
-        return ListComprehensionNodeFactory.create(comprehension);
+    public PNode createListComprehension(FrameSlot frameSlot, PNode comprehension) {
+        return new ListComprehensionNode(frameSlot, comprehension);
+    }
+
+    public PNode createListAppend(FrameSlot frameSlot, PNode right) {
+        return ListAppendNodeFactory.create(frameSlot, right);
     }
 
     public PNode createOuterComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {

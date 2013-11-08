@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
@@ -62,15 +61,11 @@ public class GeneratorExpressionDefinitionNode extends PNode {
      * This logic should belong to another node that wraps this definition node.
      */
     public static Object executeGenerator(VirtualFrame frame, PGenerator generator) {
+        Iterator<?> iter = generator.evaluateToJavaIteratore(frame);
         List<Object> results = new ArrayList<>();
 
-        try {
-            while (true) {
-                results.add(generator.__next__(frame));
-            }
-        } catch (StopIterationException e) {
-            PList list = (PList) e.getValue();
-            results.addAll(Arrays.asList(list.getSequence()));
+        while (iter.hasNext()) {
+            results.add(iter.next());
         }
 
         return new PList(results);

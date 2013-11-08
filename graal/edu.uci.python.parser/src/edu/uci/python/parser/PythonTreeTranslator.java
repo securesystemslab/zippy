@@ -161,6 +161,7 @@ public class PythonTreeTranslator extends Visitor {
                 PNode main = factory.createObjectLiteral(context.getPythonCore().getMainModule());
                 return factory.createStoreAttribute(main, name, rhs);
             case GeneratorExpr:
+            case ListComp:
             case Function:
                 assert slot != null;
                 return factory.createWriteLocalVariable(rhs, slot);
@@ -358,6 +359,7 @@ public class PythonTreeTranslator extends Visitor {
             case Module:
                 return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
             case GeneratorExpr:
+            case ListComp:
             case Function:
                 if (slot == null) {
                     return factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
@@ -383,6 +385,7 @@ public class PythonTreeTranslator extends Visitor {
             case Module:
                 return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
             case GeneratorExpr:
+            case ListComp:
             case Function:
                 if (slot == null) {
                     return factory.createStoreAttribute(main, name, PNode.EMPTYNODE);
@@ -739,8 +742,45 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitListComp(ListComp node) throws Exception {
-        ComprehensionNode comp = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
-        return factory.createListComprehension(comp);
+        FrameSlot slot = environment.nextListComprehensionSlot();
+        PNode comp = visitListComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        return factory.createListComprehension(slot, comp);
+    }
+
+    private PNode visitListComprehensions(List<comprehension> comprehensions, expr body) throws Exception {
+        assert body != null;
+        List<comprehension> reversed = Lists.reverse(comprehensions);
+        PNode listAppendNode = factory.createListAppend(environment.getListComprehensionSlot(), (PNode) visit(body));
+        BlockNode bodyNode = factory.createSingleStatementBlock(listAppendNode);
+        PNode current = null;
+
+        for (int i = 0; i < reversed.size(); i++) {
+            comprehension comp = reversed.get(i);
+
+            // target and iterator
+            Amendable incomplete = (Amendable) visit(comp.getInternalTarget());
+            PNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
+            PNode iterator = (PNode) visit(comp.getInternalIter());
+
+            if (i == 0) {
+                // inner most
+                current = createForInScope(target, iterator, bodyNode);
+            } else {
+                // outer
+                bodyNode = factory.createSingleStatementBlock(current);
+                current = createForInScope(target, iterator, bodyNode);
+            }
+        }
+
+        return current;
+    }
+
+    private LoopNode createForInScope(PNode target, PNode iterator, StatementNode body) {
+        if (environment.isInFunctionScope()) {
+            return factory.createForWithLocalTarget((WriteLocalNode) target, iterator, body);
+        } else {
+            return factory.createFor(target, iterator, body);
+        }
     }
 
     private Object visitComprehensions(List<comprehension> generators, expr body) throws Exception {
