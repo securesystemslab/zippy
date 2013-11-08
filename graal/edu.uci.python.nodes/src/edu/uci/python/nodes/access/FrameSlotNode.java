@@ -70,7 +70,8 @@ public abstract class FrameSlotNode extends PNode {
 
     /**
      * This is needed because BigInteger is in between primitive types (int, double) in zippy's type
-     * lattice.
+     * lattice. So if a variable's type changes from BigInteger to another reference type, node
+     * rewrite should occur.
      */
     protected final BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
         Object object = frame.getObject(frameSlot);
