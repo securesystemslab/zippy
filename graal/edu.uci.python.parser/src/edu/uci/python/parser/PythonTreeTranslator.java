@@ -123,8 +123,6 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
 
         String name = node.getInternalName();
-        FrameSlot slot = environment.findSlot(name);
-        ScopeInfo.ScopeKind definingScopeKind = environment.getScopeKind();
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
         isGenerator = false;
@@ -137,7 +135,8 @@ public class PythonTreeTranslator extends Visitor {
             body = new ASTLinearizer((BlockNode) body).linearize();
             RootNode genRoot = factory.createGeneratorRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
             PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters);
-            PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
+            ReadNode read = environment.findVariable(name);
+            PNode writeOrStore = read.makeWriteNode(funcDef);
             environment.endScope(node);
             return writeOrStore;
         }
@@ -145,31 +144,13 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
         result.addParsedFunction(name, funcRoot);
         PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
-        PNode writeOrStore = wrapWithWriteOrStore(funcDef, definingScopeKind, slot, name);
         environment.endScope(node);
-        return writeOrStore;
+        return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
     private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
         CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
         return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
-    }
-
-    public PNode wrapWithWriteOrStore(PNode rhs, ScopeInfo.ScopeKind definingScope, FrameSlot slot, String name) {
-        switch (definingScope) {
-            case Module:
-                PNode main = factory.createObjectLiteral(context.getPythonCore().getMainModule());
-                return factory.createStoreAttribute(main, name, rhs);
-            case GeneratorExpr:
-            case ListComp:
-            case Function:
-                assert slot != null;
-                return factory.createWriteLocalVariable(rhs, slot);
-            case Class:
-                return factory.createAddMethodNode((FunctionDefinitionNode) rhs);
-            default:
-                throw new IllegalStateException("Unexpected ScopeKind " + definingScope);
-        }
     }
 
     public ParametersNode visitArgs(arguments node) throws Exception {
@@ -235,31 +216,26 @@ public class PythonTreeTranslator extends Visitor {
         return slots;
     }
 
-    private PNode createSingleImportStatement(alias aliaz, String fromModuleName, FrameSlot slot) {
+    private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
         String importName = aliaz.getInternalName();
-        String asName = aliaz.getInternalAsname();
+        String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
         PNode importNode = factory.createImport(fromModuleName, importName);
-
-        if (asName != null) {
-            return wrapWithWriteOrStore(importNode, environment.getScopeKind(), slot, asName);
-        } else {
-            return wrapWithWriteOrStore(importNode, environment.getScopeKind(), slot, importName);
-        }
+        ReadNode read = environment.findVariable(target);
+        return read.makeWriteNode(importNode);
     }
 
     @Override
     public Object visitImport(Import node) throws Exception {
         List<alias> aliases = node.getInternalNames();
-        FrameSlot[] slots = walkAliasList(aliases);
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0), null, slots[0]);
+            return createSingleImportStatement(aliases.get(0), null);
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportStatement(aliases.get(i), null, slots[i]));
+            imports.add(createSingleImportStatement(aliases.get(i), null));
         }
 
         return factory.createBlock(imports);
@@ -268,16 +244,15 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
         List<alias> aliases = node.getInternalNames();
-        FrameSlot[] slots = walkAliasList(aliases);
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0), node.getInternalModule(), slots[0]);
+            return createSingleImportStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule(), slots[i]));
+            imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule()));
         }
 
         return factory.createBlock(imports);
@@ -293,7 +268,6 @@ public class PythonTreeTranslator extends Visitor {
         String name = node.getInternalName();
         List<PNode> bases = walkExprList(node.getInternalBases());
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
-        ScopeInfo.ScopeKind definingScopeKind = environment.getScopeKind();
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         List<PNode> statements = visitStatements(node.getInternalBody());
@@ -313,7 +287,8 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         PNode classDef = factory.createClassDef(name, base, funcDef);
-        return wrapWithWriteOrStore(classDef, definingScopeKind, null, name);
+        ReadNode read = environment.findVariable(name);
+        return read.makeWriteNode(classDef);
     }
 
     @Override
