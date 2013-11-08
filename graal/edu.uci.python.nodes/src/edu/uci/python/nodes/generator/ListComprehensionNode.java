@@ -22,36 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
-public abstract class ListComprehensionNode extends PNode {
+/**
+ * A wrapper node for {@link ComprehensionNode}s.<br>
+ * 
+ * It evaluates its children {@link ComprehensionNode}s and returns the result as a {@link PList}.
+ * 
+ */
+public class ListComprehensionNode extends FrameSlotNode {
 
-    @Child ComprehensionNode comprehension;
+    @Child protected PNode comprehension;
 
-    public ListComprehensionNode(ComprehensionNode comprehension) {
+    public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+        super(frameSlot);
         this.comprehension = adoptChild(comprehension);
     }
 
     protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.comprehension);
+        this(node.frameSlot, node.comprehension);
     }
 
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        try {
-            comprehension.execute(frame);
-        } catch (StopIterationException ere) {
-            return ere.getValue();
-        }
-
-        return PNone.NONE;
+    @Override
+    public Object execute(VirtualFrame frame) {
+        setObject(frame, new PList(new Object[]{}));
+        comprehension.execute(frame);
+        return getObject(frame);
     }
-
 }

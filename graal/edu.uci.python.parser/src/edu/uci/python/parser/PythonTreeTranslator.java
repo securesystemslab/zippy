@@ -43,6 +43,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
