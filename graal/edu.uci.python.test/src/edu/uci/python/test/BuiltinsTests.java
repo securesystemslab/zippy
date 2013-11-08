@@ -32,7 +32,7 @@ import org.junit.*;
 
 public class BuiltinsTests {
 
-    @Test
+// @Test
     public void simple() {
         Path script = Paths.get("builtins_test.py");
         assertPrints("False\n" + "True\n" + "10\n" + "10.25\n" + "2.23606797749979\n" + "True\n" + "False\n" + "False\n" + "True\n" + "True\n" + "False\n" + "A\n" + "(2+3j)\n" + "(3.4+4.9j)\n"

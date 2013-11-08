@@ -34,7 +34,9 @@ public abstract class PIterator extends PythonBuiltinObject {
 
     // Checkstyle: stop method name check
 
-    public abstract PIterator __iter__();
+    public PIterator __iter__() {
+        return this;
+    }
 
     public abstract Object __next__(VirtualFrame frame);
 

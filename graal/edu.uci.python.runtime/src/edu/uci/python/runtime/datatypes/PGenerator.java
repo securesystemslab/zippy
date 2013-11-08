@@ -44,12 +44,6 @@ public class PGenerator extends PIterator {
     }
 
     // Checkstyle: stop method name check
-
-    @Override
-    public PGenerator __iter__() {
-        return this;
-    }
-
     @Override
     public Object __next__(VirtualFrame frame) {
         return callTarget.call(frame.pack(), new PArguments());
