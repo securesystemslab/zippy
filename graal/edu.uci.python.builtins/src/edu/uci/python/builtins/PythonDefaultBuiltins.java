@@ -212,7 +212,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization
-            public boolean callable(PCallable callable) {
+            public boolean callable(PythonCallable callable) {
                 return true;
             }
 
@@ -500,7 +500,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
                     }
                 } else if (args.length == 0) {
-                    if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
+                    if (arg1 instanceof Integer && arg2 instanceof Integer) {
+                        int arg1Int = (int) arg1;
+                        int arg2Int = (int) arg2;
+                        return Math.max(arg1Int, arg2Int);
+                    } else if (arg1 instanceof Double && arg2 instanceof Double) {
                         double arg1Double = (Double) arg1;
                         double arg2Double = (Double) arg2;
                         return Math.max(arg1Double, arg2Double);
