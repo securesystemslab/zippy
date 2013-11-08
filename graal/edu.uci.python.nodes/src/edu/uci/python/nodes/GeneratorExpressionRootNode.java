@@ -27,7 +27,6 @@ package edu.uci.python.nodes;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
 public class GeneratorExpressionRootNode extends FunctionRootNode {
@@ -38,15 +37,10 @@ public class GeneratorExpressionRootNode extends FunctionRootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-
         try {
             return body.execute(frame);
-        } catch (ExplicitReturnException ere) {
-            return ere.getValue();
-        } catch (ImplicitReturnException ire) {
-            return PNone.NONE;
+        } catch (ExplicitYieldException eye) {
+            return eye.getValue();
         }
     }
-
 }

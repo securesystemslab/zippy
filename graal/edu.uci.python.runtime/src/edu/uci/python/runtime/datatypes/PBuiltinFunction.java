@@ -65,7 +65,7 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, args));
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
     }
 
     @Override
@@ -74,14 +74,14 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
             if (PythonOptions.UseSpecializedBuiltins) {
                 checkForUnexpectedCall(args.length, keywords.length);
             }
-            return callTarget.call(caller, new PArguments(PNone.NONE, args));
+            return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
         } else {
             if (PythonOptions.UseSpecializedBuiltins) {
                 checkForUnexpectedCall(args.length, keywords.length);
             }
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            return callTarget.call(caller, new PArguments(PNone.NONE, args, pkeywords));
+            return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
         }
     }
 

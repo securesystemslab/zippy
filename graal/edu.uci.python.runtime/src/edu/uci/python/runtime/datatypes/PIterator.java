@@ -34,13 +34,15 @@ public abstract class PIterator extends PythonBuiltinObject {
 
     // Checkstyle: stop method name check
 
-    public abstract PIterator __iter__();
+    public PIterator __iter__() {
+        return this;
+    }
 
     public abstract Object __next__(VirtualFrame frame);
 
     // Checkstyle: resume method name check
 
-    public Iterator<?> evaluateToJavaIterable(VirtualFrame frame) {
+    public Iterator<?> evaluateToJavaIteratore(VirtualFrame frame) {
         List<Object> results = new ArrayList<>();
 
         try {

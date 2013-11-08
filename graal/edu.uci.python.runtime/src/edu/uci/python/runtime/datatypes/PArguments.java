@@ -24,31 +24,38 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import com.oracle.truffle.api.Arguments;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
+    private final MaterializedFrame declarationFrame;
     private final Object self;
     private final Object[] arguments;
     private final PKeyword[] keywards;
 
-    public PArguments() {
-        this.self = null;
-        this.arguments = new Object[0];
-        this.keywards = PKeyword.EMPTY_KEYWORDS;
-    }
-
-    public PArguments(Object self, Object[] arguments) {
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywards) {
         this.self = self;
-        this.arguments = arguments;
-        this.keywards = PKeyword.EMPTY_KEYWORDS;
-    }
-
-    public PArguments(Object self, Object[] arguments, PKeyword[] keywards) {
-        this.self = self;
+        this.declarationFrame = declarationFrame;
         this.arguments = arguments;
         this.keywards = keywards;
+    }
+
+    public PArguments() {
+        this(null, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public PArguments(MaterializedFrame declarationFrame) {
+        this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {
+        this(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public static PArguments get(Frame frame) {
+        return frame.getArguments(PArguments.class);
     }
 
     public Object getSelf() {
@@ -56,7 +63,11 @@ public class PArguments extends Arguments {
     }
 
     public final Object[] getArgumentsArray() {
-        return arguments;
+        return CompilerDirectives.unsafeCast(arguments, Object[].class, true);
+    }
+
+    public MaterializedFrame getDeclarationFrame() {
+        return CompilerDirectives.unsafeFrameCast(declarationFrame);
     }
 
     public final Object getArgument(int index) {

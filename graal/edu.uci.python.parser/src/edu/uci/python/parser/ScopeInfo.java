@@ -33,12 +33,17 @@ import edu.uci.python.nodes.*;
 public class ScopeInfo {
 
     public static enum ScopeKind {
-        Module, Function, Class, GeneratorExpr
+        Module, Function, Class,
+        // generator expression
+        GeneratorExpr,
+        // list comprehension
+        ListComp
     }
 
     private final String scopeId;
     private final ScopeKind scopeKind;
     private final FrameDescriptor frameDescriptor;
+    private final ScopeInfo parent;
     private boolean needsDeclaringScope;
 
     /**
@@ -53,10 +58,11 @@ public class ScopeInfo {
      */
     private List<PNode> defaultArgumentNodes;
 
-    public ScopeInfo(String scopeId, ScopeKind kind, FrameDescriptor frameDescriptor) {
+    public ScopeInfo(String scopeId, ScopeKind kind, FrameDescriptor frameDescriptor, ScopeInfo parent) {
         this.scopeId = scopeId;
         this.scopeKind = kind;
         this.frameDescriptor = frameDescriptor;
+        this.parent = parent;
         this.needsDeclaringScope = false;
     }
 
@@ -70,6 +76,10 @@ public class ScopeInfo {
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
+    }
+
+    public ScopeInfo getParent() {
+        return parent;
     }
 
     public void setNeedsDeclaringScope() {

@@ -47,27 +47,6 @@ public class PString extends PythonBuiltinObject implements Iterable<Object> {
         return method;
     }
 
-    @Override
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int len() {
-        throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("hiding")
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
     public List<String> getList() {
         ArrayList<String> list = new ArrayList<>();
 

@@ -34,7 +34,6 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
 public abstract class ForNode extends LoopNode {
@@ -73,18 +72,8 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        List<Object> results = new ArrayList<>();
-
-        try {
-            while (true) {
-                results.add(iterator.__next__(frame));
-            }
-        } catch (StopIterationException e) {
-            PList list = (PList) e.getValue();
-            results.addAll(Arrays.asList(list.getSequence()));
-        }
-
-        loopOnIterator(frame, results.iterator());
+        Iterator result = iterator.evaluateToJavaIteratore(frame);
+        loopOnIterator(frame, result);
         return PNone.NONE;
     }
 
@@ -100,7 +89,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    private void loopOnIterator(VirtualFrame frame, Iterator iter) {
+    protected void loopOnIterator(VirtualFrame frame, Iterator iter) {
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         while (iter.hasNext()) {

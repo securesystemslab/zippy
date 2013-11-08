@@ -31,24 +31,25 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
+    private final boolean needsDeclarationFrame;
 
     @Child protected GeneratorExpressionRootNode rootNode;
 
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, GeneratorExpressionRootNode rootNode, FrameDescriptor descriptor) {
+    public GeneratorExpressionDefinitionNode(CallTarget callTarget, GeneratorExpressionRootNode rootNode, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         this.callTarget = callTarget;
         this.rootNode = adoptChild(rootNode);
         this.frameDescriptor = descriptor;
+        this.needsDeclarationFrame = needsDeclarationFrame;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor);
+        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, needsDeclarationFrame);
         // TODO: It's a bad way to determine whether the
         // generator should be evaluated immediately or not.
         if (getParent() instanceof WriteNode) {
@@ -62,15 +63,11 @@ public class GeneratorExpressionDefinitionNode extends PNode {
      * This logic should belong to another node that wraps this definition node.
      */
     public static Object executeGenerator(VirtualFrame frame, PGenerator generator) {
+        Iterator<?> iter = generator.evaluateToJavaIteratore(frame);
         List<Object> results = new ArrayList<>();
 
-        try {
-            while (true) {
-                results.add(generator.__next__(frame));
-            }
-        } catch (StopIterationException e) {
-            PList list = (PList) e.getValue();
-            results.addAll(Arrays.asList(list.getSequence()));
+        while (iter.hasNext()) {
+            results.add(iter.next());
         }
 
         return new PList(results);

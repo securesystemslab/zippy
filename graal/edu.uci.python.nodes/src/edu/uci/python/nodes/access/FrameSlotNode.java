@@ -33,7 +33,6 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 
 /**
  * Followed the same logic from com.oracle.truffle.sl.nodes.FrameSlotNode.
@@ -70,44 +69,15 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     /**
-     * Specialization for reference types. This is only needed for read access since write accesses
-     * of FrameSlot cannot be made different from {@link #setObject(Frame, Object) };
+     * This is needed because BigInteger is in between primitive types (int, double) in zippy's type
+     * lattice. So if a variable's type changes from BigInteger to another reference type, node
+     * rewrite should occur.
      */
     protected final BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
         Object object = frame.getObject(frameSlot);
 
         if (object instanceof BigInteger) {
             return (BigInteger) object;
-        } else {
-            throw new FrameSlotTypeException();
-        }
-    }
-
-    protected final PComplex getPComplex(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(frameSlot);
-
-        if (object instanceof PComplex) {
-            return (PComplex) object;
-        } else {
-            throw new FrameSlotTypeException();
-        }
-    }
-
-    protected final String getString(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(frameSlot);
-
-        if (object instanceof String) {
-            return (String) object;
-        } else {
-            throw new FrameSlotTypeException();
-        }
-    }
-
-    protected final PSequence getPSequence(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(frameSlot);
-
-        if (object instanceof PSequence) {
-            return (PSequence) object;
         } else {
             throw new FrameSlotTypeException();
         }

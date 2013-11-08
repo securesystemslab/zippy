@@ -22,36 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
-public abstract class ListComprehensionNode extends PNode {
+public final class FrameUtil {
 
-    @Child ComprehensionNode comprehension;
-
-    public ListComprehensionNode(ComprehensionNode comprehension) {
-        this.comprehension = adoptChild(comprehension);
-    }
-
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.comprehension);
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame) {
-        try {
-            comprehension.execute(frame);
-        } catch (StopIterationException ere) {
-            return ere.getValue();
+    @ExplodeLoop
+    public static MaterializedFrame getParentFrame(VirtualFrame frame, int level) {
+        assert level > 0;
+        CompilerAsserts.compilationConstant(level);
+        MaterializedFrame parentFrame = PArguments.get(frame).getDeclarationFrame();
+        for (int i = 1; i < level; i++) {
+            parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
         }
+        return parentFrame;
+    }
 
-        return PNone.NONE;
+    @ExplodeLoop
+    public static MaterializedFrame getParentFrame(MaterializedFrame frame, int level) {
+        assert level >= 0;
+        if (level == 0) {
+            return frame;
+        } else {
+            MaterializedFrame parentFrame = frame;
+            for (int i = 0; i < level; i++) {
+                parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
+            }
+            return parentFrame;
+        }
     }
 
 }

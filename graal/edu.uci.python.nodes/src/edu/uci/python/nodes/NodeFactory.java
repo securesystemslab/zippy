@@ -35,8 +35,8 @@ import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.loop.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
-import edu.uci.python.nodes.loop.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
+import edu.uci.python.nodes.generator.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
+import edu.uci.python.nodes.generator.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
@@ -57,6 +57,7 @@ import edu.uci.python.nodes.expressions.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
 import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -77,8 +78,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor) {
-        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor);
+    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
@@ -138,6 +139,10 @@ public class NodeFactory {
 
     public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
         return new ClassDefinitionNode(name, superclass, definitnionFunction);
+    }
+
+    public BlockNode createSingleStatementBlock(PNode stmt) {
+        return new BlockNode(new PNode[]{stmt});
     }
 
     public BlockNode createBlock(List<PNode> statements) {
@@ -246,8 +251,12 @@ public class NodeFactory {
         return new ListLiteralNode(convertedValues);
     }
 
-    public PNode createListComprehension(ComprehensionNode comprehension) {
-        return ListComprehensionNodeFactory.create(comprehension);
+    public PNode createListComprehension(FrameSlot frameSlot, PNode comprehension) {
+        return new ListComprehensionNode(frameSlot, comprehension);
+    }
+
+    public PNode createListAppend(FrameSlot frameSlot, PNode right) {
+        return ListAppendNodeFactory.create(frameSlot, right);
     }
 
     public PNode createOuterComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
@@ -258,8 +267,8 @@ public class NodeFactory {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor) {
-        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor);
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor, needsDeclarationFrame);
     }
 
     public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {

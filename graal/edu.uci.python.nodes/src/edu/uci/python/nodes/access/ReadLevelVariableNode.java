@@ -27,12 +27,9 @@ package edu.uci.python.nodes.access;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ReadLevelVariableNode extends FrameSlotNode implements ReadNode {
 
@@ -53,61 +50,32 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
     }
 
     @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})
-    public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getInteger(parent);
-    }
-
-    @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
+        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
         return getBoolean(parent);
     }
 
-    @Specialization(order = 3, rewriteOn = {FrameSlotTypeException.class})
-    public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getDouble(parent);
+    @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
+    public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
+        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
+        return getInteger(parent);
     }
 
-    @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 3, rewriteOn = {FrameSlotTypeException.class})
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
+        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
         return getBigInteger(parent);
     }
 
-    @Specialization(order = 5, rewriteOn = {FrameSlotTypeException.class})
-    public PComplex doComplex(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getPComplex(parent);
-    }
-
-    @Specialization(order = 6, rewriteOn = {FrameSlotTypeException.class})
-    public String doString(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getString(parent);
-    }
-
-    @Specialization(order = 7, rewriteOn = {FrameSlotTypeException.class})
-    public PSequence doPSequence(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getPSequence(parent);
+    @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
+    public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
+        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
+        return getDouble(parent);
     }
 
     @Specialization
     public Object doObject(VirtualFrame frame) {
-        VirtualFrame parent = getParentFrame(frame, level);
+        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
         return getObject(parent);
     }
-
-    // TODO: need to materialize parent frame
-    @SuppressWarnings("hiding")
-    private VirtualFrame getParentFrame(VirtualFrame frame, int level) {
-        if (level == 0) {
-            return frame;
-        } else {
-            return getParentFrame((VirtualFrame) frame.getCaller().unpack(), level - 1);
-        }
-    }
-
 }

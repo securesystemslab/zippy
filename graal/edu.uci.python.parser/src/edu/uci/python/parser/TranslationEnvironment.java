@@ -40,21 +40,22 @@ public class TranslationEnvironment {
     private final mod module;
 
     private Map<PythonTree, ScopeInfo> scopeInfos;
-    private Stack<ScopeInfo> scopeStack;
     private ScopeInfo currentScope;
     private ScopeInfo globalScope;
     private int scopeLevel;
 
     public static final String RETURN_SLOT_ID = "<return_val>";
+    public static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private int listComprehensionSlotCounter = 0;
 
     public TranslationEnvironment(mod module) {
         this.module = module;
         scopeInfos = new HashMap<>();
-        scopeStack = new Stack<>();
     }
 
     public TranslationEnvironment reset() {
         scopeLevel = 0;
+        listComprehensionSlotCounter = 0;
         return this;
     }
 
@@ -63,13 +64,9 @@ public class TranslationEnvironment {
     }
 
     public void beginScope(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
-        if (currentScope != null) {
-            scopeStack.push(currentScope);
-        }
-
         scopeLevel++;
         ScopeInfo info = scopeInfos.get(scopeEntity);
-        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(DefaultFrameTypeConversion.getInstance()));
+        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(DefaultFrameTypeConversion.getInstance()), currentScope);
 
         if (globalScope == null) {
             globalScope = currentScope;
@@ -79,10 +76,7 @@ public class TranslationEnvironment {
     public void endScope(PythonTree scopeEntity) throws Exception {
         scopeLevel--;
         scopeInfos.put(scopeEntity, currentScope);
-
-        if (!scopeStack.isEmpty()) {
-            currentScope = scopeStack.pop();
-        }
+        currentScope = currentScope.getParent();
     }
 
     public boolean atModuleLevel() {
@@ -146,22 +140,27 @@ public class TranslationEnvironment {
     protected FrameSlot probeEnclosingScopes(String name) {
         assert name != null : "name is null!";
         int level = 0;
-        currentScope.needsDeclaringScope();
+        ScopeInfo current = currentScope;
 
-        for (int i = scopeStack.size() - 1; i > 0; i--) {
-            level++;
+        try {
+            while (current != globalScope) {
+                FrameSlot candidate = current.getFrameDescriptor().findFrameSlot(name);
 
-            ScopeInfo info = scopeStack.get(i);
-            if (info == globalScope) {
-                break;
+                if (candidate != null) {
+                    return EnvironmentFrameSlot.pack(candidate, level);
+                }
+
+                current = current.getParent();
+                level++;
             }
-
-            FrameSlot candidate = info.getFrameDescriptor().findFrameSlot(name);
-            if (candidate != null) {
-                return EnvironmentFrameSlot.pack(candidate, level);
+        } finally {
+            if (current != null) {
+                current = currentScope;
+                while (level-- > 0) {
+                    current.setNeedsDeclaringScope();
+                    current = current.getParent();
+                }
             }
-
-            info.needsDeclaringScope();
         }
 
         return null;
@@ -181,7 +180,20 @@ public class TranslationEnvironment {
         return defaultArgs;
     }
 
+    public boolean needsDeclarationFrame() {
+        return currentScope.needsDeclaringScope();
+    }
+
     public FrameSlot getReturnSlot() {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(RETURN_SLOT_ID);
+    }
+
+    public FrameSlot nextListComprehensionSlot() {
+        listComprehensionSlotCounter++;
+        return getListComprehensionSlot();
+    }
+
+    public FrameSlot getListComprehensionSlot() {
+        return currentScope.getFrameDescriptor().findOrAddFrameSlot(LIST_COMPREHENSION_SLOT_ID + listComprehensionSlotCounter);
     }
 }
