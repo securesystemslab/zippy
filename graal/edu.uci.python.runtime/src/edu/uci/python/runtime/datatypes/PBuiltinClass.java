@@ -26,7 +26,8 @@ package edu.uci.python.runtime.datatypes;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -90,6 +91,7 @@ public class PBuiltinClass extends PythonBuiltinObject implements PythonCallable
 
     // Taken from Jython PyBuiltinCallable's unexpectedCall() method, and
     // modified
+    @SlowPath
     private void checkForUnexpectedCall(int numOfArgs, int numOfKeywords) {
         if (!takesKeywordArg && numOfKeywords > 0) {
             throw Py.TypeError(name + "() takes no keyword arguments");
