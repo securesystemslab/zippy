@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ReadLevelVariableNode extends FrameSlotNode implements ReadNode {
 
@@ -74,24 +73,6 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
         VirtualFrame parent = getParentFrame(frame, level);
         return getBigInteger(parent);
-    }
-
-    @Specialization(order = 5, rewriteOn = {FrameSlotTypeException.class})
-    public PComplex doComplex(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getPComplex(parent);
-    }
-
-    @Specialization(order = 6, rewriteOn = {FrameSlotTypeException.class})
-    public String doString(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getString(parent);
-    }
-
-    @Specialization(order = 7, rewriteOn = {FrameSlotTypeException.class})
-    public PSequence doPSequence(VirtualFrame frame) throws FrameSlotTypeException {
-        VirtualFrame parent = getParentFrame(frame, level);
-        return getPSequence(parent);
     }
 
     @Specialization
