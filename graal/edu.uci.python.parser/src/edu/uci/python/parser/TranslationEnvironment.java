@@ -34,7 +34,6 @@ import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 
 public class TranslationEnvironment {
@@ -125,8 +124,7 @@ public class TranslationEnvironment {
 
     private FrameSlot findSlot(String name) {
         assert name != null : "name is null!";
-        FrameSlot slot = currentScope.getFrameDescriptor().findFrameSlot(name);
-        return slot != null ? slot : probeEnclosingScopes(name);
+        return currentScope.getFrameDescriptor().findFrameSlot(name);
     }
 
     public PNode getWriteArgumentToLocal(String name) {
@@ -145,16 +143,17 @@ public class TranslationEnvironment {
             case GeneratorExpr:
             case ListComp:
             case Function:
-                if (slot == null) {
-                    return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+                if (slot != null) {
+                    return (ReadNode) factory.createReadLocalVariable(slot);
                 }
 
-                if (slot instanceof EnvironmentFrameSlot) {
-                    EnvironmentFrameSlot eslot = (EnvironmentFrameSlot) slot;
-                    return (ReadNode) factory.createReadLevelVariable(eslot.unpack(), eslot.getLevel());
+                ReadNode readLevel = findVariableInEnclosingScopes(name);
+                if (readLevel != null) {
+                    return readLevel;
                 }
 
-                return (ReadNode) factory.createReadLocalVariable(slot);
+                assert slot == null && readLevel == null;
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
             case Class:
                 return (ReadNode) factory.createReadClassAttribute(name);
             default:
@@ -193,17 +192,17 @@ public class TranslationEnvironment {
         return currentScope.isExplicitGlobalVariable(name);
     }
 
-    protected FrameSlot probeEnclosingScopes(String name) {
+    protected ReadNode findVariableInEnclosingScopes(String name) {
         assert name != null : "name is null!";
         int level = 0;
         ScopeInfo current = currentScope;
 
         try {
             while (current != globalScope) {
-                FrameSlot candidate = current.getFrameDescriptor().findFrameSlot(name);
+                FrameSlot slot = current.getFrameDescriptor().findFrameSlot(name);
 
-                if (candidate != null) {
-                    return EnvironmentFrameSlot.pack(candidate, level);
+                if (slot != null) {
+                    return (ReadNode) factory.createReadLevelVariable(slot, level);
                 }
 
                 current = current.getParent();
