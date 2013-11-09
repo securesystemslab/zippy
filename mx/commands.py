@@ -1214,6 +1214,9 @@ def bench(args):
     if 'pythontest' in args:
         benchmarks += sanitycheck.getPythonTestBenchmarks(vm)
 
+    if 'pythonmicro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)        
+
     if 'python' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
 

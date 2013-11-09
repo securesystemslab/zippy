@@ -2,15 +2,11 @@
 # arithmetic ops (partially extracted from spectralnorm)
 import time
 
-def eval_A (i, j):
-    return 1.0 / (((i + j) * (i + j + 1) >> 1) + i + 1)
-
 def docompute(num):
 	for i in range(num):
 		sum = 0.0
 		j = 0
 		while j < num:
-			#sum += eval_A(i, j)
 			sum += 1.0 / (((i + j) * (i + j + 1) >> 1) + i + 1)
 			j += 1
 
@@ -27,9 +23,9 @@ def measure():
 	print("sum", sum)
 
 	duration = "%.3f\n" % (time.time() - start)
-	print("arith_binop: " + duration)
+	print("arith-binop: " + duration)
 
-for run in range(5):
+for run in range(50):
 	docompute(1000) #1000
 
 measure()

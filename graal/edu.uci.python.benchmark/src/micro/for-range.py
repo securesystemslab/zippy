@@ -23,10 +23,10 @@ def measure():
 
 	print(sumitup(iteration))
 	duration = "%.3f\n" % (time.time() - start)
-	print("for_range: " + duration)
+	print("for-range: " + duration)
 
-for i in range(1000): # 1000
-	sumitup(10)
+for i in range(5000): # 1000
+	sumitup(1000)
 
-add("a", "b")
+#add("a", "b")
 measure()

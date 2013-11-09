@@ -23,10 +23,10 @@ def measure():
 	print("Number of calls ", sum)
 
 	duration = "%.3f\n" % (time.time() - start)
-	print("function_call: " + duration)
+	print("function-call: " + duration)
 
 #warm up
-for run in range(5):
-	callFunctions(400)
+for run in range(1000):
+	callFunctions(6000)
 
 measure()
