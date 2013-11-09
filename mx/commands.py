@@ -1331,11 +1331,8 @@ def jacocoreport(args):
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
 def sl(args):
-    """run an SL program
-
-    VM args should have a @ prefix."""
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-    slArgs = [a for a in args if a[0] != '@']
+    """run an SL program"""
+    vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
 
 def isGraalEnabled(vm):

@@ -229,6 +229,7 @@ static java_nmethod_stats_struct c2_java_nmethod_stats;
 #ifdef GRAAL
 static java_nmethod_stats_struct graal_java_nmethod_stats;
 #endif
+static java_nmethod_stats_struct unknwon_java_nmethod_stats;
 
 static native_nmethod_stats_struct native_nmethod_stats;
 static pc_nmethod_stats_struct pc_nmethod_stats;
@@ -237,18 +238,21 @@ static void note_java_nmethod(nmethod* nm) {
 #ifdef COMPILER1
   if (nm->is_compiled_by_c1()) {
     c1_java_nmethod_stats.note_nmethod(nm);
-  }
+  } else
 #endif
 #ifdef COMPILER2
   if (nm->is_compiled_by_c2()) {
     c2_java_nmethod_stats.note_nmethod(nm);
-  }
+  } else
 #endif
 #ifdef GRAAL
   if (nm->is_compiled_by_graal()) {
     graal_java_nmethod_stats.note_nmethod(nm);
-  }
+  } else
 #endif
+  {
+    unknwon_java_nmethod_stats.note_nmethod(nm);
+  }
 }
 
 
@@ -3087,6 +3091,7 @@ void nmethod::print_statistics() {
 #ifdef GRAAL
   graal_java_nmethod_stats.print_nmethod_stats("Graal");
 #endif
+  unknwon_java_nmethod_stats.print_nmethod_stats("Unknown");
   DebugInformationRecorder::print_statistics();
   pc_nmethod_stats.print_pc_stats();
   Dependencies::print_statistics();
