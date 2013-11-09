@@ -48,8 +48,9 @@ public class TranslationEnvironment {
     private ScopeInfo globalScope;
     private int scopeLevel;
 
-    public static final String RETURN_SLOT_ID = "<return_val>";
-    public static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private static final String RETURN_SLOT_ID = "<return_val>";
+    private static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;
 
     public TranslationEnvironment(mod module, PythonContext context) {
@@ -122,10 +123,16 @@ public class TranslationEnvironment {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(name);
     }
 
-    public FrameSlot findSlot(String name) {
+    private FrameSlot findSlot(String name) {
         assert name != null : "name is null!";
         FrameSlot slot = currentScope.getFrameDescriptor().findFrameSlot(name);
         return slot != null ? slot : probeEnclosingScopes(name);
+    }
+
+    public PNode getWriteArgumentToLocal(String name) {
+        FrameSlot slot = findSlot(name);
+        ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
+        return factory.createWriteLocalVariable(right, slot);
     }
 
     public ReadNode findVariable(String name) {
@@ -153,6 +160,22 @@ public class TranslationEnvironment {
             default:
                 throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
         }
+    }
+
+    public ReadNode makeTempLocalVariable() {
+        String tempName = TEMP_LOCAL_PREFIX + currentScope.getFrameDescriptor().getSize();
+        FrameSlot tempSlot = createLocal(tempName);
+        return (ReadNode) factory.createReadLocalVariable(tempSlot);
+    }
+
+    public List<PNode> makeTempLocalVariables(List<PNode> rights) {
+        List<PNode> tempWrites = new ArrayList<>();
+
+        for (PNode right : rights) {
+            tempWrites.add(makeTempLocalVariable().makeWriteNode(right));
+        }
+
+        return tempWrites;
     }
 
     public FrameSlot createGlobal(String name) {

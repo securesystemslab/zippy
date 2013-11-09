@@ -59,17 +59,17 @@ public class PythonTreeTranslator extends Visitor {
     private final NodeFactory factory;
     private final TranslationEnvironment environment;
     private final LoopsBookKeeper loops;
+    private final AssignmentTranslator assigns;
     private final PythonParseResult result;
 
     private boolean isGenerator = false;
-
-    private static final String TEMP_LOCAL_PREFIX = "temp_";
 
     public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
+        this.assigns = new AssignmentTranslator(environment, this);
         this.result = new PythonParseResult();
     }
 
@@ -154,7 +154,6 @@ public class PythonTreeTranslator extends Visitor {
     public ParametersNode visitArgs(arguments node) throws Exception {
         // parse arguments
         new ArgListCompiler().visitArgs(node);
-
         List<PNode> args = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
 
@@ -169,15 +168,8 @@ public class PythonTreeTranslator extends Visitor {
             }
         }
 
-        int defaultArgsSize = node.getInternalDefaults().size();
-        if (defaultArgsSize == 0) {
-            if (args.size() == 1) {
-                return factory.createParametersOfSizeOne(args.get(0), paramNames);
-            } else if (args.size() == 2) {
-                return factory.createParametersOfSizeTwo(args.get(0), args.get(1), paramNames);
-            } else {
-                return factory.createParametersWithNoDefaults(args, paramNames);
-            }
+        if (node.getInternalDefaults().size() == 0) {
+            return factory.createParameters(args, paramNames);
         }
 
         return factory.createParametersWithDefaults(args, environment.getDefaultArgumentNodes(), paramNames);
@@ -301,13 +293,7 @@ public class PythonTreeTranslator extends Visitor {
             return getBoolOrNode(node);
         }
 
-        if (isParam(node)) {
-            FrameSlot slot = environment.findSlot(node.getInternalId());
-            ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
-            return factory.createWriteLocalVariable(right, slot);
-        }
-
-        return environment.findVariable(node.getInternalId());
+        return isParam(node) ? environment.getWriteArgumentToLocal(node.getInternalId()) : environment.findVariable(node.getInternalId());
     }
 
     @Override
@@ -345,180 +331,18 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createDictLiteral(keys, vals);
     }
 
+    // TODO: Translate AugAssign to in-place operations ?
     @Override
     public Object visitAugAssign(AugAssign node) throws Exception {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
-
-        /**
-         * TODO: Translate AugAssign to in-place operations ?
-         */
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
         return ((ReadNode) target).makeWriteNode(binaryOp);
     }
 
     @Override
     public Object visitAssign(Assign node) throws Exception {
-        expr rhs = node.getInternalValue();
-        List<expr> lhs = node.getInternalTargets();
-        expr exprTarget = lhs.get(0);
-
-        /**
-         * Multi-assignment or unpacking assignment. In other words, multiple assignment target
-         * exist.
-         */
-        if (lhs.size() == 1 && isDecomposable(exprTarget)) {
-            List<expr> targets = decompose(exprTarget);
-
-            if (isDecomposable(rhs)) {
-                List<expr> rights = decompose(rhs);
-
-                if (targets.size() == rights.size()) {
-                    return transformBalancedMultiAssignment(targets, rights);
-                } else {
-                    throw new IllegalStateException("Unbalanced multi-assignment");
-                }
-            } else {
-                return transformUnpackingAssignment(targets, rhs);
-            }
-        }
-
-        PNode right = (PNode) visit(node.getInternalValue());
-        List<PNode> targets = walkExprList(node.getInternalTargets());
-
-        if (targets.size() == 1) {
-            return processSingleAssignment(targets.get(0), right);
-        } else {
-            /**
-             * Chained assignments. <br>
-             * a = b = 42
-             */
-            List<PNode> assignments = new ArrayList<>();
-
-            for (Node target : targets) {
-                assignments.add(processSingleAssignment(target, right));
-            }
-
-            return factory.createBlock(assignments);
-        }
-    }
-
-    private static boolean isDecomposable(expr node) {
-        return node instanceof org.python.antlr.ast.List || node instanceof Tuple;
-    }
-
-    private static List<expr> decompose(expr node) {
-        if (node instanceof org.python.antlr.ast.List) {
-            org.python.antlr.ast.List list = (org.python.antlr.ast.List) node;
-            return list.getInternalElts();
-        } else if (node instanceof Tuple) {
-            Tuple tuple = (Tuple) node;
-            return tuple.getInternalElts();
-        } else {
-            throw notCovered("Unexpected decomposable type");
-        }
-    }
-
-    private BlockNode transformBalancedMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
-        /**
-         * Transform a, b = c, d. <br>
-         * To: temp_c = c; temp_d = d; a = temp_c; b = temp_d
-         */
-        List<PNode> rights = walkExprList(rhs);
-        List<PNode> tempWrites = makeTemporaryWrites(rights);
-        List<PNode> targets = walkLeftHandSideList(lhs);
-
-        for (int i = 0; i < targets.size(); i++) {
-            if (i < lhs.size()) {
-                PNode read = ((WriteNode) tempWrites.get(i)).makeReadNode();
-                PNode tempWrite = ((ReadNode) targets.get(i)).makeWriteNode(read);
-                tempWrites.add(tempWrite);
-            } else {
-                tempWrites.add(targets.get(i));
-            }
-        }
-
-        return factory.createBlock(tempWrites);
-    }
-
-    private BlockNode transformUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
-        /**
-         * Transform a, b = c. <br>
-         * To: temp_c = c; a = temp_c[0]; b = temp_d[1]
-         */
-        List<PNode> writes = new ArrayList<>();
-        PNode rhs = (PNode) visit(right);
-        PNode tempWrite = makeTemporaryRead();
-        writes.add(((ReadNode) tempWrite).makeWriteNode(rhs));
-
-        List<PNode> targets = walkLeftHandSideList(lhs);
-
-        writes.addAll(processDecomposedTargetList(targets, lhs.size(), tempWrite, true));
-        return factory.createBlock(writes);
-    }
-
-    private List<PNode> walkLeftHandSideList(List<expr> lhs) throws Exception {
-        List<PNode> writes = new ArrayList<>();
-        List<PNode> additionalWrites = new ArrayList<>();
-
-        for (int i = 0; i < lhs.size(); i++) {
-            expr target = lhs.get(i);
-
-            if (isDecomposable(target)) {
-                PNode tempWrite = makeTemporaryRead();
-                writes.add(tempWrite);
-                List<expr> targets = decompose(target);
-                List<PNode> nestedWrites = walkLeftHandSideList(targets);
-                additionalWrites.addAll(processDecomposedTargetList(nestedWrites, targets.size(), tempWrite, true));
-            } else {
-                writes.add((PNode) visit(target));
-            }
-        }
-
-        writes.addAll(additionalWrites);
-        return writes;
-    }
-
-    private List<PNode> processDecomposedTargetList(List<PNode> nestedWrites, int sizeOfCurrentLevelLeftHandSide, PNode tempWrite, boolean isUnpacking) {
-        for (int idx = 0; idx < nestedWrites.size(); idx++) {
-            if (idx < sizeOfCurrentLevelLeftHandSide) {
-                PNode transformedRhs = isUnpacking ? makeSubscriptLoad(tempWrite, idx) : tempWrite;
-                PNode write = ((ReadNode) nestedWrites.get(idx)).makeWriteNode(transformedRhs);
-                nestedWrites.set(idx, write);
-            }
-        }
-
-        return nestedWrites;
-    }
-
-    private List<PNode> makeTemporaryWrites(List<PNode> rights) {
-        List<PNode> tempWrites = new ArrayList<>();
-        for (PNode right : rights) {
-            PNode tempWrite = ((ReadNode) makeTemporaryRead()).makeWriteNode(right);
-            tempWrites.add(tempWrite);
-        }
-        return tempWrites;
-    }
-
-    private PNode makeTemporaryRead() {
-        String tempName = TEMP_LOCAL_PREFIX + environment.getCurrentFrameSize();
-        FrameSlot tempSlot = environment.createLocal(tempName);
-        PNode tempRead = factory.createReadLocalVariable(tempSlot);
-        return tempRead;
-    }
-
-    private PNode makeSubscriptLoad(PNode read, int index) {
-        PNode indexNode = factory.createIntegerLiteral(index);
-        PNode sload = factory.createSubscriptLoad(read, indexNode);
-        return sload;
-    }
-
-    private static PNode processSingleAssignment(Node target, PNode right) throws Exception {
-        if (target instanceof ReadNode) {
-            return ((ReadNode) target).makeWriteNode(right);
-        }
-
-        throw notCovered();
+        return assigns.translate(node);
     }
 
     @Override
@@ -764,7 +588,7 @@ public class PythonTreeTranslator extends Visitor {
         List<expr> lhs = new ArrayList<>();
         lhs.add(node.getInternalTarget());
 
-        List<PNode> targets = walkLeftHandSideList(lhs);
+        List<PNode> targets = assigns.walkLeftHandSideList(lhs);
 
         PNode runtimeValue = factory.createRuntimeValueNode();
         PNode iteratorWrite = ((ReadNode) targets.remove(0)).makeWriteNode(runtimeValue);

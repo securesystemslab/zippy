@@ -98,6 +98,16 @@ public class NodeFactory {
         return new AddClassAttributeNode.ReadClassAttributeNode(attributeId);
     }
 
+    public ParametersNode createParameters(List<PNode> args, List<String> paramNames) {
+        if (args.size() == 1) {
+            return createParametersOfSizeOne(args.get(0), paramNames);
+        } else if (args.size() == 2) {
+            return createParametersOfSizeTwo(args.get(0), args.get(1), paramNames);
+        } else {
+            return createParametersWithNoDefaults(args, paramNames);
+        }
+    }
+
     public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
         return new ParametersOfSizeOneNode(paramNames, parameter);
     }
