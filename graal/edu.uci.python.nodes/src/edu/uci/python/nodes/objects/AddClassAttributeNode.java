@@ -33,7 +33,7 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 @NodeInfo(shortName = "add-class-attr")
-public class AddClassAttributeNode extends PNode implements Amendable {
+public class AddClassAttributeNode extends PNode {
 
     private final String attributeId;
     @Child protected PNode rhs;
@@ -41,11 +41,6 @@ public class AddClassAttributeNode extends PNode implements Amendable {
     public AddClassAttributeNode(String attributeId, PNode rhs) {
         this.attributeId = attributeId;
         this.rhs = adoptChild(rhs);
-    }
-
-    @Override
-    public PNode updateRhs(PNode newRhs) {
-        return new AddClassAttributeNode(this.attributeId, newRhs);
     }
 
     private static PythonClass getClass(VirtualFrame frame) {

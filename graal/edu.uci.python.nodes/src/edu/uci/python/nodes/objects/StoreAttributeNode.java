@@ -31,7 +31,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.objects.*;
 
-public abstract class StoreAttributeNode extends StatementNode implements Amendable, WriteNode {
+public abstract class StoreAttributeNode extends StatementNode implements WriteNode {
 
     protected final String attributeId;
     @Child protected PNode primary;
@@ -49,11 +49,6 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
 
     public PNode getPrimary() {
         return primary;
-    }
-
-    @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return new UninitializedStoreAttributeNode(attributeId, primary, newRhs);
     }
 
     @Override

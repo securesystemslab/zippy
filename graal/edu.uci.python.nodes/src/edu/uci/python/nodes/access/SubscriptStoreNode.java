@@ -31,12 +31,7 @@ import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
-public abstract class SubscriptStoreNode extends StatementNode implements Amendable, WriteNode {
-
-    @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), newRhs);
-    }
+public abstract class SubscriptStoreNode extends StatementNode implements WriteNode {
 
     public abstract PNode getPrimary();
 

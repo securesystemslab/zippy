@@ -426,7 +426,6 @@ public class PythonTreeTranslator extends Visitor {
          */
         List<PNode> rights = walkExprList(rhs);
         List<PNode> tempWrites = makeTemporaryWrites(rights);
-
         List<PNode> targets = walkLeftHandSideList(lhs);
 
         for (int i = 0; i < targets.size(); i++) {
@@ -767,14 +766,8 @@ public class PythonTreeTranslator extends Visitor {
 
         List<PNode> targets = walkLeftHandSideList(lhs);
 
-        PNode incomplete = targets.remove(0);
         PNode runtimeValue = factory.createRuntimeValueNode();
-        PNode iteratorWrite;
-        if (incomplete instanceof Amendable) {
-            iteratorWrite = ((Amendable) incomplete).updateRhs(runtimeValue);
-        } else {
-            iteratorWrite = ((ReadNode) incomplete).makeWriteNode(runtimeValue);
-        }
+        PNode iteratorWrite = ((ReadNode) targets.remove(0)).makeWriteNode(runtimeValue);
 
         PNode iter = (PNode) visit(node.getInternalIter());
         List<PNode> body = visitStatements(node.getInternalBody());
@@ -794,7 +787,7 @@ public class PythonTreeTranslator extends Visitor {
         StatementNode forNode;
         if (environment.isInFunctionScope() && target instanceof WriteLocalVariableNode) {
             WriteLocalVariableNode wtarget = (WriteLocalVariableNode) target;
-            wtarget = (WriteLocalVariableNode) wtarget.updateRhs(null);
+            wtarget = (WriteLocalVariableNode) factory.createWriteLocalVariable(PNode.EMPTYNODE, wtarget.getSlot());
             forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody);
         } else {
             forNode = factory.createFor(target, iter, wrappedBody);
