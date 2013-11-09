@@ -51,4 +51,14 @@ public class ForTests {
         Path script = Paths.get("more_complex_for_test.py");
         assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
     }
+
+    @Test
+    public void nestedUnpackingInFor() {
+        String source = "ll = [([1, 2], [3, 4]), ([5, 6], [7, 8])]\n" + //
+                        "for [a, b], [c, d] in ll:\n" + //
+                        "    print(a, b, c, d)\n" + //
+                        "\n";
+
+        assertPrints("1 2 3 4\n5 6 7 8\n", source);
+    }
 }

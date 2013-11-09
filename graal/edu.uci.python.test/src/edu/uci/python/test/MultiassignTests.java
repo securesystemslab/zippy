@@ -26,17 +26,9 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class MultiassignTests {
-
-    @Test
-    public void forTest() {
-        Path script = Paths.get("multiassign_test.py");
-        assertPrints("4 3\n1 2\n7 8\n1 2 3 4\n", script);
-    }
 
     @Test
     public void multiAssign() {
@@ -59,5 +51,12 @@ public class MultiassignTests {
                         "[a, b] = list_l\n" + //
                         "print(a, b)\n";
         assertPrints("7 8\n", source);
+    }
+
+    @Test
+    public void nestedUnpacking() {
+        String source = "(a, b), [c, d] = [[1, 2], [3, 4]]\n" + //
+                        "print(a, b, c, d)\n";
+        assertPrints("1 2 3 4\n", source);
     }
 }

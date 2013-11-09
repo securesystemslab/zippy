@@ -588,10 +588,9 @@ public class PythonTreeTranslator extends Visitor {
         List<expr> lhs = new ArrayList<>();
         lhs.add(node.getInternalTarget());
 
-        List<PNode> targets = assigns.walkLeftHandSideList(lhs);
-
         PNode runtimeValue = factory.createRuntimeValueNode();
-        PNode iteratorWrite = ((ReadNode) targets.remove(0)).makeWriteNode(runtimeValue);
+        List<PNode> targets = assigns.walkTargetList(lhs, runtimeValue);
+        PNode iteratorWrite = targets.remove(0);
 
         PNode iter = (PNode) visit(node.getInternalIter());
         List<PNode> body = visitStatements(node.getInternalBody());

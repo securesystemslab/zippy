@@ -32,8 +32,6 @@ import java.util.List;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
-import com.oracle.truffle.api.nodes.*;
-
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
@@ -56,14 +54,13 @@ public class AssignmentTranslator {
         expr exprTarget = lhs.get(0);
 
         /**
-         * Multi-assignment or unpacking assignment. In other words, multiple assignment target
-         * exist.
+         * Multi-assignment or unpacking assignment.
          */
-        if (lhs.size() == 1 && AssignmentTranslator.isDecomposable(exprTarget)) {
-            List<expr> targets = AssignmentTranslator.decompose(exprTarget);
+        if (lhs.size() == 1 && isDecomposable(exprTarget)) {
+            List<expr> targets = decompose(exprTarget);
 
-            if (AssignmentTranslator.isDecomposable(rhs)) {
-                return makeMultiAssignment(targets, AssignmentTranslator.decompose(rhs));
+            if (isDecomposable(rhs)) {
+                return makeMultiAssignment(targets, decompose(rhs));
             } else {
                 return makeUnpackingAssignment(targets, rhs);
             }
@@ -90,7 +87,7 @@ public class AssignmentTranslator {
     private PNode makeChainedAssignment(PNode right, List<PNode> targets) throws Exception {
         List<PNode> assignments = new ArrayList<>();
 
-        for (Node target : targets) {
+        for (PNode target : targets) {
             assignments.add(makeSingleAssignment(target, right));
         }
 
@@ -108,20 +105,14 @@ public class AssignmentTranslator {
         }
 
         List<PNode> rights = translator.walkExprList(rhs);
-        List<PNode> tempVars = environment.makeTempLocalVariables(rights);
-        List<PNode> targets = walkLeftHandSideList(lhs);
+        List<PNode> writeToTempVars = environment.makeTempLocalVariables(rights);
 
-        for (int i = 0; i < targets.size(); i++) {
-            if (i < lhs.size()) {
-                PNode read = ((WriteNode) tempVars.get(i)).makeReadNode();
-                PNode tempWrite = ((ReadNode) targets.get(i)).makeWriteNode(read);
-                tempVars.add(tempWrite);
-            } else {
-                tempVars.add(targets.get(i));
-            }
+        for (int i = 0; i < rhs.size(); i++) {
+            WriteNode tempWrite = (WriteNode) writeToTempVars.get(i);
+            writeToTempVars.addAll(walkTarget(lhs.get(i), tempWrite.makeReadNode()));
         }
 
-        return factory.createBlock(tempVars);
+        return factory.createBlock(writeToTempVars);
     }
 
     /**
@@ -133,52 +124,49 @@ public class AssignmentTranslator {
         List<PNode> writes = new ArrayList<>();
         PNode rhs = (PNode) translator.visit(right);
         PNode tempVar = (PNode) environment.makeTempLocalVariable();
-        writes.add(((ReadNode) tempVar).makeWriteNode(rhs));
-
-        List<PNode> targets = walkLeftHandSideList(lhs);
-
-        writes.addAll(processDecomposedTargetList(targets, lhs.size(), tempVar, true));
+        writes.add(makeSingleAssignment(tempVar, rhs));
+        writes.addAll(walkTargetList(lhs, tempVar));
         return factory.createBlock(writes);
     }
 
-    public List<PNode> walkLeftHandSideList(List<expr> lhs) throws Exception {
+    public List<PNode> walkTarget(expr target, PNode rightHandSide) throws Exception {
+        List<PNode> writes = new ArrayList<>();
+
+        if (isDecomposable(target)) {
+            PNode tempVar = (PNode) environment.makeTempLocalVariable();
+            writes.add(makeSingleAssignment(tempVar, rightHandSide));
+            List<PNode> intermediateTargets = walkTargetList(decompose(target), tempVar);
+            writes.addAll(intermediateTargets);
+        } else {
+            writes.add(makeSingleAssignment((PNode) translator.visit(target), rightHandSide));
+        }
+
+        return writes;
+    }
+
+    public List<PNode> walkTargetList(List<expr> lhs, PNode rightHandSide) throws Exception {
+        if (lhs.size() == 1) {
+            return walkTarget(lhs.get(0), rightHandSide);
+        }
+
         List<PNode> writes = new ArrayList<>();
         List<PNode> additionalWrites = new ArrayList<>();
 
         for (int i = 0; i < lhs.size(); i++) {
             expr target = lhs.get(i);
+            PNode splitRhs = factory.createSubscriptLoad(rightHandSide, factory.createIntegerLiteral(i));
 
-            if (AssignmentTranslator.isDecomposable(target)) {
-                PNode tempWrite = (PNode) environment.makeTempLocalVariable();
-                writes.add(tempWrite);
-                List<expr> targets = AssignmentTranslator.decompose(target);
-                List<PNode> nestedWrites = walkLeftHandSideList(targets);
-                additionalWrites.addAll(processDecomposedTargetList(nestedWrites, targets.size(), tempWrite, true));
+            if (isDecomposable(target)) {
+                PNode tempVar = (PNode) environment.makeTempLocalVariable();
+                writes.add(makeSingleAssignment(tempVar, splitRhs));
+                additionalWrites.addAll(walkTargetList(decompose(target), tempVar));
             } else {
-                writes.add((PNode) translator.visit(target));
+                writes.add(makeSingleAssignment((PNode) translator.visit(target), splitRhs));
             }
         }
 
         writes.addAll(additionalWrites);
         return writes;
-    }
-
-    private List<PNode> processDecomposedTargetList(List<PNode> nestedWrites, int sizeOfCurrentLevelLeftHandSide, PNode tempWrite, boolean isUnpacking) {
-        for (int idx = 0; idx < nestedWrites.size(); idx++) {
-            if (idx < sizeOfCurrentLevelLeftHandSide) {
-                PNode transformedRhs = isUnpacking ? makeSubscriptLoad(tempWrite, idx) : tempWrite;
-                PNode write = ((ReadNode) nestedWrites.get(idx)).makeWriteNode(transformedRhs);
-                nestedWrites.set(idx, write);
-            }
-        }
-
-        return nestedWrites;
-    }
-
-    private PNode makeSubscriptLoad(PNode read, int index) {
-        PNode indexNode = factory.createIntegerLiteral(index);
-        PNode sload = factory.createSubscriptLoad(read, indexNode);
-        return sload;
     }
 
     private static boolean isDecomposable(expr node) {
@@ -197,7 +185,7 @@ public class AssignmentTranslator {
         }
     }
 
-    private static PNode makeSingleAssignment(Node target, PNode right) throws Exception {
+    private static PNode makeSingleAssignment(PNode target, PNode right) throws Exception {
         if (target instanceof ReadNode) {
             return ((ReadNode) target).makeWriteNode(right);
         }
