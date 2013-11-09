@@ -37,4 +37,27 @@ public class MultiassignTests {
         Path script = Paths.get("multiassign_test.py");
         assertPrints("4 3\n1 2\n7 8\n1 2 3 4\n", script);
     }
+
+    @Test
+    public void multiAssign() {
+        String source = "a, b = [3, 4]\n" + //
+                        "a, b = b, a\n" + //
+                        "print(a, b)\n";
+        assertPrints("4 3\n", source);
+    }
+
+    @Test
+    public void explicitTupleAssignment() {
+        String source = "(a, b) = [1, 2]\n" + //
+                        "print(a, b)\n";
+        assertPrints("1 2\n", source);
+    }
+
+    @Test
+    public void explicitListAssignment() {
+        String source = "list_l = [7, 8]\n" + //
+                        "[a, b] = list_l\n" + //
+                        "print(a, b)\n";
+        assertPrints("7 8\n", source);
+    }
 }
