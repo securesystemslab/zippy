@@ -117,7 +117,6 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
     }
     return JNIHandles::make_local(o);
   }
-
 C2V_END
 
 C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
@@ -139,9 +138,14 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   // start value is the kernel
   jlong startValue = HotSpotInstalledCode::codeStart(hotspotInstalledCode);
 
+  if (UseHSAILSimulator) {
+    gpu::execute_kernel_void_1d((address)startValue, dimX, args, mh);
+    return NULL;
+  }
+
   PTXKernelArguments ptxka(signature, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(ptxka.get_ret_type());
-if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
+  if (!gpu::execute_warp(dimX, dimY, dimZ, (address) startValue, ptxka, result)) {
     return NULL;
   }
 
@@ -169,7 +173,6 @@ if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
     }
     return JNIHandles::make_local(o);
   }
-
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
