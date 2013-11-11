@@ -21,6 +21,7 @@ def measure():
 	print("list-comp: " + duration)
 
 #warm up
-makeLists(500)
+for i in range(10):
+	makeLists(500)
 
 measure()
