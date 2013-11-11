@@ -13,11 +13,11 @@ def docompute(num):
 	return sum
 
 
-def measure():
+def measure(num):
 	print("Start timing...")
 	start = time.time()
 
-	for run in range(5):
+	for run in range(num):
 		sum = docompute(10000) #10000
 
 	print("sum", sum)
@@ -28,4 +28,4 @@ def measure():
 for run in range(50):
 	docompute(1000) #1000
 
-measure()
+measure(5)
