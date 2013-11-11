@@ -45,7 +45,7 @@ public class GeneratorDefinitionNode extends FunctionRootNode {
     public Object execute(VirtualFrame frame) {
         parameters.executeVoid(frame);
         this.continuingFrame = frame;
-        return new PGenerator(null, null, null, false);
+        return new PGenerator(null, null, null, null);
 
     }
 

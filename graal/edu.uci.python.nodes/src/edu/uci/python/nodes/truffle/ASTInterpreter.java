@@ -45,7 +45,7 @@ public class ASTInterpreter {
         ModuleNode root = result.getModuleRoot();
         module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
 
-        Arguments arguments = new PArguments();
+        Arguments arguments = new PArguments(null);
 
         long start = System.nanoTime();
         module.call(null, arguments);

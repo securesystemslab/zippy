@@ -42,10 +42,6 @@ public class PArguments extends Arguments {
         this.keywards = keywards;
     }
 
-    public PArguments() {
-        this(null, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
-    }
-
     public PArguments(MaterializedFrame declarationFrame) {
         this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
     }
@@ -56,6 +52,11 @@ public class PArguments extends Arguments {
 
     public static PArguments get(Frame frame) {
         return frame.getArguments(PArguments.class);
+    }
+
+    public MaterializedFrame getMaterializedFrame() {
+        assert self != null;
+        return CompilerDirectives.unsafeCast(self, MaterializedFrame.class, true);
     }
 
     public Object getSelf() {

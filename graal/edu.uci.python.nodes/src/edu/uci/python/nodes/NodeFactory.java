@@ -278,6 +278,15 @@ public class NodeFactory {
     }
 
     public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+        // replace write local with write materialized frame
+        for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
+            write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
+        }
+
+        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(generator, ReadLocalVariableNode.class)) {
+            read.replace(ReadMaterializedFrameVariableNodeFactory.create(read.getSlot()));
+        }
+
         return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor, needsDeclarationFrame);
     }
 
