@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,13 +19,29 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
-package com.oracle.graal.asm.amd64;
 
-public class AMD64AsmOptions {
-    public static final boolean UseNormalNop = false;
-    public static final boolean UseAddressNop = true;
-    public static final boolean UseIncDec = true;
-    public static final boolean UseXmmLoadAndClearUpper = true;
-    public static final boolean UseXmmRegToRegMoveAll = true;
+#include "precompiled.hpp"
+#include "runtime/gpu.hpp"
+#include "utilities/ostream.hpp"
+
+void gpu::probe_gpu() {
+  set_available(gpu::Windows::probe_gpu());
+  if (TraceGPUInteraction) {
+    tty->print_cr("probe_gpu(): %d", gpu::is_available());
+  }
+}
+
+bool gpu::Windows::probe_gpu() {
+    
+  /*
+   * We will check the HSA environment in the libraries,
+   * so nothing to do here.
+   * The HSA library linkage is checked in a later step.
+   */  
+  bool gpu_device_exists = true;
+  set_target_il_type(gpu::HSAIL);
+
+  return gpu_device_exists;
 }

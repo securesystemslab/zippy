@@ -53,6 +53,9 @@ public:
 
   static bool execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
+  // No return value from HSAIL kernels
+  static bool execute_kernel_void_1d(address kernel, int dimX, jobject args, methodHandle& mh);
+
   static void set_available(bool value) {
     _available = value;
   }
@@ -92,6 +95,7 @@ protected:
 #ifdef TARGET_OS_FAMILY_solaris
 #endif
 #ifdef TARGET_OS_FAMILY_windows
+# include "gpu_windows.hpp"
 #endif
 #ifdef TARGET_OS_FAMILY_bsd
 # include "gpu_bsd.hpp"
@@ -99,6 +103,7 @@ protected:
 
 public:
 # include "ptx/vm/gpu_ptx.hpp"
+# include "hsail/vm/gpu_hsail.hpp"
 
 };
 

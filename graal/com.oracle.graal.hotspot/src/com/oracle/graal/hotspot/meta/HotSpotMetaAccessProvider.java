@@ -84,13 +84,15 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
     private static final int REASON_SHIFT = 3;
     private static final int REASON_MASK = 0x1f;
     private static final int DEBUG_SHIFT = 8;
-    private static final int DEBUG_MASK = 0xffff;
+    private static final int DEBUG_MASK = 0x7fffff;
 
     @Override
-    public Constant encodeDeoptActionAndReason(DeoptimizationAction action, DeoptimizationReason reason, short speculationId) {
+    public Constant encodeDeoptActionAndReason(DeoptimizationAction action, DeoptimizationReason reason, int speculationId) {
         int actionValue = convertDeoptAction(action);
         int reasonValue = convertDeoptReason(reason);
-        Constant c = Constant.forInt(~((speculationId << DEBUG_SHIFT) | (reasonValue << REASON_SHIFT) | (actionValue << ACTION_SHIFT)));
+        int speculationValue = speculationId & DEBUG_MASK;
+        Constant c = Constant.forInt(~((speculationValue << DEBUG_SHIFT) | (reasonValue << REASON_SHIFT) | (actionValue << ACTION_SHIFT)));
+        assert c.asInt() < 0;
         return c;
     }
 

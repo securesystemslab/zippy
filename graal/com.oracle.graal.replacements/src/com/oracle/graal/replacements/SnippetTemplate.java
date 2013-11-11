@@ -23,7 +23,9 @@
 package com.oracle.graal.replacements;
 
 import static com.oracle.graal.api.meta.LocationIdentity.*;
+import static com.oracle.graal.api.meta.MetaUtil.*;
 
+import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -33,8 +35,8 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.Mark;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
@@ -72,8 +74,20 @@ public class SnippetTemplate {
         protected final ResolvedJavaMethod method;
         protected final boolean[] constantParameters;
         protected final boolean[] varargsParameters;
-        private final DebugMetric instantiationCounter;
+
+        /**
+         * Times instantiations of all templates derived form this snippet.
+         * 
+         * @see SnippetTemplate#instantiationTimer
+         */
         private final DebugTimer instantiationTimer;
+
+        /**
+         * Counts instantiations of all templates derived from this snippet.
+         * 
+         * @see SnippetTemplate#instantiationCounter
+         */
+        private final DebugMetric instantiationCounter;
 
         /**
          * The parameter names, taken from the local variables table. Only used for assertion
@@ -100,6 +114,17 @@ public class SnippetTemplate {
             names = new String[count];
             // Retrieve the names only when assertions are turned on.
             assert initNames();
+        }
+
+        private int templateCount;
+
+        void notifyNewTemplate() {
+            templateCount++;
+            if (UseSnippetTemplateCache && templateCount > MaxTemplatesPerSnippet) {
+                PrintStream err = System.err;
+                err.printf("WARNING: Exceeded %d templates for snippet %s%n" + "         Adjust maximum with %s system property%n", MaxTemplatesPerSnippet, format("%h.%n(%p)", method),
+                                MAX_TEMPLATES_PER_SNIPPET_PROPERTY_NAME);
+            }
         }
 
         private boolean initNames() {
@@ -333,12 +358,12 @@ public class SnippetTemplate {
         }
     }
 
-    private static final DebugTimer SnippetCreationAndSpecialization = Debug.timer("SnippetCreationAndSpecialization");
-    private static final DebugMetric SnippetSpecializations = Debug.metric("SnippetSpecializations");
-    private static final DebugMetric SnippetSpecializationsNodeCount = Debug.metric("SnippetSpecializationsNodeCount");
-    private static final DebugMetric SnippetGraphsNodeCount = Debug.metric("SnippetGraphsNodeCount");
+    private static final DebugTimer SnippetTemplateCreationTime = Debug.timer("SnippetTemplateCreationTime");
+    private static final DebugMetric SnippetTemplates = Debug.metric("SnippetTemplateCount");
 
+    private static final String MAX_TEMPLATES_PER_SNIPPET_PROPERTY_NAME = "graal.maxTemplatesPerSnippet";
     private static final boolean UseSnippetTemplateCache = Boolean.parseBoolean(System.getProperty("graal.useSnippetTemplateCache", "true"));
+    private static final int MaxTemplatesPerSnippet = Integer.getInteger(MAX_TEMPLATES_PER_SNIPPET_PROPERTY_NAME, 50);
 
     /**
      * Base class for snippet classes. It provides a cache for {@link SnippetTemplate}s.
@@ -382,8 +407,8 @@ public class SnippetTemplate {
         protected SnippetTemplate template(final Arguments args) {
             SnippetTemplate template = UseSnippetTemplateCache ? templates.get(args.cacheKey) : null;
             if (template == null) {
-                SnippetSpecializations.increment();
-                try (TimerCloseable a = SnippetCreationAndSpecialization.start()) {
+                SnippetTemplates.increment();
+                try (TimerCloseable a = SnippetTemplateCreationTime.start()) {
                     template = Debug.scope("SnippetSpecialization", args.info.method, new Callable<SnippetTemplate>() {
 
                         @Override
@@ -415,12 +440,38 @@ public class SnippetTemplate {
         return false;
     }
 
+    private static String debugValueName(String category, Arguments args) {
+        if (Debug.isEnabled()) {
+            StringBuilder result = new StringBuilder(category).append('[');
+            SnippetInfo info = args.info;
+            result.append(info.method.getName()).append('(');
+            String sep = "";
+            for (int i = 0; i < info.getParameterCount(); i++) {
+                if (info.isConstantParameter(i)) {
+                    result.append(sep);
+                    if (info.names[i] != null) {
+                        result.append(info.names[i]);
+                    } else {
+                        result.append(i);
+                    }
+                    result.append('=').append(args.values[i]);
+                    sep = ", ";
+                }
+            }
+            result.append(")]");
+            return result.toString();
+
+        }
+        return null;
+    }
+
     /**
      * Creates a snippet template.
      */
     protected SnippetTemplate(final Providers providers, Arguments args) {
         StructuredGraph snippetGraph = providers.getReplacements().getSnippet(args.info.method);
-        SnippetGraphsNodeCount.add(snippetGraph.getNodeCount());
+        instantiationTimer = Debug.timer(debugValueName("SnippetTemplateInstantiationTime", args));
+        instantiationCounter = Debug.metric(debugValueName("SnippetTemplateInstantiationCount", args));
 
         ResolvedJavaMethod method = snippetGraph.method();
         Signature signature = method.getSignature();
@@ -462,6 +513,7 @@ public class SnippetTemplate {
         Debug.dump(snippetCopy, "Before specialization");
         if (!nodeReplacements.isEmpty()) {
             // Do deferred intrinsification of node intrinsics
+            new CanonicalizerPhase(true).apply(snippetCopy, phaseContext);
             new NodeIntrinsificationPhase(providers).apply(snippetCopy);
             new CanonicalizerPhase(true).apply(snippetCopy, phaseContext);
         }
@@ -608,7 +660,8 @@ public class SnippetTemplate {
         this.stampNodes = curStampNodes;
         this.returnNode = retNode;
 
-        SnippetSpecializationsNodeCount.add(nodes.size());
+        Debug.metric(debugValueName("SnippetTemplateNodeCount", args)).add(nodes.size());
+        args.info.notifyNewTemplate();
     }
 
     private static boolean checkAllVarargPlaceholdersAreDeleted(int parameterCount, VarargsPlaceholderNode[] placeholders) {
@@ -687,6 +740,20 @@ public class SnippetTemplate {
      * map of killing locations to memory checkpoints (nodes).
      */
     private MemoryMapNode memoryMap;
+
+    /**
+     * Times instantiations of this template.
+     * 
+     * @see SnippetInfo#instantiationTimer
+     */
+    private final DebugTimer instantiationTimer;
+
+    /**
+     * Counts instantiations of this template.
+     * 
+     * @see SnippetInfo#instantiationCounter
+     */
+    private final DebugMetric instantiationCounter;
 
     /**
      * Gets the instantiation-time bindings to this template's parameters.
@@ -796,7 +863,7 @@ public class SnippetTemplate {
                 return;
             }
             for (Node usage : newNode.usages().snapshot()) {
-                if (usage instanceof FloatingReadNode && ((FloatingReadNode) usage).lastLocationAccess() == newNode) {
+                if (usage instanceof FloatingReadNode && ((FloatingReadNode) usage).getLastLocationAccess() == newNode) {
                     assert newNode.graph().isAfterFloatingReadPhase();
 
                     // lastLocationAccess points into the snippet graph. find a proper
@@ -891,8 +958,9 @@ public class SnippetTemplate {
      */
     public Map<Node, Node> instantiate(MetaAccessProvider metaAccess, FixedNode replacee, UsageReplacer replacer, Arguments args) {
         assert checkSnippetKills(replacee);
-        try (TimerCloseable a = args.info.instantiationTimer.start()) {
+        try (TimerCloseable a = args.info.instantiationTimer.start(); TimerCloseable b = instantiationTimer.start()) {
             args.info.instantiationCounter.increment();
+            instantiationCounter.increment();
             // Inline the snippet nodes, replacing parameters with the given args in the process
             StartNode entryPointNode = snippet.start();
             FixedNode firstCFGNode = entryPointNode.next();
@@ -986,6 +1054,7 @@ public class SnippetTemplate {
         assert checkSnippetKills(replacee);
         try (TimerCloseable a = args.info.instantiationTimer.start()) {
             args.info.instantiationCounter.increment();
+            instantiationCounter.increment();
 
             // Inline the snippet nodes, replacing parameters with the given args in the process
             String name = snippet.name == null ? "{copy}" : snippet.name + "{copy}";

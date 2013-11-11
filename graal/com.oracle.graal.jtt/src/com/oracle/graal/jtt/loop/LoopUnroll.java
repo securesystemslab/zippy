@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,12 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.asm.amd64;
+package com.oracle.graal.jtt.loop;
 
-public class AMD64AsmOptions {
-    public static final boolean UseNormalNop = false;
-    public static final boolean UseAddressNop = true;
-    public static final boolean UseIncDec = true;
-    public static final boolean UseXmmLoadAndClearUpper = true;
-    public static final boolean UseXmmRegToRegMoveAll = true;
+import com.oracle.graal.jtt.*;
+import org.junit.*;
+
+/*
+ */
+public class LoopUnroll extends JTTTest {
+
+    public static int test(int input) {
+        int ret = 2;
+        int current = input;
+        for (int i = 0; i < 7; i++) {
+            ret *= 2 + current;
+            current /= 50;
+        }
+        return ret;
+    }
+
+    @Test
+    public void run0() throws Throwable {
+        runTest("test", 42);
+    }
+
 }

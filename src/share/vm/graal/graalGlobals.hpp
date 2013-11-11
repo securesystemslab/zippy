@@ -58,6 +58,9 @@
   product(bool, GraalDeferredInitBarriers, true,                            \
           "Defer write barriers of young objects")                          \
                                                                             \
+  product(bool, GraalHProfEnabled, false,                                   \
+          "Is Heap  Profiler enabled")                                      \
+                                                                            \
   develop(bool, GraalUseFastLocking, true,                                  \
           "Use fast inlined locking code")                                  \
                                                                             \
