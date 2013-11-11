@@ -18,7 +18,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	sum = callFunctions(100000000) #1000000
+	sum = callFunctions(1000000000) #1000000
 
 	print("Number of calls ", sum)
 

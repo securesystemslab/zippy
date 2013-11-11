@@ -1212,13 +1212,14 @@ def bench(args):
 
     # Python
     if 'pythontest' in args:
-        benchmarks += sanitycheck.getPythonTestBenchmarks(vm)
-
-    if 'pythonmicro' in args:
-        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)        
+        benchmarks += sanitycheck.getPythonTestBenchmarks(vm)    
 
     if 'python' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
+
+    if 'cpython2' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'cpython2'
 
     if 'cpython' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
@@ -1234,6 +1235,25 @@ def bench(args):
 
     if 'pypy3' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'pypy3'
+
+    if 'python-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+
+    if 'cpython-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'cpython'
+
+    if 'jython-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'jython'
+
+    if 'pypy-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'pypy'
+
+    if 'pypy3-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
         vm = 'pypy3'
 
     for test in benchmarks:
