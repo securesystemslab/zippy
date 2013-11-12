@@ -26,22 +26,21 @@ package edu.uci.python.nodes.access;
 
 import java.math.BigInteger;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import org.python.core.*;
+
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 
-public abstract class ReadLevelVariableNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadLocalVariableNode extends FrameSlotNode implements ReadNode {
 
-    final int level;
-
-    public ReadLevelVariableNode(FrameSlot slot, int level) {
+    public ReadLocalVariableNode(FrameSlot slot) {
         super(slot);
-        this.level = level;
     }
 
-    public ReadLevelVariableNode(ReadLevelVariableNode specialized) {
-        this(specialized.frameSlot, specialized.level);
+    public ReadLocalVariableNode(ReadLocalVariableNode specialized) {
+        this(specialized.frameSlot);
     }
 
     @Override
@@ -49,33 +48,35 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
         return WriteLocalVariableNodeFactory.create(frameSlot, rhs);
     }
 
-    @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})
-    public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-        return getBoolean(parent);
-    }
-
-    @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-        return getInteger(parent);
+        return getInteger(frame);
     }
 
-    @Specialization(order = 3, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-        return getBigInteger(parent);
+        return getBigInteger(frame);
     }
 
-    @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-        return getDouble(parent);
+        return getDouble(frame);
     }
 
-    @Specialization
+    @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
+    public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
+        return getBoolean(frame);
+    }
+
+    @Specialization(guards = "isNotIllegal")
     public Object doObject(VirtualFrame frame) {
-        MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-        return getObject(parent);
+        return getObject(frame);
+    }
+
+    @SuppressWarnings("unused")
+    @Generic
+    public Object doGeneric(VirtualFrame frame) {
+        assert !isNotIllegal();
+        throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
     }
 }

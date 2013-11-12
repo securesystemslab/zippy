@@ -33,23 +33,29 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.*;
 
 public class TranslationEnvironment {
 
     private final mod module;
+    private final PythonContext context;
+    private final NodeFactory factory;
 
     private Map<PythonTree, ScopeInfo> scopeInfos;
     private ScopeInfo currentScope;
     private ScopeInfo globalScope;
     private int scopeLevel;
 
-    public static final String RETURN_SLOT_ID = "<return_val>";
-    public static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private static final String RETURN_SLOT_ID = "<return_val>";
+    private static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
+    private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;
 
-    public TranslationEnvironment(mod module) {
+    public TranslationEnvironment(mod module, PythonContext context) {
         this.module = module;
+        this.context = context;
+        this.factory = NodeFactory.getInstance();
         scopeInfos = new HashMap<>();
     }
 
@@ -116,10 +122,59 @@ public class TranslationEnvironment {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(name);
     }
 
-    public FrameSlot findSlot(String name) {
+    private FrameSlot findSlot(String name) {
         assert name != null : "name is null!";
-        FrameSlot slot = currentScope.getFrameDescriptor().findFrameSlot(name);
-        return slot != null ? slot : probeEnclosingScopes(name);
+        return currentScope.getFrameDescriptor().findFrameSlot(name);
+    }
+
+    public PNode getWriteArgumentToLocal(String name) {
+        FrameSlot slot = findSlot(name);
+        ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
+        return factory.createWriteLocalVariable(right, slot);
+    }
+
+    public ReadNode findVariable(String name) {
+        assert name != null : "name is null!";
+        FrameSlot slot = findSlot(name);
+
+        switch (getScopeKind()) {
+            case Module:
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+            case GeneratorExpr:
+            case ListComp:
+            case Function:
+                if (slot != null) {
+                    return (ReadNode) factory.createReadLocalVariable(slot);
+                }
+
+                ReadNode readLevel = findVariableInEnclosingScopes(name);
+                if (readLevel != null) {
+                    return readLevel;
+                }
+
+                assert slot == null && readLevel == null;
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonCore().getMainModule(), name);
+            case Class:
+                return (ReadNode) factory.createReadClassAttribute(name);
+            default:
+                throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
+        }
+    }
+
+    public ReadNode makeTempLocalVariable() {
+        String tempName = TEMP_LOCAL_PREFIX + currentScope.getFrameDescriptor().getSize();
+        FrameSlot tempSlot = createLocal(tempName);
+        return (ReadNode) factory.createReadLocalVariable(tempSlot);
+    }
+
+    public List<PNode> makeTempLocalVariables(List<PNode> rights) {
+        List<PNode> tempWrites = new ArrayList<>();
+
+        for (PNode right : rights) {
+            tempWrites.add(makeTempLocalVariable().makeWriteNode(right));
+        }
+
+        return tempWrites;
     }
 
     public FrameSlot createGlobal(String name) {
@@ -137,17 +192,17 @@ public class TranslationEnvironment {
         return currentScope.isExplicitGlobalVariable(name);
     }
 
-    protected FrameSlot probeEnclosingScopes(String name) {
+    protected ReadNode findVariableInEnclosingScopes(String name) {
         assert name != null : "name is null!";
         int level = 0;
         ScopeInfo current = currentScope;
 
         try {
             while (current != globalScope) {
-                FrameSlot candidate = current.getFrameDescriptor().findFrameSlot(name);
+                FrameSlot slot = current.getFrameDescriptor().findFrameSlot(name);
 
-                if (candidate != null) {
-                    return EnvironmentFrameSlot.pack(candidate, level);
+                if (slot != null) {
+                    return (ReadNode) factory.createReadLevelVariable(slot, level);
                 }
 
                 current = current.getParent();

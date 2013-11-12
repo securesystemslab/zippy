@@ -31,8 +31,6 @@ import org.python.core.*;
 import org.python.util.*;
 
 import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 
@@ -78,7 +76,7 @@ public class CustomConsole extends JLineConsole {
      */
     public static PythonParseResult parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
         mod node = ParserFacade.parse(istream, kind, filename, cflags);
-        TranslationEnvironment environment = new TranslationEnvironment(node);
+        TranslationEnvironment environment = new TranslationEnvironment(node, context);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 

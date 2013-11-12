@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class WhileNode extends LoopNode {
@@ -65,10 +64,5 @@ public class WhileNode extends LoopNode {
     @Override
     public String toString() {
         return super.toString() + "(" + condition + ")";
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitWhileNode(this);
     }
 }

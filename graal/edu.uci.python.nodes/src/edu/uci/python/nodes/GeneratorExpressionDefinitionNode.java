@@ -49,7 +49,8 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, needsDeclarationFrame);
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
+        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame);
         // TODO: It's a bad way to determine whether the
         // generator should be evaluated immediately or not.
         if (getParent() instanceof WriteNode) {

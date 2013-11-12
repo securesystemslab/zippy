@@ -122,7 +122,7 @@ class GenericTryExceptNode extends TryExceptNode {
             PyObject type = (PyObject) exceptType.execute(frame);
             if (e.type == type) {
                 if (exceptName != null) {
-                    ((WriteLocalNode) exceptName).execute(frame, excep);
+                    ((WriteLocalVariableNode) exceptName).executeWith(frame, excep);
                 }
                 return exceptBody.execute(frame);
             }

@@ -22,37 +22,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.objects;
+package edu.uci.python.shell;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.calls.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-@NodeInfo(shortName = "add-method")
-public class AddMethodNode extends PNode {
+public class ASTInterpreter {
 
-    @Child protected FunctionDefinitionNode methodDef;
+    public static boolean debug;
 
-    public AddMethodNode(FunctionDefinitionNode methodDef) {
-        this.methodDef = adoptChild(methodDef);
+    @SuppressWarnings("hiding")
+    public static void init(boolean debug) {
+        ASTInterpreter.debug = debug;
     }
 
-    public void addMethod(VirtualFrame frame) {
-        PArguments args = frame.getArguments(PArguments.class);
-        Object arg = args.getArgument(0);
-        assert arg != null && arg instanceof PythonClass : "AddMethodNode expects the first argument of the class definition method call to be the defining class";
-        PythonClass pclass = (PythonClass) arg;
-        PFunction method = (PFunction) methodDef.execute(frame);
-        pclass.addMethod(method);
+    public static void interpret(PythonParseResult result, boolean log) {
+        CallTarget module;
+
+        ModuleNode root = result.getModuleRoot();
+        module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
+
+        Arguments arguments = new PArguments(null);
+
+        long start = System.nanoTime();
+        module.call(null, arguments);
+        long end = System.nanoTime();
+
+        if (log) {
+            // CheckStyle: stop system..print check
+            System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
+            // CheckStyle: resume system..print check
+        }
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        addMethod(frame);
-        return PNone.NONE;
+    public static void trace(String message) {
+        // CheckStyle: stop system..print check
+        System.out.print(message);
+        // CheckStyle: resume system..print check
+    }
+
+    public static void traceln(String message) {
+        // CheckStyle: stop system..print check
+        System.out.println(message);
+        // CheckStyle: resume system..print check
+    }
+
+    public static void trace(Object entity) {
+        // CheckStyle: stop system..print check
+        System.out.println(entity);
+        // CheckStyle: resume system..print check
     }
 }

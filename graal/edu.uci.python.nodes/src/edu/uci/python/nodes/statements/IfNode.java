@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statements;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class IfNode extends StatementNode {
@@ -45,15 +44,6 @@ public class IfNode extends StatementNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        if (condition.executeBoolean(frame)) {
-            then.executeVoid(frame);
-        } else {
-            orelse.executeVoid(frame);
-        }
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
             then.executeVoid(frame);
@@ -67,10 +57,5 @@ public class IfNode extends StatementNode {
     @Override
     public String toString() {
         return super.toString() + "(" + condition + ")";
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitIfNode(this);
     }
 }

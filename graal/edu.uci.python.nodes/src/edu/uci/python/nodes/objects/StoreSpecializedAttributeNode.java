@@ -24,6 +24,9 @@
  */
 package edu.uci.python.nodes.objects;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
@@ -36,4 +39,10 @@ public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
         this.objectLayout = objLayout;
     }
 
+    @SlowPath
+    protected final void respecialize(PythonBasicObject primaryObject, Object value) {
+        CompilerDirectives.transferToInterpreter();
+        primaryObject.setAttribute(attributeId, value);
+        replace(specialize(primaryObject));
+    }
 }

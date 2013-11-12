@@ -27,13 +27,14 @@ package edu.uci.python.nodes.loop;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 
 public abstract class LoopNode extends StatementNode {
 
-    @Child protected StatementNode body;
+    @Child protected PNode body;
 
-    public LoopNode(StatementNode body) {
+    public LoopNode(PNode body) {
         this.body = adoptChild(body);
     }
 

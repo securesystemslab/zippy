@@ -38,7 +38,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class ReadGlobalScopeNode extends PNode {
+public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     private final String attributeId;
 
@@ -57,6 +57,10 @@ public class ReadGlobalScopeNode extends PNode {
         this.attributeId = previous.attributeId;
         this.context = previous.context;
         this.load = adoptChild(previous.load);
+    }
+
+    public PNode makeWriteNode(PNode rhs) {
+        return load.makeWriteNode(rhs);
     }
 
     public String getAttributeId() {

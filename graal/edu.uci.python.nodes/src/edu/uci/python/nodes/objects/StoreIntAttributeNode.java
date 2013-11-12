@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.objects;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -55,9 +54,7 @@ public class StoreIntAttributeNode extends StoreSpecializedAttributeNode {
         }
 
         if (!primaryObject.getObjectLayout().contains(objectLayout)) {
-            CompilerDirectives.transferToInterpreter();
-            primaryObject.setAttribute(attributeId, value);
-            replace(specialize(primaryObject));
+            respecialize(primaryObject, value);
             return value;
         }
 
@@ -72,6 +69,19 @@ public class StoreIntAttributeNode extends StoreSpecializedAttributeNode {
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
+    }
+
+    @Override
+    public Object executeWith(VirtualFrame frame, Object value) {
+        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+
+        if (!primaryObject.getObjectLayout().contains(objectLayout)) {
+            respecialize(primaryObject, value);
+            return value;
+        }
+
+        storageLocation.writeInt(primaryObject, (int) value);
+        return value;
     }
 
 }

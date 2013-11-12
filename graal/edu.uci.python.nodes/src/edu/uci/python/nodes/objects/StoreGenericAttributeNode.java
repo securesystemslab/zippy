@@ -31,7 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
-public class StoreGenericAttributeNode extends StoreAttributeNode {
+public final class StoreGenericAttributeNode extends StoreAttributeNode {
 
     public StoreGenericAttributeNode(StoreAttributeNode node) {
         super(node.attributeId, node.primary, node.rhs);
@@ -45,7 +45,14 @@ public class StoreGenericAttributeNode extends StoreAttributeNode {
         return PNone.NONE;
     }
 
-    public static class StorePyObjectAttributeNode extends StoreAttributeNode {
+    @Override
+    public Object executeWith(VirtualFrame frame, Object value) {
+        final PythonBasicObject pbObj = (PythonBasicObject) primary.execute(frame);
+        pbObj.setAttribute(attributeId, value);
+        return PNone.NONE;
+    }
+
+    public static final class StorePyObjectAttributeNode extends StoreAttributeNode {
 
         public StorePyObjectAttributeNode(StoreAttributeNode node) {
             super(node.attributeId, node.primary, node.rhs);
@@ -53,8 +60,13 @@ public class StoreGenericAttributeNode extends StoreAttributeNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            final Object primaryObj = primary.execute(frame);
             final Object value = rhs.execute(frame);
+            return executeWith(frame, value);
+        }
+
+        @Override
+        public Object executeWith(VirtualFrame frame, Object value) {
+            final Object primaryObj = primary.execute(frame);
             assert primaryObj instanceof PyObject;
             final PyObject pyObj = (PyObject) primaryObj;
             pyObj.__setattr__(attributeId, (PyObject) value);

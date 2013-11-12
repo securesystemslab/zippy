@@ -29,8 +29,7 @@ import com.oracle.truffle.api.*;
 /**
  * A slot in a frame that can store a value of a given type.
  */
-// zwei: removed qualifier final temporarily.
-public class FrameSlot implements Cloneable {
+public final class FrameSlot implements Cloneable {
 
     private final FrameDescriptor descriptor;
     private final Object identifier;

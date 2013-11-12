@@ -31,7 +31,7 @@ public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
     private final MaterializedFrame declarationFrame;
-    private final Object self;
+    private Object self;
     private final Object[] arguments;
     private final PKeyword[] keywards;
 
@@ -40,10 +40,6 @@ public class PArguments extends Arguments {
         this.declarationFrame = declarationFrame;
         this.arguments = arguments;
         this.keywards = keywards;
-    }
-
-    public PArguments() {
-        this(null, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
     }
 
     public PArguments(MaterializedFrame declarationFrame) {
@@ -58,8 +54,17 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.class);
     }
 
+    public MaterializedFrame getMaterializedFrame() {
+        assert self != null;
+        return CompilerDirectives.unsafeCast(self, MaterializedFrame.class, true);
+    }
+
     public Object getSelf() {
         return self;
+    }
+
+    public void setSelfUnsafe(Object value) {
+        self = value;
     }
 
     public final Object[] getArgumentsArray() {

@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class BlockNode extends StatementNode {
@@ -60,10 +59,4 @@ public class BlockNode extends StatementNode {
 
         return PNone.NONE;
     }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitBlockNode(this);
-    }
-
 }

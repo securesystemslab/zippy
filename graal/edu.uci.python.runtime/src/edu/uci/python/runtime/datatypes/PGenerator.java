@@ -32,27 +32,23 @@ public class PGenerator extends PIterator {
     private final String name;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
+    private final MaterializedFrame declarationFrame;
 
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
-        this.needsDeclarationFrame = needsDeclarationFrame;
+        this.declarationFrame = declarationFrame;
     }
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
     }
 
-    // Checkstyle: stop method name check
     @Override
     public Object __next__(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
         return callTarget.call(frame.pack(), new PArguments(declarationFrame));
     }
-
-    // Checkstyle: resume method name check
 
     @Override
     public String toString() {

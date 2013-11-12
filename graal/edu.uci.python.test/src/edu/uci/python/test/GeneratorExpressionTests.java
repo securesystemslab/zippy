@@ -41,6 +41,16 @@ public class GeneratorExpressionTests {
     }
 
     @Test
+    public void nested() {
+        String source = "genexp = (x+y for x in range(5) for y in range(3))\n" + //
+                        "for i in genexp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("0\n1\n2\n1\n2\n3\n2\n3\n4\n3\n4\n5\n4\n5\n6\n", source);
+    }
+
+    @Test
     public void generatorWithListComp() {
         String source = "genexp = (x*2 for x in range(5))\n" + //
                         "listcomp = [y for y in genexp]\n" + //

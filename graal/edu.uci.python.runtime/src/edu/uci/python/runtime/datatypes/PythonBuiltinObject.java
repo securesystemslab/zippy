@@ -40,12 +40,9 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PythonBuiltinObject {
 
-    // Checkstyle: stop method name check
     public static PythonClass __class__(PythonContext context) {
         return context.getPythonCore().getObjectClass();
     }
-
-    // Checkstyle: resume method name check
 
     public Object getMin() {
         throw new UnsupportedOperationException();

@@ -26,9 +26,14 @@ package edu.uci.python.runtime.datatypes;
 
 import java.util.*;
 
-public class PEnumerate implements Iterable<Object> {
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.runtime.exception.*;
+
+public class PEnumerate extends PIterator implements Iterable<Object> {
 
     private int start;
+    private int index;
     private List<PTuple> list;
 
     public PEnumerate(Iterable<?> iterable) {
@@ -38,7 +43,6 @@ public class PEnumerate implements Iterable<Object> {
     public PEnumerate(Iterable<?> iterable, int start) {
         this.list = new ArrayList<>();
         this.start = start;
-        int index = start;
         for (Object object : iterable) {
             this.list.add(new PTuple(new Object[]{index, object}));
             index++;
@@ -63,6 +67,15 @@ public class PEnumerate implements Iterable<Object> {
                 return iter.next();
             }
         };
+    }
+
+    @Override
+    public Object __next__(VirtualFrame frame) {
+        if (index < list.size()) {
+            return list.get(index++);
+        }
+
+        throw StopIterationException.INSTANCE;
     }
 
 }

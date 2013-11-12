@@ -40,11 +40,21 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
     }
 
     @Override
+    public Object executeWith(VirtualFrame frame, Object value) {
+        CompilerAsserts.neverPartOfCompilation();
+        final Object primaryObj = primary.execute(frame);
+        return doGeneric(primaryObj, value);
+    }
+
+    @Override
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();
         final Object primaryObj = primary.execute(frame);
         final Object value = rhs.execute(frame);
+        return doGeneric(primaryObj, value);
+    }
 
+    private Object doGeneric(Object primaryObj, Object value) {
         if (primaryObj instanceof PyObject) {
             final PyObject pyObj = (PyObject) primaryObj;
             pyObj.__setattr__(attributeId, (PyObject) value);
@@ -56,5 +66,4 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
         replace(specialize(primaryObj));
         return PNone.NONE;
     }
-
 }

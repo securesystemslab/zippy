@@ -36,7 +36,7 @@ import edu.uci.python.runtime.datatypes.*;
  */
 public class ReadArgumentNode extends PNode {
 
-    private final int index;
+    protected final int index;
 
     public ReadArgumentNode(int index) {
         this.index = index;
@@ -46,10 +46,6 @@ public class ReadArgumentNode extends PNode {
     public Object execute(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
         return args.getArgument(index);
-    }
-
-    public int getIndex() {
-        return index;
     }
 
 }

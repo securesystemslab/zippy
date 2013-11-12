@@ -22,21 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.translation;
+package edu.uci.python.runtime.datatypes;
 
-import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.statements.*;
+import com.oracle.truffle.api.frame.*;
 
-public interface StatementVisitor<R> {
+import edu.uci.python.runtime.exception.*;
 
-    R visitStatementNode(StatementNode node);
+public class PSequenceIterator extends PIterator {
 
-    R visitBlockNode(BlockNode node);
+    private final PSequence sequence;
+    private int index;
 
-    R visitForNode(ForNode node);
+    public PSequenceIterator(PSequence sequence) {
+        this.sequence = sequence;
+    }
 
-    R visitIfNode(IfNode node);
+    @Override
+    public Object __next__(VirtualFrame frame) {
+        if (index < sequence.len()) {
+            return sequence.getItem(index++);
+        }
 
-    R visitWhileNode(WhileNode node);
-
+        throw StopIterationException.INSTANCE;
+    }
 }

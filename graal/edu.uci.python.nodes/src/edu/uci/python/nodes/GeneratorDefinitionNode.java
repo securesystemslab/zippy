@@ -32,8 +32,6 @@ import edu.uci.python.runtime.exception.*;
 
 public class GeneratorDefinitionNode extends FunctionRootNode {
 
-    private StatementNode continuingNode;
-
     private VirtualFrame continuingFrame;
 
     public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
@@ -46,21 +44,18 @@ public class GeneratorDefinitionNode extends FunctionRootNode {
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.executeVoid(frame);
-        continuingNode = body;
         this.continuingFrame = frame;
-        return new PGenerator(null, null, null, false);
+        return new PGenerator(null, null, null, null);
 
     }
 
     public Object next() throws ImplicitReturnException {
-        StatementNode current = continuingNode;
+        StatementNode current = body;
 
         while (current != null) {
             try {
                 current.executeVoid(continuingFrame);
-                current = current.next();
             } catch (ExplicitYieldException eye) {
-// continuingNode = eye.getResumingNode();
                 return eye.getValue();
             }
         }

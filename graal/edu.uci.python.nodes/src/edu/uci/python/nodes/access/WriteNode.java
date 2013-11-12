@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.access;
 
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.nodes.*;
 
 public interface WriteNode {
@@ -32,4 +34,5 @@ public interface WriteNode {
 
     PNode getRhs();
 
+    Object executeWrite(VirtualFrame frame, Object value);
 }

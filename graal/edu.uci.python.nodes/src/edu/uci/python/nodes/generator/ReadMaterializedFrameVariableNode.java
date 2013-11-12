@@ -22,9 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.generator;
 
-import java.math.BigInteger;
+import java.math.*;
 
 import org.python.core.*;
 
@@ -32,45 +32,52 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadMaterializedFrameVariableNode extends FrameSlotNode implements ReadNode {
 
-    public ReadLocalNode(FrameSlot slot) {
+    public ReadMaterializedFrameVariableNode(FrameSlot slot) {
         super(slot);
     }
 
-    public ReadLocalNode(ReadLocalNode specialized) {
+    public ReadMaterializedFrameVariableNode(ReadMaterializedFrameVariableNode specialized) {
         this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteLocalNodeFactory.create(frameSlot, rhs);
+        return WriteMaterializedFrameVariableNodeFactory.create(frameSlot, rhs);
     }
 
     @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        return getInteger(frame);
+        MaterializedFrame mframe = PArguments.get(frame).getMaterializedFrame();
+        return getInteger(mframe);
     }
 
     @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        return getBigInteger(frame);
+        MaterializedFrame mframe = PArguments.get(frame).getMaterializedFrame();
+        return getBigInteger(mframe);
     }
 
     @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        return getDouble(frame);
+        MaterializedFrame mframe = PArguments.get(frame).getMaterializedFrame();
+        return getDouble(mframe);
     }
 
     @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        return getBoolean(frame);
+        MaterializedFrame mframe = PArguments.get(frame).getMaterializedFrame();
+        return getBoolean(mframe);
     }
 
     @Specialization(guards = "isNotIllegal")
     public Object doObject(VirtualFrame frame) {
-        return getObject(frame);
+        MaterializedFrame mframe = PArguments.get(frame).getMaterializedFrame();
+        return getObject(mframe);
     }
 
     @SuppressWarnings("unused")
@@ -79,4 +86,5 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
         assert !isNotIllegal();
         throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
     }
+
 }

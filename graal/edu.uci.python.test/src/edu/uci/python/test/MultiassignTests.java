@@ -22,63 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.truffle;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
+import static edu.uci.python.test.PythonTests.*;
 
-public class EnvironmentFrameSlot extends FrameSlot {
+import org.junit.*;
 
-    private final FrameSlot slot;
+public class MultiassignTests {
 
-    private final int level;
-
-    public EnvironmentFrameSlot(FrameSlot slot, int level) {
-        super(slot.getFrameDescriptor(), slot.getIdentifier(), slot.getIndex(), slot.getKind());
-        this.slot = slot;
-        this.level = level;
+    @Test
+    public void multiAssign() {
+        String source = "a, b = [3, 4]\n" + //
+                        "a, b = b, a\n" + //
+                        "print(a, b)\n";
+        assertPrints("4 3\n", source);
     }
 
-    public static EnvironmentFrameSlot pack(FrameSlot slot, int level) {
-        return new EnvironmentFrameSlot(slot, level);
+    @Test
+    public void explicitTupleAssignment() {
+        String source = "(a, b) = [1, 2]\n" + //
+                        "print(a, b)\n";
+        assertPrints("1 2\n", source);
     }
 
-    public FrameSlot unpack() {
-        return slot;
+    @Test
+    public void explicitListAssignment() {
+        String source = "list_l = [7, 8]\n" + //
+                        "[a, b] = list_l\n" + //
+                        "print(a, b)\n";
+        assertPrints("7 8\n", source);
     }
 
-    public int getLevel() {
-        return level;
-    }
-
-    @Override
-    public Object getIdentifier() {
-        return slot.getIdentifier();
-    }
-
-    @Override
-    public int getIndex() {
-        return slot.getIndex();
-    }
-
-    @Override
-    public FrameSlotKind getKind() {
-        return slot.getKind();
-    }
-
-    @Override
-    public void setKind(FrameSlotKind kind) {
-        slot.setKind(kind);
-    }
-
-    @Override
-    public String toString() {
-        return slot.toString();
-    }
-
-    @Override
-    public FrameDescriptor getFrameDescriptor() {
-        return slot.getFrameDescriptor();
+    @Test
+    public void nestedUnpacking() {
+        String source = "(a, b), [c, d] = [[1, 2], [3, 4]]\n" + //
+                        "print(a, b, c, d)\n";
+        assertPrints("1 2 3 4\n", source);
     }
 }

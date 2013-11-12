@@ -26,8 +26,8 @@ package edu.uci.python.runtime.datatypes;
 
 public class PComplex extends PythonBuiltinObject {
 
-    private double real;
-    private double imag;
+    private final double real;
+    private final double imag;
 
     public PComplex() {
         this.real = 0;
@@ -45,32 +45,31 @@ public class PComplex extends PythonBuiltinObject {
     }
 
     public PComplex add(PComplex c) {
-        PComplex result = new PComplex(this.real + c.getReal(), this.imag + c.getImag());
+        PComplex result = new PComplex(real + c.getReal(), imag + c.getImag());
         return result;
     }
 
     public PComplex sub(PComplex c) {
-        PComplex result = new PComplex(this.real - c.getReal(), this.imag - c.getImag());
+        PComplex result = new PComplex(real - c.getReal(), imag - c.getImag());
         return result;
     }
 
     public PComplex mul(PComplex c) {
-        PComplex result = new PComplex();
-        result.setReal(this.real * c.getReal() - this.imag * c.getImag());
-        result.setImag(this.real * c.getImag() + this.imag * c.getReal());
-        return result;
+        double newReal = real * c.getReal() - imag * c.getImag();
+        double newImage = real * c.getImag() + imag * c.getReal();
+        return new PComplex(newReal, newImage);
     }
 
     public PComplex div(PComplex c) {
         double opNormSq = c.getReal() * c.getReal() + c.getImag() * c.getImag();
         PComplex conjugate = c.getConjugate();
-        double realPart = this.real * conjugate.getReal() - this.imag * conjugate.getImag();
-        double imagPart = this.real * conjugate.getImag() + this.imag * conjugate.getReal();
+        double realPart = real * conjugate.getReal() - imag * conjugate.getImag();
+        double imagPart = real * conjugate.getImag() + imag * conjugate.getReal();
         return new PComplex(realPart / opNormSq, imagPart / opNormSq);
     }
 
     public PComplex getConjugate() {
-        return new PComplex(this.real, this.imag * (-1));
+        return new PComplex(real, imag * (-1));
     }
 
     public boolean equals(PComplex c) {
@@ -101,20 +100,12 @@ public class PComplex extends PythonBuiltinObject {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
-    public void setReal(double real) {
-        this.real = real;
+    public final double getReal() {
+        return real;
     }
 
-    public void setImag(double imag) {
-        this.imag = imag;
-    }
-
-    public double getReal() {
-        return this.real;
-    }
-
-    public double getImag() {
-        return this.imag;
+    public final double getImag() {
+        return imag;
     }
 
     @Override
@@ -136,31 +127,6 @@ public class PComplex extends PythonBuiltinObject {
         } else {
             return Double.toString(value);
         }
-    }
-
-    @Override
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int len() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
     }
 
 }

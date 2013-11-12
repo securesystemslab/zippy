@@ -26,12 +26,14 @@ package edu.uci.python.nodes.objects;
 
 import org.python.core.PyObject;
 
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.objects.*;
 
-public abstract class StoreAttributeNode extends StatementNode implements Amendable, WriteNode {
+public abstract class StoreAttributeNode extends StatementNode implements WriteNode {
 
     protected final String attributeId;
     @Child protected PNode primary;
@@ -52,11 +54,6 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
     }
 
     @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return new UninitializedStoreAttributeNode(attributeId, primary, newRhs);
-    }
-
-    @Override
     public PNode getRhs() {
         return rhs;
     }
@@ -65,6 +62,13 @@ public abstract class StoreAttributeNode extends StatementNode implements Amenda
     public PNode makeReadNode() {
         return new UninitializedLoadAttributeNode(attributeId, primary);
     }
+
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        return executeWith(frame, value);
+    }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     public StoreAttributeNode specialize(Object primaryObj) {
         if (primaryObj instanceof PyObject) {

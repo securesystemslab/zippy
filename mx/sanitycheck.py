@@ -107,6 +107,12 @@ pythonTestBenchmarks = {
     'spectralnorm3' : '500',
 }
 
+pythonMicroBenchmarks = {
+    'arith-binop'   : '0',
+    'for-range'     : '0',
+    'function-call' : '0',
+}
+
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
     #'fannkuchredux3t' : '10',
@@ -294,10 +300,7 @@ def getBootstraps():
     return tests
 
 def getPythonTestBenchmarks(vm):
-    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
-    error = re.compile(r"Exception")
-    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
-    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    success, error, matcher = getSuccessErrorMatcher()
     benchmarks = pythonTestBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
@@ -308,11 +311,20 @@ def getPythonTestBenchmarks(vm):
     
     return tests
 
+def getPythonMicroBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonMicroBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
 def getPythonBenchmarks(vm):
-    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
-    error = re.compile(r"Exception")
-    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
-    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    success, error, matcher = getSuccessErrorMatcher()
     benchmarks = pythonBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
@@ -324,10 +336,7 @@ def getPythonBenchmarks(vm):
     return tests
 
 def getPython2Benchmarks(vm):
-    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
-    error = re.compile(r"Exception")
-    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
-    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    success, error, matcher = getSuccessErrorMatcher()
     benchmarks = python2Benchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
@@ -337,6 +346,13 @@ def getPython2Benchmarks(vm):
         tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
     
     return tests
+
+def getSuccessErrorMatcher():
+    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
+    error = re.compile(r"Exception")
+    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
+    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    return success, error, matcher
 
 class CTWMode:
     Full, NoInline, NoComplex = range(3)
@@ -490,7 +506,9 @@ class Test:
             #     mx.abort("Benchmark failed (non-zero retcode)")
             # zippy
             result = -1
-            if vm == 'cpython':
+            if vm == 'cpython2':
+                result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'cpython':
                 result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = commands.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)

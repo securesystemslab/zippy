@@ -25,24 +25,37 @@
 package edu.uci.python.nodes.access;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
-public abstract class SubscriptStoreNode extends StatementNode implements Amendable {
-
-    @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), newRhs);
-    }
+public abstract class SubscriptStoreNode extends StatementNode implements WriteNode {
 
     public abstract PNode getPrimary();
 
     public abstract PNode getSlice();
 
     public abstract PNode getRight();
+
+    @Override
+    public PNode makeReadNode() {
+        return SubscriptLoadNodeFactory.create(getPrimary(), getSlice());
+    }
+
+    @Override
+    public PNode getRhs() {
+        return getRight();
+    }
+
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        return executeWith(frame, value);
+    }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     /*
      * As a right hand side expression
@@ -108,7 +121,7 @@ public abstract class SubscriptStoreNode extends StatementNode implements Amenda
             throw new RuntimeException("Unsupported Type!");
         }
 
-        return null;
+        return PNone.NONE;
     }
 
 }

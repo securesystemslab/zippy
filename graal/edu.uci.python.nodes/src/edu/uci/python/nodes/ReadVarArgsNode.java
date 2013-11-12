@@ -46,7 +46,6 @@ public class ReadVarArgsNode extends ReadArgumentNode {
     @Override
     public final Object[] executeObjectArray(VirtualFrame frame) {
         PArguments arguments = frame.getArguments(PArguments.class);
-        int index = getIndex();
         if (index >= arguments.getLength()) {
             return PArguments.EMPTY_ARGUMENTS_ARRAY;
         } else {

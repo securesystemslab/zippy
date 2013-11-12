@@ -28,6 +28,10 @@ import java.util.Iterator;
 
 public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
 
+    public Object __iter__() {
+        return new PSequenceIterator(this);
+    }
+
     @Override
     public abstract int len();
 

@@ -33,7 +33,7 @@ public class BreakNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw BreakException.instance;
+        throw BreakException.INSTANCE;
     }
 
 }
