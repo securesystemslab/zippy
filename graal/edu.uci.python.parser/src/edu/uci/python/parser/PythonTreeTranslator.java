@@ -90,7 +90,6 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Module);
-
         List<PNode> body = visitStatements(node.getInternalBody());
         FrameDescriptor fd = environment.getCurrentFrame();
         environment.endScope(node);
@@ -690,7 +689,6 @@ public class PythonTreeTranslator extends Visitor {
         PNode test = (PNode) visit(node.getInternalTest());
         PNode body = (PNode) visit(node.getInternalBody());
         PNode orelse = (PNode) visit(node.getInternalOrelse());
-
         return factory.createIfExpNode(test, body, orelse);
     }
 
@@ -706,7 +704,6 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> o = visitStatements(node.getInternalOrelse());
         BlockNode body = null;
         BlockNode orelse = null;
-
         List<excepthandler> excepts = node.getInternalHandlers();
 
         for (int i = 0; i < excepts.size(); i++) {
@@ -727,7 +724,6 @@ public class PythonTreeTranslator extends Visitor {
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
-
             retVal = factory.createTryExceptNode(body, orelse, exceptType, exceptName, exceptBody);
         }
 
@@ -740,7 +736,6 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> f = visitStatements(node.getInternalFinalbody());
         BlockNode body = factory.createBlock(b);
         BlockNode finalbody = factory.createBlock(f);
-
         return factory.createTryFinallyNode(body, finalbody);
     }
 

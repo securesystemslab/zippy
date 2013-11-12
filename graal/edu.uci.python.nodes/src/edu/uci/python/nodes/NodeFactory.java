@@ -37,6 +37,7 @@ import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
@@ -57,7 +58,6 @@ import edu.uci.python.nodes.expressions.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
 import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
-import edu.uci.python.nodes.generator.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;

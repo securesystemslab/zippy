@@ -161,7 +161,5 @@ public abstract class ComprehensionNode extends StatementNode {
                 results.addAll(Arrays.asList(list.getSequence()));
             }
         }
-
     }
-
 }

@@ -60,7 +60,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             for (int i = start; i < stop; i += step) {
-                target.execute(frame, i);
+                target.executeWith(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -93,7 +93,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             while (iter.hasNext()) {
-                target.execute(frame, iter.next());
+                target.executeWith(frame, iter.next());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {

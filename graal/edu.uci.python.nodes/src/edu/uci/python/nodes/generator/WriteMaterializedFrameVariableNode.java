@@ -56,7 +56,12 @@ public abstract class WriteMaterializedFrameVariableNode extends FrameSlotNode i
         return getRightNode();
     }
 
-    public abstract Object execute(VirtualFrame frame, Object value);
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        return executeWith(frame, value);
+    }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     @Specialization(order = 0, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {

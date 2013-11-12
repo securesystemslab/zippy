@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.access;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
@@ -48,6 +49,13 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
     public PNode getRhs() {
         return getRight();
     }
+
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        return executeWith(frame, value);
+    }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     /*
      * As a right hand side expression

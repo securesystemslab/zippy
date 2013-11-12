@@ -26,6 +26,8 @@ package edu.uci.python.nodes.objects;
 
 import org.python.core.PyObject;
 
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
@@ -60,6 +62,13 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
     public PNode makeReadNode() {
         return new UninitializedLoadAttributeNode(attributeId, primary);
     }
+
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        return executeWith(frame, value);
+    }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     public StoreAttributeNode specialize(Object primaryObj) {
         if (primaryObj instanceof PyObject) {
