@@ -37,14 +37,16 @@ import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
-@NodeChild(value = "iterator", type = PNode.class)
+@NodeChild(value = "iteratorNode", type = PNode.class)
 public abstract class ComprehensionNode extends StatementNode {
 
-    public abstract PNode getIterator();
+    public abstract PNode getIteratorNode();
 
     @Child protected BooleanCastNode condition;
 
     @Child protected PNode target;
+
+    protected Iterator<?> iterator;
 
     public ComprehensionNode(PNode target, BooleanCastNode condition) {
         this.target = adoptChild(target);
@@ -55,51 +57,13 @@ public abstract class ComprehensionNode extends StatementNode {
         this(node.target, node.condition);
     }
 
-    @Specialization
-    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        List<Object> results = new ArrayList<>();
-        Iterator<?> iter = sequence.iterator();
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
-        while (iter.hasNext()) {
-            Object value = iter.next();
-            rvn.setValue(value);
-            evaluateNextItem(frame, value, results);
-        }
-
-        throw new StopIterationException(new PList(results));
-    }
-
-    @Specialization
-    public Object doGeneric(VirtualFrame frame, Object sequence) {
-        Iterator<?> iter;
-
-        if (sequence instanceof PGenerator) {
-            PGenerator generator = (PGenerator) sequence;
-            iter = generator.evaluateToJavaIteratore(frame);
-        } else {
-            throw new RuntimeException("Unhandled sequence");
-        }
-
-        List<Object> results = new ArrayList<>();
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
-        while (iter.hasNext()) {
-            Object value = iter.next();
-            rvn.setValue(value);
-            evaluateNextItem(frame, value, results);
-        }
-
-        throw new StopIterationException(new PList(results));
-    }
-
     protected boolean evaluateCondition(VirtualFrame frame) {
-        return condition != null && !condition.executeBoolean(frame);
+        return condition == null || condition.executeBoolean(frame);
     }
 
     @SuppressWarnings("unused")
-    protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
-        throw new RuntimeException("This is not a concrete comprehension node!");
+    protected void generateNextValue(VirtualFrame frame, Object value) {
+        throw new UnsupportedOperationException();
     }
 
     public abstract static class InnerComprehensionNode extends ComprehensionNode {
@@ -108,6 +72,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
         public InnerComprehensionNode(PNode target, BooleanCastNode condition, PNode loopBody) {
             super(target, condition);
+            assert loopBody != null;
             this.loopBody = adoptChild(loopBody);
         }
 
@@ -115,26 +80,43 @@ public abstract class ComprehensionNode extends StatementNode {
             this(node.target, node.condition, node.loopBody);
         }
 
-        @Override
-        protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
-            target.execute(frame);
+        @Specialization
+        public Object doPSequence(VirtualFrame frame, PSequence sequence) {
+            if (iterator == null) {
+                iterator = sequence.iterator();
+            }
 
-            if (this.evaluateCondition(frame)) {
+            while (iterator.hasNext()) {
+                Object value = iterator.next();
+                generateNextValue(frame, value);
+            }
+
+            iterator = null;
+            throw new StopIterationException();
+        }
+
+        @Override
+        protected void generateNextValue(VirtualFrame frame, Object value) {
+            ((WriteNode) target).executeWrite(frame, value);
+
+            if (!evaluateCondition(frame)) {
                 return;
             }
 
-            if (loopBody != null) {
-                results.add(loopBody.execute(frame));
-            }
+            Object result = loopBody.execute(frame);
+            throw new ExplicitYieldException(result);
         }
     }
 
     public abstract static class OuterComprehensionNode extends ComprehensionNode {
 
         @Child protected PNode innerLoop;
+        protected Object currentValue;
 
         public OuterComprehensionNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
             super(target, condition);
+            assert condition == null;
+            assert innerLoop != null;
             this.innerLoop = adoptChild(innerLoop);
         }
 
@@ -142,24 +124,55 @@ public abstract class ComprehensionNode extends StatementNode {
             this(node.target, node.condition, node.innerLoop);
         }
 
+        @Specialization
+        public Object doPSequence(VirtualFrame frame, PSequence sequence) {
+            if (iterator == null) {
+                iterator = sequence.iterator();
+            }
+
+            do {
+                currentValue = currentValue == null ? iterator.next() : currentValue;
+
+                try {
+                    generateNextValue(frame, currentValue);
+                } catch (StopIterationException sie) {
+                    // return to the loop header
+                    currentValue = null;
+                }
+            } while (iterator.hasNext());
+
+            iterator = null;
+            throw new StopIterationException();
+        }
+
+        @Specialization
+        public Object doGeneric(VirtualFrame frame, Object sequence) {
+            Iterator<?> iter;
+
+            if (sequence instanceof PGenerator) {
+                PGenerator generator = (PGenerator) sequence;
+                iter = generator.evaluateToJavaIteratore(frame);
+            } else {
+                throw new RuntimeException("Unhandled sequence");
+            }
+
+            while (iter.hasNext()) {
+                Object value = iter.next();
+                generateNextValue(frame, value);
+            }
+
+            throw new StopIterationException();
+        }
+
         @Override
-        protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
-            target.execute(frame);
+        protected void generateNextValue(VirtualFrame frame, Object value) {
+            ((WriteNode) target).executeWrite(frame, value);
 
-            if (this.evaluateCondition(frame)) {
+            if (!evaluateCondition(frame)) {
                 return;
             }
 
-            if (innerLoop == null) {
-                return;
-            }
-
-            try {
-                innerLoop.execute(frame);
-            } catch (StopIterationException ere) {
-                PList list = (PList) ere.getValue();
-                results.addAll(Arrays.asList(list.getSequence()));
-            }
+            innerLoop.execute(frame);
         }
     }
 }

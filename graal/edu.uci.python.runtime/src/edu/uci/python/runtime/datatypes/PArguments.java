@@ -31,7 +31,7 @@ public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
     private final MaterializedFrame declarationFrame;
-    private final Object self;
+    private Object self;
     private final Object[] arguments;
     private final PKeyword[] keywards;
 
@@ -61,6 +61,10 @@ public class PArguments extends Arguments {
 
     public Object getSelf() {
         return self;
+    }
+
+    public void setSelfUnsafe(Object value) {
+        self = value;
     }
 
     public final Object[] getArgumentsArray() {

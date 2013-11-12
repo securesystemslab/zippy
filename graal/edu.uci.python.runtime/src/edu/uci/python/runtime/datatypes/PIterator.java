@@ -50,8 +50,7 @@ public abstract class PIterator extends PythonBuiltinObject {
                 results.add(__next__(frame));
             }
         } catch (StopIterationException e) {
-            PList list = (PList) e.getValue();
-            results.addAll(Arrays.asList(list.getSequence()));
+            // fall through
         }
 
         return results.iterator();

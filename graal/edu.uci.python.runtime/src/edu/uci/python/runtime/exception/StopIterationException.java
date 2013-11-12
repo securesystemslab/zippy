@@ -30,16 +30,6 @@ public class StopIterationException extends ControlFlowException {
 
     private static final long serialVersionUID = 5719376557318686389L;
 
-    private final Object value;
-
-    public StopIterationException(Object value) {
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
-    }
-
     @Override
     public String toString() {
         return "StopIteration()";
