@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 public final class TupleLiteralNode extends LiteralNode {

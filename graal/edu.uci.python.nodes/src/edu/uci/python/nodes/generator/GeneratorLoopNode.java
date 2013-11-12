@@ -36,6 +36,7 @@ import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
 @NodeChild(value = "iteratorNode", type = PNode.class)
 public abstract class GeneratorLoopNode extends LoopNode {

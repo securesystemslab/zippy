@@ -22,33 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
-
-import java.util.*;
+package edu.uci.python.runtime.sequence;
 
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.exception.*;
 
-public abstract class PIterator extends PythonBuiltinObject {
+public class PStringIterator extends PIterator {
 
-    public PIterator __iter__() {
-        return this;
+    private final String value;
+    private int index;
+
+    public PStringIterator(String value) {
+        this.value = value;
     }
 
-    public abstract Object __next__(VirtualFrame frame);
-
-    public Iterator<?> evaluateToJavaIteratore(VirtualFrame frame) {
-        List<Object> results = new ArrayList<>();
-
-        try {
-            while (true) {
-                results.add(__next__(frame));
-            }
-        } catch (StopIterationException e) {
-            // fall through
+    @Override
+    public Object __next__(VirtualFrame frame) {
+        if (index < value.length()) {
+            return value.charAt(index++);
         }
 
-        return results.iterator();
+        throw StopIterationException.INSTANCE;
     }
 }

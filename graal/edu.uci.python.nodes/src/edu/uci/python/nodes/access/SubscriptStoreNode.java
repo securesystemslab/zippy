@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
 @NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
 public abstract class SubscriptStoreNode extends StatementNode implements WriteNode {

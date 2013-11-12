@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
 public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
 

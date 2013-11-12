@@ -27,6 +27,8 @@ package edu.uci.python.runtime.datatypes;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PGenerator extends PIterator {
 
     private final String name;

@@ -37,6 +37,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 

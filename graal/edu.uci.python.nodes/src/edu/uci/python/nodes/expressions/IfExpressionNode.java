@@ -35,6 +35,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
 @SuppressWarnings("unused")
 @NodeChildren({@NodeChild(value = "condition", type = PNode.class), @NodeChild(value = "then", type = PNode.class), @NodeChild(value = "orelse", type = PNode.class)})

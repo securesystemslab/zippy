@@ -22,41 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.sequence;
 
-import java.util.Iterator;
+import java.util.*;
 
-public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
+import com.oracle.truffle.api.frame.*;
 
-    public Object __iter__() {
-        return new PSequenceIterator(this);
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+
+public abstract class PIterator extends PythonBuiltinObject {
+
+    public PIterator __iter__() {
+        return this;
     }
 
-    @Override
-    public abstract int len();
+    public abstract Object __next__(VirtualFrame frame);
 
-    public abstract Object getItem(int idx);
+    public Iterator<?> evaluateToJavaIteratore(VirtualFrame frame) {
+        List<Object> results = new ArrayList<>();
 
-    public abstract void setItem(int idx, Object value);
+        try {
+            while (true) {
+                results.add(__next__(frame));
+            }
+        } catch (StopIterationException e) {
+            // fall through
+        }
 
-    public abstract Object getSlice(int start, int stop, int step, int length);
-
-    public abstract Object getSlice(PSlice slice);
-
-    public abstract void setSlice(int start, int stop, int step, PSequence value);
-
-    public abstract void setSlice(PSlice slice, PSequence value);
-
-    public abstract void delItem(int idx);
-
-    public abstract void delItems(int start, int stop);
-
-    public abstract Iterator<Object> iterator();
-
-    public abstract Object[] getSequence();
-
-    public abstract boolean lessThan(PSequence sequence);
-
-    public abstract PSequence concat(PSequence sequence);
-
+        return results.iterator();
+    }
 }

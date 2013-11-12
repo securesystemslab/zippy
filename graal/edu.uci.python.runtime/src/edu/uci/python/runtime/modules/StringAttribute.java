@@ -26,6 +26,7 @@ package edu.uci.python.runtime.modules;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class StringAttribute extends PModule {
 

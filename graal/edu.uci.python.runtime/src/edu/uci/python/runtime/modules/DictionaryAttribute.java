@@ -28,6 +28,7 @@ import java.util.ArrayList;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class DictionaryAttribute extends PModule {
 

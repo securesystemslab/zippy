@@ -22,59 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.runtime.sequence;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.sequence.*;
 
-/**
- * Implements LIST_APPEND bytecode in CPython.
- * 
- */
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class ListAppendNode extends FrameSlotNode {
+public abstract class PImmutableSequence extends PSequence {
 
-    public abstract PNode getRightNode();
-
-    public ListAppendNode(FrameSlot frameSlot) {
-        super(frameSlot);
+    // TODO should the UnsupportedOperationException actually be a Python
+    // exception?
+    // "TypeError: 'tuple' object does not support item assignment"
+    @Override
+    public final void setItem(int idx, Object value) {
+        throw new UnsupportedOperationException();
     }
 
-    protected ListAppendNode(ListAppendNode node) {
-        this(node.frameSlot);
+    @Override
+    public final void setSlice(PSlice slice, PSequence value) {
+        throw new UnsupportedOperationException();
     }
 
-    @Specialization
-    public boolean doBoolean(VirtualFrame frame, boolean right) {
-        getPList(frame).append(right);
-        return right;
+    @Override
+    public final void setSlice(int start, int stop, int step, PSequence value) {
+        throw new UnsupportedOperationException();
     }
 
-    @Specialization
-    public int doInteger(VirtualFrame frame, int right) {
-        getPList(frame).append(right);
-        return right;
+    @Override
+    public final void delItem(int idx) {
+        throw new UnsupportedOperationException();
     }
 
-    @Specialization
-    public double doDouble(VirtualFrame frame, double right) {
-        getPList(frame).append(right);
-        return right;
+    @Override
+    public final void delItems(int start, int stop) {
+        throw new UnsupportedOperationException();
     }
-
-    @Specialization
-    public Object doObject(VirtualFrame frame, Object right) {
-        getPList(frame).append(right);
-        return right;
-    }
-
-    protected final PList getPList(Frame frame) {
-        return (PList) getObject(frame);
-    }
-
 }

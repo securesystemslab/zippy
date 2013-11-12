@@ -22,59 +22,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.runtime.sequence;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
+import java.util.Iterator;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.sequence.*;
 
-/**
- * Implements LIST_APPEND bytecode in CPython.
- * 
- */
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class ListAppendNode extends FrameSlotNode {
+public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
 
-    public abstract PNode getRightNode();
-
-    public ListAppendNode(FrameSlot frameSlot) {
-        super(frameSlot);
+    public Object __iter__() {
+        return new PSequenceIterator(this);
     }
 
-    protected ListAppendNode(ListAppendNode node) {
-        this(node.frameSlot);
-    }
+    @Override
+    public abstract int len();
 
-    @Specialization
-    public boolean doBoolean(VirtualFrame frame, boolean right) {
-        getPList(frame).append(right);
-        return right;
-    }
+    public abstract Object getItem(int idx);
 
-    @Specialization
-    public int doInteger(VirtualFrame frame, int right) {
-        getPList(frame).append(right);
-        return right;
-    }
+    public abstract void setItem(int idx, Object value);
 
-    @Specialization
-    public double doDouble(VirtualFrame frame, double right) {
-        getPList(frame).append(right);
-        return right;
-    }
+    public abstract Object getSlice(int start, int stop, int step, int length);
 
-    @Specialization
-    public Object doObject(VirtualFrame frame, Object right) {
-        getPList(frame).append(right);
-        return right;
-    }
+    public abstract Object getSlice(PSlice slice);
 
-    protected final PList getPList(Frame frame) {
-        return (PList) getObject(frame);
-    }
+    public abstract void setSlice(int start, int stop, int step, PSequence value);
+
+    public abstract void setSlice(PSlice slice, PSequence value);
+
+    public abstract void delItem(int idx);
+
+    public abstract void delItems(int start, int stop);
+
+    public abstract Iterator<Object> iterator();
+
+    public abstract Object[] getSequence();
+
+    public abstract boolean lessThan(PSequence sequence);
+
+    public abstract PSequence concat(PSequence sequence);
 
 }

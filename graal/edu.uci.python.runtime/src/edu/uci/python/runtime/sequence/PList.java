@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
@@ -30,8 +30,8 @@ import org.python.core.*;
 import org.python.util.Generic;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.sequence.*;
 
 public class PList extends PSequence {
 

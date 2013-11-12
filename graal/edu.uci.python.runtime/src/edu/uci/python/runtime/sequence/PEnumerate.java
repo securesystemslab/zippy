@@ -22,35 +22,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.sequence;
 
-public abstract class PImmutableSequence extends PSequence {
+import java.util.*;
 
-    // TODO should the UnsupportedOperationException actually be a Python
-    // exception?
-    // "TypeError: 'tuple' object does not support item assignment"
-    @Override
-    public final void setItem(int idx, Object value) {
-        throw new UnsupportedOperationException();
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.runtime.exception.*;
+
+public class PEnumerate extends PIterator implements Iterable<Object> {
+
+    private int start;
+    private int index;
+    private List<PTuple> list;
+
+    public PEnumerate(Iterable<?> iterable) {
+        this(iterable, 0);
+    }
+
+    public PEnumerate(Iterable<?> iterable, int start) {
+        this.list = new ArrayList<>();
+        this.start = start;
+        for (Object object : iterable) {
+            this.list.add(new PTuple(new Object[]{index, object}));
+            index++;
+        }
     }
 
     @Override
-    public final void setSlice(PSlice slice, PSequence value) {
-        throw new UnsupportedOperationException();
+    public Iterator<Object> iterator() {
+        return new Iterator<Object>() {
+
+            private final Iterator<PTuple> iter = list.iterator();
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+
+            public Object next() {
+                return iter.next();
+            }
+        };
     }
 
     @Override
-    public final void setSlice(int start, int stop, int step, PSequence value) {
-        throw new UnsupportedOperationException();
+    public Object __next__(VirtualFrame frame) {
+        if (index < list.size()) {
+            return list.get(index++);
+        }
+
+        throw StopIterationException.INSTANCE;
     }
 
-    @Override
-    public final void delItem(int idx) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final void delItems(int start, int stop) {
-        throw new UnsupportedOperationException();
-    }
 }

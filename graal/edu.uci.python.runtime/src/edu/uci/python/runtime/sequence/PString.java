@@ -22,38 +22,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.sequence;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 
-import edu.uci.python.runtime.exception.*;
+public class PString extends PImmutableSequence implements Iterable<Object> {
 
-public class PEnumerate extends PIterator implements Iterable<Object> {
+    private final String value;
 
-    private int start;
-    private int index;
-    private List<PTuple> list;
+    private static StringAttribute stringModule = new StringAttribute();
 
-    public PEnumerate(Iterable<?> iterable) {
-        this(iterable, 0);
+    public PString(String value) {
+        this.value = value;
     }
 
-    public PEnumerate(Iterable<?> iterable, int start) {
-        this.list = new ArrayList<>();
-        this.start = start;
-        for (Object object : iterable) {
-            this.list.add(new PTuple(new Object[]{index, object}));
-            index++;
+    @Override
+    public PCallable findAttribute(String name) {
+        PCallable method = stringModule.lookupMethod(name);
+        method.setSelf(value);
+        return method;
+    }
+
+    public List<String> getList() {
+        ArrayList<String> list = new ArrayList<>();
+
+        char[] array = value.toCharArray();
+        for (int i = 0; i < array.length; i++) {
+            list.add(String.valueOf(array[i]));
         }
+
+        return list;
     }
 
     @Override
     public Iterator<Object> iterator() {
         return new Iterator<Object>() {
 
-            private final Iterator<PTuple> iter = list.iterator();
+            private final Iterator<String> iter = getList().iterator();
 
             public void remove() {
                 throw new UnsupportedOperationException();
@@ -70,12 +80,37 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
     }
 
     @Override
-    public Object __next__(VirtualFrame frame) {
-        if (index < list.size()) {
-            return list.get(index++);
-        }
-
-        throw StopIterationException.INSTANCE;
+    public int len() {
+        return value.length();
     }
 
+    @Override
+    public Object getItem(int idx) {
+        return value.charAt(idx);
+    }
+
+    @Override
+    public Object getSlice(int start, int stop, int step, int length) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getSlice(PSlice slice) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object[] getSequence() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean lessThan(PSequence sequence) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PSequence concat(PSequence sequence) {
+        throw new UnsupportedOperationException();
+    }
 }

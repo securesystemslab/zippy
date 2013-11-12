@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
 public abstract class BinaryBitwiseNode extends BinaryOpNode {
 

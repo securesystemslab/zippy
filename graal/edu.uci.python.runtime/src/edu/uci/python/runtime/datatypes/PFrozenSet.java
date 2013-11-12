@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.sequence.*;
+
 public class PFrozenSet extends PBaseSet {
 
     public PFrozenSet() {

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import edu.uci.python.runtime.datatypes.*;
-
 public class SequenceUtil {
 
     /**

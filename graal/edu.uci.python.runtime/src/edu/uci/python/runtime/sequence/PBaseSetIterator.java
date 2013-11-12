@@ -22,59 +22,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.sequence;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-import edu.uci.python.runtime.modules.*;
+import com.oracle.truffle.api.frame.*;
 
-public class PString extends PythonBuiltinObject implements Iterable<Object> {
+import edu.uci.python.runtime.exception.*;
 
-    private final String value;
+public class PBaseSetIterator extends PIterator {
 
-    private static StringAttribute stringModule = new StringAttribute();
+    private final Iterator<?> setIterator;
 
-    public PString(String value) {
-        this.value = value;
+    public PBaseSetIterator(PBaseSet baseSet) {
+        this.setIterator = baseSet.iterator();
     }
 
     @Override
-    public PCallable findAttribute(String name) {
-        PCallable method = stringModule.lookupMethod(name);
-        method.setSelf(value);
-        return method;
-    }
-
-    public List<String> getList() {
-        ArrayList<String> list = new ArrayList<>();
-
-        char[] array = value.toCharArray();
-        for (int i = 0; i < array.length; i++) {
-            list.add(String.valueOf(array[i]));
+    public Object __next__(VirtualFrame frame) {
+        if (setIterator.hasNext()) {
+            return setIterator.next();
         }
 
-        return list;
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<String> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+        throw StopIterationException.INSTANCE;
     }
 }
