@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
@@ -96,10 +95,5 @@ public abstract class ForNode extends LoopNode {
             target.execute(frame);
             body.executeVoid(frame);
         }
-    }
-
-    @Override
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitForNode(this);
     }
 }

@@ -22,12 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.truffle;
+package edu.uci.python.shell;
 
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class ASTInterpreter {

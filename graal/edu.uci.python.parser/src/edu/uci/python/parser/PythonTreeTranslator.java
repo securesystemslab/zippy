@@ -48,7 +48,6 @@ import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import static edu.uci.python.parser.TranslationUtil.*;
@@ -61,8 +60,6 @@ public class PythonTreeTranslator extends Visitor {
     private final LoopsBookKeeper loops;
     private final AssignmentTranslator assigns;
     private final PythonParseResult result;
-
-    private boolean isGenerator = false;
 
     public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
         this.context = context;
@@ -122,21 +119,10 @@ public class PythonTreeTranslator extends Visitor {
         String name = node.getInternalName();
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
-        isGenerator = false;
 
         ParametersNode parameters = visitArgs(node.getInternalArgs());
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
-
-        if (isGenerator) {
-            body = new ASTLinearizer((BlockNode) body).linearize();
-            RootNode genRoot = factory.createGeneratorRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-            PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, genRoot, parameters);
-            ReadNode read = environment.findVariable(name);
-            PNode writeOrStore = read.makeWriteNode(funcDef);
-            environment.endScope(node);
-            return writeOrStore;
-        }
 
         FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
         result.addParsedFunction(name, funcRoot);
@@ -667,7 +653,6 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitYield(Yield node) throws Exception {
-        isGenerator = true;
         PNode right = (PNode) visit(node.getInternalValue());
         return factory.createYield(right);
     }

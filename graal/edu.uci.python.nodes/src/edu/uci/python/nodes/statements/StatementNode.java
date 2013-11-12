@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.statements;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.translation.*;
 
 /**
  * New StatementNode replacing stmt.
@@ -47,10 +46,6 @@ public abstract class StatementNode extends PNode {
     public StatementNode next() {
         assert this.next != null : "next is not initialized";
         return next;
-    }
-
-    public <R> R accept(StatementVisitor<R> visitor) {
-        return visitor.visitStatementNode(this);
     }
 
     @Override
