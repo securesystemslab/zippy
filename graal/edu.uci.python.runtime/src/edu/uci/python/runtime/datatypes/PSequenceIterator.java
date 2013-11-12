@@ -24,58 +24,25 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.exception.*;
 
-public class PEnumerate extends PIterator implements Iterable<Object> {
+public class PSequenceIterator extends PIterator {
 
-    private int start;
+    private final PSequence sequence;
     private int index;
-    private List<PTuple> list;
 
-    public PEnumerate(Iterable<?> iterable) {
-        this(iterable, 0);
-    }
-
-    public PEnumerate(Iterable<?> iterable, int start) {
-        this.list = new ArrayList<>();
-        this.start = start;
-        for (Object object : iterable) {
-            this.list.add(new PTuple(new Object[]{index, object}));
-            index++;
-        }
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<PTuple> iter = list.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+    public PSequenceIterator(PSequence sequence) {
+        this.sequence = sequence;
     }
 
     @Override
     public Object __next__(VirtualFrame frame) {
-        if (index < list.size()) {
-            return list.get(index++);
+        if (index < sequence.len()) {
+            return sequence.getItem(index++);
         }
 
         throw StopIterationException.INSTANCE;
     }
-
 }

@@ -55,7 +55,6 @@ public class GeneratorDefinitionNode extends FunctionRootNode {
         while (current != null) {
             try {
                 current.executeVoid(continuingFrame);
-                current = current.next();
             } catch (ExplicitYieldException eye) {
                 return eye.getValue();
             }

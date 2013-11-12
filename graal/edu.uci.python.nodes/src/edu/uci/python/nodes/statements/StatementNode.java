@@ -27,30 +27,9 @@ package edu.uci.python.nodes.statements;
 import edu.uci.python.nodes.*;
 
 /**
- * New StatementNode replacing stmt.
- * 
- * @author zwei
+ * Base class for most statements, except for FrameSlotNodes.
  * 
  */
 public abstract class StatementNode extends PNode {
-
-    /**
-     * StatementNodes can form a linearized linked list.
-     */
-    private StatementNode next;
-
-    protected void setNext(StatementNode next) {
-        this.next = next;
-    }
-
-    public StatementNode next() {
-        assert this.next != null : "next is not initialized";
-        return next;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName();
-    }
 
 }
