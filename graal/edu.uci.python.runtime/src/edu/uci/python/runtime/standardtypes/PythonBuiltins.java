@@ -47,6 +47,14 @@ public abstract class PythonBuiltins {
         builtinClasses.put(name, clazz);
     }
 
+    public PBuiltinFunction getBuiltinFunction(String name) {
+        return builtinFunctions.get(name);
+    }
+
+    public PBuiltinClass getBuiltinClass(String name) {
+        return builtinClasses.get(name);
+    }
+
     public Map<String, PBuiltinFunction> getBuiltinFunctions() {
         return builtinFunctions;
     }

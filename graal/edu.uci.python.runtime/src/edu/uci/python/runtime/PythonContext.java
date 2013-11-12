@@ -26,6 +26,7 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonContext {
@@ -34,14 +35,12 @@ public class PythonContext {
 
     private final PythonCore pythonCore;
 
-    private final PythonBuiltins builtins;
-
-    public PythonContext(PythonOptions opts, PythonBuiltins builtins) {
+    public PythonContext(PythonOptions opts) {
         this.options = opts;
-        this.builtins = builtins;
         this.pythonCore = new PythonCore(this);
-        this.builtins.initialize();
+        PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
         this.pythonCore.initialize();
+        PythonModulesContainer.initialize();
     }
 
     public PythonOptions getPythonOptions() {
@@ -58,9 +57,5 @@ public class PythonContext {
 
     public PythonCore getPythonCore() {
         return pythonCore;
-    }
-
-    public PythonBuiltins getBuiltins() {
-        return builtins;
     }
 }

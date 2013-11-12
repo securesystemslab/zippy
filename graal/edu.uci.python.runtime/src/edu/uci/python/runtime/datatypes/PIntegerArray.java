@@ -123,7 +123,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 

@@ -77,7 +77,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final PCallable callable = (PCallable) callee.execute(frame);
+        final PythonCallable callable = (PythonCallable) callee.execute(frame);
         return executeCall(frame, callable);
     }
 

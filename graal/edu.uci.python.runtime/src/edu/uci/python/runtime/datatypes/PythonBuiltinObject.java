@@ -65,7 +65,7 @@ public abstract class PythonBuiltinObject {
     }
 
     @SuppressWarnings("unused")
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 }

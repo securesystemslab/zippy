@@ -24,63 +24,13 @@
  */
 package edu.uci.python.runtime.modules;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class StringAttribute extends PModule {
 
-    public StringAttribute() {
+    public StringAttribute(PythonBuiltins builtins) {
         super("str");
-        try {
-            addAttributeMethods();
-        } catch (NoSuchMethodException | SecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-
-    @ModuleMethod
-    public String join(Object[] args, Object self) {
-        if (args.length == 1) {
-            return join(args[0], self);
-        } else {
-            throw new RuntimeException("wrong number of arguments for join()");
-        }
-    }
-
-    public String join(Object arg, Object self) {
-        if (arg instanceof String) {
-            StringBuilder sb = new StringBuilder();
-            char[] joinString = ((String) arg).toCharArray();
-            for (int i = 0; i < joinString.length - 1; i++) {
-                sb.append(Character.toString(joinString[i]));
-                sb.append((String) self);
-            }
-            sb.append(Character.toString(joinString[joinString.length - 1]));
-
-            return sb.toString();
-        } else if (arg instanceof PSequence) {
-            StringBuilder sb = new StringBuilder();
-            Object[] stringList = ((PSequence) arg).getSequence();
-            for (int i = 0; i < stringList.length - 1; i++) {
-                sb.append((String) stringList[i]);
-                sb.append((String) self);
-            }
-            sb.append((String) stringList[stringList.length - 1]);
-
-            return sb.toString();
-        } else if (arg instanceof PCharArray) {
-            StringBuilder sb = new StringBuilder();
-            char[] stringList = ((PCharArray) arg).getSequence();
-            for (int i = 0; i < stringList.length - 1; i++) {
-                sb.append(Character.toString(stringList[i]));
-                sb.append((String) self);
-            }
-            sb.append(Character.toString(stringList[stringList.length - 1]));
-
-            return sb.toString();
-        } else {
-            throw new RuntimeException("invalid arguments type for join()");
-        }
+        this.builtins = builtins;
+        builtins.initialize();
     }
 }

@@ -27,12 +27,10 @@ package edu.uci.python.runtime.modules;
 import java.lang.reflect.*;
 import java.util.*;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
-import com.oracle.truffle.api.frame.PackedFrame;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * The Python <code>Module</code> class.
@@ -41,7 +39,9 @@ public class PModule extends PythonBuiltinObject {
 
     private final String name;
 
-    private final Map<String, PCallable> methods = new HashMap<>();
+    protected PythonBuiltins builtins;
+
+    private final Map<String, PythonCallable> methods = new HashMap<>();
     private final Map<String, Object> constants = new HashMap<>();
 
     // The context is stored here - objects can obtain it via their class (which
@@ -77,8 +77,8 @@ public class PModule extends PythonBuiltinObject {
      * Add a method to the module. Only adds it to the module itself - not the singleton class of
      * the module instance.
      */
-    public void addMethod(PCallable method) {
-        methods.put(method.getName(), method);
+    public void addMethod(String methodName, PythonCallable method) {
+        methods.put(methodName, method);
     }
 
     /**
@@ -102,18 +102,36 @@ public class PModule extends PythonBuiltinObject {
         return null;
     }
 
-    public PCallable lookupMethod(String methodName) {
-        PCallable method;
-
-        // Look in this module
-        method = methods.get(methodName);
-
-        if (method != null) {
-            return method;
-        }
-
+    public PythonCallable lookupMethod(String methodName) {
+        return builtins.getBuiltinFunction(methodName);
+        // PythonCallable method;
+        //
+        // // Look in this module
+        // method = methods.get(methodName);
+        //
+        // if (method != null) {
+        // return method;
+        // }
         // Not found
-        return null;
+        // return null;
+        // }
+    }
+
+    public PythonCallable lookupAttributeMethod(String methodName, Object self) {
+        PBuiltinFunction builtinFunction = builtins.getBuiltinFunction(methodName);
+        builtinFunction.setSelf(self);
+        return builtinFunction;
+        // PythonCallable method;
+        //
+        // // Look in this module
+        // method = methods.get(methodName);
+        //
+        // if (method != null) {
+        // return method;
+        // }
+        // Not found
+        // return null;
+        // }
     }
 
     /**
@@ -137,6 +155,7 @@ public class PModule extends PythonBuiltinObject {
      * Load methods that are marked with @ModuleMethod in this class into the module.
      */
     public void addBuiltInMethods() {
+        builtins.initialize();
         try {
             addBuiltInMethods(this.getClass());
         } catch (NoSuchMethodException | SecurityException e) {
@@ -167,31 +186,30 @@ public class PModule extends PythonBuiltinObject {
                 final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class});
 
                 final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
-
-                final PCallable pythonMethod = new PCallable(methodName) {
-
-                    @SlowPath
-                    @Override
-                    public Object call(PackedFrame caller, Object arg) {
-                        try {
-                            return method1.invoke(finalDefiningModule, new Object[]{arg});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                    @SlowPath
-                    @Override
-                    public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
-                        try {
-                            return finalMethod.invoke(finalDefiningModule, new Object[]{args, keywords});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                };
-                addMethod(pythonMethod);
+// final PCallable pythonMethod = new PCallable(methodName) {
+//
+// @SlowPath
+// @Override
+// public Object call(PackedFrame caller, Object arg) {
+// try {
+// return method1.invoke(finalDefiningModule, new Object[]{arg});
+// } catch (IllegalAccessException | InvocationTargetException e) {
+// throw new RuntimeException(e);
+// }
+// }
+//
+// @SlowPath
+// @Override
+// public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
+// try {
+// return finalMethod.invoke(finalDefiningModule, new Object[]{args, keywords});
+// } catch (IllegalAccessException | InvocationTargetException e) {
+// throw new RuntimeException(e);
+// }
+// }
+//
+// };
+// addMethod(methodName, pythonMethod);
             }
         }
     }
@@ -219,29 +237,30 @@ public class PModule extends PythonBuiltinObject {
 
                 final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
 
-                final PCallable pythonMethod = new PCallable(methodName, true) {
-
-                    @Override
-                    public Object call(PackedFrame caller, Object arg) {
-                        try {
-                            return method1.invoke(finalDefiningModule, new Object[]{arg, this.self});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                    @Override
-                    public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
-                        try {
-                            return finalMethod.invoke(finalDefiningModule, new Object[]{args, this.self});
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-
-                };
-
-                addMethod(pythonMethod);
+// final PythonCallable pythonMethod = new PythonCallable() {
+//
+// final PCallable pythonMethod = new PCallable(methodName, true) {
+//
+// @Override
+// public Object call(PackedFrame caller, Object arg) {
+// try {
+// return method1.invoke(finalDefiningModule, new Object[]{arg, this.self});
+// } catch (IllegalAccessException | InvocationTargetException e) {
+// throw new RuntimeException(e);
+// }
+// }
+//
+// @Override
+// public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
+// try {
+// return finalMethod.invoke(finalDefiningModule, new Object[]{args, this.self});
+// } catch (IllegalAccessException | InvocationTargetException e) {
+// throw new RuntimeException(e);
+// }
+// }
+//
+// };
+// addMethod(methodName, pythonMethod);
             }
         }
     }
@@ -267,7 +286,8 @@ public class PModule extends PythonBuiltinObject {
     }
 
     @Override
-    public PCallable findAttribute(String attrName) {
+    // public PCallable findAttribute(String attrName) {
+    public PythonCallable findAttribute(String attrName) {
         return lookupMethod(attrName);
     }
 

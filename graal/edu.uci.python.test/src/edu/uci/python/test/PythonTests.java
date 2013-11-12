@@ -86,6 +86,6 @@ public class PythonTests {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
-        return new PythonContext(opts, new PythonDefaultBuiltins());
+        return new PythonContext(opts);
     }
 }

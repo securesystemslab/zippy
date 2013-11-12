@@ -159,7 +159,7 @@ public class PComplex extends PythonBuiltinObject {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 

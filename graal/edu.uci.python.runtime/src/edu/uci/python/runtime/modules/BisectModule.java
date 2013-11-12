@@ -28,12 +28,15 @@ import java.util.Arrays;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class BisectModule extends PModule {
 
-    public BisectModule() {
+    public BisectModule(PythonBuiltins builtins) {
         super("bisect");
-        addBuiltInMethods();
+        this.builtins = builtins;
+        builtins.initialize();
+        // addBuiltInMethods();
     }
 
     @ModuleMethod

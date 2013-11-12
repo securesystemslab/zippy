@@ -152,7 +152,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 

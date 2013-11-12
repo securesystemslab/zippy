@@ -214,7 +214,7 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 

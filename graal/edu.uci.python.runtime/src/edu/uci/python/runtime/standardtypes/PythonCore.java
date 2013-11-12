@@ -52,11 +52,12 @@ public class PythonCore {
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonClass(context, objectClass, "module");
 
-        if (PythonOptions.UseSpecializedBuiltins) {
-            builtinsModule = new BuiltinsModule(moduleClass, "__builtins__", context.getBuiltins());
-        } else {
-            builtinsModule = new BuiltinsModule(moduleClass, "__builtins__", null);
-        }
+        // if (PythonOptions.UseSpecializedBuiltins) {
+        // builtinsModule = new BuiltinsModule(moduleClass, "__builtins__",
+// context.getDefaultBuiltins());
+        // } else {
+        builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
+        // }
 
         builtinsModule.setAttribute("object", objectClass);
 

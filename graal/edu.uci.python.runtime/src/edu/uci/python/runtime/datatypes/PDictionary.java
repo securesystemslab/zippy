@@ -34,8 +34,6 @@ public class PDictionary extends PythonBuiltinObject {
 
     private final Map<Object, Object> map;
 
-    public static final DictionaryAttribute dictModule = new DictionaryAttribute();
-
     public PDictionary() {
         map = new ConcurrentHashMap<>();
     }
@@ -78,9 +76,9 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
-        PCallable method = dictModule.lookupMethod(name);
-        method.setSelf(this);
+    public PythonCallable findAttribute(String name) {
+        PythonCallable method = PythonModulesContainer.dictionaryModule.lookupAttributeMethod(name, this);
+        // method.setSelf(this);
         return method;
     }
 

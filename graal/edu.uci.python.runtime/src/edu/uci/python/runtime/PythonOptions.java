@@ -43,7 +43,7 @@ public class PythonOptions {
 
     public static final boolean InlineFunctionCalls = true;
 
-    public static final boolean UseSpecializedBuiltins = false;
+    public static final boolean UseSpecializedBuiltins = true;
 
     private PrintStream standardOut = System.out;
 
