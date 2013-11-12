@@ -29,7 +29,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.builtins.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.modules.*;
 
