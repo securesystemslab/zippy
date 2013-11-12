@@ -102,7 +102,7 @@ class Deoptimization : AllStatic {
   enum {
     _action_bits = 3,
     _reason_bits = 5,
-    _speculation_id_bits = 16,
+    _speculation_id_bits = 23,
     _action_shift = 0,
     _reason_shift = _action_shift+_action_bits,
     _speculation_id_shift = _reason_shift+_reason_bits,
