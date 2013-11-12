@@ -31,9 +31,9 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 
 /**
- * A wrapper node for {@link ComprehensionNode}s.<br>
+ * A wrapper node for {@link GeneratorLoopNode}s.<br>
  * 
- * It evaluates its children {@link ComprehensionNode}s and returns the result as a {@link PList}.
+ * It evaluates its children {@link GeneratorLoopNode}s and returns the result as a {@link PList}.
  * 
  */
 public class ListComprehensionNode extends FrameSlotNode {

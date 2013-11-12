@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
@@ -40,7 +39,7 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    public ForNode(PNode target, StatementNode body) {
+    public ForNode(PNode target, PNode body) {
         super(body);
         this.target = adoptChild(target);
     }

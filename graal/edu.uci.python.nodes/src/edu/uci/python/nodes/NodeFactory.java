@@ -35,9 +35,9 @@ import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.generator.ComprehensionNodeFactory.InnerComprehensionNodeFactory;
-import edu.uci.python.nodes.generator.ComprehensionNodeFactory.OuterComprehensionNodeFactory;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.InnerGeneratorLoopNodeFactory;
+import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.OuterGeneratorLoopNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
@@ -269,12 +269,12 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public PNode createOuterComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
-        return OuterComprehensionNodeFactory.create(target, condition, innerLoop, iterator);
+    public PNode createOuterGeneratorLoop(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
+        return OuterGeneratorLoopNodeFactory.create(target, condition, innerLoop, iterator);
     }
 
-    public PNode createInnerComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode loopBody) {
-        return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
+    public PNode createInnerGeneratorLoop(PNode target, PNode iterator, BooleanCastNode condition, PNode loopBody) {
+        return InnerGeneratorLoopNodeFactory.create(target, condition, loopBody, iterator);
     }
 
     public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
@@ -290,7 +290,7 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorExpressionRootNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
+    public GeneratorExpressionRootNode createGenerator(GeneratorLoopNode comprehension, PNode returnValue) {
         return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 

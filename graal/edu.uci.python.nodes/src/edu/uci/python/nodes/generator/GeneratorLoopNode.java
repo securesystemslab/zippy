@@ -33,51 +33,42 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
 @NodeChild(value = "iteratorNode", type = PNode.class)
-public abstract class ComprehensionNode extends StatementNode {
+public abstract class GeneratorLoopNode extends LoopNode {
+
+    @Child protected BooleanCastNode condition;
+    @Child protected PNode target;
+    protected Iterator<?> iterator;
 
     public abstract PNode getIteratorNode();
 
-    @Child protected BooleanCastNode condition;
-
-    @Child protected PNode target;
-
-    protected Iterator<?> iterator;
-
-    public ComprehensionNode(PNode target, BooleanCastNode condition) {
+    public GeneratorLoopNode(PNode target, BooleanCastNode condition, PNode loopBody) {
+        super(loopBody);
         this.target = adoptChild(target);
         this.condition = adoptChild(condition);
     }
 
-    protected ComprehensionNode(ComprehensionNode node) {
-        this(node.target, node.condition);
+    protected GeneratorLoopNode(GeneratorLoopNode node) {
+        this(node.target, node.condition, node.body);
     }
 
     protected boolean evaluateCondition(VirtualFrame frame) {
         return condition == null || condition.executeBoolean(frame);
     }
 
-    @SuppressWarnings("unused")
-    protected void generateNextValue(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
-    }
+    public abstract static class InnerGeneratorLoopNode extends GeneratorLoopNode {
 
-    public abstract static class InnerComprehensionNode extends ComprehensionNode {
-
-        @Child protected PNode loopBody;
-
-        public InnerComprehensionNode(PNode target, BooleanCastNode condition, PNode loopBody) {
-            super(target, condition);
+        public InnerGeneratorLoopNode(PNode target, BooleanCastNode condition, PNode loopBody) {
+            super(target, condition, loopBody);
             assert loopBody != null;
-            this.loopBody = adoptChild(loopBody);
         }
 
-        protected InnerComprehensionNode(InnerComprehensionNode node) {
-            this(node.target, node.condition, node.loopBody);
+        protected InnerGeneratorLoopNode(InnerGeneratorLoopNode node) {
+            this(node.target, node.condition, node.body);
         }
 
         @Specialization
@@ -92,10 +83,9 @@ public abstract class ComprehensionNode extends StatementNode {
             }
 
             iterator = null;
-            throw new StopIterationException();
+            throw StopIterationException.INSTANCE;
         }
 
-        @Override
         protected void generateNextValue(VirtualFrame frame, Object value) {
             ((WriteNode) target).executeWrite(frame, value);
 
@@ -103,25 +93,23 @@ public abstract class ComprehensionNode extends StatementNode {
                 return;
             }
 
-            Object result = loopBody.execute(frame);
+            Object result = body.execute(frame);
             throw new ExplicitYieldException(result);
         }
     }
 
-    public abstract static class OuterComprehensionNode extends ComprehensionNode {
+    public abstract static class OuterGeneratorLoopNode extends GeneratorLoopNode {
 
-        @Child protected PNode innerLoop;
         protected Object currentValue;
 
-        public OuterComprehensionNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
-            super(target, condition);
+        public OuterGeneratorLoopNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
+            super(target, condition, innerLoop);
             assert condition == null;
             assert innerLoop != null;
-            this.innerLoop = adoptChild(innerLoop);
         }
 
-        protected OuterComprehensionNode(OuterComprehensionNode node) {
-            this(node.target, node.condition, node.innerLoop);
+        protected OuterGeneratorLoopNode(OuterGeneratorLoopNode node) {
+            this(node.target, node.condition, node.body);
         }
 
         @Specialization
@@ -142,7 +130,7 @@ public abstract class ComprehensionNode extends StatementNode {
             } while (iterator.hasNext());
 
             iterator = null;
-            throw new StopIterationException();
+            throw StopIterationException.INSTANCE;
         }
 
         @Specialization
@@ -161,10 +149,9 @@ public abstract class ComprehensionNode extends StatementNode {
                 generateNextValue(frame, value);
             }
 
-            throw new StopIterationException();
+            throw StopIterationException.INSTANCE;
         }
 
-        @Override
         protected void generateNextValue(VirtualFrame frame, Object value) {
             ((WriteNode) target).executeWrite(frame, value);
 
@@ -172,7 +159,7 @@ public abstract class ComprehensionNode extends StatementNode {
                 return;
             }
 
-            innerLoop.execute(frame);
+            body.execute(frame);
         }
     }
 }

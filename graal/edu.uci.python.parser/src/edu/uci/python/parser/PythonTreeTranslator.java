@@ -480,15 +480,9 @@ public class PythonTreeTranslator extends Visitor {
             PNode condition = (conditions == null || conditions.isEmpty()) ? null : (PNode) visit(conditions.get(0));
 
             if (i == 0) {
-                // inner most
-                PNode loopBody = (PNode) visit(body);
-                current = factory.createInnerComprehension(target, iterator, factory.toBooleanCastNode(condition), loopBody);
-            } else if (i < reversed.size() - 1) {
-                // inner
-                current = factory.createInnerComprehension(target, iterator, factory.toBooleanCastNode(condition), current);
+                current = factory.createInnerGeneratorLoop(target, iterator, factory.toBooleanCastNode(condition), (PNode) visit(body));
             } else {
-                // outer
-                current = factory.createOuterComprehension(target, iterator, factory.toBooleanCastNode(condition), current);
+                current = factory.createOuterGeneratorLoop(target, iterator, factory.toBooleanCastNode(condition), current);
             }
         }
 
@@ -499,7 +493,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
-        ComprehensionNode comprehension = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        GeneratorLoopNode comprehension = (GeneratorLoopNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorExpressionRootNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);

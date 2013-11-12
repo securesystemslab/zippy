@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "iterator", type = PNode.class)
@@ -40,7 +39,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected WriteLocalVariableNode target;
 
-    public ForWithLocalTargetNode(WriteLocalVariableNode target, StatementNode body) {
+    public ForWithLocalTargetNode(WriteLocalVariableNode target, PNode body) {
         super(body);
         this.target = adoptChild(target);
     }
