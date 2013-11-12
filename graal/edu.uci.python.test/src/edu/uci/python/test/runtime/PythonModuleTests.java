@@ -31,6 +31,7 @@ import org.junit.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
+import edu.uci.python.builtins.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -39,6 +40,7 @@ public class PythonModuleTests {
 
     @Test
     public void pythonModuleTest() {
+        PythonBuiltinsInitializer.initialize();
         final PythonContext context = new PythonContext(new PythonOptions());
         PythonModule module = new PythonModule(new PythonClass(context, null, "module"));
 
@@ -50,6 +52,7 @@ public class PythonModuleTests {
 
     @Test
     public void builtinsMinTest() {
+        PythonBuiltinsInitializer.initialize();
         final PythonContext context = new PythonContext(new PythonOptions());
         final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
@@ -60,6 +63,7 @@ public class PythonModuleTests {
 
     @Test
     public void builtinsIntTest() {
+        PythonBuiltinsInitializer.initialize();
         final PythonContext context = new PythonContext(new PythonOptions());
         final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
         PBuiltinFunction intFunc = (PBuiltinFunction) builtins.getAttribute("int");
@@ -70,6 +74,7 @@ public class PythonModuleTests {
 
     @Test
     public void mainModuleTest() {
+        PythonBuiltinsInitializer.initialize();
         final PythonContext context = new PythonContext(new PythonOptions());
         PythonModule main = context.getPythonCore().getMainModule();
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
