@@ -25,7 +25,6 @@
 package edu.uci.python.nodes;
 
 import java.math.BigInteger;
-import java.util.*;
 
 import org.python.core.*;
 
@@ -144,10 +143,6 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPythonBuiltinObject(execute(frame));
     }
 
-    public PEnumerate executePEnumerate(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPEnumerate(execute(frame));
-    }
-
     public PythonClass executePythonClass(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPythonClass(execute(frame));
     }
@@ -166,10 +161,6 @@ public abstract class PNode extends Node {
 
     public PRangeIterator executePRangeIterator(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPRangeIterator(execute(frame));
-    }
-
-    public Iterator executeIterator(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectIterator(execute(frame));
     }
 
     public PythonCallable executePythonCallable(VirtualFrame frame) throws UnexpectedResultException {

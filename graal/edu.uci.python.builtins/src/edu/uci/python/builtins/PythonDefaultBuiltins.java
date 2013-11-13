@@ -274,22 +274,22 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             // @SuppressWarnings("unused")
             // @Specialization(guards = "noKeywordArg")
             @Specialization
-            public PEnumerate enumerate(String str) {
+            public PIterator enumerate(String str) {
                 return new PEnumerate(new PString(str));
             }
 
             @Specialization
-            public PEnumerate enumerate(PSequence sequence) {
+            public PIterator enumerate(PSequence sequence) {
                 return new PEnumerate(sequence);
             }
 
             @Specialization
-            public PEnumerate enumerate(PBaseSet set) {
+            public PIterator enumerate(PBaseSet set) {
                 return new PEnumerate(set);
             }
 
             @Specialization
-            public PEnumerate enumerate(Object arg) {
+            public PIterator enumerate(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
                     return new PEnumerate(stringToCharList(str));
@@ -606,6 +606,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public int next(Object iterator) {
                 return 10;

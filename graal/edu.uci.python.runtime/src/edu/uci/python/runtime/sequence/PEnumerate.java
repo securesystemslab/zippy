@@ -76,5 +76,4 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
 
         throw StopIterationException.INSTANCE;
     }
-
 }
