@@ -34,6 +34,9 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
+/**
+ * User defined mutable class object.
+ */
 public class PythonClass extends PythonObject {
 
     private final String className;

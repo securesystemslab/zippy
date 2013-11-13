@@ -107,11 +107,18 @@ pythonTestBenchmarks = {
     'spectralnorm3' : '500',
 }
 
+python2MicroBenchmarks = {
+    'arith-binop'   : '0',
+    'for-range2'    : '0',
+    'function-call2': '0',
+    'list-comp'     : '0',
+}
+
 pythonMicroBenchmarks = {
     'arith-binop'   : '0',
     'for-range'     : '0',
     'function-call' : '0',
-    'list-comp' : '0',
+    'list-comp'     : '0',
 }
 
 pythonBenchmarks = {
@@ -306,6 +313,18 @@ def getPythonTestBenchmarks(vm):
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getPython2MicroBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = python2MicroBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         vmOpts = ['-Xms2g', '-Xmx2g']
         tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))

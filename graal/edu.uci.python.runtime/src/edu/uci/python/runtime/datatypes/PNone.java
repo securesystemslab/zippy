@@ -25,8 +25,7 @@
 package edu.uci.python.runtime.datatypes;
 
 /**
- * Represent None object.
- * 
+ * Python None.
  */
 public final class PNone {
 
@@ -39,5 +38,4 @@ public final class PNone {
     public String toString() {
         return "";
     }
-
 }

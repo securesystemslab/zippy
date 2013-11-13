@@ -54,7 +54,7 @@ public class PythonBasicObject {
     protected double primitiveDoubleStorageLocation5;
     protected double primitiveDoubleStorageLocation6;
 
-    // A bit map to indicate which primitives are set, so that they can be Nil
+    // A bit map to indicate which primitives are set.
     protected int primitiveSetMap;
 
     protected Object[] objectStorageLocations = null;

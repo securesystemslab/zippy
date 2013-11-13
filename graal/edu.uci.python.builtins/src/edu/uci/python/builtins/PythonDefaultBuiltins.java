@@ -908,12 +908,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             public static boolean caseStop(int stop, Object start, Object step) {
-                return (start instanceof PNone) && (step instanceof PNone);
+                return start == PNone.NONE && step == PNone.NONE;
             }
 
             @SuppressWarnings("unused")
             public static boolean caseStartStop(int start, int stop, Object step) {
-                return (step instanceof PNone);
+                return step == PNone.NONE;
             }
         }
 

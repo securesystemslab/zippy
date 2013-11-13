@@ -29,6 +29,9 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.objects.*;
 
+/**
+ * Application level mutable Python object.
+ */
 public class PythonObject extends PythonBasicObject {
 
     /**
