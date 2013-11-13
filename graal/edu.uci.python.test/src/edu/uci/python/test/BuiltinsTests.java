@@ -82,16 +82,112 @@ public class BuiltinsTests {
         assertPrints("A\n", source);
     }
 
-// @Test
-// public void complexTest() {
-// String source = " x = complex(2, 3)\n" + "print(x)" +
-//
-// "x = complex(3.4, 4.9)" +"print(x)" +
-//
-// "x = complex(2)" + "print(x)"
-//
-// "x = complex()"
-// "print(x)"
-// assertPrints("A\n", source);
-// }
+    @Test
+    public void complexTest() {
+        String source = "x = complex(2, 3)\n" + "print(x)\n" +
+
+        "x = complex(3.4, 4.9)\n" + "print(x)\n" +
+
+        "x = complex(2)\n" + "print(x)\n" + "x = complex()\n" + "print(x)\n";
+
+        assertPrints("(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n", source);
+    }
+
+    @Test
+    public void enumerateTest() {
+        String source = "list1 = [1000, 2000, 3000]\n" + "for s in enumerate(list1):\n" + "\tprint(s)\n";
+        assertPrints("(0, 1000)\n(1, 2000)\n(2, 3000)\n", source);
+    }
+
+    @Test
+    public void floatTest() {
+        String source = "x = float(2)\n" + "print(x)\n" +
+
+        "x = float('+1.23')\n" + "print(x)\n" +
+
+        "x = float('   -12345')\n" + "print(x)\n" +
+
+        "x = float('1e-003')\n" + "print(x)\n" +
+
+        "x = float('+1E6')\n" + "print(x)\n" +
+
+        "x = float()\n" + "print(x)\n";
+
+        assertPrints("2.0\n1.23\n-12345.0\n0.001\n1000000.0\n0.0\n", source);
+    }
+
+    @Test
+    public void intTest() {
+        String source = "x = int(3)\n" + "print(x)\n" +
+
+        "x = int(2.9)\n" + "print(x)\n" +
+
+        "x = int(\"4\")\n" + "print(x)\n" +
+
+        "x = int(2147483648)\n" + "print(x)\n" +
+
+        "x = int()\n" + "print(x)\n";
+
+        assertPrints("3\n2\n4\n2147483648\n0\n", source);
+    }
+
+    @Test
+    public void lenTest() {
+        String source = "value = \"hello\"\n" + "print(len(value))\n" +
+
+        "value = (100, 200, 300)\n" + "print(len(value))\n" +
+
+        "value = ['a', 'b', 'c', 'd']\n" + "print(len(value))\n" +
+
+        "value = {'id' : 17, 'name' : \"gulfem\"}\n" + "print(len(value))\n";
+
+        assertPrints("5\n3\n4\n2\n", source);
+    }
+
+    @Test
+    public void maxTest() {
+        String source = "x = max(10, 20)\n" + "print(x)\n" +
+
+        "x = max(20.8, 10.3)\n" + "print(x)";
+
+        assertPrints("20\n20.8\n", source);
+    }
+
+    @Test
+    public void rangeTest() {
+        String source = "print(list(range(10)))\n" +
+
+        "print(list(range(1, 11)))\n" +
+
+        "print(list(range(0, 30, 5)))\n";
+
+        assertPrints("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n[0, 5, 10, 15, 20, 25]\n", source);
+    }
+
+    @Test
+    public void iterTest() {
+        String source = "for element in iter(\"hello\"):\n\t" +
+
+        "print(element)\n" +
+
+        "for element in iter([10, 20, 30]):\n\t" +
+
+        "print(element)\n";
+
+        assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
+    }
+
+    @Test
+    public void isinstanceTest() {
+        String source = "class Student:\n\t" + "id = 1234\n" +
+
+        "student = Student()\n" +
+
+        "x = isinstance(student, Student)\n" +
+
+        "print(x)\n";
+
+        assertPrints("True\n", source);
+
+    }
 }
