@@ -29,6 +29,7 @@ import java.util.*;
 import org.python.core.__builtin__;
 
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class BuiltIns {
 
@@ -36,9 +37,9 @@ public class BuiltIns {
 
     public static HashMap<String, PModule> moduleMapInit() {
         HashMap<String, PModule> map = new HashMap<>();
-        map.put("array", new ArrayModule());
-        map.put("bisect", new BisectModule());
-        map.put("time", new TimeModule());
+        map.put("array", new ArrayModule(PythonBuiltinsContainer.getInstance().getArrayModuleBuiltins()));
+        map.put("bisect", new BisectModule(PythonBuiltinsContainer.getInstance().getBisectModuleBuiltins()));
+        map.put("time", new TimeModule(PythonBuiltinsContainer.getInstance().getTimeModuleBuiltins()));
         return map;
     }
 

@@ -110,6 +110,7 @@ public class PythonModule extends PythonBasicObject {
 
     @Override
     public void setAttribute(String name, Object value) {
+        assert value != null;
         unmodifiedAssumption.invalidate();
         super.setAttribute(name, value);
     }

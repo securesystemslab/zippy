@@ -131,7 +131,7 @@ public class PFrozenSet extends PBaseSet {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
+    public PythonCallable findAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 

@@ -61,7 +61,7 @@ public abstract class CallFunctionNode extends PNode {
     }
 
     @Specialization
-    public Object doPCallable(VirtualFrame frame, PythonCallable callee) {
+    public Object doPythonCallable(VirtualFrame frame, PythonCallable callee) {
         Object[] args = executeArguments(frame, arguments);
         Object[] kwords = executeArguments(frame, keywords);
         return callee.call(frame.pack(), args, kwords);

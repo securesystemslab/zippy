@@ -33,7 +33,6 @@ import org.python.core.*;
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinFunctionsFactory.*;
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinClassesFactory.*;
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
@@ -300,9 +299,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PEnumerate(baseSet);
-// } else if (arg instanceof PGenerator) {
-// PGenerator generator = (PGenerator) arg;
-// return new PEnumerate(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -763,11 +759,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PFrozenSet frozenset(PBaseSet baseSet) {
                 return new PFrozenSet(baseSet);
             }
-
-// @Specialization
-// public PFrozenSet frozenset(PGenerator arg) {
-// return new PFrozenSet(arg);
-// }
         }
 
         // int(x=0)
@@ -840,11 +831,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PList(baseSet);
             }
 
-// @Specialization
-// public PList list(PGenerator generator) {
-// return new PList(generator);
-// }
-
             @Specialization
             public PList list(Object arg) {
                 if (arg instanceof String) {
@@ -856,9 +842,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PList(baseSet);
-// } else if (arg instanceof PGenerator) {
-// PGenerator generator = (PGenerator) arg;
-// return new PList(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -957,11 +940,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PSet(baseSet);
             }
 
-// @Specialization
-// public PSet set(PGenerator arg) {
-// return new PSet(arg);
-// }
-
             @Specialization
             public PSet set(Object arg) {
                 if (arg instanceof String) {
@@ -973,9 +951,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PSet(baseSet);
-// } else if (arg instanceof PGenerator) {
-// PGenerator generator = (PGenerator) arg;
-// return new PSet(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -1013,12 +988,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PTuple(baseSet);
             }
 
-//
-// @Specialization
-// public PTuple tuple(PGenerator arg) {
-// return new PTuple(arg);
-// }
-
             @Specialization
             public PTuple tuple(Object arg) {
                 if (arg instanceof String) {
@@ -1030,9 +999,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PTuple(baseSet);
-// } else if (arg instanceof PGenerator) {
-// PGenerator generator = (PGenerator) arg;
-// return new PTuple(generator);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

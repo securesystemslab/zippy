@@ -22,31 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.calls;
+package edu.uci.python.builtins;
 
-import com.oracle.truffle.api.dsl.*;
-import edu.uci.python.nodes.PNode;
+import edu.uci.python.runtime.standardtypes.*;
 
-/**
- * @author Gulfem
- */
+public class PythonBuiltinsInitializer {
 
-@NodeChild(value = "arguments", type = PNode[].class)
-public abstract class PythonBuiltinNode extends PNode {
-
-    private final String name;
-
-    public PythonBuiltinNode(String name) {
-        this.name = name;
+    public static void initialize() {
+        PythonBuiltinsContainer.getInstance().setDefaultBuiltins(new PythonDefaultBuiltins());
+        PythonBuiltinsContainer.getInstance().setArrayModuleBuiltins(new ArrayModuleBuiltins());
+        PythonBuiltinsContainer.getInstance().setBisectModuleBuiltins(new BisectModuleBuiltins());
+        PythonBuiltinsContainer.getInstance().setTimeModuleBuiltins(new TimeModuleBuiltins());
+        PythonBuiltinsContainer.getInstance().setListBuiltins(new ListBuiltins());
+        PythonBuiltinsContainer.getInstance().setStringBuiltins(new StringBuiltins());
+        PythonBuiltinsContainer.getInstance().setDictionaryBuiltins(new DictionaryBuiltins());
     }
-
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return name;
-    }
-
 }

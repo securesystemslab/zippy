@@ -44,9 +44,7 @@ import edu.uci.python.runtime.sequence.*;
  */
 public class BuiltinsModule extends PythonModule {
 
-    private PythonBuiltins builtins;
-
-    public BuiltinsModule(PythonClass pythonClass, String name, PythonBuiltins builtins) {
+    public BuiltinsModule(PythonClass pythonClass, String name) {
         super(pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.setAttribute(__NAME__, name);
@@ -54,20 +52,19 @@ public class BuiltinsModule extends PythonModule {
         if (!PythonOptions.UseSpecializedBuiltins) {
             this.addBuiltinMethodsAndConstants(BuiltinsModule.class);
         } else {
-            this.builtins = builtins;
             addBuiltins();
         }
     }
 
     private void addBuiltins() {
-        Map<String, PBuiltinFunction> builtinFunctions = this.builtins.getBuiltinFunctions();
+        Map<String, PBuiltinFunction> builtinFunctions = PythonBuiltinsContainer.getInstance().getDefaultBuiltins().getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinFunction function = entry.getValue();
             setAttribute(methodName, function);
         }
 
-        Map<String, PBuiltinClass> builtinClasses = this.builtins.getBuiltinClasses();
+        Map<String, PBuiltinClass> builtinClasses = PythonBuiltinsContainer.getInstance().getDefaultBuiltins().getBuiltinClasses();
         for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinClass function = entry.getValue();

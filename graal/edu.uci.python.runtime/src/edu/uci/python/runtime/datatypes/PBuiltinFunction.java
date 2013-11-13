@@ -30,8 +30,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
-
 public class PBuiltinFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
@@ -48,6 +46,8 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
 
     private boolean takesVarArgs;
 
+    public Object self;
+
     public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
@@ -61,24 +61,25 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     public PBuiltinFunction(String name, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
+
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
+        if (self != null) {
+            return callTarget.call(caller, new PArguments(self, null, args));
+        }
+
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
         if (keywords.length == 0) {
-            if (PythonOptions.UseSpecializedBuiltins) {
-                checkForUnexpectedCall(args.length, keywords.length);
-            }
+            checkForUnexpectedCall(args.length, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
         } else {
-            if (PythonOptions.UseSpecializedBuiltins) {
-                checkForUnexpectedCall(args.length, keywords.length);
-            }
+            checkForUnexpectedCall(args.length, keywords.length);
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
@@ -117,6 +118,10 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
             argMessage = "at most " + maxNumOfArgs + " arguments";
             throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
         }
+    }
+
+    public void setSelf(Object self) {
+        this.self = self;
     }
 
     public CallTarget getCallTarget() {

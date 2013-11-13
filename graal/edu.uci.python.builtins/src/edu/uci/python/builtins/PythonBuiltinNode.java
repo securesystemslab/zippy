@@ -22,48 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.literals;
+package edu.uci.python.builtins;
 
-import java.util.*;
+import com.oracle.truffle.api.dsl.*;
+import edu.uci.python.nodes.PNode;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+/**
+ * @author Gulfem
+ */
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.sequence.*;
+@NodeChild(value = "arguments", type = PNode[].class)
+public abstract class PythonBuiltinNode extends PNode {
 
-public class SetLiteralNode extends LiteralNode {
+    private final String name;
 
-    @Children protected final PNode[] values;
-
-    public SetLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+    public PythonBuiltinNode(String name) {
+        this.name = name;
     }
 
-    protected SetLiteralNode(SetLiteralNode node) {
-        this(node.values);
-    }
-
-    @ExplodeLoop
-    @Override
-    public PSet executePSet(VirtualFrame frame) {
-        List<Object> elements = new ArrayList<>();
-
-        for (PNode v : this.values) {
-            elements.add(v.execute(frame));
-        }
-
-        return PythonTypesUtil.createSet(elements);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return executePSet(frame);
+    public String getName() {
+        return name;
     }
 
     @Override
     public String toString() {
-        return "list";
+        return name;
     }
+
 }

@@ -37,8 +37,6 @@ public class PList extends PSequence {
 
     private final List<Object> list;
 
-    public static final ListAttribute listModule = new ListAttribute();
-
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
     }
@@ -191,9 +189,8 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PCallable findAttribute(String name) {
-        PCallable method = listModule.lookupMethod(name);
-        method.setSelf(this);
+    public PythonCallable findAttribute(String name) {
+        PythonCallable method = PythonModulesContainer.listModule.lookupAttributeMethod(name, this);
         return method;
     }
 

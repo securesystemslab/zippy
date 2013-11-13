@@ -24,12 +24,12 @@
  */
 package edu.uci.python.nodes.generator;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
@@ -74,7 +74,7 @@ public abstract class ListAppendNode extends FrameSlotNode {
     }
 
     protected final PList getPList(Frame frame) {
-        return (PList) getObject(frame);
+        return CompilerDirectives.unsafeCast(getObject(frame), PList.class, true);
     }
 
 }

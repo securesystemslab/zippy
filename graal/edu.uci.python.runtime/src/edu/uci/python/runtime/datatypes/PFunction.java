@@ -31,23 +31,16 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
-public class PFunction extends PCallable {
+public class PFunction implements PythonCallable {
 
+    private final String name;
     private final List<String> parameters;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
 
     public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
-        super(name);
-        this.parameters = parameters;
-        this.callTarget = callTarget;
-        this.frameDescriptor = frameDescriptor;
-        this.declarationFrame = declarationFrame;
-    }
-
-    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, boolean isBuiltin) {
-        super(name, isBuiltin);
+        this.name = name;
         this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
@@ -78,12 +71,12 @@ public class PFunction extends PCallable {
     /*
      * Specialized
      */
-    @Override
+    // @Override
     public Object call(PackedFrame caller, Object arg) {
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg}));
     }
 
-    @Override
+    // @Override
     public Object call(PackedFrame caller, Object arg0, Object arg1) {
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg0, arg1}));
     }
@@ -99,6 +92,10 @@ public class PFunction extends PCallable {
     public RootNode getFunctionRootNode() {
         DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
         return defaultTarget.getRootNode();
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override

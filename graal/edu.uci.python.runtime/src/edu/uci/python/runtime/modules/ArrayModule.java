@@ -27,12 +27,15 @@ package edu.uci.python.runtime.modules;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class ArrayModule extends PModule {
 
-    public ArrayModule() {
+    public ArrayModule(PythonBuiltins builtins) {
         super("array");
-        addBuiltInMethods();
+        this.builtins = builtins;
+        builtins.initialize();
+// addBuiltInMethods();
     }
 
     @ModuleMethod

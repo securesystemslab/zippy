@@ -31,7 +31,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class ListLiteralNode extends LiteralNode {

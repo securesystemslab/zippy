@@ -25,12 +25,14 @@
 package edu.uci.python.runtime.modules;
 
 import edu.uci.python.runtime.modules.annotations.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class TimeModule extends PModule {
 
-    public TimeModule() {
+    public TimeModule(PythonBuiltins builtins) {
         super("time");
-        addBuiltInMethods();
+        this.builtins = builtins;
+        builtins.initialize();
     }
 
     /**

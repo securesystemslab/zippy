@@ -22,56 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.modules;
 
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PCallable implements PythonCallable {
+public class PythonModulesContainer {
 
-    protected String name;
+    public static PModule listModule;
+    public static PModule stringModule;
+    public static PModule dictionaryModule;
 
-    protected Object self = null;
-
-    private final boolean isBuiltin;
-
-    public PCallable(String name) {
-        this.name = name;
-        this.isBuiltin = false;
+    public static void initialize() {
+        listModule = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());
+        stringModule = new StringAttribute(PythonBuiltinsContainer.getInstance().getStringBuiltins());
+        dictionaryModule = new DictionaryAttribute(PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
     }
-
-    public PCallable(String name, boolean isBuiltin) {
-        this.name = name;
-        this.isBuiltin = isBuiltin;
-    }
-
-    public boolean isBuiltin() {
-        return isBuiltin;
-    }
-
-    public Object call(PackedFrame caller, Object[] args) {
-        return call(caller, args, null);
-    }
-
-    // Specialized. To be overwritten by PFunction
-    public Object call(PackedFrame caller, Object arg) {
-        return call(caller, new Object[]{arg});
-    }
-
-    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return call(caller, new Object[]{arg0, arg1});
-    }
-
-    public void setSelf(Object self) {
-        this.self = self;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " " + name;
-    }
-
 }

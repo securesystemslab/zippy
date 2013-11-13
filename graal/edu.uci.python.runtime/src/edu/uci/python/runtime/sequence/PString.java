@@ -35,16 +35,13 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     private final String value;
 
-    private static StringAttribute stringModule = new StringAttribute();
-
     public PString(String value) {
         this.value = value;
     }
 
     @Override
-    public PCallable findAttribute(String name) {
-        PCallable method = stringModule.lookupMethod(name);
-        method.setSelf(value);
+    public PythonCallable findAttribute(String name) {
+        PythonCallable method = PythonModulesContainer.stringModule.lookupAttributeMethod(name, value);
         return method;
     }
 
