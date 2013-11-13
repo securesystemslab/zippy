@@ -22,61 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.nodes.loop;
 
-import java.util.*;
+import com.oracle.truffle.api.dsl.*;
 
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.sequence.*;
 
-import edu.uci.python.runtime.exception.*;
+public abstract class GetIteratorNode extends UnaryOpNode {
 
-public class PEnumerate extends PIterator implements Iterable<Object> {
-
-    private int start;
-    private int index;
-    private List<PTuple> list;
-
-    public PEnumerate(Iterable<?> iterable) {
-        this(iterable, 0);
+    @Specialization
+    public Object doPSequence(PSequence value) {
+        return value.__iter__();
     }
 
-    public PEnumerate(Iterable<?> iterable, int start) {
-        this.list = new ArrayList<>();
-        this.start = start;
-        int count = 0;
-        for (Object object : iterable) {
-            this.list.add(new PTuple(new Object[]{count, object}));
-            count++;
-        }
+    @Specialization
+    public Object doPBaseSet(PBaseSet value) {
+        return value.__iter__();
     }
 
-    @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<PTuple> iter = list.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+    @Specialization
+    public Object doString(String value) {
+        return new PStringIterator(value);
     }
 
-    @Override
-    public Object __next__(VirtualFrame frame) {
-        if (index < list.size()) {
-            return list.get(index++);
-        }
-
-        throw StopIterationException.INSTANCE;
+    @Specialization
+    public Object doPIterator(PIterator value) {
+        return value;
     }
-
 }

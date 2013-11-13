@@ -172,7 +172,11 @@ public class NodeFactory {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public LoopNode createFor(PNode target, PNode iterator, StatementNode body) {
+    public GetIteratorNode createGetIterator(PNode collection) {
+        return GetIteratorNodeFactory.create(collection);
+    }
+
+    public LoopNode createFor(PNode target, GetIteratorNode iterator, StatementNode body) {
         return ForNodeFactory.create(target, body, iterator);
     }
 

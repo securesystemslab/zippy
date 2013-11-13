@@ -24,17 +24,16 @@
  */
 package edu.uci.python.nodes.loop;
 
-import java.util.*;
-
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
-@NodeChild(value = "iterator", type = PNode.class)
+@NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
@@ -48,53 +47,20 @@ public abstract class ForNode extends LoopNode {
         this(previous.target, previous.body);
     }
 
-    public abstract PNode getIterator();
-
-    @Specialization
-    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence.iterator());
-        return PNone.NONE;
-    }
-
-    @Specialization
-    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set.iterator());
-        return PNone.NONE;
-    }
-
-    @Specialization
-    public Object doString(VirtualFrame frame, String string) {
-        PString pstring = new PString(string);
-        loopOnIterator(frame, pstring.iterator());
-        return PNone.NONE;
-    }
-
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        Iterator result = iterator.evaluateToJavaIteratore(frame);
-        loopOnIterator(frame, result);
-        return PNone.NONE;
-    }
-
-    @Specialization
-    public Object doIterator(VirtualFrame frame, Iterator iterator) {
-        loopOnIterator(frame, iterator);
-        return PNone.NONE;
-    }
-
-    @Specialization
-    public Object doEnumerate(VirtualFrame frame, PEnumerate enumerate) {
-        loopOnIterator(frame, enumerate.iterator());
-        return PNone.NONE;
-    }
-
-    protected void loopOnIterator(VirtualFrame frame, Iterator iter) {
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        while (iter.hasNext()) {
-            rvn.setValue(iter.next());
-            target.execute(frame);
-            body.executeVoid(frame);
+        try {
+            while (true) {
+                rvn.setValue(iterator.__next__(frame));
+                target.execute(frame);
+                body.executeVoid(frame);
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
+
+        return PNone.NONE;
     }
 }

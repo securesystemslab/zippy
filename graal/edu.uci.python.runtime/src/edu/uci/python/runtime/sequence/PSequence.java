@@ -30,7 +30,7 @@ import edu.uci.python.runtime.datatypes.*;
 
 public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
 
-    public Object __iter__() {
+    public PIterator __iter__() {
         return new PSequenceIterator(this);
     }
 

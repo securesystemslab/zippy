@@ -49,8 +49,6 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
         this(previous.target, previous.body);
     }
 
-    public abstract PNode getIterator();
-
     @Specialization(order = 0)
     public Object doPRange(VirtualFrame frame, PRange range) {
         final int start = range.getStart();

@@ -441,10 +441,12 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     private LoopNode createForInScope(PNode target, PNode iterator, StatementNode body) {
+        GetIteratorNode getIterator = factory.createGetIterator(iterator);
+
         if (environment.isInFunctionScope()) {
             return factory.createForWithLocalTarget((WriteLocalVariableNode) target, iterator, body);
         } else {
-            return factory.createFor(target, iterator, body);
+            return factory.createFor(target, getIterator, body);
         }
     }
 
@@ -586,14 +588,7 @@ public class PythonTreeTranslator extends Visitor {
             wrappedBody = factory.createContinueTarget(body);
         }
 
-        StatementNode forNode;
-        if (environment.isInFunctionScope() && target instanceof WriteLocalVariableNode) {
-            WriteLocalVariableNode wtarget = (WriteLocalVariableNode) target;
-            wtarget = (WriteLocalVariableNode) factory.createWriteLocalVariable(PNode.EMPTYNODE, wtarget.getSlot());
-            forNode = factory.createForWithLocalTarget(wtarget, iter, wrappedBody);
-        } else {
-            forNode = factory.createFor(target, iter, wrappedBody);
-        }
+        StatementNode forNode = createForInScope(target, iter, wrappedBody);
 
         if (!orelse.isEmpty()) {
             forNode = factory.createElse(forNode, orelse);

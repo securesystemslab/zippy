@@ -366,23 +366,19 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "noSentinel")
             public Object iter(String str, Object sentinel) {
-                PString pstring = new PString(str);
-                Iterator<Object> iterator = pstring.iterator();
-                return iterator;
+                return new PStringIterator(str);
             }
 
             @SuppressWarnings("unused")
             @Specialization
             public Object iter(PSequence sequence, Object sentinel) {
-                Iterator<Object> iterator = sequence.iterator();
-                return iterator;
+                return sequence.__iter__();
             }
 
             @SuppressWarnings("unused")
             @Specialization
             public Object iter(PBaseSet set, Object sentinel) {
-                Iterator<Object> iterator = set.iterator();
-                return iterator;
+                return new PBaseSetIterator(set);
             }
 
             @SuppressWarnings("unused")

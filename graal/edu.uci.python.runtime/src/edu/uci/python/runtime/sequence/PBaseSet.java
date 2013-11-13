@@ -63,6 +63,10 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         return this.set.size();
     }
 
+    public PIterator __iter__() {
+        return new PBaseSetIterator(this);
+    }
+
     public boolean contains(Object o) {
         return this.set.contains(o);
     }
