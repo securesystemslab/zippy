@@ -87,7 +87,7 @@ public abstract class GeneratorLoopNode extends LoopNode {
             throw StopIterationException.INSTANCE;
         }
 
-        protected void generateNextValue(VirtualFrame frame, Object value) {
+        protected final void generateNextValue(VirtualFrame frame, Object value) {
             ((WriteNode) target).executeWrite(frame, value);
 
             if (!evaluateCondition(frame)) {
@@ -153,7 +153,7 @@ public abstract class GeneratorLoopNode extends LoopNode {
             throw StopIterationException.INSTANCE;
         }
 
-        protected void generateNextValue(VirtualFrame frame, Object value) {
+        protected final void generateNextValue(VirtualFrame frame, Object value) {
             ((WriteNode) target).executeWrite(frame, value);
 
             if (!evaluateCondition(frame)) {

@@ -111,6 +111,7 @@ pythonMicroBenchmarks = {
     'arith-binop'   : '0',
     'for-range'     : '0',
     'function-call' : '0',
+    'list-comp' : '0',
 }
 
 pythonBenchmarks = {
