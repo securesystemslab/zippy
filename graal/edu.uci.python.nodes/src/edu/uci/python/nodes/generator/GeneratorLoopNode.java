@@ -140,7 +140,7 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
             if (sequence instanceof PGenerator) {
                 PGenerator generator = (PGenerator) sequence;
-                iter = generator.evaluateToJavaIteratore(frame);
+                iter = generator.evaluateToJavaIteratore();
             } else {
                 throw new RuntimeException("Unhandled sequence");
             }

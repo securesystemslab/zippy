@@ -26,7 +26,7 @@ def measure():
 	print("function-call: " + duration)
 
 #warm up
-for run in range(1000):
-	callFunctions(6000)
+for run in range(10000):
+	callFunctions(50000)
 
 measure()

@@ -99,6 +99,11 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
+    public PIterator __iter__() {
+        return new PRangeIterator(this);
+    }
+
+    @Override
     public Object getItem(int idx) {
         int index = SequenceUtil.fixIndex(idx, length);
 

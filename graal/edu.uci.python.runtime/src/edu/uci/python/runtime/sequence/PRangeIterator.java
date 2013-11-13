@@ -24,21 +24,39 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
-public class PStringIterator extends PIterator {
+public final class PRangeIterator extends PIterator {
 
-    private final String value;
     private int index;
+    private final int stop;
+    private final int step;
 
-    public PStringIterator(String value) {
-        this.value = value;
+    public PRangeIterator(PRange range) {
+        this.index = range.getStart();
+        this.stop = range.getStop();
+        this.step = range.getStep();
+    }
+
+    public int getStart() {
+        return index;
+    }
+
+    public int getStop() {
+        return stop;
+    }
+
+    public int getStep() {
+        return step;
     }
 
     @Override
     public Object __next__() {
-        if (index < value.length()) {
-            return value.charAt(index++);
+        if (index < stop) {
+            int value = index;
+            index += step;
+            return value;
         }
 
         throw StopIterationException.INSTANCE;

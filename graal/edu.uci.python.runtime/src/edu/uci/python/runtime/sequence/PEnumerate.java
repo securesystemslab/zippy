@@ -26,13 +26,10 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
-import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.runtime.exception.*;
 
 public class PEnumerate extends PIterator implements Iterable<Object> {
 
-    private int start;
     private int index;
     private List<PTuple> list;
 
@@ -40,10 +37,11 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
         this(iterable, 0);
     }
 
+    @SuppressWarnings("unused")
     public PEnumerate(Iterable<?> iterable, int start) {
         this.list = new ArrayList<>();
-        this.start = start;
         int count = 0;
+
         for (Object object : iterable) {
             this.list.add(new PTuple(new Object[]{count, object}));
             count++;
@@ -71,7 +69,7 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
     }
 
     @Override
-    public Object __next__(VirtualFrame frame) {
+    public Object __next__() {
         if (index < list.size()) {
             return list.get(index++);
         }

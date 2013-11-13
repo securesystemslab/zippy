@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.runtime.exception.*;
 
 public class PSequenceIterator extends PIterator {
@@ -38,7 +36,7 @@ public class PSequenceIterator extends PIterator {
     }
 
     @Override
-    public Object __next__(VirtualFrame frame) {
+    public Object __next__() {
         if (index < sequence.len()) {
             return sequence.getItem(index++);
         }

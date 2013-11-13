@@ -53,7 +53,7 @@ public abstract class ForNode extends LoopNode {
 
         try {
             while (true) {
-                rvn.setValue(iterator.__next__(frame));
+                rvn.setValue(iterator.__next__());
                 target.execute(frame);
                 body.executeVoid(frame);
             }

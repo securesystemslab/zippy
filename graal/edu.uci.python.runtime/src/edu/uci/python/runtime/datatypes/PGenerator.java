@@ -48,8 +48,8 @@ public class PGenerator extends PIterator {
     }
 
     @Override
-    public Object __next__(VirtualFrame frame) {
-        return callTarget.call(frame.pack(), new PArguments(declarationFrame));
+    public Object __next__() {
+        return callTarget.call(null, new PArguments(declarationFrame));
     }
 
     @Override

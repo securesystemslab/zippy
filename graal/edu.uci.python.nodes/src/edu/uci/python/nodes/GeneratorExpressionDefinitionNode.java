@@ -57,15 +57,15 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         if (getParent() instanceof WriteNode) {
             return generator;
         } else {
-            return executeGenerator(frame, generator);
+            return executeGenerator(generator);
         }
     }
 
     /**
      * This logic should belong to another node that wraps this definition node.
      */
-    public static Object executeGenerator(VirtualFrame frame, PGenerator generator) {
-        Iterator<?> iter = generator.evaluateToJavaIteratore(frame);
+    public static Object executeGenerator(PGenerator generator) {
+        Iterator<?> iter = generator.evaluateToJavaIteratore();
         List<Object> results = new ArrayList<>();
 
         while (iter.hasNext()) {

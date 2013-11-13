@@ -26,8 +26,6 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
-import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.runtime.exception.*;
 
 public class PBaseSetIterator extends PIterator {
@@ -39,7 +37,7 @@ public class PBaseSetIterator extends PIterator {
     }
 
     @Override
-    public Object __next__(VirtualFrame frame) {
+    public Object __next__() {
         if (setIterator.hasNext()) {
             return setIterator.next();
         }

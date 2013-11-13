@@ -180,7 +180,7 @@ public class NodeFactory {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, PNode iterator, StatementNode body) {
+    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, StatementNode body) {
         return ForWithLocalTargetNodeFactory.create(target, body, iterator);
     }
 

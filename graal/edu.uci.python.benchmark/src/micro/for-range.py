@@ -25,8 +25,8 @@ def measure(num):
 	duration = "%.3f\n" % (time.time() - start)
 	print("for-range: " + duration)
 
-for i in range(5000): # 1000
-	sumitup(1000)
+for i in range(10000): # 5000
+	sumitup(6000) # 1000
 
 #add("a", "b")
 measure(50000)

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.loop;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
@@ -33,9 +31,10 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
-@NodeChild(value = "iterator", type = PNode.class)
+@NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected WriteLocalVariableNode target;
@@ -50,7 +49,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
     }
 
     @Specialization(order = 0)
-    public Object doPRange(VirtualFrame frame, PRange range) {
+    public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
         final int stop = range.getStop();
         final int step = range.getStep();
@@ -74,41 +73,27 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 1)
-    public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        loopOnIterator(frame, sequence.iterator());
-        return PNone.NONE;
-    }
-
-    @Specialization(order = 2)
-    public Object doPBaseSet(VirtualFrame frame, PBaseSet set) {
-        loopOnIterator(frame, set.iterator());
-        return PNone.NONE;
-    }
-
-    private void loopOnIterator(VirtualFrame frame, Iterator iter) {
+    @Specialization
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 
         try {
-            while (iter.hasNext()) {
-                target.executeWith(frame, iter.next());
+            while (true) {
+                target.executeWith(frame, iterator.__next__());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
                     count++;
                 }
             }
+        } catch (StopIterationException e) {
+
         } finally {
             if (CompilerDirectives.inInterpreter()) {
                 reportLoopCount(count);
             }
         }
-    }
 
-    @Specialization
-    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        Iterator result = iterator.evaluateToJavaIteratore(frame);
-        loopOnIterator(frame, result);
         return PNone.NONE;
     }
 }
