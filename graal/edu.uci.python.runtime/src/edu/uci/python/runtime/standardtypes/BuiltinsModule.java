@@ -173,7 +173,6 @@ public class BuiltinsModule extends PythonModule {
         public Object call(PackedFrame frame, PArguments arguments) {
             Object[] args = arguments.getArgumentsArray();
             PKeyword[] keywords = arguments.getKeywords();
-
             Object[] values = args;
 
             String end = null;

@@ -98,6 +98,9 @@ public class PythonTypesUtil {
         } else if (value instanceof PTuple) {
             PTuple tuple = (PTuple) value;
             return new PyTuple(adaptToPyObjects(tuple.getArray()));
+        } else if (value instanceof PList) {
+            PList list = (PList) value;
+            return new PyList(adaptToPyObjects(list.getSequence()));
         } else if (value instanceof PSet) {
             PSet set = (PSet) value;
             return new PySet(adaptToPyObjects(set.getSet().toArray()));
