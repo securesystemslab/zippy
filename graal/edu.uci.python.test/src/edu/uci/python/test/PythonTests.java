@@ -28,6 +28,7 @@ import java.io.*;
 import java.nio.file.*;
 
 import static org.junit.Assert.*;
+import edu.uci.python.builtins.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.shell.*;
 
@@ -85,6 +86,7 @@ public class PythonTests {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
+        PythonBuiltinsInitializer.initialize();
         return new PythonContext(opts);
     }
 }

@@ -575,6 +575,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         double arg2Double = (Double) arg2;
                         return Math.min(arg1Double, arg2Double);
                     }
+                } else {
+                    Object[] copy = new Object[args.length + 2];
+                    copy[0] = arg1;
+                    copy[1] = arg2;
+                    System.arraycopy(args, 0, copy, 2, args.length);
+                    Arrays.sort(copy);
+                    return copy[0];
                 }
 
                 /**
