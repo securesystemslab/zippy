@@ -35,14 +35,12 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
 /**
- * User defined mutable class object.
+ * Mutable class.
  */
 public class PythonClass extends PythonObject {
 
     private final String className;
 
-    // The context is stored here - objects can obtain it via their class (which
-    // is a module)
     private final PythonContext context;
 
     // TODO: Multiple inheritance and MRO...

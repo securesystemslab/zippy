@@ -47,46 +47,20 @@ public class PFunction implements PythonCallable {
         this.declarationFrame = declarationFrame;
     }
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, args));
-    }
-
-    @Override
-    public Object call(PackedFrame caller, Object[] arguments, Object[] keywords) {
-        Object[] combined = new Object[parameters.size()];
-        assert combined.length >= arguments.length : "Parameters size does not match for call " + callTarget;
-        System.arraycopy(arguments, 0, combined, 0, arguments.length);
-
-        // TODO: get rid of cast.
-        for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyarg = (PKeyword) keywords[i];
-            int keywordIdx = parameters.indexOf(keyarg.getName());
-            combined[keywordIdx] = keyarg.getValue();
-        }
-
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
-    }
-
-    /*
-     * Specialized
-     */
-    // @Override
-    public Object call(PackedFrame caller, Object arg) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg}));
-    }
-
-    // @Override
-    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg0, arg1}));
-    }
-
     public CallTarget getCallTarget() {
         return callTarget;
     }
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
+    }
+
+    public List<String> getParameters() {
+        return parameters;
+    }
+
+    public MaterializedFrame getDeclarationFrame() {
+        return declarationFrame;
     }
 
     public RootNode getFunctionRootNode() {
@@ -96,6 +70,42 @@ public class PFunction implements PythonCallable {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, args));
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] arguments, Object[] keywords) {
+        Object[] combined = processKeywordArgs(parameters, arguments, keywords);
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
+    }
+
+    protected static Object[] processKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
+        Object[] combined = new Object[parameters.size()];
+        assert combined.length >= arguments.length : "Parameters size does not match";
+        System.arraycopy(arguments, 0, combined, 0, arguments.length);
+
+        for (int i = 0; i < keywords.length; i++) {
+            PKeyword keyarg = (PKeyword) keywords[i];
+            int keywordIdx = parameters.indexOf(keyarg.getName());
+            combined[keywordIdx] = keyarg.getValue();
+        }
+
+        return combined;
+    }
+
+    /*
+     * Specialized
+     */
+    public Object call(PackedFrame caller, Object arg) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg}));
+    }
+
+    public Object call(PackedFrame caller, Object arg0, Object arg1) {
+        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg0, arg1}));
     }
 
     @Override
