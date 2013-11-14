@@ -34,7 +34,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -79,15 +78,15 @@ public abstract class GeneratorLoopNode extends LoopNode {
             }
 
             while (iterator.hasNext()) {
-                Object value = iterator.next();
-                generateNextValue(frame, value);
+                generateNextValue(frame);
             }
 
             iterator = null;
             throw StopIterationException.INSTANCE;
         }
 
-        protected final void generateNextValue(VirtualFrame frame, Object value) {
+        protected final void generateNextValue(VirtualFrame frame) {
+            Object value = iterator.next();
             ((WriteNode) target).executeWrite(frame, value);
 
             if (!evaluateCondition(frame)) {
@@ -105,7 +104,6 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
         public OuterGeneratorLoopNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
             super(target, condition, innerLoop);
-            assert condition == null;
             assert innerLoop != null;
         }
 
@@ -120,47 +118,27 @@ public abstract class GeneratorLoopNode extends LoopNode {
             }
 
             do {
-                currentValue = currentValue == null ? iterator.next() : currentValue;
-
-                try {
-                    generateNextValue(frame, currentValue);
-                } catch (StopIterationException sie) {
-                    // return to the loop header
-                    currentValue = null;
-                }
+                generateNextValue(frame);
             } while (iterator.hasNext());
 
             iterator = null;
             throw StopIterationException.INSTANCE;
         }
 
-        @Specialization
-        public Object doGeneric(VirtualFrame frame, Object sequence) {
-            Iterator<?> iter;
+        protected final void generateNextValue(VirtualFrame frame) {
+            try {
+                currentValue = currentValue == null ? iterator.next() : currentValue;
+                ((WriteNode) target).executeWrite(frame, currentValue);
 
-            if (sequence instanceof PGenerator) {
-                PGenerator generator = (PGenerator) sequence;
-                iter = generator.evaluateToJavaIteratore();
-            } else {
-                throw new RuntimeException("Unhandled sequence");
+                if (!evaluateCondition(frame)) {
+                    return;
+                }
+
+                body.execute(frame);
+            } catch (StopIterationException sie) {
+                // return to the loop header
+                currentValue = null;
             }
-
-            while (iter.hasNext()) {
-                Object value = iter.next();
-                generateNextValue(frame, value);
-            }
-
-            throw StopIterationException.INSTANCE;
-        }
-
-        protected final void generateNextValue(VirtualFrame frame, Object value) {
-            ((WriteNode) target).executeWrite(frame, value);
-
-            if (!evaluateCondition(frame)) {
-                return;
-            }
-
-            body.execute(frame);
         }
     }
 }

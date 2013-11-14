@@ -241,8 +241,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public char charFromInt(int arg) {
-                return JavaTypeConversions.convertIntToChar(arg);
+            public String charFromInt(int arg) {
+                return Character.toString((char) arg);
             }
 
             @Specialization
@@ -637,7 +637,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public Object print(Object values[], PKeyword[] keywords) {
+            public Object print(Object[] values, PKeyword[] keywords) {
                 String sep = null;
                 String end = null;
 

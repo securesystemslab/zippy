@@ -71,18 +71,19 @@ def randomFasta(table, n):
     
     lut = makeLookupTable(table)
     line_buffer = []
-    la = line_buffer.append
+    # la = line_buffer.append
     
     for i in range(n // width):
         for i in range(width):
             rgs = rlut[rgs]
-            la(lut[rgs])
+            line_buffer.append(lut[rgs])
         print(''.join(line_buffer))
         line_buffer[:] = []
     if n % width:
         for i in range(n % width):
             rgs = rlut[rgs]
-            la(lut[rgs])
+            # la(lut[rgs])
+            line_buffer.append(lut[rgs])
         print(''.join(line_buffer))
     
     randomGenState = rgs
