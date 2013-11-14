@@ -61,7 +61,6 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     public PBuiltinFunction(String name, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
-
     }
 
     @Override

@@ -36,7 +36,7 @@ import com.oracle.truffle.api.frame.*;
  */
 public class PBuiltinClass extends PythonBuiltinObject implements PythonCallable {
 
-    private final String name;
+    protected final String name;
 
     private final CallTarget callTarget;
 
@@ -63,6 +63,11 @@ public class PBuiltinClass extends PythonBuiltinObject implements PythonCallable
         this.takesFixedNumOfArgs = takesFixedNumOfArgs;
         this.takesKeywordArg = takesKeywordArg;
         this.takesVarArgs = takesVarArgs;
+    }
+
+    public PBuiltinClass(String name) {
+        this.name = name;
+        this.callTarget = null;
     }
 
     @Override
