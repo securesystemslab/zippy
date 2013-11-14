@@ -40,8 +40,9 @@ import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 /**
  * @author Gulfem
@@ -625,7 +626,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
-        @Builtin(name = "print", id = 50, minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true)
+        @Builtin(name = "print", id = 50, minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
             public PythonPrintNode(String name) {
@@ -637,16 +638,26 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public Object print(Object value, Object[] keywords) {
-                String end = null;
+            public Object print(Object values[], PKeyword[] keywords) {
                 String sep = null;
+                String end = null;
 
-                Object values[] = new Object[]{value};
+                if (keywords != null) {
+                    for (int i = 0; i < keywords.length; i++) { // not support file
+                        PKeyword keyword = keywords[i];
+                        if (keyword.getName().equals("end")) {
+                            end = (String) keyword.getValue();
+                        } else if (keyword.getName().equals("sep")) {
+                            sep = (String) keyword.getValue();
+                        }
+                    }
+                }
+
                 return print(values, sep, end);
-
             }
 
-            private Object print(Object[] values, String possibleSep, String possibleEnd) {
+            @SlowPath
+            private static Object print(Object[] values, String possibleSep, String possibleEnd) {
                 String sep = possibleSep;
                 String end = possibleEnd;
                 // CheckStyle: stop system..print check
@@ -1064,12 +1075,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             public static boolean caseStop(int stop, Object start, Object step) {
-                return (start instanceof PNone) && (step instanceof PNone);
+                return start == PNone.NONE && step == PNone.NONE;
             }
 
             @SuppressWarnings("unused")
             public static boolean caseStartStop(int start, int stop, Object step) {
-                return (step instanceof PNone);
+                return step == PNone.NONE;
             }
         }
 
@@ -1294,6 +1305,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // arg2 is PNone if nothing in max(iterable, *[, key])
         if (builtin.name().equals("max") || builtin.name().equals("min")) {
             totalNumOfArgs = 3;
+        } else if (builtin.name().equals("print")) {
+            totalNumOfArgs = 2;
         } else if (builtin.hasFixedNumOfArguments()) {
             totalNumOfArgs = builtin.fixedNumOfArguments();
         } else if (builtin.takesVariableArguments()) {
@@ -1308,7 +1321,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         if (builtin.takesVariableArguments()) {
-            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+            if (builtin.name().equals("print")) {
+                args[0] = new ReadVarArgsNode(0);
+                args[1] = new ReadVarKeywordsNode(1);
+            } else {
+                args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+            }
         } else {
             if (builtin.takesKeywordArguments()) {
                 args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);

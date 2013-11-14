@@ -22,36 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.datatypes;
 
-import org.python.core.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-/**
- * Python built-in immutable class.
- * 
- * @author zwei
- * 
- */
-public class PythonBuiltinClass extends PythonClass {
+public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
-        super(context, superClass, name);
+    private final PBuiltinFunction function;
+    private final PythonBuiltinClass self;
+    private final CallTarget callTarget;
+
+    public PBuiltinMethod(PythonBuiltinClass self, PBuiltinFunction function) {
+        this.self = self;
+        this.function = function;
+        this.callTarget = function.getCallTarget();
     }
 
-    @Override
-    public void setAttribute(String name, Object value) {
-        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
+    public PBuiltinFunction __func__() {
+        return function;
+    }
+
+    public PythonBuiltinClass __self__() {
+        return self;
     }
 
     /**
-     * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
+     * There is no declaration frame for built-in methods.
      */
-    public void setAttributeUnsafe(String name, Object value) {
-        super.setAttribute(name, value);
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(self, null, args));
+    }
+
+    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+        assert keywords instanceof PKeyword[];
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, (PKeyword[]) keywords));
     }
 }

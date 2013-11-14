@@ -159,6 +159,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectObjectArray(execute(frame));
     }
 
+    public PKeyword[] executePKeywordArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPKeywordArray(execute(frame));
+    }
+
     public PRangeIterator executePRangeIterator(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPRangeIterator(execute(frame));
     }

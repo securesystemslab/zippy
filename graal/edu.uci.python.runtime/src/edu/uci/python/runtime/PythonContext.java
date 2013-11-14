@@ -32,11 +32,12 @@ import edu.uci.python.runtime.standardtypes.*;
 public class PythonContext {
 
     private final PythonOptions options;
-
+    private final PythonBuiltinsLookup lookup;
     private final PythonCore pythonCore;
 
-    public PythonContext(PythonOptions opts) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
         this.options = opts;
+        this.lookup = lookup;
         this.pythonCore = new PythonCore(this);
         PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
         this.pythonCore.initialize();
@@ -45,6 +46,10 @@ public class PythonContext {
 
     public PythonOptions getPythonOptions() {
         return options;
+    }
+
+    public PythonBuiltinsLookup getPythonBuiltinsLookup() {
+        return lookup;
     }
 
     public PrintStream getStandardOut() {

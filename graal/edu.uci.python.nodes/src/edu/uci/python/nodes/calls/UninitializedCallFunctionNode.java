@@ -78,13 +78,14 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 return callFunction.doPythonCallable(frame, callable);
             }
         } else {
+            System.out.println("CALLEE " + callee);
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
             replace(callFunction);
             /**
              * TODO executes the method twice. One of them should be used
              */
-            return callFunction.execute(frame);
-            // return callFunction.doGeneric(frame, calleeObj);
+            // return callFunction.execute(frame);
+            return callFunction.doGeneric(frame, calleeObj);
         }
     }
 }

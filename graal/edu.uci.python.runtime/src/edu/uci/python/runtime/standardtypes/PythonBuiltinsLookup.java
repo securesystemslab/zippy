@@ -24,34 +24,43 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
-import org.python.core.*;
+import java.util.*;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 
 /**
- * Python built-in immutable class.
+ * Storage for initialized Python built-in modules and types.
  * 
  * @author zwei
  * 
  */
-public class PythonBuiltinClass extends PythonClass {
+public class PythonBuiltinsLookup {
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
-        super(context, superClass, name);
+    private final Map<String, PythonModule> builtinModules;
+    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
+
+    public PythonBuiltinsLookup() {
+        builtinModules = new HashMap<>();
+        builtinTypes = new HashMap<>();
     }
 
-    @Override
-    public void setAttribute(String name, Object value) {
-        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
+    public void addModule(String name, PythonModule module) {
+        builtinModules.put(name, module);
     }
 
-    /**
-     * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
-     */
-    public void setAttributeUnsafe(String name, Object value) {
-        super.setAttribute(name, value);
+    public void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
+        builtinTypes.put(clazz, type);
+    }
+
+    public PythonModule lookupModule(String name) {
+        PythonModule module = builtinModules.get(name);
+        assert module != null;
+        return module;
+    }
+
+    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
+        PythonBuiltinClass type = builtinTypes.get(clazz);
+        assert type != null;
+        return type;
     }
 }

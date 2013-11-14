@@ -30,6 +30,7 @@ import java.nio.file.*;
 import static org.junit.Assert.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.shell.*;
 
 public class PythonTests {
@@ -82,11 +83,17 @@ public class PythonTests {
         assertEquals(expected, result);
     }
 
-    private static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
+    public static PythonContext getContext() {
+        PythonOptions opts = new PythonOptions();
+        PythonBuiltinsInitializer.initialize();
+        return new PythonContext(opts, new PythonBuiltinsLookup());
+    }
+
+    public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
         PythonBuiltinsInitializer.initialize();
-        return new PythonContext(opts);
+        return new PythonContext(opts, new PythonBuiltinsLookup());
     }
 }

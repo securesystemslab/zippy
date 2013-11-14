@@ -70,6 +70,10 @@ public abstract class CallFunctionNode extends PNode {
     @Specialization
     public Object doPyObject(VirtualFrame frame, PyObject callee) {
         Object[] args = executeArguments(frame, arguments);
+        // Object[] kwords = executeArguments(frame, keywords);
+        /**
+         * TODO When invoking Jython methods, no keyword is sent.
+         */
         PyObject[] pyargs = adaptToPyObjects(args);
         return unboxPyObject(callee.__call__(pyargs));
     }

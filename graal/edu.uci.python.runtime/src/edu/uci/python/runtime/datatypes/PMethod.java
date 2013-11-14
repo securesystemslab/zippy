@@ -22,36 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.datatypes;
 
-import org.python.core.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-/**
- * Python built-in immutable class.
- * 
- * @author zwei
- * 
- */
-public class PythonBuiltinClass extends PythonClass {
+public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
-        super(context, superClass, name);
+    private final PFunction function;
+    private final PythonClass self;
+    private final CallTarget callTarget;
+
+    public PMethod(PythonClass self, PFunction function) {
+        this.self = self;
+        this.function = function;
+        this.callTarget = function.getCallTarget();
     }
 
-    @Override
-    public void setAttribute(String name, Object value) {
-        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
+    public PFunction __func__() {
+        return function;
     }
 
-    /**
-     * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
-     */
-    public void setAttributeUnsafe(String name, Object value) {
-        super.setAttribute(name, value);
+    public PythonClass __self__() {
+        return self;
+    }
+
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), args));
+    }
+
+    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+        Object[] combined = PFunction.processKeywordArgs(function.getParameters(), args, keywords);
+        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
     }
 }

@@ -22,36 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.nodes;
 
-import org.python.core.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
 
 /**
- * Python built-in immutable class.
- * 
- * @author zwei
- * 
+ * @author Gulfem
  */
-public class PythonBuiltinClass extends PythonClass {
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
-        super(context, superClass, name);
+public class ReadVarKeywordsNode extends ReadArgumentNode {
+
+    public ReadVarKeywordsNode(int paramIndex) {
+        super(paramIndex);
     }
 
     @Override
-    public void setAttribute(String name, Object value) {
-        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
+    public final Object[] execute(VirtualFrame frame) {
+        return executeObjectArray(frame);
     }
 
-    /**
-     * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
-     */
-    public void setAttributeUnsafe(String name, Object value) {
-        super.setAttribute(name, value);
+    @Override
+    public final Object[] executeObjectArray(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        PKeyword[] keywords = arguments.getKeywords();
+        return keywords;
     }
 }
