@@ -33,7 +33,7 @@ import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
- * The Python <code>Module</code> class.
+ * TODO: replace {@link PModule} with {@link PythonModule}.
  */
 public class PModule extends PythonBuiltinObject {
 
@@ -44,8 +44,6 @@ public class PModule extends PythonBuiltinObject {
     private final Map<String, PythonCallable> methods = new HashMap<>();
     private final Map<String, Object> constants = new HashMap<>();
 
-    // The context is stored here - objects can obtain it via their class (which
-    // is a module)
     private final PythonContext context;
 
     public PModule(PythonContext context, String name) {
@@ -104,34 +102,12 @@ public class PModule extends PythonBuiltinObject {
 
     public PythonCallable lookupMethod(String methodName) {
         return builtins.getBuiltinFunction(methodName);
-        // PythonCallable method;
-        //
-        // // Look in this module
-        // method = methods.get(methodName);
-        //
-        // if (method != null) {
-        // return method;
-        // }
-        // Not found
-        // return null;
-        // }
     }
 
     public PythonCallable lookupAttributeMethod(String methodName, Object self) {
         PBuiltinFunction builtinFunction = builtins.getBuiltinFunction(methodName);
         builtinFunction.setSelf(self);
         return builtinFunction;
-        // PythonCallable method;
-        //
-        // // Look in this module
-        // method = methods.get(methodName);
-        //
-        // if (method != null) {
-        // return method;
-        // }
-        // Not found
-        // return null;
-        // }
     }
 
     /**
@@ -151,142 +127,7 @@ public class PModule extends PythonBuiltinObject {
         }
     }
 
-    /**
-     * Load methods that are marked with @ModuleMethod in this class into the module.
-     */
-    public void addBuiltInMethods() {
-        builtins.initialize();
-        try {
-            addBuiltInMethods(this.getClass());
-        } catch (NoSuchMethodException | SecurityException e) {
-            throw new RuntimeException("Error when adding methods for Module " + this.getClass().getSimpleName());
-        }
-    }
-
-    /**
-     * Load methods that are marked with @ModuleMethod in the supplied class into the module.
-     * 
-     * @throws SecurityException
-     * @throws NoSuchMethodException
-     */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void addBuiltInMethods(final Class definingClass) throws NoSuchMethodException, SecurityException {
-
-        for (Method method : definingClass.getMethods()) {
-
-            final Object finalDefiningModule = this;
-
-            final int m = method.getModifiers();
-
-            final ModuleMethod modmethod = method.getAnnotation(ModuleMethod.class);
-
-            if (Modifier.isPublic(m) && modmethod != null) {
-                final Method finalMethod = method;
-
-                final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class});
-
-                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
-// final PCallable pythonMethod = new PCallable(methodName) {
-//
-// @SlowPath
-// @Override
-// public Object call(PackedFrame caller, Object arg) {
-// try {
-// return method1.invoke(finalDefiningModule, new Object[]{arg});
-// } catch (IllegalAccessException | InvocationTargetException e) {
-// throw new RuntimeException(e);
-// }
-// }
-//
-// @SlowPath
-// @Override
-// public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
-// try {
-// return finalMethod.invoke(finalDefiningModule, new Object[]{args, keywords});
-// } catch (IllegalAccessException | InvocationTargetException e) {
-// throw new RuntimeException(e);
-// }
-// }
-//
-// };
-// addMethod(methodName, pythonMethod);
-            }
-        }
-    }
-
-    public void addAttributeMethods() throws NoSuchMethodException, SecurityException {
-        addAttributeMethods(this.getClass());
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public void addAttributeMethods(final Class definingClass) throws NoSuchMethodException, SecurityException {
-
-        for (Method method : definingClass.getMethods()) {
-
-            final Object finalDefiningModule = this;
-
-            final int m = method.getModifiers();
-
-            final ModuleMethod modmethod = method.getAnnotation(ModuleMethod.class);
-
-            if (Modifier.isPublic(m) && modmethod != null) {
-
-                final Method finalMethod = method;
-
-                final Method method1 = definingClass.getMethod(finalMethod.getName(), new Class[]{Object.class, Object.class});
-
-                final String methodName = modmethod.value().length() > 0 ? modmethod.value() : finalMethod.getName();
-
-// final PythonCallable pythonMethod = new PythonCallable() {
-//
-// final PCallable pythonMethod = new PCallable(methodName, true) {
-//
-// @Override
-// public Object call(PackedFrame caller, Object arg) {
-// try {
-// return method1.invoke(finalDefiningModule, new Object[]{arg, this.self});
-// } catch (IllegalAccessException | InvocationTargetException e) {
-// throw new RuntimeException(e);
-// }
-// }
-//
-// @Override
-// public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
-// try {
-// return finalMethod.invoke(finalDefiningModule, new Object[]{args, this.self});
-// } catch (IllegalAccessException | InvocationTargetException e) {
-// throw new RuntimeException(e);
-// }
-// }
-//
-// };
-// addMethod(methodName, pythonMethod);
-            }
-        }
-    }
-
     @Override
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int len() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    // public PCallable findAttribute(String attrName) {
     public PythonCallable findAttribute(String attrName) {
         return lookupMethod(attrName);
     }
