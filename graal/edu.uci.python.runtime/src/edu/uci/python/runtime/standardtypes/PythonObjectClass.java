@@ -32,11 +32,16 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 
+/**
+ * The built-in 'object' class.
+ * 
+ * @author zwei
+ * 
+ */
 public class PythonObjectClass extends PythonBuiltinClass {
 
     public PythonObjectClass(PythonContext context) {
         super(context, null, "object");
-        this.addBuiltinMethodsAndConstants(PythonObjectClass.class);
         addInit();
     }
 
@@ -56,6 +61,6 @@ public class PythonObjectClass extends PythonBuiltinClass {
         };
 
         final PBuiltinFunction method = new PBuiltinFunction("__init__", initCallTarget);
-        setAttribute("__init__", method);
+        setAttributeUnsafe("__init__", method);
     }
 }

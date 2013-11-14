@@ -24,44 +24,34 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
-import java.lang.reflect.*;
-import java.util.*;
+import org.python.core.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.annotations.*;
 
+/**
+ * Python built-in immutable class.
+ * 
+ * @author zwei
+ * 
+ */
 public class PythonBuiltinClass extends PythonClass {
-
-    private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
-    private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
     public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
         super(context, superClass, name);
     }
 
-    private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {
-        for (Field field : definingClass.getDeclaredFields()) {
-            if (field.getAnnotation(BuiltinConstant.class) != null) {
-                builtinConstants.add(PythonModule.buildConstant(field));
-            } else if (field.getAnnotation(BuiltinMethod.class) != null) {
-                builtinMethods.add(PythonModule.buildMethod(field));
-            }
-        }
+    @Override
+    public void setAttribute(String name, Object value) {
+        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
     }
 
-    public void addBuiltinMethodsAndConstants(Class definingClass) {
-        findBuiltinMethodsAndConstantsByReflection(definingClass);
-
-        for (AnnotatedBuiltinConstant constant : builtinConstants) {
-            Object value = constant.getValue();
-            setAttribute(constant.getName(), value);
-        }
-
-        for (AnnotatedBuiltinMethod method : builtinMethods) {
-            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
-            String methodName = method.getNames().get(0);
-            setAttribute(methodName, function);
-        }
+    /**
+     * Modify attributes in an unsafe way, should only use when initializing.
+     * 
+     * @param name
+     * @param value
+     */
+    public void setAttributeUnsafe(String name, Object value) {
+        super.setAttribute(name, value);
     }
 }

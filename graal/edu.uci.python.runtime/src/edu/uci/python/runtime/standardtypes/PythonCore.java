@@ -30,11 +30,11 @@ public class PythonCore {
 
     private final PythonContext context;
 
-    private PythonClass typeClass;
+    private PythonBuiltinClass typeClass;
 
-    private PythonClass objectClass;
+    private PythonBuiltinClass objectClass;
 
-    private PythonClass moduleClass;
+    private PythonBuiltinClass moduleClass;
 
     private PythonModule builtinsModule;
 
@@ -47,17 +47,12 @@ public class PythonCore {
     public void initialize() {
         assert context != null;
 
-        typeClass = new PythonClass(context, null, "type");
+        typeClass = new PythonBuiltinClass(context, null, "type");
         objectClass = new PythonObjectClass(context);
         typeClass.unsafeSetSuperClass(objectClass);
-        moduleClass = new PythonClass(context, objectClass, "module");
+        moduleClass = new PythonBuiltinClass(context, objectClass, "module");
 
-        // if (PythonOptions.UseSpecializedBuiltins) {
-        // builtinsModule = new BuiltinsModule(moduleClass, "__builtins__",
-// context.getDefaultBuiltins());
-        // } else {
         builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
-        // }
 
         builtinsModule.setAttribute("object", objectClass);
 
