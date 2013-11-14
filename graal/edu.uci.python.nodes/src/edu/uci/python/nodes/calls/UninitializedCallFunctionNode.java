@@ -78,7 +78,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 return callFunction.doPythonCallable(frame, callable);
             }
         } else {
-            System.out.println("CALLEE " + callee);
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
             replace(callFunction);
             /**

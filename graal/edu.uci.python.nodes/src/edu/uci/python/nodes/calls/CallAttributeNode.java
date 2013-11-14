@@ -68,25 +68,13 @@ public abstract class CallAttributeNode extends PNode {
     public Object doString(VirtualFrame frame, String prim) {
         Object[] args = doArguments(frame);
         PString primString = new PString(prim);
-        Object[] argsWithSelf = new Object[args.length + 1];
-        System.arraycopy(args, 0, argsWithSelf, 0, args.length);
-        argsWithSelf[args.length] = prim;
-        return primString.findAttribute(attributeId).call(null, argsWithSelf);
-        // return primString.findAttribute(attributeId).call(null, args);
+        return primString.findAttribute(attributeId).call(null, args);
     }
 
     @Specialization
     public Object doPObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
-        if (prim instanceof PList || prim instanceof PString || prim instanceof PDictionary) {
-            Object[] argsWithSelf = new Object[args.length + 1];
-            System.arraycopy(args, 0, argsWithSelf, 0, args.length);
-            argsWithSelf[args.length] = prim;
-            return prim.findAttribute(attributeId).call(null, argsWithSelf);
-        }
         return prim.findAttribute(attributeId).call(null, args);
-        // return prim.findAttribute(attributeId).call(null, args);
-
     }
 
     @Specialization
