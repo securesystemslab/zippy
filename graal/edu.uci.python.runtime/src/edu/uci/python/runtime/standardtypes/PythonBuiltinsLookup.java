@@ -22,45 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.runtime.standardtypes;
 
-import java.io.*;
+import java.util.*;
 
-import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class PythonContext {
+/**
+ * Storage for initialized Python built-in modules and types.
+ * 
+ * @author zwei
+ * 
+ */
+public class PythonBuiltinsLookup {
 
-    private final PythonOptions options;
-    private final PythonBuiltinsLookup lookup;
-    private final PythonCore pythonCore;
+    private final Map<String, PythonModule> builtinModules;
+    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
-        this.options = opts;
-        this.lookup = lookup;
-        this.pythonCore = new PythonCore(this);
-        PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
-        this.pythonCore.initialize();
-        PythonModulesContainer.initialize();
+    public PythonBuiltinsLookup() {
+        builtinModules = new HashMap<>();
+        builtinTypes = new HashMap<>();
     }
 
-    public PythonOptions getPythonOptions() {
-        return options;
+    public void addModule(String name, PythonModule module) {
+        builtinModules.put(name, module);
     }
 
-    public PythonBuiltinsLookup getPythonBuiltinsLookup() {
-        return lookup;
+    public void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
+        builtinTypes.put(clazz, type);
     }
 
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
+    public PythonModule lookupModule(String name) {
+        PythonModule module = builtinModules.get(name);
+        assert module != null;
+        return module;
     }
 
-    public boolean getUseUnsafe() {
-        return PythonOptions.UseUnsafe;
-    }
-
-    public PythonCore getPythonCore() {
-        return pythonCore;
+    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
+        PythonBuiltinClass type = builtinTypes.get(clazz);
+        assert type != null;
+        return type;
     }
 }

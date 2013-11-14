@@ -33,13 +33,14 @@ import org.python.util.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonBuiltinsInitializer.initialize();
-        PythonContext context = new PythonContext(new PythonOptions());
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonBuiltinsLookup());
         execfile(s, name, context);
     }
 
