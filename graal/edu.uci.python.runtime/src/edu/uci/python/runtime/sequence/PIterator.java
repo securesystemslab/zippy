@@ -37,6 +37,9 @@ public abstract class PIterator extends PythonBuiltinObject {
 
     public abstract Object __next__();
 
+    /**
+     * TODO: This should be gone. Wrong semantic.
+     */
     public Iterator<?> evaluateToJavaIteratore() {
         List<Object> results = new ArrayList<>();
 
