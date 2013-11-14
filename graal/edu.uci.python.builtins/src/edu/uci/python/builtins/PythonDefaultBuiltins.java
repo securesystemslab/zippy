@@ -40,8 +40,9 @@ import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 /**
  * @author Gulfem
@@ -241,8 +242,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public char charFromInt(int arg) {
-                return JavaTypeConversions.convertIntToChar(arg);
+            public String charFromInt(int arg) {
+                return Character.toString((char) arg);
             }
 
             @Specialization
@@ -416,6 +417,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
+            public int len(PBaseSet arg) {
+                return arg.len();
+            }
+
+            @Specialization
             public int len(PDictionary arg) {
                 return arg.len();
             }
@@ -432,6 +438,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.length();
                 } else if (arg instanceof PSequence) {
                     PSequence argument = (PSequence) arg;
+                    return argument.len();
+                } else if (arg instanceof PBaseSet) {
+                    PBaseSet argument = (PBaseSet) arg;
                     return argument.len();
                 } else if (arg instanceof PDictionary) {
                     PDictionary argument = (PDictionary) arg;
@@ -559,6 +568,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     } else if (arg1 instanceof PArray) {
                         PArray array = (PArray) arg1;
                         return array.getMin();
+                    } else if (arg1 instanceof PBaseSet) {
+                        PBaseSet baseSet = (PBaseSet) arg1;
+                        return baseSet.getMin();
                     } else if (arg1 instanceof PDictionary) {
                         PDictionary dictionary = (PDictionary) arg1;
                         return dictionary.getMin();
@@ -613,6 +625,65 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
+        @Builtin(name = "print", id = 50, minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true)
+        public abstract static class PythonPrintNode extends PythonBuiltinNode {
+
+            public PythonPrintNode(String name) {
+                super(name);
+            }
+
+            public PythonPrintNode(PythonPrintNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public Object print(Object[] values, PKeyword[] keywords) {
+                String sep = null;
+                String end = null;
+
+                if (keywords != null) {
+                    for (int i = 0; i < keywords.length; i++) { // not support file
+                        PKeyword keyword = keywords[i];
+                        if (keyword.getName().equals("end")) {
+                            end = (String) keyword.getValue();
+                        } else if (keyword.getName().equals("sep")) {
+                            sep = (String) keyword.getValue();
+                        }
+                    }
+                }
+
+                return print(values, sep, end);
+            }
+
+            @SlowPath
+            private static Object print(Object[] values, String possibleSep, String possibleEnd) {
+                String sep = possibleSep;
+                String end = possibleEnd;
+                // CheckStyle: stop system..print check
+                if (values.length == 0) {
+                    System.out.println();
+                } else {
+                    if (sep == null) {
+                        sep = "";
+                    }
+
+                    if (end == null) {
+                        end = System.getProperty("line.separator");
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < values.length - 1; i++) {
+                        sb.append(values[i] + " ");
+                    }
+
+                    sb.append(values[values.length - 1]);
+                    System.out.print(sb.toString() + sep + end);
+                }
+                // CheckStyle: resume system..print check
+                return null;
+            }
+        }
     }
 
     public static class PythonBuiltinClasses {
@@ -705,6 +776,52 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // dict(**kwarg)
+        // dict(mapping, **kwarg)
+        // dict(iterable, **kwarg)
+        @Builtin(name = "dict", id = 15, minNumOfArguments = 0, takesVariableArguments = true)
+        public abstract static class PythonDictionaryNode extends PythonBuiltinNode {
+
+            public PythonDictionaryNode(String name) {
+                super(name);
+            }
+
+            public PythonDictionaryNode(PythonDictionaryNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public PDictionary dictionary(Object[] args) {
+                if (args.length == 0) {
+                    return new PDictionary();
+                } else {
+                    Object arg = args[0];
+
+                    if (arg instanceof PDictionary) {
+                        // argument is a mapping type
+                        return new PDictionary(((PDictionary) arg).getMap());
+                    } else if (arg instanceof PSequence) { // iterator type
+                        Iterator<?> iter = ((PSequence) arg).iterator();
+                        Map<Object, Object> newMap = new HashMap<>();
+
+                        while (iter.hasNext()) {
+                            Object obj = iter.next();
+
+                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+                                newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
+                            } else {
+                                throw new RuntimeException("invalid args for dict()");
+                            }
+                        }
+
+                        return new PDictionary(newMap);
+                    } else {
+                        throw new RuntimeException("invalid args for dict()");
+                    }
+                }
+            }
+        }
+
         // float([x])
         @Builtin(name = "float", id = 22, minNumOfArguments = 0, maxNumOfArguments = 1)
         public abstract static class PythonFloatNode extends PythonBuiltinNode {
@@ -762,6 +879,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @Specialization
             public PFrozenSet frozenset(PBaseSet baseSet) {
                 return new PFrozenSet(baseSet);
+            }
+
+            @Specialization
+            public PFrozenSet frozenset(Object arg) {
+                return new PFrozenSet();
             }
         }
 
@@ -852,6 +974,51 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                 } else {
                     throw new RuntimeException("list does not support iterable object " + arg);
+                }
+            }
+        }
+
+        // map(function, iterable, ...)
+        @Builtin(name = "map", id = 40, minNumOfArguments = 2, takesVariableArguments = true)
+        public abstract static class PythonMapNode extends PythonBuiltinNode {
+
+            public PythonMapNode(String name) {
+                super(name);
+            }
+
+            public PythonMapNode(PythonMapNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public Object map(Object arg0, Object arg1, Object[] iterators) {
+                if (iterators.length == 0) {
+                    return map(arg0, arg1);
+                }
+
+                throw new RuntimeException("wrong number of arguments for map() ");
+
+            }
+
+            public PList map(Object arg0, Object arg1) {
+                PythonCallable callee = (PythonCallable) arg0;
+                Iterator iter = getIterable(arg1);
+
+                ArrayList<Object> sequence = new ArrayList<>();
+                while (iter.hasNext()) {
+                    sequence.add(callee.call(null, new Object[]{iter.next()}));
+                }
+
+                return new PList(sequence);
+            }
+
+            private static Iterator<Object> getIterable(Object o) {
+                if (o instanceof String) {
+                    return new PString((String) o).iterator();
+                } else if (o instanceof Iterable) {
+                    return ((Iterable<Object>) o).iterator();
+                } else {
+                    throw new RuntimeException("argument is not iterable ");
                 }
             }
         }
@@ -962,6 +1129,25 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else {
                     throw new RuntimeException("set does not support iterable object " + arg);
                 }
+            }
+        }
+
+        // str(object='')
+        // str(object=b'', encoding='utf-8', errors='strict')
+        @Builtin(name = "str", id = 61, minNumOfArguments = 1, takesVariableArguments = true)
+        public abstract static class PythonStrNode extends PythonBuiltinNode {
+
+            public PythonStrNode(String name) {
+                super(name);
+            }
+
+            public PythonStrNode(PythonStrNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public String tuple(Object arg) {
+                return arg.toString();
             }
         }
 
@@ -1119,6 +1305,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // arg2 is PNone if nothing in max(iterable, *[, key])
         if (builtin.name().equals("max") || builtin.name().equals("min")) {
             totalNumOfArgs = 3;
+        } else if (builtin.name().equals("print")) {
+            totalNumOfArgs = 2;
         } else if (builtin.hasFixedNumOfArguments()) {
             totalNumOfArgs = builtin.fixedNumOfArguments();
         } else if (builtin.takesVariableArguments()) {
@@ -1133,7 +1321,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         if (builtin.takesVariableArguments()) {
-            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+            if (builtin.name().equals("print")) {
+                args[0] = new ReadVarArgsNode(0);
+                args[1] = new ReadVarKeywordsNode(1);
+            } else {
+                args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
+            }
         } else {
             if (builtin.takesKeywordArguments()) {
                 args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
@@ -1155,6 +1348,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonChrNodeFactory.create(builtin.name(), args);
             case 13:
                 return PythonComplexNodeFactory.create(builtin.name(), args);
+            case 15:
+                return PythonDictionaryNodeFactory.create(builtin.name(), args);
             case 18:
                 return PythonEnumerateNodeFactory.create(builtin.name(), args);
             case 22:
@@ -1171,16 +1366,22 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return PythonLenNodeFactory.create(builtin.name(), args);
             case 38:
                 return PythonListNodeFactory.create(builtin.name(), args);
+            case 40:
+                return PythonMapNodeFactory.create(builtin.name(), args);
             case 41:
                 return PythonMaxNodeFactory.create(builtin.name(), args);
             case 43:
                 return PythonMinNodeFactory.create(builtin.name(), args);
             case 44:
                 return PythonNextNodeFactory.create(builtin.name(), args);
+            case 50:
+                return PythonPrintNodeFactory.create(builtin.name(), args);
             case 52:
                 return PythonRangeNodeFactory.create(builtin.name(), args);
             case 56:
                 return PythonSetNodeFactory.create(builtin.name(), args);
+            case 61:
+                return PythonStrNodeFactory.create(builtin.name(), args);
             case 65:
                 return PythonTupleNodeFactory.create(builtin.name(), args);
             default:

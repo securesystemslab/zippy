@@ -61,7 +61,6 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     public PBuiltinFunction(String name, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
-
     }
 
     @Override
@@ -76,10 +75,10 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
         if (keywords.length == 0) {
-            checkForUnexpectedCall(args.length, keywords.length);
+            // checkForUnexpectedCall(args.length, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
         } else {
-            checkForUnexpectedCall(args.length, keywords.length);
+            // checkForUnexpectedCall(args.length, keywords.length);
             PKeyword[] pkeywords = new PKeyword[keywords.length];
             System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
