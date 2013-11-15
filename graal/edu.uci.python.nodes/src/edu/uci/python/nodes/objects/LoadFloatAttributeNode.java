@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.objects;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -45,8 +44,7 @@ public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
         if (!receiverObject.getObjectLayout().contains(objectLayout)) {
-            CompilerDirectives.transferToInterpreter();
-            replace(specialize(receiverObject));
+            respecialize(receiverObject);
             throw new UnexpectedResultException(receiverObject.getAttribute(attributeId));
         }
 

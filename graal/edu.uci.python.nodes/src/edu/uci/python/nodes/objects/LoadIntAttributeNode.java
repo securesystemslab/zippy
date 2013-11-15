@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.objects;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -45,8 +44,7 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
         final PythonBasicObject primaryObj = (PythonBasicObject) primary.execute(frame);
 
         if (!primaryObj.getObjectLayout().contains(objectLayout)) {
-            CompilerDirectives.transferToInterpreter();
-            replace(specialize(primaryObj));
+            respecialize(primaryObj);
             Object value = primaryObj.getAttribute(attributeId);
 
             if (value instanceof Integer) {

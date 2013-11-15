@@ -24,6 +24,9 @@
  */
 package edu.uci.python.nodes.objects;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.objects.*;
 
@@ -36,4 +39,9 @@ public abstract class LoadSpecializedAttributeNode extends LoadAttributeNode {
         this.objectLayout = objectLayout;
     }
 
+    @SlowPath
+    protected final void respecialize(PythonBasicObject receiverObject) {
+        CompilerDirectives.transferToInterpreter();
+        replace(specialize(receiverObject));
+    }
 }

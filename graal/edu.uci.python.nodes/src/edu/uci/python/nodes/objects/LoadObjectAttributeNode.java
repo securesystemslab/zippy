@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.objects;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -44,8 +43,7 @@ public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
         if (!receiverObject.getObjectLayout().contains(objectLayout)) {
-            CompilerDirectives.transferToInterpreter();
-            replace(specialize(receiverObject));
+            respecialize(receiverObject);
             return receiverObject.getAttribute(attributeId);
         }
 
