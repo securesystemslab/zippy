@@ -44,8 +44,8 @@ import edu.uci.python.runtime.sequence.*;
  */
 public class BuiltinsModule extends PythonModule {
 
-    public BuiltinsModule(PythonClass pythonClass, String name) {
-        super(pythonClass);
+    public BuiltinsModule(PythonContext context, PythonClass pythonClass, String name) {
+        super(context, pythonClass);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.setAttribute(__NAME__, name);
 

@@ -41,7 +41,7 @@ public class PythonContext {
         this.pythonCore = new PythonCore(this);
         PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
         this.pythonCore.initialize();
-        PythonModulesContainer.initialize();
+        PythonModulesContainer.initialize(this);
     }
 
     public PythonOptions getPythonOptions() {

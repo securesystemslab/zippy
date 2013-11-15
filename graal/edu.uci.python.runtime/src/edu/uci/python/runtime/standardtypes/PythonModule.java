@@ -29,6 +29,7 @@ import java.util.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
@@ -44,8 +45,11 @@ public class PythonModule extends PythonBasicObject {
 
     private final CyclicAssumption unmodifiedAssumption;
 
-    public PythonModule(PythonClass pythonClass) {
+    private final PythonContext context;
+
+    public PythonModule(PythonContext context, PythonClass pythonClass) {
         super(pythonClass);
+        this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
     }
 

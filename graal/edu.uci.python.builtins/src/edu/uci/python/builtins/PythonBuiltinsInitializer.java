@@ -24,11 +24,13 @@
  */
 package edu.uci.python.builtins;
 
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonBuiltinsInitializer {
 
-    public static void initialize() {
+    public static PythonContext initialize() {
         PythonBuiltinsContainer.getInstance().setDefaultBuiltins(new PythonDefaultBuiltins());
         PythonBuiltinsContainer.getInstance().setArrayModuleBuiltins(new ArrayModuleBuiltins());
         PythonBuiltinsContainer.getInstance().setBisectModuleBuiltins(new BisectModuleBuiltins());
@@ -36,5 +38,12 @@ public class PythonBuiltinsInitializer {
         PythonBuiltinsContainer.getInstance().setListBuiltins(new ListBuiltins());
         PythonBuiltinsContainer.getInstance().setStringBuiltins(new StringBuiltins());
         PythonBuiltinsContainer.getInstance().setDictionaryBuiltins(new DictionaryBuiltins());
+
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonBuiltinsLookup());
+        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, PythonBuiltinsContainer.getInstance().getArrayModuleBuiltins()));
+        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, PythonBuiltinsContainer.getInstance().getBisectModuleBuiltins()));
+        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, PythonBuiltinsContainer.getInstance().getTimeModuleBuiltins()));
+
+        return context;
     }
 }

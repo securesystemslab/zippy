@@ -160,8 +160,8 @@ public class NodeFactory {
         return new BlockNode(array);
     }
 
-    public PNode createImport(String fromModuleName, String importee) {
-        return new ImportNode(fromModuleName, importee);
+    public PNode createImport(PythonContext context, String fromModuleName, String importee) {
+        return new ImportNode(context, fromModuleName, importee);
     }
 
     public LoopNode createWhile(BooleanCastNode condition, StatementNode body) {

@@ -84,9 +84,11 @@ public class PythonTests {
     }
 
     public static PythonContext getContext() {
-        PythonOptions opts = new PythonOptions();
-        PythonBuiltinsInitializer.initialize();
-        return new PythonContext(opts, new PythonBuiltinsLookup());
+        // PythonOptions opts = new PythonOptions();
+        PythonContext context = PythonBuiltinsInitializer.initialize();
+        return context;
+        // PythonBuiltinsInitializer.initialize();
+        // return new PythonContext(opts, new PythonBuiltinsLookup());
     }
 
     public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {

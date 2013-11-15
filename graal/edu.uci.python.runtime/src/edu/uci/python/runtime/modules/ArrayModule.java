@@ -26,13 +26,14 @@ package edu.uci.python.runtime.modules;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class ArrayModule extends PythonModule {
 
-    public ArrayModule(PythonBuiltins builtins) {
-        super(PythonCore.tempModuleClass);
+    public ArrayModule(PythonContext context, PythonBuiltins builtins) {
+        super(context, context.getPythonCore().getModuleClass());
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
@@ -42,5 +43,4 @@ public class ArrayModule extends PythonModule {
             setAttribute(methodName, function);
         }
     }
-
 }

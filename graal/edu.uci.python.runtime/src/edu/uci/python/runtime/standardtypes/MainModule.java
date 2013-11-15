@@ -24,10 +24,12 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
+import edu.uci.python.runtime.*;
+
 public class MainModule extends PythonModule {
 
-    public MainModule(PythonClass pythonClass, String name) {
-        super(pythonClass);
+    public MainModule(PythonContext context, PythonClass pythonClass, String name) {
+        super(context, pythonClass);
 
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         this.addBuiltinMethodsAndConstants(MainModule.class);

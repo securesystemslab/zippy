@@ -40,8 +40,6 @@ public class PythonCore {
 
     private PythonModule mainModule;
 
-    public static PythonBuiltinClass tempModuleClass;
-
     public PythonCore(PythonContext context) {
         this.context = context;
     }
@@ -53,12 +51,12 @@ public class PythonCore {
         objectClass = new PythonObjectClass(context);
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonBuiltinClass(context, objectClass, "module");
-        tempModuleClass = moduleClass;
-        builtinsModule = new BuiltinsModule(moduleClass, "__builtins__");
+
+        builtinsModule = new BuiltinsModule(context, moduleClass, "__builtins__");
 
         builtinsModule.setAttribute("object", objectClass);
 
-        mainModule = new MainModule(moduleClass, "__main__");
+        mainModule = new MainModule(context, moduleClass, "__main__");
         mainModule.setAttribute("__builtins__", builtinsModule);
     }
 

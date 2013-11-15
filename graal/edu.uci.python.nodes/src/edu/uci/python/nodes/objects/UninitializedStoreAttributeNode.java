@@ -55,6 +55,7 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
     }
 
     private Object doGeneric(Object primaryObj, Object value) {
+
         assert value != null;
 
         if (primaryObj instanceof PyObject) {

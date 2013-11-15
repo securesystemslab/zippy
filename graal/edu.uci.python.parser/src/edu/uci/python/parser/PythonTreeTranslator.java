@@ -183,7 +183,8 @@ public class PythonTreeTranslator extends Visitor {
     private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
         String importName = aliaz.getInternalName();
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        PNode importNode = factory.createImport(fromModuleName, importName);
+        // PNode importNode = factory.createImport(fromModuleName, importName);
+        PNode importNode = factory.createImport(context, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
     }

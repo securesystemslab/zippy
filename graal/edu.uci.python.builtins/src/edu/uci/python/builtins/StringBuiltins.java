@@ -53,7 +53,12 @@ public final class StringBuiltins extends PythonBuiltins {
                 char[] joinString = ((String) arg).toCharArray();
                 for (int i = 0; i < joinString.length - 1; i++) {
                     sb.append(Character.toString(joinString[i]));
-                    sb.append((String) self);
+                    // sb.append((String) self);
+                    if (self instanceof PString) {
+                        sb.append(((PString) self).getValue());
+                    } else if (self instanceof String) {
+                        sb.append((String) self);
+                    }
                 }
                 sb.append(Character.toString(joinString[joinString.length - 1]));
 
@@ -70,7 +75,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
                     if (self instanceof PString) {
                         sb.append(((PString) self).getValue());
-                    } else if (stringList[i] instanceof String) {
+                    } else if (self instanceof String) {
                         sb.append((String) self);
                     }
 

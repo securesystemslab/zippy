@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.modules;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonModulesContainer {
@@ -32,9 +33,9 @@ public class PythonModulesContainer {
     public static PythonModule stringModule;
     public static PythonModule dictionaryModule;
 
-    public static void initialize() {
-        listModule = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());
-        stringModule = new StringAttribute(PythonBuiltinsContainer.getInstance().getStringBuiltins());
-        dictionaryModule = new DictionaryAttribute(PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
+    public static void initialize(PythonContext context) {
+        listModule = new ListAttribute(context, PythonBuiltinsContainer.getInstance().getListBuiltins());
+        stringModule = new StringAttribute(context, PythonBuiltinsContainer.getInstance().getStringBuiltins());
+        dictionaryModule = new DictionaryAttribute(context, PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
     }
 }

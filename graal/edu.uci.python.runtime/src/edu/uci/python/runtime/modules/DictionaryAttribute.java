@@ -26,13 +26,14 @@ package edu.uci.python.runtime.modules;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class DictionaryAttribute extends PythonModule {
 
-    public DictionaryAttribute(PythonBuiltins builtins) {
-        super(PythonCore.tempModuleClass);
+    public DictionaryAttribute(PythonContext context, PythonBuiltins builtins) {
+        super(context, context.getPythonCore().getModuleClass());
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

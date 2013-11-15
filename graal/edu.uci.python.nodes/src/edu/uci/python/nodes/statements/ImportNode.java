@@ -29,17 +29,19 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class ImportNode extends PNode {
+
+    private final PythonContext context;
 
     private final String fromModuleName;
 
     private final String importee;
 
-    public ImportNode(String fromModule, String importee) {
+    public ImportNode(PythonContext context, String fromModule, String importee) {
+        this.context = context;
         this.fromModuleName = fromModule;
         this.importee = importee;
     }
@@ -49,21 +51,20 @@ public class ImportNode extends PNode {
         Object importedModule = null;
 
         if (fromModuleName != null) {
-            importedModule = BuiltIns.importModule(fromModuleName);
+            importedModule = importModule(fromModuleName);
         }
 
         return doImport(importedModule, importee);
     }
 
-    private static Object doImport(Object importedModule, String name) {
+    private Object doImport(Object importedModule, String name) {
         try {
             if (importedModule != null && importedModule instanceof PythonModule) {
                 return ((PythonModule) importedModule).getAttribute(name);
             } else if (importedModule != null) {
                 return ((PyObject) importedModule).__getattr__(name);
             } else {
-                Object module = BuiltIns.importModule(name);
-                return module;
+                return importModule(name);
             }
         } catch (PyException pye) {
             if (pye.match(Py.AttributeError)) {
@@ -72,5 +73,14 @@ public class ImportNode extends PNode {
                 throw pye;
             }
         }
+    }
+
+    private Object importModule(String name) {
+        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(name);
+        if (importedModule == null) {
+            importedModule = __builtin__.__import__(name);
+        }
+
+        return importedModule;
     }
 }
