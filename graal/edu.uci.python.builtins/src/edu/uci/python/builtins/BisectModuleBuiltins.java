@@ -24,8 +24,6 @@
  */
 package edu.uci.python.builtins;
 
-import java.util.Arrays;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;

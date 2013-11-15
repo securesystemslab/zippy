@@ -80,10 +80,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         } else {
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
             replace(callFunction);
-            /**
-             * TODO executes the method twice. One of them should be used
-             */
-            // return callFunction.execute(frame);
             return callFunction.doGeneric(frame, calleeObj);
         }
     }

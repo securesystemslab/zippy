@@ -27,15 +27,13 @@ package edu.uci.python.runtime.datatypes;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.standardtypes.*;
-
 public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PBuiltinFunction function;
-    private final PythonBuiltinClass self;
+    private final PythonBuiltinObject self;
     private final CallTarget callTarget;
 
-    public PBuiltinMethod(PythonBuiltinClass self, PBuiltinFunction function) {
+    public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
         this.self = self;
         this.function = function;
         this.callTarget = function.getCallTarget();
@@ -45,7 +43,7 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
         return function;
     }
 
-    public PythonBuiltinClass __self__() {
+    public PythonBuiltinObject __self__() {
         return self;
     }
 

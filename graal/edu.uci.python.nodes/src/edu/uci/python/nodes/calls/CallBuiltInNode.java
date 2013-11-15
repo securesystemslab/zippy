@@ -67,8 +67,12 @@ public abstract class CallBuiltInNode extends PNode {
     @Specialization
     public Object doGeneric(VirtualFrame frame) {
         Object[] args = executeArguments(frame, arguments);
-        Object[] kwords = executeArguments(frame, keywords);
 
+        if (keywords.length == 0) {
+            return callee.call(frame.pack(), args);
+        }
+
+        Object[] kwords = executeArguments(frame, keywords);
         return callee.call(frame.pack(), args, kwords);
     }
 
