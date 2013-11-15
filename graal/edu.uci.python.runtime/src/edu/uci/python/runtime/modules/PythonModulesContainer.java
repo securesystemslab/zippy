@@ -28,9 +28,9 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonModulesContainer {
 
-    public static PModule listModule;
-    public static PModule stringModule;
-    public static PModule dictionaryModule;
+    public static PythonModule listModule;
+    public static PythonModule stringModule;
+    public static PythonModule dictionaryModule;
 
     public static void initialize() {
         listModule = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());

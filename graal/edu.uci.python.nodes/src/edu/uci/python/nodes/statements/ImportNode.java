@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class ImportNode extends PNode {
 
@@ -56,8 +57,8 @@ public class ImportNode extends PNode {
 
     private static Object doImport(Object importedModule, String name) {
         try {
-            if (importedModule != null && importedModule instanceof PModule) {
-                return ((PModule) importedModule).lookupMethod(name);
+            if (importedModule != null && importedModule instanceof PythonModule) {
+                return ((PythonModule) importedModule).getAttribute(name);
             } else if (importedModule != null) {
                 return ((PyObject) importedModule).__getattr__(name);
             } else {
@@ -72,5 +73,4 @@ public class ImportNode extends PNode {
             }
         }
     }
-
 }

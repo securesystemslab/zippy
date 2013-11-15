@@ -77,9 +77,18 @@ public class PDictionary extends PythonBuiltinObject {
 
     @Override
     public PythonCallable findAttribute(String name) {
-        PythonCallable method = PythonModulesContainer.dictionaryModule.lookupAttributeMethod(name, this);
+        // PythonCallable method =
+// PythonModulesContainer.dictionaryModule.lookupAttributeMethod(name, this);
         // method.setSelf(this);
-        return method;
+
+        Object attribute = PythonModulesContainer.dictionaryModule.getAttribute(name);
+        if (attribute instanceof PBuiltinFunction) {
+            PBuiltinFunction function = (PBuiltinFunction) attribute;
+            function.setSelf(this);
+            return function;
+        }
+
+        throw new RuntimeException("Does not support attribute " + name);
     }
 
     @Override

@@ -190,8 +190,19 @@ public class PList extends PSequence {
 
     @Override
     public PythonCallable findAttribute(String name) {
-        PythonCallable method = PythonModulesContainer.listModule.lookupAttributeMethod(name, this);
-        return method;
+        // PythonCallable method = PythonModulesContainer.listModule.lookupAttributeMethod(name,
+// this);
+        // return method;
+
+        Object attribute = PythonModulesContainer.listModule.getAttribute(name);
+        if (attribute instanceof PBuiltinFunction) {
+            PBuiltinFunction function = (PBuiltinFunction) attribute;
+            function.setSelf(this);
+            return function;
+        }
+
+        throw new RuntimeException("Does not support attribute " + name);
+
     }
 
     @Override

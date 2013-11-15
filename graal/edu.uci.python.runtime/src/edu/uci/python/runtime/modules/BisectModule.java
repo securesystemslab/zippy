@@ -24,19 +24,25 @@
  */
 package edu.uci.python.runtime.modules;
 
-import java.util.Arrays;
+import java.util.*;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class BisectModule extends PModule {
+public class BisectModule extends PythonModule {
 
     public BisectModule(PythonBuiltins builtins) {
-        super("bisect");
-        this.builtins = builtins;
+        super(PythonCore.tempModuleClass);
         builtins.initialize();
-// addBuiltInMethods();
+
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
     }
 
     @ModuleMethod

@@ -39,7 +39,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -75,9 +74,16 @@ public abstract class CallAttributeNode extends PNode {
     }
 
     @Specialization
-    public Object doPObject(VirtualFrame frame, PythonBuiltinObject prim) {
+    public Object doPythonBuiltinObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
         return prim.findAttribute(attributeId).call(null, args);
+    }
+
+    @Specialization
+    public Object doPythonModule(VirtualFrame frame, PythonModule prim) {
+        Object[] args = doArguments(frame);
+        Object attribute = prim.getAttribute(attributeId);
+        return ((PythonCallable) attribute).call(null, args, null);
     }
 
     @Specialization
@@ -96,6 +102,7 @@ public abstract class CallAttributeNode extends PNode {
 
     @Generic
     public Object doGeneric(VirtualFrame frame, Object prim) {
+
         Object[] args = doArguments(frame);
 
         PyObject primary;
@@ -104,8 +111,9 @@ public abstract class CallAttributeNode extends PNode {
         } else if (prim instanceof Iterator<?>) {
             Iterator<?> iterator = (Iterator<?>) prim;
             return iterator.next();
-        } else if (prim instanceof PModule) {
-            return ((PModule) prim).lookupMethod(attributeId).call(null, args, null);
+        } else if (prim instanceof PythonModule) {
+            Object attribute = ((PythonModule) prim).getAttribute(attributeId);
+            return ((PythonCallable) attribute).call(null, args, null);
         } else {
             primary = adaptToPyObject(prim);
         }

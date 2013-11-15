@@ -41,8 +41,17 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     @Override
     public PythonCallable findAttribute(String name) {
-        PythonCallable method = PythonModulesContainer.stringModule.lookupAttributeMethod(name, value);
-        return method;
+        Object attribute = PythonModulesContainer.stringModule.getAttribute(name);
+        if (attribute instanceof PBuiltinFunction) {
+            PBuiltinFunction function = (PBuiltinFunction) attribute;
+            function.setSelf(this);
+            return function;
+        }
+
+        throw new RuntimeException("Does not support attribute " + name);
+        // PythonCallable method = PythonModulesContainer.stringModule.lookupAttributeMethod(name,
+// value);
+        // return method;
     }
 
     public List<String> getList() {
@@ -74,6 +83,10 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
                 return iter.next();
             }
         };
+    }
+
+    public String getValue() {
+        return value;
     }
 
     @Override
@@ -109,5 +122,10 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     @Override
     public PSequence concat(PSequence sequence) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        return value;
     }
 }
