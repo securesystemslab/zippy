@@ -28,6 +28,7 @@ import java.util.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -87,7 +88,7 @@ public abstract class CallAttributeNode extends PNode {
     @Specialization
     public Object doPythonObject(VirtualFrame frame, PythonObject prim) {
         Object[] args = doArgumentsWithSelf(frame, prim);
-        PythonCallable callable = (PythonCallable) prim.getAttribute(attributeId);
+        PythonCallable callable = applyMethodDescriptor(prim, (PythonCallable) prim.getAttribute(attributeId));
         return callable.call(frame.pack(), args);
     }
 
@@ -159,4 +160,30 @@ public abstract class CallAttributeNode extends PNode {
         return evaluated;
     }
 
+    /**
+     * Ugly, but works for now.<br>
+     * Mimic the behavior of method descriptor to bind built-in and user functions.
+     */
+    protected PythonCallable applyMethodDescriptor(PythonObject primaryObj, PythonCallable attribute) {
+        if (attribute instanceof PFunction) {
+            CompilerDirectives.transferToInterpreter();
+            return createPMethodFor(primaryObj, (PFunction) attribute);
+        }
+
+        return attribute;
+    }
+
+    private static PMethod createPMethodFor(Object primaryObj, PFunction function) {
+        assert primaryObj instanceof PythonObject;
+        FunctionRootNode root = ((FunctionRootNode) function.getFunctionRootNode()).copy();
+        List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
+
+        for (ReadArgumentNode read : argReads) {
+            if (read.getIndex() == 0) {
+                read.replace(new ReadSelfArgumentNode());
+            }
+        }
+
+        return new PMethod((PythonObject) primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
+    }
 }

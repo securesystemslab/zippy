@@ -73,8 +73,9 @@ public class FunctionRootNode extends RootNode {
         return uninitializedBody;
     }
 
-    public FunctionRootNode duplicate() {
-        return new FunctionRootNode(this.functionName, this.parameters, this.body, this.returnValue);
+    @Override
+    public FunctionRootNode copy() {
+        return new FunctionRootNode(this.functionName, this.uninitializedParams, this.uninitializedBody, this.unitializedReturn);
     }
 
     @Override
