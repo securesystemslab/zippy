@@ -46,12 +46,12 @@ public class ReadVarArgsNode extends ReadArgumentNode {
     @Override
     public final Object[] executeObjectArray(VirtualFrame frame) {
         PArguments arguments = frame.getArguments(PArguments.class);
-        if (index >= arguments.getLength()) {
+        if (getIndex() >= arguments.getLength()) {
             return PArguments.EMPTY_ARGUMENTS_ARRAY;
         } else {
-            Object[] varArgs = new Object[arguments.getLength() - index];
+            Object[] varArgs = new Object[arguments.getLength() - getIndex()];
             for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = arguments.getArgument(i + index);
+                varArgs[i] = arguments.getArgument(i + getIndex());
             }
             return varArgs;
         }

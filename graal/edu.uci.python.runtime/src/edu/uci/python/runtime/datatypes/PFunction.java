@@ -47,6 +47,10 @@ public class PFunction implements PythonCallable {
         this.declarationFrame = declarationFrame;
     }
 
+    public static PFunction dulicate(PFunction function, CallTarget newCallTarget) {
+        return new PFunction(function.name, function.parameters, newCallTarget, function.frameDescriptor, function.declarationFrame);
+    }
+
     public CallTarget getCallTarget() {
         return callTarget;
     }

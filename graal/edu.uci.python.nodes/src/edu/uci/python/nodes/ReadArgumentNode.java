@@ -36,10 +36,14 @@ import edu.uci.python.runtime.datatypes.*;
  */
 public class ReadArgumentNode extends PNode {
 
-    protected final int index;
+    private final int index;
 
     public ReadArgumentNode(int index) {
         this.index = index;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     @Override

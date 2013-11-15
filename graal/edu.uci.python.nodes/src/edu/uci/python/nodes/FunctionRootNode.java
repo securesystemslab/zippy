@@ -73,6 +73,10 @@ public class FunctionRootNode extends RootNode {
         return uninitializedBody;
     }
 
+    public FunctionRootNode duplicate() {
+        return new FunctionRootNode(this.functionName, this.parameters, this.body, this.returnValue);
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.executeVoid(frame);
@@ -112,7 +116,7 @@ public class FunctionRootNode extends RootNode {
             try {
                 return body.execute(frame);
             } catch (ImplicitReturnException ire) {
-                return null;
+                return PNone.NONE;
             } catch (ExplicitReturnException ere) {
                 return returnValue.execute(frame);
             }

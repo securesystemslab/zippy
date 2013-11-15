@@ -68,7 +68,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
-            } else if (keywords.length == 0) {
+            } else if (keywords.length == 0 && callable instanceof PFunction) {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, (PFunction) callable);
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);

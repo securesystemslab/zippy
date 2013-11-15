@@ -47,7 +47,7 @@ public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
             return receiverObject.getAttribute(attributeId);
         }
 
-        return storageLocation.read(receiverObject);
+        return applyMethodDescriptor(receiverObject, storageLocation.read(receiverObject));
     }
 
 }

@@ -24,12 +24,18 @@
  */
 package edu.uci.python.nodes.objects;
 
+import java.util.*;
+
 import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
@@ -78,6 +84,34 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
         } else {
             return new LoadObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
         }
+    }
+
+    /**
+     * Ugly, but works for now.<br>
+     * Mimic the behavior of method descriptor to bind built-in and user functions.
+     */
+    protected Object applyMethodDescriptor(Object primaryObj, Object attribute) {
+        if (attribute instanceof PFunction && primaryObj instanceof PythonObject) {
+            CompilerDirectives.transferToInterpreter();
+            return createPMethodFor(primaryObj, attribute);
+        }
+
+        return attribute;
+    }
+
+    private static Object createPMethodFor(Object primaryObj, Object attribute) {
+        assert primaryObj instanceof PythonObject;
+        PFunction function = (PFunction) attribute;
+        FunctionRootNode root = ((FunctionRootNode) function.getFunctionRootNode()).duplicate();
+        List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
+
+        for (ReadArgumentNode read : argReads) {
+            if (read.getIndex() == 0) {
+                read.replace(new ReadSelfArgumentNode());
+            }
+        }
+
+        return new PMethod((PythonObject) primaryObj, PFunction.dulicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
     }
 
     @Override

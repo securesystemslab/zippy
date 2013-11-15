@@ -60,7 +60,6 @@ public class AddClassAttributeNode extends PNode {
     /**
      * This class exists only to make ReadNode -> WriteNode logic consistent in PythonTree
      * translation. Should be removed whenever {@link AddClassAttributeNode} is not longer needed.
-     * 
      */
     public static class ReadClassAttributeNode extends PNode implements ReadNode {
 
