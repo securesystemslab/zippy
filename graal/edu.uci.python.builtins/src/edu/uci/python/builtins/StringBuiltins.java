@@ -62,8 +62,20 @@ public final class StringBuiltins extends PythonBuiltins {
                 StringBuilder sb = new StringBuilder();
                 Object[] stringList = ((PSequence) arg).getSequence();
                 for (int i = 0; i < stringList.length - 1; i++) {
-                    sb.append((String) stringList[i]);
-                    sb.append((String) self);
+                    if (stringList[i] instanceof PString) {
+                        sb.append(((PString) stringList[i]).getValue());
+                    } else if (stringList[i] instanceof String) {
+                        sb.append((String) stringList[i]);
+                    }
+
+                    if (self instanceof PString) {
+                        sb.append(((PString) self).getValue());
+                    } else if (stringList[i] instanceof String) {
+                        sb.append((String) self);
+                    }
+
+// sb.append((String) stringList[i]);
+// sb.append((String) self);
                 }
                 sb.append((String) stringList[stringList.length - 1]);
 

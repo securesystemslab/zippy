@@ -33,10 +33,10 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class BuiltIns {
 
-    public static final HashMap<String, PModule> moduleMap = moduleMapInit();
+    public static final HashMap<String, PythonModule> moduleMap = moduleMapInit();
 
-    public static HashMap<String, PModule> moduleMapInit() {
-        HashMap<String, PModule> map = new HashMap<>();
+    public static HashMap<String, PythonModule> moduleMapInit() {
+        HashMap<String, PythonModule> map = new HashMap<>();
         map.put("array", new ArrayModule(PythonBuiltinsContainer.getInstance().getArrayModuleBuiltins()));
         map.put("bisect", new BisectModule(PythonBuiltinsContainer.getInstance().getBisectModuleBuiltins()));
         map.put("time", new TimeModule(PythonBuiltinsContainer.getInstance().getTimeModuleBuiltins()));
@@ -45,7 +45,6 @@ public class BuiltIns {
 
     public static Object importModule(String name) {
         Object importedModule = moduleMap.get(name);
-
         if (importedModule == null) {
             importedModule = __builtin__.__import__(name);
         }

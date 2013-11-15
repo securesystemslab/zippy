@@ -24,28 +24,22 @@
  */
 package edu.uci.python.runtime.modules;
 
-import edu.uci.python.runtime.modules.annotations.*;
+import java.util.*;
+
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class TimeModule extends PModule {
+public class TimeModule extends PythonModule {
 
     public TimeModule(PythonBuiltins builtins) {
-        super("time");
-        this.builtins = builtins;
+        super(PythonCore.tempModuleClass);
         builtins.initialize();
-    }
 
-    /**
-     * The logic is borrowed from Jython.
-     * 
-     * @return current system millisecond time in second
-     */
-    @ModuleMethod
-    public double time(Object[] args, Object[] keywords) {
-        return System.currentTimeMillis() / 1000.0;
-    }
-
-    public double time(Object arg) {
-        return System.currentTimeMillis() / 1000.0;
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
     }
 }

@@ -24,13 +24,22 @@
  */
 package edu.uci.python.runtime.modules;
 
+import java.util.*;
+
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class ListAttribute extends PModule {
+public class ListAttribute extends PythonModule {
 
     public ListAttribute(PythonBuiltins builtins) {
-        super("list");
-        this.builtins = builtins;
+        super(PythonCore.tempModuleClass);
         builtins.initialize();
+
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
     }
 }

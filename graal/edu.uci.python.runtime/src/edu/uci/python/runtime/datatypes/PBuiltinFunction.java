@@ -79,17 +79,9 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
 
     @Override
     public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        if (keywords.length == 0) {
+        if (keywords == null || keywords.length == 0) {
             // checkForUnexpectedCall(args.length, keywords.length);
-            // return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
-
-            if (self != null) {
-                Object[] argsWithSelf = new Object[args.length + 1];
-                System.arraycopy(args, 0, argsWithSelf, 0, args.length);
-                argsWithSelf[args.length] = self;
-                return callTarget.call(caller, new PArguments(PNone.NONE, null, argsWithSelf));
-            }
-            return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
+            return call(caller, args);
         } else {
             // checkForUnexpectedCall(args.length, keywords.length);
             PKeyword[] pkeywords = new PKeyword[keywords.length];
