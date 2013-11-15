@@ -123,4 +123,9 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     public PSequence concat(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String toString() {
+        return value;
+    }
 }

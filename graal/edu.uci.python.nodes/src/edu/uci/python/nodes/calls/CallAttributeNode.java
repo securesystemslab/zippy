@@ -28,6 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
+import sun.reflect.generics.reflectiveObjects.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -37,8 +39,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -183,8 +183,7 @@ public abstract class CallAttributeNode extends PNode {
         return attribute;
     }
 
-    private static PMethod createPMethodFor(Object primaryObj, PFunction function) {
-        assert primaryObj instanceof PythonObject;
+    private static PMethod createPMethodFor(PythonObject primaryObj, PFunction function) {
         FunctionRootNode root = ((FunctionRootNode) function.getFunctionRootNode()).copy();
         List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
 
@@ -194,6 +193,20 @@ public abstract class CallAttributeNode extends PNode {
             }
         }
 
-        return new PMethod((PythonObject) primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
+        return new PMethod(primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
+    }
+
+    protected PythonCallable applyBuiltinMethodDescriptor(PythonBuiltinObject primaryObj, PythonCallable callable) {
+        if (callable instanceof PBuiltinFunction) {
+            CompilerDirectives.transferToInterpreter();
+            createPBuiltinMethodFor(primaryObj, callable);
+        }
+
+        return callable;
+    }
+
+    @SuppressWarnings("unused")
+    private static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PythonCallable function) {
+        throw new NotImplementedException();
     }
 }

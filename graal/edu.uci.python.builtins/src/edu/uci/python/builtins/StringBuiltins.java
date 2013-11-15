@@ -53,12 +53,7 @@ public final class StringBuiltins extends PythonBuiltins {
                 char[] joinString = ((String) arg).toCharArray();
                 for (int i = 0; i < joinString.length - 1; i++) {
                     sb.append(Character.toString(joinString[i]));
-                    // sb.append((String) self);
-                    if (self instanceof PString) {
-                        sb.append(((PString) self).getValue());
-                    } else if (self instanceof String) {
-                        sb.append((String) self);
-                    }
+                    sb.append(self.toString());
                 }
                 sb.append(Character.toString(joinString[joinString.length - 1]));
 
@@ -67,20 +62,8 @@ public final class StringBuiltins extends PythonBuiltins {
                 StringBuilder sb = new StringBuilder();
                 Object[] stringList = ((PSequence) arg).getSequence();
                 for (int i = 0; i < stringList.length - 1; i++) {
-                    if (stringList[i] instanceof PString) {
-                        sb.append(((PString) stringList[i]).getValue());
-                    } else if (stringList[i] instanceof String) {
-                        sb.append((String) stringList[i]);
-                    }
-
-                    if (self instanceof PString) {
-                        sb.append(((PString) self).getValue());
-                    } else if (self instanceof String) {
-                        sb.append((String) self);
-                    }
-
-// sb.append((String) stringList[i]);
-// sb.append((String) self);
+                    sb.append(stringList[i].toString());
+                    sb.append(self.toString());
                 }
                 sb.append((String) stringList[stringList.length - 1]);
 
@@ -123,14 +106,14 @@ public final class StringBuiltins extends PythonBuiltins {
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
             PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+            Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                            builtin.takesVariableArguments());
             PBuiltinFunction builtinClass;
 
             if (builtin.hasFixedNumOfArguments()) {
-                builtinClass = new PBuiltinFunction(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                builtin.takesVariableArguments(), callTarget);
+                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
             } else {
-                builtinClass = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                builtin.takesVariableArguments(), callTarget);
+                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
             }
 
             return builtinClass;

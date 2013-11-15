@@ -24,10 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 public class PBuiltinFunction extends PythonBuiltinObject implements PythonCallable {
@@ -36,26 +33,14 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
 
     private final CallTarget callTarget;
 
-    private int minNumOfArgs;
-
-    private int maxNumOfArgs;
-
-    private boolean takesKeywordArg;
-
-    private boolean takesFixedNumOfArgs;
-
-    private boolean takesVarArgs;
+    private Arity arity;
 
     public Object self;
 
-    public PBuiltinFunction(String name, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, CallTarget callTarget) {
+    public PBuiltinFunction(String name, Arity arity, CallTarget callTarget) {
         this.name = name;
+        this.arity = arity;
         this.callTarget = callTarget;
-        this.minNumOfArgs = minNumOfArgs;
-        this.maxNumOfArgs = maxNumOfArgs;
-        this.takesFixedNumOfArgs = takesFixedNumOfArgs;
-        this.takesKeywordArg = takesKeywordArg;
-        this.takesVarArgs = takesVarArgs;
     }
 
     public PBuiltinFunction(String name, CallTarget callTarget) {
@@ -95,40 +80,6 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
                 return callTarget.call(caller, new PArguments(PNone.NONE, null, argsWithSelf, pkeywords));
             }
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
-        }
-    }
-
-    // Taken from Jython PyBuiltinCallable's unexpectedCall() method, and modified
-    @SlowPath
-    private void checkForUnexpectedCall(int numOfArgs, int numOfKeywords) {
-        if (!takesKeywordArg && numOfKeywords > 0) {
-            throw Py.TypeError(name + "() takes no keyword arguments");
-        }
-
-        String argMessage;
-        if (takesFixedNumOfArgs) {
-            assert (minNumOfArgs == maxNumOfArgs);
-            if (numOfArgs != minNumOfArgs) {
-                if (minNumOfArgs == 0) {
-                    argMessage = "no arguments";
-                } else if (minNumOfArgs == 1) {
-                    argMessage = "exactly one argument";
-                } else {
-                    argMessage = minNumOfArgs + " arguments";
-                }
-                throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
-            }
-        } else if (numOfArgs < minNumOfArgs) {
-            /**
-             * For ex, iter(object[, sentinel]) takes at least 1 argument.
-             */
-            throw Py.TypeError(String.format("%s() expected at least %d arguments (%d) given", name, minNumOfArgs, numOfArgs));
-        } else if (!takesVarArgs && numOfArgs > maxNumOfArgs) {
-            /**
-             * For ex, complex([real[, imag]]) takes at most 2 arguments.
-             */
-            argMessage = "at most " + maxNumOfArgs + " arguments";
-            throw Py.TypeError(String.format("%s() takes %s (%d given)", name, argMessage, numOfArgs));
         }
     }
 
