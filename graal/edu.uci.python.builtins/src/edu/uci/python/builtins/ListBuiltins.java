@@ -49,7 +49,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList append(Object arg, Object self) {
+        public PList append(Object self, Object arg) {
             PList selfList = (PList) self;
 
             selfList.append(arg);
@@ -70,7 +70,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList extend(Object arg, Object self) {
+        public PList extend(Object self, Object arg) {
             PList selfList = (PList) self;
 
             if (arg instanceof PList) {
@@ -95,7 +95,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList insert(Object arg0, Object arg1, Object self) {
+        public PList insert(Object self, Object arg0, Object arg1) {
             PList selfList = (PList) self;
 
             if (arg0 instanceof Integer) {
@@ -120,7 +120,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList remove(Object arg, Object self) {
+        public PList remove(Object self, Object arg) {
             PList selfList = (PList) self;
             int index = selfList.index(arg);
             selfList.delItem(index);
@@ -141,7 +141,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object pop(Object arg, Object self) {
+        public Object pop(Object self, Object arg) {
             PList selfList = (PList) self;
 
             if (arg instanceof Integer) {
@@ -168,7 +168,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public int index(Object arg, Object self) {
+        public int index(Object self, Object arg) {
             PList selfList = (PList) self;
             return selfList.index(arg);
         }
@@ -187,7 +187,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public int count(Object arg, Object self) {
+        public int count(Object self, Object arg) {
             PList selfList = (PList) self;
             int count = 0;
             Object[] list = selfList.getSequence();
@@ -267,7 +267,7 @@ public class ListBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                             builtin.takesVariableArguments());

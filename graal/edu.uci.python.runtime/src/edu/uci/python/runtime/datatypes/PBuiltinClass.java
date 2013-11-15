@@ -76,7 +76,7 @@ public class PBuiltinClass extends PythonBuiltinObject implements PythonCallable
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (keywords.length == 0) {
             // checkForUnexpectedCall(args.length, keywords.length);
             return callTarget.call(caller, new PArguments(PNone.NONE, null, args));

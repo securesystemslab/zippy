@@ -72,7 +72,7 @@ public abstract class CallBuiltInNode extends PNode {
             return callee.call(frame.pack(), args);
         }
 
-        Object[] kwords = executeArguments(frame, keywords);
+        PKeyword[] kwords = CallFunctionNode.executeKeywordArguments(frame, keywords);
         return callee.call(frame.pack(), args, kwords);
     }
 

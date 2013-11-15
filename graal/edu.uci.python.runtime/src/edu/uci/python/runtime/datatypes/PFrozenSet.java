@@ -124,15 +124,4 @@ public class PFrozenSet extends PBaseSet {
     protected PBaseSet cloneThisSet() {
         return new PFrozenSet(this);
     }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
 }

@@ -77,18 +77,7 @@ public class PDictionary extends PythonBuiltinObject {
 
     @Override
     public PythonCallable findAttribute(String name) {
-        // PythonCallable method =
-// PythonModulesContainer.dictionaryModule.lookupAttributeMethod(name, this);
-        // method.setSelf(this);
-
-        Object attribute = PythonModulesContainer.dictionaryModule.getAttribute(name);
-        if (attribute instanceof PBuiltinFunction) {
-            PBuiltinFunction function = (PBuiltinFunction) attribute;
-            function.setSelf(this);
-            return function;
-        }
-
-        throw new RuntimeException("Does not support attribute " + name);
+        return (PythonCallable) PythonModulesContainer.dictionaryModule.getAttribute(name);
     }
 
     @Override
@@ -112,24 +101,7 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
-    public Object getMin() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    @Override
-    public Object getMax() {
-        throw new RuntimeException("unimplemented");
-
-    }
-
-    @Override
     public int len() {
         return map.size();
     }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new RuntimeException("unimplemented");
-    }
-
 }

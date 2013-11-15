@@ -140,7 +140,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                             builtin.takesVariableArguments());

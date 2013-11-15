@@ -54,8 +54,12 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
         return callTarget.call(caller, new PArguments(self, null, args));
     }
 
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        assert keywords instanceof PKeyword[];
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, (PKeyword[]) keywords));
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        return callTarget.call(caller, new PArguments(self, null, args, keywords));
+    }
+
+    @Override
+    public String toString() {
+        return "<method '" + function.getName() + "' of '" + self + "' objects>";
     }
 }

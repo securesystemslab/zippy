@@ -214,11 +214,6 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PTuple concat(PSequence sequence) {
         Object[] newArray = new Object[len() + sequence.len()];
         Object[] rightArray = ((PTuple) sequence).getArray();

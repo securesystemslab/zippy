@@ -28,8 +28,6 @@ import java.util.*;
 
 import org.python.core.*;
 
-import sun.reflect.generics.reflectiveObjects.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -70,20 +68,22 @@ public abstract class CallAttributeNode extends PNode {
     public Object doString(VirtualFrame frame, String prim) {
         Object[] args = doArguments(frame);
         PString primString = new PString(prim);
-        return primString.findAttribute(attributeId).call(null, args);
+        PythonCallable callable = applyBuiltinMethodDescriptor(primString, primString.findAttribute(attributeId));
+        return callable.call(frame.pack(), args);
     }
 
     @Specialization
     public Object doPythonBuiltinObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
-        return prim.findAttribute(attributeId).call(null, args);
+        PythonCallable callable = applyBuiltinMethodDescriptor(prim, prim.findAttribute(attributeId));
+        return callable.call(frame.pack(), args);
     }
 
     @Specialization
     public Object doPythonModule(VirtualFrame frame, PythonModule prim) {
         Object[] args = doArguments(frame);
         Object attribute = prim.getAttribute(attributeId);
-        return ((PythonCallable) attribute).call(null, args, null);
+        return ((PythonCallable) attribute).call(frame.pack(), args);
     }
 
     @Specialization
@@ -113,7 +113,7 @@ public abstract class CallAttributeNode extends PNode {
             return iterator.next();
         } else if (prim instanceof PythonModule) {
             Object attribute = ((PythonModule) prim).getAttribute(attributeId);
-            return ((PythonCallable) attribute).call(null, args, null);
+            return ((PythonCallable) attribute).call(frame.pack(), args);
         } else {
             primary = adaptToPyObject(prim);
         }
@@ -184,29 +184,36 @@ public abstract class CallAttributeNode extends PNode {
     }
 
     private static PMethod createPMethodFor(PythonObject primaryObj, PFunction function) {
-        FunctionRootNode root = ((FunctionRootNode) function.getFunctionRootNode()).copy();
-        List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
-
-        for (ReadArgumentNode read : argReads) {
-            if (read.getIndex() == 0) {
-                read.replace(new ReadSelfArgumentNode());
-            }
-        }
-
+        RootNode root = (RootNode) function.getFunctionRootNode().copy();
+        redirectFirstArgumentToSelf(root);
         return new PMethod(primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
     }
 
     protected PythonCallable applyBuiltinMethodDescriptor(PythonBuiltinObject primaryObj, PythonCallable callable) {
         if (callable instanceof PBuiltinFunction) {
             CompilerDirectives.transferToInterpreter();
-            createPBuiltinMethodFor(primaryObj, callable);
+            return createPBuiltinMethodFor(primaryObj, (PBuiltinFunction) callable);
         }
 
         return callable;
     }
 
-    @SuppressWarnings("unused")
-    private static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PythonCallable function) {
-        throw new NotImplementedException();
+    private static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PBuiltinFunction function) {
+        RootNode root = (RootNode) function.getFunctionRootNode().copy();
+        redirectFirstArgumentToSelf(root);
+        return new PBuiltinMethod(primaryObj, PBuiltinFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root)));
+    }
+
+    private static void redirectFirstArgumentToSelf(RootNode root) {
+        List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
+
+        for (ReadArgumentNode read : argReads) {
+            if (read.getIndex() == 0) {
+                read.replace(new ReadSelfArgumentNode());
+            } else {
+                int index = read.getIndex();
+                read.replace(new ReadArgumentNode(index - 1));
+            }
+        }
     }
 }

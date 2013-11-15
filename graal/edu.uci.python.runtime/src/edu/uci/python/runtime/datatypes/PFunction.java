@@ -82,12 +82,12 @@ public class PFunction implements PythonCallable {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] arguments, Object[] keywords) {
-        Object[] combined = processKeywordArgs(parameters, arguments, keywords);
+    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+        Object[] combined = applyKeywordArgs(parameters, arguments, keywords);
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
     }
 
-    protected static Object[] processKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
+    protected static Object[] applyKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);

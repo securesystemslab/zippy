@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import edu.uci.python.runtime.datatypes.*;
-
 public class PSet extends PBaseSet {
 
     public PSet() {
@@ -134,15 +132,5 @@ public class PSet extends PBaseSet {
     @Override
     protected PBaseSet cloneThisSet() {
         return new PSet(this);
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
     }
 }

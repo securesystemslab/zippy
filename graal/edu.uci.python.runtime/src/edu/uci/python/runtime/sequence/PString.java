@@ -41,17 +41,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     @Override
     public PythonCallable findAttribute(String name) {
-        Object attribute = PythonModulesContainer.stringModule.getAttribute(name);
-        if (attribute instanceof PBuiltinFunction) {
-            PBuiltinFunction function = (PBuiltinFunction) attribute;
-            function.setSelf(this);
-            return function;
-        }
-
-        throw new RuntimeException("Does not support attribute " + name);
-        // PythonCallable method = PythonModulesContainer.stringModule.lookupAttributeMethod(name,
-// value);
-        // return method;
+        return (PythonCallable) PythonModulesContainer.stringModule.getAttribute(name);
     }
 
     public List<String> getList() {

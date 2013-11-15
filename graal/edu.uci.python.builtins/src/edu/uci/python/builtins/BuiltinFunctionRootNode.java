@@ -29,14 +29,19 @@ import com.oracle.truffle.api.nodes.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
-
-public class PythonBuiltinRootNode extends RootNode {
+public class BuiltinFunctionRootNode extends RootNode {
 
     @Child private PythonBuiltinNode builtinNode;
 
-    public PythonBuiltinRootNode(PythonBuiltinNode builtinNode) {
+    public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {
         this.builtinNode = adoptChild(builtinNode);
+    }
+
+    @Override
+    public RootNode copy() {
+        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(builtinNode));
     }
 
     @Override

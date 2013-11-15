@@ -152,11 +152,6 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PArray append(PArray other) {
         PCharArray otherArray = (PCharArray) other;
         char[] joined = new char[len() + other.len()];

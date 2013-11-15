@@ -1011,6 +1011,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PList(sequence);
             }
 
+            @SuppressWarnings("unchecked")
             private static Iterator<Object> getIterable(Object o) {
                 if (o instanceof String) {
                     return new PString((String) o).iterator();
@@ -1249,7 +1250,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             PBuiltinClass builtinClass;
 
@@ -1273,7 +1274,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                             builtin.takesVariableArguments());

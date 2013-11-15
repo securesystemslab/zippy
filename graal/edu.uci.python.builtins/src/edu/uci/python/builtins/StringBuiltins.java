@@ -47,7 +47,7 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public String join(Object arg, Object self) {
+        public String join(Object self, Object arg) {
             if (arg instanceof String) {
                 StringBuilder sb = new StringBuilder();
                 char[] joinString = ((String) arg).toCharArray();
@@ -116,7 +116,7 @@ public final class StringBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                             builtin.takesVariableArguments());
