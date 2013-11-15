@@ -35,7 +35,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
-
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild(value = "callee", type = PNode.class)
@@ -63,17 +62,13 @@ public abstract class CallFunctionNode extends PNode {
     @Specialization
     public Object doPythonCallable(VirtualFrame frame, PythonCallable callee) {
         Object[] args = executeArguments(frame, arguments);
-        Object[] kwords = executeArguments(frame, keywords);
+        PKeyword[] kwords = executeKeywordArguments(frame, keywords);
         return callee.call(frame.pack(), args, kwords);
     }
 
     @Specialization
     public Object doPyObject(VirtualFrame frame, PyObject callee) {
         Object[] args = executeArguments(frame, arguments);
-        // Object[] kwords = executeArguments(frame, keywords);
-        /**
-         * TODO When invoking Jython methods, no keyword is sent.
-         */
         PyObject[] pyargs = adaptToPyObjects(args);
         return unboxPyObject(callee.__call__(pyargs));
     }
@@ -101,6 +96,17 @@ public abstract class CallFunctionNode extends PNode {
 
         for (int i = 0; i < arguments.length; i++) {
             evaluated[i] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
+    @ExplodeLoop
+    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
+        PKeyword[] evaluated = new PKeyword[arguments.length];
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[i] = (PKeyword) arguments[i].execute(frame);
         }
 
         return evaluated;

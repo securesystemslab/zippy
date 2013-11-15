@@ -168,26 +168,6 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PSequence concat(PSequence sequence) {
         throw new UnsupportedOperationException();
     }

@@ -26,16 +26,14 @@ package edu.uci.python.runtime.datatypes;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.nodes.*;
 
 public class PBuiltinFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
-
     private final CallTarget callTarget;
-
-    private Arity arity;
-
-    public Object self;
+    private final Arity arity;
 
     public PBuiltinFunction(String name, Arity arity, CallTarget callTarget) {
         this.name = name;
@@ -46,45 +44,28 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     public PBuiltinFunction(String name, CallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
+        this.arity = null;
+    }
+
+    public static PBuiltinFunction duplicate(PBuiltinFunction function, CallTarget newCallTarget) {
+        return new PBuiltinFunction(function.name, function.arity, newCallTarget);
+    }
+
+    public RootNode getFunctionRootNode() {
+        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
+        return defaultTarget.getRootNode();
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        if (self != null) {
-            Object[] argsWithSelf = new Object[args.length + 1];
-            System.arraycopy(args, 0, argsWithSelf, 0, args.length);
-            argsWithSelf[args.length] = self;
-            return callTarget.call(caller, new PArguments(self, null, argsWithSelf));
-            // return callTarget.call(caller, new PArguments(self, null, args));
-        }
-
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
 
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, Object[] keywords) {
-        if (keywords == null || keywords.length == 0) {
-            // checkForUnexpectedCall(args.length, keywords.length);
-            return call(caller, args);
-        } else {
-            // checkForUnexpectedCall(args.length, keywords.length);
-            PKeyword[] pkeywords = new PKeyword[keywords.length];
-            System.arraycopy(keywords, 0, pkeywords, 0, keywords.length);
-            // return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
-
-            if (self != null) {
-                Object[] argsWithSelf = new Object[args.length + 1];
-                System.arraycopy(args, 0, argsWithSelf, 0, args.length);
-                argsWithSelf[args.length] = self;
-                return callTarget.call(caller, new PArguments(PNone.NONE, null, argsWithSelf, pkeywords));
-            }
-            return callTarget.call(caller, new PArguments(PNone.NONE, null, args, pkeywords));
-        }
-    }
-
-    public void setSelf(Object self) {
-        this.self = self;
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        assert keywords != null && keywords.length > 0;
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
     }
 
     public CallTarget getCallTarget() {

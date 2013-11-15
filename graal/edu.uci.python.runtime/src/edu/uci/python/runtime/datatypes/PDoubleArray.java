@@ -136,11 +136,6 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PArray append(PArray other) {
         PDoubleArray otherArray = (PDoubleArray) other;
         double[] joined = new double[len() + other.len()];

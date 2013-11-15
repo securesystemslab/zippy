@@ -123,11 +123,6 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PythonBuiltinObject multiply(int value) {
         int[] newArray = new int[value * array.length];
         int count = 0;

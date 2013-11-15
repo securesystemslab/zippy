@@ -49,7 +49,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object setDefalut(Object arg0, Object arg1, Object self) {
+        public Object setDefalut(Object self, Object arg0, Object arg1) {
             PDictionary dict = (PDictionary) self;
 
             if (dict.getMap().containsKey(arg0)) {
@@ -74,7 +74,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object pop(Object arg0, Object arg1, Object self) {
+        public Object pop(Object self, Object arg0, Object arg1) {
             PDictionary dict = (PDictionary) self;
 
             Object retVal = dict.getMap().get(arg0);
@@ -138,7 +138,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object get(Object arg0, Object arg1, Object self) {
+        public Object get(Object self, Object arg0, Object arg1) {
             PDictionary dict = (PDictionary) self;
 
             if (dict.getMap().get(arg0) != null) {
@@ -227,7 +227,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         if (builtin != null) {
             String methodName = builtin.name();
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
+            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
             Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                             builtin.takesVariableArguments());

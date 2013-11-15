@@ -30,6 +30,6 @@ public interface PythonCallable {
 
     Object call(PackedFrame caller, Object[] args);
 
-    Object call(PackedFrame caller, Object[] args, Object[] keywords);
+    Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
 
 }

@@ -106,7 +106,6 @@ public class PModule extends PythonBuiltinObject {
 
     public PythonCallable lookupAttributeMethod(String methodName, Object self) {
         PBuiltinFunction builtinFunction = builtins.getBuiltinFunction(methodName);
-        builtinFunction.setSelf(self);
         return builtinFunction;
     }
 
