@@ -1268,21 +1268,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     }
 
     private static PBuiltinFunction findBuiltinFunction(Class<?> clazz) {
-        Builtin builtinFunction = clazz.getAnnotation(Builtin.class);
+        Builtin builtin = clazz.getAnnotation(Builtin.class);
 
-        if (builtinFunction != null) {
-            String methodName = builtinFunction.name();
-            PythonBuiltinNode builtinNode = createBuiltin(builtinFunction);
+        if (builtin != null) {
+            String methodName = builtin.name();
+            PythonBuiltinNode builtinNode = createBuiltin(builtin);
             PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+            Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                            builtin.takesVariableArguments());
             PBuiltinFunction function;
 
-            if (builtinFunction.hasFixedNumOfArguments()) {
-                function = new PBuiltinFunction(methodName, builtinFunction.fixedNumOfArguments(), builtinFunction.fixedNumOfArguments(), builtinFunction.hasFixedNumOfArguments(),
-                                builtinFunction.takesKeywordArguments(), builtinFunction.takesVariableArguments(), callTarget);
+            if (builtin.hasFixedNumOfArguments()) {
+                function = new PBuiltinFunction(methodName, arity, callTarget);
             } else {
-                function = new PBuiltinFunction(methodName, builtinFunction.minNumOfArguments(), builtinFunction.maxNumOfArguments(), builtinFunction.hasFixedNumOfArguments(),
-                                builtinFunction.takesKeywordArguments(), builtinFunction.takesVariableArguments(), callTarget);
+                function = new PBuiltinFunction(methodName, arity, callTarget);
             }
 
             return function;

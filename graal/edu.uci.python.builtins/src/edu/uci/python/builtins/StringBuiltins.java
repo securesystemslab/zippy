@@ -106,14 +106,14 @@ public final class StringBuiltins extends PythonBuiltins {
             PythonBuiltinNode builtinNode = createBuiltin(builtin);
             PythonBuiltinRootNode rootNode = new PythonBuiltinRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+            Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                            builtin.takesVariableArguments());
             PBuiltinFunction builtinClass;
 
             if (builtin.hasFixedNumOfArguments()) {
-                builtinClass = new PBuiltinFunction(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                builtin.takesVariableArguments(), callTarget);
+                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
             } else {
-                builtinClass = new PBuiltinFunction(methodName, builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                builtin.takesVariableArguments(), callTarget);
+                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
             }
 
             return builtinClass;
