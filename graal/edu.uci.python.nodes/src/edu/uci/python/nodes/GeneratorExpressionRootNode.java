@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
 public class GeneratorExpressionRootNode extends FunctionRootNode {
 

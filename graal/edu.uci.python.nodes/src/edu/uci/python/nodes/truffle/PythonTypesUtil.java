@@ -34,6 +34,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class PythonTypesUtil {

@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
 
 public class PDictionary extends PythonBuiltinObject {
@@ -76,7 +77,7 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
+    public PythonCallable __getattribute__(String name) {
         return (PythonCallable) PythonModulesContainer.dictionaryModule.getAttribute(name);
     }
 

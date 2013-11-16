@@ -32,6 +32,7 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.objects.*;
@@ -45,7 +46,7 @@ public class PythonModule extends PythonBasicObject {
 
     private final CyclicAssumption unmodifiedAssumption;
 
-    private final PythonContext context;
+    @SuppressWarnings("unused") private final PythonContext context;
 
     public PythonModule(PythonContext context, PythonClass pythonClass) {
         super(pythonClass);
@@ -120,9 +121,8 @@ public class PythonModule extends PythonBasicObject {
     }
 
     /**
-     * The default value of constants that every Python module has.
+     * The default constant values of Python modules.
      */
-    // Checkstyle: stop field name check
     @BuiltinConstant public static final Object __name__ = PNone.NONE;
 
     @BuiltinConstant public static final Object __doc__ = PNone.NONE;

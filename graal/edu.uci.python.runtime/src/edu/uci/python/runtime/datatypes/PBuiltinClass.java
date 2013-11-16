@@ -30,6 +30,8 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.function.*;
+
 /**
  * @author gulfem
  * 

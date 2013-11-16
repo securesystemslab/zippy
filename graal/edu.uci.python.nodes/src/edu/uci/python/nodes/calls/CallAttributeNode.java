@@ -37,6 +37,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -68,14 +69,14 @@ public abstract class CallAttributeNode extends PNode {
     public Object doString(VirtualFrame frame, String prim) {
         Object[] args = doArguments(frame);
         PString primString = new PString(prim);
-        PythonCallable callable = applyBuiltinMethodDescriptor(primString, primString.findAttribute(attributeId));
+        PythonCallable callable = applyBuiltinMethodDescriptor(primString, primString.__getattribute__(attributeId));
         return callable.call(frame.pack(), args);
     }
 
     @Specialization
     public Object doPythonBuiltinObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
-        PythonCallable callable = applyBuiltinMethodDescriptor(prim, prim.findAttribute(attributeId));
+        PythonCallable callable = applyBuiltinMethodDescriptor(prim, prim.__getattribute__(attributeId));
         return callable.call(frame.pack(), args);
     }
 

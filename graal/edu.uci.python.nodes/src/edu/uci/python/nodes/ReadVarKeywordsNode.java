@@ -27,6 +27,7 @@ package edu.uci.python.nodes;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * @author Gulfem

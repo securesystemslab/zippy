@@ -33,6 +33,7 @@ import edu.uci.python.nodes.FunctionRootNode.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.CallFunctionNoKeywordNode.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
 

@@ -31,6 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 @NodeInfo(shortName = "class-def")

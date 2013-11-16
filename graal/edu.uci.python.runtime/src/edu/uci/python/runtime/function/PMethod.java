@@ -22,27 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.function;
 
-public class PKeyword {
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-    private final Object value;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-    private final String name;
+public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
-    public static final PKeyword[] EMPTY_KEYWORDS = new PKeyword[0];
+    private final PFunction function;
+    private final PythonObject self;
+    private final CallTarget callTarget;
 
-    public PKeyword(Object value, String object) {
-        this.value = value;
-        this.name = object;
+    public PMethod(PythonObject self, PFunction function) {
+        this.self = self;
+        this.function = function;
+        this.callTarget = function.getCallTarget();
     }
 
-    public String getName() {
-        return name;
+    public PFunction __func__() {
+        return function;
     }
 
-    public Object getValue() {
-        return value;
+    public PythonObject __self__() {
+        return self;
     }
 
+    public Object call(PackedFrame caller, Object[] args) {
+        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), args));
+    }
+
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        Object[] combined = PFunction.applyKeywordArgs(function.getParameters(), args, keywords);
+        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+    }
 }

@@ -27,7 +27,7 @@ package edu.uci.python.runtime.modules;
 import java.util.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class ListAttribute extends PythonModule {

@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
@@ -40,7 +41,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
+    public PythonCallable __getattribute__(String name) {
         return (PythonCallable) PythonModulesContainer.stringModule.getAttribute(name);
     }
 

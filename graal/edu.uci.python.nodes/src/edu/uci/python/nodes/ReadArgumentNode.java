@@ -27,6 +27,7 @@ package edu.uci.python.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * This is the right hand side of Parameters' WriteLocalNode.

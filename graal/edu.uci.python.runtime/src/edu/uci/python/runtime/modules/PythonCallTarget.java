@@ -27,7 +27,7 @@ package edu.uci.python.runtime.modules;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * A call target typed to PArguments.

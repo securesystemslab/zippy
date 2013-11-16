@@ -29,6 +29,7 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 public class ASTInterpreter {
 

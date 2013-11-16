@@ -31,6 +31,7 @@ import org.python.util.Generic;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
 
 public class PList extends PSequence {
@@ -189,7 +190,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PythonCallable findAttribute(String name) {
+    public PythonCallable __getattribute__(String name) {
         return (PythonCallable) PythonModulesContainer.listModule.getAttribute(name);
     }
 

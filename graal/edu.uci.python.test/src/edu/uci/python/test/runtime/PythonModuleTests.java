@@ -33,6 +33,7 @@ import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.test.*;
 

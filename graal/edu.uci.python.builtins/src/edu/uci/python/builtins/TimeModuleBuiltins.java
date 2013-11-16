@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.PythonBuiltins;
 
 public final class TimeModuleBuiltins extends PythonBuiltins {

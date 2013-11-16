@@ -22,39 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.function;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.standardtypes.*;
+public interface PythonCallable {
 
-public class PMethod extends PythonBuiltinObject implements PythonCallable {
+    Object call(PackedFrame caller, Object[] args);
 
-    private final PFunction function;
-    private final PythonObject self;
-    private final CallTarget callTarget;
+    Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
 
-    public PMethod(PythonObject self, PFunction function) {
-        this.self = self;
-        this.function = function;
-        this.callTarget = function.getCallTarget();
-    }
-
-    public PFunction __func__() {
-        return function;
-    }
-
-    public PythonObject __self__() {
-        return self;
-    }
-
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), args));
-    }
-
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        Object[] combined = PFunction.applyKeywordArgs(function.getParameters(), args, keywords);
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
-    }
 }

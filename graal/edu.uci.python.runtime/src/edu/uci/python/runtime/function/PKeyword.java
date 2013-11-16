@@ -22,14 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.function;
 
-import com.oracle.truffle.api.frame.*;
+public class PKeyword {
 
-public interface PythonCallable {
+    private final Object value;
 
-    Object call(PackedFrame caller, Object[] args);
+    private final String name;
 
-    Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
+    public static final PKeyword[] EMPTY_KEYWORDS = new PKeyword[0];
+
+    public PKeyword(Object value, String object) {
+        this.value = value;
+        this.name = object;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Object getValue() {
+        return value;
+    }
 
 }
