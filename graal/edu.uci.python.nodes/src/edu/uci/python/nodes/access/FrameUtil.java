@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 public final class FrameUtil {

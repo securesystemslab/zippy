@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 

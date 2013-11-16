@@ -27,7 +27,6 @@ package edu.uci.python.nodes.literals;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 public class KeywordLiteralNode extends LiteralNode {

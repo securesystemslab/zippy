@@ -30,7 +30,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -54,7 +53,7 @@ public class ClassDefinitionNode extends StatementNode {
         PythonClass base = (PythonClass) superClass.execute(frame);
         PythonClass newClass = new PythonClass(base, name);
         PFunction definitionFunc = (PFunction) definitionFunction.execute(frame);
-        definitionFunc.call(frame.pack(), newClass);
+        definitionFunc.call(frame.pack(), new Object[]{newClass});
         return newClass;
     }
 }

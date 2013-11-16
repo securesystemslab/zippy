@@ -103,17 +103,6 @@ public class PFunction implements PythonCallable {
         return combined;
     }
 
-    /*
-     * Specialized
-     */
-    public Object call(PackedFrame caller, Object arg) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg}));
-    }
-
-    public Object call(PackedFrame caller, Object arg0, Object arg1) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, new Object[]{arg0, arg1}));
-    }
-
     @Override
     public String toString() {
         return "<fucntion " + name + " at " + hashCode() + ">";

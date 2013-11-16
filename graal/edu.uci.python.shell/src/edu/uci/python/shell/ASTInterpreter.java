@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 public class ASTInterpreter {
@@ -57,23 +56,5 @@ public class ASTInterpreter {
             System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
             // CheckStyle: resume system..print check
         }
-    }
-
-    public static void trace(String message) {
-        // CheckStyle: stop system..print check
-        System.out.print(message);
-        // CheckStyle: resume system..print check
-    }
-
-    public static void traceln(String message) {
-        // CheckStyle: stop system..print check
-        System.out.println(message);
-        // CheckStyle: resume system..print check
-    }
-
-    public static void trace(Object entity) {
-        // CheckStyle: stop system..print check
-        System.out.println(entity);
-        // CheckStyle: resume system..print check
     }
 }
