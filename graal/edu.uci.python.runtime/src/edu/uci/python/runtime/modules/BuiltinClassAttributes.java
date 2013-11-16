@@ -22,45 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.runtime.modules;
 
-import java.io.*;
+import java.util.*;
 
-import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.standardtypes.*;
+public class BuiltinClassAttributes {
 
-public class PythonContext {
+    Map<String, Object> attributes;
 
-    private final PythonOptions options;
-    private final PythonBuiltinsLookup lookup;
-    private final PythonCore pythonCore;
-
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
-        this.options = opts;
-        this.lookup = lookup;
-        this.pythonCore = new PythonCore(this);
-        PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
-        this.pythonCore.initialize();
-        BuiltinsClassAttributesContainer.initialize();
+    public BuiltinClassAttributes() {
+        attributes = new HashMap<String, Object>();
     }
 
-    public PythonOptions getPythonOptions() {
-        return options;
+    public void setAttribute(String name, Object value) {
+        attributes.put(name, value);
     }
 
-    public PythonBuiltinsLookup getPythonBuiltinsLookup() {
-        return lookup;
-    }
-
-    public PrintStream getStandardOut() {
-        return options.getStandardOut();
-    }
-
-    public boolean getUseUnsafe() {
-        return PythonOptions.UseUnsafe;
-    }
-
-    public PythonCore getPythonCore() {
-        return pythonCore;
+    public Object getAttribute(String name) {
+        return attributes.get(name);
     }
 }

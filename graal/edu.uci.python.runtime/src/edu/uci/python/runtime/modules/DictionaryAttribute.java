@@ -30,10 +30,9 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class DictionaryAttribute extends PythonModule {
+public class DictionaryAttribute extends BuiltinClassAttributes {
 
-    public DictionaryAttribute(PythonContext context, PythonBuiltins builtins) {
-        super(context, context.getPythonCore().getModuleClass());
+    public DictionaryAttribute(PythonBuiltins builtins) {
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

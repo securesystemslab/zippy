@@ -42,7 +42,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     @Override
     public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) PythonModulesContainer.stringModule.getAttribute(name);
+        return (PythonCallable) BuiltinsClassAttributesContainer.stringClassAttributesContainer.getAttribute(name);
     }
 
     public List<String> getList() {

@@ -24,18 +24,25 @@
  */
 package edu.uci.python.runtime.modules;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PythonModulesContainer {
+/**
+ * @author Gulfem
+ * 
+ *         This class should be removed when we have the class type for each builtin class.
+ *         Currently it is a container. ListAttribute, StringAttribute, and DictionaryAttribute are
+ *         not modules anymore, they are currently containers.
+ */
 
-    public static PythonModule listModule;
-    public static PythonModule stringModule;
-    public static PythonModule dictionaryModule;
+public class BuiltinsClassAttributesContainer {
 
-    public static void initialize(PythonContext context) {
-        listModule = new ListAttribute(context, PythonBuiltinsContainer.getInstance().getListBuiltins());
-        stringModule = new StringAttribute(context, PythonBuiltinsContainer.getInstance().getStringBuiltins());
-        dictionaryModule = new DictionaryAttribute(context, PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
+    public static BuiltinClassAttributes listClassAttributesContainer;
+    public static BuiltinClassAttributes stringClassAttributesContainer;
+    public static BuiltinClassAttributes dictionaryClassAttributesContainer;
+
+    public static void initialize() {
+        listClassAttributesContainer = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());
+        stringClassAttributesContainer = new StringAttribute(PythonBuiltinsContainer.getInstance().getStringBuiltins());
+        dictionaryClassAttributesContainer = new DictionaryAttribute(PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
     }
 }

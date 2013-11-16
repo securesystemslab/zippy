@@ -30,10 +30,9 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class StringAttribute extends PythonModule {
+public class StringAttribute extends BuiltinClassAttributes {
 
-    public StringAttribute(PythonContext context, PythonBuiltins builtins) {
-        super(context, context.getPythonCore().getModuleClass());
+    public StringAttribute(PythonBuiltins builtins) {
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

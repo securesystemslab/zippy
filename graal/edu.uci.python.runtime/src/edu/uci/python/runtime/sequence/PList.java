@@ -191,7 +191,7 @@ public class PList extends PSequence {
 
     @Override
     public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) PythonModulesContainer.listModule.getAttribute(name);
+        return (PythonCallable) BuiltinsClassAttributesContainer.listClassAttributesContainer.getAttribute(name);
     }
 
     @Override
