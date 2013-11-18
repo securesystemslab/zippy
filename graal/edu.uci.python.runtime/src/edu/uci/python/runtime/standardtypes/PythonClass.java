@@ -58,12 +58,12 @@ public class PythonClass extends PythonObject {
      * normally be used from outside this class.
      */
     public PythonClass(PythonContext context, PythonClass superClass, String name) {
-        super(context.getPythonCore().getTypeClass());
+        super(context.getTypeClass());
         this.context = context;
         this.className = name;
 
         if (superClass == null) {
-            this.superClass = context.getPythonCore().getObjectClass();
+            this.superClass = context.getObjectClass();
         } else {
             unsafeSetSuperClass(superClass);
         }

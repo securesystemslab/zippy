@@ -26,22 +26,41 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonContext {
 
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
-    private final PythonCore pythonCore;
+    private PythonBuiltinClass typeClass;
+    private PythonBuiltinClass objectClass;
+    private PythonBuiltinClass moduleClass;
+    private PythonModule builtinsModule;
+    private PythonModule mainModule;
+    private PythonBuiltins builtinsModuleBuiltins;
+    private PythonBuiltins mainModuleBuiltins;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltins builtinsModuleBuiltins, PythonBuiltins mainModuleBuiltins) {
         this.options = opts;
         this.lookup = lookup;
-        this.pythonCore = new PythonCore(this);
-        PythonBuiltinsContainer.getInstance().getDefaultBuiltins().initialize();
-        this.pythonCore.initialize();
-        BuiltinsClassAttributesContainer.initialize();
+        this.builtinsModuleBuiltins = builtinsModuleBuiltins;
+        this.mainModuleBuiltins = mainModuleBuiltins;
+        initialize();
+    }
+
+    public void initialize() {
+        typeClass = new PythonBuiltinClass(this, null, "type");
+        objectClass = new PythonObjectClass(this);
+        typeClass.unsafeSetSuperClass(objectClass);
+        moduleClass = new PythonBuiltinClass(this, objectClass, "module");
+
+        builtinsModule = new BuiltinsModule(this, builtinsModuleBuiltins, moduleClass, "__builtins__");
+        builtinsModule.setAttribute("object", objectClass);
+        lookup.addModule("__builtins__", builtinsModule);
+
+        mainModule = new MainModule(this, mainModuleBuiltins, moduleClass, "__main__");
+        mainModule.setAttribute("__builtins__", builtinsModule);
+        lookup.addModule("__main__", mainModule);
     }
 
     public PythonOptions getPythonOptions() {
@@ -60,7 +79,15 @@ public class PythonContext {
         return PythonOptions.UseUnsafe;
     }
 
-    public PythonCore getPythonCore() {
-        return pythonCore;
+    public PythonClass getTypeClass() {
+        return typeClass;
+    }
+
+    public PythonClass getObjectClass() {
+        return objectClass;
+    }
+
+    public PythonClass getModuleClass() {
+        return moduleClass;
     }
 }

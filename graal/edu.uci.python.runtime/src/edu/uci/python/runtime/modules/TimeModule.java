@@ -32,8 +32,8 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class TimeModule extends PythonModule {
 
-    public TimeModule(PythonContext context, PythonBuiltins builtins) {
-        super(context, context.getPythonCore().getModuleClass());
+    public TimeModule(PythonContext context, PythonClass moduleClass, PythonBuiltins builtins) {
+        super(context, moduleClass);
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

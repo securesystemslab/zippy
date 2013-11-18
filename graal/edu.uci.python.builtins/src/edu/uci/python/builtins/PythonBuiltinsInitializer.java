@@ -26,24 +26,20 @@ package edu.uci.python.builtins;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.standardtypes.*;
+
+/**
+ * 
+ * @author Gulfem
+ * 
+ */
 
 public class PythonBuiltinsInitializer {
 
-    public static PythonContext initialize() {
-        PythonBuiltinsContainer.getInstance().setDefaultBuiltins(new PythonDefaultBuiltins());
-        PythonBuiltinsContainer.getInstance().setArrayModuleBuiltins(new ArrayModuleBuiltins());
-        PythonBuiltinsContainer.getInstance().setBisectModuleBuiltins(new BisectModuleBuiltins());
-        PythonBuiltinsContainer.getInstance().setTimeModuleBuiltins(new TimeModuleBuiltins());
-        PythonBuiltinsContainer.getInstance().setListBuiltins(new ListBuiltins());
-        PythonBuiltinsContainer.getInstance().setStringBuiltins(new StringBuiltins());
-        PythonBuiltinsContainer.getInstance().setDictionaryBuiltins(new DictionaryBuiltins());
-
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonBuiltinsLookup());
-        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, PythonBuiltinsContainer.getInstance().getArrayModuleBuiltins()));
-        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, PythonBuiltinsContainer.getInstance().getBisectModuleBuiltins()));
-        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, PythonBuiltinsContainer.getInstance().getTimeModuleBuiltins()));
-
+    public static PythonContext initialize(PythonContext context) {
+        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins()));
+        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins()));
+        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins()));
+        BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
         return context;
     }
 }

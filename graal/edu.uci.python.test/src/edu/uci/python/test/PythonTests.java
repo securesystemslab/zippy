@@ -84,18 +84,19 @@ public class PythonTests {
     }
 
     public static PythonContext getContext() {
-        // PythonOptions opts = new PythonOptions();
-        PythonContext context = PythonBuiltinsInitializer.initialize();
+        PythonOptions opts = new PythonOptions();
+        PythonContext context = new PythonContext(opts, new PythonBuiltinsLookup(), new PythonDefaultBuiltins(), null);
+        PythonBuiltinsInitializer.initialize(context);
         return context;
-        // PythonBuiltinsInitializer.initialize();
-        // return new PythonContext(opts, new PythonBuiltinsLookup());
     }
 
     public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
-        PythonBuiltinsInitializer.initialize();
-        return new PythonContext(opts, new PythonBuiltinsLookup());
+
+        PythonContext context = new PythonContext(opts, new PythonBuiltinsLookup(), new PythonDefaultBuiltins(), null);
+        PythonBuiltinsInitializer.initialize(context);
+        return context;
     }
 }

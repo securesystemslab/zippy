@@ -28,11 +28,10 @@ import edu.uci.python.runtime.*;
 
 public class MainModule extends PythonModule {
 
-    public MainModule(PythonContext context, PythonClass pythonClass, String name) {
+    public MainModule(PythonContext context, PythonBuiltins mainModuleBuiltins, PythonClass pythonClass, String name) {
         super(context, pythonClass);
-
+        // mainModuleBuiltins.initialize();
         this.addBuiltinMethodsAndConstants(PythonModule.class);
-        this.addBuiltinMethodsAndConstants(MainModule.class);
         this.setAttribute(__NAME__, name);
     }
 

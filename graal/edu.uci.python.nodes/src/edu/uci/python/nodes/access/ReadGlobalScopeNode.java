@@ -91,7 +91,8 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         Object value = load.execute(frame);
 
         if (value == PNone.NONE) {
-            value = context.getPythonCore().getBuiltinsModule().getAttribute(attributeId);
+            // value = context.getBuiltinsModule().getAttribute(attributeId);
+            value = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getAttribute(attributeId);
         } else {
             replaceWithGlobalDirect();
             return value;
@@ -123,8 +124,8 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     @SlowPath
     protected void cacheBuiltin(Object builtin) {
-        Assumption globalScopeUnchanged = this.context.getPythonCore().getMainModule().getUnmodifiedAssumption();
-        Assumption builtinsModuleUnchanged = this.context.getPythonCore().getBuiltinsModule().getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__main__").getUnmodifiedAssumption();
+        Assumption builtinsModuleUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
         replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
     }
 

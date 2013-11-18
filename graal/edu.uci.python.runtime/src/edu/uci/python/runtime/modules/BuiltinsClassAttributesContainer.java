@@ -40,9 +40,9 @@ public class BuiltinsClassAttributesContainer {
     public static BuiltinClassAttributes stringClassAttributesContainer;
     public static BuiltinClassAttributes dictionaryClassAttributesContainer;
 
-    public static void initialize() {
-        listClassAttributesContainer = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());
-        stringClassAttributesContainer = new StringAttribute(PythonBuiltinsContainer.getInstance().getStringBuiltins());
-        dictionaryClassAttributesContainer = new DictionaryAttribute(PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
+    public static void initialize(PythonBuiltins listClassBuiltins, PythonBuiltins stringClassBuiltins, PythonBuiltins dictionaryClassBuiltins) {
+        listClassAttributesContainer = new ListAttribute(listClassBuiltins);
+        stringClassAttributesContainer = new StringAttribute(stringClassBuiltins);
+        dictionaryClassAttributesContainer = new DictionaryAttribute(dictionaryClassBuiltins);
     }
 }
