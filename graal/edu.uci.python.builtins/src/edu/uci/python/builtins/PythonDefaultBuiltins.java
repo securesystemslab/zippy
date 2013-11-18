@@ -34,6 +34,7 @@ import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinFunctio
 import edu.uci.python.builtins.PythonDefaultBuiltinsFactory.PythonBuiltinClassesFactory.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;

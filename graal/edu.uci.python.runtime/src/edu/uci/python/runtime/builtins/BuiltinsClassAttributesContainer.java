@@ -22,23 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules.annotations;
+package edu.uci.python.runtime.builtins;
 
-public class AnnotatedBuiltinConstant {
+import edu.uci.python.runtime.modules.*;
 
-    private final String name;
-    private final Object value;
+/**
+ * @author Gulfem
+ * 
+ *         This class should be removed when we have the class type for each builtin class.
+ *         Currently it is a container. ListAttribute, StringAttribute, and DictionaryAttribute are
+ *         not modules anymore, they are currently containers.
+ */
 
-    public AnnotatedBuiltinConstant(String name, Object value) {
-        this.name = name;
-        this.value = value;
-    }
+public class BuiltinsClassAttributesContainer {
 
-    public String getName() {
-        return name;
-    }
+    public static BuiltinClassAttributes listClassAttributesContainer;
+    public static BuiltinClassAttributes stringClassAttributesContainer;
+    public static BuiltinClassAttributes dictionaryClassAttributesContainer;
 
-    public Object getValue() {
-        return value;
+    public static void initialize(PythonBuiltins listClassBuiltins, PythonBuiltins stringClassBuiltins, PythonBuiltins dictionaryClassBuiltins) {
+        listClassAttributesContainer = new ListAttribute(listClassBuiltins);
+        stringClassAttributesContainer = new StringAttribute(stringClassBuiltins);
+        dictionaryClassAttributesContainer = new DictionaryAttribute(dictionaryClassBuiltins);
     }
 }

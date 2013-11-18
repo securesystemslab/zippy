@@ -22,23 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.builtins;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import org.python.core.*;
 
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 /**
- * A call target typed to PArguments.
+ * Python built-in immutable class.
+ * 
+ * @author zwei
+ * 
  */
-public abstract class PythonCallTarget extends CallTarget {
+public class PythonBuiltinClass extends PythonClass {
 
-    protected abstract Object call(PackedFrame frame, PArguments args);
-
-    @Override
-    public Object call(PackedFrame frame, Arguments args) {
-        return call(frame, (PArguments) args);
+    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
+        super(context, superClass, name);
     }
 
+    @Override
+    public void setAttribute(String name, Object value) {
+        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
+    }
+
+    /**
+     * Modify attributes in an unsafe way, should only use when initializing.
+     * 
+     * @param name
+     * @param value
+     */
+    public void setAttributeUnsafe(String name, Object value) {
+        super.setAttribute(name, value);
+    }
 }

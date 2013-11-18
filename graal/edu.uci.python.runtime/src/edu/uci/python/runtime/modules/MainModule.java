@@ -22,45 +22,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.modules;
 
-import java.util.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.function.*;
+public class MainModule extends PythonModule {
 
-/**
- * @author Gulfem
- */
-public abstract class PythonBuiltins {
-
-    private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
-
-    private final Map<String, PBuiltinClass> builtinClasses = new HashMap<>();
-
-    public abstract void initialize();
-
-    public void setBuiltinFunction(String name, PBuiltinFunction function) {
-        builtinFunctions.put(name, function);
+    public MainModule(PythonContext context, PythonBuiltins mainModuleBuiltins, PythonClass pythonClass, String name) {
+        super(context, pythonClass, name);
+        // mainModuleBuiltins.initialize();
+        this.addBuiltinMethodsAndConstants(PythonModule.class);
     }
 
-    public void setBuiltinClass(String name, PBuiltinClass clazz) {
-        builtinClasses.put(name, clazz);
-    }
-
-    public PBuiltinFunction getBuiltinFunction(String name) {
-        return builtinFunctions.get(name);
-    }
-
-    public PBuiltinClass getBuiltinClass(String name) {
-        return builtinClasses.get(name);
-    }
-
-    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
-        return builtinFunctions;
-    }
-
-    public Map<String, PBuiltinClass> getBuiltinClasses() {
-        return builtinClasses;
-    }
 }

@@ -22,17 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules.annotations;
+package edu.uci.python.runtime.builtins;
 
-import java.lang.annotation.*;
+import java.util.*;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface BuiltinMethod {
+public class BuiltinClassAttributes {
 
-    boolean isClassMethod() default false;
+    Map<String, Object> attributes;
 
-    String unmangledName() default "";
+    public BuiltinClassAttributes() {
+        attributes = new HashMap<String, Object>();
+    }
 
-    String[] aliases() default {};
+    public void setAttribute(String name, Object value) {
+        attributes.put(name, value);
+    }
+
+    public Object getAttribute(String name) {
+        return attributes.get(name);
+    }
 }

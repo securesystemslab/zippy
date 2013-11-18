@@ -27,6 +27,7 @@ package edu.uci.python.runtime.modules;
 import java.util.*;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.sequence.*;

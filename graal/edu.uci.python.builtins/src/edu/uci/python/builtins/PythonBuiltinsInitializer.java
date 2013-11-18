@@ -25,6 +25,7 @@
 package edu.uci.python.builtins;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
 
 /**

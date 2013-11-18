@@ -26,6 +26,8 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
+import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonContext {
