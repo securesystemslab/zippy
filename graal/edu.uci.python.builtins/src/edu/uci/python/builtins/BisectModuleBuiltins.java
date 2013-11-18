@@ -32,7 +32,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public final class BisectModuleBuiltins extends PythonBuiltins {
 

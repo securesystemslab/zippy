@@ -34,7 +34,6 @@ import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class CustomConsole extends JLineConsole {
 
