@@ -36,9 +36,8 @@ import edu.uci.python.runtime.function.*;
 public class BuiltinsModule extends PythonModule {
 
     public BuiltinsModule(PythonContext context, PythonBuiltins builtins, PythonClass pythonClass, String name) {
-        super(context, pythonClass);
+        super(context, pythonClass, name);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
-        this.setAttribute(__NAME__, name);
         builtins.initialize();
         addBuiltins(builtins);
     }

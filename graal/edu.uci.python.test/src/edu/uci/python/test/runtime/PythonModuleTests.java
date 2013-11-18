@@ -42,7 +42,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule(context, new PythonClass(context, null, "module"));
+        PythonModule module = new PythonModule(context, new PythonClass(context, null, "module"), "testModule");
 
         module.addBuiltinMethodsAndConstants(PythonModule.class);
         assertEquals("", module.getAttribute("__name__").toString());

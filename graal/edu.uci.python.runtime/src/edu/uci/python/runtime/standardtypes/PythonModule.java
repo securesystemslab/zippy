@@ -48,10 +48,11 @@ public class PythonModule extends PythonBasicObject {
 
     @SuppressWarnings("unused") private final PythonContext context;
 
-    public PythonModule(PythonContext context, PythonClass pythonClass) {
+    public PythonModule(PythonContext context, PythonClass pythonClass, String name) {
         super(pythonClass);
         this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
+        this.setAttribute(__NAME__, name);
     }
 
     public Assumption getUnmodifiedAssumption() {
@@ -118,6 +119,12 @@ public class PythonModule extends PythonBasicObject {
         assert value != null;
         unmodifiedAssumption.invalidate();
         super.setAttribute(name, value);
+    }
+
+    @Override
+    public String toString() {
+        return "<module '" + this.getAttribute(__NAME__) + "'>";
+
     }
 
     /**

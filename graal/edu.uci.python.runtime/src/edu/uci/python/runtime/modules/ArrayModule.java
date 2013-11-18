@@ -32,8 +32,8 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class ArrayModule extends PythonModule {
 
-    public ArrayModule(PythonContext context, PythonClass moduleClass, PythonBuiltins builtins) {
-        super(context, moduleClass);
+    public ArrayModule(PythonContext context, PythonClass moduleClass, PythonBuiltins builtins, String name) {
+        super(context, moduleClass, name);
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

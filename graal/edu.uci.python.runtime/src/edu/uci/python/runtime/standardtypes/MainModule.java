@@ -29,10 +29,9 @@ import edu.uci.python.runtime.*;
 public class MainModule extends PythonModule {
 
     public MainModule(PythonContext context, PythonBuiltins mainModuleBuiltins, PythonClass pythonClass, String name) {
-        super(context, pythonClass);
+        super(context, pythonClass, name);
         // mainModuleBuiltins.initialize();
         this.addBuiltinMethodsAndConstants(PythonModule.class);
-        this.setAttribute(__NAME__, name);
     }
 
 }

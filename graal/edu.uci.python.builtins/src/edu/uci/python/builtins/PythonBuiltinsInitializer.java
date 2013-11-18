@@ -36,9 +36,9 @@ import edu.uci.python.runtime.modules.*;
 public class PythonBuiltinsInitializer {
 
     public static void initialize(PythonContext context) {
-        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins()));
-        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins()));
-        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins()));
+        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins(), "array"));
+        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins(), "bisect"));
+        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins(), "time"));
         BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
     }
 }
