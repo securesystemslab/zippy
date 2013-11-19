@@ -180,10 +180,8 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
-  JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
   VMToCompiler::compileMethod(method(), holder, entry_bci, blocking);
-  JavaThread::current()->set_is_compiling(false);
 }
 
 // Compilation entry point for methods
@@ -234,8 +232,7 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it. But we must release the lock before
       // calling up into Java.
-      oop cplock = cp->lock();
-      ObjectLocker ol(cplock, THREAD, cplock != NULL);
+      MonitorLockerEx ml(cp->lock());
       constantTag tag = cp->tag_at(index);
       if (tag.is_klass()) {
         // The klass has been inserted into the constant pool

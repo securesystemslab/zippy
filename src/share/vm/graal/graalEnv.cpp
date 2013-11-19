@@ -172,8 +172,7 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle& cpool,
     {
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it.
-      oop cplock = cpool->lock();
-      ObjectLocker ol(cplock, THREAD, cplock != NULL);
+      MonitorLockerEx ml(cpool->lock());
 
       constantTag tag = cpool->tag_at(index);
       if (tag.is_klass()) {
@@ -502,16 +501,6 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
 
     // Free codeBlobs
     //code_buffer->free_blob();
-
-    // stress test 6243940 by immediately making the method
-    // non-entrant behind the system's back. This has serious
-    // side effects on the code cache and is not meant for
-    // general stress testing
-    if (nm != NULL && StressNonEntrant) {
-      MutexLockerEx pl(Patching_lock, Mutex::_no_safepoint_check_flag);
-      NativeJump::patch_verified_entry(nm->entry_point(), nm->verified_entry_point(),
-                  SharedRuntime::get_handle_wrong_method_stub());
-    }
 
     if (nm == NULL) {
       // The CodeCache is full.  Print out warning and disable compilation.
