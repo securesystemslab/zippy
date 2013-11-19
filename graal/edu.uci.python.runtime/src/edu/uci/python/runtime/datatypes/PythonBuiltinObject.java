@@ -41,8 +41,8 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PythonBuiltinObject {
 
-    public static PythonClass __class__(PythonContext context) {
-        return context.getPythonCore().getObjectClass();
+    public PythonBuiltinClass __class__(PythonContext context) {
+        return (PythonBuiltinClass) context.getPythonCore().getObjectClass();
     }
 
     public Object getMin() {
