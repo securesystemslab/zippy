@@ -82,6 +82,9 @@ void GraalCompiler::initialize() {
 
   graal_compute_offsets();
 
+  // Ensure _non_oop_bits is initialized
+  Universe::non_oop_word();
+
   {
     GRAAL_VM_ENTRY_MARK;
     HandleMark hm;
