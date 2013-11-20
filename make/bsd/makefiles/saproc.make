@@ -64,7 +64,11 @@ ifeq ($(OS_VENDOR), FreeBSD)
 else
   ifeq ($(OS_VENDOR), Darwin)
     SASRCFILES = $(DARWIN_NON_STUB_SASRCFILES)
-    SALIBS = -g -framework Foundation -F/System/Library/Frameworks/JavaVM.framework/Frameworks -framework JavaNativeFoundation -framework Security -framework CoreFoundation
+    ifeq ($(wildcard /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Frameworks),) 
+      SALIBS = -g -framework Foundation -F/System/Library/Frameworks/JavaVM.framework/Frameworks -framework JavaNativeFoundation -framework Security -framework CoreFoundation
+    else
+      SALIBS = -g -framework Foundation -F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Frameworks -framework JavaNativeFoundation -framework Security -framework CoreFoundation
+    endif
     #objc compiler blows up on -march=i586, perhaps it should not be included in the macosx intel 32-bit C++ compiles?
     SAARCH = $(subst -march=i586,,$(ARCHFLAG))
   else
@@ -153,13 +157,13 @@ endif
 install_saproc: $(BUILDLIBSAPROC)
 	@echo "Copying $(LIBSAPROC) to $(DEST_SAPROC)"
 ifeq ($(OS_VENDOR), Darwin)
-	$(QUIETLY) test -d $(LIBSAPROC_DEBUGINFO) && \
+	-$(QUIETLY) test -d $(LIBSAPROC_DEBUGINFO) && \
 	    cp -f -r $(LIBSAPROC_DEBUGINFO) $(DEST_SAPROC_DEBUGINFO)
 else
 	$(QUIETLY) test -f $(LIBSAPROC_DEBUGINFO) && \
 	    cp -f $(LIBSAPROC_DEBUGINFO) $(DEST_SAPROC_DEBUGINFO)
 endif
-	$(QUIETLY) test -f $(LIBSAPROC_DIZ) && \
+	-$(QUIETLY) test -f $(LIBSAPROC_DIZ) && \
 	    cp -f $(LIBSAPROC_DIZ) $(DEST_SAPROC_DIZ)
 	$(QUIETLY) cp -f $(LIBSAPROC) $(DEST_SAPROC) && echo "Done"
 
