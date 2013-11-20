@@ -1074,6 +1074,8 @@ void MethodData::initialize() {
   } else {
     _parameters_type_data_di = -1;
   }
+#else
+  _parameters_type_data_di = -1;
 #endif
 
   // Set an initial hint. Don't use set_hint_di() because
