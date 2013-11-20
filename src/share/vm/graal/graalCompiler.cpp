@@ -180,8 +180,10 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
+  thread->set_is_graal_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
   VMToCompiler::compileMethod(method(), holder, entry_bci, blocking);
+  thread->set_is_graal_compiling(false);
 }
 
 // Compilation entry point for methods

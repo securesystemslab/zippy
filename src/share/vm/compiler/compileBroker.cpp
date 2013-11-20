@@ -1143,8 +1143,11 @@ void CompileBroker::compile_method_base(methodHandle method,
     return;
   }
 #ifdef GRAALVM
-  // Detect recursive request in Java
-  GraalCompiler::instance()->compile_method(method, osr_bci, is_compile_blocking(method, osr_bci));
+  if (!JavaThread::current()->is_graal_compiling()) {
+    GraalCompiler::instance()->compile_method(method, osr_bci, is_compile_blocking(method, osr_bci));
+  } else {
+    // Recursive compile request => ignore.
+  }
 #else
 
   // Outputs from the following MutexLocker block:

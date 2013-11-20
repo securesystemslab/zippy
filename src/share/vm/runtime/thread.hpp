@@ -920,6 +920,7 @@ class JavaThread: public Thread {
 #ifdef GRAAL
   address   _graal_alternate_call_target;
   address   _graal_implicit_exception_pc;  // pc at which the most recent implicit exception occurred
+  bool      _graal_compiling;
 
   // number of counters, increase as needed. 0 == disabled
 #define GRAAL_COUNTERS_SIZE (0)
@@ -1301,6 +1302,8 @@ class JavaThread: public Thread {
 #ifdef GRAAL
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
   void set_graal_implicit_exception_pc(address a) { _graal_implicit_exception_pc = a; }
+  bool is_graal_compiling()                       { return _graal_compiling;          }
+  void set_is_graal_compiling(bool b)             { _graal_compiling = b;             }
 #endif
 
   // Exception handling for compiled methods

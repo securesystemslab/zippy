@@ -1481,6 +1481,8 @@ void JavaThread::initialize() {
   _stack_guard_state = stack_guard_unused;
 #ifdef GRAAL
   _graal_alternate_call_target = NULL;
+  _graal_implicit_exception_pc = NULL;
+  _graal_compiling = false;
 #if GRAAL_COUNTERS_SIZE > 0
   for (int i = 0; i < GRAAL_COUNTERS_SIZE; i++) {
     _graal_counters[i] = 0;
