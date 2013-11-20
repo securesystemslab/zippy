@@ -28,6 +28,8 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -35,12 +37,24 @@ import edu.uci.python.test.*;
 
 public class ObjectLayoutTests {
 
+    public static class DummyPythonBasicObject extends PythonBasicObject {
+
+        public DummyPythonBasicObject(PythonClass pythonClass) {
+            super(pythonClass);
+        }
+
+        @Override
+        public Assumption getUnmodifiedAssumption() {
+            return Truffle.getRuntime().createAssumption();
+        }
+    }
+
     @Test
     public void objectWithPrimitiveAttributes() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new PythonBasicObject(classA);
+        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
         final ObjectLayout objLayoutBefore = obj.getObjectLayout();
         obj.setAttribute("foo", 42);
         obj.setAttribute("bar", 24);
@@ -57,7 +71,7 @@ public class ObjectLayoutTests {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new PythonBasicObject(classA);
+        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
 
         for (int i = 0; i < 100; i++) {
             obj.setAttribute("foo" + i, i);
@@ -85,7 +99,7 @@ public class ObjectLayoutTests {
         assertEquals(42, classA.getAttribute("foo"));
         assertEquals(24, classA.getAttribute("bar"));
 
-        final PythonBasicObject obj = new PythonBasicObject(classA);
+        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
         int initialSize = obj.getObjectLayout().getAllStorageLocations().size();
         assertEquals(0, initialSize);
 

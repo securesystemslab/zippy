@@ -33,7 +33,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PythonBasicObject {
+public abstract class PythonBasicObject {
 
     @CompilationFinal protected PythonClass pythonClass;
 
@@ -211,4 +211,7 @@ public class PythonBasicObject {
             }
         }
     }
+
+    public abstract Assumption getUnmodifiedAssumption();
+
 }

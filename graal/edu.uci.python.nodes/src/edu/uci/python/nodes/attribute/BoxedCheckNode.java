@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -41,7 +40,7 @@ public abstract class BoxedCheckNode extends Node {
         private final ObjectLayout cachedLayout;
         private final Assumption unmodifiedAssumption;
 
-        public ObjectLayoutCheckNode(PythonObject pythonObj) {
+        public ObjectLayoutCheckNode(PythonBasicObject pythonObj) {
             cachedLayout = pythonObj.getObjectLayout();
             unmodifiedAssumption = pythonObj.getUnmodifiedAssumption();
         }
@@ -49,18 +48,17 @@ public abstract class BoxedCheckNode extends Node {
         @Override
         public boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException {
             unmodifiedAssumption.check();
-            PythonObject pobj = (PythonObject) primaryObj;
-            return pobj.getObjectLayout() == cachedLayout;
+            return primaryObj.getObjectLayout() == cachedLayout;
         }
     }
 
     public static class PythonClassCheckNode extends BoxedCheckNode {
 
         private final PythonClass cachedClass;
-        private final CyclicAssumption classUnmodifiedAssumption;
-        private final CyclicAssumption objectUnmodifiedAssumption;
+        private final Assumption classUnmodifiedAssumption;
+        private final Assumption objectUnmodifiedAssumption;
 
-        public PythonClassCheckNode(PythonClass superClass, CyclicAssumption classUnmodifiedAssumption, CyclicAssumption objectUnmodifiedAssumption) {
+        public PythonClassCheckNode(PythonClass superClass, Assumption classUnmodifiedAssumption, Assumption objectUnmodifiedAssumption) {
             this.cachedClass = superClass;
             this.classUnmodifiedAssumption = classUnmodifiedAssumption;
             this.objectUnmodifiedAssumption = objectUnmodifiedAssumption;
@@ -71,8 +69,8 @@ public abstract class BoxedCheckNode extends Node {
             PythonObject pobj = (PythonObject) primaryObj;
 
             if (pobj.getPythonClass() == cachedClass) {
-                objectUnmodifiedAssumption.getAssumption().check();
-                classUnmodifiedAssumption.getAssumption().check();
+                objectUnmodifiedAssumption.check();
+                classUnmodifiedAssumption.check();
                 return true;
             }
 

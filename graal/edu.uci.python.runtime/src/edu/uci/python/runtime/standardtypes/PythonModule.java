@@ -54,6 +54,7 @@ public class PythonModule extends PythonBasicObject {
         unmodifiedAssumption = new CyclicAssumption("unmodified");
     }
 
+    @Override
     public Assumption getUnmodifiedAssumption() {
         return unmodifiedAssumption.getAssumption();
     }
