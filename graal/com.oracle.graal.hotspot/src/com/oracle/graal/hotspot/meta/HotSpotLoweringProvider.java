@@ -59,25 +59,27 @@ import com.oracle.graal.replacements.*;
 /**
  * HotSpot implementation of {@link LoweringProvider}.
  */
-public class HotSpotHostLoweringProvider implements LoweringProvider {
+public class HotSpotLoweringProvider implements LoweringProvider {
 
     protected final HotSpotGraalRuntime runtime;
     protected final MetaAccessProvider metaAccess;
     protected final ForeignCallsProvider foreignCalls;
+    protected final HotSpotRegistersProvider registers;
 
-    private CheckCastDynamicSnippets.Templates checkcastDynamicSnippets;
-    private InstanceOfSnippets.Templates instanceofSnippets;
-    private NewObjectSnippets.Templates newObjectSnippets;
-    private MonitorSnippets.Templates monitorSnippets;
+    protected CheckCastDynamicSnippets.Templates checkcastDynamicSnippets;
+    protected InstanceOfSnippets.Templates instanceofSnippets;
+    protected NewObjectSnippets.Templates newObjectSnippets;
+    protected MonitorSnippets.Templates monitorSnippets;
     protected WriteBarrierSnippets.Templates writeBarrierSnippets;
-    private BoxingSnippets.Templates boxingSnippets;
-    private LoadExceptionObjectSnippets.Templates exceptionObjectSnippets;
-    private UnsafeLoadSnippets.Templates unsafeLoadSnippets;
+    protected BoxingSnippets.Templates boxingSnippets;
+    protected LoadExceptionObjectSnippets.Templates exceptionObjectSnippets;
+    protected UnsafeLoadSnippets.Templates unsafeLoadSnippets;
 
-    public HotSpotHostLoweringProvider(HotSpotGraalRuntime runtime, MetaAccessProvider metaAccess, ForeignCallsProvider foreignCalls) {
+    public HotSpotLoweringProvider(HotSpotGraalRuntime runtime, MetaAccessProvider metaAccess, ForeignCallsProvider foreignCalls, HotSpotRegistersProvider registers) {
         this.runtime = runtime;
         this.metaAccess = metaAccess;
         this.foreignCalls = foreignCalls;
+        this.registers = registers;
     }
 
     public void initialize(HotSpotProviders providers, HotSpotVMConfig config) {
@@ -459,7 +461,7 @@ public class HotSpotHostLoweringProvider implements LoweringProvider {
             }
         } else if (n instanceof DynamicCounterNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
-                BenchmarkCounters.lower((DynamicCounterNode) n, runtime.getHostProviders().getRegisters(), runtime.getConfig(), wordKind);
+                BenchmarkCounters.lower((DynamicCounterNode) n, registers, runtime.getConfig(), wordKind);
             }
         } else if (n instanceof CheckCastDynamicNode) {
             checkcastDynamicSnippets.lower((CheckCastDynamicNode) n);
@@ -473,44 +475,44 @@ public class HotSpotHostLoweringProvider implements LoweringProvider {
             }
         } else if (n instanceof NewInstanceNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
-                newObjectSnippets.lower((NewInstanceNode) n);
+                newObjectSnippets.lower((NewInstanceNode) n, registers);
             }
         } else if (n instanceof NewArrayNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
-                newObjectSnippets.lower((NewArrayNode) n);
+                newObjectSnippets.lower((NewArrayNode) n, registers);
             }
         } else if (n instanceof DynamicNewArrayNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
-                newObjectSnippets.lower((DynamicNewArrayNode) n);
+                newObjectSnippets.lower((DynamicNewArrayNode) n, registers);
             }
         } else if (n instanceof MonitorEnterNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
-                monitorSnippets.lower((MonitorEnterNode) n, tool);
+                monitorSnippets.lower((MonitorEnterNode) n, registers);
             }
         } else if (n instanceof MonitorExitNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 monitorSnippets.lower((MonitorExitNode) n, tool);
             }
         } else if (n instanceof G1PreWriteBarrier) {
-            writeBarrierSnippets.lower((G1PreWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((G1PreWriteBarrier) n, registers);
         } else if (n instanceof G1PostWriteBarrier) {
-            writeBarrierSnippets.lower((G1PostWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((G1PostWriteBarrier) n, registers);
         } else if (n instanceof G1ReferentFieldReadBarrier) {
-            writeBarrierSnippets.lower((G1ReferentFieldReadBarrier) n, tool);
+            writeBarrierSnippets.lower((G1ReferentFieldReadBarrier) n, registers);
         } else if (n instanceof SerialWriteBarrier) {
-            writeBarrierSnippets.lower((SerialWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((SerialWriteBarrier) n);
         } else if (n instanceof SerialArrayRangeWriteBarrier) {
-            writeBarrierSnippets.lower((SerialArrayRangeWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((SerialArrayRangeWriteBarrier) n);
         } else if (n instanceof G1ArrayRangePreWriteBarrier) {
-            writeBarrierSnippets.lower((G1ArrayRangePreWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((G1ArrayRangePreWriteBarrier) n, registers);
         } else if (n instanceof G1ArrayRangePostWriteBarrier) {
-            writeBarrierSnippets.lower((G1ArrayRangePostWriteBarrier) n, tool);
+            writeBarrierSnippets.lower((G1ArrayRangePostWriteBarrier) n, registers);
         } else if (n instanceof NewMultiArrayNode) {
             if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
                 newObjectSnippets.lower((NewMultiArrayNode) n);
             }
         } else if (n instanceof LoadExceptionObjectNode) {
-            exceptionObjectSnippets.lower((LoadExceptionObjectNode) n);
+            exceptionObjectSnippets.lower((LoadExceptionObjectNode) n, registers);
         } else if (n instanceof IntegerDivNode || n instanceof IntegerRemNode || n instanceof UnsignedDivNode || n instanceof UnsignedRemNode) {
             // Nothing to do for division nodes. The HotSpot signal handler catches divisions by
             // zero and the MIN_VALUE / -1 cases.

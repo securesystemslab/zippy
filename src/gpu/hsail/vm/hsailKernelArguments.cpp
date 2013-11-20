@@ -93,7 +93,7 @@ void HSAILKernelArguments::do_float() {
 void HSAILKernelArguments::do_int() {
   // The last int is the iteration variable in an IntStream, but we don't pass it
   // since we use the HSAIL workitemid in place of that int value
-  if (_index == _length) {
+  if (_parameter_index == _parameter_count - 1) {
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] HSAILKernelArguments::not pushing trailing int");
     }
@@ -136,17 +136,19 @@ void HSAILKernelArguments::do_array(int begin, int end) {
 
 void HSAILKernelArguments::do_object() {
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object.");
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, _parameter_index=%d", _parameter_index);
   }
-  if (_index == _length) {  
-    // last arg in object stream lambda is  the object stream source array
+  oop arg = _args->obj_at(_index++);
+
+  // check if this is last arg in signature
+  // an object as last parameter requires an object stream source array to be passed
+  if (_parameter_index == _parameter_count - 1) {
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] HSAILKernelArguments::trailing object ref should be object source array ref");
     }
+    assert(arg->is_objArray(), "arg type mismatch");
   }
 
-  oop arg = _args->obj_at(_index++);
-  assert(arg->is_array(), "arg type mismatch");
   if (TraceGPUInteraction) {
     tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, 0x%08x is a %s", (address) arg, arg->klass()->external_name());
   }
@@ -157,24 +159,9 @@ void HSAILKernelArguments::do_object() {
 
 void HSAILKernelArguments::do_object(int begin, int end) {
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object(int begin, int end).");
+      tty->print_cr("[HSAIL] HSAILKernelArguments::do_object(int begin, int end), begin=%d, end=%d.", begin, end);
   }
-
-  if ((!_is_static && (_index >=(_length-1))) || (_is_static && (_index >=(_length)))) {
-    // last arg in object stream lambda is  the object stream source array
-    if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] HSAILKernelArguments::trailing object ref should be object source array ref");
-    }
-  }
-  
-  oop arg = _args->obj_at(_index++);
-  assert(arg->is_array(), "arg type mismatch");
-  if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object(int, int), 0x%08x is a %s", (address) arg, arg->klass()->external_name());
-  }
-    
-  bool pushed = gpu::Hsail::_okra_push_object(_kernel, arg);
-  assert(pushed == true, "arg push failed");  
+  do_object();
 }
 
 void HSAILKernelArguments::do_void() {
