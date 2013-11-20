@@ -27,7 +27,7 @@ package edu.uci.python.runtime.datatypes;
 /**
  * Python None.
  */
-public final class PNone {
+public final class PNone extends PythonBuiltinObject {
 
     public static final PNone NONE = new PNone();
 

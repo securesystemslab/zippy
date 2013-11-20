@@ -24,21 +24,23 @@
  */
 package edu.uci.python.nodes.attribute;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public abstract class GetAttributeNode extends PNode {
 
+    protected final PythonContext context;
     protected final String attributeId;
-
     @Child protected PNode primary;
 
-    public GetAttributeNode(String attributeId, PNode primary) {
+    public GetAttributeNode(PythonContext context, String attributeId, PNode primary) {
+        this.context = context;
         this.attributeId = attributeId;
         this.primary = adoptChild(primary);
     }
@@ -47,53 +49,130 @@ public abstract class GetAttributeNode extends PNode {
 
         @Child protected AbstractBoxedAttributeNode cache;
 
-        public BoxedGetAttributeNode(String attributeId, PNode primary, AbstractBoxedAttributeNode cache) {
-            super(attributeId, primary);
+        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractBoxedAttributeNode cache) {
+            super(context, attributeId, primary);
             this.cache = adoptChild(cache);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
+            PythonBasicObject primaryObj;
+
             try {
-                PythonBasicObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getValue(frame, primaryObj);
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
             } catch (UnexpectedResultException e) {
-                // TODO: fall back
-                return PNone.NONE;
+                CompilerDirectives.transferToInterpreter();
+                throw new IllegalStateException();
             }
+
+            return cache.getValue(frame, primaryObj);
         }
 
         @Override
-        public int executeInt(VirtualFrame frame) {
+        public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+            PythonBasicObject primaryObj;
+
             try {
-                PythonBasicObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getIntValue(frame, primaryObj);
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
             } catch (UnexpectedResultException e) {
-                // TODO: fall back
-                return 0;
+                CompilerDirectives.transferToInterpreter();
+                throw new IllegalStateException();
             }
+
+            return cache.getIntValue(frame, primaryObj);
         }
 
         @Override
-        public double executeDouble(VirtualFrame frame) {
+        public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+            PythonBasicObject primaryObj;
+
             try {
-                PythonBasicObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getDoubleValue(frame, primaryObj);
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
             } catch (UnexpectedResultException e) {
-                // TODO: fall back
-                return 0;
+                CompilerDirectives.transferToInterpreter();
+                throw new IllegalStateException();
             }
+
+            return cache.getDoubleValue(frame, primaryObj);
         }
 
         @Override
-        public boolean executeBoolean(VirtualFrame frame) {
+        public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+            PythonBasicObject primaryObj;
+
             try {
-                PythonBasicObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getBooleanValue(frame, primaryObj);
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
             } catch (UnexpectedResultException e) {
-                // TODO: fall back
-                return false;
+                CompilerDirectives.transferToInterpreter();
+                throw new IllegalStateException();
             }
+
+            return cache.getBooleanValue(frame, primaryObj);
+        }
+    }
+
+    public static class UnboxedGetAttributeNode extends GetAttributeNode {
+
+        @Child protected AbstractUnboxedAttributeNode cache;
+
+        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractUnboxedAttributeNode cache) {
+            super(context, attributeId, primary);
+            this.cache = adoptChild(cache);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return cache.getValue(frame, primary.execute(frame));
+        }
+
+        @Override
+        public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+            return cache.getIntValue(frame, primary.execute(frame));
+        }
+
+        @Override
+        public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+            return cache.getDoubleValue(frame, primary.execute(frame));
+        }
+
+        @Override
+        public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+            return cache.getBooleanValue(frame, execute(frame));
+        }
+    }
+
+    protected Object bootstrapBoxedOrUnboxed(VirtualFrame frame, Object primaryObj) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        if (primaryObj instanceof PythonBasicObject) {
+            return boxedSpecializeAndExecute(frame, (PythonBasicObject) primaryObj);
+        } else {
+            return unboxedSpecializeAndExecute(frame, primaryObj);
+        }
+    }
+
+    protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj) {
+        AbstractBoxedAttributeNode cacheNode = new AbstractBoxedAttributeNode.UninitializedCachedAttributeNode(attributeId);
+        replace(new BoxedGetAttributeNode(context, attributeId, primary, cacheNode));
+        return cacheNode.getValue(frame, primaryObj);
+    }
+
+    protected Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj) {
+        AbstractUnboxedAttributeNode cacheNode = new AbstractUnboxedAttributeNode.UninitializedCachedAttributeNode(context, attributeId);
+        replace(new UnboxedGetAttributeNode(context, attributeId, primary, cacheNode));
+        return cacheNode.getValue(frame, primaryObj);
+    }
+
+    public static class UninitializedGetAttributeNode extends GetAttributeNode {
+
+        public UninitializedGetAttributeNode(PythonContext context, String attributeId, PNode primary) {
+            super(context, attributeId, primary);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            Object primaryObj = primary.execute(frame);
+            return bootstrapBoxedOrUnboxed(frame, primaryObj);
         }
     }
 }
