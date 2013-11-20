@@ -30,7 +30,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.modules.*;
 
 public class ImportNode extends PNode {
 

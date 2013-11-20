@@ -24,14 +24,16 @@
  */
 package edu.uci.python.builtins;
 
-import com.oracle.truffle.api.*;
+import java.util.*;
+
 import com.oracle.truffle.api.dsl.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.PythonBuiltins;
-
 public final class TimeModuleBuiltins extends PythonBuiltins {
+
+    @Override
+    protected List<com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return TimeModuleBuiltinsFactory.getFactories();
+    }
 
     // time.time()
     @Builtin(name = "time", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
@@ -57,74 +59,21 @@ public final class TimeModuleBuiltins extends PythonBuiltins {
         }
     }
 
-    @Override
-    public void initialize() {
-        Class<?>[] declaredClasses = TimeModuleBuiltins.class.getDeclaredClasses();
+    // time.clock()
+    @Builtin(name = "clock", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    public abstract static class PythonClockNode extends PythonBuiltinNode {
 
-        for (int i = 0; i < declaredClasses.length; i++) {
-            Class<?> clazz = declaredClasses[i];
-            PBuiltinFunction function = findBuiltinFunction(clazz);
-
-            if (function != null) {
-                setBuiltinFunction(function.getName(), function);
-            }
-        }
-    }
-
-    private static PBuiltinFunction findBuiltinFunction(Class<?> clazz) {
-        Builtin builtin = clazz.getAnnotation(Builtin.class);
-
-        if (builtin != null) {
-            String methodName = builtin.name();
-            PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-            Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                            builtin.takesVariableArguments());
-            PBuiltinFunction builtinClass;
-
-            if (builtin.hasFixedNumOfArguments()) {
-                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
-            } else {
-                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
-            }
-
-            return builtinClass;
+        public PythonClockNode(String name) {
+            super(name);
         }
 
-        return null;
-    }
-
-    private static PythonBuiltinNode createBuiltin(Builtin builtin) {
-        PNode[] args;
-        int totalNumOfArgs;
-        if (builtin.name().equals("max") || builtin.name().equals("min")) {
-            totalNumOfArgs = 3;
-        } else if (builtin.hasFixedNumOfArguments()) {
-            totalNumOfArgs = builtin.fixedNumOfArguments();
-        } else if (builtin.takesVariableArguments()) {
-            totalNumOfArgs = builtin.minNumOfArguments() + 1;
-        } else {
-            totalNumOfArgs = builtin.maxNumOfArguments();
+        public PythonClockNode(PythonClockNode prev) {
+            this(prev.getName());
         }
 
-        args = new PNode[totalNumOfArgs];
-        for (int i = 0; i < totalNumOfArgs; i++) {
-            args[i] = new ReadArgumentNode(i);
-        }
-
-        if (builtin.takesVariableArguments()) {
-            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
-        } else {
-            if (builtin.takesKeywordArguments()) {
-                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
-            }
-        }
-
-        if (builtin.name().equals("time")) {
-            return TimeModuleBuiltinsFactory.PythonTimeNodeFactory.create(builtin.name(), args);
-        } else {
-            throw new RuntimeException("Unsupported/Unexpected Builtin: " + builtin);
+        @Specialization
+        public double clock() {
+            return System.currentTimeMillis() / 1000.0;
         }
     }
 }

@@ -22,23 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.builtins;
 
-import java.util.*;
+import org.python.core.*;
 
-public class BuiltinClassAttributes {
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-    Map<String, Object> attributes;
+/**
+ * Python built-in immutable class.
+ * 
+ * @author zwei
+ * 
+ */
+public class PythonBuiltinClass extends PythonClass {
 
-    public BuiltinClassAttributes() {
-        attributes = new HashMap<String, Object>();
+    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
+        super(context, superClass, name);
     }
 
+    @Override
     public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+        throw Py.TypeError("can't set attributes of built-in/extension type '" + name + "'");
     }
 
-    public Object getAttribute(String name) {
-        return attributes.get(name);
+    /**
+     * Modify attributes in an unsafe way, should only use when initializing.
+     * 
+     * @param name
+     * @param value
+     */
+    public void setAttributeUnsafe(String name, Object value) {
+        super.setAttribute(name, value);
     }
 }

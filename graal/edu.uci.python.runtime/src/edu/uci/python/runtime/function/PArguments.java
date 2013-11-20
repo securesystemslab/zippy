@@ -35,13 +35,13 @@ public class PArguments extends Arguments {
     private final MaterializedFrame declarationFrame;
     private Object self;
     private final Object[] arguments;
-    private final PKeyword[] keywards;
+    private final PKeyword[] keywords;
 
-    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywards) {
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
         this.self = self;
         this.declarationFrame = declarationFrame;
         this.arguments = arguments;
-        this.keywards = keywards;
+        this.keywords = keywords;
     }
 
     public PArguments(MaterializedFrame declarationFrame) {
@@ -85,8 +85,21 @@ public class PArguments extends Arguments {
         return arguments[index];
     }
 
+    public PKeyword getKeyword(String name) {
+        for (int i = 0; i < keywords.length; i++) {
+            PKeyword keyword = keywords[i];
+            if (keyword.getName().equals(name)) {
+                return keyword;
+            }
+        }
+
+        return null;
+
+        // throw new RuntimeException("Does not have a keyword:" + name);
+    }
+
     public PKeyword[] getKeywords() {
-        return keywards;
+        return keywords;
     }
 
     public int getLength() {

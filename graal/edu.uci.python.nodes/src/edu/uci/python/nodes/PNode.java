@@ -35,6 +35,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -164,8 +165,8 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectObjectArray(execute(frame));
     }
 
-    public PKeyword[] executePKeywordArray(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPKeywordArray(execute(frame));
+    public PKeyword executePKeyword(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPKeyword(execute(frame));
     }
 
     public PRangeIterator executePRangeIterator(VirtualFrame frame) throws UnexpectedResultException {

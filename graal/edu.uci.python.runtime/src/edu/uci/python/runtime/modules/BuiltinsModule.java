@@ -22,48 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.modules;
 
+import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 /**
- * The base class of all Python built-in data types (int, complex, tuple...). Subclasses of
- * PythonBuiltinObject are immutable. In other words, PythonBuiltinObjects don't have the __dict__
- * attribute. On the other hand, PythonObject models mutable Python data type that has __dict__.
- * <p>
- * Special methods for PythonBuiltinObjects are implemented as Java methods and dispatched at Java
- * level. Any explicit user level access to a PythonBuiltinObject's attributes is considered as slow
- * path and implemented presumably using Java reflection...
+ * The Python standard built-ins module.
  * 
  */
+public class BuiltinsModule extends PythonModule {
 
-public abstract class PythonBuiltinObject {
-
-    public PythonBuiltinClass __class__(PythonContext context) {
-        return (PythonBuiltinClass) context.getObjectClass();
+    public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, PythonClass pythonClass, String name) {
+        super(context, pythonClass, name);
+        this.addBuiltinMethodsAndConstants(PythonModule.class);
+        builtins.initialize();
+        addBuiltins(builtins);
     }
 
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
+    private void addBuiltins(PythonBuiltinsContainer builtins) {
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            setAttribute(methodName, function);
+        }
 
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    public int len() {
-        throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("unused")
-    public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name) {
-        throw new UnsupportedOperationException();
+        Map<String, PBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
+        for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
+            String className = entry.getKey();
+            PBuiltinClass function = entry.getValue();
+            setAttribute(className, function);
+        }
     }
 }

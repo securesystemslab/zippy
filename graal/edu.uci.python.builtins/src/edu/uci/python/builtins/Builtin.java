@@ -35,15 +35,13 @@ public @interface Builtin {
 
     String name() default "";
 
-    int id() default -1;
+    boolean isClass() default false;
 
     int fixedNumOfArguments() default -1;
 
-    int minNumOfArguments() default -1;
+    int minNumOfArguments() default 0;
 
     int maxNumOfArguments() default -1;
-
-    int numOfOptionalArguments() default -1;
 
     boolean hasFixedNumOfArguments() default false;
 
@@ -51,4 +49,7 @@ public @interface Builtin {
 
     boolean takesVariableArguments() default false;
 
+    boolean takesVariableKeywords() default false;
+
+    String[] keywordNames() default {};
 }

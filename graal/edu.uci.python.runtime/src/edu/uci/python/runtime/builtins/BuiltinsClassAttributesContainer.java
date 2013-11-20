@@ -22,45 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.builtins;
 
-import java.util.*;
-
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.modules.*;
 
 /**
- * Storage for initialized Python built-in modules and types.
+ * @author Gulfem
  * 
- * @author zwei
- * 
+ *         This class should be removed when we have the class type for each builtin class.
+ *         Currently it is a container. ListAttribute, StringAttribute, and DictionaryAttribute are
+ *         not modules anymore, they are currently containers.
  */
-public class PythonBuiltinsLookup {
 
-    private final Map<String, PythonModule> builtinModules;
-    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
+public class BuiltinsClassAttributesContainer {
 
-    public PythonBuiltinsLookup() {
-        builtinModules = new HashMap<>();
-        builtinTypes = new HashMap<>();
-    }
+    public static BuiltinClassAttributes listClassAttributesContainer;
+    public static BuiltinClassAttributes stringClassAttributesContainer;
+    public static BuiltinClassAttributes dictionaryClassAttributesContainer;
 
-    public void addModule(String name, PythonModule module) {
-        builtinModules.put(name, module);
-    }
-
-    public void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
-        builtinTypes.put(clazz, type);
-    }
-
-    public PythonModule lookupModule(String name) {
-        PythonModule module = builtinModules.get(name);
-        assert module != null;
-        return module;
-    }
-
-    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
-        PythonBuiltinClass type = builtinTypes.get(clazz);
-        assert type != null;
-        return type;
+    public static void initialize(PythonBuiltinsContainer listClassBuiltins, PythonBuiltinsContainer stringClassBuiltins, PythonBuiltinsContainer dictionaryClassBuiltins) {
+        listClassAttributesContainer = new ListAttribute(listClassBuiltins);
+        stringClassAttributesContainer = new StringAttribute(stringClassBuiltins);
+        dictionaryClassAttributesContainer = new DictionaryAttribute(dictionaryClassBuiltins);
     }
 }

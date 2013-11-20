@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.modules;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -33,9 +33,9 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonModule extends PythonBasicObject {
 
@@ -48,10 +48,11 @@ public class PythonModule extends PythonBasicObject {
 
     @SuppressWarnings("unused") private final PythonContext context;
 
-    public PythonModule(PythonContext context, PythonClass pythonClass) {
+    public PythonModule(PythonContext context, PythonClass pythonClass, String name) {
         super(pythonClass);
         this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
+        this.setAttribute(__NAME__, name);
     }
 
     @Override
@@ -119,6 +120,12 @@ public class PythonModule extends PythonBasicObject {
         assert value != null;
         unmodifiedAssumption.invalidate();
         super.setAttribute(name, value);
+    }
+
+    @Override
+    public String toString() {
+        return "<module '" + this.getAttribute(__NAME__) + "'>";
+
     }
 
     /**

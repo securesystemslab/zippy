@@ -24,17 +24,21 @@
  */
 package edu.uci.python.builtins;
 
-import java.util.Arrays;
+import java.util.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
+/**
+ * @author Gulfem
+ */
 public class ListBuiltins extends PythonBuiltins {
+
+    @Override
+    protected List<com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return ListBuiltinsFactory.getFactories();
+    }
 
     // list.append(x)
     @Builtin(name = "append", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
@@ -247,90 +251,4 @@ public class ListBuiltins extends PythonBuiltins {
         }
     }
 
-    @Override
-    public void initialize() {
-        Class<?>[] declaredClasses = ListBuiltins.class.getDeclaredClasses();
-
-        for (int i = 0; i < declaredClasses.length; i++) {
-            Class<?> clazz = declaredClasses[i];
-            PBuiltinFunction function = findBuiltinFunction(clazz);
-
-            if (function != null) {
-                setBuiltinFunction(function.getName(), function);
-            }
-        }
-    }
-
-    private static PBuiltinFunction findBuiltinFunction(Class<?> clazz) {
-        Builtin builtin = clazz.getAnnotation(Builtin.class);
-
-        if (builtin != null) {
-            String methodName = builtin.name();
-            PythonBuiltinNode builtinNode = createBuiltin(builtin);
-            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-            Arity arity = new Arity(methodName, builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                            builtin.takesVariableArguments());
-            PBuiltinFunction builtinClass;
-
-            if (builtin.hasFixedNumOfArguments()) {
-                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
-            } else {
-                builtinClass = new PBuiltinFunction(methodName, arity, callTarget);
-            }
-
-            return builtinClass;
-        }
-
-        return null;
-    }
-
-    private static PythonBuiltinNode createBuiltin(Builtin builtin) {
-        PNode[] args;
-        int totalNumOfArgs;
-        if (builtin.name().equals("max") || builtin.name().equals("min")) {
-            totalNumOfArgs = 3;
-        } else if (builtin.hasFixedNumOfArguments()) {
-            totalNumOfArgs = builtin.fixedNumOfArguments();
-        } else if (builtin.takesVariableArguments()) {
-            totalNumOfArgs = builtin.minNumOfArguments() + 1;
-        } else {
-            totalNumOfArgs = builtin.maxNumOfArguments();
-        }
-
-        args = new PNode[totalNumOfArgs];
-        for (int i = 0; i < totalNumOfArgs; i++) {
-            args[i] = new ReadArgumentNode(i);
-        }
-
-        if (builtin.takesVariableArguments()) {
-            args[totalNumOfArgs - 1] = new ReadVarArgsNode(totalNumOfArgs - 1);
-        } else {
-            if (builtin.takesKeywordArguments()) {
-                args[totalNumOfArgs - 1] = new ReadArgumentNode(totalNumOfArgs - 1);
-            }
-        }
-
-        if (builtin.name().equals("append")) {
-            return ListBuiltinsFactory.PythonListAppendNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("extend")) {
-            return ListBuiltinsFactory.PythonListExtendNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("insert")) {
-            return ListBuiltinsFactory.PythonListInsertNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("remove")) {
-            return ListBuiltinsFactory.PythonListRemoveNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("pop")) {
-            return ListBuiltinsFactory.PythonListPopNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("index")) {
-            return ListBuiltinsFactory.PythonListIndexNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("count")) {
-            return ListBuiltinsFactory.PythonListCountNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("sort")) {
-            return ListBuiltinsFactory.PythonListSortNodeFactory.create(builtin.name(), args);
-        } else if (builtin.name().equals("reverse")) {
-            return ListBuiltinsFactory.PythonListReverseNodeFactory.create(builtin.name(), args);
-        } else {
-            throw new RuntimeException("Unsupported/Unexpected Builtin: " + builtin);
-        }
-    }
 }

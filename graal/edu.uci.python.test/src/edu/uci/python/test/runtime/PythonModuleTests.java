@@ -34,6 +34,7 @@ import com.oracle.truffle.api.impl.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.test.*;
 
@@ -42,7 +43,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule(context, new PythonClass(context, null, "module"));
+        PythonModule module = new PythonModule(context, new PythonClass(context, null, "module"), "testModule");
 
         module.addBuiltinMethodsAndConstants(PythonModule.class);
         assertEquals("", module.getAttribute("__name__").toString());
@@ -53,7 +54,7 @@ public class PythonModuleTests {
     @Test
     public void builtinsMinTest() {
         final PythonContext context = PythonTests.getContext();
-        final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
+        final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
         FrameDescriptor fd = new FrameDescriptor();
         Object returnValue = min.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{4, 2, 1});
@@ -63,7 +64,7 @@ public class PythonModuleTests {
     @Test
     public void builtinsIntTest() {
         final PythonContext context = PythonTests.getContext();
-        final PythonModule builtins = context.getPythonCore().getBuiltinsModule();
+        final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
         PBuiltinClass intClass = (PBuiltinClass) builtins.getAttribute("int");
         FrameDescriptor fd = new FrameDescriptor();
         Object returnValue = intClass.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{"42"});
@@ -73,7 +74,7 @@ public class PythonModuleTests {
     @Test
     public void mainModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule main = context.getPythonCore().getMainModule();
+        PythonModule main = context.getPythonBuiltinsLookup().lookupModule("__main__");
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
         FrameDescriptor fd = new FrameDescriptor();

@@ -22,61 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtypes;
+package edu.uci.python.runtime.builtins;
 
-import edu.uci.python.runtime.*;
+import java.util.*;
 
-public class PythonCore {
+public class BuiltinClassAttributes {
 
-    private final PythonContext context;
+    Map<String, Object> attributes;
 
-    private PythonBuiltinClass typeClass;
-
-    private PythonBuiltinClass objectClass;
-
-    private PythonBuiltinClass moduleClass;
-
-    private PythonModule builtinsModule;
-
-    private PythonModule mainModule;
-
-    public PythonCore(PythonContext context) {
-        this.context = context;
+    public BuiltinClassAttributes() {
+        attributes = new HashMap<String, Object>();
     }
 
-    public void initialize() {
-        assert context != null;
-
-        typeClass = new PythonBuiltinClass(context, null, "type");
-        objectClass = new PythonObjectClass(context);
-        typeClass.unsafeSetSuperClass(objectClass);
-        moduleClass = new PythonBuiltinClass(context, objectClass, "module");
-
-        builtinsModule = new BuiltinsModule(context, moduleClass, "__builtins__");
-
-        builtinsModule.setAttribute("object", objectClass);
-
-        mainModule = new MainModule(context, moduleClass, "__main__");
-        mainModule.setAttribute("__builtins__", builtinsModule);
+    public void setAttribute(String name, Object value) {
+        attributes.put(name, value);
     }
 
-    public PythonClass getTypeClass() {
-        return typeClass;
-    }
-
-    public PythonClass getObjectClass() {
-        return objectClass;
-    }
-
-    public PythonClass getModuleClass() {
-        return moduleClass;
-    }
-
-    public PythonModule getBuiltinsModule() {
-        return builtinsModule;
-    }
-
-    public PythonModule getMainModule() {
-        return mainModule;
+    public Object getAttribute(String name) {
+        return attributes.get(name);
     }
 }

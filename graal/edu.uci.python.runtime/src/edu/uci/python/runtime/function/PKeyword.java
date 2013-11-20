@@ -32,9 +32,9 @@ public class PKeyword {
 
     public static final PKeyword[] EMPTY_KEYWORDS = new PKeyword[0];
 
-    public PKeyword(Object value, String object) {
+    public PKeyword(Object value, String name) {
         this.value = value;
-        this.name = object;
+        this.name = name;
     }
 
     public String getName() {

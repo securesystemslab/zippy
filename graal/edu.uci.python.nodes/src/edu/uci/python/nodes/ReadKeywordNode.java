@@ -22,27 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.nodes;
 
-import edu.uci.python.runtime.standardtypes.*;
+import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * @author Gulfem
- * 
- *         This class should be removed when we have the class type for each builtin class.
- *         Currently it is a container. ListAttribute, StringAttribute, and DictionaryAttribute are
- *         not modules anymore, they are currently containers.
  */
+public class ReadKeywordNode extends PNode {
 
-public class BuiltinsClassAttributesContainer {
+    private final String name;
 
-    public static BuiltinClassAttributes listClassAttributesContainer;
-    public static BuiltinClassAttributes stringClassAttributesContainer;
-    public static BuiltinClassAttributes dictionaryClassAttributesContainer;
+    public ReadKeywordNode(String name) {
+        this.name = name;
+    }
 
-    public static void initialize() {
-        listClassAttributesContainer = new ListAttribute(PythonBuiltinsContainer.getInstance().getListBuiltins());
-        stringClassAttributesContainer = new StringAttribute(PythonBuiltinsContainer.getInstance().getStringBuiltins());
-        dictionaryClassAttributesContainer = new DictionaryAttribute(PythonBuiltinsContainer.getInstance().getDictionaryBuiltins());
+    @Override
+    public final Object execute(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        PKeyword keyword = arguments.getKeyword(name);
+        if (keyword == null) {
+            return PNone.NONE;
+        }
+
+        return keyword;
     }
 }

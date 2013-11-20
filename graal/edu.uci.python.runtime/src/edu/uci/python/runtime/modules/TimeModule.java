@@ -27,13 +27,14 @@ package edu.uci.python.runtime.modules;
 import java.util.*;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class TimeModule extends PythonModule {
 
-    public TimeModule(PythonContext context, PythonBuiltins builtins) {
-        super(context, context.getPythonCore().getModuleClass());
+    public TimeModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
+        super(context, moduleClass, name);
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

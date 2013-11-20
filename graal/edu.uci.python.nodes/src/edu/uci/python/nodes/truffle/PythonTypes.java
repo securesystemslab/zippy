@@ -34,6 +34,7 @@ import com.oracle.truffle.api.dsl.TypeSystem;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -41,8 +42,7 @@ import edu.uci.python.runtime.standardtypes.*;
 @TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
 
 PyObject.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class, PRange.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PArray.class, PSlice.class,
-                PRangeIterator.class, PIterator.class, PythonModule.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, PKeyword[].class,
-                Object[].class})
+                PRangeIterator.class, PIterator.class, PythonModule.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, PKeyword.class, Object[].class})
 public class PythonTypes {
 
     /**
