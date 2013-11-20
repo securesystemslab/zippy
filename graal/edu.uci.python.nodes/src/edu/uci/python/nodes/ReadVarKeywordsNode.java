@@ -31,19 +31,21 @@ import edu.uci.python.runtime.function.*;
 /**
  * @author Gulfem
  */
-public class ReadVarKeywordsNode extends ReadArgumentNode {
+public class ReadVarKeywordsNode extends PNode {
 
-    public ReadVarKeywordsNode(int paramIndex) {
-        super(paramIndex);
+    private final String[] keywordNames;
+
+    public ReadVarKeywordsNode(String[] keywordNames) {
+        this.keywordNames = keywordNames;
     }
 
     @Override
-    public final Object[] execute(VirtualFrame frame) {
+    public final PKeyword[] execute(VirtualFrame frame) {
         return executeObjectArray(frame);
     }
 
     @Override
-    public final Object[] executeObjectArray(VirtualFrame frame) {
+    public final PKeyword[] executeObjectArray(VirtualFrame frame) {
         PArguments arguments = frame.getArguments(PArguments.class);
         PKeyword[] keywords = arguments.getKeywords();
         return keywords;

@@ -41,10 +41,6 @@ public class CustomConsole extends JLineConsole {
     public void execfile(java.io.InputStream s, String name) {
         PythonContext context = new PythonContext(new PythonOptions(), new PythonBuiltinsLookup(), new PythonDefaultBuiltins(), null);
         PythonBuiltinsInitializer.initialize(context);
-
-        // PythonContext context = PythonBuiltinsInitializer.initialize();
-        // PythonContext context = new PythonContext(new PythonOptions(), new
-// PythonBuiltinsLookup());
         execfile(s, name, context);
     }
 

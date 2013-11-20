@@ -37,14 +37,14 @@ import edu.uci.python.runtime.standardtypes.*;
  */
 public class BuiltinsModule extends PythonModule {
 
-    public BuiltinsModule(PythonContext context, PythonBuiltins builtins, PythonClass pythonClass, String name) {
+    public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, PythonClass pythonClass, String name) {
         super(context, pythonClass, name);
         this.addBuiltinMethodsAndConstants(PythonModule.class);
         builtins.initialize();
         addBuiltins(builtins);
     }
 
-    private void addBuiltins(PythonBuiltins builtins) {
+    private void addBuiltins(PythonBuiltinsContainer builtins) {
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
             String methodName = entry.getKey();
@@ -54,9 +54,9 @@ public class BuiltinsModule extends PythonModule {
 
         Map<String, PBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
         for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
-            String methodName = entry.getKey();
+            String className = entry.getKey();
             PBuiltinClass function = entry.getValue();
-            setAttribute(methodName, function);
+            setAttribute(className, function);
         }
     }
 }

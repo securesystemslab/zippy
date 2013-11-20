@@ -33,7 +33,7 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class ArrayModule extends PythonModule {
 
-    public ArrayModule(PythonContext context, PythonClass moduleClass, PythonBuiltins builtins, String name) {
+    public ArrayModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
         super(context, moduleClass, name);
         builtins.initialize();
 

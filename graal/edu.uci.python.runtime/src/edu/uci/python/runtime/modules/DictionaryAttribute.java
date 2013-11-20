@@ -31,7 +31,7 @@ import edu.uci.python.runtime.function.*;
 
 public class DictionaryAttribute extends BuiltinClassAttributes {
 
-    public DictionaryAttribute(PythonBuiltins builtins) {
+    public DictionaryAttribute(PythonBuiltinsContainer builtins) {
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

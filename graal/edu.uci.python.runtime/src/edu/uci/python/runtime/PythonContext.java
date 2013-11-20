@@ -39,10 +39,10 @@ public class PythonContext {
     private PythonBuiltinClass moduleClass;
     private PythonModule builtinsModule;
     private PythonModule mainModule;
-    private PythonBuiltins builtinsModuleBuiltins;
-    private PythonBuiltins mainModuleBuiltins;
+    private PythonBuiltinsContainer builtinsModuleBuiltins;
+    private PythonBuiltinsContainer mainModuleBuiltins;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltins builtinsModuleBuiltins, PythonBuiltins mainModuleBuiltins) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer builtinsModuleBuiltins, PythonBuiltinsContainer mainModuleBuiltins) {
         this.options = opts;
         this.lookup = lookup;
         this.builtinsModuleBuiltins = builtinsModuleBuiltins;

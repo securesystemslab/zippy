@@ -38,20 +38,42 @@ public class Arity {
     private final boolean takesFixedNumOfArgs;
     private final boolean takesVarArgs;
 
-    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesKeywordArg, boolean takesFixedNumOfArgs, boolean takesVarArgs) {
+    private final String[] keywordNames;
+
+    // private final ArrayList keywordNames;
+
+    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesKeywordArg, boolean takesFixedNumOfArgs, boolean takesVarArgs, String[] keywordNames) {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
         this.takesKeywordArg = takesKeywordArg;
         this.takesFixedNumOfArgs = takesFixedNumOfArgs;
         this.takesVarArgs = takesVarArgs;
+        this.keywordNames = keywordNames;
+    }
+
+    public void arityCheck(int numOfArgs, int numOfKeywords, PKeyword[] keywords) {
+        if (keywords == null) {
+            arityCheck(numOfArgs, numOfKeywords);
+        } else {
+            for (int i = 0; i < keywords.length; i++) {
+                PKeyword keyword = keywords[i];
+                for (int k = 0; k < keywordNames.length; k++) {
+                    if (keywordNames[k].equals(keyword.getName())) {
+                        break;
+                    }
+                }
+
+                throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword.getName() + "'");
+            }
+        }
     }
 
     /**
      * See {@link org.python.core.PyBuiltinCallable.DefaultInfo}.
      */
     @SlowPath
-    public void arityCheck(int numOfArgs, int numOfKeywords) {
+    private void arityCheck(int numOfArgs, int numOfKeywords) {
         if (!takesKeywordArg && numOfKeywords > 0) {
             throw Py.TypeError(functionName + "() takes no keyword arguments");
         }
@@ -81,5 +103,6 @@ public class Arity {
             argMessage = "at most " + maxNumOfArgs + " arguments";
             throw Py.TypeError(String.format("%s() takes %s (%d given)", functionName, argMessage, numOfArgs));
         }
+
     }
 }

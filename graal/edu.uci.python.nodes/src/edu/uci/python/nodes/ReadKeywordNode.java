@@ -22,9 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.builtins;
+package edu.uci.python.nodes;
 
-import java.util.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
@@ -32,35 +32,22 @@ import edu.uci.python.runtime.function.*;
 /**
  * @author Gulfem
  */
-public abstract class PythonBuiltins {
+public class ReadKeywordNode extends PNode {
 
-    private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
+    private final String name;
 
-    private final Map<String, PBuiltinClass> builtinClasses = new HashMap<>();
-
-    public abstract void initialize();
-
-    public void setBuiltinFunction(String name, PBuiltinFunction function) {
-        builtinFunctions.put(name, function);
+    public ReadKeywordNode(String name) {
+        this.name = name;
     }
 
-    public void setBuiltinClass(String name, PBuiltinClass clazz) {
-        builtinClasses.put(name, clazz);
-    }
+    @Override
+    public final Object execute(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        PKeyword keyword = arguments.getKeyword(name);
+        if (keyword == null) {
+            return PNone.NONE;
+        }
 
-    public PBuiltinFunction getBuiltinFunction(String name) {
-        return builtinFunctions.get(name);
-    }
-
-    public PBuiltinClass getBuiltinClass(String name) {
-        return builtinClasses.get(name);
-    }
-
-    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
-        return builtinFunctions;
-    }
-
-    public Map<String, PBuiltinClass> getBuiltinClasses() {
-        return builtinClasses;
+        return keyword;
     }
 }

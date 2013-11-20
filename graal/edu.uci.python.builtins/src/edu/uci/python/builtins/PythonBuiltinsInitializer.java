@@ -29,9 +29,7 @@ import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
 
 /**
- * 
  * @author Gulfem
- * 
  */
 
 public class PythonBuiltinsInitializer {

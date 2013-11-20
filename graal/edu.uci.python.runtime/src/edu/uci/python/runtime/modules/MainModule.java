@@ -30,7 +30,7 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class MainModule extends PythonModule {
 
-    public MainModule(PythonContext context, PythonBuiltins mainModuleBuiltins, PythonClass pythonClass, String name) {
+    public MainModule(PythonContext context, PythonBuiltinsContainer mainModuleBuiltins, PythonClass pythonClass, String name) {
         super(context, pythonClass, name);
         // mainModuleBuiltins.initialize();
         this.addBuiltinMethodsAndConstants(PythonModule.class);

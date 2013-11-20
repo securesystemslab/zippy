@@ -22,58 +22,46 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.builtins;
+package edu.uci.python.runtime.builtins;
 
 import java.util.*;
 
-import com.oracle.truffle.api.dsl.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 
-public final class TimeModuleBuiltins extends PythonBuiltins {
+/**
+ * @author Gulfem
+ */
+public abstract class PythonBuiltinsContainer {
 
-    @Override
-    protected List<com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
-        return TimeModuleBuiltinsFactory.getFactories();
+    private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
+
+    private final Map<String, PBuiltinClass> builtinClasses = new HashMap<>();
+
+    public abstract void initialize();
+
+    public void setBuiltinFunction(String name, PBuiltinFunction function) {
+        builtinFunctions.put(name, function);
     }
 
-    // time.time()
-    @Builtin(name = "time", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
-    public abstract static class PythonTimeNode extends PythonBuiltinNode {
-
-        public PythonTimeNode(String name) {
-            super(name);
-        }
-
-        public PythonTimeNode(PythonTimeNode prev) {
-            this(prev.getName());
-        }
-
-        /**
-         * The logic is borrowed from Jython.
-         * 
-         * @return current system millisecond time in second
-         */
-
-        @Specialization
-        public double time() {
-            return System.currentTimeMillis() / 1000.0;
-        }
+    public void setBuiltinClass(String name, PBuiltinClass clazz) {
+        builtinClasses.put(name, clazz);
     }
 
-    // time.clock()
-    @Builtin(name = "clock", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
-    public abstract static class PythonClockNode extends PythonBuiltinNode {
-
-        public PythonClockNode(String name) {
-            super(name);
-        }
-
-        public PythonClockNode(PythonClockNode prev) {
-            this(prev.getName());
-        }
-
-        @Specialization
-        public double clock() {
-            return System.currentTimeMillis() / 1000.0;
-        }
+    public PBuiltinFunction getBuiltinFunction(String name) {
+        return builtinFunctions.get(name);
     }
+
+    public PBuiltinClass getBuiltinClass(String name) {
+        return builtinClasses.get(name);
+    }
+
+    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
+        return builtinFunctions;
+    }
+
+    public Map<String, PBuiltinClass> getBuiltinClasses() {
+        return builtinClasses;
+    }
+
 }

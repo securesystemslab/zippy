@@ -33,7 +33,7 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class TimeModule extends PythonModule {
 
-    public TimeModule(PythonContext context, PythonClass moduleClass, PythonBuiltins builtins, String name) {
+    public TimeModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
         super(context, moduleClass, name);
         builtins.initialize();
 

@@ -40,7 +40,7 @@ public class BuiltinsClassAttributesContainer {
     public static BuiltinClassAttributes stringClassAttributesContainer;
     public static BuiltinClassAttributes dictionaryClassAttributesContainer;
 
-    public static void initialize(PythonBuiltins listClassBuiltins, PythonBuiltins stringClassBuiltins, PythonBuiltins dictionaryClassBuiltins) {
+    public static void initialize(PythonBuiltinsContainer listClassBuiltins, PythonBuiltinsContainer stringClassBuiltins, PythonBuiltinsContainer dictionaryClassBuiltins) {
         listClassAttributesContainer = new ListAttribute(listClassBuiltins);
         stringClassAttributesContainer = new StringAttribute(stringClassBuiltins);
         dictionaryClassAttributesContainer = new DictionaryAttribute(dictionaryClassBuiltins);
