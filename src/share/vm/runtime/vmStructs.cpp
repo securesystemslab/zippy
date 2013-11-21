@@ -103,6 +103,9 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/hashtable.hpp"
 #include "utilities/macros.hpp"
+#ifdef GRAAL
+# include "graal/vmStructs_graal.hpp"
+#endif
 #ifdef TARGET_ARCH_x86
 # include "vmStructs_x86.hpp"
 #endif
@@ -876,7 +879,18 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(nmethod,             _exception_cache,                              ExceptionCache*)                       \
   nonstatic_field(nmethod,             _marked_for_deoptimization,                    bool)                                  \
                                                                                                                              \
-  unchecked_c2_static_field(Deoptimization,         _trap_reason_name,                   void*)                              \
+  unchecked_c2_static_field(Deoptimization, _trap_reason_name,                        void*)                                 \
+                                                                                                                             \
+  nonstatic_field(Deoptimization::UnrollBlock, _size_of_deoptimized_frame,            int)                                   \
+  nonstatic_field(Deoptimization::UnrollBlock, _caller_adjustment,                    int)                                   \
+  nonstatic_field(Deoptimization::UnrollBlock, _number_of_frames,                     int)                                   \
+  nonstatic_field(Deoptimization::UnrollBlock, _total_frame_sizes,                    int)                                   \
+  nonstatic_field(Deoptimization::UnrollBlock, _frame_sizes,                          intptr_t*)                             \
+  nonstatic_field(Deoptimization::UnrollBlock, _frame_pcs,                            address*)                              \
+  nonstatic_field(Deoptimization::UnrollBlock, _register_block,                       intptr_t*)                             \
+  nonstatic_field(Deoptimization::UnrollBlock, _return_type,                          BasicType)                             \
+  nonstatic_field(Deoptimization::UnrollBlock, _initial_info,                         intptr_t)                              \
+  nonstatic_field(Deoptimization::UnrollBlock, _caller_actual_parameters,             int)                                   \
                                                                                                                                      \
   /********************************/                                                                                                 \
   /* JavaCalls (NOTE: incomplete) */                                                                                                 \
@@ -1252,7 +1266,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   static_field(java_lang_Class,                _array_klass_offset,                           int)                                   \
   static_field(java_lang_Class,                _oop_size_offset,                              int)                                   \
   static_field(java_lang_Class,                _static_oop_field_count_offset,                int)                                   \
-  GRAAL_ONLY(static_field(java_lang_Class,     _graal_mirror_offset,                          int))                                  \
                                                                                                                                      \
   /************************/                                                                                                         \
   /* Miscellaneous fields */                                                                                                         \
@@ -1289,14 +1302,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(FreeList<Metablock>,         _size,                                        size_t)                                 \
   nonstatic_field(FreeList<FreeChunk>,         _count,                                       ssize_t)                                \
   nonstatic_field(FreeList<Metablock>,         _count,                                       ssize_t)                                \
-  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)                                 \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _standard,                                  CompilerStatistics::Data))              \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _osr,                                       CompilerStatistics::Data))              \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _nmethods_size,                             int))                                   \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _nmethods_code_size,                        int))                                   \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _bytes,                               int))                                   \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _count,                               int))                                   \
-  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _time,                                elapsedTimer))
+  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)
 
 //--------------------------------------------------------------------------------
 // VM_TYPES
@@ -1670,6 +1676,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_toplevel_type(Dependencies)                                     \
   declare_toplevel_type(CompileTask)                                      \
   declare_toplevel_type(Deoptimization)                                   \
+  declare_toplevel_type(Deoptimization::UnrollBlock)                      \
                                                                           \
   /************************/                                              \
   /* OopMap and OopMapSet */                                              \
@@ -2163,8 +2170,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   /* Miscellaneous types */                                               \
   /***************/                                                       \
                                                                           \
-  GRAAL_ONLY(declare_toplevel_type(CompilerStatistics))                   \
-  GRAAL_ONLY(declare_toplevel_type(CompilerStatistics::Data))             \
   declare_toplevel_type(PtrQueue)                                         \
                                                                           \
   /* freelist */                                                          \
@@ -2509,6 +2514,11 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(Deoptimization::Action_make_not_entrant)               \
   declare_constant(Deoptimization::Action_make_not_compilable)            \
   declare_constant(Deoptimization::Action_LIMIT)                          \
+                                                                          \
+  declare_constant(Deoptimization::Unpack_deopt)                          \
+  declare_constant(Deoptimization::Unpack_exception)                      \
+  declare_constant(Deoptimization::Unpack_uncommon_trap)                  \
+  declare_constant(Deoptimization::Unpack_reexecute)                      \
                                                                           \
   /*********************/                                                 \
   /* Matcher (C2 only) */                                                 \
@@ -2905,6 +2915,11 @@ VMStructEntry VMStructs::localHotSpotVMStructs[] = {
              GENERATE_C1_UNCHECKED_STATIC_VM_STRUCT_ENTRY,
              GENERATE_C2_UNCHECKED_STATIC_VM_STRUCT_ENTRY)
 
+#ifdef GRAAL
+   VM_STRUCTS_GRAAL(GENERATE_NONSTATIC_VM_STRUCT_ENTRY,
+                    GENERATE_STATIC_VM_STRUCT_ENTRY)
+#endif
+
 #if INCLUDE_ALL_GCS
   VM_STRUCTS_PARALLELGC(GENERATE_NONSTATIC_VM_STRUCT_ENTRY,
                         GENERATE_STATIC_VM_STRUCT_ENTRY)
@@ -2948,6 +2963,11 @@ VMTypeEntry VMStructs::localHotSpotVMTypes[] = {
            GENERATE_C1_TOPLEVEL_VM_TYPE_ENTRY,
            GENERATE_C2_VM_TYPE_ENTRY,
            GENERATE_C2_TOPLEVEL_VM_TYPE_ENTRY)
+
+#ifdef GRAAL
+  VM_TYPES_GRAAL(GENERATE_VM_TYPE_ENTRY,
+                 GENERATE_TOPLEVEL_VM_TYPE_ENTRY)
+#endif
 
 #if INCLUDE_ALL_GCS
   VM_TYPES_PARALLELGC(GENERATE_VM_TYPE_ENTRY,
