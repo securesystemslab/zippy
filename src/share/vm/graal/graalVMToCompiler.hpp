@@ -67,7 +67,7 @@ public:
   static void shutdownCompiler();
   
   // public abstract void startCompiler(boolean bootstrapEnabled);
-  static void startCompiler(jboolean bootstrap_enabled, jlong compilerStatisticsAddress);
+  static void startCompiler(jboolean bootstrap_enabled);
   
   // public abstract void bootstrap();
   static void bootstrap();

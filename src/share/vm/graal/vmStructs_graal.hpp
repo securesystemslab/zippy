@@ -31,19 +31,9 @@
                                                                               \
   static_field(java_lang_Class, _graal_mirror_offset, int)                    \
                                                                               \
-  nonstatic_field(CompilerStatistics, _standard,           CompilerStatistics::Data) \
-  nonstatic_field(CompilerStatistics, _osr,                CompilerStatistics::Data) \
-  nonstatic_field(CompilerStatistics, _nmethods_size,      int)                      \
-  nonstatic_field(CompilerStatistics, _nmethods_code_size, int)                      \
-  nonstatic_field(CompilerStatistics::Data, _bytes,        int)                      \
-  nonstatic_field(CompilerStatistics::Data, _count,        int)                      \
-  nonstatic_field(CompilerStatistics::Data, _time,         elapsedTimer)             \
-
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
                                                                               \
-  declare_toplevel_type(CompilerStatistics)                                   \
-  declare_toplevel_type(CompilerStatistics::Data)                             \
 
 
 #endif // SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP

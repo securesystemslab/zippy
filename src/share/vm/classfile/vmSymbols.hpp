@@ -574,7 +574,6 @@
   template(char_array_void_signature,                 "([C)V")                                                    \
   template(int_int_void_signature,                    "(II)V")                                                    \
   template(long_long_void_signature,                  "(JJ)V")                                                    \
-  template(boolean_long_void_signature,               "(ZJ)V")                                                    \
   template(void_classloader_signature,                "()Ljava/lang/ClassLoader;")                                \
   template(void_object_signature,                     "()Ljava/lang/Object;")                                     \
   template(void_class_signature,                      "()Ljava/lang/Class;")                                      \
@@ -919,7 +918,7 @@
    do_signature(copyMemory_signature,         "(Ljava/lang/Object;JLjava/lang/Object;JJ)V")                             \
   do_intrinsic(_park,                     sun_misc_Unsafe,        park_name, park_signature,                     F_RN)  \
    do_name(     park_name,                                       "park")                                                \
-   do_alias(park_signature,                                       boolean_long_void_signature)                          \
+   do_signature(park_signature,                                  "(ZJ)V")                                               \
   do_intrinsic(_unpark,                   sun_misc_Unsafe,        unpark_name, unpark_signature,                 F_RN)  \
    do_name(     unpark_name,                                     "unpark")                                              \
    do_alias(    unpark_signature,                               /*(LObject;)V*/ object_void_signature)                  \

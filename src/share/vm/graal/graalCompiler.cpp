@@ -102,8 +102,7 @@ void GraalCompiler::initialize() {
 
     if (UseCompiler) {
       bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
-      jlong compilerStatisticsAddress = (jlong) ((address) (stats()));
-      VMToCompiler::startCompiler(bootstrap, compilerStatisticsAddress);
+      VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
       if (bootstrap) {
