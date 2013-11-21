@@ -29,8 +29,10 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.objects.*;
 
 public abstract class GetAttributeNode extends PNode {
@@ -141,6 +143,25 @@ public abstract class GetAttributeNode extends PNode {
         }
     }
 
+    public static class UnboxedGetMethodNode extends UnboxedGetAttributeNode {
+
+        private final PBuiltinMethod cachedMethod;
+
+        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractUnboxedAttributeNode cache, PBuiltinMethod cachedMethod) {
+            super(context, attributeId, primary, cache);
+            this.cachedMethod = cachedMethod;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            Object primaryObj = primary.execute(frame);
+            Object value = cache.getValue(frame, primaryObj);
+            assert cachedMethod.__func__() == value;
+            cachedMethod.bind(context.boxAsPythonBuiltinObject(primaryObj));
+            return cachedMethod;
+        }
+    }
+
     protected Object bootstrapBoxedOrUnboxed(VirtualFrame frame, Object primaryObj) {
         CompilerAsserts.neverPartOfCompilation();
 
@@ -159,8 +180,16 @@ public abstract class GetAttributeNode extends PNode {
 
     protected Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj) {
         AbstractUnboxedAttributeNode cacheNode = new AbstractUnboxedAttributeNode.UninitializedCachedAttributeNode(context, attributeId);
-        replace(new UnboxedGetAttributeNode(context, attributeId, primary, cacheNode));
-        return cacheNode.getValue(frame, primaryObj);
+        Object value = cacheNode.getValue(frame, primaryObj);
+
+        if (value instanceof PBuiltinFunction) {
+            value = CallAttributeNode.createPBuiltinMethodFor(context.boxAsPythonBuiltinObject(primaryObj), (PBuiltinFunction) value);
+            replace(new UnboxedGetMethodNode(context, attributeId, primary, cacheNode, (PBuiltinMethod) value));
+        } else {
+            replace(new UnboxedGetAttributeNode(context, attributeId, primary, cacheNode));
+        }
+
+        return value;
     }
 
     public static class UninitializedGetAttributeNode extends GetAttributeNode {
