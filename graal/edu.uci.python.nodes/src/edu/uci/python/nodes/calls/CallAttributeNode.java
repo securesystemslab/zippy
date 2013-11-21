@@ -185,7 +185,7 @@ public abstract class CallAttributeNode extends PNode {
         return attribute;
     }
 
-    private static PMethod createPMethodFor(PythonObject primaryObj, PFunction function) {
+    public static PMethod createPMethodFor(PythonObject primaryObj, PFunction function) {
         RootNode root = (RootNode) function.getFunctionRootNode().copy();
         redirectFirstArgumentToSelf(root);
         return new PMethod(primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root, function.getFrameDescriptor())));
@@ -200,7 +200,7 @@ public abstract class CallAttributeNode extends PNode {
         return callable;
     }
 
-    private static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PBuiltinFunction function) {
+    public static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PBuiltinFunction function) {
         RootNode root = (RootNode) function.getFunctionRootNode().copy();
         redirectFirstArgumentToSelf(root);
         return new PBuiltinMethod(primaryObj, PBuiltinFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root)));

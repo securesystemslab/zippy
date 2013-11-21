@@ -32,7 +32,7 @@ import edu.uci.python.runtime.datatypes.*;
 public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PBuiltinFunction function;
-    private final PythonBuiltinObject self;
+    private PythonBuiltinObject self;
     private final CallTarget callTarget;
 
     public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
@@ -47,6 +47,10 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
 
     public PythonBuiltinObject __self__() {
         return self;
+    }
+
+    public void bind(PythonBuiltinObject newSelf) {
+        this.self = newSelf;
     }
 
     /**
