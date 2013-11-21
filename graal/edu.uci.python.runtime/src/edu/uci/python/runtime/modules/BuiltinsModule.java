@@ -29,7 +29,6 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * The Python standard built-ins module.
@@ -37,9 +36,8 @@ import edu.uci.python.runtime.standardtypes.*;
  */
 public class BuiltinsModule extends PythonModule {
 
-    public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, PythonClass pythonClass, String name) {
-        super(context, pythonClass, name);
-        this.addBuiltinMethodsAndConstants(PythonModule.class);
+    public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
+        super(context, name);
         builtins.initialize();
         addBuiltins(builtins);
     }

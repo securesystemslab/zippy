@@ -180,7 +180,7 @@ public abstract class PythonBasicObject {
         setAttributes(instanceVariableMap);
     }
 
-    protected Map<String, Object> getAttributes() {
+    public Map<String, Object> getAttributes() {
         if (objectLayout == null) {
             return Collections.emptyMap();
         }

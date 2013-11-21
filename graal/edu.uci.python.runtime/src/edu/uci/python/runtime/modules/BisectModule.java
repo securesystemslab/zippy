@@ -35,8 +35,8 @@ import edu.uci.python.runtime.standardtypes.*;
 
 public class BisectModule extends PythonModule {
 
-    public BisectModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
-        super(context, moduleClass, name);
+    public BisectModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
+        super(context, name);
         builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();

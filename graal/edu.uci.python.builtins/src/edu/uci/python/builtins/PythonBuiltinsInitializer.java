@@ -41,9 +41,9 @@ public class PythonBuiltinsInitializer {
 
     public static void initialize(PythonContext context) {
         PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
-        lookup.addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins(), "array"));
-        lookup.addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins(), "bisect"));
-        lookup.addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins(), "time"));
+        lookup.addModule("array", new ArrayModule(context, new ArrayModuleBuiltins(), "array"));
+        lookup.addModule("bisect", new BisectModule(context, new BisectModuleBuiltins(), "bisect"));
+        lookup.addModule("time", new TimeModule(context, new TimeModuleBuiltins(), "time"));
         BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
 
         PythonBuiltinClass typeClass = context.getTypeClass();

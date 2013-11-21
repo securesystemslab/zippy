@@ -35,7 +35,6 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
-import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.test.*;
 
 public class PythonModuleTests {
@@ -43,10 +42,9 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule(context, new PythonClass(context, null, "module"), "testModule");
+        PythonModule module = new PythonModule(context, "testModule");
 
-        module.addBuiltinMethodsAndConstants(PythonModule.class);
-        assertEquals("", module.getAttribute("__name__").toString());
+        assertEquals("testModule", module.getAttribute("__name__").toString());
         assertEquals("", module.getAttribute("__doc__").toString());
         assertEquals("", module.getAttribute("__package__").toString());
     }

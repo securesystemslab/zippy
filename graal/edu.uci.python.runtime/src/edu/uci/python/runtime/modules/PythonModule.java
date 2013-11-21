@@ -35,7 +35,6 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonModule extends PythonBasicObject {
 
@@ -48,16 +47,36 @@ public class PythonModule extends PythonBasicObject {
 
     @SuppressWarnings("unused") private final PythonContext context;
 
-    public PythonModule(PythonContext context, PythonClass pythonClass, String name) {
-        super(pythonClass);
+    public PythonModule(PythonContext context, String name) {
+        super(context.getModuleClass());
         this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
-        this.setAttribute(__NAME__, name);
+        setAttribute(__NAME__, name);
+        addBuiltinMethodsAndConstants(PythonModule.class);
     }
 
     @Override
     public Assumption getUnmodifiedAssumption() {
         return unmodifiedAssumption.getAssumption();
+    }
+
+    private void addBuiltinMethodsAndConstants(Class definingClass) {
+        findBuiltinMethodsAndConstantsByReflection(definingClass);
+
+        for (AnnotatedBuiltinConstant constant : builtinConstants) {
+            Object value = constant.getValue();
+            if (getAttribute(constant.getName()) == PNone.NONE) {
+                setAttribute(constant.getName(), value);
+            }
+        }
+
+        for (AnnotatedBuiltinMethod method : builtinMethods) {
+            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
+            String methodName = method.getNames().get(0);
+            if (getAttribute(methodName) == PNone.NONE) {
+                setAttribute(methodName, function);
+            }
+        }
     }
 
     private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {
@@ -67,21 +86,6 @@ public class PythonModule extends PythonBasicObject {
             } else if (field.getAnnotation(BuiltinMethod.class) != null) {
                 builtinMethods.add(buildMethod(field));
             }
-        }
-    }
-
-    public void addBuiltinMethodsAndConstants(Class definingClass) {
-        findBuiltinMethodsAndConstantsByReflection(definingClass);
-
-        for (AnnotatedBuiltinConstant constant : builtinConstants) {
-            Object value = constant.getValue();
-            setAttribute(constant.getName(), value);
-        }
-
-        for (AnnotatedBuiltinMethod method : builtinMethods) {
-            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
-            String methodName = method.getNames().get(0);
-            setAttribute(methodName, function);
         }
     }
 
