@@ -26,8 +26,10 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PythonContext {
@@ -85,7 +87,22 @@ public class PythonContext {
         return typeClass;
     }
 
-    public PythonClass getObjectClass() {
+    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) {
+        if (obj instanceof PythonBuiltinObject) {
+            return (PythonBuiltinObject) obj;
+        }
+
+        /**
+         * TODO: missing int, double, boolean... and maybe more.
+         */
+        if (obj instanceof String) {
+            return new PString((String) obj);
+        }
+
+        throw new RuntimeException("Unexpected obj type " + obj.getClass());
+    }
+
+    public PythonBuiltinClass getObjectClass() {
         return objectClass;
     }
 

@@ -33,7 +33,7 @@ import edu.uci.python.runtime.function.*;
  */
 public class ReadVarKeywordsNode extends PNode {
 
-    private final String[] keywordNames;
+    @SuppressWarnings("unused") private final String[] keywordNames;
 
     public ReadVarKeywordsNode(String[] keywordNames) {
         this.keywordNames = keywordNames;

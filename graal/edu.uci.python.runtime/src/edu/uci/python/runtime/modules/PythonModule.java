@@ -55,6 +55,7 @@ public class PythonModule extends PythonBasicObject {
         this.setAttribute(__NAME__, name);
     }
 
+    @Override
     public Assumption getUnmodifiedAssumption() {
         return unmodifiedAssumption.getAssumption();
     }

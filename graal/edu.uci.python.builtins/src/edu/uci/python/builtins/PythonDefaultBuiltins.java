@@ -44,7 +44,6 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 /**
  * @author Gulfem
  */
-
 public final class PythonDefaultBuiltins extends PythonBuiltins {
 
     @Override
@@ -274,21 +273,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
              * TODO enumerate can take a keyword argument start, and currently that's not supported.
              */
 
-            // @SuppressWarnings("unused")
+            @SuppressWarnings("unused")
             @Specialization
             // @Specialization(guards = "noKeywordArg")
             public PIterator enumerate(String str, Object keywordArg) {
                 return new PEnumerate(new PString(str));
             }
 
-            // @SuppressWarnings("unused")
+            @SuppressWarnings("unused")
             @Specialization
             // @Specialization(guards = "noKeywordArg")
             public PIterator enumerate(PSequence sequence, Object keywordArg) {
                 return new PEnumerate(sequence);
             }
 
-            // @SuppressWarnings("unused")
+            @SuppressWarnings("unused")
             @Specialization
             // @Specialization(guards = "noKeywordArg")
             public PIterator enumerate(PBaseSet set, Object keywordArg) {
@@ -553,7 +552,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasTwoArguments")
-            public int minIntInt(int arg1, int arg2, Object[] args, PKeyword keywordArg) {
+            public int minIntInt(int arg1, int arg2, Object[] args, Object keywordArg) {
                 return Math.min(arg1, arg2);
             }
 
@@ -892,6 +891,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PFrozenSet(baseSet);
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public PFrozenSet frozenset(Object arg) {
                 return new PFrozenSet();

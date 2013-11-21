@@ -28,14 +28,12 @@ import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.dsl.NodeFactory;
 
 import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
  */
-
 public final class BisectModuleBuiltins extends PythonBuiltins {
 
     @Override
@@ -55,6 +53,7 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
             this(prev.getName());
         }
 
+        @SuppressWarnings("unused")
         @Specialization
         public int bisect(Object arg1, Object arg2, Object[] keywords) {
             return bisect(arg1, arg2);
@@ -75,6 +74,7 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
             }
         }
 
+        @SuppressWarnings("unused")
         public int bisect(Object arg) {
             throw new RuntimeException("wrong number of arguments for bisect() ");
         }

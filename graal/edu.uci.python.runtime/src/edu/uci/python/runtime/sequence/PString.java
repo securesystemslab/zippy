@@ -28,11 +28,17 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
+
+    @Override
+    public PythonBuiltinClass __class__(PythonContext context) {
+        return context.getPythonBuiltinsLookup().lookupType(PString.class);
+    }
 
     private final String value;
 

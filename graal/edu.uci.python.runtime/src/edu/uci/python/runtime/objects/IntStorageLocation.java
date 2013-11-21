@@ -57,6 +57,14 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
         }
     }
 
+    public boolean readBoolean(PythonBasicObject object) throws UnexpectedResultException {
+        if (isSet(object)) {
+            return PythonUnsafe.UNSAFE.getInt(object, offset) == 1;
+        } else {
+            throw new UnexpectedResultException(PNone.NONE);
+        }
+    }
+
     @Override
     public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Integer) {
@@ -70,6 +78,11 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
 
     public void writeInt(PythonBasicObject object, int value) {
         PythonUnsafe.UNSAFE.putInt(object, offset, value);
+        markAsSet(object);
+    }
+
+    public void writeBoolean(PythonBasicObject object, boolean value) {
+        PythonUnsafe.UNSAFE.putInt(object, offset, value ? 1 : 0);
         markAsSet(object);
     }
 
