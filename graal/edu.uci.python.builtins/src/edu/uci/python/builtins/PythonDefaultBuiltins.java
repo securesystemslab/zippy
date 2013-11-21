@@ -480,18 +480,18 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasTwoArguments")
-            public int maxIntInt(int arg1, int arg2, Object... args) {
+            public int maxIntInt(int arg1, int arg2, Object[] args, Object keywordArg) {
                 return Math.max(arg1, arg2);
             }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasTwoArguments")
-            public double maxDoubleDouble(double arg1, double arg2, Object... args) {
+            public double maxDoubleDouble(double arg1, double arg2, Object[] args, Object keywordArg) {
                 return Math.max(arg1, arg2);
             }
 
             @Specialization
-            public Object max(Object arg1, Object arg2, Object... args) {
+            public Object max(Object arg1, Object arg2, Object[] args, Object keywordArg) {
                 if (arg2 instanceof PNone) {
                     if (arg1 instanceof String) {
                         /**
@@ -533,8 +533,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
-                return args.length == 0;
+            public static boolean hasTwoArguments(Object arg1, Object arg2, Object[] args, Object keywordArg) {
+                return (args.length == 0 && keywordArg instanceof PNone);
             }
         }
 
@@ -553,18 +553,18 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasTwoArguments")
-            public int minIntInt(int arg1, int arg2, Object... args) {
+            public int minIntInt(int arg1, int arg2, Object[] args, PKeyword keywordArg) {
                 return Math.min(arg1, arg2);
             }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasTwoArguments")
-            public double minDoubleDouble(double arg1, double arg2, Object... args) {
+            public double minDoubleDouble(double arg1, double arg2, Object[] args, Object keywordArg) {
                 return Math.min(arg1, arg2);
             }
 
             @Specialization
-            public Object min(Object arg1, Object arg2, Object... args) {
+            public Object min(Object arg1, Object arg2, Object[] args, Object keywordArg) {
                 if (arg2 instanceof PNone) {
                     if (arg1 instanceof String) {
                         /**
@@ -612,8 +612,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            public static boolean hasTwoArguments(Object arg1, Object arg2, Object... args) {
-                return args.length == 0;
+            public static boolean hasTwoArguments(Object arg1, Object arg2, Object[] args, Object keywordArg) {
+                return (args.length == 0 && keywordArg instanceof PNone);
             }
         }
 

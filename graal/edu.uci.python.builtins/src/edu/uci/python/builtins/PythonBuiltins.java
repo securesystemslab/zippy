@@ -20,6 +20,7 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
     @Override
     public void initialize() {
         List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>> factories = (List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>>) getNodeFactories();
+
         if (factories == null) {
             throw new IllegalArgumentException("No factories found. Override getFactories() to resolve this.");
         }
@@ -28,7 +29,6 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
             PNode[] argsKeywords = createArgumentsList(builtin);
             PythonBuiltinNode builtinNode = factory.createNode(builtin.name(), argsKeywords);
-
             BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
 
@@ -59,7 +59,7 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
                     function = new PBuiltinFunction(builtin.name(), arity, callTarget);
                 }
 
-                setBuiltinFunction(function.getName(), function);
+                setBuiltinFunction(builtin.name(), function);
             }
 
         }

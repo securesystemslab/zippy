@@ -97,6 +97,12 @@ public class PFunction implements PythonCallable {
         for (int i = 0; i < keywords.length; i++) {
             PKeyword keyarg = (PKeyword) keywords[i];
             int keywordIdx = parameters.indexOf(keyarg.getName());
+            if (keywordIdx < -1) {
+                /***
+                 * TODO can throw a type error for wrong keyword name // TypeError: foo() got an
+                 * unexpected keyword argument 'c'
+                 */
+            }
             combined[keywordIdx] = keyarg.getValue();
         }
 
