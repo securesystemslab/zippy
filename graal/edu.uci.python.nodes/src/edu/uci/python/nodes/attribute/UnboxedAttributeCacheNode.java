@@ -62,9 +62,8 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getValueUnsafe(frame, cachedStorage);
         } else {
-            // TODO: rewrite
             CompilerDirectives.transferToInterpreter();
-            return null;
+            return rewrite(primaryObj).getValue(frame, primaryObj);
         }
     }
 
@@ -73,9 +72,8 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getIntValueUnsafe(frame, cachedStorage);
         } else {
-            // TODO: rewrite
             CompilerDirectives.transferToInterpreter();
-            return 0;
+            return rewrite(primaryObj).getIntValue(frame, primaryObj);
         }
     }
 
@@ -83,9 +81,8 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getDoubleValueUnsafe(frame, cachedStorage);
         } else {
-            // TODO: rewrite
             CompilerDirectives.transferToInterpreter();
-            return 0;
+            return rewrite(primaryObj).getDoubleValue(frame, primaryObj);
         }
     }
 
@@ -94,9 +91,8 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getBooleanValueUnsafe(frame, cachedStorage);
         } else {
-            // TODO: rewrite
             CompilerDirectives.transferToInterpreter();
-            return false;
+            return rewrite(primaryObj).getBooleanValue(frame, primaryObj);
         }
     }
 

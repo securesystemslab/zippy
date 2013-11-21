@@ -24,9 +24,14 @@
  */
 package edu.uci.python.builtins;
 
+import java.util.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
@@ -35,9 +40,29 @@ import edu.uci.python.runtime.modules.*;
 public class PythonBuiltinsInitializer {
 
     public static void initialize(PythonContext context) {
-        context.getPythonBuiltinsLookup().addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins(), "array"));
-        context.getPythonBuiltinsLookup().addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins(), "bisect"));
-        context.getPythonBuiltinsLookup().addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins(), "time"));
+        PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
+        lookup.addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins(), "array"));
+        lookup.addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins(), "bisect"));
+        lookup.addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins(), "time"));
         BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
+
+        PythonBuiltinClass typeClass = context.getTypeClass();
+        lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
+        lookup.addType(PString.class, initBuiltinClass(context, typeClass, "str", new StringBuiltins()));
+        lookup.addType(PDictionary.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
+    }
+
+    private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
+        classBuiltin.initialize();
+        PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
+        Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
+
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            clazz.setAttributeUnsafe(methodName, function);
+        }
+
+        return clazz;
     }
 }

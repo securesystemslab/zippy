@@ -66,9 +66,8 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        // TODO: rewrite
         CompilerDirectives.transferToInterpreter();
-        return null;
+        return rewrite(primaryObj).getValue(frame, primaryObj);
     }
 
     @Override
@@ -81,9 +80,8 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        // TODO: rewrite
         CompilerDirectives.transferToInterpreter();
-        return 0;
+        return rewrite(primaryObj).getIntValue(frame, primaryObj);
     }
 
     @Override
@@ -96,9 +94,8 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        // TODO: rewrite
         CompilerDirectives.transferToInterpreter();
-        return 0;
+        return rewrite(primaryObj).getDoubleValue(frame, primaryObj);
     }
 
     @Override
@@ -111,9 +108,8 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        // TODO: rewrite
         CompilerDirectives.transferToInterpreter();
-        return false;
+        return rewrite(primaryObj).getBooleanValue(frame, primaryObj);
     }
 
     public abstract Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage);

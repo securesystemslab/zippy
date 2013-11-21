@@ -83,7 +83,7 @@ public class PythonContext {
         return PythonOptions.UseUnsafe;
     }
 
-    public PythonClass getTypeClass() {
+    public PythonBuiltinClass getTypeClass() {
         return typeClass;
     }
 
