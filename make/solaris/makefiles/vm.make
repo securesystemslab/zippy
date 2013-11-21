@@ -178,6 +178,8 @@ SOURCE_PATHS+=$(HS_COMMON_SRC)/os/$(Platform_os_family)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os/posix/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/cpu/$(Platform_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_cpu/$(Platform_os_arch)/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/ptx/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/hsail/vm
 
 CORE_PATHS=$(foreach path,$(SOURCE_PATHS),$(call altsrc,$(path)) $(path))
 CORE_PATHS+=$(GENERATED)/jvmtifiles $(GENERATED)/tracefiles
