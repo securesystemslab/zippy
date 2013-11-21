@@ -50,6 +50,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
@@ -417,6 +418,10 @@ public class NodeFactory {
         }
 
         return current;
+    }
+
+    public PNode createGetAttribute(PythonContext context, PNode primary, String name) {
+        return new GetAttributeNode.UninitializedGetAttributeNode(context, name, primary);
     }
 
     public PNode createLoadAttribute(PNode operand, String name) {

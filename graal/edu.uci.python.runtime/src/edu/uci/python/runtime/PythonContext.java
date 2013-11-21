@@ -102,7 +102,7 @@ public class PythonContext {
         throw new RuntimeException("Unexpected obj type " + obj.getClass());
     }
 
-    public PythonClass getObjectClass() {
+    public PythonBuiltinClass getObjectClass() {
         return objectClass;
     }
 

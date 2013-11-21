@@ -42,7 +42,7 @@ import edu.uci.python.runtime.function.*;
 public abstract class PythonBuiltinObject {
 
     public PythonBuiltinClass __class__(PythonContext context) {
-        return (PythonBuiltinClass) context.getObjectClass();
+        return context.getObjectClass();
     }
 
     public Object getMin() {

@@ -31,7 +31,7 @@ public class BuiltinClassAttributes {
     Map<String, Object> attributes;
 
     public BuiltinClassAttributes() {
-        attributes = new HashMap<String, Object>();
+        attributes = new HashMap<>();
     }
 
     public void setAttribute(String name, Object value) {
