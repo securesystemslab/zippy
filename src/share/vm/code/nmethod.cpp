@@ -127,6 +127,7 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
+#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 struct java_nmethod_stats_struct {
@@ -254,7 +255,7 @@ static void note_java_nmethod(nmethod* nm) {
     unknown_java_nmethod_stats.note_nmethod(nm);
   }
 }
-
+#endif
 
 //---------------------------------------------------------------------------------
 
@@ -557,7 +558,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
                                             code_buffer, frame_size,
                                             basic_lock_owner_sp_offset,
                                             basic_lock_sp_offset, oop_maps);
-    if (nm != NULL)  native_nmethod_stats.note_native_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -593,7 +594,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
     nm = new (nmethod_size) nmethod(method(), nmethod_size,
                                     &offsets, code_buffer, frame_size);
 
-    if (nm != NULL)  note_java_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -677,21 +678,18 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         // record this nmethod as dependent on this klass
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
-    }
-    if (nm != NULL)  note_java_nmethod(nm);
-    if (PrintAssembly && nm != NULL) {
-      Disassembler::decode(nm);
+      NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
+      if (PrintAssembly) {
+        Disassembler::decode(nm);
+      }
     }
   }
-
-  // verify nmethod
-  debug_only(if (nm) nm->verify();) // might block
-
+  // Do verification and logging outside CodeCache_lock.
   if (nm != NULL) {
+    // Safepoints in nmethod::verify aren't allowed because nm hasn't been installed yet.
+    DEBUG_ONLY(nm->verify();)
     nm->log_new_nmethod();
   }
-
-  // done
   return nm;
 }
 
@@ -1369,7 +1367,7 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
 
   set_osr_link(NULL);
   //set_scavenge_root_link(NULL); // done by prune_scavenge_root_nmethods
-  NMethodSweeper::notify();
+  NMethodSweeper::report_state_change(this);
 }
 
 void nmethod::invalidate_osr_method() {
@@ -1403,7 +1401,9 @@ void nmethod::log_state_change() const {
   }
 }
 
-// Common functionality for both make_not_entrant and make_zombie
+/**
+ * Common functionality for both make_not_entrant and make_zombie
+ */
 bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
   assert(state == zombie || state == not_entrant, "must be zombie or not_entrant");
   assert(!is_zombie(), "should not already be a zombie");
@@ -1534,9 +1534,7 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     tty->print_cr("nmethod <" INTPTR_FORMAT "> %s code made %s", this, this->method()->name_and_sig_as_C_string(), (state == not_entrant) ? "not entrant" : "zombie");
   }
 
-  // Make sweeper aware that there is a zombie method that needs to be removed
-  NMethodSweeper::notify();
-
+  NMethodSweeper::report_state_change(this);
   return true;
 }
 
@@ -2533,20 +2531,23 @@ void nmethod::verify() {
 
 
 void nmethod::verify_interrupt_point(address call_site) {
-  // This code does not work in release mode since
-  // owns_lock only is available in debug mode.
-  CompiledIC* ic = NULL;
-  Thread *cur = Thread::current();
-  if (CompiledIC_lock->owner() == cur ||
-      ((cur->is_VM_thread() || cur->is_ConcurrentGC_thread()) &&
-       SafepointSynchronize::is_at_safepoint())) {
-    ic = CompiledIC_at(this, call_site);
-    CHECK_UNHANDLED_OOPS_ONLY(Thread::current()->clear_unhandled_oops());
-  } else {
-    MutexLocker ml_verify (CompiledIC_lock);
-    ic = CompiledIC_at(this, call_site);
+  // Verify IC only when nmethod installation is finished.
+  bool is_installed = (method()->code() == this) // nmethod is in state 'alive' and installed
+                      || !this->is_in_use();     // nmethod is installed, but not in 'alive' state
+  if (is_installed) {
+    Thread *cur = Thread::current();
+    if (CompiledIC_lock->owner() == cur ||
+        ((cur->is_VM_thread() || cur->is_ConcurrentGC_thread()) &&
+         SafepointSynchronize::is_at_safepoint())) {
+      CompiledIC_at(this, call_site);
+      CHECK_UNHANDLED_OOPS_ONLY(Thread::current()->clear_unhandled_oops());
+    } else {
+      MutexLocker ml_verify (CompiledIC_lock);
+      CompiledIC_at(this, call_site);
+    }
   }
-  PcDesc* pd = pc_desc_at(ic->end_of_call());
+
+  PcDesc* pd = pc_desc_at(nativeCall_at(call_site)->return_address());
   assert(pd != NULL, "PcDesc must exist");
   for (ScopeDesc* sd = new ScopeDesc(this, pd->scope_decode_offset(),
                                      pd->obj_decode_offset(), pd->should_reexecute(), pd->rethrow_exception(),
@@ -3076,8 +3077,6 @@ void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
 
-#endif // PRODUCT
-
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
@@ -3097,3 +3096,4 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
+#endif // PRODUCT

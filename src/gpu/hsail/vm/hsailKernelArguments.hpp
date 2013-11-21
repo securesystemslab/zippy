@@ -42,6 +42,8 @@ private:
   int _index;
   // Kernel to push into
   address _kernel;
+  // number of parameters in the signature
+  int _parameter_count;
 
   bool _is_static;
   
@@ -55,8 +57,10 @@ private:
     _args = args;
     _kernel = kernel;
     _is_static = is_static;
-    
+
     _length = args->length();
+    _parameter_count = ArgumentCount(signature).size();
+
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] sig:%s  args length=%d", signature->as_C_string(), _length);
     }    

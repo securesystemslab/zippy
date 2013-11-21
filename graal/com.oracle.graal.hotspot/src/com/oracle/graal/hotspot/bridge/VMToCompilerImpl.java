@@ -25,13 +25,12 @@ package com.oracle.graal.hotspot.bridge;
 
 import static com.oracle.graal.compiler.GraalDebugConfig.*;
 import static com.oracle.graal.graph.UnsafeAccess.*;
-import static com.oracle.graal.hotspot.CompilationTask.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
-import static com.oracle.graal.java.GraphBuilderPhase.*;
-import static com.oracle.graal.phases.common.InliningUtil.*;
+import static java.util.concurrent.TimeUnit.*;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.security.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -102,6 +101,8 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     private long compilerStartTime;
 
+    private long compilerStatistics;
+
     public VMToCompilerImpl(HotSpotGraalRuntime runtime) {
         this.runtime = runtime;
 
@@ -122,7 +123,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         assert unsafe.getObject(mirror, offset) == type;
     }
 
-    public void startCompiler(boolean bootstrapEnabled) throws Throwable {
+    public void startCompiler(boolean bootstrapEnabled, long compilerStatisticsAddress) throws Throwable {
 
         FastNodeClassRegistry.initialize();
 
@@ -149,18 +150,14 @@ public class VMToCompilerImpl implements VMToCompiler {
             }
         }
 
+        compilerStatistics = compilerStatisticsAddress;
+
         TTY.initialize(log);
 
         if (Log.getValue() == null && Meter.getValue() == null && Time.getValue() == null && Dump.getValue() == null) {
             if (MethodFilter.getValue() != null) {
                 TTY.println("WARNING: Ignoring MethodFilter option since Log, Meter, Time and Dump options are all null");
             }
-        }
-
-        if (config.ciTime) {
-            BytecodesParsed.setConditional(false);
-            InlinedBytecodes.setConditional(false);
-            CompilationTime.setConditional(false);
         }
 
         if (Debug.isEnabled()) {
@@ -256,10 +253,6 @@ public class VMToCompilerImpl implements VMToCompiler {
      */
     protected void phaseTransition(String phase) {
         CompilationStatistics.clear(phase);
-        if (runtime.getConfig().ciTime) {
-            parsedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, parsedBytecodesPerSecond, BytecodesParsed, CompilationTime, TimeUnit.SECONDS);
-            inlinedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, inlinedBytecodesPerSecond, InlinedBytecodes, CompilationTime, TimeUnit.SECONDS);
-        }
     }
 
     /**
@@ -325,6 +318,7 @@ public class VMToCompilerImpl implements VMToCompiler {
 
         if (ResetDebugValuesAfterBootstrap.getValue()) {
             printDebugValues("bootstrap", true);
+            resetCompilerStatistics();
         }
         phaseTransition("bootstrap");
 
@@ -343,9 +337,6 @@ public class VMToCompilerImpl implements VMToCompiler {
         System.exit(0);
     }
 
-    private MetricRateInPhase parsedBytecodesPerSecond;
-    private MetricRateInPhase inlinedBytecodesPerSecond;
-
     private void enqueue(Method m) throws Throwable {
         JavaMethod javaMethod = runtime.getHostProviders().getMetaAccess().lookupJavaMethod(m);
         assert !Modifier.isAbstract(((HotSpotResolvedJavaMethod) javaMethod).getModifiers()) && !Modifier.isNative(((HotSpotResolvedJavaMethod) javaMethod).getModifiers()) : javaMethod;
@@ -362,22 +353,24 @@ public class VMToCompilerImpl implements VMToCompiler {
         }
     }
 
-    public void shutdownCompiler() throws Throwable {
+    public void shutdownCompiler() throws Exception {
         try {
             assert !CompilationTask.withinEnqueue.get();
             CompilationTask.withinEnqueue.set(Boolean.TRUE);
-            shutdownCompileQueue(compileQueue);
+            // We have to use a privileged action here because shutting down the compiler might be
+            // called from user code which very likely contains unprivileged frames.
+            AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
+                public Void run() throws Exception {
+                    shutdownCompileQueue(compileQueue);
+                    return null;
+                }
+            });
         } finally {
             CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
 
         printDebugValues(ResetDebugValuesAfterBootstrap.getValue() ? "application" : null, false);
         phaseTransition("final");
-
-        if (runtime.getConfig().ciTime) {
-            parsedBytecodesPerSecond.printAll("ParsedBytecodesPerSecond", System.out);
-            inlinedBytecodesPerSecond.printAll("InlinedBytecodesPerSecond", System.out);
-        }
 
         SnippetCounter.printGroups(TTY.out().out());
         BenchmarkCounters.shutdown(runtime.getCompilerToVM(), compilerStartTime);
@@ -550,15 +543,22 @@ public class VMToCompilerImpl implements VMToCompiler {
     }
 
     @Override
-    public void compileMethod(long metaspaceMethod, final HotSpotResolvedObjectType holder, final int entryBCI, boolean blocking) throws Throwable {
-        HotSpotResolvedJavaMethod method = holder.createMethod(metaspaceMethod);
-        compileMethod(method, entryBCI, blocking);
+    public void compileMethod(long metaspaceMethod, final HotSpotResolvedObjectType holder, final int entryBCI, final boolean blocking) {
+        final HotSpotResolvedJavaMethod method = holder.createMethod(metaspaceMethod);
+        // We have to use a privileged action here because compilations are enqueued from user code
+        // which very likely contains unprivileged frames.
+        AccessController.doPrivileged(new PrivilegedAction<Void>() {
+            public Void run() {
+                compileMethod(method, entryBCI, blocking);
+                return null;
+            }
+        });
     }
 
     /**
      * Compiles a method to machine code.
      */
-    public void compileMethod(final HotSpotResolvedJavaMethod method, final int entryBCI, boolean blocking) throws Throwable {
+    public void compileMethod(final HotSpotResolvedJavaMethod method, final int entryBCI, final boolean blocking) {
         boolean osrCompilation = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
         if (osrCompilation && bootstrapRunning) {
             // no OSR compilations during bootstrap - the compiler is just too slow at this point,
@@ -598,6 +598,64 @@ public class VMToCompilerImpl implements VMToCompiler {
         } finally {
             CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
+    }
+
+    private TimeUnit elapsedTimerTimeUnit;
+
+    private TimeUnit getElapsedTimerTimeUnit() {
+        if (elapsedTimerTimeUnit == null) {
+            long freq = runtime.getConfig().elapsedTimerFrequency;
+            for (TimeUnit tu : TimeUnit.values()) {
+                if (tu.toSeconds(freq) == 1) {
+                    elapsedTimerTimeUnit = tu;
+                    break;
+                }
+            }
+            assert elapsedTimerTimeUnit != null;
+        }
+        return elapsedTimerTimeUnit;
+    }
+
+    public synchronized void notifyCompilationDone(int id, HotSpotResolvedJavaMethod method, boolean osr, int processedBytecodes, long time, TimeUnit timeUnit, HotSpotInstalledCode installedCode) {
+        HotSpotVMConfig config = runtime.getConfig();
+        long dataAddress = compilerStatistics + (osr ? config.compilerStatisticsOsrOffset : config.compilerStatisticsStandardOffset);
+
+        long timeAddress = dataAddress + config.compilerStatisticsDataTimeOffset + config.elapsedTimerCounterOffset;
+        long previousElapsedTime = unsafe.getLong(timeAddress);
+        long elapsedTime = getElapsedTimerTimeUnit().convert(time, timeUnit);
+        unsafe.putLong(timeAddress, previousElapsedTime + elapsedTime);
+
+        long bytesAddress = dataAddress + config.compilerStatisticsDataBytesOffset;
+        int currentBytes = unsafe.getInt(bytesAddress);
+        unsafe.putInt(bytesAddress, currentBytes + processedBytecodes);
+
+        long countAddress = dataAddress + config.compilerStatisticsDataCountOffset;
+        int currentCount = unsafe.getInt(countAddress);
+        unsafe.putInt(countAddress, currentCount + 1);
+
+        long nmethodsSizeAddress = compilerStatistics + config.compilerStatisticsNmethodsSizeOffset;
+        int currentSize = unsafe.getInt(nmethodsSizeAddress);
+        unsafe.putInt(nmethodsSizeAddress, currentSize + installedCode.getSize());
+
+        long nmethodsCodeSizeAddress = compilerStatistics + config.compilerStatisticsNmethodsCodeSizeOffset;
+        int currentCodeSize = unsafe.getInt(nmethodsCodeSizeAddress);
+        unsafe.putInt(nmethodsCodeSizeAddress, currentCodeSize + (int) installedCode.getCodeSize());
+
+        if (config.ciTimeEach) {
+            TTY.println(String.format("%-6d {%s: %d ms, %d bytes}", id, osr ? "osr" : "standard", MILLISECONDS.convert(time, timeUnit), processedBytecodes));
+        }
+    }
+
+    private static void resetCompilerStatisticsData(HotSpotVMConfig config, long dataAddress) {
+        unsafe.putInt(dataAddress + config.compilerStatisticsDataBytesOffset, 0);
+        unsafe.putInt(dataAddress + config.compilerStatisticsDataCountOffset, 0);
+        unsafe.putLong(dataAddress + config.compilerStatisticsDataTimeOffset + config.elapsedTimerCounterOffset, 0L);
+    }
+
+    private void resetCompilerStatistics() {
+        HotSpotVMConfig config = runtime.getConfig();
+        resetCompilerStatisticsData(config, compilerStatistics + config.compilerStatisticsStandardOffset);
+        resetCompilerStatisticsData(config, compilerStatistics + config.compilerStatisticsOsrOffset);
     }
 
     @Override

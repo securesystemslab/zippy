@@ -202,16 +202,6 @@ public class HotSpotReplacementsUtil {
     }
 
     @Fold
-    public static Register threadRegister() {
-        return runtime().getHostProviders().getRegisters().getThreadRegister();
-    }
-
-    @Fold
-    public static Register stackPointerRegister() {
-        return runtime().getHostProviders().getRegisters().getStackPointerRegister();
-    }
-
-    @Fold
     public static int wordSize() {
         return runtime().getTarget().wordSize;
     }
@@ -469,23 +459,19 @@ public class HotSpotReplacementsUtil {
     @NodeIntrinsic(ForeignCallNode.class)
     private static native Object verifyOopStub(@ConstantNodeParameter ForeignCallDescriptor descriptor, Object object);
 
-    /**
-     * Gets the value of the stack pointer register as a Word.
-     */
-    public static Word stackPointer() {
-        return registerAsWord(stackPointerRegister(), true, false);
-    }
-
-    /**
-     * Gets the value of the thread register as a Word.
-     */
-    public static Word thread() {
-        return registerAsWord(threadRegister(), true, false);
-    }
-
     public static Word loadWordFromObject(Object object, int offset) {
         assert offset != hubOffset() : "Use loadHubIntrinsic instead";
         return loadWordFromObjectIntrinsic(object, offset, getWordKind(), LocationIdentity.ANY_LOCATION);
+    }
+
+    /**
+     * Reads the value of a given register.
+     * 
+     * @param register a register which must not be available to the register allocator
+     * @return the value of {@code register} as a word
+     */
+    public static Word registerAsWord(@ConstantNodeParameter Register register) {
+        return registerAsWord(register, true, false);
     }
 
     @NodeIntrinsic(value = ReadRegisterNode.class, setStampFromReturnType = true)
