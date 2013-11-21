@@ -98,7 +98,7 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
-    VMToCompiler::finalizeOptions(CITime);
+    VMToCompiler::finalizeOptions(CITime || CITimeEach);
 
     if (UseCompiler) {
       bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
