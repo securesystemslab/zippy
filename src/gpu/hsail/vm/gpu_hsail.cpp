@@ -154,13 +154,19 @@ bool gpu::Hsail::probe_linkage() {
       return true;
     } else {
       // Unable to dlopen okra
-      tty->print_cr("[HSAIL] library load failed.");
+      if (TraceGPUInteraction) {
+        tty->print_cr("[HSAIL] library load failed.");
+      }
       return false;
     }
   } else {
-    tty->print_cr("Unsupported HSAIL platform");
+    if (TraceGPUInteraction) {
+      tty->print_cr("Unsupported HSAIL platform");
+    }
     return false;
   }
-  tty->print_cr("Failed to find HSAIL linkage");
+  if (TraceGPUInteraction) {
+    tty->print_cr("Failed to find HSAIL linkage");
+  }
   return false;
 }
