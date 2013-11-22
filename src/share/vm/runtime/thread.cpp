@@ -3378,10 +3378,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize the os module before using TLS
   os::init();
 
-  // Probe for existance of supported GPU and initialize it if one
-  // exists.
-  gpu::init();
-
   // Initialize system properties.
   Arguments::init_system_properties();
 
@@ -3394,6 +3390,10 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Parse arguments
   jint parse_result = Arguments::parse(args);
   if (parse_result != JNI_OK) return parse_result;
+
+  // Probe for existance of supported GPU and initialize it if one
+  // exists.
+  gpu::init();
 
   os::init_before_ergo();
 

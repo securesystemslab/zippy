@@ -44,8 +44,8 @@ public:
 #endif
 
 private:
-  typedef void* (*okra_ctx_create_func_t)();
-  typedef void* (*okra_kernel_create_func_t)(void*, unsigned char *, const char *);
+  typedef void* (*okra_create_context_func_t)();
+  typedef void* (*okra_create_kernel_func_t)(void*, unsigned char *, const char *);
   typedef bool (*okra_push_object_func_t)(void*, void*);
   typedef bool (*okra_push_boolean_func_t)(void*, jboolean);
   typedef bool (*okra_push_byte_func_t)(void*, jbyte);
@@ -58,8 +58,8 @@ private:
   typedef bool (*okra_register_heap_func_t)(void*, size_t);
   
 public:
-  static okra_ctx_create_func_t                 _okra_ctx_create;
-  static okra_kernel_create_func_t              _okra_kernel_create;
+  static okra_create_context_func_t             _okra_create_context;
+  static okra_create_kernel_func_t              _okra_create_kernel;
   static okra_push_object_func_t                _okra_push_object;
   static okra_push_boolean_func_t               _okra_push_boolean;
   static okra_push_byte_func_t                  _okra_push_byte;
