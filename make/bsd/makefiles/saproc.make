@@ -163,7 +163,7 @@ else
 	$(QUIETLY) test -f $(LIBSAPROC_DEBUGINFO) && \
 	    cp -f $(LIBSAPROC_DEBUGINFO) $(DEST_SAPROC_DEBUGINFO)
 endif
-	-$(QUIETLY) test -f $(LIBSAPROC_DIZ) && \
+	$(QUIETLY) test ! -f $(LIBSAPROC_DIZ) || \
 	    cp -f $(LIBSAPROC_DIZ) $(DEST_SAPROC_DIZ)
 	$(QUIETLY) cp -f $(LIBSAPROC) $(DEST_SAPROC) && echo "Done"
 
