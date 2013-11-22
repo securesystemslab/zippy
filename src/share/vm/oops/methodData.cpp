@@ -397,7 +397,11 @@ void ReceiverTypeData::print_receiver_data_on(outputStream* st) const {
   for (row = 0; row < row_limit(); row++) {
     if (receiver(row) != NULL)  entries++;
   }
+#ifdef GRAAL
+  st->print_cr("count(%u) nonprofiled_count(%u) entries(%u)", count(), nonprofiled_count(), entries);
+#else
   st->print_cr("count(%u) entries(%u)", count(), entries);
+#endif
   int total = count();
   for (row = 0; row < row_limit(); row++) {
     if (receiver(row) != NULL) {
@@ -416,9 +420,38 @@ void ReceiverTypeData::print_data_on(outputStream* st) const {
   print_shared(st, "ReceiverTypeData");
   print_receiver_data_on(st);
 }
+
+#ifdef GRAAL
+void VirtualCallData::print_method_data_on(outputStream* st) const {
+  uint row;
+  int entries = 0;
+  for (row = 0; row < method_row_limit(); row++) {
+    if (method(row) != NULL) entries++;
+  }
+  tab(st);
+  st->print_cr("method_entries(%u)", entries);
+  int total = count();
+  for (row = 0; row < method_row_limit(); row++) {
+    if (method(row) != NULL) {
+      total += method_count(row);
+    }
+  }
+  for (row = 0; row < method_row_limit(); row++) {
+    if (method(row) != NULL) {
+      tab(st);
+      method(row)->print_value_on(st);
+      st->print_cr("(%u %4.2f)", method_count(row), (float) method_count(row) / (float) total);
+    }
+  }
+}
+#endif
+
 void VirtualCallData::print_data_on(outputStream* st) const {
   print_shared(st, "VirtualCallData");
   print_receiver_data_on(st);
+#ifdef GRAAL
+  print_method_data_on(st);
+#endif
 }
 #endif // !PRODUCT
 
