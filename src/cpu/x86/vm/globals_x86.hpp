@@ -79,7 +79,7 @@ define_pd_global(bool, UseMembar,            false);
 // GC Ergo Flags
 define_pd_global(uintx, CMSYoungGenPerWorker, 64*M);  // default max size of CMS young gen, per GC worker thread
 
-define_pd_global(uintx, TypeProfileLevel, GRAALVM_ONLY(0) NOT_GRAALVM(111));
+define_pd_global(uintx, TypeProfileLevel, 111);
 
 #define ARCH_FLAGS(develop, product, diagnostic, experimental, notproduct) \
                                                                             \
