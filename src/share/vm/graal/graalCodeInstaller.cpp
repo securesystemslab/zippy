@@ -361,8 +361,13 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
 
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
+  BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
+  if (buffer_blob == NULL) {
+    result = GraalEnv::cache_full;
+    return;
+  }
+
+  CodeBuffer buffer(buffer_blob);
   jobject compiled_code_obj = JNIHandles::make_local(compiled_code());
   initialize_assumptions(JNIHandles::resolve(compiled_code_obj));
 
