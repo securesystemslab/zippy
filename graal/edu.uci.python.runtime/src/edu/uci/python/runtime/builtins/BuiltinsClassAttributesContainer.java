@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.builtins;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.modules.*;
 
 /**
@@ -40,9 +41,9 @@ public class BuiltinsClassAttributesContainer {
     public static BuiltinClassAttributes stringClassAttributesContainer;
     public static BuiltinClassAttributes dictionaryClassAttributesContainer;
 
-    public static void initialize(PythonBuiltinsContainer listClassBuiltins, PythonBuiltinsContainer stringClassBuiltins, PythonBuiltinsContainer dictionaryClassBuiltins) {
-        listClassAttributesContainer = new ListAttribute(listClassBuiltins);
-        stringClassAttributesContainer = new StringAttribute(stringClassBuiltins);
-        dictionaryClassAttributesContainer = new DictionaryAttribute(dictionaryClassBuiltins);
+    public static void initialize(PythonContext context, PythonBuiltinsContainer listClassBuiltins, PythonBuiltinsContainer stringClassBuiltins, PythonBuiltinsContainer dictionaryClassBuiltins) {
+        listClassAttributesContainer = new ListAttribute(context, listClassBuiltins);
+        stringClassAttributesContainer = new StringAttribute(context, stringClassBuiltins);
+        dictionaryClassAttributesContainer = new DictionaryAttribute(context, dictionaryClassBuiltins);
     }
 }

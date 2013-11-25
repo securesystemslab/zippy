@@ -34,7 +34,7 @@ public class ArrayModule extends PythonModule {
 
     public ArrayModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        builtins.initialize();
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

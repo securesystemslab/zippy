@@ -220,11 +220,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean callable(Object object) {
-                if (object instanceof PFunction) {
-                    return true;
-                } else if (object instanceof PBuiltinFunction) {
+                if (object instanceof PythonCallable) {
                     return true;
                 }
+// if (object instanceof PFunction) {
+// return true;
+// } else if (object instanceof PBuiltinFunction) {
+// return true;
+// }
 
                 return false;
             }
@@ -339,6 +342,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public Object isinstance(PythonObject object, PythonClass clazz) {
+                System.out.println("ISINTANCEDAYIM");
+
                 if (object.getPythonClass().equals(clazz)) {
                     return true;
                 }

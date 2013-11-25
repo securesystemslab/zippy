@@ -26,13 +26,14 @@ package edu.uci.python.runtime.modules;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 
 public class ListAttribute extends BuiltinClassAttributes {
 
-    public ListAttribute(PythonBuiltinsContainer builtins) {
-        builtins.initialize();
+    public ListAttribute(PythonContext context, PythonBuiltinsContainer builtins) {
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

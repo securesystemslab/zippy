@@ -44,7 +44,7 @@ public class PythonBuiltinsInitializer {
         lookup.addModule("array", new ArrayModule(context, new ArrayModuleBuiltins(), "array"));
         lookup.addModule("bisect", new BisectModule(context, new BisectModuleBuiltins(), "bisect"));
         lookup.addModule("time", new TimeModule(context, new TimeModuleBuiltins(), "time"));
-        BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
+        BuiltinsClassAttributesContainer.initialize(context, new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
 
         PythonBuiltinClass typeClass = context.getTypeClass();
         lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
@@ -53,7 +53,7 @@ public class PythonBuiltinsInitializer {
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
-        classBuiltin.initialize();
+        classBuiltin.initialize(context);
         PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
         Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
 

@@ -26,7 +26,7 @@ package edu.uci.python.runtime.builtins;
 
 import java.util.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 /**
@@ -36,15 +36,15 @@ public abstract class PythonBuiltinsContainer {
 
     private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
 
-    private final Map<String, PBuiltinClass> builtinClasses = new HashMap<>();
+    private final Map<String, PythonBuiltinClass> builtinClasses = new HashMap<>();
 
-    public abstract void initialize();
+    public abstract void initialize(PythonContext context);
 
     public void setBuiltinFunction(String name, PBuiltinFunction function) {
         builtinFunctions.put(name, function);
     }
 
-    public void setBuiltinClass(String name, PBuiltinClass clazz) {
+    public void setBuiltinClass(String name, PythonBuiltinClass clazz) {
         builtinClasses.put(name, clazz);
     }
 
@@ -52,7 +52,7 @@ public abstract class PythonBuiltinsContainer {
         return builtinFunctions.get(name);
     }
 
-    public PBuiltinClass getBuiltinClass(String name) {
+    public PythonBuiltinClass getBuiltinClass(String name) {
         return builtinClasses.get(name);
     }
 
@@ -60,7 +60,7 @@ public abstract class PythonBuiltinsContainer {
         return builtinFunctions;
     }
 
-    public Map<String, PBuiltinClass> getBuiltinClasses() {
+    public Map<String, PythonBuiltinClass> getBuiltinClasses() {
         return builtinClasses;
     }
 

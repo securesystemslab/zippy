@@ -25,9 +25,9 @@
 package edu.uci.python.runtime.modules;
 
 import java.util.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 /**
@@ -38,7 +38,7 @@ public class BuiltinsModule extends PythonModule {
 
     public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        builtins.initialize();
+        builtins.initialize(context);
         addBuiltins(builtins);
     }
 
@@ -50,10 +50,10 @@ public class BuiltinsModule extends PythonModule {
             setAttribute(methodName, function);
         }
 
-        Map<String, PBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
-        for (Map.Entry<String, PBuiltinClass> entry : builtinClasses.entrySet()) {
+        Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
+        for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
             String className = entry.getKey();
-            PBuiltinClass function = entry.getValue();
+            PythonBuiltinClass function = entry.getValue();
             setAttribute(className, function);
         }
     }

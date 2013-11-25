@@ -31,13 +31,12 @@ import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.annotations.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class BisectModule extends PythonModule {
 
     public BisectModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        builtins.initialize();
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

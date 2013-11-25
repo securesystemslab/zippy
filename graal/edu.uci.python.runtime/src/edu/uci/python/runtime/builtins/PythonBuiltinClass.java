@@ -26,7 +26,12 @@ package edu.uci.python.runtime.builtins;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
@@ -35,10 +40,19 @@ import edu.uci.python.runtime.standardtypes.*;
  * @author zwei
  * 
  */
-public class PythonBuiltinClass extends PythonClass {
+public class PythonBuiltinClass extends PythonClass implements PythonCallable {
+
+    protected CallTarget callTarget;
+    protected Arity arity;
 
     public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
         super(context, superClass, name);
+    }
+
+    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name, Arity arity, CallTarget callTarget) {
+        super(context, superClass, name);
+        this.arity = arity;
+        this.callTarget = callTarget;
     }
 
     @Override
@@ -54,5 +68,17 @@ public class PythonBuiltinClass extends PythonClass {
      */
     public void setAttributeUnsafe(String name, Object value) {
         super.setAttribute(name, value);
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        // arity.arityCheck(args.length, 0, null);
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        // arity.arityCheck(args.length, keywords.length, keywords);
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
     }
 }

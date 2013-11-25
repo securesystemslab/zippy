@@ -32,7 +32,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.test.*;
@@ -63,7 +63,7 @@ public class PythonModuleTests {
     public void builtinsIntTest() {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
-        PBuiltinClass intClass = (PBuiltinClass) builtins.getAttribute("int");
+        PythonBuiltinClass intClass = (PythonBuiltinClass) builtins.getAttribute("int");
         FrameDescriptor fd = new FrameDescriptor();
         Object returnValue = intClass.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{"42"});
         assertEquals(42, returnValue);

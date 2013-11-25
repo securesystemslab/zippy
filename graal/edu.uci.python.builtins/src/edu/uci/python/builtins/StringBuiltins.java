@@ -89,7 +89,7 @@ public final class StringBuiltins extends PythonBuiltins {
     }
 
     // str.upper()
-    @Builtin(name = "upper", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    @Builtin(name = "upper", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonStringUpperNode extends PythonBuiltinNode {
 
         public PythonStringUpperNode(String name) {

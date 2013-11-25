@@ -25,7 +25,6 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
-import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.builtins.*;
