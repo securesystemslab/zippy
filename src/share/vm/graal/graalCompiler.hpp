@@ -105,7 +105,7 @@ public:
     return cp_index;
   }
 
-  static void initialize_buffer_blob();
+  static BufferBlob* initialize_buffer_blob();
 };
 
 // Tracing macros
