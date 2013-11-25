@@ -72,6 +72,9 @@ class Deoptimization : AllStatic {
     Reason_age,                   // nmethod too old; tier threshold reached
     Reason_predicate,             // compiler generated predicate failed
     Reason_loop_limit_check,      // compiler generated loop limits check failed
+#ifdef GRAAL
+    Reason_aliasing,              // optimistic assumption about aliasing failed
+#endif
     Reason_LIMIT,
 
 #ifdef GRAAL
