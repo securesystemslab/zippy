@@ -5176,7 +5176,11 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
 #ifdef GRAAL
     // GraalCompiler needs to have been created in compileBroker.cpp
     GraalCompiler* graal_compiler = GraalCompiler::instance();
-    graal_compiler->initialize();
+    if (graal_compiler != NULL) {
+      graal_compiler->initialize();
+    } else {
+      assert(!UseCompiler, "why isn't there are compiler?");
+    }
 #endif
 
     // Tracks the time application was running before GC
