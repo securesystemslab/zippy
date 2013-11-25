@@ -177,7 +177,9 @@ C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
-    tty->print_cr("deviceInit - not available / no linkage");
+    if (TraceGPUInteraction) {
+      tty->print_cr("deviceInit - not available / no linkage");
+    }
     return false;
   }
   if (gpu::is_initialized()) {
@@ -190,7 +192,9 @@ C2V_END
 
 C2V_VMENTRY(jint, availableProcessors, (JNIEnv *env, jobject))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
-    tty->print_cr("deviceInit - not available / no linkage");
+    if (TraceGPUInteraction) {
+      tty->print_cr("deviceInit - not available / no linkage");
+    }
     return false;
   }
   return gpu::available_processors();
