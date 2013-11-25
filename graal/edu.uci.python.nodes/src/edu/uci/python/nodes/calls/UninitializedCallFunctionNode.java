@@ -51,11 +51,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         CompilerAsserts.neverPartOfCompilation();
         Object calleeObj = callee.execute(frame);
 
-// if (calleeObj instanceof PythonClass) {
-// CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-// replace(specialized);
-// Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-// return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
 

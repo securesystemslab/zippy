@@ -52,7 +52,14 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
         for (com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
             PNode[] argsKeywords = createArgumentsList(builtin);
-            PythonBuiltinNode builtinNode = factory.createNode(builtin.name(), argsKeywords);
+
+            PythonBuiltinNode builtinNode;
+
+            if (builtin.requiresContext()) {
+                builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
+            } else {
+                builtinNode = factory.createNode(builtin.name(), argsKeywords);
+            }
             BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
 

@@ -52,4 +52,6 @@ public @interface Builtin {
     boolean takesVariableKeywords() default false;
 
     String[] keywordNames() default {};
+
+    boolean requiresContext() default false;
 }
