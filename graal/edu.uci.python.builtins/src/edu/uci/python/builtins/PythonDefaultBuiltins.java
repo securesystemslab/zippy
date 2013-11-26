@@ -32,6 +32,7 @@ import org.python.core.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
@@ -54,7 +55,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
     public static class PythonBuiltinFunctions {
 
         // abs(x)
-        @Builtin(name = "abs", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "abs", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAbsNode extends PythonBuiltinNode {
 
             public PythonAbsNode(String name) {
@@ -87,7 +88,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // all(iterable)
-        @Builtin(name = "all", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "all", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAllNode extends PythonBuiltinNode {
 
             public PythonAllNode(String name) {
@@ -144,7 +145,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // any(iterable)
-        @Builtin(name = "any", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "any", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAnyNode extends PythonBuiltinNode {
 
             public PythonAnyNode(String name) {
@@ -201,7 +202,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // callable(object)
-        @Builtin(name = "callable", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "callable", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonCallableNode extends PythonBuiltinNode {
 
             public PythonCallableNode(String name) {
@@ -220,9 +221,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean callable(Object object) {
-                if (object instanceof PFunction) {
-                    return true;
-                } else if (object instanceof PBuiltinFunction) {
+                if (object instanceof PythonCallable) {
                     return true;
                 }
 
@@ -231,7 +230,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // chr(i)
-        @Builtin(name = "chr", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonChrNode extends PythonBuiltinNode {
 
             public PythonChrNode(String name) {
@@ -326,7 +325,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // isinstance(object, classinfo)
-        @Builtin(name = "isinstance", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+        @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
         public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
 
             public PythonIsIntanceNode(String name) {
@@ -339,6 +338,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public Object isinstance(PythonObject object, PythonClass clazz) {
+
                 if (object.getPythonClass().equals(clazz)) {
                     return true;
                 }
@@ -405,7 +405,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // len(s)
-        @Builtin(name = "len", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+        @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonLenNode extends PythonBuiltinNode {
 
             public PythonLenNode(String name) {
@@ -489,6 +489,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return Math.max(arg1, arg2);
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public Object max(Object arg1, Object arg2, Object[] args, Object keywordArg) {
                 if (arg2 instanceof PNone) {
@@ -562,6 +563,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return Math.min(arg1, arg2);
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public Object min(Object arg1, Object arg2, Object[] args, Object keywordArg) {
                 if (arg2 instanceof PNone) {
@@ -635,15 +637,18 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
-        @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"})
+        @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
-            public PythonPrintNode(String name) {
+            private final PythonContext context;
+
+            public PythonPrintNode(String name, PythonContext context) {
                 super(name);
+                this.context = context;
             }
 
             public PythonPrintNode(PythonPrintNode prev) {
-                this(prev.getName());
+                this(prev.getName(), prev.context);
             }
 
             @Specialization
@@ -666,12 +671,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SlowPath
-            private static Object print(Object[] values, String possibleSep, String possibleEnd) {
+            private Object print(Object[] values, String possibleSep, String possibleEnd) {
                 String sep = possibleSep;
                 String end = possibleEnd;
                 // CheckStyle: stop system..print check
                 if (values.length == 0) {
-                    System.out.println();
+                    context.getStandardOut().print(System.getProperty("line.separator"));
                 } else {
                     if (sep == null) {
                         sep = "";
@@ -683,11 +688,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < values.length - 1; i++) {
-                        sb.append(values[i] + " ");
+                        if (values[i] instanceof Boolean) {
+                            sb.append(((boolean) values[i] ? "True" : "False") + " ");
+                        } else {
+                            sb.append(values[i] + " ");
+                        }
                     }
 
-                    sb.append(values[values.length - 1]);
-                    System.out.print(sb.toString() + sep + end);
+                    if (values[values.length - 1] instanceof Boolean) {
+                        sb.append(((boolean) values[values.length - 1] ? "True" : "False"));
+                    } else {
+                        sb.append(values[values.length - 1]);
+                    }
+
+                    context.getStandardOut().print(sb.toString() + sep + end);
+
                 }
                 // CheckStyle: resume system..print check
                 return null;
@@ -1035,6 +1050,27 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // object()
+// @Builtin(name = "object", hasFixedNumOfArguments = true, fixedNumOfArguments = 0, isClass = true)
+// public abstract static class PythonObjectNode extends PythonBuiltinNode {
+//
+// private final PythonContext context;
+//
+// public PythonObjectNode(String name, PythonContext context) {
+// super(name);
+// this.context = context;
+// }
+//
+// public PythonObjectNode(PythonObjectNode prev) {
+// this(prev.getName(), prev.context);
+// }
+//
+// @Specialization
+// public Object object() {
+// return new PythonObject(context.getObjectClass());
+// }
+// }
+
         // range(stop)
         // range(start, stop[, step])
         @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isClass = true)
@@ -1158,7 +1194,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public String tuple(Object arg) {
+            public String str(Object arg) {
                 return arg.toString();
             }
         }

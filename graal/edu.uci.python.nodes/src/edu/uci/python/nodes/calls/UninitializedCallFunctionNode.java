@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -51,12 +51,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         CompilerAsserts.neverPartOfCompilation();
         Object calleeObj = callee.execute(frame);
 
-        if (calleeObj instanceof PythonClass) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
-        } else if (calleeObj instanceof PythonCallable) {
+        if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
 
             if (callable instanceof PBuiltinFunction) {
@@ -64,9 +59,9 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinFunction.getName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
-            } else if (callable instanceof PBuiltinClass) {
-                PBuiltinClass builtinClass = (PBuiltinClass) calleeObj;
-                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getName(), arguments, keywords);
+            } else if (callable instanceof PythonBuiltinClass) {
+                PythonBuiltinClass builtinClass = (PythonBuiltinClass) calleeObj;
+                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getClassName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
             } else if (keywords.length == 0 && callable instanceof PFunction) {
@@ -78,6 +73,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 replace(callFunction);
                 return callFunction.doPythonCallable(frame, callable);
             }
+        } else if (calleeObj instanceof PythonClass) {
+            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
+            replace(specialized);
+            Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         } else {
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
             replace(callFunction);

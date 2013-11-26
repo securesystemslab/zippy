@@ -29,13 +29,12 @@ import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class ArrayModule extends PythonModule {
 
-    public ArrayModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
-        super(context, moduleClass, name);
-        builtins.initialize();
+    public ArrayModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
+        super(context, name);
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

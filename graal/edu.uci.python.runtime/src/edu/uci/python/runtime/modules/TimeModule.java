@@ -29,13 +29,12 @@ import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class TimeModule extends PythonModule {
 
-    public TimeModule(PythonContext context, PythonClass moduleClass, PythonBuiltinsContainer builtins, String name) {
-        super(context, moduleClass, name);
-        builtins.initialize();
+    public TimeModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
+        super(context, name);
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

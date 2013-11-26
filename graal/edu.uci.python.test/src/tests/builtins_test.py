@@ -30,13 +30,13 @@ print(x)
 def foo():
     m = 20;
 
-x = callable(foo);
+x = callable(foo)
 print(x)
 
-x = callable(int);
+x = callable(int)
 print(x)
 
-x = callable(10);
+x = callable(10)
 print(x)
 
 # test builtin chr

@@ -183,7 +183,6 @@ public class PythonTreeTranslator extends Visitor {
     private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
         String importName = aliaz.getInternalName();
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        // PNode importNode = factory.createImport(fromModuleName, importName);
         PNode importNode = factory.createImport(context, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
@@ -201,6 +200,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
             imports.add(createSingleImportStatement(aliases.get(i), null));
+
         }
 
         return factory.createBlock(imports);
@@ -208,6 +208,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
+        if (node.getInternalModule().compareTo("__future__") == 0) {
+            return null;
+        }
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
@@ -218,6 +221,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
             imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule()));
+
         }
 
         return factory.createBlock(imports);

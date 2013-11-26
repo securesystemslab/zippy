@@ -39,12 +39,13 @@ import edu.uci.python.runtime.sequence.*;
  */
 public class PythonBuiltinsInitializer {
 
+    // public static void initialize(PythonContext context) {
     public static void initialize(PythonContext context) {
         PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
-        lookup.addModule("array", new ArrayModule(context, context.getModuleClass(), new ArrayModuleBuiltins(), "array"));
-        lookup.addModule("bisect", new BisectModule(context, context.getModuleClass(), new BisectModuleBuiltins(), "bisect"));
-        lookup.addModule("time", new TimeModule(context, context.getModuleClass(), new TimeModuleBuiltins(), "time"));
-        BuiltinsClassAttributesContainer.initialize(new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
+        lookup.addModule("array", new ArrayModule(context, new ArrayModuleBuiltins(), "array"));
+        lookup.addModule("bisect", new BisectModule(context, new BisectModuleBuiltins(), "bisect"));
+        lookup.addModule("time", new TimeModule(context, new TimeModuleBuiltins(), "time"));
+        BuiltinsClassAttributesContainer.initialize(context, new ListBuiltins(), new StringBuiltins(), new DictionaryBuiltins());
 
         PythonBuiltinClass typeClass = context.getTypeClass();
         lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
@@ -53,7 +54,8 @@ public class PythonBuiltinsInitializer {
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
-        classBuiltin.initialize();
+        classBuiltin.initialize(context);
+        // classBuiltin.initialize();
         PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
         Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
 

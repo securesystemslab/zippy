@@ -58,11 +58,11 @@ public class PythonContext {
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonBuiltinClass(this, objectClass, "module");
 
-        builtinsModule = new BuiltinsModule(this, builtinsModuleBuiltins, moduleClass, "__builtins__");
+        builtinsModule = new BuiltinsModule(this, builtinsModuleBuiltins, "__builtins__");
         builtinsModule.setAttribute("object", objectClass);
         lookup.addModule("__builtins__", builtinsModule);
 
-        mainModule = new MainModule(this, mainModuleBuiltins, moduleClass, "__main__");
+        mainModule = new MainModule(this, mainModuleBuiltins, "__main__");
         mainModule.setAttribute("__builtins__", builtinsModule);
         lookup.addModule("__main__", mainModule);
     }

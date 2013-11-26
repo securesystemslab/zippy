@@ -28,7 +28,6 @@ import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.dsl.NodeFactory;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
