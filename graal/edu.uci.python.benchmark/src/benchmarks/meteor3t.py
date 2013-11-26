@@ -140,13 +140,16 @@ def main(n):
     print(len(solutions),  'solutions found\n')
     for i in (0, -1): print_board(solutions[i])
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("meteor: " + duration)
+
 # warm up
 num =  int(sys.argv[1])
 for run in range(10):
-    main(3)
+    main(1000)
 
-print("Start timing...")
-start = time.time()
-main(num)
-duration = "%.3f\n" % (time.time() - start)
-print("meteor: " + duration)
+measure()

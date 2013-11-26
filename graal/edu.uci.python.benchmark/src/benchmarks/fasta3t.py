@@ -60,9 +60,10 @@ def repeatFasta(src, n):
     s = src + src + src[:n % r]
     for j in range(n // width):
         i = j*width % r
-        print(s[i:i+width])
+        #print(s[i:i+width])
     if n % width:
-        print(s[-(n % width):])
+        #print(s[-(n % width):])
+        s[-(n % width):]
 
 def randomFasta(table, n):
     global randomLUT, randomGenState
@@ -72,19 +73,21 @@ def randomFasta(table, n):
     
     lut = makeLookupTable(table)
     line_buffer = []
-    la = line_buffer.append
+    #la = line_buffer.append
     
     for i in range(n // width):
         for i in range(width):
             rgs = rlut[rgs]
-            la(lut[rgs])
-        print(''.join(line_buffer))
+            #la(lut[rgs])
+            line_buffer.append(lut[rgs])
+        #print(''.join(line_buffer))
         line_buffer[:] = []
     if n % width:
         for i in range(n % width):
             rgs = rlut[rgs]
-            la(lut[rgs])
-        print(''.join(line_buffer))
+            #la(lut[rgs])
+            line_buffer.append(lut[rgs])
+        #print(''.join(line_buffer))
     
     randomGenState = rgs
 
@@ -93,27 +96,28 @@ def main(n):
 
     makeRandomLUT()
 
-    print('>ONE Homo sapiens alu')
+    #print('>ONE Homo sapiens alu')
     repeatFasta(alu, n*2)
 
-    print('>TWO IUB ambiguity codes')
+    #print('>TWO IUB ambiguity codes')
     randomFasta(iub, n*3)
 
-    print('>THREE Homo sapiens frequency')
+    #print('>THREE Homo sapiens frequency')
     randomFasta(homosapiens, n*5)
     
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("fasta: " + duration)
 
 # warm up
-for run in range(50):
+num = int(sys.argv[1])
+for run in range(500):
     main(500)
 
 # reset
 randomGenState = INITIAL_STATE
 randomLUT = None
-
-num = int(sys.argv[1])
-print("Start timing...")
-start = time.time()
-main(num)
-duration = "%.3f\n" % (time.time() - start)
-print("fasta: " + duration)
+measure()

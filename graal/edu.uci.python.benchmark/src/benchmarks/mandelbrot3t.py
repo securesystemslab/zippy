@@ -36,15 +36,12 @@ def main(num):
             if bit > 1:
                 bit >>= 1
             else:
-                cout(chr(byte_acc))
+                #cout(chr(byte_acc))
                 bit = 128
                 byte_acc = 0
 
-
-        # zwei: disabled this block. Because it was never executed within the parameter value range that we use.
-        # All the nodes in this block is usually never specialized, which is a problem for partial evaluation.
         if bit != 128:
-             cout(chr(byte_acc))
+             #cout(chr(byte_acc))
              bit = 128
              byte_acc = 0
 
@@ -58,7 +55,7 @@ def measure():
     print("mandelbrot: " + duration)
 
 # warm up
-for run in range(6):
+for run in range(60):
     main(300)
     print()
 
