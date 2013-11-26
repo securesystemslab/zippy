@@ -54,9 +54,8 @@ public class PythonBuiltinsInitializer {
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
-        // classBuiltin.initialize(context);
-        classBuiltin.initialize();
-        // PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
+        classBuiltin.initialize(context);
+        // classBuiltin.initialize();
         PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
         Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
 

@@ -38,8 +38,7 @@ public class BuiltinsModule extends PythonModule {
 
     public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        // builtins.initialize(context);
-        builtins.initialize();
+        builtins.initialize(context);
         addBuiltins(builtins);
     }
 

@@ -65,14 +65,14 @@ public class PythonObjectClass extends PythonBuiltinClass {
         setAttributeUnsafe("__init__", method);
     }
 
-// @Override
-// public Object call(PackedFrame caller, Object[] args) {
-// return new PythonObject(this);
-// }
-//
-// @Override
-// public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-// // arity.arityCheck(args.length, keywords.length, keywords);
-// return new PythonObject(this);
-// }
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        return new PythonObject(this);
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        // arity.arityCheck(args.length, keywords.length, keywords);
+        return new PythonObject(this);
+    }
 }

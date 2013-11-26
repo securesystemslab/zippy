@@ -33,8 +33,7 @@ import edu.uci.python.runtime.function.*;
 public class StringAttribute extends BuiltinClassAttributes {
 
     public StringAttribute(PythonContext context, PythonBuiltinsContainer builtins) {
-        // builtins.initialize(context);
-        builtins.initialize();
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

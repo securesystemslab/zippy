@@ -638,23 +638,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
-            // private final PythonContext context;
+            private final PythonContext context;
 
-// public PythonPrintNode(String name, PythonContext context) {
-// super(name);
-// this.context = context;
-// }
-
-            public PythonPrintNode(String name) {
+            public PythonPrintNode(String name, PythonContext context) {
                 super(name);
+                this.context = context;
             }
 
-// public PythonPrintNode(PythonPrintNode prev) {
-// this(prev.getName(), prev.context);
-// }
-
             public PythonPrintNode(PythonPrintNode prev) {
-                this(prev.getName());
+                this(prev.getName(), prev.context);
             }
 
             @Specialization

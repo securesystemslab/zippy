@@ -38,8 +38,9 @@ public abstract class PythonBuiltinsContainer {
 
     private final Map<String, PythonBuiltinClass> builtinClasses = new HashMap<>();
 
-    // public abstract void initialize(PythonContext context);
-    public abstract void initialize();
+    public abstract void initialize(PythonContext context);
+
+    // public abstract void initialize();
 
     public void setBuiltinFunction(String name, PBuiltinFunction function) {
         builtinFunctions.put(name, function);

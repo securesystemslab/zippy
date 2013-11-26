@@ -36,8 +36,7 @@ public class BisectModule extends PythonModule {
 
     public BisectModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        // builtins.initialize(context);
-        builtins.initialize();
+        builtins.initialize(context);
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
