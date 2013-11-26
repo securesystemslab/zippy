@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.api.meta;
 
+import static java.lang.reflect.Modifier.*;
+
 import java.util.*;
 
 import com.oracle.graal.api.meta.JavaTypeProfile.ProfiledType;
@@ -142,8 +144,9 @@ public final class JavaTypeProfile extends AbstractJavaProfile<ProfiledType, Res
 
         private static final long serialVersionUID = 1481773321889860837L;
 
-        public ProfiledType(ResolvedJavaType item, double probability) {
-            super(item, probability);
+        public ProfiledType(ResolvedJavaType type, double probability) {
+            super(type, probability);
+            assert type.isArray() || !isAbstract(type.getModifiers()) : type;
         }
 
         /**

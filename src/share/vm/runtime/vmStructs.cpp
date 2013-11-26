@@ -2196,8 +2196,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
                          declare_preprocessor_constant,                   \
                          declare_c1_constant,                             \
                          declare_c2_constant,                             \
-                         declare_c2_preprocessor_constant,                \
-                         declare_graal_constant)                          \
+                         declare_c2_preprocessor_constant)                \
                                                                           \
   /******************/                                                    \
   /* Useful globals */                                                    \
@@ -2506,7 +2505,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(Deoptimization::Reason_age)                            \
   declare_constant(Deoptimization::Reason_predicate)                      \
   declare_constant(Deoptimization::Reason_loop_limit_check)               \
-  declare_graal_constant(Deoptimization::Reason_aliasing)                 \
   declare_constant(Deoptimization::Reason_LIMIT)                          \
   declare_constant(Deoptimization::Reason_RECORDED_LIMIT)                 \
                                                                           \
@@ -2869,13 +2867,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
 # define GENERATE_C2_PREPROCESSOR_VM_INT_CONSTANT_ENTRY(name, value)
 #endif /* COMPILER1 */
 
-// Generate an int constant for a Graal build
-#ifdef GRAAL
-# define GENERATE_GRAAL_VM_INT_CONSTANT_ENTRY(name)  GENERATE_VM_INT_CONSTANT_ENTRY(name)
-#else
-# define GENERATE_GRAAL_VM_INT_CONSTANT_ENTRY(name)
-#endif
-
 //--------------------------------------------------------------------------------
 // VMLongConstantEntry macros
 //
@@ -3018,8 +3009,11 @@ VMIntConstantEntry VMStructs::localHotSpotVMIntConstants[] = {
                    GENERATE_PREPROCESSOR_VM_INT_CONSTANT_ENTRY,
                    GENERATE_C1_VM_INT_CONSTANT_ENTRY,
                    GENERATE_C2_VM_INT_CONSTANT_ENTRY,
-                   GENERATE_C2_PREPROCESSOR_VM_INT_CONSTANT_ENTRY,
-                   GENERATE_GRAAL_VM_INT_CONSTANT_ENTRY)
+                   GENERATE_C2_PREPROCESSOR_VM_INT_CONSTANT_ENTRY)
+
+#ifdef GRAAL
+  VM_INT_CONSTANTS_GRAAL(GENERATE_VM_INT_CONSTANT_ENTRY)
+#endif
 
 #if INCLUDE_ALL_GCS
   VM_INT_CONSTANTS_CMS(GENERATE_VM_INT_CONSTANT_ENTRY)
