@@ -40,20 +40,22 @@ import edu.uci.python.runtime.standardtypes.*;
  * @author zwei
  * 
  */
-public class PythonBuiltinClass extends PythonClass implements PythonCallable {
+// public class PythonBuiltinClass extends PythonClass implements PythonCallable {
+public class PythonBuiltinClass extends PythonClass {
 
-    protected CallTarget callTarget;
-    protected Arity arity;
+// protected CallTarget callTarget;
+// protected Arity arity;
 
     public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
         super(context, superClass, name);
     }
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name, Arity arity, CallTarget callTarget) {
-        super(context, superClass, name);
-        this.arity = arity;
-        this.callTarget = callTarget;
-    }
+// public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name, Arity
+// arity, CallTarget callTarget) {
+// super(context, superClass, name);
+// this.arity = arity;
+// this.callTarget = callTarget;
+// }
 
     @Override
     public void setAttribute(String name, Object value) {
@@ -70,15 +72,15 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
         super.setAttribute(name, value);
     }
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        // arity.arityCheck(args.length, 0, null);
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
-    }
-
-    @Override
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        // arity.arityCheck(args.length, keywords.length, keywords);
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
-    }
+// @Override
+// public Object call(PackedFrame caller, Object[] args) {
+// // arity.arityCheck(args.length, 0, null);
+// return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
+// }
+//
+// @Override
+// public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+// // arity.arityCheck(args.length, keywords.length, keywords);
+// return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
+// }
 }

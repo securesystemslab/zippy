@@ -34,7 +34,8 @@ public class TimeModule extends PythonModule {
 
     public TimeModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
         super(context, name);
-        builtins.initialize(context);
+        // builtins.initialize(context);
+        builtins.initialize();
 
         Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {

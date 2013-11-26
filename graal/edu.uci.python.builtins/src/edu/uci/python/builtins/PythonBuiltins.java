@@ -42,7 +42,9 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void initialize(PythonContext context) {
+    // public void initialize(PythonContext context) {
+    public void initialize() {
+
         List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>> factories = (List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>>) getNodeFactories();
 
         if (factories == null) {
@@ -56,7 +58,8 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
             PythonBuiltinNode builtinNode;
 
             if (builtin.requiresContext()) {
-                builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
+                // builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
+                builtinNode = factory.createNode(builtin.name(), argsKeywords);
             } else {
                 builtinNode = factory.createNode(builtin.name(), argsKeywords);
             }
@@ -65,18 +68,26 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
             if (builtin.isClass()) {
                 Arity arity;
+                PBuiltinFunction function;
 
                 if (builtin.hasFixedNumOfArguments()) {
                     arity = new Arity(builtin.name(), builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                                     builtin.takesVariableArguments(), builtin.keywordNames());
+                    function = new PBuiltinFunction(builtin.name(), arity, callTarget);
+
                 } else {
                     arity = new Arity(builtin.name(), builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
                                     builtin.takesVariableArguments(), builtin.keywordNames());
+                    function = new PBuiltinFunction(builtin.name(), arity, callTarget);
                 }
 
-                PythonBuiltinClass builtinClass;
-                builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity, callTarget);
-                setBuiltinClass(builtin.name(), builtinClass);
+// PythonBuiltinClass builtinClass;
+// builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity,
+// callTarget);
+// setBuiltinClass(builtin.name(), builtinClass);
+
+                setBuiltinFunction(builtin.name(), function);
+
             } else {
                 Arity arity;
                 PBuiltinFunction function;

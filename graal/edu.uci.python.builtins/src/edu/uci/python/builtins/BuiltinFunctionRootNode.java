@@ -46,6 +46,7 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        // System.out.println("EXECUTING " + builtinNode.getName());
         return builtinNode.execute(frame);
     }
 

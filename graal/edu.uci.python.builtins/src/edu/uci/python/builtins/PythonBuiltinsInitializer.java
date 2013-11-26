@@ -39,6 +39,7 @@ import edu.uci.python.runtime.sequence.*;
 
 public class PythonBuiltinsInitializer {
 
+    // public static void initialize(PythonContext context) {
     public static void initialize(PythonContext context) {
         PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
         lookup.addModule("array", new ArrayModule(context, new ArrayModuleBuiltins(), "array"));
@@ -53,7 +54,9 @@ public class PythonBuiltinsInitializer {
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
-        classBuiltin.initialize(context);
+        // classBuiltin.initialize(context);
+        classBuiltin.initialize();
+        // PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
         PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
         Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
 
