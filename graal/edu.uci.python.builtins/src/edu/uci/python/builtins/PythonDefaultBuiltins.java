@@ -674,7 +674,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 String end = possibleEnd;
                 // CheckStyle: stop system..print check
                 if (values.length == 0) {
-                    System.out.println();
+                    context.getStandardOut().print(System.getProperty("line.separator"));
                 } else {
                     if (sep == null) {
                         sep = "";
@@ -686,13 +686,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < values.length - 1; i++) {
-                        sb.append(values[i] + " ");
+                        if (values[i] instanceof Boolean) {
+                            sb.append(((boolean) values[i] ? "True" : "False") + " ");
+                        } else {
+                            sb.append(values[i] + " ");
+                        }
                     }
 
-                    sb.append(values[values.length - 1]);
-                    // context.getStandardOut().print(sb.toString());
+                    if (values[values.length - 1] instanceof Boolean) {
+                        sb.append(((boolean) values[values.length - 1] ? "True" : "False"));
+                    } else {
+                        sb.append(values[values.length - 1]);
+                    }
 
-                    System.out.print(sb.toString() + sep + end);
+                    context.getStandardOut().print(sb.toString() + sep + end);
+
                 }
                 // CheckStyle: resume system..print check
                 return null;
