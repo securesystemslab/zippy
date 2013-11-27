@@ -108,9 +108,6 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
             totalNumOfArgsKeywords = builtin.fixedNumOfArguments();
         } else if (builtin.takesVariableArguments()) {
             totalNumOfArgsKeywords = builtin.minNumOfArguments();
-            if (builtin.name().equals("max") || builtin.name().equals("min")) {
-                totalNumOfArgsKeywords = totalNumOfArgsKeywords + 1;
-            }
         } else {
             totalNumOfArgsKeywords = builtin.maxNumOfArguments();
         }
