@@ -37,6 +37,7 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.hsail.*;
+import com.oracle.graal.lir.hsail.HSAILArithmetic.ConvertOp;
 import com.oracle.graal.lir.hsail.HSAILArithmetic.Op1Stack;
 import com.oracle.graal.lir.hsail.HSAILArithmetic.Op2Reg;
 import com.oracle.graal.lir.hsail.HSAILArithmetic.Op2Stack;
@@ -45,15 +46,13 @@ import com.oracle.graal.lir.hsail.HSAILControlFlow.CompareBranchOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.CondMoveOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.FloatCompareBranchOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.FloatCondMoveOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.ForeignCall1ArgOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.ForeignCallNoArgOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.ReturnOp;
 import com.oracle.graal.lir.hsail.HSAILMove.LeaOp;
+import com.oracle.graal.lir.hsail.HSAILMove.MembarOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveFromRegOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveToRegOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.phases.util.*;
 
 /**
@@ -146,7 +145,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
             } else {
                 Value indexRegister;
                 Value convertedIndex;
-                convertedIndex = this.emitConvert(ConvertNode.Op.I2L, index);
+                convertedIndex = this.emitConvert(Kind.Int, Kind.Long, index);
                 if (scale != 1) {
                     indexRegister = emitUMul(convertedIndex, Constant.forInt(scale));
                 } else {
@@ -172,7 +171,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         append(new JumpOp(label));
     }
 
-    private static HSAILCompare mapKindToCompareOp(Kind kind) {
+    protected static HSAILCompare mapKindToCompareOp(Kind kind) {
         switch (kind) {
             case Int:
                 return ICMP;
@@ -593,55 +592,17 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public Variable emitConvert(ConvertNode.Op opcode, Value inputVal) {
+    public Variable emitConvert(Kind from, Kind to, Value inputVal) {
         Variable input = load(inputVal);
-        Variable result = newVariable(opcode.to);
-        switch (opcode) {
-            case I2F:
-                append(new Op1Stack(I2F, result, input));
-                break;
-            case I2L:
-                append(new Op1Stack(I2L, result, input));
-                break;
-            case I2S:
-                append(new Op1Stack(I2S, result, input));
-                break;
-            case I2C:
-                append(new Op1Stack(I2C, result, input));
-                break;
-            case I2B:
-                append(new Op1Stack(I2B, result, input));
-                break;
-            case I2D:
-                append(new Op1Stack(I2D, result, input));
-                break;
-            case D2I:
-                append(new Op1Stack(D2I, result, input));
-                break;
-            case D2F:
-                append(new Op1Stack(D2F, result, input));
-                break;
-            case D2L:
-                append(new Op1Stack(D2L, result, input));
-                break;
-            case L2I:
-                append(new Op1Stack(L2I, result, input));
-                break;
-            case L2F:
-                append(new Op1Stack(L2F, result, input));
-                break;
-            case L2D:
-                append(new Op1Stack(L2D, result, input));
-                break;
-            case F2D:
-                append(new Op1Stack(F2D, result, input));
-                break;
-            case F2L:
-                append(new Op1Stack(F2L, result, input));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
+        Variable result = newVariable(to);
+        append(new ConvertOp(result, input, to, from));
+        return result;
+    }
+
+    @Override
+    public Value emitReinterpret(Kind to, Value inputVal) {
+        Variable result = newVariable(to);
+        emitMove(result, inputVal);
         return result;
     }
 
@@ -652,7 +613,8 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitMembar(int barriers) {
-        throw GraalInternalError.unimplemented();
+        int necessaryBarriers = target().arch.requiredBarriers(barriers);
+        append(new MembarOp(necessaryBarriers));
     }
 
     @Override
@@ -663,27 +625,6 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     @Override
     protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
         throw GraalInternalError.unimplemented();
-    }
-
-    @Override
-    protected void emitForeignCall(ForeignCallLinkage linkage, Value result, Value[] arguments, Value[] temps, LIRFrameState info) {
-        String callName = linkage.getDescriptor().getName();
-        if (callName.equals("createOutOfBoundsException") || callName.equals("createNullPointerException")) {
-            // hack Alert !!
-            switch (arguments.length) {
-                case 0:
-                    append(new ForeignCallNoArgOp(callName, result));
-                    break;
-                case 1:
-                    append(new ForeignCall1ArgOp(callName, result, arguments[0]));
-                    break;
-                default:
-                    throw GraalInternalError.unimplemented();
-            }
-
-        } else {
-            throw GraalInternalError.unimplemented();
-        }
     }
 
     @Override
@@ -759,11 +700,6 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     protected void emitTableSwitch(int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value key) {
-        throw GraalInternalError.unimplemented();
-    }
-
-    @Override
-    public void visitCompareAndSwap(LoweredCompareAndSwapNode node, Value address) {
         throw GraalInternalError.unimplemented();
     }
 

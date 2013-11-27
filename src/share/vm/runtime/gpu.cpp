@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "runtime/gpu.hpp"
+#include "runtime/handles.hpp"
 
 bool gpu::_available = false;    // does the hardware exist?
 bool gpu::_gpu_linkage = false;  // is the driver library to access the GPU installed
@@ -31,10 +32,12 @@ bool gpu::_initialized = false;  // is the GPU device initialized
 gpu::TargetGPUIL gpu::_targetIL = gpu::NONE; // No GPU detected yet.
 
 void gpu::init() {
-#if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
+#if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux) || defined(TARGET_OS_FAMILY_windows)
   gpu::probe_gpu();
   if (gpu::get_target_il_type() == gpu::PTX) {
     set_gpu_linkage(gpu::Ptx::probe_linkage());
+  } else if (gpu::get_target_il_type() == gpu::HSAIL) {
+    set_gpu_linkage(gpu::Hsail::probe_linkage());
   } else {
     set_gpu_linkage(false);
   }
@@ -45,8 +48,9 @@ void gpu::initialize_gpu() {
   if (gpu::has_gpu_linkage()) {
     if (gpu::get_target_il_type() == gpu::PTX) {
       set_initialized(gpu::Ptx::initialize_gpu());
+    } else if (gpu::get_target_il_type() == gpu::HSAIL) {
+      set_initialized(gpu::Hsail::initialize_gpu());
     }
-    // Add initialization of other GPUs here
   }
 }
 
@@ -54,8 +58,9 @@ void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name)
   if (gpu::has_gpu_linkage()) {
     if (gpu::get_target_il_type() == gpu::PTX) {
       return (gpu::Ptx::generate_kernel(code, code_len, name));
+    } else if (gpu::get_target_il_type() == gpu::HSAIL) {
+      return (gpu::Hsail::generate_kernel(code, code_len, name));
     }
-    // Add kernel generation functionality of other GPUs here
   }
   return NULL;
 }
@@ -69,6 +74,18 @@ bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& 
     }
     return false;
 }
+
+// This is HSAIL specific to work with Sumatra JDK
+bool gpu::execute_kernel_void_1d(address kernel, int dimX, jobject args, methodHandle& mh) {
+    if (gpu::has_gpu_linkage()) {
+        if (gpu::get_target_il_type() == gpu::HSAIL) {
+            return (gpu::Hsail::execute_kernel_void_1d(kernel, dimX, args, mh));
+        }
+    }
+    return false;
+    
+}
+
 
 bool gpu::execute_warp(int dimX, int dimY, int dimZ,
                        address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {

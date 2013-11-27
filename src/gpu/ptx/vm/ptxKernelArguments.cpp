@@ -38,20 +38,32 @@ oop PTXKernelArguments::next_arg(BasicType expectedType) {
   return arg;
 }
 
+/*
+ * Pad kernel argument buffer to naturally align for given size.
+ */
+void PTXKernelArguments::pad_kernel_argument_buffer(size_t dataSz) {
+  while ((_bufferOffset % dataSz) != 0) {
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (char) 0;
+    _bufferOffset += sizeof(char);
+  }
+  return;
+}
 void PTXKernelArguments::do_int() {
   // If the parameter is a return value,
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_INT return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_INT_BYTE_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Allocate device memory for T_INT return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_INT_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      _success = false;
+      return;
     }
+
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
     _bufferOffset += sizeof(_dev_return_value);
   } else {
     // Get the next java argument and its value which should be a T_INT
@@ -63,9 +75,13 @@ void PTXKernelArguments::do_int() {
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = intval.i;
-    }
+
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(intval.i));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = intval.i;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(intval.i);
   }
@@ -75,17 +91,18 @@ void PTXKernelArguments::do_int() {
 void PTXKernelArguments::do_float() {
   // If the parameter is a return value,
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_INT return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_FLOAT_BYTE_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Allocate device memory for T_FLOAT return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_FLOAT_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      _success = false;
+      return;
     }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
     // Advance _bufferOffset
     _bufferOffset += sizeof(_dev_return_value);
   } else {
@@ -98,9 +115,11 @@ void PTXKernelArguments::do_float() {
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) floatval.f;
-    }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(floatval.f));
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) floatval.f;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(floatval.f);
   }
@@ -111,18 +130,19 @@ void PTXKernelArguments::do_double() {
   // If the parameter is a return value,
   jvalue doubleval;
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_INT return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_DOUBLE_BYTE_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Allocate device memory for T_DOUBLE return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_DOUBLE_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      _success = false;
+      return;
     }
-    // Advance _bufferOffset
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Advance _bufferOffset.
     _bufferOffset += sizeof(doubleval.d);
   } else {
     // Get the next java argument and its value which should be a T_INT
@@ -133,11 +153,16 @@ void PTXKernelArguments::do_double() {
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) doubleval.d;
-    }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(doubleval.d));
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = (gpu::Ptx::CUdeviceptr) doubleval.d;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(doubleval.d);
+    // For a 64-bit host, since size of double is 8, there is no need
+    // to pad the kernel argument buffer to ensure 8-byte alignment of
+    // the next potential argument to be pushed.
   }
   return;
 }
@@ -145,17 +170,18 @@ void PTXKernelArguments::do_double() {
 void PTXKernelArguments::do_long() {
   // If the parameter is a return value,
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_LONG return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_LONG_BYTE_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Allocate device memory for T_LONG return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_LONG_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      _success = false;
+      return;
     }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
     // Advance _bufferOffset
     _bufferOffset += sizeof(_dev_return_value);
   } else {
@@ -168,11 +194,16 @@ void PTXKernelArguments::do_long() {
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.j;
-    }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(val.j));
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.j;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(val.j);
+    // For a 64-bit host, since size of long is 8, there is no need
+    // to pad the kernel argument buffer to ensure 8-byte alignment of
+    // the next potential argument to be pushed.
   }
   return;
 }
@@ -180,17 +211,19 @@ void PTXKernelArguments::do_long() {
 void PTXKernelArguments::do_byte() {
   // If the parameter is a return value,
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_BYTE_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      _success = false;
+      return;
     }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(_dev_return_value);
   } else {
@@ -203,11 +236,16 @@ void PTXKernelArguments::do_byte() {
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.b;
-    }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(val.b));
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.b;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(val.b);
+    // For a 64-bit host, since size of T_BYTE is 8, there is no need
+    // to pad the kernel argument buffer to ensure 8-byte alignment of
+    // the next potential argument to be pushed.
   }
   return;
 }
@@ -215,32 +253,34 @@ void PTXKernelArguments::do_byte() {
 void PTXKernelArguments::do_bool() {
   // If the parameter is a return value,
   if (is_return_type()) {
-    if (is_kernel_arg_setup()) {
-      // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
-      int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_BOOLEAN_SIZE);
-      if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-        _success = false;
-        return;
-      }
-      // Push _dev_return_value to _kernelBuffer
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
-    }
-    // Advance _bufferOffset
-    _bufferOffset += sizeof(_dev_return_value);
-  } else {
-    // Get the next java argument and its value which should be a T_BYTE
-    oop arg = next_arg(T_BYTE);
-    // Copy the java argument value to kernelArgBuffer
-    jvalue val;
-    if (java_lang_boxing_object::get_value(arg, &val) != T_BOOLEAN) {
-      tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_BYTE");
+    // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
+    int status = gpu::Ptx::_cuda_cu_memalloc(&_dev_return_value, T_BOOLEAN_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
       _success = false;
       return;
     }
-    if (is_kernel_arg_setup()) {
-      *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.z;
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(_dev_return_value));
+    // Push _dev_return_value to _kernelBuffer
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = _dev_return_value;
+    _bufferOffset += sizeof(_dev_return_value);
+  } else {
+    // Get the next java argument and its value which should be a T_BOOLEAN
+    oop arg = next_arg(T_BOOLEAN);
+    // Copy the java argument value to kernelArgBuffer
+    jvalue val;
+    if (java_lang_boxing_object::get_value(arg, &val) != T_BOOLEAN) {
+      tty->print_cr("[CUDA] *** Error: Unexpected argument type; expecting T_BOOLEAN");
+      _success = false;
+      return;
     }
+    // Kernel arguments are expected to be naturally aligned.
+    // Insert padding into kernel argument buffer, if needed.
+    pad_kernel_argument_buffer(sizeof(val.z));
+    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = val.z;
+
     // Advance _bufferOffset
     _bufferOffset += sizeof(val.z);
   }
@@ -257,35 +297,28 @@ void PTXKernelArguments::do_array(int begin, int end) {
   gpu::Ptx::CUdeviceptr arrayArgOnDev;
   int status;
 
-  if (is_kernel_arg_setup()) {
-    // Allocate device memory for array argument on device. Size in bytes
-    status = gpu::Ptx::_cuda_cu_memalloc(&arrayArgOnDev, argSize);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for array argument on device",
-                    status);
-      _success = false;
-      return;
-    }
-    // Copy array argument to device
-    status = gpu::Ptx::_cuda_cu_memcpy_htod(arrayArgOnDev, arg, argSize);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to copy array argument content to device memory",
-                    status);
-      _success = false;
-      return;
-    }
-
-    // Push device array argument to _kernelBuffer
-    *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = arrayArgOnDev;
-  } else {
-    arrayArgOnDev = *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]);
-    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(arg, arrayArgOnDev, argSize);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to copy array argument to host", status);
-      _success = false;
-      return;
-    }
+  // Register host memory for use by the device. Size in bytes
+  status = gpu::Ptx::_cuda_cu_mem_host_register(arg, argSize, GRAAL_CU_MEMHOSTREGISTER_DEVICEMAP);
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] *** Error (%d) Failed to register host memory for array argument on device",
+                  status);
+    _success = false;
+    return;
   }
+  // Get device pointer
+  status = gpu::Ptx::_cuda_cu_mem_host_get_device_pointer(&arrayArgOnDev, arg, 0);
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] *** Error (%d) Failed to get device pointer of mapped pinned memory of array argument.",
+                  status);
+    _success = false;
+    return;
+  }
+
+  // Kernel arguments are expected to be naturally aligned.
+  // Insert padding into kernel argument buffer, if needed.
+  pad_kernel_argument_buffer(sizeof(arrayArgOnDev));
+  // Push device array argument to _kernelBuffer
+  *((gpu::Ptx::CUdeviceptr*) &_kernelArgBuffer[_bufferOffset]) = arrayArgOnDev;
 
   // Advance _bufferOffset
   _bufferOffset += sizeof(arrayArgOnDev);

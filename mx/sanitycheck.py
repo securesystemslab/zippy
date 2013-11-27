@@ -24,7 +24,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, commands, os, sys, StringIO, subprocess, time
+import re, mx, mx_graal, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 
 gc = 'UseSerialGC'
@@ -391,12 +391,12 @@ def getCTW(vm, mode):
     if vm == 'graal':
         args += ['-XX:+BootstrapGraal']
     if mode >= CTWMode.NoInline:
-        if not commands.isGraalEnabled(vm):
+        if not mx_graal.isGraalEnabled(vm):
             args.append('-XX:-Inline')
         else:
             args.append('-G:-Inline')
     if mode >= CTWMode.NoComplex:
-        if commands.isGraalEnabled(vm):
+        if mx_graal.isGraalEnabled(vm):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
 
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
@@ -448,7 +448,7 @@ class Test:
             parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
 
         tee = Tee()
-        retcode = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+        retcode = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
         output = tee.output.getvalue()
         valueMaps = parser.parse(output)
 
@@ -521,7 +521,7 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-
+  
             # if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
             #     mx.abort("Benchmark failed (non-zero retcode)")
             # zippy
@@ -537,7 +537,7 @@ class Test:
             elif vm == 'pypy3':
                 result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
             else:
-                result = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+                result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
 
             if result != 0:         
                 mx.abort("Benchmark failed (non-zero retcode)")

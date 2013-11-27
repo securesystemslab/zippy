@@ -153,6 +153,20 @@ public class HSAILMove {
         }
     }
 
+    public static class MembarOp extends HSAILLIRInstruction {
+
+        private final int barriers;
+
+        public MembarOp(final int barriers) {
+            this.barriers = barriers;
+        }
+
+        @Override
+        public void emitCode(TargetMethodAssembler tasm, HSAILAssembler masm) {
+            masm.emitMembar(barriers);
+        }
+    }
+
     public static class LoadOp extends MemOp {
 
         @Def({REG}) protected AllocatableValue result;
@@ -188,57 +202,57 @@ public class HSAILMove {
 
     public static class LoadCompressedPointer extends LoadOp {
 
-        private long narrowOopBase;
-        private int narrowOopShift;
-        private int logMinObjAlignment;
+        private final long base;
+        private final int shift;
+        private final int alignment;
         @Temp({REG}) private AllocatableValue scratch;
 
-        public LoadCompressedPointer(Kind kind, AllocatableValue result, AllocatableValue scratch, HSAILAddressValue address, LIRFrameState state, long narrowOopBase, int narrowOopShift,
-                        int logMinObjAlignment) {
+        public LoadCompressedPointer(Kind kind, AllocatableValue result, AllocatableValue scratch, HSAILAddressValue address, LIRFrameState state, long base, int shift, int alignment) {
             super(kind, result, address, state);
-            this.narrowOopBase = narrowOopBase;
-            this.narrowOopShift = narrowOopShift;
-            this.logMinObjAlignment = logMinObjAlignment;
+            this.base = base;
+            this.shift = shift;
+            this.alignment = alignment;
             this.scratch = scratch;
-            assert kind == Kind.Object;
+            assert kind == Kind.Object || kind == Kind.Long;
         }
 
         @Override
         public void emitMemAccess(HSAILAssembler masm) {
             // we will do a 32 bit load, zero extending into a 64 bit register
             masm.emitLoad(result, address.toAddress(), "u32");
-            decodePointer(masm, result, narrowOopBase, narrowOopShift, logMinObjAlignment);
+            boolean testForNull = (kind == Kind.Object);
+            decodePointer(masm, result, base, shift, alignment, testForNull);
         }
     }
 
     public static class StoreCompressedPointer extends HSAILLIRInstruction {
 
         protected final Kind kind;
-        private long narrowOopBase;
-        private int narrowOopShift;
-        private int logMinObjAlignment;
+        private final long base;
+        private final int shift;
+        private final int alignment;
         @Temp({REG}) private AllocatableValue scratch;
         @Alive({REG}) protected AllocatableValue input;
         @Alive({COMPOSITE}) protected HSAILAddressValue address;
         @State protected LIRFrameState state;
 
-        public StoreCompressedPointer(Kind kind, HSAILAddressValue address, AllocatableValue input, AllocatableValue scratch, LIRFrameState state, long narrowOopBase, int narrowOopShift,
-                        int logMinObjAlignment) {
-            this.narrowOopBase = narrowOopBase;
-            this.narrowOopShift = narrowOopShift;
-            this.logMinObjAlignment = logMinObjAlignment;
+        public StoreCompressedPointer(Kind kind, HSAILAddressValue address, AllocatableValue input, AllocatableValue scratch, LIRFrameState state, long base, int shift, int alignment) {
+            this.base = base;
+            this.shift = shift;
+            this.alignment = alignment;
             this.scratch = scratch;
             this.kind = kind;
             this.address = address;
             this.state = state;
             this.input = input;
-            assert kind == Kind.Object;
+            assert kind == Kind.Object || kind == Kind.Long;
         }
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, HSAILAssembler masm) {
             masm.emitMov(scratch, input);
-            encodePointer(masm, scratch, narrowOopBase, narrowOopShift, logMinObjAlignment);
+            boolean testForNull = (kind == Kind.Object);
+            encodePointer(masm, scratch, base, shift, alignment, testForNull);
             if (state != null) {
                 throw new InternalError("NYI");
                 // tasm.recordImplicitException(masm.codeBuffer.position(), state);
@@ -247,24 +261,24 @@ public class HSAILMove {
         }
     }
 
-    private static void encodePointer(HSAILAssembler masm, Value scratch, long narrowOopBase, int narrowOopShift, int logMinObjAlignment) {
-        if (narrowOopBase == 0 && narrowOopShift == 0) {
+    private static void encodePointer(HSAILAssembler masm, Value scratch, long base, int shift, int alignment, boolean testForNull) {
+        if (base == 0 && shift == 0) {
             return;
         }
-        if (narrowOopShift != 0) {
-            assert logMinObjAlignment == narrowOopShift : "Encode algorithm is wrong";
+        if (shift != 0) {
+            assert alignment == shift : "Encode algorithm is wrong";
         }
-        masm.emitCompressedOopEncode(scratch, narrowOopBase, narrowOopShift);
+        masm.emitCompressedOopEncode(scratch, base, shift, testForNull);
     }
 
-    private static void decodePointer(HSAILAssembler masm, Value result, long narrowOopBase, int narrowOopShift, int logMinObjAlignment) {
-        if (narrowOopBase == 0 && narrowOopShift == 0) {
+    private static void decodePointer(HSAILAssembler masm, Value result, long base, int shift, int alignment, boolean testForNull) {
+        if (base == 0 && shift == 0) {
             return;
         }
-        if (narrowOopShift != 0) {
-            assert logMinObjAlignment == narrowOopShift : "Decode algorithm is wrong";
+        if (shift != 0) {
+            assert alignment == shift : "Decode algorithm is wrong";
         }
-        masm.emitCompressedOopDecode(result, narrowOopBase, narrowOopShift);
+        masm.emitCompressedOopDecode(result, base, shift, testForNull);
     }
 
     public static class LeaOp extends HSAILLIRInstruction {
@@ -316,7 +330,54 @@ public class HSAILMove {
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, HSAILAssembler masm) {
-            compareAndSwap(tasm, masm, result, address, cmpValue, newValue);
+            masm.emitAtomicCas(result, address.toAddress(), cmpValue, newValue);
+        }
+    }
+
+    @Opcode("CAS")
+    public static class CompareAndSwapCompressedOp extends CompareAndSwapOp {
+
+        @Temp({REG}) private AllocatableValue scratchCmpValue64;
+        @Temp({REG}) private AllocatableValue scratchNewValue64;
+        @Temp({REG}) private AllocatableValue scratchCmpValue32;
+        @Temp({REG}) private AllocatableValue scratchNewValue32;
+        @Temp({REG}) private AllocatableValue scratchCasResult32;
+        private final long base;
+        private final int shift;
+        private final int alignment;
+
+        public CompareAndSwapCompressedOp(AllocatableValue result, HSAILAddressValue address, AllocatableValue cmpValue, AllocatableValue newValue, AllocatableValue scratchCmpValue64,
+                        AllocatableValue scratchNewValue64, AllocatableValue scratchCmpValue32, AllocatableValue scratchNewValue32, AllocatableValue scratchCasResult32, long base, int shift,
+                        int alignment) {
+            super(result, address, cmpValue, newValue);
+            this.scratchCmpValue64 = scratchCmpValue64;
+            this.scratchNewValue64 = scratchNewValue64;
+            this.scratchCmpValue32 = scratchCmpValue32;
+            this.scratchNewValue32 = scratchNewValue32;
+            this.scratchCasResult32 = scratchCasResult32;
+            this.base = base;
+            this.shift = shift;
+            this.alignment = alignment;
+        }
+
+        @Override
+        public void emitCode(TargetMethodAssembler tasm, HSAILAssembler masm) {
+            // assume any encoded or decoded value could be null
+            boolean testForNull = true;
+            // set up scratch registers to be encoded versions
+            masm.emitMov(scratchCmpValue64, cmpValue);
+            encodePointer(masm, scratchCmpValue64, base, shift, alignment, testForNull);
+            masm.emitMov(scratchNewValue64, newValue);
+            encodePointer(masm, scratchNewValue64, base, shift, alignment, testForNull);
+            // get encoded versions into 32-bit registers
+            masm.emitConvertForceUnsigned(scratchCmpValue32, scratchCmpValue64);
+            masm.emitConvertForceUnsigned(scratchNewValue32, scratchNewValue64);
+            // finally do the cas
+            masm.emitAtomicCas(scratchCasResult32, address.toAddress(), scratchCmpValue32, scratchNewValue32);
+            // and convert the 32-bit CasResult back to 64-bit
+            masm.emitConvertForceUnsigned(result, scratchCasResult32);
+            // and decode/uncompress the 64-bit cas result
+            decodePointer(masm, result, base, shift, alignment, testForNull);
         }
     }
 
@@ -361,10 +422,5 @@ public class HSAILMove {
         } else {
             throw GraalInternalError.shouldNotReachHere();
         }
-    }
-
-    @SuppressWarnings("unused")
-    protected static void compareAndSwap(TargetMethodAssembler tasm, HSAILAssembler masm, AllocatableValue result, HSAILAddressValue address, AllocatableValue cmpValue, AllocatableValue newValue) {
-        throw new InternalError("NYI");
     }
 }

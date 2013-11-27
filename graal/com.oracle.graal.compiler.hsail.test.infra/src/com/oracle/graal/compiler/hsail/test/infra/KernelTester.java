@@ -69,10 +69,10 @@ public abstract class KernelTester {
         COMPILED, INJECT_HSAIL, INJECT_OCL
     }
 
-    private DispatchMode dispatchMode;
+    public DispatchMode dispatchMode;
     // Where the hsail comes from.
     private HsailMode hsailMode;
-    private Method testMethod;
+    protected Method testMethod;
     // What type of okra dispatch to use when client calls.
     private boolean useLambdaMethod;
     private Class<?>[] testMethodParams = null;
@@ -84,6 +84,7 @@ public abstract class KernelTester {
     private static final String propPkgName = KernelTester.class.getPackage().getName();
     private static Level logLevel;
     private static ConsoleHandler consoleHandler;
+    private boolean runOkraFirst = Boolean.getBoolean("kerneltester.runOkraFirst");
 
     static {
         logger = Logger.getLogger(propPkgName);
@@ -580,7 +581,7 @@ public abstract class KernelTester {
         }
     }
 
-    private void dispatchMethodKernelOkra(int range, Object... args) {
+    protected void dispatchMethodKernelOkra(int range, Object... args) {
         Object[] fixedArgs = fixArgTypes(args);
         if (Modifier.isStatic(testMethod.getModifiers())) {
             dispatchKernelOkra(range, fixedArgs);
@@ -597,7 +598,7 @@ public abstract class KernelTester {
      * For primitive arg parameters, make sure arg types are cast to whatever the testMethod
      * signature says they should be.
      */
-    private Object[] fixArgTypes(Object[] args) {
+    protected Object[] fixArgTypes(Object[] args) {
         Object[] fixedArgs = new Object[args.length];
         for (int i = 0; i < args.length; i++) {
             Class<?> paramClass = testMethodParams[i];
@@ -643,7 +644,7 @@ public abstract class KernelTester {
      * the lambda method itself as opposed to the wrapper that calls the lambda method. From the
      * consumer object, we need to find the fields and pass them to the kernel.
      */
-    private void dispatchLambdaMethodKernelOkra(int range, MyIntConsumer consumer) {
+    protected void dispatchLambdaMethodKernelOkra(int range, MyIntConsumer consumer) {
         logger.info("To determine parameters to pass to hsail kernel, we will examine   " + consumer.getClass());
         Field[] fields = consumer.getClass().getDeclaredFields();
         Object[] args = new Object[fields.length];
@@ -692,25 +693,42 @@ public abstract class KernelTester {
         }
     }
 
-    private void compareOkraToSeq(HsailMode hsailMode1) {
-        compareOkraToSeq(hsailMode1, false);
+    private void compareOkraToSeq(HsailMode hsailModeToUse) {
+        compareOkraToSeq(hsailModeToUse, false);
     }
 
     /**
-     * Runs this instance on OKRA, and as SEQ and compares the output of the two executions.
+     * Runs this instance on OKRA, and as SEQ and compares the output of the two executions. the
+     * runOkraFirst flag controls which order they are done in. Note the compiler must use eager
+     * resolving if Okra is done first.
      */
-    private void compareOkraToSeq(HsailMode hsailMode1, boolean useLambda) {
-        // Create and run sequential instance.
-        KernelTester testerSeq = newInstance();
-        testerSeq.setDispatchMode(DispatchMode.SEQ);
-        testerSeq.runTest();
-        // Now do this object.
-        this.setHsailMode(hsailMode1);
+    private void compareOkraToSeq(HsailMode hsailModeToUse, boolean useLambda) {
+        KernelTester testerSeq;
+        if (runOkraFirst) {
+            runOkraInstance(hsailModeToUse, useLambda);
+            testerSeq = runSeqInstance();
+        } else {
+            testerSeq = runSeqInstance();
+            runOkraInstance(hsailModeToUse, useLambda);
+        }
+        assertTrue("failed comparison to SEQ", compareResults(testerSeq));
+    }
+
+    private void runOkraInstance(HsailMode hsailModeToUse, boolean useLambda) {
+        // run Okra instance in exiting KernelTester object
+        this.setHsailMode(hsailModeToUse);
         this.setDispatchMode(DispatchMode.OKRA);
         this.useLambdaMethod = useLambda;
         this.runTest();
         this.disposeKernelOkra();
-        assertTrue("failed comparison to SEQ", compareResults(testerSeq));
+    }
+
+    private KernelTester runSeqInstance() {
+        // Create and run sequential instance.
+        KernelTester testerSeq = newInstance();
+        testerSeq.setDispatchMode(DispatchMode.SEQ);
+        testerSeq.runTest();
+        return testerSeq;
     }
 
     public void testGeneratedHsail() {
@@ -729,7 +747,7 @@ public abstract class KernelTester {
         newInstance().compareOkraToSeq(HsailMode.INJECT_OCL);
     }
 
-    private static Object getFieldFromObject(Field f, Object fromObj) {
+    protected static Object getFieldFromObject(Field f, Object fromObj) {
         try {
             f.setAccessible(true);
             Type type = f.getType();

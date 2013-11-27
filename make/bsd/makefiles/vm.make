@@ -165,6 +165,7 @@ SOURCE_PATHS+=$(HS_COMMON_SRC)/os/posix/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/cpu/$(Platform_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_cpu/$(Platform_os_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/ptx/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/hsail/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_gpu/bsd_ptx/vm
 
 CORE_PATHS=$(foreach path,$(SOURCE_PATHS),$(call altsrc,$(path)) $(path))

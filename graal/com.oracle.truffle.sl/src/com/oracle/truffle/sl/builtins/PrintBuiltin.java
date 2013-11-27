@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,42 +20,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.nodes;
+package com.oracle.truffle.sl.builtins;
 
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import com.oracle.truffle.api.dsl.*;
 
-public final class FixedValueAnchorNode extends FixedWithNextNode implements LIRLowerable, ValueProxy {
+public abstract class PrintBuiltin extends BuiltinNode {
 
-    @Input private ValueNode object;
-
-    public ValueNode object() {
-        return object;
+    @Specialization
+    public int doInt(int value) {
+        getContext().getPrintOutput().println(value);
+        return value;
     }
 
-    public FixedValueAnchorNode(ValueNode object) {
-        super(StampFactory.forNodeIntrinsic());
-        this.object = object;
-
+    @Specialization
+    public boolean doBoolean(boolean value) {
+        getContext().getPrintOutput().println(value);
+        return value;
     }
 
-    @Override
-    public boolean inferStamp() {
-        return updateStamp(object.stamp());
+    @Specialization
+    public String doString(String value) {
+        getContext().getPrintOutput().println(value);
+        return value;
     }
 
-    @NodeIntrinsic
-    public static native <T> T getObject(Object object);
-
-    @Override
-    public void generate(LIRGeneratorTool generator) {
-        generator.setResult(this, generator.operand(object));
+    @Specialization
+    public Object doGeneric(Object value) {
+        getContext().getPrintOutput().println(value.toString());
+        return value;
     }
-
-    @Override
-    public ValueNode getOriginalValue() {
-        return object;
-    }
-
 }

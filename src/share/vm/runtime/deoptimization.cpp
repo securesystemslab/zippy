@@ -1339,6 +1339,9 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 
     DeoptReason reason = trap_request_reason(trap_request);
     DeoptAction action = trap_request_action(trap_request);
+#ifdef GRAAL
+    short speculation_id = trap_request_speculation_id(trap_request);
+#endif
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
     vframe*  vf  = vframe::new_vframe(&fr, &reg_map, thread);
@@ -1349,7 +1352,11 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     ScopeDesc*      trap_scope  = cvf->scope();
     
     if (TraceDeoptimization) {
-      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
+      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", speculation=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string()
+#ifdef GRAAL
+          , speculation_id
+#endif
+          );
     }
 
     methodHandle    trap_method = trap_scope->method();
@@ -1460,12 +1467,16 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
           tty->print(" (Graal: no installed code) ");
         }
 #endif //GRAAL
-        tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d",
+        tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d" GRAAL_ONLY(" speculation=%d"),
                    fr.pc(),
                    os::current_thread_id(),
                    trap_reason_name(reason),
                    trap_action_name(action),
-                   unloaded_class_index);
+                   unloaded_class_index
+#ifdef GRAAL
+                   , speculation_id
+#endif
+                   );
         if (class_name != NULL) {
           tty->print(unresolved ? " unresolved class: " : " symbol: ");
           class_name->print_symbol_on(tty);
@@ -1970,13 +1981,24 @@ const char* Deoptimization::format_trap_request(char* buf, size_t buflen,
   jint unloaded_class_index = trap_request_index(trap_request);
   const char* reason = trap_reason_name(trap_request_reason(trap_request));
   const char* action = trap_action_name(trap_request_action(trap_request));
+#ifdef GRAAL
+  short speculation_id = trap_request_speculation_id(trap_request);
+#endif
   size_t len;
   if (unloaded_class_index < 0) {
-    len = jio_snprintf(buf, buflen, "reason='%s' action='%s'",
-                       reason, action);
+    len = jio_snprintf(buf, buflen, "reason='%s' action='%s'" GRAAL_ONLY(" speculation='%d'"),
+                       reason, action
+#ifdef GRAAL
+                       ,speculation_id
+#endif
+                       );
   } else {
-    len = jio_snprintf(buf, buflen, "reason='%s' action='%s' index='%d'",
-                       reason, action, unloaded_class_index);
+    len = jio_snprintf(buf, buflen, "reason='%s' action='%s' index='%d'" GRAAL_ONLY(" speculation='%d'"),
+                       reason, action, unloaded_class_index
+#ifdef GRAAL
+                       ,speculation_id
+#endif
+                       );
   }
   if (len >= buflen)
     buf[buflen-1] = '\0';

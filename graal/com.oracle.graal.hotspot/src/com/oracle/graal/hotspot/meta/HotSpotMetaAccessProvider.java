@@ -79,16 +79,32 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
         return runtime.getCompilerToVM().getJavaField(reflectionField);
     }
 
+    // These are synchronized with values in deoptimization.hpp:105
+    private static final int ACTION_BITS = 3;
+    private static final int REASON_BITS = 5;
+    private static final int SPECULATION_BITS = 23;
+
     private static final int ACTION_SHIFT = 0;
-    private static final int ACTION_MASK = 0x07;
-    private static final int REASON_SHIFT = 3;
-    private static final int REASON_MASK = 0x1f;
+    private static final int ACTION_MASK = intMaskRight(ACTION_BITS);
+
+    private static final int REASON_SHIFT = ACTION_SHIFT + ACTION_BITS;
+    private static final int REASON_MASK = intMaskRight(REASON_BITS);
+
+    private static final int SPECULATION_SHIFT = REASON_SHIFT + REASON_BITS;
+    private static final int SPECULATION_MASK = intMaskRight(SPECULATION_BITS);
+
+    private static int intMaskRight(int n) {
+        assert n <= 32;
+        return n == 32 ? -1 : (1 << n) - 1;
+    }
 
     @Override
-    public Constant encodeDeoptActionAndReason(DeoptimizationAction action, DeoptimizationReason reason) {
+    public Constant encodeDeoptActionAndReason(DeoptimizationAction action, DeoptimizationReason reason, int speculationId) {
         int actionValue = convertDeoptAction(action);
         int reasonValue = convertDeoptReason(reason);
-        Constant c = Constant.forInt(~(((reasonValue) << REASON_SHIFT) + ((actionValue) << ACTION_SHIFT)));
+        int speculationValue = speculationId & SPECULATION_MASK;
+        Constant c = Constant.forInt(~((speculationValue << SPECULATION_SHIFT) | (reasonValue << REASON_SHIFT) | (actionValue << ACTION_SHIFT)));
+        assert c.asInt() < 0;
         return c;
     }
 
@@ -102,6 +118,10 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
         int actionValue = ((~constant.asInt()) >> ACTION_SHIFT) & ACTION_MASK;
         DeoptimizationAction action = convertDeoptAction(actionValue);
         return action;
+    }
+
+    public short decodeSpeculationId(Constant constant) {
+        return (short) (((~constant.asInt()) >> SPECULATION_SHIFT) & SPECULATION_MASK);
     }
 
     public int convertDeoptAction(DeoptimizationAction action) {

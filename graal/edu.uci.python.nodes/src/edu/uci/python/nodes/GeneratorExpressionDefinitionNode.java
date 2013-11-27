@@ -39,11 +39,8 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     private final FrameDescriptor frameDescriptor;
     private final boolean needsDeclarationFrame;
 
-    @Child protected GeneratorExpressionRootNode rootNode;
-
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, GeneratorExpressionRootNode rootNode, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+    public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         this.callTarget = callTarget;
-        this.rootNode = adoptChild(rootNode);
         this.frameDescriptor = descriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
     }

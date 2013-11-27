@@ -49,12 +49,20 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
+import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 
 /**
  * The {@code GraphBuilder} class parses the bytecode of a method and builds the IR graph.
  */
 public class GraphBuilderPhase extends Phase {
+
+    static class Options {
+        // @formatter:off
+        @Option(help = "The trace level for the bytecode parser used when building a graph from bytecode")
+        public static final OptionValue<Integer> TraceBytecodeParserLevel = new OptionValue<>(0);
+        // @formatter:on
+    }
 
     public static final class RuntimeCalls {
 
@@ -63,14 +71,14 @@ public class GraphBuilderPhase extends Phase {
     }
 
     /**
-     * The minimum value to which {@link GraalOptions#TraceBytecodeParserLevel} must be set to trace
-     * the bytecode instructions as they are parsed.
+     * The minimum value to which {@link Options#TraceBytecodeParserLevel} must be set to trace the
+     * bytecode instructions as they are parsed.
      */
     public static final int TRACELEVEL_INSTRUCTIONS = 1;
 
     /**
-     * The minimum value to which {@link GraalOptions#TraceBytecodeParserLevel} must be set to trace
-     * the frame state before each bytecode instruction as it is parsed.
+     * The minimum value to which {@link Options#TraceBytecodeParserLevel} must be set to trace the
+     * frame state before each bytecode instruction as it is parsed.
      */
     public static final int TRACELEVEL_STATE = 2;
 
@@ -688,9 +696,9 @@ public class GraphBuilderPhase extends Phase {
         frameState.ipush(append(new NormalizeCompareNode(x, y, isUnorderedLess)));
     }
 
-    private void genConvert(ConvertNode.Op opcode) {
-        ValueNode input = frameState.pop(opcode.from.getStackKind());
-        frameState.push(opcode.to.getStackKind(), append(new ConvertNode(opcode, input)));
+    private void genConvert(Kind from, Kind to) {
+        ValueNode input = frameState.pop(from.getStackKind());
+        frameState.push(to.getStackKind(), append(new ConvertNode(from, to, input)));
     }
 
     private void genIncrement() {
@@ -739,7 +747,7 @@ public class GraphBuilderPhase extends Phase {
         ValueNode b = mirror ? x : y;
 
         CompareNode condition;
-        assert a.kind() != Kind.Double && a.kind() != Kind.Float;
+        assert !a.kind().isNumericFloat();
         if (cond == Condition.EQ || cond == Condition.NE) {
             if (a.kind() == Kind.Object) {
                 condition = new ObjectEqualsNode(a, b);
@@ -1787,8 +1795,10 @@ public class GraphBuilderPhase extends Phase {
         }
     }
 
+    private final int traceLevel = Options.TraceBytecodeParserLevel.getValue();
+
     private void traceState() {
-        if (TraceBytecodeParserLevel.getValue() >= TRACELEVEL_STATE && Debug.isLogEnabled()) {
+        if (traceLevel >= TRACELEVEL_STATE && Debug.isLogEnabled()) {
             Debug.log(String.format("|   state [nr locals = %d, stack depth = %d, method = %s]", frameState.localsSize(), frameState.stackSize(), method));
             for (int i = 0; i < frameState.localsSize(); ++i) {
                 ValueNode value = frameState.localAt(i);
@@ -1940,21 +1950,21 @@ public class GraphBuilderPhase extends Phase {
             case LOR            : // fall through
             case LXOR           : genLogicOp(Kind.Long, opcode); break;
             case IINC           : genIncrement(); break;
-            case I2L            : genConvert(ConvertNode.Op.I2L); break;
-            case I2F            : genConvert(ConvertNode.Op.I2F); break;
-            case I2D            : genConvert(ConvertNode.Op.I2D); break;
-            case L2I            : genConvert(ConvertNode.Op.L2I); break;
-            case L2F            : genConvert(ConvertNode.Op.L2F); break;
-            case L2D            : genConvert(ConvertNode.Op.L2D); break;
-            case F2I            : genConvert(ConvertNode.Op.F2I); break;
-            case F2L            : genConvert(ConvertNode.Op.F2L); break;
-            case F2D            : genConvert(ConvertNode.Op.F2D); break;
-            case D2I            : genConvert(ConvertNode.Op.D2I); break;
-            case D2L            : genConvert(ConvertNode.Op.D2L); break;
-            case D2F            : genConvert(ConvertNode.Op.D2F); break;
-            case I2B            : genConvert(ConvertNode.Op.I2B); break;
-            case I2C            : genConvert(ConvertNode.Op.I2C); break;
-            case I2S            : genConvert(ConvertNode.Op.I2S); break;
+            case I2L            : genConvert(Kind.Int, Kind.Long); break;
+            case I2F            : genConvert(Kind.Int, Kind.Float); break;
+            case I2D            : genConvert(Kind.Int, Kind.Double); break;
+            case L2I            : genConvert(Kind.Long, Kind.Int); break;
+            case L2F            : genConvert(Kind.Long, Kind.Float); break;
+            case L2D            : genConvert(Kind.Long, Kind.Double); break;
+            case F2I            : genConvert(Kind.Float, Kind.Int); break;
+            case F2L            : genConvert(Kind.Float, Kind.Long); break;
+            case F2D            : genConvert(Kind.Float, Kind.Double); break;
+            case D2I            : genConvert(Kind.Double, Kind.Int); break;
+            case D2L            : genConvert(Kind.Double, Kind.Long); break;
+            case D2F            : genConvert(Kind.Double, Kind.Float); break;
+            case I2B            : genConvert(Kind.Int, Kind.Byte); break;
+            case I2C            : genConvert(Kind.Int, Kind.Char); break;
+            case I2S            : genConvert(Kind.Int, Kind.Short); break;
             case LCMP           : genCompareOp(Kind.Long, false); break;
             case FCMPL          : genCompareOp(Kind.Float, true); break;
             case FCMPG          : genCompareOp(Kind.Float, false); break;
@@ -2018,7 +2028,7 @@ public class GraphBuilderPhase extends Phase {
     }
 
     private void traceInstruction(int bci, int opcode, boolean blockStart) {
-        if (TraceBytecodeParserLevel.getValue() >= TRACELEVEL_INSTRUCTIONS && Debug.isLogEnabled()) {
+        if (traceLevel >= TRACELEVEL_INSTRUCTIONS && Debug.isLogEnabled()) {
             StringBuilder sb = new StringBuilder(40);
             sb.append(blockStart ? '+' : '|');
             if (bci < 10) {

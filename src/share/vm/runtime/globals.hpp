@@ -3774,6 +3774,9 @@ class CommandLineFlags {
   product(bool, TraceGPUInteraction, false,                                 \
           "Trace external GPU Interaction")                                 \
                                                                             \
+  product(bool, UseHSAILSimulator, false,                                   \
+          "Run code on HSAIL Simulator")                                    \
+                                                                            \
   diagnostic(ccstr, SharedArchiveFile, NULL,                                \
           "Override the default location of the CDS archive file")          \
                                                                             \

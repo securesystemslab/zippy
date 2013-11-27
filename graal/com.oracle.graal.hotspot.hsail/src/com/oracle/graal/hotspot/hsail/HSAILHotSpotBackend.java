@@ -60,14 +60,16 @@ public class HSAILHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public void completeInitialization() {
-        HSAILHotSpotForeignCallsProvider foreignCalls = (HSAILHotSpotForeignCallsProvider) getProviders().getForeignCalls();
-        foreignCalls.initialize(getProviders(), getRuntime().getConfig());
+    public boolean shouldAllocateRegisters() {
+        return true;
     }
 
     @Override
-    public boolean shouldAllocateRegisters() {
-        return true;
+    public void completeInitialization() {
+        final HotSpotProviders providers = getProviders();
+        HotSpotVMConfig config = getRuntime().getConfig();
+        final HotSpotLoweringProvider lowerer = (HotSpotLoweringProvider) providers.getLowerer();
+        lowerer.initialize(providers, config);
     }
 
     /**

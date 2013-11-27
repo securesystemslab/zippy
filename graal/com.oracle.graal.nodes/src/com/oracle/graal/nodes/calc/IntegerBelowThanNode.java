@@ -39,8 +39,8 @@ public final class IntegerBelowThanNode extends CompareNode {
      */
     public IntegerBelowThanNode(ValueNode x, ValueNode y) {
         super(x, y);
-        assert x.kind() != Kind.Double && x.kind() != Kind.Float && x.kind() != Kind.Object;
-        assert y.kind() != Kind.Double && y.kind() != Kind.Float && y.kind() != Kind.Object;
+        assert !x.kind().isNumericFloat() && x.kind() != Kind.Object;
+        assert !y.kind().isNumericFloat() && y.kind() != Kind.Object;
     }
 
     @Override
@@ -60,7 +60,7 @@ public final class IntegerBelowThanNode extends CompareNode {
         } else {
             if (x().isConstant() && x().asConstant().asLong() == 0) {
                 // 0 |<| y is the same as 0 != y
-                return graph().unique(new LogicNegationNode(CompareNode.createCompareNode(Condition.EQ, x(), y())));
+                return graph().unique(new LogicNegationNode(CompareNode.createCompareNode(graph(), Condition.EQ, x(), y())));
             }
 
             if (x().stamp() instanceof IntegerStamp && y().stamp() instanceof IntegerStamp) {
