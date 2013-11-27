@@ -76,7 +76,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     }
 
     @Override
-    protected HotSpotProviders getProviders() {
+    public HotSpotProviders getProviders() {
         return (HotSpotProviders) super.getProviders();
     }
 
@@ -406,7 +406,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
     @Override
     public void emitDeoptimizeCaller(DeoptimizationAction action, DeoptimizationReason reason) {
-        moveDeoptimizationActionAndReasonToThread(getMetaAccess().encodeDeoptActionAndReason(action, reason));
+        moveDeoptimizationActionAndReasonToThread(getMetaAccess().encodeDeoptActionAndReason(action, reason, 0));
         append(new AMD64HotSpotDeoptimizeCallerOp());
     }
 

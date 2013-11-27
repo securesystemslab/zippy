@@ -732,6 +732,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
 
+  set_long("elapsedTimerFrequency", os::elapsed_frequency());
+
   //------------------------------------------------------------------------------------------------
 
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());

@@ -169,19 +169,11 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Boolean> PrintProfilingInformation = new OptionValue<>(false);
     @Option(help = "")
-    public static final OptionValue<Boolean> PrintIRWithLIR = new OptionValue<>(false);
-    @Option(help = "")
     public static final OptionValue<Boolean> PrintCodeBytes = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> PrintBailout = new OptionValue<>(false);
     @Option(help = "")
-    public static final OptionValue<Integer> TraceLinearScanLevel = new OptionValue<>(0);
-    @Option(help = "")
-    public static final OptionValue<Integer> TraceLIRGeneratorLevel = new OptionValue<>(0);
-    @Option(help = "")
     public static final OptionValue<Boolean> TraceEscapeAnalysis = new OptionValue<>(false);
-    @Option(help = "")
-    public static final OptionValue<Integer> TraceBytecodeParserLevel = new OptionValue<>(0);
     @Option(help = "")
     public static final OptionValue<Boolean> ExitVMOnBailout = new OptionValue<>(false);
     @Option(help = "")
@@ -234,9 +226,9 @@ public final class GraalOptions {
     public static final OptionValue<Boolean> CanOmitFrame = new OptionValue<>(true);
 
     @Option(help = "")
-    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(true);
+    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(false);
     @Option(help = "")
-    public static final OptionValue<Boolean> NewMemoryAwareScheduling = new OptionValue<>(false);
+    public static final OptionValue<Boolean> NewMemoryAwareScheduling = new OptionValue<>(true);
 
     // Translating tableswitch instructions
     @Option(help = "")
@@ -296,34 +288,4 @@ public final class GraalOptions {
      */
     @Option(help = "")
     public static final OptionValue<Boolean> SnippetCounters = new OptionValue<>(false);
-
-    /**
-     * If the probability that a checkcast will hit one the profiled types (up to {@link #CheckcastMaxHints})
-     * is below this value, the checkcast will be compiled without hints.
-     */
-    @Option(help = "")
-    public static final OptionValue<Double> CheckcastMinHintHitProbability = new OptionValue<>(0.5);
-
-    /**
-     * The maximum number of hint types that will be used when compiling a checkcast for which
-     * profiling information is available. Note that {@link #CheckcastMinHintHitProbability}
-     * also influences whether hints are used.
-     */
-    @Option(help = "")
-    public static final OptionValue<Integer> CheckcastMaxHints = new OptionValue<>(2);
-
-    /**
-     * If the probability that an instanceof will hit one the profiled types (up to {@link #InstanceOfMaxHints})
-     * is below this value, the instanceof will be compiled without hints.
-     */
-    @Option(help = "")
-    public static final OptionValue<Double> InstanceOfMinHintHitProbability = new OptionValue<>(0.5);
-
-    /**
-     * The maximum number of hint types that will be used when compiling an instanceof for which
-     * profiling information is available. Note that {@link #InstanceOfMinHintHitProbability}
-     * also influences whether hints are used.
-     */
-    @Option(help = "")
-    public static final OptionValue<Integer> InstanceOfMaxHints = new OptionValue<>(2);
 }

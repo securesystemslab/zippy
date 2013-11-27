@@ -49,7 +49,21 @@ gpu::Ptx::cuda_cu_module_get_function_func_t gpu::Ptx::_cuda_cu_module_get_funct
 gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data_ex;
 gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
 gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
+gpu::Ptx::cuda_cu_mem_host_register_func_t gpu::Ptx::_cuda_cu_mem_host_register;
+gpu::Ptx::cuda_cu_mem_host_get_device_pointer_func_t gpu::Ptx::_cuda_cu_mem_host_get_device_pointer;
+gpu::Ptx::cuda_cu_mem_host_unregister_func_t gpu::Ptx::_cuda_cu_mem_host_unregister;
 
+#define STRINGIFY(x)     #x
+
+#define LOOKUP_CUDA_FUNCTION(name, alias)  \
+  _##alias =                               \
+    CAST_TO_FN_PTR(alias##_func_t, os::dll_lookup(handle, STRINGIFY(name))); \
+  if (_##alias == NULL) {      \
+  tty->print_cr("[CUDA] ***** Error: Failed to lookup %s", STRINGIFY(name)); \
+        return 0; \
+  } \
+
+#define LOOKUP_CUDA_V2_FUNCTION(name, alias)  LOOKUP_CUDA_FUNCTION(name##_v2, alias)
 
 /*
  * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
@@ -199,7 +213,7 @@ unsigned int gpu::Ptx::total_cores() {
         tty->print_cr("[CUDA] Failed to get GRAAL_CU_DEVICE_ATTRIBUTE_WARP_SIZE: %d", _cu_device);
         return 0;
     }
-    
+
     status = _cuda_cu_device_get_attribute(&async_engines,
                                            GRAAL_CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT,
                                            _cu_device);
@@ -234,7 +248,7 @@ unsigned int gpu::Ptx::total_cores() {
         tty->print_cr("[CUDA] Max threads per block: %d warp size: %d", max_threads_per_block, warp_size);
     }
     return (total);
-    
+
 }
 
 void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
@@ -262,7 +276,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   jit_option_values[2] = (void *)(size_t)jit_register_count;
 
   /* Create CUDA context to compile and execute the kernel */
-  int status = _cuda_cu_ctx_create(&_device_context, 0, _cu_device);
+  int status = _cuda_cu_ctx_create(&_device_context, GRAAL_CU_CTX_MAP_HOST, _cu_device);
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
@@ -443,9 +457,6 @@ bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
        tty->print_cr("[CUDA] TODO *** Unhandled return type: %d", return_type);
   }
 
-  // Copy all reference arguments from device to host memory.
-  ptxka.copyRefArgsFromDtoH();
-
   // Free device memory allocated for result
   status = gpu::Ptx::_cuda_cu_memfree(ptxka._dev_return_value);
   if (status != GRAAL_CUDA_SUCCESS) {
@@ -487,40 +498,36 @@ bool gpu::Ptx::probe_linkage() {
     void *handle = os::dll_load(cuda_library_name, buffer, STD_BUFFER_SIZE);
         free(buffer);
     if (handle != NULL) {
-      _cuda_cu_init =
-        CAST_TO_FN_PTR(cuda_cu_init_func_t, os::dll_lookup(handle, "cuInit"));
-      _cuda_cu_ctx_create =
-        CAST_TO_FN_PTR(cuda_cu_ctx_create_func_t, os::dll_lookup(handle, "cuCtxCreate"));
-      _cuda_cu_ctx_destroy =
-        CAST_TO_FN_PTR(cuda_cu_ctx_destroy_func_t, os::dll_lookup(handle, "cuCtxDestroy"));
-      _cuda_cu_ctx_synchronize =
-        CAST_TO_FN_PTR(cuda_cu_ctx_synchronize_func_t, os::dll_lookup(handle, "cuCtxSynchronize"));
-      _cuda_cu_ctx_set_current =
-        CAST_TO_FN_PTR(cuda_cu_ctx_set_current_func_t, os::dll_lookup(handle, "cuCtxSetCurrent"));
-      _cuda_cu_device_get_count =
-        CAST_TO_FN_PTR(cuda_cu_device_get_count_func_t, os::dll_lookup(handle, "cuDeviceGetCount"));
-      _cuda_cu_device_get_name =
-        CAST_TO_FN_PTR(cuda_cu_device_get_name_func_t, os::dll_lookup(handle, "cuDeviceGetName"));
-      _cuda_cu_device_get =
-        CAST_TO_FN_PTR(cuda_cu_device_get_func_t, os::dll_lookup(handle, "cuDeviceGet"));
-      _cuda_cu_device_compute_capability =
-        CAST_TO_FN_PTR(cuda_cu_device_compute_capability_func_t, os::dll_lookup(handle, "cuDeviceComputeCapability"));
-      _cuda_cu_device_get_attribute =
-        CAST_TO_FN_PTR(cuda_cu_device_get_attribute_func_t, os::dll_lookup(handle, "cuDeviceGetAttribute"));
-      _cuda_cu_module_get_function =
-        CAST_TO_FN_PTR(cuda_cu_module_get_function_func_t, os::dll_lookup(handle, "cuModuleGetFunction"));
-      _cuda_cu_module_load_data_ex =
-        CAST_TO_FN_PTR(cuda_cu_module_load_data_ex_func_t, os::dll_lookup(handle, "cuModuleLoadDataEx"));
-      _cuda_cu_launch_kernel =
-        CAST_TO_FN_PTR(cuda_cu_launch_kernel_func_t, os::dll_lookup(handle, "cuLaunchKernel"));
-      _cuda_cu_memalloc =
-        CAST_TO_FN_PTR(cuda_cu_memalloc_func_t, os::dll_lookup(handle, "cuMemAlloc"));
-      _cuda_cu_memfree =
-        CAST_TO_FN_PTR(cuda_cu_memfree_func_t, os::dll_lookup(handle, "cuMemFree"));
-      _cuda_cu_memcpy_htod =
-        CAST_TO_FN_PTR(cuda_cu_memcpy_htod_func_t, os::dll_lookup(handle, "cuMemcpyHtoD"));
-      _cuda_cu_memcpy_dtoh =
-        CAST_TO_FN_PTR(cuda_cu_memcpy_dtoh_func_t, os::dll_lookup(handle, "cuMemcpyDtoH"));
+      LOOKUP_CUDA_FUNCTION(cuInit, cuda_cu_init);
+      LOOKUP_CUDA_FUNCTION(cuCtxSynchronize, cuda_cu_ctx_synchronize);
+      LOOKUP_CUDA_FUNCTION(cuCtxSetCurrent, cuda_cu_ctx_set_current);
+      LOOKUP_CUDA_FUNCTION(cuDeviceGetCount, cuda_cu_device_get_count);
+      LOOKUP_CUDA_FUNCTION(cuDeviceGetName, cuda_cu_device_get_name);
+      LOOKUP_CUDA_FUNCTION(cuDeviceGet, cuda_cu_device_get);
+      LOOKUP_CUDA_FUNCTION(cuDeviceComputeCapability, cuda_cu_device_compute_capability);
+      LOOKUP_CUDA_FUNCTION(cuDeviceGetAttribute, cuda_cu_device_get_attribute);
+      LOOKUP_CUDA_FUNCTION(cuModuleGetFunction, cuda_cu_module_get_function);
+      LOOKUP_CUDA_FUNCTION(cuModuleLoadDataEx, cuda_cu_module_load_data_ex);
+      LOOKUP_CUDA_FUNCTION(cuLaunchKernel, cuda_cu_launch_kernel);
+      LOOKUP_CUDA_FUNCTION(cuMemHostRegister, cuda_cu_mem_host_register);
+      LOOKUP_CUDA_FUNCTION(cuMemHostUnregister, cuda_cu_mem_host_unregister);
+#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+      LOOKUP_CUDA_V2_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
+      LOOKUP_CUDA_V2_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
+      LOOKUP_CUDA_V2_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
+      LOOKUP_CUDA_V2_FUNCTION(cuMemFree, cuda_cu_memfree);
+      LOOKUP_CUDA_V2_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
+      LOOKUP_CUDA_V2_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
+      LOOKUP_CUDA_V2_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
+#else
+      LOOKUP_CUDA_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
+      LOOKUP_CUDA_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
+      LOOKUP_CUDA_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
+      LOOKUP_CUDA_FUNCTION(cuMemFree, cuda_cu_memfree);
+      LOOKUP_CUDA_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
+      LOOKUP_CUDA_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
+      LOOKUP_CUDA_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
+#endif
 
       if (TraceGPUInteraction) {
         tty->print_cr("[CUDA] Success: library linkage");

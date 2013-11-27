@@ -38,6 +38,8 @@ public class PythonOptions {
 
     public static final boolean OptimizeNode = true;
 
+    public static boolean PrintFunction = false;
+
     // Runtime flags
     public static final boolean UseUnsafe = true;
 

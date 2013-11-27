@@ -24,6 +24,7 @@
 package com.oracle.graal.compiler.hsail.test;
 
 import org.junit.Test;
+
 import static org.junit.Assume.*;
 
 /**
@@ -41,17 +42,15 @@ public class StringContainsAcceptTest extends StringContainsTest {
 
     @Override
     public void runTest() {
+        assumeTrue(aggressiveInliningEnabled() || canHandleHSAILMethodCalls());
         setupArrays();
 
         dispatchMethodKernel(NUM);
     }
 
-    // fails on 3rd workitem
     @Test
     @Override
     public void test() {
-        assumeTrue(aggressiveInliningEnabled() || canHandleHSAILMethodCalls());
         testGeneratedHsail();
     }
-
 }

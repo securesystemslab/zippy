@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,16 +20,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes;
+package com.oracle.graal.jtt.loop;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.graal.jtt.*;
+import org.junit.*;
 
-public abstract class TimeNode extends TypedNode {
+/*
+ */
+public class LoopUnroll extends JTTTest {
 
-    public static final long START_TIME = System.currentTimeMillis();
-
-    @Specialization
-    public int doInt() {
-        return (int) (System.currentTimeMillis() - START_TIME);
+    public static int test(int input) {
+        int ret = 2;
+        int current = input;
+        for (int i = 0; i < 7; i++) {
+            ret *= 2 + current;
+            current /= 50;
+        }
+        return ret;
     }
+
+    @Test
+    public void run0() throws Throwable {
+        runTest("test", 42);
+    }
+
 }

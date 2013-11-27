@@ -55,7 +55,6 @@ public class PythonBuiltinsLookup {
 
     public PythonModule lookupModule(String name) {
         PythonModule module = builtinModules.get(name);
-        assert module != null;
         return module;
     }
 

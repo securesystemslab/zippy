@@ -77,14 +77,17 @@ public class CustomConsole extends JLineConsole {
      */
     public static PythonParseResult parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
 
-        // enable printing flag for python's builtin function (v3.x) in parser.
-        String print = "from __future__ import print_function \n";
-        InputStream printFlag = new ByteArrayInputStream(print.getBytes());
-        InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
+        mod node = null;
+        if (!PythonOptions.PrintFunction) {
+            // enable printing flag for python's builtin function (v3.x) in parser.
+            String print = "from __future__ import print_function \n";
+            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
+            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
 
-        mod node = ParserFacade.parse(withPrintFlag, kind, filename, cflags);
-
-// mod node = ParserFacade.parse(istream, kind, filename, cflags);
+            node = ParserFacade.parse(withPrintFlag, kind, filename, cflags);
+        } else {
+            node = ParserFacade.parse(istream, kind, filename, cflags);
+        }
         TranslationEnvironment environment = new TranslationEnvironment(node, context);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);

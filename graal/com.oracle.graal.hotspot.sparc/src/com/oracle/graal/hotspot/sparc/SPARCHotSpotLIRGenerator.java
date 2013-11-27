@@ -57,7 +57,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
     }
 
     @Override
-    protected HotSpotProviders getProviders() {
+    public HotSpotProviders getProviders() {
         return (HotSpotProviders) super.getProviders();
     }
 
@@ -207,7 +207,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
 
     @Override
     public void emitDeoptimizeCaller(DeoptimizationAction action, DeoptimizationReason reason) {
-        moveDeoptimizationActionAndReasonToThread(getMetaAccess().encodeDeoptActionAndReason(action, reason));
+        moveDeoptimizationActionAndReasonToThread(getMetaAccess().encodeDeoptActionAndReason(action, reason, 0));
         append(new SPARCHotSpotDeoptimizeCallerOp());
     }
 

@@ -45,10 +45,6 @@ public:
   // Device pointer holding return value
   gpu::Ptx::CUdeviceptr _dev_return_value;
 
-  // Indicates if signature iteration is being done during kernel
-  // setup i.e., java arguments are being copied to device pointers.
-  bool _kernelArgSetup;
-
 private:
   // Array of java argument oops
   arrayOop _args;
@@ -68,8 +64,6 @@ private:
     _success = true;
     _bufferOffset = 0;
     _dev_return_value = 0;
-    _kernelArgSetup = true;
-    //_dev_call_by_reference_args_index = 0;
     if (!is_static) {
       // TODO : Create a device argument for receiver object and add it to _kernelBuffer
       tty->print_cr("{CUDA] ****** TODO: Support for execution of non-static java methods not implemented yet.");
@@ -87,17 +81,6 @@ private:
     return _bufferOffset;
   }
 
-  void copyRefArgsFromDtoH() {
-    _kernelArgSetup = false;
-    _bufferOffset = 0;
-    _index = 0;
-    iterate();
-  }
-
-  inline bool is_kernel_arg_setup() {
-    return _kernelArgSetup;
-  }
-
   // Get the return oop value
   oop get_return_oop();
 
@@ -106,6 +89,10 @@ private:
       return _dev_return_value;
   }
 
+  /*
+   * Pad kernel argument buffer to naturally align for given size.
+   */
+  void pad_kernel_argument_buffer(size_t);
 
   void do_byte();
   void do_bool();

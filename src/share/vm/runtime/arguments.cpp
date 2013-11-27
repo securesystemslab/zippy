@@ -2632,6 +2632,11 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
           return JNI_ERR;
         }
 #endif // !INCLUDE_JVMTI
+#if defined(GRAAL)
+        if (strcmp(name, "hprof") == 0) {
+          FLAG_SET_CMDLINE(bool, GraalHProfEnabled, true);
+        }
+#endif
         add_init_library(name, options);
       }
     // -agentlib and -agentpath
@@ -2654,6 +2659,12 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
           return JNI_ERR;
         }
 #endif // !INCLUDE_JVMTI
+#if defined(GRAAL)
+        if (valid_hprof_or_jdwp_agent(name, is_absolute_path)) {
+          FLAG_SET_CMDLINE(bool, GraalHProfEnabled, true);
+        }
+#endif
+
         add_init_agent(name, options, is_absolute_path);
       }
     // -javaagent

@@ -2125,21 +2125,19 @@ void CompileBroker::collect_statistics(CompilerThread* thread, elapsedTimer time
     _peak_compilation_time = time.milliseconds() > _peak_compilation_time ? time.milliseconds() : _peak_compilation_time;
 
     if (CITime) {
+      int bytes_compiled = method->code_size() + task->num_inlined_bytecodes();
+      GRAAL_ONLY(CompilerStatistics* stats = compiler(task->comp_level())->stats();)
       if (is_osr) {
         _t_osr_compilation.add(time);
-        _sum_osr_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
-#ifdef GRAAL
-        compiler(task->comp_level())->stats()->_t_osr_compilation.add(time);
-        compiler(task->comp_level())->stats()->_sum_osr_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
-#endif
+        _sum_osr_bytes_compiled += bytes_compiled;
+        GRAAL_ONLY(stats->_osr.update(time, bytes_compiled);)
       } else {
         _t_standard_compilation.add(time);
         _sum_standard_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
-#ifdef GRAAL
-        compiler(task->comp_level())->stats()->_t_standard_compilation.add(time);
-        compiler(task->comp_level())->stats()->_sum_standard_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
-#endif
+        GRAAL_ONLY(stats->_standard.update(time, bytes_compiled);)
       }
+      GRAAL_ONLY(stats->_nmethods_size += code->total_size();)
+      GRAAL_ONLY(stats->_nmethods_code_size += code->insts_size();)
     }
 
     if (UsePerfData) {
@@ -2196,16 +2194,82 @@ const char* CompileBroker::compiler_name(int comp_level) {
 }
 
 void CompileBroker::print_times() {
+#ifdef GRAAL
+  elapsedTimer standard_compilation;
+  elapsedTimer total_compilation;
+  elapsedTimer osr_compilation;
+
+  int standard_bytes_compiled = 0;
+  int osr_bytes_compiled = 0;
+
+  int standard_compile_count = 0;
+  int osr_compile_count = 0;
+  int total_compile_count = 0;
+
+  int nmethods_size = 0;
+  int nmethods_code_size = 0;
+  bool printedHeader = false;
+
+  for (unsigned int i = 0; i < sizeof(_compilers) / sizeof(AbstractCompiler*); i++) {
+    AbstractCompiler* comp = _compilers[i];
+    if (comp != NULL) {
+      if (!printedHeader) {
+        printedHeader = true;
+        tty->cr();
+        tty->print_cr("Individual compiler times (for compiled methods only)");
+        tty->print_cr("------------------------------------------------");
+        tty->cr();
+      }
+      CompilerStatistics* stats = comp->stats();
+
+      standard_compilation.add(stats->_standard._time);
+      osr_compilation.add(stats->_osr._time);
+
+      standard_bytes_compiled += stats->_standard._bytes;
+      osr_bytes_compiled += stats->_osr._bytes;
+
+      standard_compile_count += stats->_standard._count;
+      osr_compile_count += stats->_osr._count;
+
+      nmethods_size += stats->_nmethods_size;
+      nmethods_code_size += stats->_nmethods_code_size;
+
+      tty->print_cr("  %s { speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
+          comp->name(), stats->bytes_per_second(),
+          stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
+          stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
+          stats->_nmethods_size, stats->_nmethods_code_size);
+    }
+  }
+  total_compile_count = osr_compile_count + standard_compile_count;
+  total_compilation.add(osr_compilation);
+  total_compilation.add(standard_compilation);
+#else
+  elapsedTimer standard_compilation = CompileBroker::_t_standard_compilation;
+  elapsedTimer osr_compilation = CompileBroker::_t_osr_compilation;
+  elapsedTimer total_compilation = CompileBroker::_t_total_compilation;
+
+  int standard_bytes_compiled = CompileBroker::_sum_standard_bytes_compiled;
+  int osr_bytes_compiled = CompileBroker::_sum_osr_bytes_compiled;
+
+  int standard_compile_count = CompileBroker::_total_standard_compile_count;
+  int osr_compile_count = CompileBroker::_total_osr_compile_count;
+  int total_compile_count = CompileBroker::_total_compile_count;
+
+  int nmethods_size = CompileBroker::_sum_nmethod_code_size;
+  int nmethods_code_size = CompileBroker::_sum_nmethod_size;
+#endif
+
   tty->cr();
   tty->print_cr("Accumulated compiler times (for compiled methods only)");
   tty->print_cr("------------------------------------------------");
                //0000000000111111111122222222223333333333444444444455555555556666666666
                //0123456789012345678901234567890123456789012345678901234567890123456789
-  tty->print_cr("  Total compilation time   : %6.3f s", CompileBroker::_t_total_compilation.seconds());
+  tty->print_cr("  Total compilation time   : %6.3f s", total_compilation.seconds());
   tty->print_cr("    Standard compilation   : %6.3f s, Average : %2.3f",
-                CompileBroker::_t_standard_compilation.seconds(),
-                CompileBroker::_t_standard_compilation.seconds() / CompileBroker::_total_standard_compile_count);
-  tty->print_cr("    On stack replacement   : %6.3f s, Average : %2.3f", CompileBroker::_t_osr_compilation.seconds(), CompileBroker::_t_osr_compilation.seconds() / CompileBroker::_total_osr_compile_count);
+                standard_compilation.seconds(),
+                standard_compilation.seconds() / standard_compile_count);
+  tty->print_cr("    On stack replacement   : %6.3f s, Average : %2.3f", osr_compilation.seconds(), osr_compilation.seconds() / osr_compile_count);
 
   AbstractCompiler *comp = compiler(CompLevel_simple);
   if (comp != NULL) {
@@ -2216,35 +2280,19 @@ void CompileBroker::print_times() {
     comp->print_timers();
   }
   tty->cr();
-  tty->print_cr("  Total compiled methods   : %6d methods", CompileBroker::_total_compile_count);
-  tty->print_cr("    Standard compilation   : %6d methods", CompileBroker::_total_standard_compile_count);
-  tty->print_cr("    On stack replacement   : %6d methods", CompileBroker::_total_osr_compile_count);
-  int tcb = CompileBroker::_sum_osr_bytes_compiled + CompileBroker::_sum_standard_bytes_compiled;
+  tty->print_cr("  Total compiled methods   : %6d methods", total_compile_count);
+  tty->print_cr("    Standard compilation   : %6d methods", standard_compile_count);
+  tty->print_cr("    On stack replacement   : %6d methods", osr_compile_count);
+  int tcb = osr_bytes_compiled + standard_bytes_compiled;
   tty->print_cr("  Total compiled bytecodes : %6d bytes", tcb);
-  tty->print_cr("    Standard compilation   : %6d bytes", CompileBroker::_sum_standard_bytes_compiled);
-  tty->print_cr("    On stack replacement   : %6d bytes", CompileBroker::_sum_osr_bytes_compiled);
-  double tcs = CompileBroker::_t_total_compilation.seconds();
+  tty->print_cr("    Standard compilation   : %6d bytes", standard_bytes_compiled);
+  tty->print_cr("    On stack replacement   : %6d bytes", osr_bytes_compiled);
+  double tcs = total_compilation.seconds();
   int bps = tcs == 0.0 ? 0 : (int)(tcb / tcs);
   tty->print_cr("  Average compilation speed: %6d bytes/s", bps);
-#ifdef GRAAL
-  for (unsigned int i = 0; i < sizeof(_compilers) / sizeof(AbstractCompiler*); i++) {
-    AbstractCompiler* comp = _compilers[i];
-    if (comp != NULL) {
-      CompilerStatistics* stats = comp->stats();
-      int bytecodes = stats->_sum_osr_bytes_compiled + stats->_sum_standard_bytes_compiled;
-      if (bytecodes != 0) {
-        double seconds = stats->_t_osr_compilation.seconds() + stats->_t_standard_compilation.seconds();
-        int bps = seconds == 0.0 ? 0 : (int) (bytecodes / seconds);
-        tty->print_cr("  %7s compilation speed: %6d bytes/s {standard: %6.3f s, %6d bytes; osr: %6.3f s, %6d bytes}",
-            comp->name(), bps, stats->_t_standard_compilation.seconds(), stats->_sum_standard_bytes_compiled,
-            stats->_t_osr_compilation.seconds(), stats->_sum_osr_bytes_compiled);
-      }
-    }
-  }
-#endif
   tty->cr();
-  tty->print_cr("  nmethod code size        : %6d bytes", CompileBroker::_sum_nmethod_code_size);
-  tty->print_cr("  nmethod total size       : %6d bytes", CompileBroker::_sum_nmethod_size);
+  tty->print_cr("  nmethod code size        : %6d bytes", nmethods_code_size);
+  tty->print_cr("  nmethod total size       : %6d bytes", nmethods_size);
 }
 
 // Debugging output for failure

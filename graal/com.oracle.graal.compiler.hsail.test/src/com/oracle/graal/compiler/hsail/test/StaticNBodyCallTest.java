@@ -37,10 +37,15 @@ public class StaticNBodyCallTest extends StaticNBodyTest {
         StaticNBodyTest.run(inxyz, outxyz, invxyz, outvxyz, gid);
     }
 
+    @Override
+    public void runTest() {
+        assumeTrue(aggressiveInliningEnabled() || canHandleHSAILMethodCalls());
+        super.runTest();
+    }
+
     @Test
     @Override
-    public void test() {
-        assumeTrue(aggressiveInliningEnabled() || canHandleHSAILMethodCalls());
+    public void test() throws Exception {
         testGeneratedHsail();
     }
 }

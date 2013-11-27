@@ -99,22 +99,24 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
     if (TraceGPUInteraction) {
       switch (ptxka.get_ret_type()) {
         case T_INT:
-          tty->print_cr("GPU execution returned %d", result.get_jint());
+          tty->print_cr("GPU execution returned (int) %d", result.get_jint());
+          break;
+        case T_LONG:
+          tty->print_cr("GPU execution returned (long) %ld", result.get_jlong());
           break;
         case T_FLOAT:
-          tty->print_cr("GPU execution returned %f", result.get_jfloat());
+          tty->print_cr("GPU execution returned (float) %f", result.get_jfloat());
           break;
         case T_DOUBLE:
-          tty->print_cr("GPU execution returned %f", result.get_jdouble());
+          tty->print_cr("GPU execution returned (double) %f", result.get_jdouble());
           break;
         default:
-          tty->print_cr("GPU returned unhandled");
+          tty->print_cr("**** Value returned by GPU not yet handled");
           break;
         }
     }
     return JNIHandles::make_local(o);
   }
-
 C2V_END
 
 C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
@@ -136,9 +138,14 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   // start value is the kernel
   jlong startValue = HotSpotInstalledCode::codeStart(hotspotInstalledCode);
 
+  if (UseHSAILSimulator) {
+    gpu::execute_kernel_void_1d((address)startValue, dimX, args, mh);
+    return NULL;
+  }
+
   PTXKernelArguments ptxka(signature, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(ptxka.get_ret_type());
-if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
+  if (!gpu::execute_warp(dimX, dimY, dimZ, (address) startValue, ptxka, result)) {
     return NULL;
   }
 
@@ -166,7 +173,6 @@ if (!gpu::execute_warp(dimX, dimY, dimZ, (address)startValue, ptxka, result)) {
     }
     return JNIHandles::make_local(o);
   }
-
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))

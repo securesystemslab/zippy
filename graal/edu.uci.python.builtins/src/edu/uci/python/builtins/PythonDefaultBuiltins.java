@@ -466,7 +466,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 }
 
-                throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+                throw new RuntimeException();
+                // throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) +
+// "' has no len()");
             }
         }
 
@@ -519,6 +521,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return arg1.getMax();
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
@@ -608,6 +611,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return arg1.getMin();
             }
 
+            @SuppressWarnings("unused")
             @Specialization
             public Object minGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {

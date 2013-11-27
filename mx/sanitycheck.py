@@ -24,7 +24,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, commands, os, sys, StringIO, subprocess, time
+import re, mx, mx_graal, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 
 gc = 'UseSerialGC'
@@ -102,7 +102,7 @@ pythonTestBenchmarks = {
     'fannkuchredux3' : '9',
     'fasta3'        : '250000',
     'mandelbrot3'   : '600',
-    'meteor3'       : '2098',
+    #'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
 }
@@ -123,9 +123,9 @@ pythonMicroBenchmarks = {
 
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
-    #'fannkuchredux3t' : '10',
+    'fannkuchredux3t' : '11',
     #'fasta3t'         : '25000000',
-    #'mandelbrot3t'    : '4000',
+    'mandelbrot3t'    : '4000',
     #'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',
@@ -133,9 +133,9 @@ pythonBenchmarks = {
 
 python2Benchmarks = {
     'binarytrees2t'   : '19',
-    #'fannkuchredux2t' : '10',
+    'fannkuchredux2t' : '11',
     #'fasta2t'         : '25000000',
-    #'mandelbrot2t'    : '4000',
+    'mandelbrot2t'    : '4000',
     #'meteor2t'        : '2098',
     'nbody2t'         : '5000000',
     'spectralnorm2t'  : '5500',   
@@ -391,12 +391,12 @@ def getCTW(vm, mode):
     if vm == 'graal':
         args += ['-XX:+BootstrapGraal']
     if mode >= CTWMode.NoInline:
-        if not commands.isGraalEnabled(vm):
+        if not mx_graal.isGraalEnabled(vm):
             args.append('-XX:-Inline')
         else:
             args.append('-G:-Inline')
     if mode >= CTWMode.NoComplex:
-        if commands.isGraalEnabled(vm):
+        if mx_graal.isGraalEnabled(vm):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
 
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
@@ -448,7 +448,7 @@ class Test:
             parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
 
         tee = Tee()
-        retcode = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+        retcode = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
         output = tee.output.getvalue()
         valueMaps = parser.parse(output)
 
@@ -521,7 +521,7 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-
+  
             # if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
             #     mx.abort("Benchmark failed (non-zero retcode)")
             # zippy
@@ -531,13 +531,13 @@ class Test:
             elif vm == 'cpython':
                 result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
-                result = commands.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
+                result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
             elif vm == 'pypy':
                 result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'pypy3':
                 result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
             else:
-                result = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+                result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
 
             if result != 0:         
                 mx.abort("Benchmark failed (non-zero retcode)")

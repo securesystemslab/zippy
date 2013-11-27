@@ -135,42 +135,39 @@ public class StampTool {
     }
 
     public static IntegerStamp add(IntegerStamp stamp1, IntegerStamp stamp2) {
-        try {
-            if (stamp1.isUnrestricted() || stamp2.isUnrestricted()) {
-                return (IntegerStamp) StampFactory.forKind(stamp1.kind());
-            }
-            Kind kind = stamp1.kind();
-            assert stamp1.kind() == stamp2.kind();
-            long defaultMask = IntegerStamp.defaultMask(kind);
-            long variableBits = (stamp1.downMask() ^ stamp1.upMask()) | (stamp2.downMask() ^ stamp2.upMask());
-            long variableBitsWithCarry = variableBits | (carryBits(stamp1.downMask(), stamp2.downMask()) ^ carryBits(stamp1.upMask(), stamp2.upMask()));
-            long newDownMask = (stamp1.downMask() + stamp2.downMask()) & ~variableBitsWithCarry;
-            long newUpMask = (stamp1.downMask() + stamp2.downMask()) | variableBitsWithCarry;
-
-            newDownMask &= defaultMask;
-            newUpMask &= defaultMask;
-
-            long lowerBound;
-            long upperBound;
-            boolean lowerOverflowsPositively = addOverflowsPositively(stamp1.lowerBound(), stamp2.lowerBound(), kind);
-            boolean upperOverflowsPositively = addOverflowsPositively(stamp1.upperBound(), stamp2.upperBound(), kind);
-            boolean lowerOverflowsNegatively = addOverflowsNegatively(stamp1.lowerBound(), stamp2.lowerBound(), kind);
-            boolean upperOverflowsNegatively = addOverflowsNegatively(stamp1.upperBound(), stamp2.upperBound(), kind);
-            if ((lowerOverflowsNegatively && !upperOverflowsNegatively) || (!lowerOverflowsNegatively && !lowerOverflowsPositively && upperOverflowsPositively)) {
-                lowerBound = kind.getMinValue();
-                upperBound = kind.getMaxValue();
-            } else {
-                lowerBound = signExtend(stamp1.lowerBound() + stamp2.lowerBound(), kind);
-                upperBound = signExtend(stamp1.upperBound() + stamp2.upperBound(), kind);
-            }
-            IntegerStamp limit = StampFactory.forInteger(kind, lowerBound, upperBound);
-            newUpMask &= limit.upMask();
-            upperBound = signExtend(upperBound & newUpMask, kind);
-            lowerBound |= newDownMask;
-            return new IntegerStamp(kind, lowerBound, upperBound, newDownMask, newUpMask);
-        } catch (Throwable e) {
-            throw new RuntimeException(stamp1 + " + " + stamp2, e);
+        if (stamp1.isUnrestricted() || stamp2.isUnrestricted()) {
+            return (IntegerStamp) StampFactory.forKind(stamp1.kind());
         }
+        Kind kind = stamp1.kind();
+        assert stamp1.kind() == stamp2.kind();
+        long defaultMask = IntegerStamp.defaultMask(kind);
+        long variableBits = (stamp1.downMask() ^ stamp1.upMask()) | (stamp2.downMask() ^ stamp2.upMask());
+        long variableBitsWithCarry = variableBits | (carryBits(stamp1.downMask(), stamp2.downMask()) ^ carryBits(stamp1.upMask(), stamp2.upMask()));
+        long newDownMask = (stamp1.downMask() + stamp2.downMask()) & ~variableBitsWithCarry;
+        long newUpMask = (stamp1.downMask() + stamp2.downMask()) | variableBitsWithCarry;
+
+        newDownMask &= defaultMask;
+        newUpMask &= defaultMask;
+
+        long lowerBound;
+        long upperBound;
+        boolean lowerOverflowsPositively = addOverflowsPositively(stamp1.lowerBound(), stamp2.lowerBound(), kind);
+        boolean upperOverflowsPositively = addOverflowsPositively(stamp1.upperBound(), stamp2.upperBound(), kind);
+        boolean lowerOverflowsNegatively = addOverflowsNegatively(stamp1.lowerBound(), stamp2.lowerBound(), kind);
+        boolean upperOverflowsNegatively = addOverflowsNegatively(stamp1.upperBound(), stamp2.upperBound(), kind);
+        if ((lowerOverflowsNegatively && !upperOverflowsNegatively) || (!lowerOverflowsPositively && upperOverflowsPositively)) {
+            lowerBound = kind.getMinValue();
+            upperBound = kind.getMaxValue();
+        } else {
+            lowerBound = signExtend((stamp1.lowerBound() + stamp2.lowerBound()) & defaultMask, kind);
+            upperBound = signExtend((stamp1.upperBound() + stamp2.upperBound()) & defaultMask, kind);
+        }
+        IntegerStamp limit = StampFactory.forInteger(kind, lowerBound, upperBound);
+        newUpMask &= limit.upMask();
+        upperBound = signExtend(upperBound & newUpMask, kind);
+        newDownMask |= limit.downMask();
+        lowerBound |= newDownMask;
+        return new IntegerStamp(kind, lowerBound, upperBound, newDownMask, newUpMask);
     }
 
     public static Stamp sub(IntegerStamp stamp1, IntegerStamp stamp2) {
@@ -304,7 +301,7 @@ public class StampTool {
         return StampFactory.forInteger(Kind.Long, intStamp.lowerBound(), intStamp.upperBound(), signExtend(intStamp.downMask(), Kind.Int), signExtend(intStamp.upMask(), Kind.Int));
     }
 
-    private static IntegerStamp narrowingKindConvertion(IntegerStamp fromStamp, Kind toKind) {
+    public static IntegerStamp narrowingKindConversion(IntegerStamp fromStamp, Kind toKind) {
         assert toKind == Kind.Byte || toKind == Kind.Char || toKind == Kind.Short || toKind == Kind.Int;
         final long upperBound;
         if (fromStamp.lowerBound() < toKind.getMinValue()) {
@@ -332,26 +329,6 @@ public class StampTool {
         } else {
             return value;
         }
-    }
-
-    public static IntegerStamp intToByte(IntegerStamp intStamp) {
-        assert intStamp.kind() == Kind.Int;
-        return narrowingKindConvertion(intStamp, Kind.Byte);
-    }
-
-    public static IntegerStamp intToShort(IntegerStamp intStamp) {
-        assert intStamp.kind() == Kind.Int;
-        return narrowingKindConvertion(intStamp, Kind.Short);
-    }
-
-    public static IntegerStamp intToChar(IntegerStamp intStamp) {
-        assert intStamp.kind() == Kind.Int;
-        return narrowingKindConvertion(intStamp, Kind.Char);
-    }
-
-    public static IntegerStamp longToInt(IntegerStamp longStamp) {
-        assert longStamp.kind() == Kind.Long;
-        return narrowingKindConvertion(longStamp, Kind.Int);
     }
 
     public static long saturate(long v, Kind kind) {

@@ -42,6 +42,19 @@ static unsigned int nvidia_vendor_id = 0x10de;
 static unsigned int amd_vendor_id = 0x1002;
 
 bool gpu::Linux::probe_gpu() {
+
+  /*
+   * The simulator only depends on shared libraries.
+   * That linkage is checked in a later step.
+   */
+  if (UseHSAILSimulator) {
+      set_target_il_type(gpu::HSAIL);
+      if (TraceGPUInteraction) {
+        tty->print_cr("Setup HSAIL Simulator");
+      }
+      return true;
+  }
+
   /* 
    * Open /proc/bus/pci/devices to look for the first GPU device. For
    * now, we will just find the first GPU device. Will need to revisit

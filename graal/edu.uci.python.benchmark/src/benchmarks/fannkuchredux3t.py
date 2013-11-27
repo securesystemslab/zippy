@@ -60,8 +60,8 @@ def fannkuch(n):
                 p[i + 1] = t
                 i += 1
 
-for i in range(50000):
-    fannkuch(5)
+for i in range(10000):
+    fannkuch(7)
 
 print("Start timing...")
 start = time.time()

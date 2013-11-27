@@ -1283,8 +1283,14 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(FreeList<Metablock>,         _size,                                        size_t)                                 \
   nonstatic_field(FreeList<FreeChunk>,         _count,                                       ssize_t)                                \
   nonstatic_field(FreeList<Metablock>,         _count,                                       ssize_t)                                \
-  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)
-
+  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)                                 \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _standard,                                  CompilerStatistics::Data))              \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _osr,                                       CompilerStatistics::Data))              \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _nmethods_size,                             int))                                   \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics, _nmethods_code_size,                        int))                                   \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _bytes,                               int))                                   \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _count,                               int))                                   \
+  GRAAL_ONLY(nonstatic_field(CompilerStatistics::Data, _time,                                elapsedTimer))
 
 //--------------------------------------------------------------------------------
 // VM_TYPES
@@ -2143,6 +2149,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   /* Miscellaneous types */                                               \
   /***************/                                                       \
                                                                           \
+  GRAAL_ONLY(declare_toplevel_type(CompilerStatistics))                   \
+  GRAAL_ONLY(declare_toplevel_type(CompilerStatistics::Data))             \
   declare_toplevel_type(PtrQueue)                                         \
                                                                           \
   /* freelist */                                                          \

@@ -292,7 +292,7 @@ public class NodeFactory {
             read.replace(ReadMaterializedFrameVariableNodeFactory.create(read.getSlot()));
         }
 
-        return new GeneratorExpressionDefinitionNode(callTarget, generator, descriptor, needsDeclarationFrame);
+        return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
     public GeneratorExpressionRootNode createGenerator(GeneratorLoopNode comprehension, PNode returnValue) {

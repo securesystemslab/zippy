@@ -30,13 +30,38 @@
 typedef void (*initializer)(void);
 
 #ifdef GRAAL
-class CompilerStatistics {
+// Per-compiler statistics
+class CompilerStatistics VALUE_OBJ_CLASS_SPEC {
+  friend class VMStructs;
+
+  class Data VALUE_OBJ_CLASS_SPEC {
+    friend class VMStructs;
+  public:
+    elapsedTimer _time;  // time spent compiling
+    int _bytes;          // number of bytecodes compiled, including inlined bytecodes
+    int _count;          // number of compilations
+    Data() : _bytes(0), _count(0) {}
+    void update(elapsedTimer time, int bytes) {
+      _time.add(time);
+      _bytes += bytes;
+      _count++;
+    }
+  };
+
  public:
-  elapsedTimer _t_osr_compilation;
-  elapsedTimer _t_standard_compilation;
-  int _sum_osr_bytes_compiled;
-  int _sum_standard_bytes_compiled;
-  CompilerStatistics() : _sum_osr_bytes_compiled(0), _sum_standard_bytes_compiled(0) {}
+  Data _standard;  // stats for non-OSR compilations
+  Data _osr;       // stats for OSR compilations
+  int _nmethods_size; //
+  int _nmethods_code_size;
+  int bytes_per_second() {
+    int bytes = _standard._bytes + _osr._bytes;
+    if (bytes == 0) {
+      return 0;
+    }
+    double seconds = _standard._time.seconds() + _osr._time.seconds();
+    return seconds == 0.0 ? 0 : (int) (bytes / seconds);
+  }
+  CompilerStatistics() : _nmethods_size(0), _nmethods_code_size(0) {}
 };
 #endif
 

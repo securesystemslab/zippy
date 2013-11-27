@@ -25,6 +25,7 @@ package com.oracle.graal.asm.hsail;
 
 import com.oracle.graal.api.code.*;
 
+import static com.oracle.graal.api.code.MemoryBarriers.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 
 import com.oracle.graal.api.meta.*;
@@ -106,6 +107,23 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
 
     private void emitAddrOp(String instr, Value reg, HSAILAddress addr) {
         emitString(instr + " " + HSAIL.mapRegister(reg) + ", " + mapAddress(addr) + ";");
+    }
+
+    /**
+     * Emits a memory barrier instruction.
+     * 
+     * @param barriers the kind of barrier to emit
+     */
+    public final void emitMembar(int barriers) {
+        if (barriers == 0) {
+            emitString("// no barrier before volatile read");
+        } else if (barriers == JMM_POST_VOLATILE_READ) {
+            emitString("sync; // barriers=" + MemoryBarriers.barriersString(barriers));
+        } else if (barriers == JMM_PRE_VOLATILE_WRITE) {
+            emitString("sync; // barriers=" + MemoryBarriers.barriersString(barriers));
+        } else if (barriers == JMM_POST_VOLATILE_WRITE) {
+            emitString("sync; // barriers=" + MemoryBarriers.barriersString(barriers));
+        }
     }
 
     public final void emitLoad(Kind kind, Value dest, HSAILAddress addr) {
@@ -235,37 +253,22 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
         emitString(prefix + " $c0, " + mapRegOrConstToString(src0) + ", " + mapRegOrConstToString(src1) + ";" + comment);
     }
 
-    /**
-     * I2S requires special handling because Graal passes an int for the destination operand instead
-     * of a short.
-     */
-    public void emitConvertIntToShort(Value dest, Value src) {
-        emitString("cvt_s16_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
+    public void emitConvert(Value dest, Value src, Kind destKind, Kind srcKind) {
+        String destType = getArgTypeFromKind(destKind);
+        String srcType = getArgTypeFromKind(srcKind);
+        String prefix = (destType.equals("f32") && srcType.equals("f64")) ? "cvt_near_" : "cvt_";
+        emitString(prefix + destType + "_" + srcType + " " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
     }
 
     /**
-     * I2C requires special handling because Graal passes an int for the destination operand instead
-     * of a char.
-     */
-    public void emitConvertIntToChar(Value dest, Value src) {
-        emitString("cvt_u16_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
-    }
-
-    /**
-     * I2B requires special handling because Graal passes an int for the destination operand instead
-     * of a byte.
-     */
-    public void emitConvertIntToByte(Value dest, Value src) {
-        emitString("cvt_s8_s32 " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
-    }
-
-    /**
-     * Generic handler for all other conversions.
+     * Emits a convert instruction that uses unsigned prefix, regardless of the type of dest and
+     * src.
      * 
+     * @param dest the destination operand
+     * @param src the source operand
      */
-    public void emitConvert(Value dest, Value src) {
-        String prefix = (getArgType(dest).equals("f32") && getArgType(src).equals("f64")) ? "cvt_near_" : "cvt_";
-        emitString(prefix + getArgType(dest) + "_" + getArgType(src) + " " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
+    public void emitConvertForceUnsigned(Value dest, Value src) {
+        emitString("cvt_" + getArgTypeForceUnsigned(dest) + "_" + getArgTypeForceUnsigned(src) + " " + HSAIL.mapRegister(dest) + ", " + HSAIL.mapRegister(src) + ";");
     }
 
     public static String mapAddress(HSAILAddress addr) {
@@ -381,39 +384,89 @@ public class HSAILAssembler extends AbstractHSAILAssembler {
     }
 
     /**
-     * Emit code to build a 64-bit pointer from a compressed-oop and the associated base and shift.
-     * We only emit this if base and shift are not both zero.
+     * Emits code to build a 64-bit pointer from a compressed value and the associated base and
+     * shift. The compressed value could represent either a normal oop or a klass ptr. If the
+     * compressed value is 0, the uncompressed must also be 0. We only emit this if base and shift
+     * are not both zero.
+     * 
+     * @param result the register containing the compressed value on input and the uncompressed ptr
+     *            on output
+     * @param base the amount to be added to the compressed value
+     * @param shift the number of bits to shift left the compressed value
+     * @param testForNull true if the compressed value might be null
      */
-    public void emitCompressedOopDecode(Value result, long narrowOopBase, int narrowOopShift) {
-        if (narrowOopBase == 0) {
-            emit("shl", result, result, Constant.forInt(narrowOopShift));
-        } else if (narrowOopShift == 0) {
-            // only use add if result is not starting as null (unsigned compare)
-            emitCompare(result, Constant.forLong(0), "eq", false, true);
-            emit("add", result, result, Constant.forLong(narrowOopBase));
-            emitConditionalMove(result, Constant.forLong(0), result, 64);
+    public void emitCompressedOopDecode(Value result, long base, int shift, boolean testForNull) {
+        assert (base != 0 || shift != 0);
+        assert (!isConstant(result));
+        if (base == 0) {
+            // we don't have to test for null if shl is the only operation
+            emitForceUnsigned("shl", result, result, Constant.forInt(shift));
+        } else if (shift == 0) {
+            // only use add if result is not starting as null (test only if testForNull is true)
+            emitWithOptionalTestForNull(testForNull, "add", result, result, Constant.forLong(base));
         } else {
-            // only use mad if result is not starting as null (unsigned compare)
+            // only use mad if result is not starting as null (test only if testForNull is true)
+            emitWithOptionalTestForNull(testForNull, "mad", result, result, Constant.forInt(1 << shift), Constant.forLong(base));
+        }
+    }
+
+    /**
+     * Emits code to build a compressed value from a full 64-bit pointer using the associated base
+     * and shift. The compressed value could represent either a normal oop or a klass ptr. If the
+     * ptr is 0, the compressed value must also be 0. We only emit this if base and shift are not
+     * both zero.
+     * 
+     * @param result the register containing the 64-bit pointer on input and the compressed value on
+     *            output
+     * @param base the amount to be subtracted from the 64-bit pointer
+     * @param shift the number of bits to shift right the 64-bit pointer
+     * @param testForNull true if the 64-bit pointer might be null
+     */
+    public void emitCompressedOopEncode(Value result, long base, int shift, boolean testForNull) {
+        assert (base != 0 || shift != 0);
+        assert (!isConstant(result));
+        if (base != 0) {
+            // only use sub if result is not starting as null (test only if testForNull is true)
+            emitWithOptionalTestForNull(testForNull, "sub", result, result, Constant.forLong(base));
+        }
+        if (shift != 0) {
+            // note that the shr can still be done even if the result is null
+            emitForceUnsigned("shr", result, result, Constant.forInt(shift));
+        }
+    }
+
+    /**
+     * Emits code for the requested mnemonic on the result and sources. In addition, if testForNull
+     * is true, surrounds the instruction with code that will guarantee that if the result starts as
+     * 0, it will remain 0.
+     * 
+     * @param testForNull true if we want to add the code to check for and preserve null
+     * @param mnemonic the instruction to be applied (without size prefix)
+     * @param result the register which is both an input and the final output
+     * @param sources the sources for the mnemonic instruction
+     */
+    private void emitWithOptionalTestForNull(boolean testForNull, String mnemonic, Value result, Value... sources) {
+        if (testForNull) {
             emitCompare(result, Constant.forLong(0), "eq", false, true);
-            emitTextFormattedInstruction("mad_u64 ", result, result, Constant.forInt(1 << narrowOopShift), Constant.forLong(narrowOopBase));
+        }
+        emitForceUnsigned(mnemonic, result, sources);
+        if (testForNull) {
             emitConditionalMove(result, Constant.forLong(0), result, 64);
         }
     }
 
     /**
-     * Emit code to build a 32-bit compressed pointer from a full 64-bit pointer using the
-     * associated base and shift. We only emit this if base and shift are not both zero.
+     * Emits an atomic_cas_global instruction.
+     * 
+     * @param result result operand that gets the original contents of the memory location
+     * @param address the memory location
+     * @param cmpValue the value that will be compared against the memory location
+     * @param newValue the new value that will be written to the memory location if the cmpValue
+     *            comparison matches
      */
-    public void emitCompressedOopEncode(Value result, long narrowOopBase, int narrowOopShift) {
-        if (narrowOopBase != 0) {
-            // only use sub if result is not starting as null (unsigned compare)
-            emitCompare(result, Constant.forLong(0), "eq", false, true);
-            emit("sub", result, result, Constant.forLong(narrowOopBase));
-            emitConditionalMove(result, Constant.forLong(0), result, 64);
-        }
-        if (narrowOopShift != 0) {
-            emit("shr", result, result, Constant.forInt(narrowOopShift));
-        }
+    public void emitAtomicCas(AllocatableValue result, HSAILAddress address, AllocatableValue cmpValue, AllocatableValue newValue) {
+        emitString(String.format("atomic_cas_global_b%d   %s, %s, %s, %s;", getArgSize(cmpValue), HSAIL.mapRegister(result), mapAddress(address), HSAIL.mapRegister(cmpValue),
+                        HSAIL.mapRegister(newValue)));
     }
 
     /**

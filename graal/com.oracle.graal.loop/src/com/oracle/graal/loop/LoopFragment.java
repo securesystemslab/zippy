@@ -72,7 +72,10 @@ public abstract class LoopFragment {
     @SuppressWarnings("unchecked")
     public <New extends Node, Old extends New> New getDuplicatedNode(Old n) {
         assert isDuplicate();
-        return (New) duplicationMap.get(n);
+        if (!n.isExternal()) {
+            return (New) duplicationMap.get(n);
+        }
+        return n;
     }
 
     protected <New extends Node, Old extends New> void putDuplicatedNode(Old oldNode, New newNode) {
@@ -148,6 +151,10 @@ public abstract class LoopFragment {
     protected static NodeBitMap computeNodes(Graph graph, Iterable<AbstractBeginNode> blocks, Iterable<AbstractBeginNode> earlyExits) {
         final NodeBitMap nodes = graph.createNodeBitMap(true);
         for (AbstractBeginNode b : blocks) {
+            if (b.isDeleted()) {
+                continue;
+            }
+
             for (Node n : b.getBlockNodes()) {
                 if (n instanceof Invoke) {
                     nodes.mark(((Invoke) n).callTarget());
@@ -162,6 +169,10 @@ public abstract class LoopFragment {
             }
         }
         for (AbstractBeginNode earlyExit : earlyExits) {
+            if (earlyExit.isDeleted()) {
+                continue;
+            }
+
             FrameState stateAfter = earlyExit.stateAfter();
             if (stateAfter != null) {
                 nodes.mark(stateAfter);
@@ -181,6 +192,10 @@ public abstract class LoopFragment {
 
         final NodeBitMap notloopNodes = graph.createNodeBitMap(true);
         for (AbstractBeginNode b : blocks) {
+            if (b.isDeleted()) {
+                continue;
+            }
+
             for (Node n : b.getBlockNodes()) {
                 if (n instanceof CommitAllocationNode) {
                     for (VirtualObjectNode obj : ((CommitAllocationNode) n).getVirtualObjects()) {
