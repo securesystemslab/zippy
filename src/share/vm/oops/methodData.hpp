@@ -1896,7 +1896,7 @@ public:
   MethodData() {}; // For ciMethodData
 
   bool is_methodData() const volatile { return true; }
-  void initialize();
+  void initialize(bool for_reprofile = false);
 
   // Whole-method sticky bits and flags
   enum {
@@ -2103,7 +2103,6 @@ public:
 
   bool is_mature() const;  // consult mileage and ProfileMaturityPercentage
   static int mileage_of(Method* m);
-  static bool is_empty_data(int size, Bytecodes::Code code);
 
   // Support for interprocedural escape analysis, from Thomas Kotzmann.
   enum EscapeFlag {

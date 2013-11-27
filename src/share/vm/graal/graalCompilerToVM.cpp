@@ -1025,7 +1025,7 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
     method_data = MethodData::allocate(loader_data, method, CHECK);
     method->set_method_data(method_data);
   } else {
-    method_data->initialize();
+    method_data->initialize(true);
   }
 C2V_END
 
