@@ -47,6 +47,10 @@ public class CommandLineParser {
                 PythonOptions.VisualizedAST = true;
             }
 
+            if (arg.equals("-print-function")) {
+                PythonOptions.PrintFunction = true;
+            }
+
             index++;
         }
 
