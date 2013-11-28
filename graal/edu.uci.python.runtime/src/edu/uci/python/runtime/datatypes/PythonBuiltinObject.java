@@ -50,10 +50,6 @@ public abstract class PythonBuiltinObject {
         throw new UnsupportedOperationException();
     }
 
-    public int __len__() {
-        throw new UnsupportedOperationException();
-    }
-
     @SuppressWarnings("unused")
     public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();

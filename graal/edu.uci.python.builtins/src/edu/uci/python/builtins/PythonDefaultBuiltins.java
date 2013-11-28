@@ -522,7 +522,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 // return arg1.getMax();
             }
 
-            @SuppressWarnings("unused")
             @Specialization
             public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
@@ -539,7 +538,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             }
 
-            private Object getMax(Object arg1, Object arg2) {
+            private static Object getMax(Object arg1, Object arg2) {
                 if (arg1 instanceof Integer) {
                     int arg1Int = (Integer) arg1;
                     if (arg2 instanceof Integer) {
@@ -609,14 +608,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             // @Specialization(guards = "hasOneArgument")
             @Specialization
             public Object minDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
-                /**
-                 * TODO add min and max methods to PDictionary
-                 */
-                return null;
-                // return arg1.getMin();
+                return arg1.getMin();
             }
 
-            @SuppressWarnings("unused")
             @Specialization
             public Object minGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
@@ -633,7 +627,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             }
 
-            private Object getMin(Object arg1, Object arg2) {
+            private static Object getMin(Object arg1, Object arg2) {
                 if (arg1 instanceof Integer) {
                     int arg1Int = (Integer) arg1;
                     if (arg2 instanceof Integer) {

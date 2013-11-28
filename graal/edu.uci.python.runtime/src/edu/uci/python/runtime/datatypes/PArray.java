@@ -24,10 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-public abstract class PArray extends PythonBuiltinObject {
-
-    @Override
-    public abstract int __len__();
+public abstract class PArray extends PythonBuiltinObject implements PIterable {
 
     public abstract Object getItem(int idx);
 
@@ -58,9 +55,5 @@ public abstract class PArray extends PythonBuiltinObject {
     }
 
     public abstract PArray append(PArray other);
-
-    public abstract Object getMin();
-
-    public abstract Object getMax();
 
 }

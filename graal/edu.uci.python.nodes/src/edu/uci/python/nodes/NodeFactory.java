@@ -512,8 +512,8 @@ public class NodeFactory {
         return YesNodeFactory.create(operand);
     }
 
-    public PNode createIfExpNode(PNode body, PNode test, PNode orelse) {
-        return IfExpressionNodeFactory.create(test, body, orelse);
+    public PNode createIfExpNode(BooleanCastNode condition, PNode then, PNode orelse) {
+        return new IfExpressionNode(condition, then, orelse);
     }
 
     public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {

@@ -65,15 +65,18 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
+    public Object getMax() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int __len__() {
+        return value.length();
     }
 
     public List<String> getList() {
@@ -109,11 +112,6 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     public String getValue() {
         return value;
-    }
-
-    @Override
-    public int __len__() {
-        return value.length();
     }
 
     @Override

@@ -104,11 +104,6 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public int __len__() {
-        return length;
-    }
-
-    @Override
     public PIterator __iter__() {
         return new PRangeIterator(this);
     }
@@ -183,15 +178,18 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Object getMin() {
-        // TODO Auto-generated method stub
-        return null;
+    public Object getMax() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public Object getMax() {
-        // TODO Auto-generated method stub
-        return null;
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int __len__() {
+        return length;
     }
 
 }

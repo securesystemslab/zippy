@@ -24,87 +24,32 @@
  */
 package edu.uci.python.nodes.expressions;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.NodeChildren;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.sequence.*;
 
-@SuppressWarnings("unused")
-@NodeChildren({@NodeChild(value = "condition", type = PNode.class), @NodeChild(value = "then", type = PNode.class), @NodeChild(value = "orelse", type = PNode.class)})
-public abstract class IfExpressionNode extends StatementNode {
+public class IfExpressionNode extends StatementNode {
 
-    public abstract PNode getCondition();
+    @Child protected BooleanCastNode condition;
 
-    public abstract PNode getThen();
+    @Child protected PNode then;
 
-    public abstract PNode getOrelse();
+    @Child protected PNode orelse;
 
-    @Child protected StatementNode body;
-
-    @Child protected StatementNode orelse;
-
-    @Specialization
-    Object doInteger(int test, Object body, Object orelse) {
-        boolean condition = test != 0;
-        return runIfExp(condition, body, orelse);
+    public IfExpressionNode(BooleanCastNode condition, PNode then, PNode orelse) {
+        this.condition = adoptChild(condition);
+        this.then = adoptChild(then);
+        this.orelse = adoptChild(orelse);
     }
 
-    @Specialization
-    Object doBigInteger(BigInteger test, Object body, Object orelse) {
-        boolean condition = test.compareTo(BigInteger.ZERO) != 0;
-        return runIfExp(condition, body, orelse);
-    }
-
-    @Specialization
-    Object doDouble(VirtualFrame frame, double test, Object body, Object orelse) {
-        boolean condition = test != 0;
-        return runIfExp(condition, body, orelse);
-    }
-
-    @Specialization
-    Object doString(VirtualFrame frame, String test, Object body, Object orelse) {
-        boolean condition = test.length() != 0;
-        return runIfExp(condition, body, orelse);
-
-    }
-
-    @Specialization
-    Object doPTuple(VirtualFrame frame, PTuple test, Object body, Object orelse) {
-        boolean condition = test.__len__() != 0;
-        return runIfExp(condition, body, orelse);
-    }
-
-    @Specialization
-    Object doPList(VirtualFrame frame, PList test, Object body, Object orelse) {
-        boolean condition = test.__len__() != 0;
-        return runIfExp(condition, body, orelse);
-    }
-
-    @Specialization
-    Object doPDictionary(PDictionary test, Object body, Object orelse) {
-        boolean condition = test.__len__() != 0;
-        return runIfExp(condition, body, orelse);
-    }
-
-    @Generic
-    Object doGeneric(Object test, Object body, Object orelse) {
-        boolean condition = test != null;
-        return runIfExp(condition, body, orelse);
-    }
-
-    private static Object runIfExp(boolean test, Object body, Object orelse) {
-        if (test) {
-            return body;
+    @Override
+    public Object execute(VirtualFrame frame) {
+        if (condition.executeBoolean(frame)) {
+            return then.execute(frame);
         } else {
-            return orelse;
+            return orelse.execute(frame);
         }
     }
+
 }

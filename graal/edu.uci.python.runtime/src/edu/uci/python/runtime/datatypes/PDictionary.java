@@ -34,7 +34,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 
-public class PDictionary extends PythonBuiltinObject {
+public class PDictionary extends PythonBuiltinObject implements PIterable {
 
     @CompilationFinal private static PythonBuiltinClass __class__;
 
@@ -97,6 +97,16 @@ public class PDictionary extends PythonBuiltinObject {
         }
 
         return (PythonCallable) __class__.getAttribute(name);
+    }
+
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

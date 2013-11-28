@@ -74,11 +74,6 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int __len__() {
-        return list.size();
-    }
-
-    @Override
     public Object getItem(int idx) {
         int index = SequenceUtil.fixIndex(idx, list.size());
         return list.get(index);
@@ -232,6 +227,13 @@ public class PList extends PSequence {
     }
 
     @Override
+    public Object getMax() {
+        Object[] copy = this.list.toArray();
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         Object[] copy = this.list.toArray();
         Arrays.sort(copy);
@@ -239,10 +241,8 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object getMax() {
-        Object[] copy = this.list.toArray();
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int __len__() {
+        return list.size();
     }
 
     @Override
