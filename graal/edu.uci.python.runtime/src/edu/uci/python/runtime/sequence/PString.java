@@ -44,7 +44,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public PythonBuiltinClass __class__(PythonContext context) {
+    public PythonBuiltinClass __class__() {
         return __class__;
     }
 

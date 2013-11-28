@@ -70,7 +70,6 @@ public class PythonClass extends PythonObject {
     }
 
     public PythonClass getSuperClass() {
-        assert superClass != null;
         return superClass;
     }
 

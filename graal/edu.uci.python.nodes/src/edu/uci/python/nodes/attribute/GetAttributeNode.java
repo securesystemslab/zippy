@@ -155,8 +155,7 @@ public abstract class GetAttributeNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             Object primaryObj = primary.execute(frame);
-            Object value = cache.getValue(frame, primaryObj);
-            assert cachedMethod.__func__() == value;
+            cache.getValue(frame, primaryObj);
             cachedMethod.bind(context.boxAsPythonBuiltinObject(primaryObj));
             return cachedMethod;
         }

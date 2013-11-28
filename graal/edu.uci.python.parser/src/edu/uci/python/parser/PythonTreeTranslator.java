@@ -665,7 +665,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitStr(Str node) throws Exception {
         PyString s = (PyString) node.getInternalS();
-        return factory.createStringLiteral(s);
+        return factory.createStringLiteral(s.getString());
     }
 
     @Override

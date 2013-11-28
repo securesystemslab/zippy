@@ -49,10 +49,10 @@ public class PythonContext {
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer builtinsModuleBuiltins, PythonBuiltinsContainer mainModuleBuiltins) {
         this.options = opts;
         this.lookup = lookup;
+        currentContext = this;
         this.builtinsModuleBuiltins = builtinsModuleBuiltins;
         this.mainModuleBuiltins = mainModuleBuiltins;
         initialize();
-        currentContext = this;
     }
 
     /**

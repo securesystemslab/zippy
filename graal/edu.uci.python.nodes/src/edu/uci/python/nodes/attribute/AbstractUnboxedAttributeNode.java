@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.attribute;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -60,7 +62,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
 
     protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) {
         PythonBuiltinObject pbObj = context.boxAsPythonBuiltinObject(primaryObj);
-        PythonClass current = pbObj.__class__(context);
+        PythonClass current = pbObj.__class__();
         assert current != null;
 
         do {
@@ -71,14 +73,24 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
             current = current.getSuperClass();
         } while (current != null);
 
+        if (current == null) {
+            throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
+        }
+
         UnboxedCheckNode check;
         if (primaryObj instanceof PythonBuiltinObject) {
-            check = new UnboxedCheckNode.BuiltinObjectCheckNode(context, (PythonBuiltinObject) primaryObj);
+            check = new UnboxedCheckNode.BuiltinObjectCheckNode((PythonBuiltinObject) primaryObj);
         } else {
             check = new UnboxedCheckNode.PrimitiveCheckNode(primaryObj);
         }
 
-        return UnboxedAttributeCacheNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+        UnboxedAttributeCacheNode newNode = UnboxedAttributeCacheNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+
+        if (this.getParent() != null) {
+            replace(newNode);
+        }
+
+        return newNode;
     }
 
     private StorageLocation getOwnValidLocation(PythonBasicObject storage) {

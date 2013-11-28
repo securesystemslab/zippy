@@ -38,11 +38,12 @@ import edu.uci.python.runtime.function.*;
  * path and implemented presumably using Java reflection...
  * 
  */
-
 public abstract class PythonBuiltinObject {
 
-    public PythonBuiltinClass __class__(PythonContext context) {
-        return context.getObjectClass();
+    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PythonBuiltinObject.class);
+
+    public PythonBuiltinClass __class__() {
+        return __class__;
     }
 
     public Object getMin() {

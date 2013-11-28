@@ -241,8 +241,8 @@ public class NodeFactory {
         return new ComplexLiteralNode(value);
     }
 
-    public PNode createStringLiteral(PyString value) {
-        return new StringLiteralNode(value.getString());
+    public PNode createStringLiteral(String value) {
+        return new StringLiteralNode(value);
     }
 
     public PNode createDictLiteral(List<PNode> keys, List<PNode> values) {

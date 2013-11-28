@@ -22,44 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.builtins;
+package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
+import java.math.*;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 
-/**
- * Storage for initialized Python built-in modules and types.
- * 
- * @author zwei
- * 
- */
-public class PythonBuiltinsLookup {
+public class PInt extends PythonBuiltinObject {
 
-    private final Map<String, PythonModule> builtinModules;
-    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
+    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PInt.class);
 
-    public PythonBuiltinsLookup() {
-        builtinModules = new HashMap<>();
-        builtinTypes = new HashMap<>();
+    private final BigInteger value;
+
+    public PInt(int value) {
+        this.value = BigInteger.valueOf(value);
     }
 
-    public void addModule(String name, PythonModule module) {
-        builtinModules.put(name, module);
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
     }
 
-    public void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
-        builtinTypes.put(clazz, type);
-    }
-
-    public PythonModule lookupModule(String name) {
-        PythonModule module = builtinModules.get(name);
-        return module;
-    }
-
-    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
-        PythonBuiltinClass type = builtinTypes.get(clazz);
-        return type;
+    public BigInteger getValue() {
+        return value;
     }
 }

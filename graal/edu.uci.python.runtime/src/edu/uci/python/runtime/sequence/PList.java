@@ -36,6 +36,8 @@ import edu.uci.python.runtime.function.*;
 
 public class PList extends PSequence {
 
+    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PList.class);
+
     private final List<Object> list;
 
     public PList(Object[] elements) {
@@ -58,6 +60,11 @@ public class PList extends PSequence {
                 addItem(list.get(i));
             }
         }
+    }
+
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
     }
 
     protected List<Object> getList() {
