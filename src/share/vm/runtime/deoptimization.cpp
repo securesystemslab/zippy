@@ -1214,6 +1214,10 @@ void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr, Deopt
   fr.deoptimize(thread);
 }
 
+void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map) {
+  deoptimize(thread, fr, map, Reason_constraint);
+}
+
 void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map, DeoptReason reason) {
   // Deoptimize only if the frame comes from compile code.
   // Do not deoptimize the frame which is already patched
@@ -1253,6 +1257,9 @@ void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id, DeoptRea
   }
 }
 
+void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
+  deoptimize_frame(thread, id, Reason_constraint);
+}
 
 // JVMTI PopFrame support
 JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int bytes_to_save, void* start_address))

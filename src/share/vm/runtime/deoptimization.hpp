@@ -124,6 +124,7 @@ class Deoptimization : AllStatic {
   static int deoptimize_dependents();
 
   // Deoptimizes a frame lazily. nmethod gets patched deopt happens on return to the frame
+  static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map);
   static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map, DeoptReason reason);
 
   private:
@@ -264,6 +265,7 @@ class Deoptimization : AllStatic {
   // if thread is not the current thread then execute
   // VM_DeoptimizeFrame otherwise deoptimize directly.
   static void deoptimize_frame(JavaThread* thread, intptr_t* id, DeoptReason reason);
+  static void deoptimize_frame(JavaThread* thread, intptr_t* id);
 
   // Statistics
   static void gather_statistics(DeoptReason reason, DeoptAction action,

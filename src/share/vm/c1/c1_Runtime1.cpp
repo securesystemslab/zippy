@@ -169,7 +169,7 @@ static void deopt_caller() {
     RegisterMap reg_map(thread, false);
     frame runtime_frame = thread->last_frame();
     frame caller_frame = runtime_frame.sender(&reg_map);
-    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_constraint);
+    Deoptimization::deoptimize_frame(thread, caller_frame.id());
     assert(caller_is_deopted(), "Must be deoptimized");
   }
 }
@@ -431,7 +431,7 @@ JRT_BLOCK_ENTRY(address, Runtime1::counter_overflow(JavaThread* thread, int bci,
     if (osr_nm != NULL) {
       RegisterMap map(thread, false);
       frame fr =  thread->last_frame().sender(&map);
-      Deoptimization::deoptimize_frame(thread, fr.id(), Deoptimization::Reason_constraint);
+      Deoptimization::deoptimize_frame(thread, fr.id());
     }
   JRT_BLOCK_END
   return NULL;
@@ -502,7 +502,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     // We don't really want to deoptimize the nmethod itself since we
     // can actually continue in the exception handler ourselves but I
     // don't see an easy way to have the desired effect.
-    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_constraint);
+    Deoptimization::deoptimize_frame(thread, caller_frame.id());
     assert(caller_is_deopted(), "Must be deoptimized");
 
     return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
@@ -696,7 +696,7 @@ JRT_ENTRY(void, Runtime1::deoptimize(JavaThread* thread))
   assert(CodeCache::find_nmethod(caller_frame.pc()) != NULL, "sanity");
 
   // Deoptimize the caller frame.
-  Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_constraint);
+  Deoptimization::deoptimize_frame(thread, caller_frame.id());
 
   // Return to the now deoptimized frame.
 JRT_END
@@ -932,7 +932,7 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* thread, Runtime1::StubID stub_i
       nm->make_not_entrant();
     }
 
-    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_constraint);
+    Deoptimization::deoptimize_frame(thread, caller_frame.id());
 
     // Return to the now deoptimized frame.
   }
@@ -1434,7 +1434,7 @@ JRT_ENTRY(void, Runtime1::predicate_failed_trap(JavaThread* thread))
   }
 
 
-  Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_none);
+  Deoptimization::deoptimize_frame(thread, caller_frame.id());
 
 JRT_END
 
