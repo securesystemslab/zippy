@@ -35,19 +35,17 @@ import edu.uci.python.runtime.function.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
 
-    PythonBuiltinClass stringClass;
-
-    @Override
-    public PythonBuiltinClass __class__(PythonContext context) {
-        return context.getPythonBuiltinsLookup().lookupType(PString.class);
-        // return stringClass;
-    }
+    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PString.class);
 
     private final String value;
 
     public PString(String value) {
         this.value = value;
-        // stringClass = context.getPythonBuiltinsLookup().lookupType(PString.class);
+    }
+
+    @Override
+    public PythonBuiltinClass __class__(PythonContext context) {
+        return __class__;
     }
 
     @Override
