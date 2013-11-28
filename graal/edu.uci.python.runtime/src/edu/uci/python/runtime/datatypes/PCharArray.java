@@ -68,7 +68,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public int len() {
+    public int __len__() {
         return array.length;
     }
 
@@ -154,9 +154,9 @@ public class PCharArray extends PArray implements Iterable<Character> {
     @Override
     public PArray append(PArray other) {
         PCharArray otherArray = (PCharArray) other;
-        char[] joined = new char[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        char[] joined = new char[__len__() + other.__len__()];
+        System.arraycopy(array, 0, joined, 0, __len__());
+        System.arraycopy(otherArray.getSequence(), 0, joined, __len__(), other.__len__());
         return new PCharArray(joined);
     }
 

@@ -61,10 +61,10 @@ public class JavaTypeConversions {
             return !(stringArg.isEmpty());
         } else if (arg instanceof PSequence) {
             PSequence sequence = (PSequence) arg;
-            return sequence.len() != 0;
+            return sequence.__len__() != 0;
         } else if (arg instanceof PythonBuiltinObject) {
             PythonBuiltinObject object = (PythonBuiltinObject) arg;
-            return object.len() != 0;
+            return object.__len__() != 0;
         } else {
             throw new RuntimeException("invalid value for boolean()");
         }

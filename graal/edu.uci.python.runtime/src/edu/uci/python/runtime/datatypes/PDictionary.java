@@ -36,7 +36,7 @@ import edu.uci.python.runtime.function.*;
 
 public class PDictionary extends PythonBuiltinObject {
 
-    @CompilationFinal private static PythonBuiltinClass clazz;
+    @CompilationFinal private static PythonBuiltinClass __class__;
 
     private final Map<Object, Object> map;
 
@@ -83,19 +83,20 @@ public class PDictionary extends PythonBuiltinObject {
 
     @Override
     public PythonBuiltinClass __class__(PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
         }
-        return clazz;
+
+        return __class__;
     }
 
     @Override
     public PythonCallable __getattribute__(String name, PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
         }
 
-        return (PythonCallable) clazz.getAttribute(name);
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     @Override
@@ -119,7 +120,7 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
-    public int len() {
+    public int __len__() {
         return map.size();
     }
 }

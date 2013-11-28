@@ -40,7 +40,7 @@ public class PList extends PSequence {
 
     private final List<Object> list;
 
-    @CompilationFinal private static PythonBuiltinClass clazz;
+    @CompilationFinal private static PythonBuiltinClass __class__;
 
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
@@ -74,7 +74,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int len() {
+    public int __len__() {
         return list.size();
     }
 
@@ -195,19 +195,20 @@ public class PList extends PSequence {
 
     @Override
     public PythonBuiltinClass __class__(PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PList.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PList.class);
         }
-        return clazz;
+
+        return __class__;
     }
 
     @Override
     public PythonCallable __getattribute__(String name, PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PList.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PList.class);
         }
 
-        return (PythonCallable) clazz.getAttribute(name);
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     @Override

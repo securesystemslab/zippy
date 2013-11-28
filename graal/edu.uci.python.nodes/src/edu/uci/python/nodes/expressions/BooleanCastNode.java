@@ -73,17 +73,17 @@ public abstract class BooleanCastNode extends UnaryOpNode {
 
         @Specialization
         boolean doPTuple(PTuple operand) {
-            return operand.len() != 0;
+            return operand.__len__() != 0;
         }
 
         @Specialization
         boolean doPList(PList operand) {
-            return operand.len() != 0;
+            return operand.__len__() != 0;
         }
 
         @Specialization
         boolean doPDictionary(PDictionary operand) {
-            return operand.len() != 0;
+            return operand.__len__() != 0;
         }
 
         @Generic
@@ -132,17 +132,17 @@ public abstract class BooleanCastNode extends UnaryOpNode {
 
         @Specialization
         boolean doPTuple(PTuple operand) {
-            return operand.len() == 0;
+            return operand.__len__() == 0;
         }
 
         @Specialization
         boolean doPList(PList operand) {
-            return operand.len() == 0;
+            return operand.__len__() == 0;
         }
 
         @Specialization
         boolean doPDictionary(PDictionary operand) {
-            return operand.len() == 0;
+            return operand.__len__() == 0;
         }
 
         @Generic

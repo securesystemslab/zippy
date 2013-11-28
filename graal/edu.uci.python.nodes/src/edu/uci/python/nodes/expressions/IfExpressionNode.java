@@ -78,19 +78,19 @@ public abstract class IfExpressionNode extends StatementNode {
 
     @Specialization
     Object doPTuple(VirtualFrame frame, PTuple test, Object body, Object orelse) {
-        boolean condition = test.len() != 0;
+        boolean condition = test.__len__() != 0;
         return runIfExp(condition, body, orelse);
     }
 
     @Specialization
     Object doPList(VirtualFrame frame, PList test, Object body, Object orelse) {
-        boolean condition = test.len() != 0;
+        boolean condition = test.__len__() != 0;
         return runIfExp(condition, body, orelse);
     }
 
     @Specialization
     Object doPDictionary(PDictionary test, Object body, Object orelse) {
-        boolean condition = test.len() != 0;
+        boolean condition = test.__len__() != 0;
         return runIfExp(condition, body, orelse);
     }
 

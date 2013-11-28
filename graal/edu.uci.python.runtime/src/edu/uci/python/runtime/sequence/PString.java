@@ -37,8 +37,9 @@ import edu.uci.python.runtime.function.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
 
-    @CompilationFinal private static PythonBuiltinClass clazz;
-
+    @CompilationFinal private static PythonBuiltinClass __class__;
+    // private static final PythonBuiltinClass __class__ =
+// PythonContext.getCurrent().getBuiltinTypeFor(PString.class);
     private final String value;
 
     public PString(String value) {
@@ -47,19 +48,20 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
 
     @Override
     public PythonBuiltinClass __class__(PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PString.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PString.class);
         }
-        return clazz;
+
+        return __class__;
     }
 
     @Override
     public PythonCallable __getattribute__(String name, PythonContext context) {
-        if (clazz == null) {
-            clazz = context.getPythonBuiltinsLookup().lookupType(PString.class);
+        if (__class__ == null) {
+            __class__ = context.getPythonBuiltinsLookup().lookupType(PString.class);
         }
 
-        return (PythonCallable) clazz.getAttribute(name);
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     public List<String> getList() {
@@ -98,7 +100,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public int len() {
+    public int __len__() {
         return value.length();
     }
 

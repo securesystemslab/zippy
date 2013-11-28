@@ -53,7 +53,7 @@ public abstract class PythonBuiltinObject {
         throw new UnsupportedOperationException();
     }
 
-    public int len() {
+    public int __len__() {
         throw new UnsupportedOperationException();
     }
 

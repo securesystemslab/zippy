@@ -51,10 +51,10 @@ public class BisectModule extends PythonModule {
         if (args.length == 2) {
             return bisect(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
-            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            Object[] tempArray = new Object[slice.len() + 1];
-            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
-            tempArray[slice.len()] = args[1];
+            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], ((PList) args[0]).__len__(), 1, ((PList) args[0]).__len__());
+            Object[] tempArray = new Object[slice.__len__() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.__len__());
+            tempArray[slice.__len__()] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -64,9 +64,9 @@ public class BisectModule extends PythonModule {
 
             return index + (int) args[2] - 1;
         } else if (args.length == 4 && args[0] instanceof PList) {
-            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            Object[] tempArray = new Object[slice.len() + 1];
-            tempArray[slice.len()] = args[1];
+            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).__len__());
+            Object[] tempArray = new Object[slice.__len__() + 1];
+            tempArray[slice.__len__()] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
 
@@ -119,9 +119,9 @@ public class BisectModule extends PythonModule {
             return bisect_left(args[0], args[1]);
         } else if (args.length == 3 && args[0] instanceof PList) {
             PList plist = (PList) args[0];
-            PList slice = (PList) (plist).getSlice((int) args[2], ((PList) args[0]).len(), 1, ((PList) args[0]).len());
-            Object[] tempArray = new Object[slice.len() + 1];
-            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
+            PList slice = (PList) (plist).getSlice((int) args[2], ((PList) args[0]).__len__(), 1, ((PList) args[0]).__len__());
+            Object[] tempArray = new Object[slice.__len__() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.__len__());
             tempArray[tempArray.length] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);
@@ -132,9 +132,9 @@ public class BisectModule extends PythonModule {
 
             return index + 1 + (int) args[2];
         } else if (args.length == 4 && args[0] instanceof PList) {
-            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).len());
-            Object[] tempArray = new Object[slice.len() + 1];
-            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.len());
+            PList slice = (PList) ((PList) args[0]).getSlice((int) args[2], (int) args[3], 1, ((PList) args[0]).__len__());
+            Object[] tempArray = new Object[slice.__len__() + 1];
+            System.arraycopy(slice.getSequence(), 0, tempArray, 0, slice.__len__());
             tempArray[tempArray.length] = args[1];
             Arrays.sort(tempArray);
             int index = Arrays.binarySearch(tempArray, args[1]);

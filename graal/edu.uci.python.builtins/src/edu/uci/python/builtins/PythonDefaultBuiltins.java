@@ -99,7 +99,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean all(PSequence sequence) {
-                if (sequence.len() == 0) {
+                if (sequence.__len__() == 0) {
                     return false;
                 }
 
@@ -116,7 +116,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean all(PBaseSet baseset) {
-                if (baseset.len() == 0) {
+                if (baseset.__len__() == 0) {
                     return false;
                 }
 
@@ -156,7 +156,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean any(PSequence sequence) {
-                if (sequence.len() == 0) {
+                if (sequence.__len__() == 0) {
                     return false;
                 }
 
@@ -173,7 +173,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean any(PBaseSet baseset) {
-                if (baseset.len() == 0) {
+                if (baseset.__len__() == 0) {
                     return false;
                 }
 
@@ -429,22 +429,22 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public int len(PSequence arg) {
-                return arg.len();
+                return arg.__len__();
             }
 
             @Specialization
             public int len(PBaseSet arg) {
-                return arg.len();
+                return arg.__len__();
             }
 
             @Specialization
             public int len(PDictionary arg) {
-                return arg.len();
+                return arg.__len__();
             }
 
             @Specialization
             public int len(PArray arg) {
-                return arg.len();
+                return arg.__len__();
             }
 
             @Specialization
@@ -454,16 +454,16 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.length();
                 } else if (arg instanceof PSequence) {
                     PSequence argument = (PSequence) arg;
-                    return argument.len();
+                    return argument.__len__();
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet argument = (PBaseSet) arg;
-                    return argument.len();
+                    return argument.__len__();
                 } else if (arg instanceof PDictionary) {
                     PDictionary argument = (PDictionary) arg;
-                    return argument.len();
+                    return argument.__len__();
                 } else if (arg instanceof PArray) {
                     PArray argument = (PArray) arg;
-                    return argument.len();
+                    return argument.__len__();
                 }
 
                 throw new RuntimeException();
@@ -866,7 +866,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         while (iter.hasNext()) {
                             Object obj = iter.next();
 
-                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+                            if (obj instanceof PSequence && ((PSequence) obj).__len__() == 2) {
                                 newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
                             } else {
                                 throw new RuntimeException("invalid args for dict()");

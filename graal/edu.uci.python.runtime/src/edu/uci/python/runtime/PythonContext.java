@@ -44,12 +44,23 @@ public class PythonContext {
     private PythonBuiltinsContainer builtinsModuleBuiltins;
     private PythonBuiltinsContainer mainModuleBuiltins;
 
+    private static PythonContext currentContext;
+
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer builtinsModuleBuiltins, PythonBuiltinsContainer mainModuleBuiltins) {
         this.options = opts;
         this.lookup = lookup;
         this.builtinsModuleBuiltins = builtinsModuleBuiltins;
         this.mainModuleBuiltins = mainModuleBuiltins;
         initialize();
+        currentContext = this;
+    }
+
+    /**
+     * Getting the static {@link #currentContext}. This is not safe if multiple threads have
+     * different context versions. However, in general, Python built-ins are immutable.
+     */
+    public static PythonContext getCurrent() {
+        return currentContext;
     }
 
     public void initialize() {
@@ -73,6 +84,10 @@ public class PythonContext {
 
     public PythonBuiltinsLookup getPythonBuiltinsLookup() {
         return lookup;
+    }
+
+    public PythonBuiltinClass getBuiltinTypeFor(Class<? extends PythonBuiltinObject> javaClass) {
+        return lookup.lookupType(javaClass);
     }
 
     public PrintStream getStandardOut() {

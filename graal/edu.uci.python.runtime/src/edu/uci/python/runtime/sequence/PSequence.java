@@ -35,7 +35,7 @@ public abstract class PSequence extends PythonBuiltinObject implements Iterable<
     }
 
     @Override
-    public abstract int len();
+    public abstract int __len__();
 
     public abstract Object getItem(int idx);
 

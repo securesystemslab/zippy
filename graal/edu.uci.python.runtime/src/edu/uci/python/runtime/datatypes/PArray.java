@@ -27,7 +27,7 @@ package edu.uci.python.runtime.datatypes;
 public abstract class PArray extends PythonBuiltinObject {
 
     @Override
-    public abstract int len();
+    public abstract int __len__();
 
     public abstract Object getItem(int idx);
 
