@@ -58,4 +58,9 @@ public abstract class PArray extends PythonBuiltinObject {
     }
 
     public abstract PArray append(PArray other);
+
+    public abstract Object getMin();
+
+    public abstract Object getMax();
+
 }

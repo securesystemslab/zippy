@@ -45,11 +45,8 @@ public abstract class PythonBuiltinObject {
         return context.getObjectClass();
     }
 
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    public Object getMax() {
+    @SuppressWarnings("unused")
+    public PythonCallable __getattribute__(String name, PythonContext context) {
         throw new UnsupportedOperationException();
     }
 
@@ -59,11 +56,6 @@ public abstract class PythonBuiltinObject {
 
     @SuppressWarnings("unused")
     public PythonBuiltinObject multiply(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name, PythonContext context) {
         throw new UnsupportedOperationException();
     }
 }

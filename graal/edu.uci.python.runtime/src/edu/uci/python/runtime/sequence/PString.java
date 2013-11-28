@@ -64,6 +64,18 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
         return (PythonCallable) __class__.getAttribute(name);
     }
 
+    @Override
+    public Object getMin() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Object getMax() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
     public List<String> getList() {
         ArrayList<String> list = new ArrayList<>();
 
@@ -138,4 +150,5 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     public String toString() {
         return value;
     }
+
 }

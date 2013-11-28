@@ -284,14 +284,12 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         return set.iterator();
     }
 
-    @Override
     public Object getMin() {
         Object[] copy = this.set.toArray();
         Arrays.sort(copy);
         return copy[0];
     }
 
-    @Override
     public Object getMax() {
         Object[] copy = this.set.toArray();
         Arrays.sort(copy);

@@ -61,4 +61,8 @@ public abstract class PSequence extends PythonBuiltinObject implements Iterable<
 
     public abstract PSequence concat(PSequence sequence);
 
+    public abstract Object getMin();
+
+    public abstract Object getMax();
+
 }

@@ -518,7 +518,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             // @Specialization(guards = "hasOneArgument")
             @Specialization
             public Object maxDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
-                return arg1.getMax();
+                return null;
+                // return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
@@ -608,7 +609,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             // @Specialization(guards = "hasOneArgument")
             @Specialization
             public Object minDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
-                return arg1.getMin();
+                /**
+                 * TODO add min and max methods to PDictionary
+                 */
+                return null;
+                // return arg1.getMin();
             }
 
             @SuppressWarnings("unused")

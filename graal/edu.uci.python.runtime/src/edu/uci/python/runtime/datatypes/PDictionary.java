@@ -100,6 +100,11 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
+    public int __len__() {
+        return map.size();
+    }
+
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("{");
         int length = map.size();
@@ -117,10 +122,5 @@ public class PDictionary extends PythonBuiltinObject {
 
         buf.append("}");
         return buf.toString();
-    }
-
-    @Override
-    public int __len__() {
-        return map.size();
     }
 }

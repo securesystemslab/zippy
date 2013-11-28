@@ -182,4 +182,16 @@ public class PRange extends PImmutableSequence {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public Object getMin() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Object getMax() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }
