@@ -28,14 +28,15 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
 
     protected final ObjectLayout objectLayout;
 
-    public StoreSpecializedAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout) {
-        super(name, primary, rhs);
+    public StoreSpecializedAttributeNode(String name, PNode primary, PNode rhs, PythonContext context, ObjectLayout objLayout) {
+        super(name, primary, rhs, context);
         this.objectLayout = objLayout;
     }
 

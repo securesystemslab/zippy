@@ -29,6 +29,8 @@ import java.util.*;
 import org.python.core.*;
 import org.python.util.Generic;
 
+import com.oracle.truffle.api.CompilerDirectives.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -37,6 +39,8 @@ import edu.uci.python.runtime.function.*;
 public class PList extends PSequence {
 
     private final List<Object> list;
+
+    @CompilationFinal private static PythonBuiltinClass clazz;
 
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
@@ -190,8 +194,20 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) BuiltinsClassAttributesContainer.listClassAttributesContainer.getAttribute(name);
+    public PythonBuiltinClass __class__(PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PList.class);
+        }
+        return clazz;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name, PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PList.class);
+        }
+
+        return (PythonCallable) clazz.getAttribute(name);
     }
 
     @Override

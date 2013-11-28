@@ -93,6 +93,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectString(execute(frame));
     }
 
+    public PString executePString(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPString(execute(frame));
+    }
+
     public PComplex executePComplex(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPComplex(execute(frame));
     }

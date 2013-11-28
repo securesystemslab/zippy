@@ -36,6 +36,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.modules.*;
@@ -50,15 +51,18 @@ public abstract class CallAttributeNode extends PNode {
 
     protected final String attributeId;
 
+    public final PythonContext context;
+
     public abstract PNode getPrimary();
 
-    public CallAttributeNode(PNode[] arguments, String name) {
+    public CallAttributeNode(String name, PNode[] arguments, PythonContext context) {
         this.arguments = adoptChildren(arguments);
         this.attributeId = name;
+        this.context = context;
     }
 
     protected CallAttributeNode(CallAttributeNode node) {
-        this(node.arguments, node.attributeId);
+        this(node.attributeId, node.arguments, node.context);
     }
 
     @Override
@@ -70,14 +74,14 @@ public abstract class CallAttributeNode extends PNode {
     public Object doString(VirtualFrame frame, String prim) {
         Object[] args = doArguments(frame);
         PString primString = new PString(prim);
-        PythonCallable callable = applyBuiltinMethodDescriptor(primString, primString.__getattribute__(attributeId));
+        PythonCallable callable = applyBuiltinMethodDescriptor(primString, primString.__getattribute__(attributeId, context));
         return callable.call(frame.pack(), args);
     }
 
     @Specialization
     public Object doPythonBuiltinObject(VirtualFrame frame, PythonBuiltinObject prim) {
         Object[] args = doArguments(frame);
-        PythonCallable callable = applyBuiltinMethodDescriptor(prim, prim.__getattribute__(attributeId));
+        PythonCallable callable = applyBuiltinMethodDescriptor(prim, prim.__getattribute__(attributeId, context));
         return callable.call(frame.pack(), args);
     }
 

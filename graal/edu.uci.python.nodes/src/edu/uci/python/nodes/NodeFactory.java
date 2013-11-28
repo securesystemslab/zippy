@@ -347,8 +347,8 @@ public class NodeFactory {
         }
     }
 
-    public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return CallAttributeNodeFactory.create(args, name, primary);
+    public PNode createAttributeCall(PNode primary, String name, PNode[] args, PythonContext context) {
+        return CallAttributeNodeFactory.create(name, args, context, primary);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
@@ -424,12 +424,12 @@ public class NodeFactory {
         return new GetAttributeNode.UninitializedGetAttributeNode(context, name, primary);
     }
 
-    public PNode createLoadAttribute(PNode operand, String name) {
-        return new UninitializedLoadAttributeNode(name, operand);
+    public PNode createLoadAttribute(PNode operand, String name, PythonContext context) {
+        return new UninitializedLoadAttributeNode(name, operand, context);
     }
 
-    public PNode createStoreAttribute(PNode primary, String name, PNode value) {
-        return new UninitializedStoreAttributeNode(name, primary, value);
+    public PNode createStoreAttribute(PNode primary, String name, PNode value, PythonContext context) {
+        return new UninitializedStoreAttributeNode(name, primary, value, context);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {

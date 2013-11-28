@@ -27,14 +27,15 @@ package edu.uci.python.nodes.objects;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public class StoreObjectAttributeNode extends StoreSpecializedAttributeNode {
 
     private final ObjectStorageLocation storageLocation;
 
-    public StoreObjectAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout, ObjectStorageLocation storageLocation) {
-        super(name, primary, rhs, objLayout);
+    public StoreObjectAttributeNode(String name, PNode primary, PNode rhs, PythonContext context, ObjectLayout objLayout, ObjectStorageLocation storageLocation) {
+        super(name, primary, rhs, context, objLayout);
         this.storageLocation = storageLocation;
     }
 

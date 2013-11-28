@@ -271,7 +271,7 @@ public class PythonTreeTranslator extends Visitor {
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
+            return factory.createAttributeCall(attr.getPrimary(), attr.getAttributeId(), argumentsArray, context);
         }
 
         return factory.createCallFunction(callee, argumentsArray, keywordsArray);
@@ -374,7 +374,7 @@ public class PythonTreeTranslator extends Visitor {
         if (PythonOptions.CacheAttributeLoads) {
             return factory.createGetAttribute(context, primary, node.getInternalAttr());
         } else {
-            return factory.createLoadAttribute(primary, node.getInternalAttr());
+            return factory.createLoadAttribute(primary, node.getInternalAttr(), context);
         }
     }
 

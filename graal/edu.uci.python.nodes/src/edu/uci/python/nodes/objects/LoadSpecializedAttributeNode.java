@@ -28,14 +28,15 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public abstract class LoadSpecializedAttributeNode extends LoadAttributeNode {
 
     protected final ObjectLayout objectLayout;
 
-    public LoadSpecializedAttributeNode(String name, PNode primary, ObjectLayout objectLayout) {
-        super(name, primary);
+    public LoadSpecializedAttributeNode(String name, PNode primary, PythonContext context, ObjectLayout objectLayout) {
+        super(name, primary, context);
         this.objectLayout = objectLayout;
     }
 

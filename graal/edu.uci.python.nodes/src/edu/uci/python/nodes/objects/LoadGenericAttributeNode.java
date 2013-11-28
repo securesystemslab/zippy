@@ -30,20 +30,21 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
 public class LoadGenericAttributeNode extends LoadAttributeNode {
 
     public LoadGenericAttributeNode(LoadAttributeNode node) {
-        super(node.attributeId, node.primary);
+        super(node.attributeId, node.primary, node.context);
     }
 
-    public static Object executeGeneric(Object primary, String attributeId) {
+    public static Object executeGeneric(Object primary, String attributeId, PythonContext context) {
         if (primary instanceof PythonBasicObject) {
             return ((PythonBasicObject) primary).getAttribute(attributeId);
         } else if (primary instanceof PythonBuiltinObject) {
-            return ((PythonBuiltinObject) primary).__getattribute__(attributeId);
+            return ((PythonBuiltinObject) primary).__getattribute__(attributeId, context);
         } else if (primary instanceof PyObject) {
             PyObject pyObj = (PyObject) primary;
             return unboxPyObject(pyObj.__findattr__(attributeId));
@@ -60,19 +61,19 @@ public class LoadGenericAttributeNode extends LoadAttributeNode {
     public static class LoadPObjectAttributeNode extends LoadAttributeNode {
 
         public LoadPObjectAttributeNode(LoadAttributeNode node) {
-            super(node.attributeId, node.primary);
+            super(node.attributeId, node.primary, node.context);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return ((PythonBuiltinObject) primary.execute(frame)).__getattribute__(attributeId);
+            return ((PythonBuiltinObject) primary.execute(frame)).__getattribute__(attributeId, context);
         }
     }
 
     public static class LoadPyObjectAttributeNode extends LoadAttributeNode {
 
         public LoadPyObjectAttributeNode(LoadAttributeNode node) {
-            super(node.attributeId, node.primary);
+            super(node.attributeId, node.primary, node.context);
         }
 
         @Override

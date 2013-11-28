@@ -28,10 +28,15 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.oracle.truffle.api.CompilerDirectives.*;
+
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 
 public class PDictionary extends PythonBuiltinObject {
+
+    @CompilationFinal private static PythonBuiltinClass clazz;
 
     private final Map<Object, Object> map;
 
@@ -77,8 +82,20 @@ public class PDictionary extends PythonBuiltinObject {
     }
 
     @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) BuiltinsClassAttributesContainer.dictionaryClassAttributesContainer.getAttribute(name);
+    public PythonBuiltinClass __class__(PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
+        }
+        return clazz;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name, PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
+        }
+
+        return (PythonCallable) clazz.getAttribute(name);
     }
 
     @Override

@@ -28,14 +28,15 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
 
     private final FloatStorageLocation storageLocation;
 
-    public LoadFloatAttributeNode(String name, PNode primary, ObjectLayout objectLayout, FloatStorageLocation storageLocation) {
-        super(name, primary, objectLayout);
+    public LoadFloatAttributeNode(String name, PNode primary, PythonContext context, ObjectLayout objectLayout, FloatStorageLocation storageLocation) {
+        super(name, primary, context, objectLayout);
         this.storageLocation = storageLocation;
     }
 

@@ -63,7 +63,7 @@ public abstract class PythonBuiltinObject {
     }
 
     @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name) {
+    public PythonCallable __getattribute__(String name, PythonContext context) {
         throw new UnsupportedOperationException();
     }
 }

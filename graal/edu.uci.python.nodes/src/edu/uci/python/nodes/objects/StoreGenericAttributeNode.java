@@ -34,7 +34,7 @@ import edu.uci.python.runtime.objects.*;
 public final class StoreGenericAttributeNode extends StoreAttributeNode {
 
     public StoreGenericAttributeNode(StoreAttributeNode node) {
-        super(node.attributeId, node.primary, node.rhs);
+        super(node.attributeId, node.primary, node.rhs, node.context);
     }
 
     @Override
@@ -55,7 +55,7 @@ public final class StoreGenericAttributeNode extends StoreAttributeNode {
     public static final class StorePyObjectAttributeNode extends StoreAttributeNode {
 
         public StorePyObjectAttributeNode(StoreAttributeNode node) {
-            super(node.attributeId, node.primary, node.rhs);
+            super(node.attributeId, node.primary, node.rhs, node.context);
         }
 
         @Override

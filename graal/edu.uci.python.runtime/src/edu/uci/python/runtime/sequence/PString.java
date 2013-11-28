@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.oracle.truffle.api.CompilerDirectives.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -35,24 +37,29 @@ import edu.uci.python.runtime.function.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
 
-    PythonBuiltinClass stringClass;
-
-    @Override
-    public PythonBuiltinClass __class__(PythonContext context) {
-        return context.getPythonBuiltinsLookup().lookupType(PString.class);
-        // return stringClass;
-    }
+    @CompilationFinal private static PythonBuiltinClass clazz;
 
     private final String value;
 
     public PString(String value) {
         this.value = value;
-        // stringClass = context.getPythonBuiltinsLookup().lookupType(PString.class);
     }
 
     @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) BuiltinsClassAttributesContainer.stringClassAttributesContainer.getAttribute(name);
+    public PythonBuiltinClass __class__(PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PString.class);
+        }
+        return clazz;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name, PythonContext context) {
+        if (clazz == null) {
+            clazz = context.getPythonBuiltinsLookup().lookupType(PString.class);
+        }
+
+        return (PythonCallable) clazz.getAttribute(name);
     }
 
     public List<String> getList() {

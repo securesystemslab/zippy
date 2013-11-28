@@ -28,6 +28,7 @@ import org.python.core.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
@@ -37,9 +38,12 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
     @Child protected PNode primary;
 
-    public LoadAttributeNode(String name, PNode primary) {
+    protected final PythonContext context;
+
+    public LoadAttributeNode(String name, PNode primary, PythonContext context) {
         this.attributeId = name;
         this.primary = adoptChild(primary);
+        this.context = context;
     }
 
     public String getAttributeId() {
@@ -52,7 +56,7 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs);
+        return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs, context);
     }
 
     public LoadAttributeNode specialize(Object primaryObj) {
@@ -72,11 +76,11 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
         }
 
         if (storageLocation instanceof IntStorageLocation) {
-            return new LoadIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+            return new LoadIntAttributeNode(attributeId, primary, context, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
-            return new LoadFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
+            return new LoadFloatAttributeNode(attributeId, primary, context, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
         } else {
-            return new LoadObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+            return new LoadObjectAttributeNode(attributeId, primary, context, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
         }
     }
 

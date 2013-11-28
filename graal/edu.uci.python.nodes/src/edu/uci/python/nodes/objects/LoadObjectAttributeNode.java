@@ -27,14 +27,15 @@ package edu.uci.python.nodes.objects;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
 
     private final ObjectStorageLocation storageLocation;
 
-    public LoadObjectAttributeNode(String name, PNode primary, ObjectLayout objectLayout, ObjectStorageLocation storageLocation) {
-        super(name, primary, objectLayout);
+    public LoadObjectAttributeNode(String name, PNode primary, PythonContext context, ObjectLayout objectLayout, ObjectStorageLocation storageLocation) {
+        super(name, primary, context, objectLayout);
         this.storageLocation = storageLocation;
     }
 

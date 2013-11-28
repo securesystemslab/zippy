@@ -102,7 +102,7 @@ pythonTestBenchmarks = {
     'fannkuchredux3' : '9',
     'fasta3'        : '250000',
     'mandelbrot3'   : '600',
-    #'meteor3'       : '2098',
+    'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
 }
