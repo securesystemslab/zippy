@@ -1214,6 +1214,10 @@ void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr, Deopt
   fr.deoptimize(thread);
 }
 
+void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map) {
+  deoptimize(thread, fr, map, Reason_constraint);
+}
+
 void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map, DeoptReason reason) {
   // Deoptimize only if the frame comes from compile code.
   // Do not deoptimize the frame which is already patched
@@ -1253,6 +1257,9 @@ void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id, DeoptRea
   }
 }
 
+void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
+  deoptimize_frame(thread, id, Reason_constraint);
+}
 
 // JVMTI PopFrame support
 JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int bytes_to_save, void* start_address))
@@ -1948,7 +1955,8 @@ const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
   "div0_check",
   "age" GRAAL_ONLY("|jsr_mismatch"),
   "predicate",
-  "loop_limit_check"
+  "loop_limit_check",
+  GRAAL_ONLY("aliasing")
 };
 const char* Deoptimization::_trap_action_name[Action_LIMIT] = {
   // Note:  Keep this in sync. with enum DeoptAction.

@@ -2373,6 +2373,19 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   /**************/                                                        \
                                                                           \
   declare_constant(DataLayout::cell_size)                                 \
+  declare_constant(DataLayout::no_tag)                                    \
+  declare_constant(DataLayout::bit_data_tag)                              \
+  declare_constant(DataLayout::counter_data_tag)                          \
+  declare_constant(DataLayout::jump_data_tag)                             \
+  declare_constant(DataLayout::receiver_type_data_tag)                    \
+  declare_constant(DataLayout::virtual_call_data_tag)                     \
+  declare_constant(DataLayout::ret_data_tag)                              \
+  declare_constant(DataLayout::branch_data_tag)                           \
+  declare_constant(DataLayout::multi_branch_data_tag)                     \
+  declare_constant(DataLayout::arg_info_data_tag)                         \
+  declare_constant(DataLayout::call_type_data_tag)                        \
+  declare_constant(DataLayout::virtual_call_type_data_tag)                \
+  declare_constant(DataLayout::parameters_type_data_tag)                  \
                                                                           \
   /*************************************/                                 \
   /* InstanceKlass enum                */                                 \
@@ -3010,6 +3023,10 @@ VMIntConstantEntry VMStructs::localHotSpotVMIntConstants[] = {
                    GENERATE_C1_VM_INT_CONSTANT_ENTRY,
                    GENERATE_C2_VM_INT_CONSTANT_ENTRY,
                    GENERATE_C2_PREPROCESSOR_VM_INT_CONSTANT_ENTRY)
+
+#ifdef GRAAL
+  VM_INT_CONSTANTS_GRAAL(GENERATE_VM_INT_CONSTANT_ENTRY)
+#endif
 
 #if INCLUDE_ALL_GCS
   VM_INT_CONSTANTS_CMS(GENERATE_VM_INT_CONSTANT_ENTRY)

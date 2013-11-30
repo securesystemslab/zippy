@@ -251,9 +251,6 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case Deoptimization::Unpack_uncommon_trap:
       case Deoptimization::Unpack_reexecute:
         // redo last byte code
-#ifdef GRAALVM
-        assert(should_reexecute(), "");
-#endif
         pc  = Interpreter::deopt_entry(vtos, 0);
         use_next_mdp = false;
         break;

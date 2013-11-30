@@ -56,7 +56,13 @@ void GraalCompiler::initialize() {
 
   _deopted_leaf_graph_count = 0;
 
-  initialize_buffer_blob();
+  BufferBlob* buffer_blob = initialize_buffer_blob();
+  if (buffer_blob == NULL) {
+    // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
+    // set_state(failed);
+  } else {
+    // set_state(initialized);
+  }
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
@@ -106,9 +112,11 @@ void GraalCompiler::initialize() {
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
       if (bootstrap) {
+        // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
+        FlagSetting a(UseInterpreter, true);
+        FlagSetting b(BackgroundCompilation, true);
         VMToCompiler::bootstrap();
       }
-
 
 #ifndef PRODUCT
       if (CompileTheWorld) {
@@ -163,14 +171,16 @@ oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
   return array;
 }
 
-void GraalCompiler::initialize_buffer_blob() {
-
+BufferBlob* GraalCompiler::initialize_buffer_blob() {
   JavaThread* THREAD = JavaThread::current();
-  if (THREAD->get_buffer_blob() == NULL) {
-    BufferBlob* blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
-    guarantee(blob != NULL, "must create code buffer");
-    THREAD->set_buffer_blob(blob);
+  BufferBlob* buffer_blob = THREAD->get_buffer_blob();
+  if (buffer_blob == NULL) {
+    buffer_blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
+    if (buffer_blob != NULL) {
+      THREAD->set_buffer_blob(buffer_blob);
+    }
   }
+  return buffer_blob;
 }
 
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
