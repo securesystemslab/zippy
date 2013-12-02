@@ -31,7 +31,7 @@ import edu.uci.python.runtime.builtins.*;
 
 public class PInt extends PythonBuiltinObject {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PInt.class);
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
 
     private final BigInteger value;
 

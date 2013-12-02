@@ -27,6 +27,8 @@ package edu.uci.python.runtime.objects;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
@@ -136,7 +138,7 @@ public abstract class PythonBasicObject {
              * It doesn't exist, so create a new layout for the class that includes it and update
              * the layout of this object.
              */
-            updateLayout(objectLayout.withNewVariable(pythonClass.getContext(), name, value.getClass()));
+            updateLayout(objectLayout.withNewAttribute(pythonClass.getContext(), name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
 
@@ -161,6 +163,17 @@ public abstract class PythonBasicObject {
                 throw new RuntimeException("Generalised an instance variable, but it still rejected the value");
             }
         }
+    }
+
+    public void deleteAttribute(String name) {
+        // Find the storage location
+        StorageLocation storageLocation = objectLayout.findStorageLocation(name);
+
+        if (storageLocation == null) {
+            throw Py.AttributeError(this + " object has no attribute " + name);
+        }
+
+        updateLayout(objectLayout.withoutAttribute(pythonClass.getContext(), name));
     }
 
     public void updateLayout(ObjectLayout newLayout) {
@@ -202,6 +215,11 @@ public abstract class PythonBasicObject {
     protected void setAttributes(Map<String, Object> attributes) {
         for (Entry<String, Object> entry : attributes.entrySet()) {
             final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
+
+            if (storageLocation == null) {
+                // attribute is deleted
+                continue;
+            }
 
             try {
                 storageLocation.write(this, entry.getValue());

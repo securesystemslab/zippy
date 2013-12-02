@@ -26,6 +26,8 @@ package edu.uci.python.nodes.attribute;
 
 import java.util.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -68,7 +70,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
 
             BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
             AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
-            replace(newNode);
+            checkAndReplace(newNode);
             return newNode;
         }
 
@@ -78,38 +80,39 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         // Plain PythonObject
         if (!(primaryObj instanceof PythonClass)) {
             assert primaryObj instanceof PythonObject;
+            assumptions.add(primaryObj.getUnmodifiedAssumption());
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
                 AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
-                replace(newNode);
+                checkAndReplace(newNode);
                 return newNode;
             }
 
             depth++;
             current = primaryObj.getPythonClass();
-            assumptions.add(primaryObj.getUnmodifiedAssumption());
         }
 
-        assert primaryObj instanceof PythonClass;
+        // if primary itself is a PythonClass
         if (current == null) {
             current = (PythonClass) primaryObj;
         }
 
         // class chain lookup
         do {
+            assumptions.add(current.getUnmodifiedAssumption());
+
             if (current.isOwnAttribute(attributeId)) {
                 break;
             }
 
             current = current.getSuperClass();
             depth++;
-            assumptions.add(current.getUnmodifiedAssumption());
         } while (current != null);
 
         if (current == null) {
-            throw new IllegalStateException();
+            throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
         BoxedCheckNode check;
@@ -122,8 +125,14 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         }
 
         AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, current, getOwnValidLocation(current));
-        replace(newNode);
+        checkAndReplace(newNode);
         return newNode;
+    }
+
+    private void checkAndReplace(Node newNode) {
+        if (this.getParent() != null) {
+            replace(newNode);
+        }
     }
 
     private StorageLocation getOwnValidLocation(PythonBasicObject storage) {

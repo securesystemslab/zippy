@@ -35,7 +35,7 @@ import edu.uci.python.runtime.function.*;
 
 public class PString extends PImmutableSequence implements Iterable<Object> {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PString.class);
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PString.class);
 
     private final String value;
 

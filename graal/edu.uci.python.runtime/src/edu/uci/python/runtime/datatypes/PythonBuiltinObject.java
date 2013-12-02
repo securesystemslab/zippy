@@ -40,7 +40,7 @@ import edu.uci.python.runtime.function.*;
  */
 public abstract class PythonBuiltinObject {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getCurrent().getBuiltinTypeFor(PythonBuiltinObject.class);
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PythonBuiltinObject.class);
 
     public PythonBuiltinClass __class__() {
         return __class__;

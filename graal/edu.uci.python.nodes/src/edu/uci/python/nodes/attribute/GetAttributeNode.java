@@ -29,13 +29,16 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.*;
+import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class GetAttributeNode extends PNode {
+public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     protected final PythonContext context;
     protected final String attributeId;
@@ -45,6 +48,10 @@ public abstract class GetAttributeNode extends PNode {
         this.context = context;
         this.attributeId = attributeId;
         this.primary = adoptChild(primary);
+    }
+
+    public PNode makeWriteNode(PNode rhs) {
+        return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs);
     }
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {
@@ -110,6 +117,30 @@ public abstract class GetAttributeNode extends PNode {
             }
 
             return cache.getBooleanValue(frame, primaryObj);
+        }
+    }
+
+    public static class BoxedGetMethodNode extends BoxedGetAttributeNode {
+
+        private final PMethod cachedMethod;
+
+        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractBoxedAttributeNode cache, PMethod cachedMethod) {
+            super(context, attributeId, primary, cache);
+            this.cachedMethod = cachedMethod;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            try {
+                PythonObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                cache.getValue(frame, primaryObj);
+                cachedMethod.bind(primaryObj);
+            } catch (UnexpectedResultException e) {
+                CompilerDirectives.transferToInterpreter();
+                return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
+            }
+
+            return cachedMethod;
         }
     }
 
@@ -198,8 +229,16 @@ public abstract class GetAttributeNode extends PNode {
 
     protected static Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
         AbstractBoxedAttributeNode cacheNode = new AbstractBoxedAttributeNode.UninitializedCachedAttributeNode(current.attributeId);
-        current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));
-        return cacheNode.getValue(frame, primaryObj);
+        Object value = cacheNode.getValue(frame, primaryObj);
+
+        if (value instanceof PFunction) {
+            value = CallAttributeNode.createPMethodFor((PythonObject) primaryObj, (PFunction) value);
+            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode, (PMethod) value));
+        } else {
+            current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));
+        }
+
+        return value;
     }
 
     protected static Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
