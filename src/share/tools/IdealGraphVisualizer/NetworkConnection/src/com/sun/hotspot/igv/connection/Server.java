@@ -73,7 +73,7 @@ public class Server implements PreferenceChangeListener {
         try {
             serverSocket = ServerSocketChannel.open();
             serverSocket.bind(new InetSocketAddress(curPort));
-        } catch (IOException ex) {
+        } catch (Throwable ex) {
             NotifyDescriptor message = new NotifyDescriptor.Message("Could not create server. Listening for incoming binary data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
             DialogDisplayer.getDefault().notifyLater(message);
             return;
