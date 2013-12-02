@@ -33,8 +33,8 @@
 
 void * gpu::Hsail::_device_context;
 
-gpu::Hsail::okra_ctx_create_func_t      gpu::Hsail::_okra_ctx_create;
-gpu::Hsail::okra_kernel_create_func_t   gpu::Hsail::_okra_kernel_create;
+gpu::Hsail::okra_create_context_func_t  gpu::Hsail::_okra_create_context;
+gpu::Hsail::okra_create_kernel_func_t   gpu::Hsail::_okra_create_kernel;
 gpu::Hsail::okra_push_object_func_t     gpu::Hsail::_okra_push_object;
 gpu::Hsail::okra_push_boolean_func_t    gpu::Hsail::_okra_push_boolean;
 gpu::Hsail::okra_push_byte_func_t       gpu::Hsail::_okra_push_byte;
@@ -92,13 +92,13 @@ void *gpu::Hsail::generate_kernel(unsigned char *code, int code_len, const char 
   // The kernel entrypoint is always run for the time being  
   const char* entryPointName = "&run";
 
-  _device_context = _okra_ctx_create();
+  _device_context = _okra_create_context();
 
   // code is not null terminated, must be a better way to do this
   unsigned char* nullTerminatedCodeBuffer = (unsigned char*) malloc(code_len + 1);
   memcpy(nullTerminatedCodeBuffer, code, code_len);
   nullTerminatedCodeBuffer[code_len] = 0;
-  void* kernel = _okra_kernel_create(_device_context, nullTerminatedCodeBuffer, entryPointName);
+  void* kernel = _okra_create_kernel(_device_context, nullTerminatedCodeBuffer, entryPointName);
   free(nullTerminatedCodeBuffer);
   return kernel;
 }
@@ -113,6 +113,16 @@ static char const okra_library_name[] = "";
 
 #define STD_BUFFER_SIZE 1024
 
+#define STRINGIFY(x)     #x
+
+#define LOOKUP_OKRA_FUNCTION(name, alias)  \
+  _##alias =                               \
+    CAST_TO_FN_PTR(alias##_func_t, os::dll_lookup(handle, STRINGIFY(name))); \
+  if (_##alias == NULL) {      \
+  tty->print_cr("[HSAIL] ***** Error: Failed to lookup %s in %s, wrong version of OKRA?", STRINGIFY(name), okra_library_name); \
+        return 0; \
+  } \
+
 bool gpu::Hsail::probe_linkage() {
   if (okra_library_name != NULL) {
     char *buffer = (char*)malloc(STD_BUFFER_SIZE);
@@ -123,34 +133,19 @@ bool gpu::Hsail::probe_linkage() {
     free(buffer);
     if (handle != NULL) {
 
-      _okra_ctx_create =
-        CAST_TO_FN_PTR(okra_ctx_create_func_t, os::dll_lookup(handle, "okra_create_context"));
-      _okra_kernel_create =
-        CAST_TO_FN_PTR(okra_kernel_create_func_t, os::dll_lookup(handle, "okra_create_kernel"));
-      _okra_push_object =
-        CAST_TO_FN_PTR(okra_push_object_func_t, os::dll_lookup(handle, "okra_push_object"));
-      _okra_push_boolean =
-        CAST_TO_FN_PTR(okra_push_boolean_func_t, os::dll_lookup(handle, "okra_push_boolean"));
-      _okra_push_byte =
-        CAST_TO_FN_PTR(okra_push_byte_func_t, os::dll_lookup(handle, "okra_push_byte"));
-      _okra_push_double =
-        CAST_TO_FN_PTR(okra_push_double_func_t, os::dll_lookup(handle, "okra_push_double"));
-      _okra_push_float =
-        CAST_TO_FN_PTR(okra_push_float_func_t, os::dll_lookup(handle, "okra_push_float"));
-      _okra_push_int =
-        CAST_TO_FN_PTR(okra_push_int_func_t, os::dll_lookup(handle, "okra_push_int"));
-      _okra_push_long =
-        CAST_TO_FN_PTR(okra_push_long_func_t, os::dll_lookup(handle, "okra_push_long"));
-      _okra_execute_with_range =
-        CAST_TO_FN_PTR(okra_execute_with_range_func_t, os::dll_lookup(handle, "okra_execute_with_range"));
-      _okra_clearargs =
-        CAST_TO_FN_PTR(okra_clearargs_func_t, os::dll_lookup(handle, "okra_clearargs"));
-      _okra_register_heap =
-        CAST_TO_FN_PTR(okra_register_heap_func_t, os::dll_lookup(handle, "okra_register_heap"));
+      LOOKUP_OKRA_FUNCTION(okra_create_context, okra_create_context);
+      LOOKUP_OKRA_FUNCTION(okra_create_kernel, okra_create_kernel);
+      LOOKUP_OKRA_FUNCTION(okra_push_object, okra_push_object);
+      LOOKUP_OKRA_FUNCTION(okra_push_boolean, okra_push_boolean);
+      LOOKUP_OKRA_FUNCTION(okra_push_byte, okra_push_byte);
+      LOOKUP_OKRA_FUNCTION(okra_push_double, okra_push_double);
+      LOOKUP_OKRA_FUNCTION(okra_push_float, okra_push_float);
+      LOOKUP_OKRA_FUNCTION(okra_push_int, okra_push_int);
+      LOOKUP_OKRA_FUNCTION(okra_push_long, okra_push_long);
+      LOOKUP_OKRA_FUNCTION(okra_execute_with_range, okra_execute_with_range);
+      LOOKUP_OKRA_FUNCTION(okra_clearargs, okra_clearargs);
+      LOOKUP_OKRA_FUNCTION(okra_register_heap, okra_register_heap);
 
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] Success: library linkage _okra_clearargs=0x%08x", _okra_clearargs);
-      }
       return true;
     } else {
       // Unable to dlopen okra

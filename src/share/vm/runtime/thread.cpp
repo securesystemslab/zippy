@@ -2265,7 +2265,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
           RegisterMap reg_map(this, UseBiasedLocking);
           frame compiled_frame = f.sender(&reg_map);
           if (!StressCompiledExceptionHandlers && compiled_frame.can_be_deoptimized()) {
-            Deoptimization::deoptimize(this, compiled_frame, &reg_map, Deoptimization::Reason_constraint);
+            Deoptimization::deoptimize(this, compiled_frame, &reg_map);
           }
         }
       }
@@ -2698,7 +2698,7 @@ void JavaThread::deoptimize() {
         trace_frames();
         trace_stack();
       }
-      Deoptimization::deoptimize(this, *fst.current(), fst.register_map(), Deoptimization::Reason_constraint);
+      Deoptimization::deoptimize(this, *fst.current(), fst.register_map());
     }
   }
 
@@ -2734,7 +2734,7 @@ void JavaThread::deoptimized_wrt_marked_nmethods() {
                    this->name(), nm != NULL ? nm->compile_id() : -1);
       }
 
-      Deoptimization::deoptimize(this, *fst.current(), fst.register_map(), Deoptimization::Reason_constraint);
+      Deoptimization::deoptimize(this, *fst.current(), fst.register_map());
     }
   }
 }
@@ -3378,10 +3378,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize the os module before using TLS
   os::init();
 
-  // Probe for existance of supported GPU and initialize it if one
-  // exists.
-  gpu::init();
-
   // Initialize system properties.
   Arguments::init_system_properties();
 
@@ -3394,6 +3390,10 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Parse arguments
   jint parse_result = Arguments::parse(args);
   if (parse_result != JNI_OK) return parse_result;
+
+  // Probe for existance of supported GPU and initialize it if one
+  // exists.
+  gpu::init();
 
   os::init_before_ergo();
 

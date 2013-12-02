@@ -81,13 +81,19 @@ bool gpu::Linux::probe_gpu() {
         tty->print_cr("Found supported nVidia GPU device vendor : 0x%04x device 0x%04x", vendor, device);
       }
       break;
-    } else if (vendor == amd_vendor_id) {
-      gpu_device_exists = true;
-      set_target_il_type(gpu::HSAIL);
-      if (TraceGPUInteraction) {
-        tty->print_cr("Found supported AMD GPU device vendor : 0x%04x device 0x%04x", vendor, device);
-      }
-      break;
+       /*
+        * Remove AMD detection until we decide how to detect real HSA hardware.
+        * In the current form this check does not work correctly on AMD CPU system with 
+        * Nvidia GPU.
+        *
+        * } else if (vendor == amd_vendor_id) {
+        *   gpu_device_exists = true;
+        *   set_target_il_type(gpu::HSAIL);
+        *   if (TraceGPUInteraction) {
+        *     tty->print_cr("Found supported AMD GPU device vendor : 0x%04x device 0x%04x", vendor, device);
+        *   }
+        *   break;
+        */
     }
   }
 

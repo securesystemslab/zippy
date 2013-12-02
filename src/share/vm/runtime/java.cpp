@@ -462,7 +462,9 @@ void before_exit(JavaThread * thread) {
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
 #ifdef GRAAL
-  GraalCompiler::instance()->exit();
+  if (GraalCompiler::instance() != NULL) {
+    GraalCompiler::instance()->exit();
+  }
 #endif
 
   // Note: don't use a Mutex to guard the entire before_exit(), as

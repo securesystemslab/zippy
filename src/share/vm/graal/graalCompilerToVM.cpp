@@ -732,8 +732,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
 
-  set_long("elapsedTimerFrequency", os::elapsed_frequency());
-
   //------------------------------------------------------------------------------------------------
 
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
@@ -825,6 +823,37 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
     }
   }
   return result;
+C2V_END
+
+C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id, jobject hotspot_method, jboolean osr, jint processedBytecodes, jlong time, jlong timeUnitsPerSecond, jobject installed_code))
+  CompilerStatistics* stats = GraalCompiler::instance()->stats();
+
+  elapsedTimer timer = elapsedTimer(time, timeUnitsPerSecond);
+  if (osr) {
+    stats->_osr.update(timer, processedBytecodes);
+  } else {
+    stats->_standard.update(timer, processedBytecodes);
+  }
+  Handle installed_code_handle = JNIHandles::resolve(installed_code);
+  stats->_nmethods_size += HotSpotInstalledCode::size(installed_code_handle);
+  stats->_nmethods_code_size += HotSpotInstalledCode::codeSize(installed_code_handle);
+
+  if (CITimeEach) {
+    methodHandle method = asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
+    float bytes_per_sec = 1.0 * processedBytecodes / timer.seconds();
+    tty->print_cr("%3d   seconds: %f bytes/sec: %f (bytes %d)",
+                  id, timer.seconds(), bytes_per_sec, processedBytecodes);
+  }
+C2V_END
+
+C2V_VMENTRY(void, resetCompilationStatistics, (JNIEnv *jniEnv, jobject))
+  CompilerStatistics* stats = GraalCompiler::instance()->stats();
+  stats->_standard._time.reset();
+  stats->_standard._bytes = 0;
+  stats->_standard._count = 0;
+  stats->_osr._time.reset();
+  stats->_osr._bytes = 0;
+  stats->_osr._count = 0;
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBlob))
@@ -996,7 +1025,7 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
     method_data = MethodData::allocate(loader_data, method, CHECK);
     method->set_method_data(method_data);
   } else {
-    method_data->initialize();
+    method_data->initialize(true);
   }
 C2V_END
 
@@ -1098,6 +1127,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
+  {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
+  {CC"resetCompilationStatistics",    CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},

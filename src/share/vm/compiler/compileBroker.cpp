@@ -2352,7 +2352,7 @@ void CompileBroker::print_times() {
       nmethods_size += stats->_nmethods_size;
       nmethods_code_size += stats->_nmethods_code_size;
 
-      tty->print_cr("  %s { speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
+      tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
           comp->name(), stats->bytes_per_second(),
           stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
           stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,

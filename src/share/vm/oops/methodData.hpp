@@ -1079,7 +1079,7 @@ protected:
     //          TODO (chaeubl): in fact, Graal should also increment the count for failed type checks to mimic the C1/C2 behavior
     // VirtualCallData for invokevirtual/invokeinterface:
     //   C1/C2: count is incremented on type overflow
-    //   Graal: count is incremented on type overflow, nonprofiled_count is increment on method overflow
+    //   Graal: count is incremented on type overflow, nonprofiled_count is incremented on method overflow
 
     // Graal is interested in knowing the percentage of type checks involving a type not explicitly in the profile
     nonprofiled_count_off_set = counter_cell_count,
@@ -1183,6 +1183,9 @@ public:
   static ByteSize nonprofiled_receiver_count_offset() {
     return cell_offset(nonprofiled_count_off_set);
   }
+  uint nonprofiled_count() const {
+    return uint_at(nonprofiled_count_off_set);
+  }
   void set_nonprofiled_count(uint count) {
     set_uint_at(nonprofiled_count_off_set, count);
   }
@@ -1245,12 +1248,17 @@ public:
     return MethodProfileWidth;
   }
 
-  Method* method(uint row) {
+  Method* method(uint row) const {
     assert(row < method_row_limit(), "oob");
 
     Method* method = (Method*)intptr_at(method_cell_index(row));
     assert(method == NULL || method->is_method(), "must be");
     return method;
+  }
+
+  uint method_count(uint row) const {
+    assert(row < method_row_limit(), "oob");
+    return uint_at(method_count_cell_index(row));
   }
 
   void set_method(uint row, Method* m) {
@@ -1276,6 +1284,9 @@ public:
 #endif
 
 #ifndef PRODUCT
+#ifdef GRAAL
+  void print_method_data_on(outputStream* st) const;
+#endif
   void print_data_on(outputStream* st) const;
 #endif
 };
@@ -1885,7 +1896,7 @@ public:
   MethodData() {}; // For ciMethodData
 
   bool is_methodData() const volatile { return true; }
-  void initialize();
+  void initialize(bool for_reprofile = false);
 
   // Whole-method sticky bits and flags
   enum {
@@ -2092,7 +2103,6 @@ public:
 
   bool is_mature() const;  // consult mileage and ProfileMaturityPercentage
   static int mileage_of(Method* m);
-  static bool is_empty_data(int size, Bytecodes::Code code);
 
   // Support for interprocedural escape analysis, from Thomas Kotzmann.
   enum EscapeFlag {

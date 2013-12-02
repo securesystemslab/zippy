@@ -26,24 +26,18 @@
 #define SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP
 
 #include "compiler/abstractCompiler.hpp"
+#include "graal/graalEnv.hpp"
 
 #define VM_STRUCTS_GRAAL(nonstatic_field, static_field)                       \
-                                                                              \
   static_field(java_lang_Class, _graal_mirror_offset, int)                    \
-                                                                              \
-  nonstatic_field(CompilerStatistics, _standard,           CompilerStatistics::Data) \
-  nonstatic_field(CompilerStatistics, _osr,                CompilerStatistics::Data) \
-  nonstatic_field(CompilerStatistics, _nmethods_size,      int)                      \
-  nonstatic_field(CompilerStatistics, _nmethods_code_size, int)                      \
-  nonstatic_field(CompilerStatistics::Data, _bytes,        int)                      \
-  nonstatic_field(CompilerStatistics::Data, _count,        int)                      \
-  nonstatic_field(CompilerStatistics::Data, _time,         elapsedTimer)             \
-
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
-                                                                              \
-  declare_toplevel_type(CompilerStatistics)                                   \
-  declare_toplevel_type(CompilerStatistics::Data)                             \
 
+#define VM_INT_CONSTANTS_GRAAL(declare_constant)                              \
+  declare_constant(Deoptimization::Reason_aliasing)                           \
+  declare_constant(GraalEnv::ok)                                              \
+  declare_constant(GraalEnv::dependencies_failed)                             \
+  declare_constant(GraalEnv::cache_full)                                      \
+  declare_constant(GraalEnv::code_too_large)                                  \
 
 #endif // SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP
