@@ -89,7 +89,7 @@ public class AttributeCachingTests {
         /**
          * testing fall back.
          */
-        // replace primary to an int
+        // replace primary to a string
         PNode pstr = factory.createStringLiteral("yy");
         NodeUtil.findFirstNodeInstance(getMethod, ListLiteralNode.class).replace(pstr);
 
