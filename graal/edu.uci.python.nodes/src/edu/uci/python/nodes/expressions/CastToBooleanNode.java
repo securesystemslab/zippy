@@ -33,12 +33,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class BooleanCastNode extends UnaryOpNode {
+public abstract class CastToBooleanNode extends UnaryOpNode {
 
     @Override
     public abstract boolean executeBoolean(VirtualFrame frame);
 
-    public abstract static class YesNode extends BooleanCastNode {
+    public abstract static class YesNode extends CastToBooleanNode {
 
         @Specialization
         boolean doInteger(int operand) {
@@ -97,7 +97,7 @@ public abstract class BooleanCastNode extends UnaryOpNode {
         }
     }
 
-    public abstract static class NotNode extends BooleanCastNode {
+    public abstract static class NotNode extends CastToBooleanNode {
 
         @Specialization
         boolean doInteger(int operand) {

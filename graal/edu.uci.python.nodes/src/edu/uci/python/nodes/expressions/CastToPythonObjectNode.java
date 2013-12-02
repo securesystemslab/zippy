@@ -22,35 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.expressions;
 
-import org.python.core.*;
+import com.oracle.truffle.api.dsl.*;
 
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public class AssertNode extends StatementNode {
+public abstract class CastToPythonObjectNode extends UnaryOpNode {
 
-    @Child protected CastToBooleanNode condition;
+    private final PythonContext context;
 
-    @Child protected PNode message;
-
-    public AssertNode(CastToBooleanNode condition, PNode message) {
-        this.condition = adoptChild(condition);
-        this.message = adoptChild(message);
+    public CastToPythonObjectNode(PythonContext context) {
+        this.context = context;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        if (!condition.executeBoolean(frame)) {
-            String assertionMessage = message == null ? "" : (String) message.execute(frame);
-            throw Py.AssertionError(assertionMessage);
-        }
-
-        return PNone.NONE;
+    protected CastToPythonObjectNode(CastToPythonObjectNode prev) {
+        this(prev.context);
     }
 
+    @Specialization
+    public Object doInteger(int value) {
+        return new PInt(value);
+    }
 }

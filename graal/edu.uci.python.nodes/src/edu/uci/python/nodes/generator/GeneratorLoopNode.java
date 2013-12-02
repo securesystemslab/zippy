@@ -40,13 +40,13 @@ import edu.uci.python.runtime.sequence.*;
 @NodeChild(value = "iteratorNode", type = PNode.class)
 public abstract class GeneratorLoopNode extends LoopNode {
 
-    @Child protected BooleanCastNode condition;
+    @Child protected CastToBooleanNode condition;
     @Child protected PNode target;
     protected Iterator<?> iterator;
 
     public abstract PNode getIteratorNode();
 
-    public GeneratorLoopNode(PNode target, BooleanCastNode condition, PNode loopBody) {
+    public GeneratorLoopNode(PNode target, CastToBooleanNode condition, PNode loopBody) {
         super(loopBody);
         this.target = adoptChild(target);
         this.condition = adoptChild(condition);
@@ -62,7 +62,7 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
     public abstract static class InnerGeneratorLoopNode extends GeneratorLoopNode {
 
-        public InnerGeneratorLoopNode(PNode target, BooleanCastNode condition, PNode loopBody) {
+        public InnerGeneratorLoopNode(PNode target, CastToBooleanNode condition, PNode loopBody) {
             super(target, condition, loopBody);
             assert loopBody != null;
         }
@@ -102,7 +102,7 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
         protected Object currentValue;
 
-        public OuterGeneratorLoopNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
+        public OuterGeneratorLoopNode(PNode target, CastToBooleanNode condition, PNode innerLoop) {
             super(target, condition, innerLoop);
             assert innerLoop != null;
         }

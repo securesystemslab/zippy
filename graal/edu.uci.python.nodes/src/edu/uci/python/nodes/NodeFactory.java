@@ -41,8 +41,6 @@ import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.OuterGeneratorLoo
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -53,11 +51,12 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.expressions.CastToBooleanNodeFactory.NotNodeFactory;
+import edu.uci.python.nodes.expressions.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.expressions.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryComparisonNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
-import edu.uci.python.nodes.expressions.BooleanCastNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -165,11 +164,11 @@ public class NodeFactory {
         return new ImportNode(context, fromModuleName, importee);
     }
 
-    public LoopNode createWhile(BooleanCastNode condition, StatementNode body) {
+    public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {
         return new WhileNode(condition, body);
     }
 
-    public StatementNode createIf(BooleanCastNode condition, BlockNode thenPart, BlockNode elsePart) {
+    public StatementNode createIf(CastToBooleanNode condition, BlockNode thenPart, BlockNode elsePart) {
         return new IfNode(condition, thenPart, elsePart);
     }
 
@@ -274,11 +273,11 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public PNode createOuterGeneratorLoop(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
+    public PNode createOuterGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode innerLoop) {
         return OuterGeneratorLoopNodeFactory.create(target, condition, innerLoop, iterator);
     }
 
-    public PNode createInnerGeneratorLoop(PNode target, PNode iterator, BooleanCastNode condition, PNode loopBody) {
+    public PNode createInnerGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode loopBody) {
         return InnerGeneratorLoopNodeFactory.create(target, condition, loopBody, iterator);
     }
 
@@ -495,20 +494,20 @@ public class NodeFactory {
         return pythonTreeList;
     }
 
-    public BooleanCastNode toBooleanCastNode(PNode node) {
+    public CastToBooleanNode toBooleanCastNode(PNode node) {
         // TODO: should fix the thing that this fixes
         if (node == null) {
             return null;
         }
 
-        if (node instanceof BooleanCastNode) {
-            return (BooleanCastNode) node;
+        if (node instanceof CastToBooleanNode) {
+            return (CastToBooleanNode) node;
         } else {
             return createYesNode(node);
         }
     }
 
-    public BooleanCastNode createYesNode(PNode operand) {
+    public CastToBooleanNode createYesNode(PNode operand) {
         return YesNodeFactory.create(operand);
     }
 
@@ -528,7 +527,7 @@ public class NodeFactory {
         return new RaiseNode(type, inst);
     }
 
-    public StatementNode createAssert(BooleanCastNode condition, PNode message) {
+    public StatementNode createAssert(CastToBooleanNode condition, PNode message) {
         return new AssertNode(condition, message);
     }
 

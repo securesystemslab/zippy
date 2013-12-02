@@ -733,7 +733,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitAssert(Assert node) throws Exception {
         PNode test = (PNode) visit(node.getInternalTest());
-        BooleanCastNode condition = factory.toBooleanCastNode(test);
+        CastToBooleanNode condition = factory.toBooleanCastNode(test);
         PNode msg = node.getInternalMsg() == null ? null : (PNode) visit(node.getInternalMsg());
         return factory.createAssert(condition, msg);
     }
