@@ -178,6 +178,8 @@ SOURCE_PATHS+=$(HS_COMMON_SRC)/os/$(Platform_os_family)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os/posix/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/cpu/$(Platform_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_cpu/$(Platform_os_arch)/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/ptx/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/hsail/vm
 
 CORE_PATHS=$(foreach path,$(SOURCE_PATHS),$(call altsrc,$(path)) $(path))
 CORE_PATHS+=$(GENERATED)/jvmtifiles $(GENERATED)/tracefiles
@@ -341,9 +343,9 @@ DEST_JVM_DIZ       = $(DEST_SUBDIR)/$(LIBJVM_DIZ)
 
 install_jvm: $(LIBJVM)
 	@echo "Copying $(LIBJVM) to $(DEST_JVM)"
-	-$(QUIETLY) test -f $(LIBJVM_DEBUGINFO) && \
+	$(QUIETLY) test ! -f $(LIBJVM_DEBUGINFO) || \
 	    cp -f $(LIBJVM_DEBUGINFO) $(DEST_JVM_DEBUGINFO)
-	-$(QUIETLY) test -f $(LIBJVM_DIZ) && \
+	$(QUIETLY) test ! -f $(LIBJVM_DIZ) || \
 	    cp -f $(LIBJVM_DIZ) $(DEST_JVM_DIZ)
 	$(QUIETLY) cp -f $(LIBJVM) $(DEST_JVM) && echo "Done"
 

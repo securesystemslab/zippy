@@ -186,6 +186,7 @@ void print_method_profiling_data() {
   collected_profiled_methods->sort(&compare_methods);
 
   int count = collected_profiled_methods->length();
+  int total_size = 0;
   if (count > 0) {
     for (int index = 0; index < count; index++) {
       Method* m = collected_profiled_methods->at(index);
@@ -193,10 +194,18 @@ void print_method_profiling_data() {
       tty->print_cr("------------------------------------------------------------------------");
       //m->print_name(tty);
       m->print_invocation_count();
+      tty->print_cr("  mdo size: %d bytes", m->method_data()->size_in_bytes());
       tty->cr();
+      // Dump data on parameters if any
+      if (m->method_data() != NULL && m->method_data()->parameters_type_data() != NULL) {
+        tty->fill_to(2);
+        m->method_data()->parameters_type_data()->print_data_on(tty);
+      }
       m->print_codes();
+      total_size += m->method_data()->size_in_bytes();
     }
     tty->print_cr("------------------------------------------------------------------------");
+    tty->print_cr("Total MDO size: %d bytes", total_size);
   }
 }
 
@@ -453,7 +462,9 @@ void before_exit(JavaThread * thread) {
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
 #ifdef GRAAL
-  GraalCompiler::instance()->exit();
+  if (GraalCompiler::instance() != NULL) {
+    GraalCompiler::instance()->exit();
+  }
 #endif
 
   // Note: don't use a Mutex to guard the entire before_exit(), as
