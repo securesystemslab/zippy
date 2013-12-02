@@ -26,6 +26,8 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
@@ -102,7 +104,7 @@ public class PythonContext {
         return typeClass;
     }
 
-    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) {
+    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) throws UnexpectedResultException {
         if (obj instanceof PythonBuiltinObject) {
             return (PythonBuiltinObject) obj;
         }
@@ -114,7 +116,7 @@ public class PythonContext {
             return new PString((String) obj);
         }
 
-        throw new RuntimeException("Unexpected obj type " + obj.getClass());
+        throw new UnexpectedResultException(obj);
     }
 
     public PythonBuiltinClass getObjectClass() {

@@ -46,7 +46,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, Object primaryObj);
+    public abstract Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException;
 
     public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
@@ -60,7 +60,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) {
+    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) throws UnexpectedResultException {
         PythonBuiltinObject pbObj = context.boxAsPythonBuiltinObject(primaryObj);
         PythonClass current = pbObj.__class__();
         assert current != null;
@@ -106,7 +106,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, Object primaryObj) {
+        public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreter();
             return rewrite(primaryObj).getValue(frame, primaryObj);
         }
