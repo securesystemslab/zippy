@@ -913,7 +913,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
      static_field(Threads,                     _return_code,                                  int)                                   \
                                                                                                                                      \
   nonstatic_field(ThreadShadow,                _pending_exception,                            oop)                                   \
-  nonstatic_field(ThreadShadow,                _pending_deoptimization,                       int)                                   \
   nonstatic_field(ThreadShadow,                _exception_file,                               const char*)                           \
   nonstatic_field(ThreadShadow,                _exception_line,                               int)                                   \
    volatile_nonstatic_field(Thread,            _suspend_flags,                                uint32_t)                              \

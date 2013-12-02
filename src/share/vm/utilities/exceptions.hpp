@@ -61,8 +61,10 @@ class ThreadShadow: public CHeapObj<mtThread> {
   friend class VMStructs;
 
  protected:
+#ifdef GRAAL
   int _pending_deoptimization;
   bool _pending_monitorenter;
+#endif
   oop  _pending_exception;                       // Thread has gc actions.
   const char* _exception_file;                   // file information for exception (debugging only)
   int         _exception_line;                   // line information for exception (debugging only)
@@ -78,19 +80,23 @@ class ThreadShadow: public CHeapObj<mtThread> {
 
  public:
   oop  pending_exception() const                 { return _pending_exception; }
-  int  pending_deoptimization() const            { return _pending_deoptimization; }
   bool has_pending_exception() const             { return _pending_exception != NULL; }
   const char* exception_file() const             { return _exception_file; }
   int  exception_line() const                    { return _exception_line; }
+#ifdef GRAAL
+  int  pending_deoptimization() const            { return _pending_deoptimization; }
   bool has_pending_monitorenter() const          { return _pending_monitorenter; }
+#endif
 
   // Code generation support
-  static ByteSize pending_deoptimization_offset() { return byte_offset_of(ThreadShadow, _pending_deoptimization); }
   static ByteSize pending_exception_offset()     { return byte_offset_of(ThreadShadow, _pending_exception); }
+#ifdef GRAAL
+  static ByteSize pending_deoptimization_offset() { return byte_offset_of(ThreadShadow, _pending_deoptimization); }
   static ByteSize pending_monitorenter_offset()  { return byte_offset_of(ThreadShadow, _pending_monitorenter); }
 
   void set_pending_monitorenter(bool b)          { _pending_monitorenter = b; }
   void set_pending_deoptimization(int reason)    { _pending_deoptimization = reason; }
+#endif
 
   // use THROW whenever possible!
   void set_pending_exception(oop exception, const char* file, int line);
@@ -99,7 +105,11 @@ class ThreadShadow: public CHeapObj<mtThread> {
   void clear_pending_exception();
 
   ThreadShadow() : _pending_exception(NULL),
-                   _exception_file(NULL), _exception_line(0), _pending_monitorenter(false), _pending_deoptimization(-1) {}
+                   _exception_file(NULL), _exception_line(0)
+#ifdef GRAAL
+                   , _pending_monitorenter(false), _pending_deoptimization(-1)
+#endif
+  {}
 };
 
 
