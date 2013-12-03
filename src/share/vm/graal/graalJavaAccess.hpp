@@ -63,11 +63,6 @@ void graal_compute_offsets();
     boolean_field(HotSpotResolvedJavaMethod, dontInline)                                                                                                       \
     boolean_field(HotSpotResolvedJavaMethod, ignoredBySecurityStackWalk)                                                                                       \
   end_class                                                                                                                                                    \
-  start_class(HotSpotMethodData)                                                                                                                               \
-    long_field(HotSpotMethodData, metaspaceMethodData)                                                                                                         \
-    int_field(HotSpotMethodData, normalDataSize)                                                                                                               \
-    int_field(HotSpotMethodData, extraDataSize)                                                                                                                \
-  end_class                                                                                                                                                    \
   start_class(HotSpotJavaType)                                                                                                                                 \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \

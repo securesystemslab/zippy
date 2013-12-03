@@ -298,12 +298,6 @@ C2V_VMENTRY(jboolean, isMethodCompilable,(JNIEnv *, jobject, jlong metaspace_met
   return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method);
 C2V_END
 
-C2V_VMENTRY(void, initializeMethodData,(JNIEnv *, jobject, jlong metaspace_method_data, jobject hotspot_method_data))
-  MethodData* method_data = asMethodData(metaspace_method_data);
-  HotSpotMethodData::set_normalDataSize(hotspot_method_data, method_data->data_size());
-  HotSpotMethodData::set_extraDataSize(hotspot_method_data, method_data->extra_data_size());
-C2V_END
-  
 C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_method))
   nmethod* code = (asMethod(metaspace_method))->code();
   return code == NULL ? 0 : code->insts_size();
@@ -1075,9 +1069,7 @@ C2V_END
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
-#define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
-#define METASPACE_METHOD_DATA "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
@@ -1089,7 +1081,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
