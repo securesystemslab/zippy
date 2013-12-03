@@ -223,5 +223,13 @@ public class CallFunctionNoKeywordNode extends PNode {
 
             return false;
         }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (CompilerDirectives.inInterpreter()) {
+                callCount++;
+            }
+            return super.execute(frame);
+        }
     }
 }

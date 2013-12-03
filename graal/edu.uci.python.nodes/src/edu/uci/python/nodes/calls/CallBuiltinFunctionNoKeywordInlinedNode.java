@@ -40,6 +40,7 @@ public class CallBuiltinFunctionNoKeywordInlinedNode extends CallFunctionNoKeywo
     private final Assumption globalScopeUnchanged;
     private final Assumption builtinModuleUnchanged;
     private final FrameFactory frameFactory;
+    private static final FrameDescriptor FrameDescriptor = new FrameDescriptor();
 
     public CallBuiltinFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged,
                     Assumption builtinModuleUnchanged, FrameFactory frameFactory) {
@@ -66,7 +67,7 @@ public class CallBuiltinFunctionNoKeywordInlinedNode extends CallFunctionNoKeywo
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(PNone.NONE, null, args);
-        VirtualFrame inlinedFrame = frameFactory.create(null, frame.pack(), pargs);
+        VirtualFrame inlinedFrame = frameFactory.create(FrameDescriptor, frame.pack(), pargs);
         return functionRoot.execute(inlinedFrame);
     }
 }
