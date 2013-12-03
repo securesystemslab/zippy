@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -58,16 +57,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable);
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);
-            } else if (callable instanceof PBuiltinFunction) {
-                PBuiltinFunction builtinFunction = (PBuiltinFunction) calleeObj;
-                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinFunction.getName(), arguments, keywords);
-                replace(callBuiltIn);
-                return callBuiltIn.doGeneric(frame);
-            } else if (callable instanceof PythonBuiltinClass) {
-                PythonBuiltinClass builtinClass = (PythonBuiltinClass) calleeObj;
-                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getClassName(), arguments, keywords);
-                replace(callBuiltIn);
-                return callBuiltIn.doGeneric(frame);
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
                 replace(callFunction);
