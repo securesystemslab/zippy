@@ -60,15 +60,18 @@ def fannkuch(n):
                 p[i + 1] = t
                 i += 1
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    
+    sum, maxflips = fannkuch(int(sys.argv[1]))
+    print(sum)
+    print("Pfannkuchen(%d) = %d" % (int(sys.argv[1]), maxflips))
+
+    duration = "%.3f\n" % (time.time() - start)
+    print("fannkuchredux: " + duration)
+
 for i in range(10000):
     fannkuch(7)
 
-print("Start timing...")
-start = time.time()
-
-sum, maxflips = fannkuch(int(sys.argv[1]))
-print(sum)
-print("Pfannkuchen(%d) = %d" % (int(sys.argv[1]), maxflips))
-
-duration = "%.3f\n" % (time.time() - start)
-print("fannkuchredux: " + duration)
+measure()
