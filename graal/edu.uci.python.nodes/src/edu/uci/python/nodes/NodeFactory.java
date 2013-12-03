@@ -348,8 +348,8 @@ public class NodeFactory {
         }
     }
 
-    public PNode createAttributeCall(PNode primary, PNode[] args, String name) {
-        return CallAttributeNodeFactory.create(args, name, primary);
+    public PNode createAttributeCall(PNode primary, String name, PNode[] args) {
+        return CallAttributeNodeFactory.create(name, args, primary);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
@@ -513,8 +513,8 @@ public class NodeFactory {
         return YesNodeFactory.create(operand);
     }
 
-    public PNode createIfExpNode(PNode body, PNode test, PNode orelse) {
-        return IfExpressionNodeFactory.create(test, body, orelse);
+    public PNode createIfExpNode(CastToBooleanNode condition, PNode then, PNode orelse) {
+        return new IfExpressionNode(condition, then, orelse);
     }
 
     public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {

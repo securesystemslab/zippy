@@ -68,11 +68,6 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public int len() {
-        return array.length;
-    }
-
-    @Override
     public Object getItem(int idx) {
         return array[idx];
     }
@@ -109,6 +104,13 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
+    public Object getMax() {
+        double[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         double[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -116,10 +118,8 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public Object getMax() {
-        double[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int len() {
+        return array.length;
     }
 
     @Override

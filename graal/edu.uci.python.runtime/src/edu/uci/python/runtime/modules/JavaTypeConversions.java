@@ -29,7 +29,6 @@ import java.math.*;
 import org.python.core.*;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.sequence.*;
 
 public class JavaTypeConversions {
 
@@ -59,12 +58,9 @@ public class JavaTypeConversions {
         } else if (arg instanceof String) {
             String stringArg = (String) arg;
             return !(stringArg.isEmpty());
-        } else if (arg instanceof PSequence) {
-            PSequence sequence = (PSequence) arg;
-            return sequence.len() != 0;
-        } else if (arg instanceof PythonBuiltinObject) {
-            PythonBuiltinObject object = (PythonBuiltinObject) arg;
-            return object.len() != 0;
+        } else if (arg instanceof PIterable) {
+            PIterable iterable = (PIterable) arg;
+            return iterable.len() != 0;
         } else {
             throw new RuntimeException("invalid value for boolean()");
         }

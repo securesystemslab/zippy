@@ -40,7 +40,7 @@ import edu.uci.python.runtime.objects.*;
  */
 public class PythonClass extends PythonObject {
 
-    private final String className;
+    protected final String className;
 
     private final PythonContext context;
 

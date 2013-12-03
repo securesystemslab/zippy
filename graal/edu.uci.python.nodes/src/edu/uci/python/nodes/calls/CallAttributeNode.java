@@ -53,13 +53,13 @@ public abstract class CallAttributeNode extends PNode {
 
     public abstract PNode getPrimary();
 
-    public CallAttributeNode(PNode[] arguments, String name) {
-        this.arguments = adoptChildren(arguments);
+    public CallAttributeNode(String name, PNode[] arguments) {
         this.attributeId = name;
+        this.arguments = adoptChildren(arguments);
     }
 
     protected CallAttributeNode(CallAttributeNode node) {
-        this(node.arguments, node.attributeId);
+        this(node.attributeId, node.arguments);
     }
 
     @Override

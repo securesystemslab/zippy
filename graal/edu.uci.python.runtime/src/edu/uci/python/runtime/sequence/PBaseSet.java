@@ -32,7 +32,7 @@ import java.util.Set;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object> {
+public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object>, PIterable {
 
     protected Set<Object> set;
 
@@ -56,11 +56,6 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
 
     public Set<Object> getSet() {
         return set;
-    }
-
-    @Override
-    public int len() {
-        return this.set.size();
     }
 
     public PIterator __iter__() {
@@ -285,6 +280,13 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     @Override
+    public Object getMax() {
+        Object[] copy = this.set.toArray();
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         Object[] copy = this.set.toArray();
         Arrays.sort(copy);
@@ -292,10 +294,8 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     @Override
-    public Object getMax() {
-        Object[] copy = this.set.toArray();
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int len() {
+        return this.set.size();
     }
 
     @Override

@@ -28,14 +28,11 @@ import java.util.Iterator;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object> {
+public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object>, PIterable {
 
     public PIterator __iter__() {
         return new PSequenceIterator(this);
     }
-
-    @Override
-    public abstract int len();
 
     public abstract Object getItem(int idx);
 
@@ -60,5 +57,4 @@ public abstract class PSequence extends PythonBuiltinObject implements Iterable<
     public abstract boolean lessThan(PSequence sequence);
 
     public abstract PSequence concat(PSequence sequence);
-
 }

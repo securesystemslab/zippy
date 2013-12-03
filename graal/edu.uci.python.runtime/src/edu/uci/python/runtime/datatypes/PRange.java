@@ -104,11 +104,6 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public int len() {
-        return length;
-    }
-
-    @Override
     public PIterator __iter__() {
         return new PRangeIterator(this);
     }
@@ -180,6 +175,21 @@ public class PRange extends PImmutableSequence {
     @Override
     public PSequence concat(PSequence sequence) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int len() {
+        return length;
     }
 
 }

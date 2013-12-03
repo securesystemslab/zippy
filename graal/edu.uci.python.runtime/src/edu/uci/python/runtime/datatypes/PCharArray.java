@@ -68,11 +68,6 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public int len() {
-        return array.length;
-    }
-
-    @Override
     public Object getItem(int idx) {
         return array[idx];
     }
@@ -114,6 +109,13 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
+    public Object getMax() {
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -121,10 +123,8 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public Object getMax() {
-        char[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int len() {
+        return array.length;
     }
 
     @Override

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.builtins;
 
-import static edu.uci.python.nodes.truffle.PythonTypesGen.*;
-
 import java.util.*;
 
 import org.python.core.*;
@@ -247,6 +245,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return Character.toString((char) arg);
             }
 
+// @Specialization
+// public char charFromInt(int arg) {
+// if (arg < 0 || arg > 0x10FFFF) {
+// throw Py.ValueError("chr() arg not in range(0x110000)");
+// }
+// return (char) arg;
+// }
+
             @Specialization
             public char charFromInt(Object arg) {
                 if (arg instanceof Double) {
@@ -461,7 +467,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 }
 
-                throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+                throw new RuntimeException();
+                // throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) +
+// "' has no len()");
             }
         }
 
@@ -479,64 +487,90 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "hasTwoArguments")
-            public int maxIntInt(int arg1, int arg2, Object[] args, Object keywordArg) {
-                return Math.max(arg1, arg2);
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasTwoArguments")
-            public double maxDoubleDouble(double arg1, double arg2, Object[] args, Object keywordArg) {
-                return Math.max(arg1, arg2);
-            }
-
-            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
             @Specialization
-            public Object max(Object arg1, Object arg2, Object[] args, Object keywordArg) {
-                if (arg2 instanceof PNone) {
-                    if (arg1 instanceof String) {
-                        /**
-                         * TODO String is not implemented
-                         */
-                        String str = (String) arg1;
-                        PString pstring = new PString(str);
-                        return pstring.getMax();
-                    } else if (arg1 instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg1;
-                        return sequence.getMax();
-                    } else if (arg1 instanceof PArray) {
-                        PArray array = (PArray) arg1;
-                        return array.getMax();
-                    } else if (arg1 instanceof PDictionary) {
-                        PDictionary dictionary = (PDictionary) arg1;
-                        return dictionary.getMax();
+            public Object maxString(String arg1, Object[] args, Object keywordArg) {
+                PString pstring = new PString(arg1);
+                return pstring.getMax();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
+                return arg1.getMax();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object maxArray(PArray arg1, Object[] args, Object keywordArg) {
+                return arg1.getMax();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object maxBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
+                return arg1.getMax();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object maxDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+                return null;
+                // return arg1.getMax();
+            }
+
+            @Specialization
+            public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
+                if (keywordArg instanceof PNone) {
+                    if (arg1 instanceof Iterable) {
+                        throw new RuntimeException("Multiple iterables are not supported");
+                    } else if (args.length == 1) {
+                        return getMax(arg1, args[0]);
                     } else {
-                        throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                        Object[] argsArray = new Object[args.length + 1];
+                        argsArray[0] = arg1;
+                        System.arraycopy(args, 0, argsArray, 1, args.length);
+                        Object min = getMax(argsArray);
+                        return min;
+
                     }
-                } else if (args.length == 0) {
-                    if (arg1 instanceof Integer && arg2 instanceof Integer) {
-                        int arg1Int = (int) arg1;
-                        int arg2Int = (int) arg2;
+                } else {
+                    throw new RuntimeException("Optional keyword-only key argument is not supported");
+                }
+
+            }
+
+            private static Object getMax(Object arg1, Object arg2) {
+                if (arg1 instanceof Integer) {
+                    int arg1Int = (Integer) arg1;
+                    if (arg2 instanceof Integer) {
+                        int arg2Int = (Integer) arg2;
                         return Math.max(arg1Int, arg2Int);
-                    } else if (arg1 instanceof Double && arg2 instanceof Double) {
-                        double arg1Double = (Double) arg1;
+                    }
+                } else if (arg1 instanceof Double) {
+                    double arg1Double = (Double) arg1;
+                    if (arg2 instanceof Integer || arg2 instanceof Double) {
                         double arg2Double = (Double) arg2;
                         return Math.max(arg1Double, arg2Double);
                     }
                 }
+                throw new RuntimeException("Unsupported min operation");
+            }
 
-                /**
-                 * TODO Does not support var args {max(10, 20, 30, 40)} or keyword {max(10, 20, key
-                 * = func)}
-                 */
-                throw new RuntimeException("Optional keyword-only key argument is not supported");
-
+            private static Object getMax(Object[] args) {
+                Arrays.sort(args);
+                return args[args.length - 1];
             }
 
             @SuppressWarnings("unused")
-            public static boolean hasTwoArguments(Object arg1, Object arg2, Object[] args, Object keywordArg) {
+            public static boolean hasOneArgument(Object arg1, Object[] args, Object keywordArg) {
                 return (args.length == 0 && keywordArg instanceof PNone);
             }
+
         }
 
         // min(iterable, *[, key])
@@ -553,70 +587,88 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "hasTwoArguments")
-            public int minIntInt(int arg1, int arg2, Object[] args, Object keywordArg) {
-                return Math.min(arg1, arg2);
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasTwoArguments")
-            public double minDoubleDouble(double arg1, double arg2, Object[] args, Object keywordArg) {
-                return Math.min(arg1, arg2);
-            }
-
-            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
             @Specialization
-            public Object min(Object arg1, Object arg2, Object[] args, Object keywordArg) {
-                if (arg2 instanceof PNone) {
-                    if (arg1 instanceof String) {
-                        /**
-                         * TODO String is not implemented
-                         */
-                        String str = (String) arg1;
-                        PString pstring = new PString(str);
-                        return pstring.getMin();
-                    } else if (arg1 instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg1;
-                        return sequence.getMin();
-                    } else if (arg1 instanceof PArray) {
-                        PArray array = (PArray) arg1;
-                        return array.getMin();
-                    } else if (arg1 instanceof PBaseSet) {
-                        PBaseSet baseSet = (PBaseSet) arg1;
-                        return baseSet.getMin();
-                    } else if (arg1 instanceof PDictionary) {
-                        PDictionary dictionary = (PDictionary) arg1;
-                        return dictionary.getMin();
+            public Object minString(String arg1, Object[] args, Object keywordArg) {
+                PString pstring = new PString(arg1);
+                return pstring.getMin();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object minSequence(PSequence arg1, Object[] args, Object keywordArg) {
+                return arg1.getMin();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object minArray(PArray arg1, Object[] args, Object keywordArg) {
+                return arg1.getMin();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
+                return arg1.getMin();
+            }
+
+            @SuppressWarnings("unused")
+            // @Specialization(guards = "hasOneArgument")
+            @Specialization
+            public Object minDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+                return arg1.getMin();
+            }
+
+            @Specialization
+            public Object minGeneric(Object arg1, Object[] args, Object keywordArg) {
+                if (keywordArg instanceof PNone) {
+                    if (arg1 instanceof Iterable) {
+                        throw new RuntimeException("Multiple iterables are not supported");
+                    } else if (args.length == 1) {
+                        return getMin(arg1, args[0]);
                     } else {
-                        throw Py.TypeError("' " + PythonTypesUtil.getPythonTypeName(arg1) + "' object is not iterable");
+                        Object[] argsArray = new Object[args.length + 1];
+                        argsArray[0] = arg1;
+                        System.arraycopy(args, 0, argsArray, 1, args.length);
+                        Object min = getMin(argsArray);
+                        return min;
                     }
-                } else if (args.length == 0) {
-                    if (PYTHONTYPES.isDouble(arg1) && PYTHONTYPES.isDouble(arg2)) {
-                        double arg1Double = (Double) arg1;
+                } else {
+                    throw new RuntimeException("Optional keyword-only key argument is not supported");
+                }
+            }
+
+            private static Object getMin(Object arg1, Object arg2) {
+                if (arg1 instanceof Integer) {
+                    int arg1Int = (Integer) arg1;
+                    if (arg2 instanceof Integer) {
+                        int arg2Int = (Integer) arg2;
+                        return Math.min(arg1Int, arg2Int);
+                    }
+                } else if (arg1 instanceof Double) {
+                    double arg1Double = (Double) arg1;
+                    if (arg2 instanceof Integer || arg2 instanceof Double) {
                         double arg2Double = (Double) arg2;
                         return Math.min(arg1Double, arg2Double);
                     }
-                } else {
-                    Object[] copy = new Object[args.length + 2];
-                    copy[0] = arg1;
-                    copy[1] = arg2;
-                    System.arraycopy(args, 0, copy, 2, args.length);
-                    Arrays.sort(copy);
-                    return copy[0];
                 }
+                throw new RuntimeException("Unsupported min operation");
+            }
 
-                /**
-                 * TODO Does not support var args {min(10, 20, 30, 40)} or keyword {min(10, 20, key
-                 * = func)}
-                 */
-                throw new RuntimeException("Optional keyword-only key argument is not supported");
-
+            private static Object getMin(Object[] args) {
+                Object[] copy = args;
+                Arrays.sort(copy);
+                return copy[0];
             }
 
             @SuppressWarnings("unused")
-            public static boolean hasTwoArguments(Object arg1, Object arg2, Object[] args, Object keywordArg) {
+            public static boolean hasOneArgument(Object arg1, Object[] args, Object keywordArg) {
                 return (args.length == 0 && keywordArg instanceof PNone);
             }
+
         }
 
         // next(iterator[, default])

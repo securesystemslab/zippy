@@ -31,9 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
 
-public class PDictionary extends PythonBuiltinObject {
+public class PDictionary extends PythonBuiltinObject implements PIterable {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDictionary.class);
 
@@ -51,6 +50,11 @@ public class PDictionary extends PythonBuiltinObject {
     @Override
     public PythonBuiltinClass __class__() {
         return __class__;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name) {
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     public Object getItem(Object key) {
@@ -83,11 +87,6 @@ public class PDictionary extends PythonBuiltinObject {
         } else {
             throw new RuntimeException("invalid arguments for has_key()");
         }
-    }
-
-    @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) BuiltinsClassAttributesContainer.dictionaryClassAttributesContainer.getAttribute(name);
     }
 
     @Override

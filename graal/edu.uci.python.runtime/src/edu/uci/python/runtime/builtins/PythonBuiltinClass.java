@@ -42,8 +42,8 @@ import edu.uci.python.runtime.standardtypes.*;
  */
 public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
-    protected CallTarget callTarget;
     protected Arity arity;
+    protected CallTarget callTarget;
 
     public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
         super(context, superClass, name);

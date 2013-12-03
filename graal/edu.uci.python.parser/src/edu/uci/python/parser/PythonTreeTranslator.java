@@ -271,7 +271,7 @@ public class PythonTreeTranslator extends Visitor {
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
+            return factory.createAttributeCall(attr.getPrimary(), attr.getAttributeId(), argumentsArray);
         }
 
         return factory.createCallFunction(callee, argumentsArray, keywordsArray, context);
@@ -671,9 +671,9 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitIfExp(IfExp node) throws Exception {
         PNode test = (PNode) visit(node.getInternalTest());
-        PNode body = (PNode) visit(node.getInternalBody());
+        PNode then = (PNode) visit(node.getInternalBody());
         PNode orelse = (PNode) visit(node.getInternalOrelse());
-        return factory.createIfExpNode(test, body, orelse);
+        return factory.createIfExpNode(factory.toBooleanCastNode(test), then, orelse);
     }
 
     @Override

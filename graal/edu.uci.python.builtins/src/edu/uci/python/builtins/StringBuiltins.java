@@ -105,6 +105,11 @@ public final class StringBuiltins extends PythonBuiltins {
         public String upper(String self) {
             return self.toUpperCase();
         }
+
+        @Specialization
+        public String upper(PString self) {
+            return self.getValue().toUpperCase();
+        }
     }
 
 }

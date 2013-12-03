@@ -75,6 +75,7 @@ public class PythonTypesUtil {
         return new PDictionary(map);
     }
 
+    @SlowPath
     public static PyObject adaptToPyObject(Object value) {
         CompilerAsserts.neverPartOfCompilation();
 
@@ -183,6 +184,7 @@ public class PythonTypesUtil {
     /**
      * TODO This method should be extended to support the remaining types.
      */
+    @SlowPath
     public static String getPythonTypeName(Object object) {
         if (object instanceof Integer || object instanceof BigInteger) {
             return "int";

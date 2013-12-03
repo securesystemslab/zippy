@@ -67,6 +67,11 @@ public class PList extends PSequence {
         return __class__;
     }
 
+    @Override
+    public PythonCallable __getattribute__(String name) {
+        return (PythonCallable) __class__.getAttribute(name);
+    }
+
     protected List<Object> getList() {
         return list;
     }
@@ -74,11 +79,6 @@ public class PList extends PSequence {
     @Override
     public Object[] getSequence() {
         return list.toArray();
-    }
-
-    @Override
-    public int len() {
-        return list.size();
     }
 
     @Override
@@ -197,11 +197,6 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) BuiltinsClassAttributesContainer.listClassAttributesContainer.getAttribute(name);
-    }
-
-    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("[");
         int length = list.size();
@@ -222,6 +217,13 @@ public class PList extends PSequence {
     }
 
     @Override
+    public Object getMax() {
+        Object[] copy = this.list.toArray();
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         Object[] copy = this.list.toArray();
         Arrays.sort(copy);
@@ -229,10 +231,8 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object getMax() {
-        Object[] copy = this.list.toArray();
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int len() {
+        return list.size();
     }
 
     @Override

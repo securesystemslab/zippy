@@ -46,11 +46,11 @@ public abstract class PythonBuiltinObject {
         return __class__;
     }
 
-    public Object getMin() {
+    public Object getMax() {
         throw new UnsupportedOperationException();
     }
 
-    public Object getMax() {
+    public Object getMin() {
         throw new UnsupportedOperationException();
     }
 
@@ -59,12 +59,12 @@ public abstract class PythonBuiltinObject {
     }
 
     @SuppressWarnings("unused")
-    public PythonBuiltinObject multiply(int value) {
+    public PythonCallable __getattribute__(String name) {
         throw new UnsupportedOperationException();
     }
 
     @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name) {
+    public PythonBuiltinObject multiply(int value) {
         throw new UnsupportedOperationException();
     }
 }

@@ -40,9 +40,7 @@ public class Arity {
 
     private final String[] keywordNames;
 
-    // private final ArrayList keywordNames;
-
-    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesKeywordArg, boolean takesFixedNumOfArgs, boolean takesVarArgs, String[] keywordNames) {
+    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, String[] keywordNames) {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
@@ -53,18 +51,16 @@ public class Arity {
     }
 
     public void arityCheck(int numOfArgs, int numOfKeywords, PKeyword[] keywords) {
-        if (keywords == null) {
-            arityCheck(numOfArgs, numOfKeywords);
+        System.out.println("functionName " + functionName + " takesKeywordArg " + takesKeywordArg);
+
+        if (numOfKeywords == 0) {
+            arityCheck(numOfArgs);
+        } else if (!takesKeywordArg && numOfKeywords > 0) {
+            throw Py.TypeError(functionName + "() takes no keyword arguments");
         } else {
             for (int i = 0; i < keywords.length; i++) {
                 PKeyword keyword = keywords[i];
-                for (int k = 0; k < keywordNames.length; k++) {
-                    if (keywordNames[k].equals(keyword.getName())) {
-                        break;
-                    }
-                }
-
-                throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword.getName() + "'");
+                checkKeyword(keyword);
             }
         }
     }
@@ -73,11 +69,7 @@ public class Arity {
      * See {@link org.python.core.PyBuiltinCallable.DefaultInfo}.
      */
     @SlowPath
-    private void arityCheck(int numOfArgs, int numOfKeywords) {
-        if (!takesKeywordArg && numOfKeywords > 0) {
-            throw Py.TypeError(functionName + "() takes no keyword arguments");
-        }
-
+    private void arityCheck(int numOfArgs) {
         String argMessage;
         if (takesFixedNumOfArgs) {
             assert (minNumOfArgs == maxNumOfArgs);
@@ -104,5 +96,15 @@ public class Arity {
             throw Py.TypeError(String.format("%s() takes %s (%d given)", functionName, argMessage, numOfArgs));
         }
 
+    }
+
+    private void checkKeyword(PKeyword keyword) {
+        for (int i = 0; i < keywordNames.length; i++) {
+            if (keywordNames[i].equals(keyword.getName())) {
+                return;
+            }
+        }
+
+        throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword.getName() + "'");
     }
 }

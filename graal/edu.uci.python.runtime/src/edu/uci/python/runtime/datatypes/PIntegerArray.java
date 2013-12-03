@@ -68,11 +68,6 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public int len() {
-        return array.length;
-    }
-
-    @Override
     public Object getItem(int idx) {
         return array[idx];
     }
@@ -104,6 +99,13 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
+    public Object getMax() {
+        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
     public Object getMin() {
         int[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -111,10 +113,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public Object getMax() {
-        int[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+    public int len() {
+        return array.length;
     }
 
     @Override

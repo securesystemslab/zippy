@@ -40,8 +40,6 @@ public abstract class PythonBuiltinsContainer {
 
     public abstract void initialize(PythonContext context);
 
-    // public abstract void initialize();
-
     public void setBuiltinFunction(String name, PBuiltinFunction function) {
         builtinFunctions.put(name, function);
     }
