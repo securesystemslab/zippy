@@ -28,10 +28,14 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class PDictionary extends PythonBuiltinObject {
+
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDictionary.class);
 
     private final Map<Object, Object> map;
 
@@ -42,6 +46,11 @@ public class PDictionary extends PythonBuiltinObject {
     public PDictionary(Map<Object, Object> map) {
         this();
         this.map.putAll(map);
+    }
+
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
     }
 
     public Object getItem(Object key) {

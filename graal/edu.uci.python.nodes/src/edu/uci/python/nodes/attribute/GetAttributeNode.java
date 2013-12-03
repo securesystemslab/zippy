@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.attribute;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -222,8 +224,15 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         if (primaryObj instanceof PythonBasicObject) {
             return boxedSpecializeAndExecute(frame, (PythonBasicObject) primaryObj, current);
-        } else {
+        } else if (!(primaryObj instanceof PyObject)) {
             return unboxedSpecializeAndExecute(frame, primaryObj, current);
+        } else {
+            /**
+             * Always go with the slow route to perform generic lookup (dependency to PyObject).
+             * Should be remove once all built-in modules are implemented.
+             */
+            current.replace(new LoadGenericAttributeNode.LoadPyObjectAttributeNode(current.attributeId, current.primary));
+            return LoadGenericAttributeNode.executeGeneric(primaryObj, current.attributeId);
         }
     }
 
