@@ -22,32 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.runtime.function.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
-public class ReadVarKeywordsNode extends PNode {
+public class BuiltinFunctionRootNode extends RootNode {
 
-    @SuppressWarnings("unused") private final String[] keywordNames;
+    @Child private PythonBuiltinNode builtinNode;
 
-    public ReadVarKeywordsNode(String[] keywordNames) {
-        this.keywordNames = keywordNames;
+    public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {
+        this.builtinNode = adoptChild(builtinNode);
     }
 
     @Override
-    public final PKeyword[] execute(VirtualFrame frame) {
-        return executeObjectArray(frame);
+    public RootNode copy() {
+        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(builtinNode));
     }
 
     @Override
-    public final PKeyword[] executeObjectArray(VirtualFrame frame) {
-        PArguments arguments = frame.getArguments(PArguments.class);
-        PKeyword[] keywords = arguments.getKeywords();
-        return keywords;
+    public Object execute(VirtualFrame frame) {
+        return builtinNode.execute(frame);
+    }
+
+    @Override
+    public String toString() {
+        return "<Builtin function " + builtinNode.toString() + " at " + Integer.toHexString(hashCode()) + ">";
     }
 }

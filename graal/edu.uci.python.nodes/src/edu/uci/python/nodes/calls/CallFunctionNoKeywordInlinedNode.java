@@ -29,8 +29,9 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.FunctionRootNode.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.function.FunctionRootNode.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 

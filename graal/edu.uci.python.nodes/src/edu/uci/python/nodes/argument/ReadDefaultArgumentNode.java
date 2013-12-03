@@ -22,30 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.builtins;
+package edu.uci.python.nodes.argument;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.*;
 
-/**
- * @author Gulfem
- */
-@NodeChild(value = "arguments", type = PNode[].class)
-public abstract class PythonBuiltinNode extends PNode {
-    private final String name;
+public class ReadDefaultArgumentNode extends PNode {
 
-    public PythonBuiltinNode(String name) {
-        this.name = name;
+    @Child protected PNode right;
+
+    private Object value;
+
+    public ReadDefaultArgumentNode(PNode right) {
+        this.right = adoptChild(right);
     }
 
-    public String getName() {
-        return name;
+    public final void evaluateDefault(VirtualFrame frame) {
+        value = right.execute(frame);
     }
 
     @Override
-    public String toString() {
-        return name;
+    public Object execute(VirtualFrame frame) {
+        return value;
     }
 
 }

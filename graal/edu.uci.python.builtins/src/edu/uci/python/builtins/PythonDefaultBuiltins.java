@@ -31,6 +31,7 @@ import java.util.*;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;

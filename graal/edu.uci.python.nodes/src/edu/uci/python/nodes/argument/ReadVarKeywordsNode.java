@@ -22,16 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
 
-public class ReadSelfArgumentNode extends PNode {
+/**
+ * @author Gulfem
+ */
+public class ReadVarKeywordsNode extends PNode {
+
+    @SuppressWarnings("unused") private final String[] keywordNames;
+
+    public ReadVarKeywordsNode(String[] keywordNames) {
+        this.keywordNames = keywordNames;
+    }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        return PArguments.get(frame).getSelf();
+    public final PKeyword[] execute(VirtualFrame frame) {
+        return executeObjectArray(frame);
+    }
+
+    @Override
+    public final PKeyword[] executeObjectArray(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        PKeyword[] keywords = arguments.getKeywords();
+        return keywords;
     }
 }

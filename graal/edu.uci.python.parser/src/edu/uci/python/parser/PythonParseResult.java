@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
 
 public class PythonParseResult {
 

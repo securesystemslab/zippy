@@ -22,20 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
 /**
- * RootNode of a Python Function body. It should invoked by a CallTarget Object.
+ * RootNode of a Python Function body. It is invoked by a CallTarget.
  * 
  * @author zwei
- * 
  */
 public class FunctionRootNode extends RootNode {
 

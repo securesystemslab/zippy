@@ -22,44 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.dsl.*;
 
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.nodes.PNode;
 
-public class GeneratorDefinitionNode extends FunctionRootNode {
+/**
+ * @author Gulfem
+ */
+@NodeChild(value = "arguments", type = PNode[].class)
+public abstract class PythonBuiltinNode extends PNode {
+    private final String name;
 
-    private VirtualFrame continuingFrame;
-
-    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public PythonBuiltinNode(String name) {
+        this.name = name;
     }
 
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
+    public String getName() {
+        return name;
+    }
+
     @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-        this.continuingFrame = frame;
-        return new PGenerator(null, null, null, null);
-
-    }
-
-    public Object next() throws ImplicitReturnException {
-        StatementNode current = body;
-
-        while (current != null) {
-            try {
-                current.executeVoid(continuingFrame);
-            } catch (ExplicitYieldException eye) {
-                return eye.getValue();
-            }
-        }
-
-        throw new ImplicitReturnException();
+    public String toString() {
+        return name;
     }
 }

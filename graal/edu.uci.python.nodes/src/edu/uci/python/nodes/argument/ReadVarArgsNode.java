@@ -22,34 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorExpressionRootNode extends FunctionRootNode {
+/**
+ * @author Gulfem
+ */
+public class ReadVarArgsNode extends ReadArgumentNode {
 
-    private MaterializedFrame generatorFrame;
-
-    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public ReadVarArgsNode(int paramIndex) {
+        super(paramIndex);
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        if (generatorFrame == null) {
-            generatorFrame = frame.materialize();
-        }
+    public final Object[] execute(VirtualFrame frame) {
+        return executeObjectArray(frame);
+    }
 
-        PArguments.get(frame).setSelfUnsafe(generatorFrame);
-
-        try {
-            return body.execute(frame);
-        } catch (ExplicitYieldException eye) {
-            return eye.getValue();
+    @Override
+    public final Object[] executeObjectArray(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        if (getIndex() >= arguments.getLength()) {
+            return PArguments.EMPTY_ARGUMENTS_ARRAY;
+        } else {
+            Object[] varArgs = new Object[arguments.getLength() - getIndex()];
+            for (int i = 0; i < varArgs.length; i++) {
+                varArgs[i] = arguments.getArgument(i + getIndex());
+            }
+            return varArgs;
         }
     }
 }

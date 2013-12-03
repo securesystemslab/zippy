@@ -34,6 +34,7 @@ import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.*;
 
 public class TranslationEnvironment {

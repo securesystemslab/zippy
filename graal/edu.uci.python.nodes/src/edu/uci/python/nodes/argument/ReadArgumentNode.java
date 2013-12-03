@@ -22,35 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.builtins;
+package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.function.*;
 
 /**
- * @author Gulfem
+ * This is the right hand side of Parameters' WriteLocalNode.
+ * 
  * @author zwei
+ * 
  */
-public class BuiltinFunctionRootNode extends RootNode {
+public class ReadArgumentNode extends PNode {
 
-    @Child private PythonBuiltinNode builtinNode;
+    private final int index;
 
-    public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {
-        this.builtinNode = adoptChild(builtinNode);
+    public ReadArgumentNode(int index) {
+        this.index = index;
     }
 
-    @Override
-    public RootNode copy() {
-        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(builtinNode));
+    public int getIndex() {
+        return index;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return builtinNode.execute(frame);
+        PArguments args = frame.getArguments(PArguments.class);
+        return args.getArgument(index);
     }
 
-    @Override
-    public String toString() {
-        return "<Builtin function " + builtinNode.toString() + " at " + Integer.toHexString(hashCode()) + ">";
-    }
 }

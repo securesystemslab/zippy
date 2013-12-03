@@ -22,34 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.argument;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * This is the right hand side of Parameters' WriteLocalNode.
+ * @author Gulfem
  * 
- * @author zwei
- * 
+ *         Only used in the builtin functions because only certain arguments can be keywords
+ *         arguments in the builtin functions. You can't use a keyword argument for each parameter
+ *         as in regular functions.
  */
-public class ReadArgumentNode extends PNode {
+public class ReadKeywordNode extends PNode {
 
-    private final int index;
+    private final String name;
 
-    public ReadArgumentNode(int index) {
-        this.index = index;
-    }
-
-    public int getIndex() {
-        return index;
+    public ReadKeywordNode(String name) {
+        this.name = name;
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        PArguments args = frame.getArguments(PArguments.class);
-        return args.getArgument(index);
-    }
+    public final Object execute(VirtualFrame frame) {
+        PArguments arguments = frame.getArguments(PArguments.class);
+        PKeyword keyword = arguments.getKeyword(name);
+        if (keyword == null) {
+            return PNone.NONE;
+        }
 
+        return keyword;
+    }
 }

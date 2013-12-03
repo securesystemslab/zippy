@@ -22,37 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 
-/**
- * @author Gulfem
- */
-public class ReadVarArgsNode extends ReadArgumentNode {
+public class GeneratorDefinitionNode extends FunctionRootNode {
 
-    public ReadVarArgsNode(int paramIndex) {
-        super(paramIndex);
+    private VirtualFrame continuingFrame;
+
+    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
     @Override
-    public final Object[] execute(VirtualFrame frame) {
-        return executeObjectArray(frame);
+    public Object execute(VirtualFrame frame) {
+        parameters.executeVoid(frame);
+        this.continuingFrame = frame;
+        return new PGenerator(null, null, null, null);
+
     }
 
-    @Override
-    public final Object[] executeObjectArray(VirtualFrame frame) {
-        PArguments arguments = frame.getArguments(PArguments.class);
-        if (getIndex() >= arguments.getLength()) {
-            return PArguments.EMPTY_ARGUMENTS_ARRAY;
-        } else {
-            Object[] varArgs = new Object[arguments.getLength() - getIndex()];
-            for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = arguments.getArgument(i + getIndex());
+    public Object next() throws ImplicitReturnException {
+        StatementNode current = body;
+
+        while (current != null) {
+            try {
+                current.executeVoid(continuingFrame);
+            } catch (ExplicitYieldException eye) {
+                return eye.getValue();
             }
-            return varArgs;
         }
+
+        throw new ImplicitReturnException();
     }
 }

@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -163,6 +164,47 @@ public class CallFunctionNoKeywordNode extends PNode {
                 callCount++;
             }
             return super.execute(frame);
+        }
+    }
+
+    public static class CallBulitinFunctionNokeywordInlinableNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
+
+        private final PBuiltinFunction function;
+        private final RootNode functionRoot;
+        private final Assumption globalScopeUnchanged;
+        @CompilationFinal private int callCount;
+
+        public CallBulitinFunctionNokeywordInlinableNode(PNode callee, PNode[] arguments) {
+            super(callee, arguments);
+            this.function = null;
+            this.functionRoot = null;
+            this.globalScopeUnchanged = null;
+            this.callCount = 0;
+        }
+
+        public int getCallCount() {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+
+        public void resetCallCount() {
+            // TODO Auto-generated method stub
+
+        }
+
+        public Node getInlineTree() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        public CallTarget getCallTarget() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        public boolean inline(FrameFactory factory) {
+            // TODO Auto-generated method stub
+            return false;
         }
     }
 }

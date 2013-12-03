@@ -22,27 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
-public class ReadDefaultArgumentNode extends PNode {
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-    @Child protected PNode right;
+public class GeneratorExpressionRootNode extends FunctionRootNode {
 
-    private Object value;
+    private MaterializedFrame generatorFrame;
 
-    public ReadDefaultArgumentNode(PNode right) {
-        this.right = adoptChild(right);
-    }
-
-    public final void evaluateDefault(VirtualFrame frame) {
-        value = right.execute(frame);
+    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(functionName, parameters, body, returnValue);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return value;
-    }
+        if (generatorFrame == null) {
+            generatorFrame = frame.materialize();
+        }
 
+        PArguments.get(frame).setSelfUnsafe(generatorFrame);
+
+        try {
+            return body.execute(frame);
+        } catch (ExplicitYieldException eye) {
+            return eye.getValue();
+        }
+    }
 }

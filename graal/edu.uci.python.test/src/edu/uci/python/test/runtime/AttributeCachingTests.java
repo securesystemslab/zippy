@@ -39,6 +39,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.attribute.GetAttributeNode.BoxedGetAttributeNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.UnboxedGetMethodNode;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.*;
