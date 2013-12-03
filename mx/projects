@@ -403,7 +403,7 @@ project@com.oracle.graal.compiler.amd64.test@workingSets=Graal,AMD64,Test
 # graal.compiler.ptx
 project@com.oracle.graal.compiler.ptx@subDir=graal
 project@com.oracle.graal.compiler.ptx@sourceDirs=src
-project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.lir.ptx,com.oracle.graal.hotspot
+project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.lir.ptx,com.oracle.graal.compiler
 project@com.oracle.graal.compiler.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.ptx@javaCompliance=1.7
 project@com.oracle.graal.compiler.ptx@workingSets=Graal,PTX
