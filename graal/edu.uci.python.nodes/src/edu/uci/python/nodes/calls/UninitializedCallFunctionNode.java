@@ -54,7 +54,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
 
-            if (callable instanceof PBuiltinFunction) {
+            if (keywords.length == 0) {
+                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable);
+                replace(callFunction);
+                return callFunction.executeCall(frame, callable);
+            } else if (callable instanceof PBuiltinFunction) {
                 PBuiltinFunction builtinFunction = (PBuiltinFunction) calleeObj;
                 CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinFunction.getName(), arguments, keywords);
                 replace(callBuiltIn);
@@ -64,10 +68,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getClassName(), arguments, keywords);
                 replace(callBuiltIn);
                 return callBuiltIn.doGeneric(frame);
-            } else if (keywords.length == 0 && callable instanceof PFunction) {
-                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, (PFunction) callable);
-                replace(callFunction);
-                return callFunction.executeCall(frame, callable);
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
                 replace(callFunction);

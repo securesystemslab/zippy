@@ -46,14 +46,15 @@ public class CallFunctionNoKeywordNode extends PNode {
         this.arguments = adoptChildren(arguments);
     }
 
-    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PFunction callable) {
-        if (calleeNode instanceof ReadGlobalScopeNode) {
+    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PythonCallable callable) {
+        if (calleeNode instanceof ReadGlobalScopeNode && callable instanceof PFunction) {
             Assumption globalScopeUnchanged = ((ReadGlobalScopeNode) calleeNode).getGlobaScope().getUnmodifiedAssumption();
+            PFunction function = (PFunction) callable;
 
             if (PythonOptions.InlineFunctionCalls) {
-                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
             } else {
-                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+                return new CallFunctionNoKeywordNode.CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
             }
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
@@ -93,11 +94,10 @@ public class CallFunctionNoKeywordNode extends PNode {
      */
     public static class CallFunctionNoKeywordCachedNode extends CallFunctionNoKeywordNode {
 
-        protected final PFunction cached;
-
+        protected final PythonCallable cached;
         protected final Assumption globalScopeUnchanged;
 
-        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged) {
+        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PythonCallable cached, Assumption globalScopeUnchanged) {
             super(callee, arguments);
             this.cached = cached;
             this.globalScopeUnchanged = globalScopeUnchanged;
@@ -115,15 +115,17 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
     }
 
-    public static class CallFunctionNoKeywordInlinableNode extends CallFunctionNoKeywordCachedNode implements InlinableCallSite {
+    public static class CallFunctionNoKeywordInlinableNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
 
+        private final PFunction function;
+        private final FunctionRootNode functionRoot;
+        private final Assumption globalScopeUnchanged;
         @CompilationFinal private int callCount;
 
-        private final FunctionRootNode functionRoot;
-
-        public CallFunctionNoKeywordInlinableNode(PNode callee, PNode[] arguments, PFunction callable, Assumption globalScopeUnchanged) {
-            super(callee, arguments, callable, globalScopeUnchanged);
-            PFunction function = callable;
+        public CallFunctionNoKeywordInlinableNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged) {
+            super(callee, arguments);
+            this.function = function;
+            this.globalScopeUnchanged = globalScopeUnchanged;
             functionRoot = (FunctionRootNode) function.getFunctionRootNode();
         }
 
@@ -140,14 +142,14 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
 
         public CallTarget getCallTarget() {
-            return cached.getCallTarget();
+            return function.getCallTarget();
         }
 
         public boolean inline(FrameFactory factory) {
             CompilerAsserts.neverPartOfCompilation();
 
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.cached, this.globalScopeUnchanged, this.functionRoot, factory);
+                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.function, this.globalScopeUnchanged, this.functionRoot, factory);
                 replace(inlinedCallNode);
                 return true;
             }

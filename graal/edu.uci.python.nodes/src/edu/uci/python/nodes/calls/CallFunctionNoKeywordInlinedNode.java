@@ -31,26 +31,29 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.FunctionRootNode.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.calls.CallFunctionNoKeywordNode.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordCachedNode implements InlinedCallSite {
+public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+
+    private final PFunction function;
+    private final Assumption globalScopeUnchanged;
 
     private final FrameFactory frameFactory;
     private final FrameDescriptor frameDescriptor;
-
     @Child protected InlinedFunctionRootNode functionRoot;
 
-    public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction cached, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
-        super(callee, arguments, cached, globalScopeUnchanged);
+    public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
+        super(callee, arguments);
+        this.function = function;
+        this.globalScopeUnchanged = globalScopeUnchanged;
         this.frameFactory = frameFactory;
-        this.frameDescriptor = cached.getFrameDescriptor().copy();
+        this.frameDescriptor = function.getFrameDescriptor().copy();
         this.functionRoot = adoptChild(prepareBody(functionRoot.getInlinedRootNode()));
     }
 
     public CallTarget getCallTarget() {
-        return cached.getCallTarget();
+        return function.getCallTarget();
     }
 
     private InlinedFunctionRootNode prepareBody(InlinedFunctionRootNode clonedBody) {
