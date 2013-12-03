@@ -870,8 +870,8 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
   // a ResourceMark and the buffer expands within the scope of the mark,
   // the buffer becomes garbage when that scope is exited. Experience shows that
   // the disassembled code is typically about 10x the code size so a fixed buffer
-  // sized to 20x code size should be sufficient.
-  int bufferSize = cb->code_size() * 20;
+  // sized to 20x code size plus a fixed amount for header info should be sufficient.
+  int bufferSize = cb->code_size() * 20 + 1024;
   char* buffer = NEW_RESOURCE_ARRAY(char, bufferSize);
   stringStream st(buffer, bufferSize);
   if (cb->is_nmethod()) {
