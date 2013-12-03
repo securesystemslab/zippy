@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -35,8 +36,8 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     @Child protected PNode callee;
 
-    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords) {
-        super(arguments, keywords);
+    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords, PythonContext context) {
+        super(arguments, keywords, context);
         this.callee = adoptChild(callee);
     }
 
@@ -54,11 +55,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             PythonCallable callable = (PythonCallable) calleeObj;
 
             if (keywords.length == 0) {
-                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable);
+                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);
             } else {
-                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
                 replace(callFunction);
                 return callFunction.doPythonCallable(frame, callable);
             }
@@ -68,7 +69,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             Object[] args = CallFunctionNode.executeArguments(frame, arguments);
             return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         } else {
-            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
             replace(callFunction);
             return callFunction.doGeneric(frame, calleeObj);
         }

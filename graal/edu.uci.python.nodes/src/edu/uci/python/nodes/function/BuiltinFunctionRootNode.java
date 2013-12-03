@@ -34,14 +34,16 @@ import com.oracle.truffle.api.nodes.*;
 public class BuiltinFunctionRootNode extends RootNode {
 
     @Child private PythonBuiltinNode builtinNode;
+    private final PythonBuiltinNode uninitialized;
 
     public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {
         this.builtinNode = adoptChild(builtinNode);
+        this.uninitialized = NodeUtil.cloneNode(builtinNode);
     }
 
     @Override
     public RootNode copy() {
-        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(builtinNode));
+        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(uninitialized));
     }
 
     @Override

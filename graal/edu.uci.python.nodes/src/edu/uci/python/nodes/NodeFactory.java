@@ -478,8 +478,8 @@ public class NodeFactory {
         return new ObjectLiteralNode(obj);
     }
 
-    public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords) {
-        return new UninitializedCallFunctionNode(callee, arguments, keywords);
+    public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords, PythonContext context) {
+        return new UninitializedCallFunctionNode(callee, arguments, keywords, context);
     }
 
     public PNode createKeywordLiteral(PNode value, String name) {

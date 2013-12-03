@@ -41,7 +41,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
@@ -275,7 +274,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getAttributeId());
         }
 
-        return factory.createCallFunction(callee, argumentsArray, keywordsArray);
+        return factory.createCallFunction(callee, argumentsArray, keywordsArray, context);
     }
 
     @Override

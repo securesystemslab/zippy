@@ -41,7 +41,6 @@ import edu.uci.python.runtime.modules.*;
 public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     private final String attributeId;
-
     private final PythonContext context;
 
     @Child protected LoadAttributeNode load;
