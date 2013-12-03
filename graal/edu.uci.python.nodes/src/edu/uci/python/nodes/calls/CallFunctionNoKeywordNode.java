@@ -90,7 +90,6 @@ public class CallFunctionNoKeywordNode extends PNode {
     /**
      * The callee node of a cached call function node should not be local accessor node, since we
      * don't make assumption about local variables.
-     * 
      */
     public static class CallFunctionNoKeywordCachedNode extends CallFunctionNoKeywordNode {
 

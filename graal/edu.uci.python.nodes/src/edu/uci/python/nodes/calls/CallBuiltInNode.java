@@ -36,12 +36,10 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 public abstract class CallBuiltInNode extends PNode {
 
-    protected final String name;
-
-    protected final PythonCallable callee;
+    private final String name;
+    private final PythonCallable callee;
 
     @Children protected final PNode[] arguments;
-
     @Children protected final PNode[] keywords;
 
     public CallBuiltInNode(PythonCallable callee, String name, PNode[] arguments, PNode[] keywords) {
