@@ -37,16 +37,19 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.attribute.*;
+import edu.uci.python.nodes.attribute.GetAttributeNode.BoxedGetAttributeNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.UnboxedGetMethodNode;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.test.*;
 
 public class AttributeCachingTests {
 
     @Test
-    public void simple() {
+    public void builtinObjectAttribute() {
         // environment
         PythonContext context = PythonTests.getContext();
         NodeFactory factory = new NodeFactory();
@@ -87,11 +90,87 @@ public class AttributeCachingTests {
         assertTrue(cache instanceof UnboxedAttributeCacheNode.CachedObjectAttributeNode);
 
         /**
-         * testing fall back.
+         * test fall back.
          */
         // replace primary to a string
         PNode pstr = factory.createStringLiteral("yy");
         NodeUtil.findFirstNodeInstance(getMethod, ListLiteralNode.class).replace(pstr);
+
+        // 4th execute
+        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        try {
+            root.execute(frame);
+        } catch (PyException pe) {
+            assertTrue(pe.value.toString().contains("no attribute"));
+        }
+
+        /**
+         * At this point AST failed to rewrite itself due to unexpected attribute lookup. Since we
+         * recovered from the no attribute exception, we should be able to continue.
+         */
+        // replace primary to a full PythonBasicObject
+        PythonClass classA = new PythonClass(context, null, "A");
+        PythonBasicObject pbObj = new PythonObject(classA);
+        pbObj.setAttribute("append", 42);
+        PNode objNode = factory.createObjectLiteral(pbObj);
+        NodeUtil.findFirstNodeInstance(getMethod, StringLiteralNode.class).replace(objNode);
+
+        // 5th execute
+        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        root.execute(frame);
+
+        // check rewrite of UnboxedGetAttributeNode to BoxedGetAttributeNode
+        getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
+        assertTrue(getAttr instanceof BoxedGetAttributeNode);
+    }
+
+    @Test
+    public void pythonObjectAttribute() {
+        // environment
+        PythonContext context = PythonTests.getContext();
+        NodeFactory factory = new NodeFactory();
+
+        // in object attribute
+        PythonClass classA = new PythonClass(context, null, "A");
+        PythonBasicObject pbObj = new PythonObject(classA);
+        pbObj.setAttribute("foo", 42);
+
+        // assemble AST
+        PNode objNode = factory.createObjectLiteral(pbObj);
+        PNode getattr = factory.createGetAttribute(context, objNode, "foo");
+
+        BlockNode body = factory.createSingleStatementBlock(getattr);
+        RootNode root = new FunctionRootNode("test", ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
+
+        // 1st execute
+        VirtualFrame frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        root.execute(frame);
+
+        // check rewrite of UninitializedGetAttributeNode
+        PNode getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
+        assertTrue(getAttr instanceof BoxedGetAttributeNode);
+
+        // 2nd execute
+        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        root.execute(frame);
+
+        // check rewrite of UninitializedCachedAttributeNode
+        AbstractBoxedAttributeNode cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractBoxedAttributeNode.class);
+        assertTrue(cache instanceof BoxedAttributeCacheNode.CachedIntAttributeNode);
+
+        // 3rd execute
+        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        root.execute(frame);
+
+        // make sure cache node stay unchanged
+        cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractBoxedAttributeNode.class);
+        assertTrue(cache instanceof BoxedAttributeCacheNode.CachedIntAttributeNode);
+
+        /**
+         * Test fall back
+         */
+        // modify object layout
+        pbObj.deleteAttribute("foo");
 
         // 4th execute
         frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);

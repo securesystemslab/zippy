@@ -30,6 +30,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
@@ -73,6 +74,10 @@ public class LoadGenericAttributeNode extends LoadAttributeNode {
 
         public LoadPyObjectAttributeNode(LoadAttributeNode node) {
             super(node.attributeId, node.primary);
+        }
+
+        public LoadPyObjectAttributeNode(String attributeId, PNode primary) {
+            super(attributeId, primary);
         }
 
         @Override

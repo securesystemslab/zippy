@@ -58,7 +58,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
     }
 
     @Override
-    public Object getValue(VirtualFrame frame, Object primaryObj) {
+    public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(frame, primaryObj)) {
             return getValueUnsafe(frame, cachedStorage);
         } else {
