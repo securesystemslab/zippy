@@ -1368,10 +1368,12 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 
     methodHandle    trap_method = trap_scope->method();
     int             trap_bci    = trap_scope->bci();
+#ifdef GRAAL
     if (trap_bci == SynchronizationEntryBCI) {
       trap_bci = 0;
       Thread::current()->set_pending_monitorenter(true);
     }
+#endif
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
     if (trap_scope->rethrow_exception()) {
@@ -1618,6 +1620,9 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       bool maybe_prior_trap = false;
       bool maybe_prior_recompile = false;
       pdata = query_update_method_data(trap_mdo, trap_bci, reason, true,
+#ifdef GRAAL
+                                   nm->is_compiled_by_graal() && nm->is_osr_method(),
+#endif
                                    //outputs:
                                    this_trap_count,
                                    maybe_prior_trap,
@@ -1752,6 +1757,9 @@ Deoptimization::query_update_method_data(MethodData* trap_mdo,
                                          int trap_bci,
                                          Deoptimization::DeoptReason reason,
                                          bool update_total_trap_count,
+#ifdef GRAAL
+                                         bool is_osr,
+#endif
                                          //outputs:
                                          uint& ret_this_trap_count,
                                          bool& ret_maybe_prior_trap,
@@ -1760,8 +1768,14 @@ Deoptimization::query_update_method_data(MethodData* trap_mdo,
   bool maybe_prior_recompile = false;
   uint this_trap_count = 0;
   if (update_total_trap_count) {
-    uint prior_trap_count = trap_mdo->trap_count(reason);
-    this_trap_count  = trap_mdo->inc_trap_count(reason);
+    uint idx = reason;
+#ifdef GRAAL
+    if (is_osr) {
+      idx += Reason_LIMIT;
+    }
+#endif
+    uint prior_trap_count = trap_mdo->trap_count(idx);
+    this_trap_count  = trap_mdo->inc_trap_count(idx);
 
     // If the runtime cannot find a place to store trap history,
     // it is estimated based on the general condition of the method.
@@ -1826,6 +1840,9 @@ Deoptimization::update_method_data_from_interpreter(MethodData* trap_mdo, int tr
   query_update_method_data(trap_mdo, trap_bci,
                            (DeoptReason)reason,
                            update_total_counts,
+#ifdef GRAAL
+                           false,
+#endif
                            ignore_this_trap_count,
                            ignore_maybe_prior_trap,
                            ignore_maybe_prior_recompile);

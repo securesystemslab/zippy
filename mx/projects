@@ -153,7 +153,7 @@ project@com.oracle.graal.hotspot.sparc@workingSets=Graal,HotSpot,SPARC
 # graal.hotspot.ptx
 project@com.oracle.graal.hotspot.ptx@subDir=graal
 project@com.oracle.graal.hotspot.ptx@sourceDirs=src
-project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.ptx,com.oracle.graal.compiler.ptx
+project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.ptx,com.oracle.graal.compiler.ptx,com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.ptx@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.ptx@javaCompliance=1.7

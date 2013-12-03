@@ -378,6 +378,9 @@ class Deoptimization : AllStatic {
                                                int trap_bci,
                                                DeoptReason reason,
                                                bool update_total_trap_count,
+#ifdef GRAAL
+                                               bool is_osr,
+#endif
                                                //outputs:
                                                uint& ret_this_trap_count,
                                                bool& ret_maybe_prior_trap,
