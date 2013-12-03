@@ -41,8 +41,8 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
@@ -271,10 +271,10 @@ public class PythonTreeTranslator extends Visitor {
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.getPrimary(), attr.getAttributeId(), argumentsArray, context);
+            return factory.createAttributeCall(attr.getPrimary(), attr.getAttributeId(), argumentsArray);
         }
 
-        return factory.createCallFunction(callee, argumentsArray, keywordsArray);
+        return factory.createCallFunction(callee, argumentsArray, keywordsArray, context);
     }
 
     @Override
@@ -374,7 +374,7 @@ public class PythonTreeTranslator extends Visitor {
         if (PythonOptions.CacheAttributeLoads) {
             return factory.createGetAttribute(context, primary, node.getInternalAttr());
         } else {
-            return factory.createLoadAttribute(primary, node.getInternalAttr(), context);
+            return factory.createLoadAttribute(primary, node.getInternalAttr());
         }
     }
 
@@ -665,7 +665,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitStr(Str node) throws Exception {
         PyString s = (PyString) node.getInternalS();
-        return factory.createStringLiteral(s);
+        return factory.createStringLiteral(s.getString());
     }
 
     @Override
@@ -733,7 +733,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitAssert(Assert node) throws Exception {
         PNode test = (PNode) visit(node.getInternalTest());
-        BooleanCastNode condition = factory.toBooleanCastNode(test);
+        CastToBooleanNode condition = factory.toBooleanCastNode(test);
         PNode msg = node.getInternalMsg() == null ? null : (PNode) visit(node.getInternalMsg());
         return factory.createAssert(condition, msg);
     }

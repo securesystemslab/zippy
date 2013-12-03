@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.function.*;
 
 public final class ParametersWithDefaultsNode extends ParametersNode {

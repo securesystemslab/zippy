@@ -259,8 +259,7 @@ JvmtiEnv::RetransformClasses(jint class_count, const jclass* classes) {
       // bytes to the InstanceKlass here because they have not been
       // validated and we're not at a safepoint.
       constantPoolHandle  constants(current_thread, ikh->constants());
-      oop cplock = constants->lock();
-      ObjectLocker ol(cplock, current_thread, cplock != NULL);    // lock constant pool while we query it
+      MonitorLockerEx ml(constants->lock());    // lock constant pool while we query it
 
       JvmtiClassFileReconstituter reconstituter(ikh);
       if (reconstituter.get_error() != JVMTI_ERROR_NONE) {
@@ -1443,7 +1442,7 @@ JvmtiEnv::PopFrame(JavaThread* java_thread) {
     // If any of the top 2 frames is a compiled one, need to deoptimize it
     for (int i = 0; i < 2; i++) {
       if (!is_interpreted[i]) {
-        Deoptimization::deoptimize_frame(java_thread, frame_sp[i], Deoptimization::Reason_constraint);
+        Deoptimization::deoptimize_frame(java_thread, frame_sp[i]);
       }
     }
 
@@ -2418,8 +2417,7 @@ JvmtiEnv::GetConstantPool(oop k_mirror, jint* constant_pool_count_ptr, jint* con
 
   instanceKlassHandle ikh(thread, k_oop);
   constantPoolHandle  constants(thread, ikh->constants());
-  oop cplock = constants->lock();
-  ObjectLocker ol(cplock, thread, cplock != NULL);    // lock constant pool while we query it
+  MonitorLockerEx ml(constants->lock());    // lock constant pool while we query it
 
   JvmtiConstantPoolReconstituter reconstituter(ikh);
   if (reconstituter.get_error() != JVMTI_ERROR_NONE) {

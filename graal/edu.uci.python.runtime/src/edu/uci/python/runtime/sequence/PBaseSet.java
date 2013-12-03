@@ -81,7 +81,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     public boolean isSubset(PBaseSet other) {
-        if (this.__len__() > other.__len__()) {
+        if (this.len() > other.len()) {
             return false;
         }
         for (Object p : this.set) {
@@ -93,7 +93,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     public boolean isProperSubset(PBaseSet other) {
-        return this.__len__() < other.__len__() && this.isSubset(other);
+        return this.len() < other.len() && this.isSubset(other);
     }
 
     // superset
@@ -107,7 +107,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     public boolean isProperSuperset(PBaseSet other) { // is proper superset
-        return this.__len__() > other.__len__() && this.isSuperset(other);
+        return this.len() > other.len() && this.isSuperset(other);
     }
 
     // union
@@ -294,7 +294,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return this.set.size();
     }
 

@@ -29,8 +29,6 @@ import java.util.*;
 import org.python.core.*;
 import org.python.util.Generic;
 
-import com.oracle.truffle.api.CompilerDirectives.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -38,9 +36,9 @@ import edu.uci.python.runtime.function.*;
 
 public class PList extends PSequence {
 
-    private final List<Object> list;
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
-    @CompilationFinal private static PythonBuiltinClass __class__;
+    private final List<Object> list;
 
     public PList(Object[] elements) {
         list = new ArrayList<>(Arrays.asList(elements));
@@ -62,6 +60,16 @@ public class PList extends PSequence {
                 addItem(list.get(i));
             }
         }
+    }
+
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name) {
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     protected List<Object> getList() {
@@ -189,24 +197,6 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PythonBuiltinClass __class__(PythonContext context) {
-        if (__class__ == null) {
-            __class__ = context.getPythonBuiltinsLookup().lookupType(PList.class);
-        }
-
-        return __class__;
-    }
-
-    @Override
-    public PythonCallable __getattribute__(String name, PythonContext context) {
-        if (__class__ == null) {
-            __class__ = context.getPythonBuiltinsLookup().lookupType(PList.class);
-        }
-
-        return (PythonCallable) __class__.getAttribute(name);
-    }
-
-    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("[");
         int length = list.size();
@@ -241,7 +231,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return list.size();
     }
 

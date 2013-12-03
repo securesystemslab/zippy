@@ -34,11 +34,11 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class AssertNode extends StatementNode {
 
-    @Child protected BooleanCastNode condition;
+    @Child protected CastToBooleanNode condition;
 
     @Child protected PNode message;
 
-    public AssertNode(BooleanCastNode condition, PNode message) {
+    public AssertNode(CastToBooleanNode condition, PNode message) {
         this.condition = adoptChild(condition);
         this.message = adoptChild(message);
     }

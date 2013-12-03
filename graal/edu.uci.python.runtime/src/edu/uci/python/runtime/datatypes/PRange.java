@@ -188,7 +188,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return length;
     }
 

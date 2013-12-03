@@ -56,7 +56,13 @@ void GraalCompiler::initialize() {
 
   _deopted_leaf_graph_count = 0;
 
-  initialize_buffer_blob();
+  BufferBlob* buffer_blob = initialize_buffer_blob();
+  if (buffer_blob == NULL) {
+    // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
+    // set_state(failed);
+  } else {
+    // set_state(initialized);
+  }
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
@@ -82,6 +88,9 @@ void GraalCompiler::initialize() {
 
   graal_compute_offsets();
 
+  // Ensure _non_oop_bits is initialized
+  Universe::non_oop_word();
+
   {
     GRAAL_VM_ENTRY_MARK;
     HandleMark hm;
@@ -95,18 +104,19 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
-    VMToCompiler::finalizeOptions(CITime);
+    VMToCompiler::finalizeOptions(CITime || CITimeEach);
 
     if (UseCompiler) {
       bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
-      jlong compilerStatisticsAddress = (jlong) ((address) (stats()));
-      VMToCompiler::startCompiler(bootstrap, compilerStatisticsAddress);
+      VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
       if (bootstrap) {
+        // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
+        FlagSetting a(UseInterpreter, true);
+        FlagSetting b(BackgroundCompilation, true);
         VMToCompiler::bootstrap();
       }
-
 
 #ifndef PRODUCT
       if (CompileTheWorld) {
@@ -161,14 +171,16 @@ oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
   return array;
 }
 
-void GraalCompiler::initialize_buffer_blob() {
-
+BufferBlob* GraalCompiler::initialize_buffer_blob() {
   JavaThread* THREAD = JavaThread::current();
-  if (THREAD->get_buffer_blob() == NULL) {
-    BufferBlob* blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
-    guarantee(blob != NULL, "must create code buffer");
-    THREAD->set_buffer_blob(blob);
+  BufferBlob* buffer_blob = THREAD->get_buffer_blob();
+  if (buffer_blob == NULL) {
+    buffer_blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
+    if (buffer_blob != NULL) {
+      THREAD->set_buffer_blob(buffer_blob);
+    }
   }
+  return buffer_blob;
 }
 
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
@@ -180,10 +192,11 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
-  JavaThread::current()->set_is_compiling(true);
+  thread->set_is_graal_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
+  check_pending_exception("Error while calling createHotSpotResolvedObjectType");
   VMToCompiler::compileMethod(method(), holder, entry_bci, blocking);
-  JavaThread::current()->set_is_compiling(false);
+  thread->set_is_graal_compiling(false);
 }
 
 // Compilation entry point for methods
@@ -234,8 +247,7 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it. But we must release the lock before
       // calling up into Java.
-      oop cplock = cp->lock();
-      ObjectLocker ol(cplock, THREAD, cplock != NULL);
+      MonitorLockerEx ml(cp->lock());
       constantTag tag = cp->tag_at(index);
       if (tag.is_klass()) {
         // The klass has been inserted into the constant pool

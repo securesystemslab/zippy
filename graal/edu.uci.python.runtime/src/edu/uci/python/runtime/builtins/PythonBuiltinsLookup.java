@@ -60,7 +60,6 @@ public class PythonBuiltinsLookup {
 
     public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
         PythonBuiltinClass type = builtinTypes.get(clazz);
-        assert type != null;
         return type;
     }
 }

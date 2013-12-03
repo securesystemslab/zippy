@@ -29,13 +29,12 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public class UninitializedLoadAttributeNode extends LoadAttributeNode {
 
-    public UninitializedLoadAttributeNode(String name, PNode primary, PythonContext context) {
-        super(name, primary, context);
+    public UninitializedLoadAttributeNode(String name, PNode primary) {
+        super(name, primary);
     }
 
     @SlowPath
@@ -48,7 +47,7 @@ public class UninitializedLoadAttributeNode extends LoadAttributeNode {
         if (primaryObj instanceof PythonBasicObject) {
             return ((PythonBasicObject) primaryObj).getAttribute(attributeId);
         } else {
-            return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId, context);
+            return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId);
         }
     }
 }

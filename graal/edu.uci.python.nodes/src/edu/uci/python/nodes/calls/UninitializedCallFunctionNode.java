@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -36,8 +36,8 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     @Child protected PNode callee;
 
-    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords) {
-        super(arguments, keywords);
+    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords, PythonContext context) {
+        super(arguments, keywords, context);
         this.callee = adoptChild(callee);
     }
 
@@ -54,22 +54,12 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
 
-            if (callable instanceof PBuiltinFunction) {
-                PBuiltinFunction builtinFunction = (PBuiltinFunction) calleeObj;
-                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinFunction.getName(), arguments, keywords);
-                replace(callBuiltIn);
-                return callBuiltIn.doGeneric(frame);
-            } else if (callable instanceof PythonBuiltinClass) {
-                PythonBuiltinClass builtinClass = (PythonBuiltinClass) calleeObj;
-                CallBuiltInNode callBuiltIn = CallBuiltInNodeFactory.create(callable, builtinClass.getClassName(), arguments, keywords);
-                replace(callBuiltIn);
-                return callBuiltIn.doGeneric(frame);
-            } else if (keywords.length == 0 && callable instanceof PFunction) {
-                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, (PFunction) callable);
+            if (keywords.length == 0) {
+                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
                 replace(callFunction);
                 return callFunction.executeCall(frame, callable);
             } else {
-                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
                 replace(callFunction);
                 return callFunction.doPythonCallable(frame, callable);
             }
@@ -79,7 +69,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             Object[] args = CallFunctionNode.executeArguments(frame, arguments);
             return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         } else {
-            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, callee);
+            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
             replace(callFunction);
             return callFunction.doGeneric(frame, calleeObj);
         }

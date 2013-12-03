@@ -31,13 +31,13 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class IfNode extends StatementNode {
 
-    @Child protected BooleanCastNode condition;
+    @Child protected CastToBooleanNode condition;
 
     @Child protected BlockNode then;
 
     @Child protected BlockNode orelse;
 
-    public IfNode(BooleanCastNode condition, BlockNode then, BlockNode orelse) {
+    public IfNode(CastToBooleanNode condition, BlockNode then, BlockNode orelse) {
         this.condition = adoptChild(condition);
         this.then = adoptChild(then);
         this.orelse = adoptChild(orelse);

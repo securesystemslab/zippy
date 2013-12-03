@@ -28,6 +28,8 @@ import java.util.*;
 
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.nodes.function.*;
+
 public final class TimeModuleBuiltins extends PythonBuiltins {
 
     @Override

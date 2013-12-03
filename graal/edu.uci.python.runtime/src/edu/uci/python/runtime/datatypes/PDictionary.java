@@ -28,15 +28,13 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.oracle.truffle.api.CompilerDirectives.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 
 public class PDictionary extends PythonBuiltinObject implements PIterable {
 
-    @CompilationFinal private static PythonBuiltinClass __class__;
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDictionary.class);
 
     private final Map<Object, Object> map;
 
@@ -47,6 +45,16 @@ public class PDictionary extends PythonBuiltinObject implements PIterable {
     public PDictionary(Map<Object, Object> map) {
         this();
         this.map.putAll(map);
+    }
+
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
+    }
+
+    @Override
+    public PythonCallable __getattribute__(String name) {
+        return (PythonCallable) __class__.getAttribute(name);
     }
 
     public Object getItem(Object key) {
@@ -82,39 +90,6 @@ public class PDictionary extends PythonBuiltinObject implements PIterable {
     }
 
     @Override
-    public PythonBuiltinClass __class__(PythonContext context) {
-        if (__class__ == null) {
-            __class__ = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
-        }
-
-        return __class__;
-    }
-
-    @Override
-    public PythonCallable __getattribute__(String name, PythonContext context) {
-        if (__class__ == null) {
-            __class__ = context.getPythonBuiltinsLookup().lookupType(PDictionary.class);
-        }
-
-        return (PythonCallable) __class__.getAttribute(name);
-    }
-
-    @Override
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int __len__() {
-        return map.size();
-    }
-
-    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("{");
         int length = map.size();
@@ -132,5 +107,10 @@ public class PDictionary extends PythonBuiltinObject implements PIterable {
 
         buf.append("}");
         return buf.toString();
+    }
+
+    @Override
+    public int len() {
+        return map.size();
     }
 }

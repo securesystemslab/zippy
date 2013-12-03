@@ -147,10 +147,16 @@ public class ObjectLayout {
     /**
      * Create a new version of this layout but with a new variable.
      */
-    public ObjectLayout withNewVariable(PythonContext context, String name, Class type) {
+    public ObjectLayout withNewAttribute(PythonContext context, String name, Class type) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
         return new ObjectLayout(originHint + ".withnew", context, parent, storageTypes);
+    }
+
+    public ObjectLayout withoutAttribute(PythonContext context, String name) {
+        final Map<String, Class> storageTypes = getStorageTypes();
+        storageTypes.remove(name);
+        return new ObjectLayout(originHint + ".without", context, parent, storageTypes);
     }
 
     /**
@@ -158,7 +164,7 @@ public class ObjectLayout {
      * type.
      */
     public ObjectLayout withGeneralisedVariable(PythonContext context, String name) {
-        return withNewVariable(context, name, Object.class);
+        return withNewAttribute(context, name, Object.class);
     }
 
     /**

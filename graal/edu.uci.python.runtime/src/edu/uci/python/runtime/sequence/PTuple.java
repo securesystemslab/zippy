@@ -85,7 +85,7 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return array.length;
     }
 
@@ -215,11 +215,11 @@ public class PTuple extends PImmutableSequence {
 
     @Override
     public PTuple concat(PSequence sequence) {
-        Object[] newArray = new Object[__len__() + sequence.__len__()];
+        Object[] newArray = new Object[len() + sequence.len()];
         Object[] rightArray = ((PTuple) sequence).getArray();
 
-        System.arraycopy(getArray(), 0, newArray, 0, __len__());
-        System.arraycopy(rightArray, 0, newArray, __len__(), rightArray.length);
+        System.arraycopy(getArray(), 0, newArray, 0, len());
+        System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
         return new PTuple(newArray);
     }
 }

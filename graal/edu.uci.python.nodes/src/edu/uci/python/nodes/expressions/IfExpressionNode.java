@@ -35,13 +35,13 @@ import edu.uci.python.nodes.statements.*;
 
 public class IfExpressionNode extends StatementNode {
 
-    @Child protected BooleanCastNode condition;
+    @Child protected CastToBooleanNode condition;
 
     @Child protected PNode then;
 
     @Child protected PNode orelse;
 
-    public IfExpressionNode(BooleanCastNode condition, PNode then, PNode orelse) {
+    public IfExpressionNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = adoptChild(condition);
         this.then = adoptChild(then);
         this.orelse = adoptChild(orelse);

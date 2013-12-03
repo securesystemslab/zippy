@@ -26,6 +26,8 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
@@ -49,18 +51,10 @@ public class PythonContext {
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer builtinsModuleBuiltins, PythonBuiltinsContainer mainModuleBuiltins) {
         this.options = opts;
         this.lookup = lookup;
+        currentContext = this;
         this.builtinsModuleBuiltins = builtinsModuleBuiltins;
         this.mainModuleBuiltins = mainModuleBuiltins;
         initialize();
-        currentContext = this;
-    }
-
-    /**
-     * Getting the static {@link #currentContext}. This is not safe if multiple threads have
-     * different context versions. However, in general, Python built-ins are immutable.
-     */
-    public static PythonContext getCurrent() {
-        return currentContext;
     }
 
     public void initialize() {
@@ -86,8 +80,8 @@ public class PythonContext {
         return lookup;
     }
 
-    public PythonBuiltinClass getBuiltinTypeFor(Class<? extends PythonBuiltinObject> javaClass) {
-        return lookup.lookupType(javaClass);
+    public static PythonBuiltinClass getBuiltinTypeFor(Class<? extends PythonBuiltinObject> javaClass) {
+        return currentContext.lookup.lookupType(javaClass);
     }
 
     public PrintStream getStandardOut() {
@@ -102,7 +96,7 @@ public class PythonContext {
         return typeClass;
     }
 
-    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) {
+    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) throws UnexpectedResultException {
         if (obj instanceof PythonBuiltinObject) {
             return (PythonBuiltinObject) obj;
         }
@@ -114,7 +108,7 @@ public class PythonContext {
             return new PString((String) obj);
         }
 
-        throw new RuntimeException("Unexpected obj type " + obj.getClass());
+        throw new UnexpectedResultException(obj);
     }
 
     public PythonBuiltinClass getObjectClass() {

@@ -31,7 +31,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.objects.*;
 
 public abstract class StoreAttributeNode extends StatementNode implements WriteNode {
@@ -39,13 +38,11 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
     protected final String attributeId;
     @Child protected PNode primary;
     @Child protected PNode rhs;
-    protected final PythonContext context;
 
-    public StoreAttributeNode(String name, PNode primary, PNode rhs, PythonContext context) {
+    public StoreAttributeNode(String name, PNode primary, PNode rhs) {
         this.attributeId = name;
         this.primary = adoptChild(primary);
         this.rhs = adoptChild(rhs);
-        this.context = context;
     }
 
     public String getAttributeId() {
@@ -63,7 +60,7 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
 
     @Override
     public PNode makeReadNode() {
-        return new UninitializedLoadAttributeNode(attributeId, primary, context);
+        return new UninitializedLoadAttributeNode(attributeId, primary);
     }
 
     @Override
@@ -86,11 +83,11 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
         }
 
         if (storageLocation instanceof IntStorageLocation) {
-            return new StoreIntAttributeNode(attributeId, primary, rhs, context, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+            return new StoreIntAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
-            return new StoreFloatAttributeNode(attributeId, primary, rhs, context, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
+            return new StoreFloatAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
         } else {
-            return new StoreObjectAttributeNode(attributeId, primary, rhs, context, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+            return new StoreObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
         }
     }
 

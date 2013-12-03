@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.attribute;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -44,7 +46,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, Object primaryObj);
+    public abstract Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException;
 
     public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
@@ -58,9 +60,9 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) {
+    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) throws UnexpectedResultException {
         PythonBuiltinObject pbObj = context.boxAsPythonBuiltinObject(primaryObj);
-        PythonClass current = pbObj.__class__(context);
+        PythonClass current = pbObj.__class__();
         assert current != null;
 
         do {
@@ -71,14 +73,24 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
             current = current.getSuperClass();
         } while (current != null);
 
+        if (current == null) {
+            throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
+        }
+
         UnboxedCheckNode check;
         if (primaryObj instanceof PythonBuiltinObject) {
-            check = new UnboxedCheckNode.BuiltinObjectCheckNode(context, (PythonBuiltinObject) primaryObj);
+            check = new UnboxedCheckNode.BuiltinObjectCheckNode((PythonBuiltinObject) primaryObj);
         } else {
             check = new UnboxedCheckNode.PrimitiveCheckNode(primaryObj);
         }
 
-        return UnboxedAttributeCacheNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+        UnboxedAttributeCacheNode newNode = UnboxedAttributeCacheNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+
+        if (this.getParent() != null) {
+            replace(newNode);
+        }
+
+        return newNode;
     }
 
     private StorageLocation getOwnValidLocation(PythonBasicObject storage) {
@@ -94,7 +106,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, Object primaryObj) {
+        public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreter();
             return rewrite(primaryObj).getValue(frame, primaryObj);
         }

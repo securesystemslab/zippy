@@ -38,15 +38,28 @@ import edu.uci.python.runtime.function.*;
  * path and implemented presumably using Java reflection...
  * 
  */
-
 public abstract class PythonBuiltinObject {
 
-    public PythonBuiltinClass __class__(PythonContext context) {
-        return context.getObjectClass();
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PythonBuiltinObject.class);
+
+    public PythonBuiltinClass __class__() {
+        return __class__;
+    }
+
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
+
+    public int len() {
+        throw new UnsupportedOperationException();
     }
 
     @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name, PythonContext context) {
+    public PythonCallable __getattribute__(String name) {
         throw new UnsupportedOperationException();
     }
 

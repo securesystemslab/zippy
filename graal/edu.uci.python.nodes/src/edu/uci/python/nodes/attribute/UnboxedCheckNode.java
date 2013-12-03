@@ -27,7 +27,6 @@ package edu.uci.python.nodes.attribute;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 
@@ -57,19 +56,21 @@ public abstract class UnboxedCheckNode extends Node {
 
     public static class BuiltinObjectCheckNode extends UnboxedCheckNode {
 
-        private final PythonContext context;
         private final PythonBuiltinClass cachedType;
 
-        public BuiltinObjectCheckNode(PythonContext context, PythonBuiltinObject primaryObj) {
-            this.context = context;
-            this.cachedType = primaryObj.__class__(context);
+        public BuiltinObjectCheckNode(PythonBuiltinObject primaryObj) {
+            this.cachedType = primaryObj.__class__();
         }
 
         @Override
         public boolean accept(VirtualFrame frame, Object primaryObj) {
-            PythonBuiltinObject builtinObj = (PythonBuiltinObject) primaryObj;
-            PythonBuiltinClass builtinClass = builtinObj.__class__(context);
-            return builtinClass == cachedType;
+            try {
+                PythonBuiltinObject builtinObj = (PythonBuiltinObject) primaryObj;
+                PythonBuiltinClass builtinClass = builtinObj.__class__();
+                return builtinClass == cachedType;
+            } catch (ClassCastException e) {
+                return false;
+            }
         }
     }
 }

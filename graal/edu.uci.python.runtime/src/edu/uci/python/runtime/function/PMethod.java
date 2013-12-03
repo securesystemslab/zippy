@@ -33,7 +33,7 @@ import edu.uci.python.runtime.standardtypes.*;
 public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PFunction function;
-    private final PythonObject self;
+    private PythonObject self;
     private final CallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
@@ -48,6 +48,10 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     public PythonObject __self__() {
         return self;
+    }
+
+    public void bind(PythonObject newSelf) {
+        this.self = newSelf;
     }
 
     public Object call(PackedFrame caller, Object[] args) {

@@ -113,7 +113,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return array.length;
     }
 
@@ -157,9 +157,9 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     @Override
     public PArray append(PArray other) {
         PIntegerArray otherArray = (PIntegerArray) other;
-        int[] joined = new int[__len__() + other.__len__()];
-        System.arraycopy(array, 0, joined, 0, __len__());
-        System.arraycopy(otherArray.getSequence(), 0, joined, __len__(), other.__len__());
+        int[] joined = new int[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
         return new PIntegerArray(joined);
     }
 

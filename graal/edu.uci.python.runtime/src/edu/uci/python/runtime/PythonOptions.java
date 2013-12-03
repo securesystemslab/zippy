@@ -45,6 +45,8 @@ public class PythonOptions {
 
     public static final boolean InlineFunctionCalls = true;
 
+    public static final boolean InlineBuiltinFunctionCalls = true;
+
     public static final boolean CacheAttributeLoads = false;
 
     private PrintStream standardOut = System.out;

@@ -33,7 +33,6 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
@@ -205,6 +204,18 @@ public final class SchedulePhase extends Phase {
     }
 
     private class NewMemoryScheduleClosure extends BlockIteratorClosure<KillSet> {
+        private Node excludeNode;
+        private Block upperBoundBlock;
+
+        public NewMemoryScheduleClosure(Node excludeNode, Block upperBoundBlock) {
+            this.excludeNode = excludeNode;
+            this.upperBoundBlock = upperBoundBlock;
+        }
+
+        public NewMemoryScheduleClosure() {
+            this(null, null);
+        }
+
         @Override
         protected KillSet getInitialState() {
             return cloneState(blockToKillSet.get(getCFG().getStartBlock()));
@@ -212,7 +223,8 @@ public final class SchedulePhase extends Phase {
 
         @Override
         protected KillSet processBlock(Block block, KillSet currentState) {
-            currentState.addAll(computeKillSet(block));
+            assert block != null;
+            currentState.addAll(computeKillSet(block, block == upperBoundBlock ? excludeNode : null));
             return currentState;
         }
 
@@ -253,38 +265,71 @@ public final class SchedulePhase extends Phase {
      * assumptions: {@link MemoryCheckpoint MemoryCheckPoints} are {@link FixedNode FixedNodes}.
      * 
      * @param block block to analyze
+     * @param excludeNode if null, compute normal set of kill locations. if != null, don't add kills
+     *            until we reach excludeNode.
      * @return all killed locations
      */
-    private KillSet computeKillSet(Block block) {
-        KillSet cachedSet = blockToKillSet.get(block);
-        if (cachedSet != null) {
-            return cachedSet;
+    private KillSet computeKillSet(Block block, Node excludeNode) {
+        // cache is only valid if we don't potentially exclude kills from the set
+        if (excludeNode == null) {
+            KillSet cachedSet = blockToKillSet.get(block);
+            if (cachedSet != null) {
+                return cachedSet;
+            }
         }
-        KillSet set = new KillSet();
-        blockToKillSet.put(block, set);
 
+        // add locations to excludedLocations until we reach the excluded node
+        boolean foundExcludeNode = excludeNode == null;
+
+        KillSet set = new KillSet();
+        KillSet excludedLocations = new KillSet();
         if (block.getBeginNode() instanceof MergeNode) {
             MergeNode mergeNode = (MergeNode) block.getBeginNode();
-            for (PhiNode phi : mergeNode.usages().filter(PhiNode.class)) {
-                if (phi.type() == PhiType.Memory) {
-                    set.add(phi.getIdentity());
+            for (MemoryPhiNode phi : mergeNode.usages().filter(MemoryPhiNode.class)) {
+                if (foundExcludeNode) {
+                    set.add(phi.getLocationIdentity());
+                } else {
+                    excludedLocations.add(phi.getLocationIdentity());
+                    foundExcludeNode = phi == excludeNode;
                 }
             }
         }
 
+        AbstractBeginNode startNode = cfg.getStartBlock().getBeginNode();
+        assert startNode instanceof StartNode;
+
+        KillSet accm = foundExcludeNode ? set : excludedLocations;
         for (Node node : block.getNodes()) {
+            if (!foundExcludeNode && node == excludeNode) {
+                foundExcludeNode = true;
+            }
+            if (node == startNode) {
+                continue;
+            }
             if (node instanceof MemoryCheckpoint.Single) {
                 LocationIdentity identity = ((MemoryCheckpoint.Single) node).getLocationIdentity();
-                set.add(identity);
+                accm.add(identity);
             } else if (node instanceof MemoryCheckpoint.Multi) {
                 for (LocationIdentity identity : ((MemoryCheckpoint.Multi) node).getLocationIdentities()) {
-                    set.add(identity);
+                    accm.add(identity);
                 }
             }
             assert MemoryCheckpoint.TypeAssertion.correctType(node);
+
+            if (foundExcludeNode) {
+                accm = set;
+            }
         }
 
+        // merge it for the cache entry
+        excludedLocations.addAll(set);
+        blockToKillSet.put(block, excludedLocations);
+
         return set;
+    }
+
+    private KillSet computeKillSet(Block block) {
+        return computeKillSet(block, null);
     }
 
     private ControlFlowGraph cfg;
@@ -299,7 +344,6 @@ public final class SchedulePhase extends Phase {
     private final Map<FixedNode, List<FloatingNode>> phantomInputs = new IdentityHashMap<>();
     private final SchedulingStrategy selectedStrategy;
     private final MemoryScheduling memsched;
-    private NewMemoryScheduleClosure maschedClosure;
 
     public SchedulePhase() {
         this(OptScheduleOutOfLoops.getValue() ? SchedulingStrategy.LATEST_OUT_OF_LOOPS : SchedulingStrategy.LATEST);
@@ -344,7 +388,6 @@ public final class SchedulePhase extends Phase {
             printSchedule("after sorting nodes within blocks");
         } else if (memsched == MemoryScheduling.OPTIMAL && selectedStrategy != SchedulingStrategy.EARLIEST && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
             blockToKillSet = new BlockMap<>(cfg);
-            maschedClosure = new NewMemoryScheduleClosure();
 
             assignBlockToNodes(graph, selectedStrategy);
             printSchedule("after assign nodes to blocks");
@@ -357,8 +400,12 @@ public final class SchedulePhase extends Phase {
         }
     }
 
-    private Block blockForFixedNode(Node n) {
-        Block b = cfg.getNodeToBlock().get(n);
+    private Block blockForMemoryNode(MemoryNode memory) {
+        MemoryNode current = memory;
+        while (current instanceof MemoryProxy) {
+            current = ((MemoryProxy) current).getOriginalMemoryNode();
+        }
+        Block b = cfg.getNodeToBlock().get(current.asNode());
         assert b != null : "all lastAccess locations should have a block assignment from CFG";
         return b;
     }
@@ -483,6 +530,7 @@ public final class SchedulePhase extends Phase {
                 if (scheduleRead) {
                     FloatingReadNode read = (FloatingReadNode) node;
                     block = optimalBlock(read, strategy);
+                    Debug.printf("schedule for %s: %s\n", read, block);
                     assert earliestBlock.dominates(block) : String.format("%s (%s) cannot be scheduled before earliest schedule (%s). location: %s", read, block, earliestBlock,
                                     read.getLocationIdentity());
                 } else {
@@ -499,13 +547,11 @@ public final class SchedulePhase extends Phase {
                 if (assertionEnabled()) {
                     if (scheduleRead) {
                         FloatingReadNode read = (FloatingReadNode) node;
-                        Node lastLocationAccess = read.getLastLocationAccess();
-                        Block upperBound = blockForFixedNode(lastLocationAccess);
-                        if (!blockForFixedNode(lastLocationAccess).dominates(block)) {
-                            assert false : String.format("out of loop movement voilated memory semantics for %s (location %s). moved to %s but upper bound is %s (earliest: %s, latest: %s)", read,
-                                            read.getLocationIdentity(), block, upperBound, earliestBlock, latest);
-                        }
-
+                        MemoryNode lastLocationAccess = read.getLastLocationAccess();
+                        Block upperBound = blockForMemoryNode(lastLocationAccess);
+                        assert upperBound.dominates(block) : String.format(
+                                        "out of loop movement voilated memory semantics for %s (location %s). moved to %s but upper bound is %s (earliest: %s, latest: %s)", read,
+                                        read.getLocationIdentity(), block, upperBound, earliestBlock, latest);
                     }
                 }
                 break;
@@ -552,7 +598,7 @@ public final class SchedulePhase extends Phase {
         LocationIdentity locid = n.location().getLocationIdentity();
         assert locid != FINAL_LOCATION;
 
-        Block upperBoundBlock = blockForFixedNode(n.getLastLocationAccess());
+        Block upperBoundBlock = blockForMemoryNode(n.getLastLocationAccess());
         Block earliestBlock = earliestBlock(n);
         assert upperBoundBlock.dominates(earliestBlock) : "upper bound (" + upperBoundBlock + ") should dominate earliest (" + earliestBlock + ")";
 
@@ -568,7 +614,6 @@ public final class SchedulePhase extends Phase {
         Stack<Block> path = computePathInDominatorTree(earliestBlock, latestBlock);
         Debug.printf("|path| is %d: %s\n", path.size(), path);
 
-        KillSet killSet = new KillSet();
         // follow path, start at earliest schedule
         while (path.size() > 0) {
             Block currentBlock = path.pop();
@@ -578,10 +623,18 @@ public final class SchedulePhase extends Phase {
                 assert dominatedBlock.getBeginNode() instanceof MergeNode;
 
                 HashSet<Block> region = computeRegion(currentBlock, dominatedBlock);
-                Debug.printf("%s: region for %s -> %s: %s\n", n, currentBlock, dominatedBlock, region);
+                Debug.printf("> merge.  %s: region for %s -> %s: %s\n", n, currentBlock, dominatedBlock, region);
 
+                NewMemoryScheduleClosure closure = null;
+                if (currentBlock == upperBoundBlock) {
+                    assert earliestBlock == upperBoundBlock;
+                    // don't treat lastLocationAccess node as a kill for this read.
+                    closure = new NewMemoryScheduleClosure(ValueNodeUtil.asNode(n.getLastLocationAccess()), upperBoundBlock);
+                } else {
+                    closure = new NewMemoryScheduleClosure();
+                }
                 Map<FixedNode, KillSet> states;
-                states = ReentrantBlockIterator.apply(maschedClosure, currentBlock, new KillSet(killSet), region);
+                states = ReentrantBlockIterator.apply(closure, currentBlock, new KillSet(), region);
 
                 KillSet mergeState = states.get(dominatedBlock.getBeginNode());
                 if (mergeState.isKilled(locid)) {
@@ -589,17 +642,16 @@ public final class SchedulePhase extends Phase {
                     // thus we've to move the read above it
                     return currentBlock;
                 }
-                killSet.addAll(mergeState);
             } else {
-                // trivial case
-                if (dominatedBlock == null) {
+                if (currentBlock == upperBoundBlock) {
+                    assert earliestBlock == upperBoundBlock;
+                    KillSet ks = computeKillSet(upperBoundBlock, ValueNodeUtil.asNode(n.getLastLocationAccess()));
+                    if (ks.isKilled(locid)) {
+                        return upperBoundBlock;
+                    }
+                } else if (dominatedBlock == null || computeKillSet(currentBlock).isKilled(locid)) {
                     return currentBlock;
                 }
-                KillSet blockKills = computeKillSet(currentBlock);
-                if (blockKills.isKilled(locid)) {
-                    return currentBlock;
-                }
-                killSet.addAll(blockKills);
             }
         }
         assert false : "should have found a block for " + n;

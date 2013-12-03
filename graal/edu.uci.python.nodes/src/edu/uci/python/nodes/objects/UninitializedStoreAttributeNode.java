@@ -30,14 +30,13 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.objects.*;
 
 public class UninitializedStoreAttributeNode extends StoreAttributeNode {
 
-    public UninitializedStoreAttributeNode(String name, PNode primary, PNode rhs, PythonContext context) {
-        super(name, primary, rhs, context);
+    public UninitializedStoreAttributeNode(String name, PNode primary, PNode rhs) {
+        super(name, primary, rhs);
     }
 
     @Override

@@ -118,7 +118,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public int __len__() {
+    public int len() {
         return array.length;
     }
 
@@ -138,9 +138,9 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     @Override
     public PArray append(PArray other) {
         PDoubleArray otherArray = (PDoubleArray) other;
-        double[] joined = new double[__len__() + other.__len__()];
-        System.arraycopy(array, 0, joined, 0, __len__());
-        System.arraycopy(otherArray.getSequence(), 0, joined, __len__(), other.__len__());
+        double[] joined = new double[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
         return new PDoubleArray(joined);
     }
 

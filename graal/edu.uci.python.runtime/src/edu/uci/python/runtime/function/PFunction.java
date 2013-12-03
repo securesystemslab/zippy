@@ -33,7 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public class PFunction implements PythonCallable {
+public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
     private final List<String> parameters;

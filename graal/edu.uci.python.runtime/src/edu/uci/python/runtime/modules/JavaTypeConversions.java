@@ -60,7 +60,7 @@ public class JavaTypeConversions {
             return !(stringArg.isEmpty());
         } else if (arg instanceof PIterable) {
             PIterable iterable = (PIterable) arg;
-            return iterable.__len__() != 0;
+            return iterable.len() != 0;
         } else {
             throw new RuntimeException("invalid value for boolean()");
         }

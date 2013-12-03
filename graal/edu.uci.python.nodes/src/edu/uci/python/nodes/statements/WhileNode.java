@@ -33,9 +33,9 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class WhileNode extends LoopNode {
 
-    @Child protected BooleanCastNode condition;
+    @Child protected CastToBooleanNode condition;
 
-    public WhileNode(BooleanCastNode condition, StatementNode body) {
+    public WhileNode(CastToBooleanNode condition, StatementNode body) {
         super(body);
         this.condition = adoptChild(condition);
     }

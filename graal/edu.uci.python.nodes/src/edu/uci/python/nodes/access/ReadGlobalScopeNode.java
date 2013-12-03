@@ -41,7 +41,6 @@ import edu.uci.python.runtime.modules.*;
 public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     private final String attributeId;
-
     private final PythonContext context;
 
     @Child protected LoadAttributeNode load;
@@ -50,7 +49,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         this.attributeId = attributeId;
         this.context = context;
         PNode primary = new ObjectLiteralNode(globalScope);
-        this.load = adoptChild(new UninitializedLoadAttributeNode(attributeId, primary, context));
+        this.load = adoptChild(new UninitializedLoadAttributeNode(attributeId, primary));
     }
 
     protected ReadGlobalScopeNode(ReadGlobalScopeNode previous) {

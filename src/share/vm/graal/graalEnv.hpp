@@ -58,7 +58,6 @@ class GraalEnv : AllStatic {
 
 public:
 
-  // Must be kept in sync with the enum in the HotSpot implementation of CompilerToVM
   enum CodeInstallResult {
      ok,
      dependencies_failed,

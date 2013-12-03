@@ -29,6 +29,7 @@ import java.util.*;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -99,7 +100,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean all(PSequence sequence) {
-                if (sequence.__len__() == 0) {
+                if (sequence.len() == 0) {
                     return false;
                 }
 
@@ -116,7 +117,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean all(PBaseSet baseset) {
-                if (baseset.__len__() == 0) {
+                if (baseset.len() == 0) {
                     return false;
                 }
 
@@ -156,7 +157,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean any(PSequence sequence) {
-                if (sequence.__len__() == 0) {
+                if (sequence.len() == 0) {
                     return false;
                 }
 
@@ -173,7 +174,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean any(PBaseSet baseset) {
-                if (baseset.__len__() == 0) {
+                if (baseset.len() == 0) {
                     return false;
                 }
 
@@ -429,22 +430,22 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public int len(PSequence arg) {
-                return arg.__len__();
+                return arg.len();
             }
 
             @Specialization
             public int len(PBaseSet arg) {
-                return arg.__len__();
+                return arg.len();
             }
 
             @Specialization
             public int len(PDictionary arg) {
-                return arg.__len__();
+                return arg.len();
             }
 
             @Specialization
             public int len(PArray arg) {
-                return arg.__len__();
+                return arg.len();
             }
 
             @Specialization
@@ -454,16 +455,16 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.length();
                 } else if (arg instanceof PSequence) {
                     PSequence argument = (PSequence) arg;
-                    return argument.__len__();
+                    return argument.len();
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet argument = (PBaseSet) arg;
-                    return argument.__len__();
+                    return argument.len();
                 } else if (arg instanceof PDictionary) {
                     PDictionary argument = (PDictionary) arg;
-                    return argument.__len__();
+                    return argument.len();
                 } else if (arg instanceof PArray) {
                     PArray argument = (PArray) arg;
-                    return argument.__len__();
+                    return argument.len();
                 }
 
                 throw new RuntimeException();
@@ -530,7 +531,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     } else if (args.length == 1) {
                         return getMax(arg1, args[0]);
                     } else {
-                        throw new RuntimeException("Multiple arguments are not supported");
+                        Object[] argsArray = new Object[args.length + 1];
+                        argsArray[0] = arg1;
+                        System.arraycopy(args, 0, argsArray, 1, args.length);
+                        Object min = getMax(argsArray);
+                        return min;
+
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
@@ -553,6 +559,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     }
                 }
                 throw new RuntimeException("Unsupported min operation");
+            }
+
+            private static Object getMax(Object[] args) {
+                Arrays.sort(args);
+                return args[args.length - 1];
             }
 
             @SuppressWarnings("unused")
@@ -619,12 +630,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     } else if (args.length == 1) {
                         return getMin(arg1, args[0]);
                     } else {
-                        throw new RuntimeException("Multiple arguments are not supported");
+                        Object[] argsArray = new Object[args.length + 1];
+                        argsArray[0] = arg1;
+                        System.arraycopy(args, 0, argsArray, 1, args.length);
+                        Object min = getMin(argsArray);
+                        return min;
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
                 }
-
             }
 
             private static Object getMin(Object arg1, Object arg2) {
@@ -642,6 +656,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     }
                 }
                 throw new RuntimeException("Unsupported min operation");
+            }
+
+            private static Object getMin(Object[] args) {
+                Object[] copy = args;
+                Arrays.sort(copy);
+                return copy[0];
             }
 
             @SuppressWarnings("unused")
@@ -865,7 +885,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         while (iter.hasNext()) {
                             Object obj = iter.next();
 
-                            if (obj instanceof PSequence && ((PSequence) obj).__len__() == 2) {
+                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
                                 newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
                             } else {
                                 throw new RuntimeException("invalid args for dict()");

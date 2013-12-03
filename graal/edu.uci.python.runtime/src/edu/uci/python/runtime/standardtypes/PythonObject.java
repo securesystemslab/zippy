@@ -61,6 +61,12 @@ public class PythonObject extends PythonBasicObject {
     }
 
     @Override
+    public void deleteAttribute(String name) {
+        unmodifiedAssumption.invalidate();
+        super.deleteAttribute(name);
+    }
+
+    @Override
     public String toString() {
         return "<" + pythonClass.getClassName() + " object at " + hashCode() + ">";
     }

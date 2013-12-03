@@ -10,5 +10,5 @@ public interface PIterable {
 
     public abstract Object getMin();
 
-    public abstract int __len__();
+    public abstract int len();
 }

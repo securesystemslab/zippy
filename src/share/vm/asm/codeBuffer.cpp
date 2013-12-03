@@ -1096,8 +1096,9 @@ void CodeStrings::print_block_comment(outputStream* stream, intptr_t offset) con
     CodeString* c = find(offset);
     while (c && c->offset() == offset) {
       stream->bol();
-      stream->print("  ;; ");
-      stream->print_cr(c->string());
+      stream->print_raw("  ;; ");
+      // Don't interpret as format strings since it could contain %
+      stream->print_raw_cr(c->string());
       c = c->next_comment();
     }
   }
