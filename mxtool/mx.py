@@ -2832,13 +2832,23 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
     generate_eclipse_workingsets()
 
 def _check_ide_timestamp(suite, timestamp):
-    """return True if and only if the projects file, imports file, and mx itself are all older than timestamp"""
+    """return True if and only if the projects file, imports file, eclipse-settings files, and mx itself are all older than timestamp"""
     projectsFile = join(suite.mxDir, 'projects')
-    projectsFileOlder = not timestamp.isOlderThan(projectsFile)
-    importsFileOlder = not timestamp.isOlderThan(suite.import_timestamp())
+    if timestamp.isOlderThan(projectsFile):
+        return False
+    if timestamp.isOlderThan(suite.import_timestamp()):
+        return False
     # Assume that any mx change might imply changes to the generated IDE files
-    mxOlder = not timestamp.isOlderThan(__file__)
-    return projectsFileOlder and importsFileOlder and mxOlder
+    if timestamp.isOlderThan(__file__):
+        return False
+    
+    eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
+    if exists(eclipseSettingsDir):
+        for name in os.listdir(eclipseSettingsDir):
+            path = join(eclipseSettingsDir, name)
+            if timestamp.isOlderThan(path):
+                return False
+    return True 
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
