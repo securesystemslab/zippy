@@ -33,7 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
 
-public class PFunction extends PythonBuiltinObject implements PythonCallable {
+public class PFunction implements PythonCallable {
 
     private final String name;
     private final List<String> parameters;
@@ -97,8 +97,9 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         for (int i = 0; i < keywords.length; i++) {
             PKeyword keyarg = (PKeyword) keywords[i];
             int keywordIdx = parameters.indexOf(keyarg.getName());
+
             if (keywordIdx < -1) {
-                /***
+                /**
                  * TODO can throw a type error for wrong keyword name // TypeError: foo() got an
                  * unexpected keyword argument 'c'
                  */

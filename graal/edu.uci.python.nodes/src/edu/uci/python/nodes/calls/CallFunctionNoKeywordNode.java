@@ -36,6 +36,7 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.objects.*;
 
 public class CallFunctionNoKeywordNode extends PNode {
 
@@ -49,7 +50,11 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PythonCallable callable, PythonContext context) {
-        if (calleeNode instanceof ReadGlobalScopeNode && callable instanceof PythonBuiltinObject) {
+        if (callable instanceof PythonBasicObject) {
+            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
+        }
+
+        if (calleeNode instanceof ReadGlobalScopeNode) {
             Assumption globalScopeUnchanged = ((ReadGlobalScopeNode) calleeNode).getGlobaScope().getUnmodifiedAssumption();
             Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
 
