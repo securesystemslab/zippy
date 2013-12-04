@@ -78,13 +78,13 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) {
-        if (stop > values.length) {
-            increaseCapacity(stop);
-        }
+        ensureCapacity(stop);
 
         for (int i = start, j = 0; i < stop; i += step, j++) {
             values[i] = sequence.getInternalArray()[j];
         }
+
+        length = length > stop ? length : stop;
     }
 
     @Override
@@ -102,7 +102,7 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void increaseCapacity(int newCapacity) {
+    public void increaseCapacityExact(int newCapacity) {
         values = Arrays.copyOf(values, newCapacity);
         capacity = values.length;
     }

@@ -44,11 +44,15 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
         return Math.max(16, length * 2);
     }
 
+    /**
+     * Ensure that the current capacity is big enough. If not, we increase capacity to the next
+     * designated size (not necessarily the requested one).
+     */
     protected void ensureCapacity(int newCapacity) {
         if (newCapacity > capacity) {
-            increaseCapacity(newCapacity);
+            increaseCapacityExact(capacityFor(newCapacity));
         }
     }
 
-    protected abstract void increaseCapacity(int newCapacity);
+    protected abstract void increaseCapacityExact(int newCapacity);
 }
