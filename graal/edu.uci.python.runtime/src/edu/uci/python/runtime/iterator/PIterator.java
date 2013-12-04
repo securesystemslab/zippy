@@ -22,26 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.iterator;
 
 import java.util.*;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
-public class PBaseSetIterator extends PIterator {
+public abstract class PIterator extends PythonBuiltinObject {
 
-    private final Iterator<?> setIterator;
-
-    public PBaseSetIterator(PBaseSet baseSet) {
-        this.setIterator = baseSet.iterator();
+    public PIterator __iter__() {
+        return this;
     }
 
-    @Override
-    public Object __next__() {
-        if (setIterator.hasNext()) {
-            return setIterator.next();
+    public abstract Object __next__();
+
+    /**
+     * TODO: This should be gone. Wrong semantic.
+     */
+    public Iterator<?> evaluateToJavaIteratore() {
+        List<Object> results = new ArrayList<>();
+
+        try {
+            while (true) {
+                results.add(__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
 
-        throw StopIterationException.INSTANCE;
+        return results.iterator();
     }
 }

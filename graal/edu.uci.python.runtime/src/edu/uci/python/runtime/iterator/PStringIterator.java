@@ -22,23 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.iterator;
 
 import edu.uci.python.runtime.exception.*;
 
-public class PSequenceIterator extends PIterator {
+public class PStringIterator extends PIterator {
 
-    private final PSequence sequence;
+    private final String value;
     private int index;
 
-    public PSequenceIterator(PSequence sequence) {
-        this.sequence = sequence;
+    public PStringIterator(String value) {
+        this.value = value;
     }
 
     @Override
     public Object __next__() {
-        if (index < sequence.len()) {
-            return sequence.getItem(index++);
+        if (index < value.length()) {
+            return value.charAt(index++);
         }
 
         throw StopIterationException.INSTANCE;

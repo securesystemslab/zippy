@@ -49,8 +49,8 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
 
     @Specialization(order = 0)
     public String doString(String primary, PSlice slice) {
-        int length = slice.computeActualIndices(primary.length());
-        int start = slice.getStart();
+        final int length = slice.computeActualIndices(primary.length());
+        final int start = slice.getStart();
         int stop = slice.getStop();
         int step = slice.getStep();
 

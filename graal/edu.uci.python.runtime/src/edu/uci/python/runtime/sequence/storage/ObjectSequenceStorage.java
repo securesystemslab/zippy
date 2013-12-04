@@ -22,9 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.sequence.storage;
 
-public class ObjectSequenceStorage extends SequenceStorage {
+public class ObjectSequenceStorage extends BasicSequenceStorage {
 
     private Object[] array;
 
@@ -47,6 +47,13 @@ public class ObjectSequenceStorage extends SequenceStorage {
         array[idx] = value;
     }
 
+    @Override
+    public void insertItemInBound(int idx, Object value) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @SuppressWarnings("hiding")
     @Override
     public Object getSliceInBound(int start, int stop, int step, int length) {
         Object[] newArray = new Object[length];

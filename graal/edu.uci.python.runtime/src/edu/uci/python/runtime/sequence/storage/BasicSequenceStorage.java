@@ -22,35 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.sequence.storage;
 
-import java.util.*;
+public abstract class BasicSequenceStorage extends SequenceStorage {
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
+    // nominated storage length
+    int length;
 
-public abstract class PIterator extends PythonBuiltinObject {
-
-    public PIterator __iter__() {
-        return this;
-    }
-
-    public abstract Object __next__();
+    // physical storage length
+    int capacity;
 
     /**
-     * TODO: This should be gone. Wrong semantic.
+     * The capacity we should allocate for a given length.
      */
-    public Iterator<?> evaluateToJavaIteratore() {
-        List<Object> results = new ArrayList<>();
-
-        try {
-            while (true) {
-                results.add(__next__());
-            }
-        } catch (StopIterationException e) {
-            // fall through
-        }
-
-        return results.iterator();
+    public static int capacityFor(int length) {
+        return Math.max(16, length * 2);
     }
 }

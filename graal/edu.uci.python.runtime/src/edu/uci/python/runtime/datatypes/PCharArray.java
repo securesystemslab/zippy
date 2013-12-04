@@ -74,7 +74,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.fixIndex(idx, array.length);
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
         array[index] = (char) value;
     }
 
@@ -99,7 +99,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     public void setItem(int idx, char value) {
-        int index = SequenceUtil.fixIndex(idx, array.length);
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
         array[index] = value;
     }
 

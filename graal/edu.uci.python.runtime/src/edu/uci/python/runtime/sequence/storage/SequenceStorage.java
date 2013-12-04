@@ -22,25 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.sequence.storage;
 
-import edu.uci.python.runtime.exception.*;
+public abstract class SequenceStorage {
 
-public class PStringIterator extends PIterator {
+    public abstract int length();
 
-    private final String value;
-    private int index;
+    public abstract Object[] getInternalArray();
 
-    public PStringIterator(String value) {
-        this.value = value;
-    }
+    public abstract void increaseCapacity(int newSize);
 
-    @Override
-    public Object __next__() {
-        if (index < value.length()) {
-            return value.charAt(index++);
-        }
+    public abstract Object getItemInBound(int idx);
 
-        throw StopIterationException.INSTANCE;
-    }
+    public abstract void setItemInBound(int idx, Object value);
+
+    public abstract void insertItemInBound(int idx, Object value);
+
+    public abstract Object getSliceInBound(int start, int stop, int step, int length);
+
+    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence);
+
+    public abstract void delItemInBound(int idx);
+
 }

@@ -22,41 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.iterator;
 
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
-public final class PRangeIterator extends PIterator {
+public class PSequenceIterator extends PIterator {
 
+    private final PSequence sequence;
     private int index;
-    private final int stop;
-    private final int step;
 
-    public PRangeIterator(PRange range) {
-        this.index = range.getStart();
-        this.stop = range.getStop();
-        this.step = range.getStep();
-    }
-
-    public int getStart() {
-        return index;
-    }
-
-    public int getStop() {
-        return stop;
-    }
-
-    public int getStep() {
-        return step;
+    public PSequenceIterator(PSequence sequence) {
+        this.sequence = sequence;
     }
 
     @Override
     public Object __next__() {
-        if (index < stop) {
-            int value = index;
-            index += step;
-            return value;
+        if (index < sequence.len()) {
+            return sequence.getItem(index++);
         }
 
         throw StopIterationException.INSTANCE;

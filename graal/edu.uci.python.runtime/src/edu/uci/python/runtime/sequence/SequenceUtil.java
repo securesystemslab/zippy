@@ -28,7 +28,7 @@ public class SequenceUtil {
 
     public static final int MISSING_INDEX = Integer.MIN_VALUE;
 
-    public static int normalizedSliceStart(int start, int step, int size) {
+    public static int normalizeSliceStart(int start, int step, int size) {
         if (start == MISSING_INDEX) {
             return step < 0 ? size - 1 : 0;
         }
@@ -36,7 +36,7 @@ public class SequenceUtil {
         return start;
     }
 
-    public static int normalizedSliceStop(int stop, int step, int size) {
+    public static int normalizeSliceStop(int stop, int step, int size) {
         if (stop == MISSING_INDEX) {
             return step < 0 ? -1 : size;
         }
@@ -84,7 +84,7 @@ public class SequenceUtil {
         return length1 < length2 ? -1 : -3;
     }
 
-    public static int fixIndex(int index, int length) {
+    public static int normalizeIndex(int index, int length) {
         if (index < 0) {
             return index + length;
         } else {

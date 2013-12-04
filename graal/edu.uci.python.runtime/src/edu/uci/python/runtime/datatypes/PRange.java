@@ -30,6 +30,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class PRange extends PImmutableSequence {
@@ -110,7 +111,7 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = SequenceUtil.fixIndex(idx, length);
+        int index = SequenceUtil.normalizeIndex(idx, length);
 
         if (index > length - 1) {
             getItemIndexOutOfBound();

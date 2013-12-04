@@ -22,40 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.iterator;
 
-import java.util.Iterator;
+import java.util.*;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
-public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object>, PIterable {
+public class PBaseSetIterator extends PIterator {
 
-    public PIterator __iter__() {
-        return new PSequenceIterator(this);
+    private final Iterator<?> setIterator;
+
+    public PBaseSetIterator(PBaseSet baseSet) {
+        this.setIterator = baseSet.iterator();
     }
 
-    public abstract Object getItem(int idx);
+    @Override
+    public Object __next__() {
+        if (setIterator.hasNext()) {
+            return setIterator.next();
+        }
 
-    public abstract void setItem(int idx, Object value);
-
-    public abstract Object getSlice(int start, int stop, int step, int length);
-
-    public abstract Object getSlice(PSlice slice);
-
-    public abstract void setSlice(int start, int stop, int step, PSequence value);
-
-    public abstract void setSlice(PSlice slice, PSequence value);
-
-    public abstract void delItem(int idx);
-
-    public abstract void delItems(int start, int stop);
-
-    public abstract Iterator<Object> iterator();
-
-    public abstract Object[] getSequence();
-
-    public abstract boolean lessThan(PSequence sequence);
-
-    public abstract PSequence concat(PSequence sequence);
+        throw StopIterationException.INSTANCE;
+    }
 }
