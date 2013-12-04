@@ -34,7 +34,6 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.objects.*;
 
