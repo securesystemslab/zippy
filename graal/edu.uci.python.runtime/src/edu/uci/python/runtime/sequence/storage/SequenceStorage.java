@@ -42,4 +42,8 @@ public abstract class SequenceStorage {
 
     public abstract void delItemInBound(int idx);
 
+    public abstract void append(Object value);
+
+    public abstract void extend(SequenceStorage other);
+
 }

@@ -99,4 +99,25 @@ public class SequenceStorageTests {
         assertEquals(6, store.getItemInBound(6));
         assertEquals(7, store.length());
     }
+
+    @Test
+    public void objectAppend() {
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
+        store.append(42);
+        assertEquals(42, store.getItemInBound(6));
+        assertEquals(7, store.length());
+    }
+
+    @Test
+    public void objectExtend() {
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
+        ObjectSequenceStorage other = new ObjectSequenceStorage(getObjectValues());
+        store.extend(other);
+
+        for (int i = 6; i < 12; i++) {
+            assertEquals(i - 5, store.getItemInBound(i));
+        }
+
+        assertEquals(12, store.length());
+    }
 }

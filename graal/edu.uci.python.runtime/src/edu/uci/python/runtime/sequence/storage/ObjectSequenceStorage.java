@@ -59,17 +59,16 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
         length++;
     }
 
-    @SuppressWarnings("hiding")
     @Override
-    public Object getSliceInBound(int start, int stop, int step, int length) {
-        Object[] newArray = new Object[length];
+    public Object getSliceInBound(int start, int stop, int step, int sliceLength) {
+        Object[] newArray = new Object[sliceLength];
 
         if (step == 1) {
-            System.arraycopy(values, start, newArray, 0, length);
+            System.arraycopy(values, start, newArray, 0, sliceLength);
             return new ObjectSequenceStorage(newArray);
         }
 
-        for (int i = start, j = 0; j < length; i += step, j++) {
+        for (int i = start, j = 0; j < sliceLength; i += step, j++) {
             newArray[j] = values[i];
         }
 
@@ -105,5 +104,25 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
     public void increaseCapacityExact(int newCapacity) {
         values = Arrays.copyOf(values, newCapacity);
         capacity = values.length;
+    }
+
+    @Override
+    public void append(Object value) {
+        ensureCapacity(length + 1);
+        values[length] = value;
+        length++;
+    }
+
+    @Override
+    public void extend(SequenceStorage other) {
+        int extendedLength = length + other.length();
+        ensureCapacity(extendedLength);
+        Object[] otherValues = other.getInternalArray();
+
+        for (int i = length, j = 0; i < extendedLength; i++, j++) {
+            values[i] = otherValues[j];
+        }
+
+        length = extendedLength;
     }
 }
