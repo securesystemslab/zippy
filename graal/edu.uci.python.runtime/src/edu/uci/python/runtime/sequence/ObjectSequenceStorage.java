@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.sequence;
 
-public class ObjectSequenceStorage extends AbstractSequenceStorage {
+public class ObjectSequenceStorage extends SequenceStorage {
 
     private Object[] array;
 
@@ -64,7 +64,7 @@ public class ObjectSequenceStorage extends AbstractSequenceStorage {
     }
 
     @Override
-    public void setSliceInBound(int start, int stop, int step, AbstractSequenceStorage sequence) {
+    public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) {
         if (stop > array.length) {
             increaseCapacity(stop);
         }

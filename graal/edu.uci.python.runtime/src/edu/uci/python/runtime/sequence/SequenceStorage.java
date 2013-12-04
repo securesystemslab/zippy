@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.sequence;
 
-public abstract class AbstractSequenceStorage {
+public abstract class SequenceStorage {
 
     public abstract int length();
 
@@ -38,7 +38,7 @@ public abstract class AbstractSequenceStorage {
 
     public abstract Object getSliceInBound(int start, int stop, int step, int length);
 
-    public abstract void setSliceInBound(int start, int stop, int step, AbstractSequenceStorage sequence);
+    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence);
 
     public abstract void delItemInBound(int idx);
 

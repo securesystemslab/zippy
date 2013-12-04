@@ -50,6 +50,7 @@ import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
 public class PythonTreeTranslator extends Visitor {
@@ -385,10 +386,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode step = (PNode) (node.getInternalStep() == null ? null : visit(node.getInternalStep()));
 
         if (lower == null || lower instanceof NoneLiteralNode) {
-            lower = factory.createIntegerLiteral(Integer.MIN_VALUE);
+            lower = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
         if (upper == null || upper instanceof NoneLiteralNode) {
-            upper = factory.createIntegerLiteral(Integer.MIN_VALUE);
+            upper = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
         if (step == null || step instanceof NoneLiteralNode) {
             step = factory.createIntegerLiteral(1);

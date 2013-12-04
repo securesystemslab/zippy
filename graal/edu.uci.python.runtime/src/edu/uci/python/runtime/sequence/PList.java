@@ -128,19 +128,14 @@ public class PList extends PSequence {
      */
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
-        if (start == Integer.MIN_VALUE) {
-            start = step < 0 ? list.size() - 1 : 0;
+        final int normalizedStart = SequenceUtil.normalizedSliceStart(start, step, list.size());
+        int normalizedStop = SequenceUtil.normalizedSliceStop(stop, step, list.size());
+
+        if (normalizedStop < normalizedStart) {
+            normalizedStop = normalizedStart;
         }
 
-        if (stop == Integer.MIN_VALUE) {
-            stop = step < 0 ? -1 : list.size();
-        }
-
-        if (stop < start) {
-            stop = start;
-        }
-
-        setsliceIterator(start, stop, step, value.iterator());
+        setsliceIterator(normalizedStart, normalizedStop, step, value.iterator());
     }
 
     private void setsliceIterator(int start, int stop, int step, Iterator<Object> iter) {
