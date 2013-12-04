@@ -2011,7 +2011,7 @@ def build(args, parser=None):
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
 
 
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
                 if java().debug_port is not None:
                     javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
                 javacCmd += processorArgs
@@ -2891,7 +2891,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
 
         # Every Java program depends on the JRE
-        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
+        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
 
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
