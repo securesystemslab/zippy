@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PDictionary extends PythonBuiltinObject implements PIterable {
 

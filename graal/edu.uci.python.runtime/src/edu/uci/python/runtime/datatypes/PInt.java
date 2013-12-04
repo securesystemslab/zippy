@@ -28,6 +28,7 @@ import java.math.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PInt extends PythonBuiltinObject {
 

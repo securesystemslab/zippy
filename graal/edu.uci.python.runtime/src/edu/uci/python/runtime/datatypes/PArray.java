@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.standardtypes.*;
+
 public abstract class PArray extends PythonBuiltinObject implements PIterable {
 
     public abstract Object getItem(int idx);

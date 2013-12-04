@@ -28,7 +28,6 @@ import java.io.*;
 
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;

@@ -26,8 +26,8 @@ package edu.uci.python.runtime.builtins;
 
 import java.util.*;
 
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * Storage for initialized Python built-in modules and types.

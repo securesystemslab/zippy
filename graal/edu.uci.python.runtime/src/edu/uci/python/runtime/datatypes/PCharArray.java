@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PCharArray extends PArray implements Iterable<Character> {
 

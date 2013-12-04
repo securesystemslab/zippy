@@ -30,13 +30,11 @@ public abstract class SequenceStorage {
 
     public abstract Object[] getInternalArray();
 
-    public abstract void increaseCapacity(int newSize);
-
     public abstract Object getItemInBound(int idx);
 
     public abstract void setItemInBound(int idx, Object value);
 
-    public abstract void insertItemInBound(int idx, Object value);
+    public abstract void insertItem(int idx, Object value);
 
     public abstract Object getSliceInBound(int start, int stop, int step, int length);
 

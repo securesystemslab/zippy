@@ -32,10 +32,23 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
     // physical storage length
     int capacity;
 
+    @Override
+    public int length() {
+        return length;
+    }
+
     /**
      * The capacity we should allocate for a given length.
      */
     public static int capacityFor(int length) {
         return Math.max(16, length * 2);
     }
+
+    protected void ensureCapacity(int newCapacity) {
+        if (newCapacity > capacity) {
+            increaseCapacity(newCapacity);
+        }
+    }
+
+    protected abstract void increaseCapacity(int newCapacity);
 }

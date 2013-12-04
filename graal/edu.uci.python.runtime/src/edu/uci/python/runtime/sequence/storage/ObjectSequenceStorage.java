@@ -24,33 +24,39 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import java.util.*;
+
 public class ObjectSequenceStorage extends BasicSequenceStorage {
 
-    private Object[] array;
+    private Object[] values;
 
     public ObjectSequenceStorage(Object[] elements) {
-        this.array = elements;
-    }
-
-    @Override
-    public int length() {
-        return array.length;
+        this.values = elements;
+        length = elements.length;
+        capacity = elements.length;
     }
 
     @Override
     public Object getItemInBound(int idx) {
-        return array[idx];
+        return values[idx];
     }
 
     @Override
     public void setItemInBound(int idx, Object value) {
-        array[idx] = value;
+        values[idx] = value;
     }
 
     @Override
-    public void insertItemInBound(int idx, Object value) {
-        // TODO Auto-generated method stub
+    public void insertItem(int idx, Object value) {
+        ensureCapacity(length + 1);
 
+        // shifting tail to the right by one slot
+        for (int i = values.length - 1; i > idx; i--) {
+            values[i] = values[i - 1];
+        }
+
+        values[idx] = value;
+        length++;
     }
 
     @SuppressWarnings("hiding")
@@ -59,12 +65,12 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
         Object[] newArray = new Object[length];
 
         if (step == 1) {
-            System.arraycopy(array, start, newArray, 0, length);
+            System.arraycopy(values, start, newArray, 0, length);
             return new ObjectSequenceStorage(newArray);
         }
 
         for (int i = start, j = 0; j < length; i += step, j++) {
-            newArray[j] = array[i];
+            newArray[j] = values[i];
         }
 
         return new ObjectSequenceStorage(newArray);
@@ -72,33 +78,32 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) {
-        if (stop > array.length) {
+        if (stop > values.length) {
             increaseCapacity(stop);
         }
 
         for (int i = start, j = 0; i < stop; i += step, j++) {
-            array[i] = sequence.getInternalArray()[j];
+            values[i] = sequence.getInternalArray()[j];
         }
     }
 
     @Override
     public void delItemInBound(int idx) {
-        Object[] newArray = new Object[array.length - 1];
-        System.arraycopy(array, 0, newArray, 0, idx);
-        System.arraycopy(array, idx + 1, newArray, idx, array.length - idx - 1);
-        array = newArray;
+        for (int i = idx; i < values.length - 1; i++) {
+            values[i] = values[i + 1];
+        }
+
+        length--;
     }
 
     @Override
     public Object[] getInternalArray() {
-        return array;
+        return values;
     }
 
     @Override
-    public void increaseCapacity(int newSize) {
-        assert newSize > array.length;
-        Object[] newArray = new Object[newSize];
-        System.arraycopy(array, 0, newArray, 0, array.length);
-        array = newArray;
+    public void increaseCapacity(int newCapacity) {
+        values = Arrays.copyOf(values, newCapacity);
+        capacity = values.length;
     }
 }

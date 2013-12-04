@@ -28,15 +28,17 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public class SequenceStorageTests {
 
+    private static Object[] getObjectValues() {
+        return new Object[]{1, 2, 3, 4, 5, 6};
+    }
+
     @Test
     public void objectsGetAndSet() {
-        Object[] array = new Object[]{1, 2, 3, 4, 5, 6};
-        ObjectSequenceStorage store = new ObjectSequenceStorage(array);
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         assertEquals(4, store.getItemInBound(3));
         store.setItemInBound(5, 10);
         assertEquals(10, store.getItemInBound(5));
@@ -44,8 +46,7 @@ public class SequenceStorageTests {
 
     @Test
     public void objectsGetSlice() {
-        Object[] array = new Object[]{1, 2, 3, 4, 5, 6};
-        ObjectSequenceStorage store = new ObjectSequenceStorage(array);
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage slice = (ObjectSequenceStorage) store.getSliceInBound(1, 4, 1, 3);
 
         for (int i = 0; i < 3; i++) {
@@ -55,8 +56,7 @@ public class SequenceStorageTests {
 
     @Test
     public void objectsSetSlice() {
-        Object[] array = new Object[]{1, 2, 3, 4, 5, 6};
-        ObjectSequenceStorage store = new ObjectSequenceStorage(array);
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage slice = new ObjectSequenceStorage(new Object[]{42, 42, 42});
 
         store.setSliceInBound(1, 4, 1, slice);
@@ -68,8 +68,7 @@ public class SequenceStorageTests {
 
     @Test
     public void objectsSetSliceOutOfBound() {
-        Object[] array = new Object[]{1, 2, 3, 4, 5, 6};
-        ObjectSequenceStorage store = new ObjectSequenceStorage(array);
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage slice = new ObjectSequenceStorage(new Object[]{42, 42, 42});
 
         store.setSliceInBound(5, 8, 1, slice);
@@ -81,12 +80,23 @@ public class SequenceStorageTests {
 
     @Test
     public void objectsDel() {
-        Object[] array = new Object[]{1, 2, 3, 4, 4, 5, 6};
-        ObjectSequenceStorage store = new ObjectSequenceStorage(array);
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         store.delItemInBound(4);
 
-        for (int i = 0; i < store.length(); i++) {
+        for (int i = 0; i < 4; i++) {
             assertEquals(i + 1, store.getItemInBound(i));
         }
+
+        assertEquals(6, store.getItemInBound(4));
+        assertEquals(5, store.length());
+    }
+
+    @Test
+    public void objectsInsert() {
+        ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
+        store.insertItem(3, 42);
+        assertEquals(42, store.getItemInBound(3));
+        assertEquals(6, store.getItemInBound(6));
+        assertEquals(7, store.length());
     }
 }

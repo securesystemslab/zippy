@@ -27,6 +27,7 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PTuple extends PImmutableSequence {
 

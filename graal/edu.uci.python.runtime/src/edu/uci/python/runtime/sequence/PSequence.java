@@ -28,6 +28,7 @@ import java.util.Iterator;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object>, PIterable {
 
