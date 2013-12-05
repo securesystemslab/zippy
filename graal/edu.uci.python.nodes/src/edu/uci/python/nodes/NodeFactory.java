@@ -62,7 +62,7 @@ import edu.uci.python.nodes.expressions.BinaryArithmeticNodeFactory.*;
 import edu.uci.python.nodes.expressions.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class NodeFactory {
 

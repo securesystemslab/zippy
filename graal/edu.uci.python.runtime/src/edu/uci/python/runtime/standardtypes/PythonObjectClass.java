@@ -31,7 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.misc.*;
 
 /**
  * The built-in 'object' class.

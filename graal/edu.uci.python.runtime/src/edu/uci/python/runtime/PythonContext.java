@@ -29,7 +29,6 @@ import java.io.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -62,11 +61,11 @@ public class PythonContext {
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonBuiltinClass(this, objectClass, "module");
 
-        builtinsModule = new BuiltinsModule(this, builtinsModuleBuiltins, "__builtins__");
+        builtinsModule = new PythonModule("__builtins__", builtinsModuleBuiltins, this);
         builtinsModule.setAttribute("object", objectClass);
         lookup.addModule("__builtins__", builtinsModule);
 
-        mainModule = new MainModule(this, mainModuleBuiltins, "__main__");
+        mainModule = new PythonModule("__main__", mainModuleBuiltins, this);
         mainModule.setAttribute("__builtins__", builtinsModule);
         lookup.addModule("__main__", mainModule);
     }

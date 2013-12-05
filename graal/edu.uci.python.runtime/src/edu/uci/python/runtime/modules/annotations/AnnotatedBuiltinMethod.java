@@ -26,7 +26,7 @@ package edu.uci.python.runtime.modules.annotations;
 
 import java.util.*;
 
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.misc.*;
 
 public class AnnotatedBuiltinMethod {
 

@@ -30,8 +30,8 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * @author Gulfem
@@ -41,9 +41,10 @@ public class PythonBuiltinsInitializer {
 
     public static void initialize(PythonContext context) {
         PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
-        lookup.addModule("array", new ArrayModule(context, new ArrayModuleBuiltins(), "array"));
-        lookup.addModule("bisect", new BisectModule(context, new BisectModuleBuiltins(), "bisect"));
-        lookup.addModule("time", new TimeModule(context, new TimeModuleBuiltins(), "time"));
+
+        lookup.addModule("array", new PythonModule("array", new ArrayModuleBuiltins(), context));
+        lookup.addModule("bisect", new PythonModule("bisect", new BisectModuleBuiltins(), context));
+        lookup.addModule("time", new PythonModule("time", new TimeModuleBuiltins(), context));
 
         PythonBuiltinClass typeClass = context.getTypeClass();
         lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
