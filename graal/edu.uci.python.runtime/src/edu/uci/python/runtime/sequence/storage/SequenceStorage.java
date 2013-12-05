@@ -36,13 +36,13 @@ public abstract class SequenceStorage {
 
     public abstract Object getItemInBound(int idx);
 
-    public abstract void setItemInBound(int idx, Object value);
+    public abstract void setItemInBound(int idx, Object value) throws SequenceStoreException;
 
-    public abstract void insertItem(int idx, Object value);
+    public abstract void insertItem(int idx, Object value) throws SequenceStoreException;
 
     public abstract SequenceStorage getSliceInBound(int start, int stop, int step, int length);
 
-    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence);
+    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException;
 
     public abstract void delItemInBound(int idx);
 
@@ -50,9 +50,9 @@ public abstract class SequenceStorage {
 
     public abstract int index(Object value);
 
-    public abstract void append(Object value);
+    public abstract void append(Object value) throws SequenceStoreException;
 
-    public abstract void extend(SequenceStorage other);
+    public abstract void extend(SequenceStorage other) throws SequenceStoreException;
 
     public abstract void reverse();
 

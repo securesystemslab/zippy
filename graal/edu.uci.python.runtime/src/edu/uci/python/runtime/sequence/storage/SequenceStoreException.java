@@ -24,52 +24,13 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
-public abstract class BasicSequenceStorage extends SequenceStorage {
+import com.oracle.truffle.api.nodes.*;
 
-    // nominated storage length
-    int length;
+/**
+ * An sequence store cannot meet its target's storage type.
+ */
+public class SequenceStoreException extends ControlFlowException {
 
-    // physical storage length
-    int capacity;
+    private static final long serialVersionUID = -2938582159978230604L;
 
-    @Override
-    public int length() {
-        return length;
-    }
-
-    /**
-     * The capacity we should allocate for a given length.
-     */
-    public static int capacityFor(int length) {
-        return Math.max(16, length * 2);
-    }
-
-    /**
-     * Ensure that the current capacity is big enough. If not, we increase capacity to the next
-     * designated size (not necessarily the requested one).
-     */
-    protected void ensureCapacity(int newCapacity) {
-        if (newCapacity > capacity) {
-            increaseCapacityExactWithCopy(capacityFor(newCapacity));
-        }
-    }
-
-    protected abstract void increaseCapacityExactWithCopy(int newCapacity);
-
-    protected abstract void increaseCapacityExact(int newCapacity);
-
-    protected void minimizeCapacity() {
-        capacity = length;
-    }
-
-    @Override
-    public int index(Object value) {
-        for (int i = 0; i < length; i++) {
-            if (getItemInBound(i).equals(value)) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
 }
