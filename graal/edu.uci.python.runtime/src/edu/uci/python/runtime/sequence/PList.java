@@ -160,6 +160,10 @@ public class PList extends PSequence {
         return copy[0];
     }
 
+    public void sort() {
+        store.sort();
+    }
+
     @Override
     public int len() {
         return store.length();

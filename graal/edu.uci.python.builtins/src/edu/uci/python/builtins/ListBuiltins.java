@@ -195,12 +195,14 @@ public class ListBuiltins extends PythonBuiltins {
         public int count(Object self, Object arg) {
             PList selfList = (PList) self;
             int count = 0;
-            Object[] list = selfList.getSequence();
-            for (int i = 0; i < list.length; i++) {
-                if (list[i].equals(arg)) {
+
+            Iterator iter = selfList.iterator();
+            while (iter.hasNext()) {
+                if (iter.next().equals(arg)) {
                     count++;
                 }
             }
+
             return count;
         }
     }
@@ -220,13 +222,7 @@ public class ListBuiltins extends PythonBuiltins {
         @Specialization
         public PList sort(Object self) {
             PList selfList = (PList) self;
-            Object[] sorted = selfList.getSequence();
-            Arrays.sort(sorted);
-
-            for (int i = 0; i < sorted.length; i++) {
-                selfList.setItem(i, sorted[i]);
-            }
-
+            selfList.sort();
             return selfList;
         }
     }
@@ -248,8 +244,6 @@ public class ListBuiltins extends PythonBuiltins {
             PList selfList = (PList) self;
             selfList.reverse();
             return selfList;
-
         }
     }
-
 }

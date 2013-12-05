@@ -53,35 +53,35 @@ public final class StringBuiltins extends PythonBuiltins {
 
         @Specialization
         public String join(Object self, Object arg) {
+            StringBuilder sb = new StringBuilder();
+
             if (arg instanceof String) {
-                StringBuilder sb = new StringBuilder();
                 char[] joinString = ((String) arg).toCharArray();
                 for (int i = 0; i < joinString.length - 1; i++) {
                     sb.append(Character.toString(joinString[i]));
                     sb.append(self.toString());
                 }
-                sb.append(Character.toString(joinString[joinString.length - 1]));
 
+                sb.append(Character.toString(joinString[joinString.length - 1]));
                 return sb.toString();
             } else if (arg instanceof PSequence) {
-                StringBuilder sb = new StringBuilder();
-                Object[] stringList = ((PSequence) arg).getSequence();
-                for (int i = 0; i < stringList.length - 1; i++) {
-                    sb.append(stringList[i].toString());
+                PSequence seq = ((PSequence) arg);
+
+                for (int i = 0; i < seq.len() - 1; i++) {
+                    sb.append(seq.getItem(i).toString());
                     sb.append(self.toString());
                 }
-                sb.append((String) stringList[stringList.length - 1]);
 
+                sb.append(seq.getItem(seq.len() - 1));
                 return sb.toString();
             } else if (arg instanceof PCharArray) {
-                StringBuilder sb = new StringBuilder();
                 char[] stringList = ((PCharArray) arg).getSequence();
                 for (int i = 0; i < stringList.length - 1; i++) {
                     sb.append(Character.toString(stringList[i]));
                     sb.append((String) self);
                 }
-                sb.append(Character.toString(stringList[stringList.length - 1]));
 
+                sb.append(Character.toString(stringList[stringList.length - 1]));
                 return sb.toString();
             } else {
                 throw new RuntimeException("invalid arguments type for join()");

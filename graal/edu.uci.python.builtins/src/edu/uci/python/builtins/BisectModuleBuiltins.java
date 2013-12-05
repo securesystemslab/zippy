@@ -63,13 +63,12 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
         public int bisect(Object arg0, Object arg1) {
             if (arg0 instanceof PList) {
                 PList plist = (PList) arg0;
-                Object[] list = plist.getSequence();
 
-                if (list.length == 0) {
+                if (plist.len() == 0) {
                     return 0;
                 }
 
-                return getIndexRight(list, arg1);
+                return getIndexRight(plist, arg1);
             } else {
                 throw new RuntimeException("invalid arguments number for bisect() ");
             }
@@ -81,37 +80,37 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
         }
 
         @SlowPath
-        public int getIndexRight(Object[] args, Object key) {
+        public int getIndexRight(PSequence seq, Object key) {
             if (key instanceof String) {
-                return binarySearchRightStr(args, 0, args.length - 1, (String) key);
+                return binarySearchRightStr(seq, 0, seq.len() - 1, (String) key);
             } else {
-                return binarySearchRightDouble(args, 0, args.length - 1, (double) key);
+                return binarySearchRightDouble(seq, 0, seq.len() - 1, (double) key);
             }
         }
 
         @SlowPath
-        public int binarySearchRightDouble(Object[] args, int start, int stop, double key) {
+        public int binarySearchRightDouble(PSequence seq, int start, int stop, double key) {
             if (start <= stop) {
                 int middle = (stop - start) / 2 + start;
-                if (((double) args[middle]) > key) {
-                    if (middle - 1 >= 0 && ((double) args[middle - 1]) < key) {
+                if (((double) seq.getItem(middle)) > key) {
+                    if (middle - 1 >= 0 && ((double) seq.getItem(middle - 1)) < key) {
                         return middle;
                     } else if (middle - 1 <= 0) {
                         return 0;
                     } else {
-                        return binarySearchRightDouble(args, start, middle - 1, key);
+                        return binarySearchRightDouble(seq, start, middle - 1, key);
                     }
-                } else if (((double) args[middle]) < key) {
-                    if (middle + 1 < args.length && ((double) args[middle + 1]) > key) {
+                } else if (((double) seq.getItem(middle)) < key) {
+                    if (middle + 1 < seq.len() && ((double) seq.getItem(middle + 1)) > key) {
                         return middle + 1;
-                    } else if (middle + 1 >= args.length - 1) {
-                        return args.length;
+                    } else if (middle + 1 >= seq.len() - 1) {
+                        return seq.len();
                     } else {
-                        return binarySearchRightDouble(args, middle + 1, stop, key);
+                        return binarySearchRightDouble(seq, middle + 1, stop, key);
                     }
                 } else {
                     int i = middle + 1;
-                    while (((double) args[i]) == key && i < args.length) {
+                    while (((double) seq.getItem(i)) == key && i < seq.len()) {
                         i++;
                     }
                     return i;
@@ -121,28 +120,28 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
         }
 
         @SlowPath
-        public int binarySearchRightStr(Object[] args, int start, int stop, String key) {
+        public int binarySearchRightStr(PSequence seq, int start, int stop, String key) {
             if (start <= stop) {
                 int middle = (stop - start) / 2 + start;
-                if (((String) args[middle]).compareTo(key) > 0) {
-                    if (middle - 1 >= 0 && ((String) args[middle - 1]).compareTo(key) < 0) {
+                if (((String) seq.getItem(middle)).compareTo(key) > 0) {
+                    if (middle - 1 >= 0 && ((String) seq.getItem(middle - 1)).compareTo(key) < 0) {
                         return middle;
                     } else if (middle - 1 <= 0) {
                         return 0;
                     } else {
-                        return binarySearchRightStr(args, start, middle - 1, key);
+                        return binarySearchRightStr(seq, start, middle - 1, key);
                     }
-                } else if (((String) args[middle]).compareTo(key) < 0) {
-                    if (middle + 1 < args.length && ((String) args[middle + 1]).compareTo(key) > 0) {
+                } else if (((String) seq.getItem(middle)).compareTo(key) < 0) {
+                    if (middle + 1 < seq.len() && ((String) seq.getItem(middle + 1)).compareTo(key) > 0) {
                         return middle + 1;
-                    } else if (middle + 1 >= args.length - 1) {
-                        return args.length;
+                    } else if (middle + 1 >= seq.len() - 1) {
+                        return seq.len();
                     } else {
-                        return binarySearchRightStr(args, middle + 1, stop, key);
+                        return binarySearchRightStr(seq, middle + 1, stop, key);
                     }
                 } else {
                     int i = middle + 1;
-                    while (((String) args[i]).compareTo(key) == 0 && i < args.length) {
+                    while (((String) seq.getItem(i)).compareTo(key) == 0 && i < seq.len()) {
                         i++;
                     }
                     return i;

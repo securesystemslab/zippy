@@ -138,7 +138,13 @@ public class PythonTypesUtil {
         List<PyObject> converted = new ArrayList<>(values.length);
 
         for (Object value : values) {
-            converted.add(adaptToPyObject(value));
+            /**
+             * The null check here is to deal with the case where the physical storage of a sequence
+             * might have unused spaces.
+             */
+            if (value != null) {
+                converted.add(adaptToPyObject(value));
+            }
         }
 
         return converted.toArray(new PyObject[values.length]);

@@ -56,6 +56,8 @@ public abstract class SequenceStorage {
 
     public abstract void reverse();
 
+    public abstract void sort();
+
     public static SequenceStorage createStorage(Object[] values) {
         return new ObjectSequenceStorage(values);
     }

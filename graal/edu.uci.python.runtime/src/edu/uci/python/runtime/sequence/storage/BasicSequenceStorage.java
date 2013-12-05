@@ -50,9 +50,13 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
      */
     protected void ensureCapacity(int newCapacity) {
         if (newCapacity > capacity) {
-            increaseCapacityExact(capacityFor(newCapacity));
+            increaseCapacityExactWithCopy(capacityFor(newCapacity));
         }
     }
 
+    protected abstract void increaseCapacityExactWithCopy(int newCapacity);
+
     protected abstract void increaseCapacityExact(int newCapacity);
+
+    protected abstract void minimizeCapacity();
 }

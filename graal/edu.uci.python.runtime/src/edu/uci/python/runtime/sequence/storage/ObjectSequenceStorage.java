@@ -77,6 +77,16 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) {
+        int otherLength = sequence.length();
+
+        // range is the whole sequence?
+        if (start == 0 && stop == length) {
+            values = sequence.getCopyOfInternalArray();
+            minimizeCapacity();
+            length = otherLength;
+            return;
+        }
+
         ensureCapacity(stop);
 
         for (int i = start, j = 0; i < stop; i += step, j++) {
@@ -107,8 +117,19 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void increaseCapacityExact(int newCapacity) {
+    public void increaseCapacityExactWithCopy(int newCapacity) {
         values = Arrays.copyOf(values, newCapacity);
+        capacity = values.length;
+    }
+
+    @Override
+    public void increaseCapacityExact(int newCapacity) {
+        values = new Object[newCapacity];
+        capacity = values.length;
+    }
+
+    @Override
+    public void minimizeCapacity() {
         capacity = values.length;
     }
 
@@ -165,7 +186,14 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
             Object temp = values[head];
             values[head] = values[tail];
             values[tail] = temp;
-
         }
+    }
+
+    @Override
+    public void sort() {
+        Object[] copy = getCopyOfInternalArray();
+        Arrays.sort(copy);
+        values = copy;
+        minimizeCapacity();
     }
 }
