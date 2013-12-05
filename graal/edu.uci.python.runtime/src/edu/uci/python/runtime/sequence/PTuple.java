@@ -27,6 +27,7 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PTuple extends PImmutableSequence {
@@ -210,17 +211,27 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public PythonBuiltinObject multiply(int value) {
+    public PythonBuiltinObject __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public PTuple concat(PSequence sequence) {
+    public PTuple __add__(PSequence sequence) {
         Object[] newArray = new Object[len() + sequence.len()];
         Object[] rightArray = ((PTuple) sequence).getArray();
 
         System.arraycopy(getArray(), 0, newArray, 0, len());
         System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
         return new PTuple(newArray);
+    }
+
+    @Override
+    public SequenceStorage getStorage() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int index(Object value) {
+        throw new UnsupportedOperationException();
     }
 }

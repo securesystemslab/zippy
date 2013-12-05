@@ -60,7 +60,7 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getSliceInBound(int start, int stop, int step, int sliceLength) {
+    public SequenceStorage getSliceInBound(int start, int stop, int step, int sliceLength) {
         Object[] newArray = new Object[sliceLength];
 
         if (step == 1) {
@@ -88,16 +88,22 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
-        for (int i = idx; i < values.length - 1; i++) {
-            values[i] = values[i + 1];
-        }
+        popInBound(idx);
+    }
 
-        length--;
+    @Override
+    public SequenceStorage copy() {
+        return new ObjectSequenceStorage(getCopyOfInternalArray());
     }
 
     @Override
     public Object[] getInternalArray() {
         return values;
+    }
+
+    @Override
+    public Object[] getCopyOfInternalArray() {
+        return Arrays.copyOf(values, length);
     }
 
     @Override
@@ -124,5 +130,42 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
         }
 
         length = extendedLength;
+    }
+
+    @Override
+    public Object popInBound(int idx) {
+        Object pop = values[idx];
+
+        for (int i = idx; i < values.length - 1; i++) {
+            values[i] = values[i + 1];
+        }
+
+        length--;
+        return pop;
+    }
+
+    @Override
+    public int index(Object value) {
+        for (int i = 0; i < length; i++) {
+            if (values[i].equals(value)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    @Override
+    public void reverse() {
+        int head = 0;
+        int tail = length - 1;
+        int middle = (length - 1) / 2;
+
+        for (; head <= middle; head++, tail--) {
+            Object temp = values[head];
+            values[head] = values[tail];
+            values[tail] = temp;
+
+        }
     }
 }

@@ -105,7 +105,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = sequence.iterator();
+                Iterator iterator = sequence.iterator();
                 while (iterator.hasNext()) {
                     Object element = iterator.next();
                     if (!JavaTypeConversions.toBoolean(element)) {
@@ -162,7 +162,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = sequence.iterator();
+                Iterator iterator = sequence.iterator();
                 while (iterator.hasNext()) {
                     Object element = iterator.next();
                     if (JavaTypeConversions.toBoolean(element)) {

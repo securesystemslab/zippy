@@ -29,7 +29,7 @@ import java.util.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PIterator extends PythonBuiltinObject {
+public abstract class PIterator extends PythonBuiltinObject implements Iterable<Object> {
 
     public PIterator __iter__() {
         return this;
@@ -52,5 +52,34 @@ public abstract class PIterator extends PythonBuiltinObject {
         }
 
         return results.iterator();
+    }
+
+    /**
+     * This is only to make Java level iteration convenient. It is slower than directly iterate on a
+     * PIterator. However, the StopIterationException is encapsulated.
+     */
+    @Override
+    public Iterator<Object> iterator() {
+        return new Iterator<Object>() {
+
+            private Object nextItem;
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                try {
+                    nextItem = __next__();
+                    return true;
+                } catch (StopIterationException e) {
+                    return false;
+                }
+            }
+
+            public Object next() {
+                return nextItem;
+            }
+        };
     }
 }

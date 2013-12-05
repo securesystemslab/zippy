@@ -124,7 +124,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public PythonBuiltinObject multiply(int value) {
+    public PythonBuiltinObject __mul__(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {

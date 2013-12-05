@@ -124,7 +124,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PythonBuiltinObject multiply(int value) {
+    public PythonBuiltinObject __mul__(int value) {
         int[] newArray = new int[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {

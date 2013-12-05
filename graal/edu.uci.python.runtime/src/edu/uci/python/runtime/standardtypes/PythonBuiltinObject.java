@@ -64,7 +64,7 @@ public abstract class PythonBuiltinObject {
     }
 
     @SuppressWarnings("unused")
-    public PythonBuiltinObject multiply(int value) {
+    public PythonBuiltinObject __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 }

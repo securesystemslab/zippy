@@ -32,8 +32,9 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-public class PString extends PImmutableSequence implements Iterable<Object> {
+public class PString extends PImmutableSequence {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PString.class);
 
@@ -65,7 +66,7 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public Iterator<Object> iterator() {
+    public Iterator iterator() {
         return new Iterator<Object>() {
 
             private final Iterator<String> iter = getList().iterator();
@@ -109,22 +110,28 @@ public class PString extends PImmutableSequence implements Iterable<Object> {
     }
 
     @Override
-    public Object[] getSequence() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean lessThan(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public PSequence concat(PSequence sequence) {
+    public PSequence __add__(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public String toString() {
         return value;
+    }
+
+    @Override
+    public SequenceStorage getStorage() {
+        throw new UnsupportedOperationException();
+    }
+
+    @SuppressWarnings("hiding")
+    @Override
+    public int index(Object value) {
+        throw new UnsupportedOperationException();
     }
 }

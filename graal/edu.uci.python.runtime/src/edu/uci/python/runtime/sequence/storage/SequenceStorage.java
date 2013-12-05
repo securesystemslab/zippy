@@ -28,7 +28,11 @@ public abstract class SequenceStorage {
 
     public abstract int length();
 
+    public abstract SequenceStorage copy();
+
     public abstract Object[] getInternalArray();
+
+    public abstract Object[] getCopyOfInternalArray();
 
     public abstract Object getItemInBound(int idx);
 
@@ -36,14 +40,23 @@ public abstract class SequenceStorage {
 
     public abstract void insertItem(int idx, Object value);
 
-    public abstract Object getSliceInBound(int start, int stop, int step, int length);
+    public abstract SequenceStorage getSliceInBound(int start, int stop, int step, int length);
 
     public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence);
 
     public abstract void delItemInBound(int idx);
 
+    public abstract Object popInBound(int idx);
+
+    public abstract int index(Object value);
+
     public abstract void append(Object value);
 
     public abstract void extend(SequenceStorage other);
 
+    public abstract void reverse();
+
+    public static SequenceStorage createStorage(Object[] values) {
+        return new ObjectSequenceStorage(values);
+    }
 }

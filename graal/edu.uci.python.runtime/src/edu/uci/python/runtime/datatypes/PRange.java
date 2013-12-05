@@ -32,6 +32,7 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public class PRange extends PImmutableSequence {
 
@@ -137,7 +138,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Iterator<Object> iterator() {
+    public Iterator iterator() {
         return new Iterator<Object>() {
 
             private int index = 0;
@@ -174,7 +175,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PSequence concat(PSequence sequence) {
+    public PSequence __add__(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
@@ -193,4 +194,13 @@ public class PRange extends PImmutableSequence {
         return length;
     }
 
+    @Override
+    public SequenceStorage getStorage() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int index(Object value) {
+        throw new UnsupportedOperationException();
+    }
 }
