@@ -22,25 +22,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.misc;
 
-import java.util.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 
-public class TimeModule extends PythonModule {
+/**
+ * A call target typed to PArguments.
+ */
+public abstract class PythonCallTarget extends CallTarget {
 
-    public TimeModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
-        super(context, name);
-        builtins.initialize(context);
+    protected abstract Object call(PackedFrame frame, PArguments args);
 
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            setAttribute(methodName, function);
-        }
+    @Override
+    public Object call(PackedFrame frame, Arguments args) {
+        return call(frame, (PArguments) args);
     }
+
 }
