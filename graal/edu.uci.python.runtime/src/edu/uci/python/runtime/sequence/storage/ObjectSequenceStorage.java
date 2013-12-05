@@ -26,7 +26,7 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
-public class ObjectSequenceStorage extends BasicSequenceStorage {
+public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     private Object[] values;
 
@@ -82,8 +82,8 @@ public class ObjectSequenceStorage extends BasicSequenceStorage {
         // range is the whole sequence?
         if (start == 0 && stop == length) {
             values = sequence.getCopyOfInternalArray();
-            minimizeCapacity();
             length = otherLength;
+            minimizeCapacity();
             return;
         }
 
