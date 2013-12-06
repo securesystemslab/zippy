@@ -422,37 +422,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxString(String arg1, Object[] args, Object keywordArg) {
                 PString pstring = new PString(arg1);
                 return pstring.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return null;
                 // return arg1.getMax();
@@ -522,37 +517,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minString(String arg1, Object[] args, Object keywordArg) {
                 PString pstring = new PString(arg1);
                 return pstring.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
@@ -855,26 +845,24 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization
             // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(String str, Object keywordArg) {
+            public PEnumerate enumerate(String str, Object keywordArg) {
                 return new PEnumerate(new PString(str));
             }
 
             @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PSequence sequence, Object keywordArg) {
+            @Specialization(guards = "noKeywordArg")
+            public PEnumerate enumerate(PSequence sequence, Object keywordArg) {
                 return new PEnumerate(sequence);
             }
 
             @SuppressWarnings("unused")
             @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PBaseSet set, Object keywordArg) {
+            public PEnumerate enumerate(PBaseSet set, Object keywordArg) {
                 return new PEnumerate(set);
             }
 
             @Specialization
-            public PIterator enumerate(Object arg, Object keywordArg) {
+            public PEnumerate enumerate(Object arg, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
                     if (arg instanceof String) {
                         String str = (String) arg;
@@ -1319,7 +1307,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public Object zip(Object[] args) {
+            public PZip zip(Object[] args) {
                 Iterable<?>[] iterables = new Iterable[args.length];
                 for (int i = 0; i < args.length; i++) {
                     Iterable<?> iterable = getIterableObject(args[i]);
