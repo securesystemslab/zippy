@@ -26,8 +26,6 @@ package edu.uci.python.runtime.standardtypes;
 
 import java.util.*;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;

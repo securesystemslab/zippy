@@ -33,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.literals.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -44,10 +45,12 @@ public abstract class CallFunctionNode extends PNode {
     public abstract PNode getCallee();
 
     @Children protected final PNode[] arguments;
-    @Children protected final PNode[] keywords;
+    @Children protected final KeywordLiteralNode[] keywords;
+
     private final PythonContext context;
 
-    public CallFunctionNode(PNode[] arguments, PNode[] keywords, PythonContext context) {
+    public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
+
         this.arguments = adoptChildren(arguments);
         this.keywords = adoptChildren(keywords);
         this.context = context;

@@ -29,6 +29,10 @@ import java.util.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class PEnumerate extends PIterator implements Iterable<Object> {
 
     private int index;

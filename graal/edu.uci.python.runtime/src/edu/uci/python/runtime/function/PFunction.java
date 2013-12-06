@@ -90,6 +90,10 @@ public final class PFunction extends PythonBuiltinObject implements PythonCallab
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
     }
 
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+    }
+
     protected static Object[] applyKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";

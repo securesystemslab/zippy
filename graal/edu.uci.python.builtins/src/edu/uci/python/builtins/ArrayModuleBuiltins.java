@@ -36,6 +36,10 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+/**
+ * @author Gulfem
+ */
+
 public final class ArrayModuleBuiltins extends PythonBuiltins {
 
     @Override

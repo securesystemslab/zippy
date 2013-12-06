@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.literals.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -36,7 +37,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     @Child protected PNode callee;
 
-    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, PNode[] keywords, PythonContext context) {
+    public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         super(arguments, keywords, context);
         this.callee = adoptChild(callee);
     }
@@ -52,7 +53,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         Object calleeObj = callee.execute(frame);
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
-
+            callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
             if (keywords.length == 0) {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
                 replace(callFunction);
@@ -72,5 +73,15 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             replace(callFunction);
             return callFunction.doGeneric(frame, calleeObj);
         }
+    }
+
+    private String[] getKeywordNames() {
+        String[] keywordNames = new String[keywords.length];
+
+        for (int i = 0; i < keywords.length; i++) {
+            keywordNames[i] = keywords[i].getName();
+        }
+
+        return keywordNames;
     }
 }

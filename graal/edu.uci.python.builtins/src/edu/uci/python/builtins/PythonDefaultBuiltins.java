@@ -1359,17 +1359,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Iterator<Object> getIterable(Object o) {
-        if (o instanceof String) {
-            return new PString((String) o).iterator();
-        } else if (o instanceof Iterable) {
-            return ((Iterable<Object>) o).iterator();
-        } else {
-            throw new RuntimeException("argument is not iterable ");
-        }
-    }
-
     private static List<Character> stringToCharList(String s) {
         ArrayList<Character> sequence = new ArrayList<>();
 
