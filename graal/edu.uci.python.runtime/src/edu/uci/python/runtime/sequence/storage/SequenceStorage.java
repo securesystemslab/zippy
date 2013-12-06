@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import edu.uci.python.runtime.*;
+
 public abstract class SequenceStorage {
 
     public abstract int length();
@@ -63,6 +65,17 @@ public abstract class SequenceStorage {
     public abstract Object getIndicativeValue();
 
     public static SequenceStorage createStorage(Object[] values) {
+        if (!PythonOptions.UnboxSequenceStorage) {
+            if (values == null) {
+                return new ObjectSequenceStorage();
+            } else {
+                return new ObjectSequenceStorage(values);
+            }
+        }
+
+        /**
+         * Try to use unboxed SequenceStorage.
+         */
         if (values == null || values.length == 0) {
             return EmptySequenceStorage.INSTANCE;
         }
