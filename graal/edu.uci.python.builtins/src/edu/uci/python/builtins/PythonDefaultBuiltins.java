@@ -40,6 +40,7 @@ import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
@@ -863,6 +864,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PEnumerate enumerate(Object arg, Object keywordArg) {
+                CompilerAsserts.neverPartOfCompilation();
                 if (keywordArg instanceof PNone) {
                     if (arg instanceof String) {
                         String str = (String) arg;
@@ -1052,6 +1054,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PList listObject(Object arg) {
+                CompilerAsserts.neverPartOfCompilation();
                 /**
                  * This is not ideal!<br>
                  * Truffle DSL does not support polymorphism for built-ins. It would be better if we

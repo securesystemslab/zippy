@@ -51,11 +51,6 @@ public abstract class PSequence extends PythonBuiltinObject implements PIterable
 
     public abstract int index(Object value);
 
-    @Deprecated
-    public Object[] getSequence() {
-        throw new UnsupportedOperationException();
-    }
-
     public abstract SequenceStorage getStorage();
 
     public abstract boolean lessThan(PSequence sequence);
