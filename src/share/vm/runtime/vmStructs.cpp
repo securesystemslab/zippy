@@ -2560,6 +2560,13 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(Deoptimization::Unpack_uncommon_trap)                  \
   declare_constant(Deoptimization::Unpack_reexecute)                      \
                                                                           \
+  declare_constant(Deoptimization::_action_bits)                          \
+  declare_constant(Deoptimization::_reason_bits)                          \
+  declare_constant(Deoptimization::_speculation_id_bits)                  \
+  declare_constant(Deoptimization::_action_shift)                         \
+  declare_constant(Deoptimization::_reason_shift)                         \
+  declare_constant(Deoptimization::_speculation_id_shift)                 \
+                                                                          \
   /*********************/                                                 \
   /* Matcher (C2 only) */                                                 \
   /*********************/                                                 \
