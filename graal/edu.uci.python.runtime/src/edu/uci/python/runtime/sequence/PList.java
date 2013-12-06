@@ -58,17 +58,6 @@ public class PList extends PSequence {
         this.store = store;
     }
 
-    @Deprecated
-    public PList(Iterable<?> iterable) {
-        List<Object> temp = new ArrayList<>();
-        for (Object o : iterable) {
-            temp.add(o);
-        }
-
-        Object[] values = temp.toArray(new Object[temp.size()]);
-        store = SequenceStorage.createStorage(values);
-    }
-
     public PList(PIterator iter) {
         store = SequenceStorage.createStorage(null);
 
@@ -89,12 +78,6 @@ public class PList extends PSequence {
     @Override
     public PythonCallable __getattribute__(String name) {
         return (PythonCallable) __class__.getAttribute(name);
-    }
-
-    @Deprecated
-    @Override
-    public Object[] getSequence() {
-        return store.getInternalArray();
     }
 
     @Override
