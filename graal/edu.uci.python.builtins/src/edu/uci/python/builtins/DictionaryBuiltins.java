@@ -207,8 +207,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
         @Specialization
         public PList values(PDict self) {
-            return new PList(self.__iter__());
+            return new PList(self.values());
         }
     }
-
 }

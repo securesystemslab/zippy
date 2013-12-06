@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.datatypes;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
@@ -92,6 +91,10 @@ public class PDict extends PythonBuiltinObject implements PIterable {
 
     public PIterator __iter__() {
         return new PDictIterator(map.keySet());
+    }
+
+    public PIterator values() {
+        return new PDictIterator(map.values());
     }
 
     @Override

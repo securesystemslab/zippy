@@ -22,26 +22,73 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.iterator;
+package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 
-public class PDictIterator extends PIterator {
+public class PZip extends PIterator implements Iterable<Object> {
 
-    private final Iterator<?> keyIterator;
+    private int index;
+    private List<PTuple> tuples;
 
-    public PDictIterator(Collection<Object> keys) {
-        keyIterator = keys.iterator();
+    public PZip(Iterable<?>[] iterables) {
+        Iterator[] iterators = new Iterator[iterables.length];
+
+        for (int i = 0; i < iterables.length; i++) {
+            iterators[i] = iterables[i].iterator();
+        }
+
+        this.tuples = new ArrayList<>();
+        int itemsize = iterables.length;
+        OutterLoop: while (true) {
+            Object[] temp = new Object[itemsize];
+
+            for (int i = 0; i < itemsize; i++) {
+                if (iterators[i].hasNext()) {
+                    temp[i] = iterators[i].next();
+                } else {
+                    break OutterLoop;
+                }
+            }
+
+            tuples.add(new PTuple(temp));
+        }
+    }
+
+    @Override
+    public Iterator<Object> iterator() {
+        return new Iterator<Object>() {
+
+            private final Iterator<PTuple> iter = tuples.iterator();
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+
+            public Object next() {
+                return iter.next();
+            }
+        };
     }
 
     @Override
     public Object __next__() {
-        if (keyIterator.hasNext()) {
-            return keyIterator.next();
+        if (index < tuples.size()) {
+            return tuples.get(index++);
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    @Override
+    public String toString() {
+        return "<zip object at " + hashCode() + ">";
     }
 }
