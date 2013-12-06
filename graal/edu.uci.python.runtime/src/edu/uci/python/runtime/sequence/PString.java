@@ -54,6 +54,7 @@ public class PString extends PImmutableSequence {
         return (PythonCallable) __class__.getAttribute(name);
     }
 
+    @Deprecated
     public List<String> getList() {
         ArrayList<String> list = new ArrayList<>();
 
@@ -65,6 +66,7 @@ public class PString extends PImmutableSequence {
         return list;
     }
 
+    @Deprecated
     @Override
     public Iterator iterator() {
         return new Iterator<Object>() {

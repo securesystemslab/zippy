@@ -33,6 +33,7 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
@@ -1101,50 +1102,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
+            @SuppressWarnings("unused")
             @Specialization
-            public Object map(Object arg0, Object arg1, Object[] iterators) {
-                if (iterators.length == 0) {
-                    return map(arg0, arg1);
-                }
-
-                throw new RuntimeException("wrong number of arguments for map() ");
-
+            public Object mapString(PythonCallable arg0, String arg1, Object[] iterators) {
+                return doMap(arg0, new PString(arg1).__iter__());
             }
 
-            public PList map(Object arg0, Object arg1) {
-                PythonCallable callee = (PythonCallable) arg0;
-                Iterator iter = getIterable(arg1);
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object mapSequence(PythonCallable arg0, PSequence arg1, Object[] iterators) {
+                return doMap(arg0, arg1.__iter__());
+            }
 
-                ArrayList<Object> sequence = new ArrayList<>();
-                while (iter.hasNext()) {
-                    sequence.add(callee.call(null, new Object[]{iter.next()}));
+            private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
+                PList list = new PList();
+
+                try {
+                    while (true) {
+                        list.append(mappingFunction.call(null, new Object[]{iter.__next__()}));
+                    }
+                } catch (StopIterationException e) {
+
                 }
 
-                return new PList(sequence);
+                return list;
             }
         }
-
-        // object()
-// @Builtin(name = "object", hasFixedNumOfArguments = true, fixedNumOfArguments = 0, isClass = true,
-// requiresContext = true)
-// public abstract static class PythonObjectNode extends PythonBuiltinNode {
-//
-// private final PythonContext context;
-//
-// public PythonObjectNode(String name, PythonContext context) {
-// super(name);
-// this.context = context;
-// }
-//
-// public PythonObjectNode(PythonObjectNode prev) {
-// this(prev.getName(), prev.context);
-// }
-//
-// @Specialization
-// public Object object() {
-// return new PythonObject(context.getObjectClass());
-// }
-// }
 
         // range(stop)
         // range(start, stop[, step])
