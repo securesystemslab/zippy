@@ -92,7 +92,7 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
     }
 
     @Specialization(order = 2)
-    public Object doPDictionary(PDictionary primary, Object slice) {
+    public Object doPDictionary(PDict primary, Object slice) {
         return primary.getItem(slice);
     }
 

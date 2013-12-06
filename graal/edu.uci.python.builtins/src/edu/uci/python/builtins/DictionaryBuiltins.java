@@ -57,7 +57,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
         @Specialization
         public Object setDefalut(Object self, Object arg0, Object arg1) {
-            PDictionary dict = (PDictionary) self;
+            PDict dict = (PDict) self;
 
             if (dict.getMap().containsKey(arg0)) {
                 return dict.getMap().get(arg0);
@@ -82,7 +82,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
         @Specialization
         public Object pop(Object self, Object arg0, Object arg1) {
-            PDictionary dict = (PDictionary) self;
+            PDict dict = (PDict) self;
 
             Object retVal = dict.getMap().get(arg0);
             if (retVal != null) {
@@ -107,9 +107,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList keys(Object self) {
-            PDictionary dict = (PDictionary) self;
-            return new PList(new ArrayList<>(dict.getMap().keySet()));
+        public PList keys(PDict self) {
+            return new PList(self.__iter__());
         }
     }
 
@@ -126,9 +125,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList items(Object self) {
-            PDictionary dict = (PDictionary) self;
-            return new PList(dict.getMap().entrySet());
+        public PList items(PDict self) {
+            return new PList(self.__iter__());
         }
     }
 
@@ -146,7 +144,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
         @Specialization
         public Object get(Object self, Object arg0, Object arg1) {
-            PDictionary dict = (PDictionary) self;
+            PDict dict = (PDict) self;
 
             if (dict.getMap().get(arg0) != null) {
                 return dict.getMap().get(arg0);
@@ -169,9 +167,9 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PDictionary copy(Object self) {
-            PDictionary dict = (PDictionary) self;
-            return new PDictionary(dict.getMap());
+        public PDict copy(Object self) {
+            PDict dict = (PDict) self;
+            return new PDict(dict.getMap());
         }
     }
 
@@ -188,8 +186,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PDictionary copy(Object self) {
-            PDictionary dict = (PDictionary) self;
+        public PDict copy(Object self) {
+            PDict dict = (PDict) self;
             dict.getMap().clear();
             return dict;
         }
@@ -208,9 +206,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public PList values(Object self) {
-            PDictionary dict = (PDictionary) self;
-            return new PList(new ArrayList<>(dict.getMap().values()));
+        public PList values(PDict self) {
+            return new PList(self.__iter__());
         }
     }
 

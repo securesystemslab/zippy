@@ -62,7 +62,7 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
      * As a right hand side expression
      */
     @Specialization(order = 0)
-    public Object doPDictionary(PDictionary primary, Object slice, Object value) {
+    public Object doPDictionary(PDict primary, Object slice, Object value) {
         primary.setItem(slice, value);
         return null;
     }
@@ -112,8 +112,8 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
             } else if (slice instanceof PSlice) {
                 prim.setSlice((PSlice) slice, (PSequence) value);
             }
-        } else if (primary instanceof PDictionary) {
-            PDictionary prim = (PDictionary) primary;
+        } else if (primary instanceof PDict) {
+            PDict prim = (PDict) primary;
             prim.setItem(slice, value);
         } else if (primary instanceof PArray) {
             PArray prim = (PArray) primary;

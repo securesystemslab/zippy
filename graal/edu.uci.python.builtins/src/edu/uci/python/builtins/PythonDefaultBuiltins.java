@@ -441,7 +441,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public int len(PDictionary arg) {
+            public int len(PDict arg) {
                 return arg.len();
             }
 
@@ -461,8 +461,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet argument = (PBaseSet) arg;
                     return argument.len();
-                } else if (arg instanceof PDictionary) {
-                    PDictionary argument = (PDictionary) arg;
+                } else if (arg instanceof PDict) {
+                    PDict argument = (PDict) arg;
                     return argument.len();
                 } else if (arg instanceof PArray) {
                     PArray argument = (PArray) arg;
@@ -520,7 +520,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             // @Specialization(guards = "hasOneArgument")
             @Specialization
-            public Object maxDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+            public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return null;
                 // return arg1.getMax();
             }
@@ -620,7 +620,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             // @Specialization(guards = "hasOneArgument")
             @Specialization
-            public Object minDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+            public Object minDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
@@ -872,15 +872,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public PDictionary dictionary(Object[] args) {
+            public PDict dictionary(Object[] args) {
                 if (args.length == 0) {
-                    return new PDictionary();
+                    return new PDict();
                 } else {
                     Object arg = args[0];
 
-                    if (arg instanceof PDictionary) {
+                    if (arg instanceof PDict) {
                         // argument is a mapping type
-                        return new PDictionary(((PDictionary) arg).getMap());
+                        return new PDict(((PDict) arg).getMap());
                     } else if (arg instanceof PSequence) { // iterator type
                         Iterator<?> iter = ((PSequence) arg).iterator();
                         Map<Object, Object> newMap = new HashMap<>();
@@ -895,7 +895,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                             }
                         }
 
-                        return new PDictionary(newMap);
+                        return new PDict(newMap);
                     } else {
                         throw new RuntimeException("invalid args for dict()");
                     }
