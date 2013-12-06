@@ -30,6 +30,10 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     private Object[] values;
 
+    public ObjectSequenceStorage() {
+        values = new Object[]{};
+    }
+
     public ObjectSequenceStorage(Object[] elements) {
         this.values = elements;
         length = elements.length;

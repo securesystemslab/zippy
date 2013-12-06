@@ -30,6 +30,10 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     private int[] values;
 
+    public IntSequenceStorage() {
+        values = new int[]{};
+    }
+
     public IntSequenceStorage(int[] elements) {
         this.values = elements;
         length = elements.length;

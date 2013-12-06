@@ -44,6 +44,7 @@ public class PList extends PSequence {
     @CompilationFinal private SequenceStorage store;
 
     public PList(Object[] elements) {
+        assert elements != null;
         store = SequenceStorage.createStorage(elements);
     }
 

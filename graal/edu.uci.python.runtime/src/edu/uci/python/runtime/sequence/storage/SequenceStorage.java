@@ -63,6 +63,10 @@ public abstract class SequenceStorage {
     public abstract Object getIndicativeValue();
 
     public static SequenceStorage createStorage(Object[] values) {
+        if (values.length == 0) {
+            return EmptySequenceStorage.INSTANCE;
+        }
+
         boolean canSpecializeToInt = true;
 
         for (Object item : values) {
