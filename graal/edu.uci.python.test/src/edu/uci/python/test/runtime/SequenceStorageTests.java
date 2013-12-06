@@ -120,4 +120,96 @@ public class SequenceStorageTests {
 
         assertEquals(12, store.length());
     }
+
+    /**
+     * IntSequenceStorage tests.
+     */
+    private static int[] getIntValues() {
+        return new int[]{1, 2, 3, 4, 5, 6};
+    }
+
+    @Test
+    public void intGetAndSet() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        assertEquals(4, store.getItemInBound(3));
+        store.setItemInBound(5, 10);
+        assertEquals(10, store.getItemInBound(5));
+    }
+
+    @Test
+    public void intGetSlice() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        IntSequenceStorage slice = (IntSequenceStorage) store.getSliceInBound(1, 4, 1, 3);
+
+        for (int i = 0; i < 3; i++) {
+            assertEquals(i + 2, slice.getItemInBound(i));
+        }
+    }
+
+    @Test
+    public void intSetSlice() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        IntSequenceStorage slice = new IntSequenceStorage(new int[]{42, 42, 42});
+
+        store.setSliceInBound(1, 4, 1, slice);
+
+        for (int i = 1; i < 4; i++) {
+            assertEquals(42, store.getItemInBound(i));
+        }
+    }
+
+    @Test
+    public void intSetSliceOutOfBound() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        IntSequenceStorage slice = new IntSequenceStorage(new int[]{42, 42, 42});
+
+        store.setSliceInBound(5, 8, 1, slice);
+
+        for (int i = 5; i < 8; i++) {
+            assertEquals(42, store.getItemInBound(i));
+        }
+    }
+
+    @Test
+    public void intDel() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        store.delItemInBound(4);
+
+        for (int i = 0; i < 4; i++) {
+            assertEquals(i + 1, store.getItemInBound(i));
+        }
+
+        assertEquals(6, store.getItemInBound(4));
+        assertEquals(5, store.length());
+    }
+
+    @Test
+    public void intInsert() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        store.insertItem(3, 42);
+        assertEquals(42, store.getItemInBound(3));
+        assertEquals(6, store.getItemInBound(6));
+        assertEquals(7, store.length());
+    }
+
+    @Test
+    public void intAppend() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        store.append(42);
+        assertEquals(42, store.getItemInBound(6));
+        assertEquals(7, store.length());
+    }
+
+    @Test
+    public void intExtend() {
+        IntSequenceStorage store = new IntSequenceStorage(getIntValues());
+        IntSequenceStorage other = new IntSequenceStorage(getIntValues());
+        store.extend(other);
+
+        for (int i = 6; i < 12; i++) {
+            assertEquals(i - 5, store.getItemInBound(i));
+        }
+
+        assertEquals(12, store.length());
+    }
 }

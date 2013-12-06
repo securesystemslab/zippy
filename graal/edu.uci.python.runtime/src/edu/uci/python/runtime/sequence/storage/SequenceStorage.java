@@ -36,13 +36,13 @@ public abstract class SequenceStorage {
 
     public abstract Object getItemInBound(int idx);
 
-    public abstract void setItemInBound(int idx, Object value);
+    public abstract void setItemInBound(int idx, Object value) throws SequenceStoreException;
 
-    public abstract void insertItem(int idx, Object value);
+    public abstract void insertItem(int idx, Object value) throws SequenceStoreException;
 
     public abstract SequenceStorage getSliceInBound(int start, int stop, int step, int length);
 
-    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence);
+    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException;
 
     public abstract void delItemInBound(int idx);
 
@@ -50,15 +50,38 @@ public abstract class SequenceStorage {
 
     public abstract int index(Object value);
 
-    public abstract void append(Object value);
+    public abstract void append(Object value) throws SequenceStoreException;
 
-    public abstract void extend(SequenceStorage other);
+    public abstract void extend(SequenceStorage other) throws SequenceStoreException;
 
     public abstract void reverse();
 
     public abstract void sort();
 
+    public abstract SequenceStorage generalizeFor(Object value);
+
+    public abstract Object getIndicativeValue();
+
     public static SequenceStorage createStorage(Object[] values) {
-        return new ObjectSequenceStorage(values);
+        boolean canSpecializeToInt = true;
+
+        for (Object item : values) {
+            if (!(item instanceof Integer)) {
+                canSpecializeToInt = false;
+                break;
+            }
+        }
+
+        if (canSpecializeToInt) {
+            final int[] intVals = new int[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                intVals[i] = (int) values[i];
+            }
+
+            return new IntSequenceStorage(intVals);
+        } else {
+            return new ObjectSequenceStorage(values);
+        }
     }
 }
