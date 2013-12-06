@@ -264,74 +264,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
-        // enumerate(iterable, start=0)
-        @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"})
-        public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
-
-            public PythonEnumerateNode(String name) {
-                super(name);
-            }
-
-            public PythonEnumerateNode(PythonEnumerateNode prev) {
-                this(prev.getName());
-            }
-
-            /**
-             * TODO enumerate can take a keyword argument start, and currently that's not supported.
-             */
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(String str, Object keywordArg) {
-                return new PEnumerate(new PString(str));
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PSequence sequence, Object keywordArg) {
-                return new PEnumerate(sequence);
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PBaseSet set, Object keywordArg) {
-                return new PEnumerate(set);
-            }
-
-            @Specialization
-            public PIterator enumerate(Object arg, Object keywordArg) {
-                if (keywordArg instanceof PNone) {
-                    if (arg instanceof String) {
-                        String str = (String) arg;
-                        return new PEnumerate(stringToCharList(str));
-                    } else if (arg instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence);
-                    } else if (arg instanceof PBaseSet) {
-                        PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet);
-                    }
-
-                    if (!(arg instanceof Iterable<?>)) {
-                        throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
-                    } else {
-                        throw new RuntimeException("enumerate does not support iterable object " + arg);
-                    }
-
-                } else {
-                    throw new RuntimeException("enumerate does not support keyword argument " + keywordArg);
-                }
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean noKeywordArg(Object arg, Object keywordArg) {
-                return (keywordArg instanceof PNone);
-            }
-        }
-
         // isinstance(object, classinfo)
         @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
         public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
@@ -902,6 +834,74 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // enumerate(iterable, start=0)
+        @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isClass = true)
+        public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
+
+            public PythonEnumerateNode(String name) {
+                super(name);
+            }
+
+            public PythonEnumerateNode(PythonEnumerateNode prev) {
+                this(prev.getName());
+            }
+
+            /**
+             * TODO enumerate can take a keyword argument start, and currently that's not supported.
+             */
+
+            @SuppressWarnings("unused")
+            @Specialization
+            // @Specialization(guards = "noKeywordArg")
+            public PIterator enumerate(String str, Object keywordArg) {
+                return new PEnumerate(new PString(str));
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            // @Specialization(guards = "noKeywordArg")
+            public PIterator enumerate(PSequence sequence, Object keywordArg) {
+                return new PEnumerate(sequence);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            // @Specialization(guards = "noKeywordArg")
+            public PIterator enumerate(PBaseSet set, Object keywordArg) {
+                return new PEnumerate(set);
+            }
+
+            @Specialization
+            public PIterator enumerate(Object arg, Object keywordArg) {
+                if (keywordArg instanceof PNone) {
+                    if (arg instanceof String) {
+                        String str = (String) arg;
+                        return new PEnumerate(stringToCharList(str));
+                    } else if (arg instanceof PSequence) {
+                        PSequence sequence = (PSequence) arg;
+                        return new PEnumerate(sequence);
+                    } else if (arg instanceof PBaseSet) {
+                        PBaseSet baseSet = (PBaseSet) arg;
+                        return new PEnumerate(baseSet);
+                    }
+
+                    if (!(arg instanceof Iterable<?>)) {
+                        throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+                    } else {
+                        throw new RuntimeException("enumerate does not support iterable object " + arg);
+                    }
+
+                } else {
+                    throw new RuntimeException("enumerate does not support keyword argument " + keywordArg);
+                }
+            }
+
+            @SuppressWarnings("unused")
+            public static boolean noKeywordArg(Object arg, Object keywordArg) {
+                return (keywordArg instanceof PNone);
+            }
+        }
+
         // float([x])
         @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonFloatNode extends PythonBuiltinNode {
@@ -1023,7 +1023,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization(order = 1)
+            @Specialization
             public PList listString(String arg) {
                 char[] chars = arg.toCharArray();
                 PList list = new PList();
@@ -1035,22 +1035,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return list;
             }
 
-            @Specialization(order = 2)
+            @Specialization
             public PList listRange(PRange range) {
                 return new PList(range.__iter__());
             }
 
-            @Specialization(order = 3)
+            @Specialization
             public PList listSequence(PSequence sequence) {
                 return new PList(sequence.getStorage().copy());
             }
 
-            @Specialization(order = 4)
+            @Specialization
             public PList listSet(PBaseSet baseSet) {
                 return new PList(baseSet.__iter__());
             }
 
-            @Specialization(order = 5)
+            @Specialization
+            public PList listEnumerate(PEnumerate enumerate) {
+                return new PList(enumerate.__iter__());
+            }
+
+            @Specialization
+            public PList listZip(PZip zip) {
+                return new PList(zip.__iter__());
+            }
+
+            @Specialization
             public PList listObject(Object arg) {
                 /**
                  * This is not ideal!<br>
@@ -1065,6 +1075,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return listSequence((PSequence) arg);
                 } else if (arg instanceof PBaseSet) {
                     return listSet((PBaseSet) arg);
+                } else if (arg instanceof PEnumerate) {
+                    return listEnumerate((PEnumerate) arg);
+                } else if (arg instanceof PZip) {
+                    return listZip((PZip) arg);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -1322,32 +1336,42 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public Object zip(Object[] args) {
-                int itemsize = args.length;
-
-                Iterator[] argList = new Iterator[itemsize];
-
-                int index = 0;
+                Iterable<?>[] iterables = new Iterable[args.length];
                 for (int i = 0; i < args.length; i++) {
-                    argList[index++] = getIterable(args[i]);
+                    Iterable<?> iterable = getIterableObject(args[i]);
+                    iterables[i] = iterable;
                 }
 
-                ArrayList<PTuple> tuples = new ArrayList<>();
+                return new PZip(iterables);
+            }
 
-                OutterLoop: while (true) {
-                    Object[] temp = new Object[itemsize];
-
-                    for (int i = 0; i < itemsize; i++) {
-                        if (argList[i].hasNext()) {
-                            temp[i] = argList[i].next();
-                        } else {
-                            break OutterLoop;
-                        }
-                    }
-
-                    tuples.add(new PTuple(temp));
+            private static Iterable<?> getIterableObject(Object arg) {
+                if (arg instanceof String) {
+                    String str = (String) arg;
+                    return new PString(str);
+                } else if (arg instanceof PSequence) {
+                    PSequence sequence = (PSequence) arg;
+                    return sequence;
+                } else if (arg instanceof PBaseSet) {
+                    PBaseSet baseSet = (PBaseSet) arg;
+                    return baseSet;
+                } else if (arg instanceof PIntegerArray) {
+                    PIntegerArray array = (PIntegerArray) arg;
+                    return array;
+                } else if (arg instanceof PCharArray) {
+                    PCharArray array = (PCharArray) arg;
+                    return array;
+                } else if (arg instanceof PDoubleArray) {
+                    PDoubleArray array = (PDoubleArray) arg;
+                    return array;
                 }
 
-                return new PList(tuples);
+                if (!(arg instanceof Iterable<?>)) {
+                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+                } else {
+                    throw new RuntimeException("zip does not support iterable object " + arg.getClass());
+                }
+
             }
         }
     }

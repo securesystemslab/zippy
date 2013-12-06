@@ -153,6 +153,12 @@ public class BuiltinsTests {
     }
 
     @Test
+    public void zipTest() {
+        String source = "for s in zip('ABC', '123'):\n" + "\tprint(s)\n";
+        assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
+    }
+
+    @Test
     public void iterTest() {
         String source = "for element in iter(\"hello\"):\n\t" +
 

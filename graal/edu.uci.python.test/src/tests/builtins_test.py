@@ -59,7 +59,7 @@ print(x)
 # test builtin enumerate
 list1 = [1000, 2000, 3000]
 for s in enumerate(list1):
-    print (s)
+    print(s)
 
 # Currently removed because each element should be printed  as
 #(0, 'Spring')
@@ -138,6 +138,11 @@ print(list(range(10))) # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 print(list(range(1, 11))) # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
+     
+
+# test builtin zip
+for s in zip["ABC", "123"]:
+    print(s)     
      
 # test builtin iter
 for element in iter("hello"):
