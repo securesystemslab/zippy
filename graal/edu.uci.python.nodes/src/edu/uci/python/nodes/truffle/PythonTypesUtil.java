@@ -57,8 +57,8 @@ public class PythonTypesUtil {
         return new PSet(values);
     }
 
-    public static PDictionary createDictionary(Map<Object, Object> map) {
-        return new PDictionary(map);
+    public static PDict createDictionary(Map<Object, Object> map) {
+        return new PDict(map);
     }
 
     @SlowPath
@@ -95,8 +95,8 @@ public class PythonTypesUtil {
         } else if (value instanceof PFrozenSet) {
             PFrozenSet set = (PFrozenSet) value;
             return new PySet(adaptToPyObjects(set.getSet().toArray()));
-        } else if (value instanceof PDictionary) {
-            PDictionary dict = (PDictionary) value;
+        } else if (value instanceof PDict) {
+            PDict dict = (PDict) value;
             ConcurrentHashMap<PyObject, PyObject> map = new ConcurrentHashMap<>();
             for (Object key : dict.keys()) {
                 map.put(adaptToPyObject(key), adaptToPyObject(dict.getItem(key)));

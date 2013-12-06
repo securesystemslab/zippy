@@ -301,7 +301,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
-        public boolean doPDictionary(Object left, PDictionary right) {
+        public boolean doPDictionary(Object left, PDict right) {
             return right.hasKey(new Object[]{left});
         }
 

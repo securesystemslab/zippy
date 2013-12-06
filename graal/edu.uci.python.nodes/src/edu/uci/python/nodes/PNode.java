@@ -101,8 +101,8 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPComplex(execute(frame));
     }
 
-    public PDictionary executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPDictionary(execute(frame));
+    public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPDict(execute(frame));
     }
 
     public PList executePList(VirtualFrame frame) throws UnexpectedResultException {

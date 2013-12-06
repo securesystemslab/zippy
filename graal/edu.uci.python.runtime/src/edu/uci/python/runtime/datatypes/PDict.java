@@ -24,26 +24,25 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PDictionary extends PythonBuiltinObject implements PIterable {
+public class PDict extends PythonBuiltinObject implements PIterable {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDictionary.class);
+    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
 
     private final Map<Object, Object> map;
 
-    public PDictionary() {
-        map = new ConcurrentHashMap<>();
+    public PDict() {
+        map = new HashMap<>();
     }
 
-    public PDictionary(Map<Object, Object> map) {
+    public PDict(Map<Object, Object> map) {
         this();
         this.map.putAll(map);
     }
@@ -88,6 +87,14 @@ public class PDictionary extends PythonBuiltinObject implements PIterable {
         } else {
             throw new RuntimeException("invalid arguments for has_key()");
         }
+    }
+
+    public PIterator __iter__() {
+        return new PDictIterator(map.keySet());
+    }
+
+    public PIterator values() {
+        return new PDictIterator(map.values());
     }
 
     @Override

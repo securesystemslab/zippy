@@ -49,7 +49,7 @@ public class PythonBuiltinsInitializer {
         PythonBuiltinClass typeClass = context.getTypeClass();
         lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
         lookup.addType(PString.class, initBuiltinClass(context, typeClass, "str", new StringBuiltins()));
-        lookup.addType(PDictionary.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
+        lookup.addType(PDict.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
