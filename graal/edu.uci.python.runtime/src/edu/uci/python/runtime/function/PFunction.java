@@ -113,6 +113,6 @@ public final class PFunction extends PythonBuiltinObject implements PythonCallab
 
     @Override
     public String toString() {
-        return "<fucntion " + name + " at " + hashCode() + ">";
+        return "<function " + name + " at " + hashCode() + ">";
     }
 }

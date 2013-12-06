@@ -50,7 +50,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();
         Object calleeObj = callee.execute(frame);
-
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
 

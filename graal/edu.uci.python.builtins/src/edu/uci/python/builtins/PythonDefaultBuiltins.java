@@ -1105,7 +1105,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // object()
-// @Builtin(name = "object", hasFixedNumOfArguments = true, fixedNumOfArguments = 0, isClass = true)
+// @Builtin(name = "object", hasFixedNumOfArguments = true, fixedNumOfArguments = 0, isClass = true,
+// requiresContext = true)
 // public abstract static class PythonObjectNode extends PythonBuiltinNode {
 //
 // private final PythonContext context;

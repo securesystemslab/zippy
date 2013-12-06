@@ -24,14 +24,11 @@
  */
 package edu.uci.python.runtime.standardtypes;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.misc.*;
 
 /**
  * The built-in 'object' class.
@@ -43,26 +40,6 @@ public class PythonObjectClass extends PythonBuiltinClass {
 
     public PythonObjectClass(PythonContext context) {
         super(context, null, "object");
-        addInit();
-    }
-
-    private void addInit() {
-        PythonCallTarget initCallTarget = new PythonCallTarget() {
-
-            @Override
-            public Object call(PackedFrame frame, PArguments arguments) {
-                Object[] args = arguments.getArgumentsArray();
-
-                if (args.length > 1) {
-                    throw Py.TypeError("object() takes no parameters");
-                }
-
-                return arguments.getSelf();
-            }
-        };
-
-        final PBuiltinFunction method = new PBuiltinFunction("__init__", initCallTarget);
-        setAttributeUnsafe("__init__", method);
     }
 
     @Override
