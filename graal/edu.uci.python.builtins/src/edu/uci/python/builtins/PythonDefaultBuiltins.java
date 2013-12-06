@@ -692,6 +692,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
@@ -1288,9 +1289,61 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     throw new RuntimeException("tuple does not support iterable object " + arg);
                 }
             }
-
         }
 
+        // zip(*iterables)
+        @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
+        public abstract static class PythonZipNode extends PythonBuiltinNode {
+
+            public PythonZipNode(String name) {
+                super(name);
+            }
+
+            public PythonZipNode(PythonZipNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public Object zip(Object[] args) {
+                int itemsize = args.length;
+
+                Iterator[] argList = new Iterator[itemsize];
+
+                int index = 0;
+                for (int i = 0; i < args.length; i++) {
+                    argList[index++] = getIterable(args[i]);
+                }
+
+                ArrayList<PTuple> tuples = new ArrayList<>();
+
+                OutterLoop: while (true) {
+                    Object[] temp = new Object[itemsize];
+
+                    for (int i = 0; i < itemsize; i++) {
+                        if (argList[i].hasNext()) {
+                            temp[i] = argList[i].next();
+                        } else {
+                            break OutterLoop;
+                        }
+                    }
+
+                    tuples.add(new PTuple(temp));
+                }
+
+                return new PList(tuples);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Iterator<Object> getIterable(Object o) {
+        if (o instanceof String) {
+            return new PString((String) o).iterator();
+        } else if (o instanceof Iterable) {
+            return ((Iterable<Object>) o).iterator();
+        } else {
+            throw new RuntimeException("argument is not iterable ");
+        }
     }
 
     private static List<Character> stringToCharList(String s) {

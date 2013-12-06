@@ -77,4 +77,9 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
 
         throw StopIterationException.INSTANCE;
     }
+
+    @Override
+    public String toString() {
+        return "<enumerate object at " + hashCode() + ">";
+    }
 }
