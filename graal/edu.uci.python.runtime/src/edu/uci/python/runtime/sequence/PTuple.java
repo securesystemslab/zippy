@@ -82,11 +82,6 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public Object[] getSequence() {
-        return array;
-    }
-
-    @Override
     public int len() {
         return array.length;
     }

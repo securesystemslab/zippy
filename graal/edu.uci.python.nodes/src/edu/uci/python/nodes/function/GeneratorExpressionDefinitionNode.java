@@ -64,7 +64,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     /**
      * This logic should belong to another node that wraps this definition node.
      */
-    public static Object executeGenerator(PGenerator generator) {
+    private static Object executeGenerator(PGenerator generator) {
         PList list = new PList();
 
         try {

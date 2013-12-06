@@ -88,7 +88,13 @@ public class PythonTypesUtil {
             return new PyTuple(adaptToPyObjects(tuple.getArray()));
         } else if (value instanceof PList) {
             PList list = (PList) value;
-            return new PyList(adaptToPyObjects(list.getSequence()));
+            PyObject[] pyObjs = new PyObject[list.len()];
+
+            for (int i = 0; i < list.len(); i++) {
+                pyObjs[i] = adaptToPyObject(list.getItem(i));
+            }
+
+            return new PyList(pyObjs);
         } else if (value instanceof PSet) {
             PSet set = (PSet) value;
             return new PySet(adaptToPyObjects(set.getSet().toArray()));

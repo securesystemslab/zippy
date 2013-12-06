@@ -158,18 +158,6 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Object[] getSequence() {
-        Integer[] array = new Integer[length];
-
-        for (int i = 0; i < length; i++) {
-            int item = start + step * i;
-            array[i] = item;
-        }
-
-        return array;
-    }
-
-    @Override
     public boolean lessThan(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
