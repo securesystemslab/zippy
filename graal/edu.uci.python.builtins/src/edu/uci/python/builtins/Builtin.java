@@ -39,7 +39,7 @@ public @interface Builtin {
 
     int fixedNumOfArguments() default -1;
 
-    int minNumOfArguments() default 0;
+    int minNumOfArguments() default -1;
 
     int maxNumOfArguments() default -1;
 
