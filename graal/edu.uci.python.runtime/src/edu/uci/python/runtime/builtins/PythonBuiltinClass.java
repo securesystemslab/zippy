@@ -72,13 +72,16 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        // arity.arityCheck(args.length, 0, null);
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        // arity.arityCheck(args.length, keywords.length, keywords);
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
+    }
+
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        // arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 }

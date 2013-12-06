@@ -42,7 +42,11 @@ public class KeywordLiteralNode extends LiteralNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return new PKeyword(value.execute(frame), name);
+        return new PKeyword(name, value.execute(frame));
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override

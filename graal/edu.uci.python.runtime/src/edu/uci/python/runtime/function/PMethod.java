@@ -61,4 +61,8 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         Object[] combined = PFunction.applyKeywordArgs(function.getParameters(), args, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
     }
+
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+    }
 }

@@ -171,8 +171,8 @@ public class PythonTreeTranslator extends Visitor {
         return targets;
     }
 
-    List<PNode> walkKeywordList(List<keyword> keywords) throws Exception {
-        List<PNode> targets = new ArrayList<>();
+    List<KeywordLiteralNode> walkKeywordList(List<keyword> keywords) throws Exception {
+        List<KeywordLiteralNode> targets = new ArrayList<>();
 
         for (keyword source : keywords) {
             targets.add(visitKeyword(source));
@@ -228,9 +228,9 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createBlock(imports);
     }
 
-    protected PNode visitKeyword(keyword node) throws Exception {
+    protected KeywordLiteralNode visitKeyword(keyword node) throws Exception {
         PNode value = (PNode) visit(node.getInternalValue());
-        return factory.createKeywordLiteral(value, node.getInternalArg());
+        return new KeywordLiteralNode(value, node.getInternalArg());
     }
 
     @Override
@@ -266,9 +266,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode callee = (PNode) visit(node.getInternalFunc());
         List<PNode> arguments = walkExprList(node.getInternalArgs());
         PNode[] argumentsArray = arguments.toArray(new PNode[arguments.size()]);
-
-        List<PNode> keywords = walkKeywordList(node.getInternalKeywords());
-        PNode[] keywordsArray = keywords.toArray(new PNode[keywords.size()]);
+        List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
+        KeywordLiteralNode[] keywordsArray = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;

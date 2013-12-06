@@ -30,6 +30,10 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.function.*;
 
+/**
+ * @author Gulfem
+ */
+
 public final class TimeModuleBuiltins extends PythonBuiltins {
 
     @Override
