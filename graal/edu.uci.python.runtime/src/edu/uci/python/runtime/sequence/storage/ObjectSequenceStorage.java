@@ -129,14 +129,14 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void append(Object value) {
+    public void append(Object value) throws SequenceStoreException {
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
     }
 
     @Override
-    public void extend(SequenceStorage other) {
+    public void extend(SequenceStorage other) throws SequenceStoreException {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
         Object[] otherValues = other.getInternalArray();
@@ -179,5 +179,15 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
         Arrays.sort(copy);
         values = copy;
         minimizeCapacity();
+    }
+
+    @Override
+    public ObjectSequenceStorage generalizeFor(Object value) {
+        return this;
+    }
+
+    @Override
+    public Object getIndicativeValue() {
+        return null;
     }
 }

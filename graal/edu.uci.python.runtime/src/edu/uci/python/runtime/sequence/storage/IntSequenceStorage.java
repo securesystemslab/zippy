@@ -86,7 +86,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         if (value instanceof Integer) {
             setIntItemInBound(idx, (int) value);
         } else {
-            throw new SequenceStoreException();
+            throw SequenceStoreException.INSTANCE;
         }
     }
 
@@ -99,7 +99,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         if (value instanceof Integer) {
             insertIntItem(idx, (int) value);
         } else {
-            throw new SequenceStoreException();
+            throw SequenceStoreException.INSTANCE;
         }
     }
 
@@ -198,11 +198,11 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void append(Object value) {
+    public void append(Object value) throws SequenceStoreException {
         if (value instanceof Integer) {
             appendInt((int) value);
         } else {
-            throw new SequenceStoreException();
+            throw SequenceStoreException.INSTANCE;
         }
     }
 
@@ -213,11 +213,11 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void extend(SequenceStorage other) {
+    public void extend(SequenceStorage other) throws SequenceStoreException {
         if (other instanceof IntSequenceStorage) {
             extendWithIntStorage((IntSequenceStorage) other);
         } else {
-            throw new SequenceStoreException();
+            throw SequenceStoreException.INSTANCE;
         }
     }
 
@@ -252,5 +252,15 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         Arrays.sort(copy);
         values = copy;
         minimizeCapacity();
+    }
+
+    @Override
+    public SequenceStorage generalizeFor(Object value) {
+        return new ObjectSequenceStorage(getInternalArray());
+    }
+
+    @Override
+    public Object getIndicativeValue() {
+        return 0;
     }
 }

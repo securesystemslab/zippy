@@ -58,7 +58,30 @@ public abstract class SequenceStorage {
 
     public abstract void sort();
 
+    public abstract SequenceStorage generalizeFor(Object value);
+
+    public abstract Object getIndicativeValue();
+
     public static SequenceStorage createStorage(Object[] values) {
-        return new ObjectSequenceStorage(values);
+        boolean canSpecializeToInt = true;
+
+        for (Object item : values) {
+            if (!(item instanceof Integer)) {
+                canSpecializeToInt = false;
+                break;
+            }
+        }
+
+        if (canSpecializeToInt) {
+            final int[] intVals = new int[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                intVals[i] = (int) values[i];
+            }
+
+            return new IntSequenceStorage(intVals);
+        } else {
+            return new ObjectSequenceStorage(values);
+        }
     }
 }

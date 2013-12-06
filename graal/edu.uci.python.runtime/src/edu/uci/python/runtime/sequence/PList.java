@@ -28,6 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -39,7 +41,7 @@ public class PList extends PSequence {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
-    private final SequenceStorage store;
+    @CompilationFinal private SequenceStorage store;
 
     public PList(Object[] elements) {
         store = SequenceStorage.createStorage(elements);
@@ -186,17 +188,37 @@ public class PList extends PSequence {
     }
 
     public void append(Object value) {
-        store.append(value);
+        try {
+            store.append(value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
+            store.append(value);
+        }
     }
 
     public void extend(PList appendee) {
-        store.extend(appendee.getStorage());
+        SequenceStorage other = appendee.getStorage();
+
+        try {
+            store.extend(other);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(other.getIndicativeValue());
+            store.extend(other);
+        }
     }
 
     @Override
     public PList __add__(PSequence other) {
+        SequenceStorage otherStore = other.getStorage();
         SequenceStorage newStore = store.copy();
-        newStore.extend(other.getStorage());
+
+        try {
+            newStore.extend(otherStore);
+        } catch (SequenceStoreException e) {
+            newStore = newStore.generalizeFor(otherStore.getIndicativeValue());
+            newStore.extend(otherStore);
+        }
+
         return new PList(newStore);
     }
 
@@ -212,7 +234,12 @@ public class PList extends PSequence {
     }
 
     public void insert(int index, Object value) {
-        store.insertItem(index, value);
+        try {
+            store.insertItem(index, value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
+            store.insertItem(index, value);
+        }
     }
 
     @Override

@@ -32,5 +32,6 @@ import com.oracle.truffle.api.nodes.*;
 public class SequenceStoreException extends ControlFlowException {
 
     private static final long serialVersionUID = -2938582159978230604L;
+    public static final SequenceStoreException INSTANCE = new SequenceStoreException();
 
 }
