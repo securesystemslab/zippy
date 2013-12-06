@@ -282,10 +282,7 @@ C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
-  Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
-  HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
-  HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
   HotSpotResolvedJavaMethod::set_exceptionHandlerCount(hotspot_method, method->exception_table_length());
   HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
   HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
@@ -360,42 +357,14 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
 C2V_END
 
 C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, jint index))
-
   ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
-
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
 
   switch (tag.value()) {
-  case JVM_CONSTANT_Integer:
-    result = VMToCompiler::createConstant(Kind::Int(), cp->int_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Long:
-    result = VMToCompiler::createConstant(Kind::Long(), cp->long_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Float:
-    result = VMToCompiler::createConstantFloat(cp->float_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Double:
-    result = VMToCompiler::createConstantDouble(cp->double_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Class:
-  case JVM_CONSTANT_UnresolvedClass:
-  case JVM_CONSTANT_UnresolvedClassInError:
-    {
-      Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
-      result = type();
-      break;
-    }
-
   case JVM_CONSTANT_String:
     {
-      oop result_oop = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
-      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
       break;
     }
 
@@ -404,8 +373,7 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   case JVM_CONSTANT_MethodType:
   case JVM_CONSTANT_MethodTypeInError:
     {
-      oop result_oop = cp->resolve_constant_at(index, CHECK_NULL);
-      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      result = cp->resolve_constant_at(index, CHECK_NULL);
       break;
     }
 
@@ -452,7 +420,6 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
 C2V_END
 
 C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jobject type, jint index))
-
   ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
   Handle result = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
   return JNIHandles::make_local(THREAD, result());
@@ -973,19 +940,6 @@ C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_
 C2V_END
 
 
-C2V_VMENTRY(jobject, getFileName, (JNIEnv *, jobject, jobject klass))
-  ResourceMark rm;
-  InstanceKlass* k = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(klass));
-  Symbol *s = k->source_file_name();
-  int length;
-  jchar *name = s->as_unicode(length);
-
-  Handle result = java_lang_String::create_from_unicode(name, length, CHECK_NULL);
-  return JNIHandles::make_local(result());
-
-C2V_END
-
-
 C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   MethodCounters* mcs = method->method_counters();
@@ -1062,7 +1016,6 @@ C2V_END
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
-#define HS_RESOLVED_JAVA_TYPE "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
@@ -1109,7 +1062,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
-  {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},

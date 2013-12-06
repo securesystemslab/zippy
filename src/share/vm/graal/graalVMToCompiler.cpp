@@ -257,48 +257,6 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   return (oop) result.get_jobject();
 }
 
-oop VMToCompiler::createConstant(Handle kind, jlong value, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(kind());
-  args.push_long(value);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createConstant_name(), vmSymbols::createConstant_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createConstantFloat");
-  return (oop) result.get_jobject();
-
-}
-
-oop VMToCompiler::createConstantFloat(jfloat value, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_float(value);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createConstantFloat_name(), vmSymbols::createConstantFloat_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createConstantFloat");
-  return (oop) result.get_jobject();
-
-}
-
-oop VMToCompiler::createConstantDouble(jdouble value, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_double(value);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createConstantDouble_name(), vmSymbols::createConstantDouble_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createConstantDouble");
-  return (oop) result.get_jobject();
-}
-
-oop VMToCompiler::createConstantObject(Handle object, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  KlassHandle klass = loadClass(vmSymbols::com_oracle_graal_api_meta_Constant());
-  JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::createConstantObject_signature(), object, THREAD);
-  check_pending_exception("Error while calling Constant.forObject");
-  return (oop) result.get_jobject();
-}
-
 oop VMToCompiler::createLocal(Handle name, Handle typeInfo, int bci_start, int bci_end, int slot, Handle holder, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;

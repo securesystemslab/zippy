@@ -375,14 +375,6 @@
   template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
   template(createLocalImpl_name,                  "createLocalImpl")                                                                  \
   template(createLocalImpl_signature,             "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;III)Lcom/oracle/graal/hotspot/debug/LocalImpl;") \
-  template(createConstant_name,                   "createConstant")                                                                   \
-  template(createConstant_signature,              "(Lcom/oracle/graal/api/meta/Kind;J)Lcom/oracle/graal/api/meta/Constant;")          \
-  template(createConstantFloat_name,              "createConstantFloat")                                                              \
-  template(createConstantFloat_signature,         "(F)Lcom/oracle/graal/api/meta/Constant;")                                          \
-  template(createConstantDouble_name,             "createConstantDouble")                                                             \
-  template(createConstantDouble_signature,        "(D)Lcom/oracle/graal/api/meta/Constant;")                                          \
-  template(createConstantObject_name,             "createConstantObject")                                                             \
-  template(createConstantObject_signature,        "(Ljava/lang/Object;)Lcom/oracle/graal/api/meta/Constant;")                         \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
   template(runtime_name,                          "runtime")                                                                          \
