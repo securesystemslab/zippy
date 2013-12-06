@@ -63,6 +63,7 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
             } else {
                 builtinNode = factory.createNode(builtin.name(), argsKeywords);
             }
+
             BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
 

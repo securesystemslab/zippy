@@ -151,8 +151,9 @@ for element in iter([10, 20, 30]):
 
 # test isintance
 class Student:
-    id = 1234
+    def __init__(self, id):
+        self.id = id
 
-student = Student()
+student = Student(12)
 x = isinstance(student, Student)
 print(x)
