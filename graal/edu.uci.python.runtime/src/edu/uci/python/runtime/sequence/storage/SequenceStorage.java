@@ -63,7 +63,7 @@ public abstract class SequenceStorage {
     public abstract Object getIndicativeValue();
 
     public static SequenceStorage createStorage(Object[] values) {
-        if (values.length == 0) {
+        if (values == null || values.length == 0) {
             return EmptySequenceStorage.INSTANCE;
         }
 

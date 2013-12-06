@@ -38,25 +38,8 @@ public abstract class PIterator extends PythonBuiltinObject implements Iterable<
     public abstract Object __next__();
 
     /**
-     * TODO: This should be gone. Wrong semantic.
-     */
-    public Iterator<?> evaluateToJavaIteratore() {
-        List<Object> results = new ArrayList<>();
-
-        try {
-            while (true) {
-                results.add(__next__());
-            }
-        } catch (StopIterationException e) {
-            // fall through
-        }
-
-        return results.iterator();
-    }
-
-    /**
      * This is only to make Java level iteration convenient. It is slower than directly iterate on a
-     * PIterator. However, the StopIterationException is encapsulated.
+     * PIterator. However, StopIterationException is encapsulated.
      */
     @Override
     public Iterator<Object> iterator() {

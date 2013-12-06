@@ -53,20 +53,6 @@ public class PythonTypesUtil {
         return new PTuple(values);
     }
 
-    public static PyList createPyList(Object[] values) {
-        PyObject[] adaptedValue = new PyObject[values.length];
-
-        for (int i = 0; i < values.length; i++) {
-            adaptedValue[i] = adaptToPyObject(values[i]);
-        }
-
-        return new PyList(adaptedValue);
-    }
-
-    public static PList createList(List<Object> values) {
-        return new PList(values);
-    }
-
     public static PSet createSet(List<Object> values) {
         return new PSet(values);
     }

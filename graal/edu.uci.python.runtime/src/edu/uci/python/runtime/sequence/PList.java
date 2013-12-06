@@ -33,7 +33,9 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -42,6 +44,10 @@ public class PList extends PSequence {
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
     @CompilationFinal private SequenceStorage store;
+
+    public PList() {
+        store = SequenceStorage.createStorage(null);
+    }
 
     public PList(Object[] elements) {
         assert elements != null;
@@ -52,6 +58,7 @@ public class PList extends PSequence {
         this.store = store;
     }
 
+    @Deprecated
     public PList(Iterable<?> iterable) {
         List<Object> temp = new ArrayList<>();
         for (Object o : iterable) {
@@ -60,6 +67,18 @@ public class PList extends PSequence {
 
         Object[] values = temp.toArray(new Object[temp.size()]);
         store = SequenceStorage.createStorage(values);
+    }
+
+    public PList(PIterator iter) {
+        store = SequenceStorage.createStorage(null);
+
+        try {
+            while (true) {
+                append(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
+        }
     }
 
     @Override

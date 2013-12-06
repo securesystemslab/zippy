@@ -33,6 +33,7 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
@@ -1022,32 +1023,48 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization
-            public PList list(String arg) {
-                return new PList(stringToCharList(arg));
+            @Specialization(order = 1)
+            public PList listString(String arg) {
+                char[] chars = arg.toCharArray();
+                PList list = new PList();
+
+                for (char c : chars) {
+                    list.append(c);
+                }
+
+                return list;
             }
 
-            @Specialization
-            public PList list(PSequence sequence) {
-                return new PList(sequence);
+            @Specialization(order = 2)
+            public PList listRange(PRange range) {
+                return new PList(range.__iter__());
             }
 
-            @Specialization
-            public PList list(PBaseSet baseSet) {
-                return new PList(baseSet);
+            @Specialization(order = 3)
+            public PList listSequence(PSequence sequence) {
+                return new PList(sequence.getStorage().copy());
             }
 
-            @Specialization
-            public PList list(Object arg) {
+            @Specialization(order = 4)
+            public PList listSet(PBaseSet baseSet) {
+                return new PList(baseSet.__iter__());
+            }
+
+            @Specialization(order = 5)
+            public PList listObject(Object arg) {
+                /**
+                 * This is not ideal!<br>
+                 * Truffle DSL does not support polymorphism for built-ins. It would be better if we
+                 * can rewrite the node by ourself.
+                 */
                 if (arg instanceof String) {
-                    String str = (String) arg;
-                    return new PList(stringToCharList(str));
+                    return listString((String) arg);
+                } else if (arg instanceof PRange) {
+                    return listRange((PRange) arg);
                 } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return new PList(sequence);
+                    return listSequence((PSequence) arg);
                 } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PList(baseSet);
+                    return listSet((PBaseSet) arg);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

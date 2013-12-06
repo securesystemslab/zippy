@@ -24,13 +24,10 @@
  */
 package edu.uci.python.nodes.literals;
 
-import java.util.*;
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class ListLiteralNode extends LiteralNode {
@@ -48,13 +45,13 @@ public class ListLiteralNode extends LiteralNode {
     @ExplodeLoop
     @Override
     public PList executePList(VirtualFrame frame) {
-        List<Object> elements = new ArrayList<>();
+        Object[] elements = new Object[values.length];
 
-        for (PNode v : this.values) {
-            elements.add(v.execute(frame));
+        for (int i = 0; i < values.length; i++) {
+            elements[i] = values[i].execute(frame);
         }
 
-        return PythonTypesUtil.createList(elements);
+        return new PList(elements);
     }
 
     @Override
