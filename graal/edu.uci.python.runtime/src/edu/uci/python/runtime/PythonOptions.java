@@ -49,7 +49,7 @@ public class PythonOptions {
 
     public static final boolean CacheAttributeLoads = false;
 
-    public static final boolean UnboxSequenceStorage = false;
+    public static final boolean UnboxSequenceStorage = true;
 
     private PrintStream standardOut = System.out;
 
