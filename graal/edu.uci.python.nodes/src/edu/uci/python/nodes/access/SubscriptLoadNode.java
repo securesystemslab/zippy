@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -106,12 +107,20 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
         return primary.getSlice(slice);
     }
 
-    @Specialization(order = 5)
+    /**
+     * Unboxed array reads.
+     */
+    @Specialization(order = 10)
+    public int doPIntArray(PIntArray primary, int index) {
+        return primary.getIntItem(index);
+    }
+
+    @Specialization(order = 14)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }
 
-    @Specialization(order = 6)
+    @Specialization(order = 15)
     public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
     }

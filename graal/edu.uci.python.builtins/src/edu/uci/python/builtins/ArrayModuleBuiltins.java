@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
@@ -84,7 +85,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                 case 'c':
                     return new PCharArray();
                 case 'i':
-                    return new PIntegerArray();
+                    return new PIntArray();
                 case 'd':
                     return new PDoubleArray();
                 default:
@@ -116,7 +117,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                         }
                     }
 
-                    return new PIntegerArray(intArray);
+                    return new PIntArray(intArray);
                 case 'd':
                     store = ((PSequence) initializer).getStorage();
                     double[] doubleArray = new double[store.length()];

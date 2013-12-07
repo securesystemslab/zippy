@@ -33,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
@@ -131,6 +132,10 @@ public abstract class PNode extends Node {
 
     public PBaseSet executePBaseSet(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPBaseSet(execute(frame));
+    }
+
+    public PIntArray executePIntArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPIntArray(execute(frame));
     }
 
     public PArray executePArray(VirtualFrame frame) throws UnexpectedResultException {

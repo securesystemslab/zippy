@@ -32,6 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -1330,8 +1331,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return baseSet;
-                } else if (arg instanceof PIntegerArray) {
-                    PIntegerArray array = (PIntegerArray) arg;
+                } else if (arg instanceof PIntArray) {
+                    PIntArray array = (PIntArray) arg;
                     return array;
                 } else if (arg instanceof PCharArray) {
                     PCharArray array = (PCharArray) arg;

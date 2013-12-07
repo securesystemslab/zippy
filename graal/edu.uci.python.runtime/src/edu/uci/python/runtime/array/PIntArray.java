@@ -22,25 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PIntegerArray extends PArray implements Iterable<Integer> {
+public class PIntArray extends PArray implements Iterable<Integer> {
 
     private final int[] array;
 
-    public PIntegerArray() {
+    public PIntArray() {
         array = new int[0];
     }
 
-    public PIntegerArray(int[] elements) {
+    public PIntArray(int[] elements) {
         if (elements == null) {
             array = new int[0];
         } else {
@@ -55,7 +56,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PIntegerArray(int[] elements, boolean copy) {
+    private PIntArray(int[] elements, boolean copy) {
         if (copy) {
             array = new int[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
@@ -70,33 +71,41 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
 
     @Override
     public Object getItem(int idx) {
+        return getIntItem(idx);
+    }
+
+    public int getIntItem(int idx) {
         return array[idx];
     }
 
     @Override
-    public PIntegerArray getSlice(PSlice slice) {
+    public PIntArray getSlice(PSlice slice) {
         int length = slice.computeActualIndices(array.length);
         return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
     }
 
     @Override
-    public PIntegerArray getSlice(int start, int stop, int step, int length) {
+    public PIntArray getSlice(int start, int stop, int step, int length) {
         int[] newArray = new int[length];
 
         if (step == 1) {
             System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PIntegerArray(newArray, false);
+            return new PIntArray(newArray, false);
         }
         for (int i = start, j = 0; j < length; i += step, j++) {
             newArray[j] = array[i];
         }
-        return new PIntegerArray(newArray, false);
+        return new PIntArray(newArray, false);
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        array[index] = (int) value;
+        setIntItem(index, (int) value);
+    }
+
+    public void setIntItem(int idx, int value) {
+        array[idx] = value;
     }
 
     @Override
@@ -133,7 +142,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
             }
         }
 
-        return new PIntegerArray(newArray);
+        return new PIntArray(newArray);
     }
 
     @Override
@@ -157,11 +166,11 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
 
     @Override
     public PArray append(PArray other) {
-        PIntegerArray otherArray = (PIntegerArray) other;
+        PIntArray otherArray = (PIntArray) other;
         int[] joined = new int[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());
         System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PIntegerArray(joined);
+        return new PIntArray(joined);
     }
 
     @Override
