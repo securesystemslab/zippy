@@ -1,5 +1,6 @@
+#edited by Ankit Verma 12/06/2013
 # string literal related test
-print "------------------------- string"
-a = 'wwoosossosoos'
-b = 'yoyo' + 'jiba'
-print a, b
+
+a = 'combine'
+b = 'x' + 'y'
+print (a, b)

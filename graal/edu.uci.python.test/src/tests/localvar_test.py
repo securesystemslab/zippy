@@ -1,11 +1,11 @@
+#edited by Ankit Verma
 
-print("------------- local read write")
 a = 1
 b = 43724832472947924729
 c = 4234.994839
 print(a, b, c)
 
-print("------------- local read write with operations")
+
 a = 1 + 2
 b = 43724832472947924729 + 2 + 1 + 437243294723894729
 c = 4234.994839 * 0.3 - 23 + 4328493824928

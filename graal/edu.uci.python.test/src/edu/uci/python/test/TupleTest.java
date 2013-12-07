@@ -30,12 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class BinaryBitwiseTest {
+public class TupleTest {
     @Test
     public void simple() {
-        Path script = Paths.get("binary_bitwise_test.py");
-        assertPrints("----------- << >>\n8 2 680564733841876926926749214863536422912 0 -256 -1\n----------- & | ^\n0 441 415\n----------- & | ^ w/ BitInteger\n0 943824320482304948 544382094820482034324155\n",
-                        script);
+        Path script = Paths.get("tuple_test.py");
+        assertPrints("(a, 123, b, 49324324242949949) ()\n", script);
     }
 
 }
