@@ -32,7 +32,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
 
-
 public abstract class SliceNode extends TernaryOpNode {
 
     public SliceNode() {
@@ -51,6 +50,7 @@ public abstract class SliceNode extends TernaryOpNode {
     @Generic
     public Object doGeneric(Object startObj, Object stopObj, Object stepObj) {
         int start = 0;
+
         if (startObj instanceof Integer) {
             start = (Integer) startObj;
         } else if (startObj instanceof BigInteger) {
