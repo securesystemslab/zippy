@@ -1,12 +1,12 @@
-print "------------- if else"
+#edited by Ankit Verma
 a = 2 <= 4
 if a:
-    print "taken"
+    print ("taken")
 else:
-    print "not"
+    print ("not")
 
-print "------------- while"
+
 b = 5
 while b:
     b = b - 1
-    print b
+    print (b)
