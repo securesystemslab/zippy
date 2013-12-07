@@ -32,6 +32,7 @@ import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public final class PFunction extends PythonBuiltinObject implements PythonCallable {
 
@@ -89,6 +90,10 @@ public final class PFunction extends PythonBuiltinObject implements PythonCallab
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
     }
 
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+    }
+
     protected static Object[] applyKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
@@ -112,6 +117,6 @@ public final class PFunction extends PythonBuiltinObject implements PythonCallab
 
     @Override
     public String toString() {
-        return "<fucntion " + name + " at " + hashCode() + ">";
+        return "<function " + name + " at " + hashCode() + ">";
     }
 }

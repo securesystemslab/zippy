@@ -22,26 +22,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.runtime.iterator;
 
 import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public class PBaseSetIterator extends PIterator {
+public abstract class PIterator extends PythonBuiltinObject implements Iterable<Object> {
 
-    private final Iterator<?> setIterator;
-
-    public PBaseSetIterator(PBaseSet baseSet) {
-        this.setIterator = baseSet.iterator();
+    public PIterator __iter__() {
+        return this;
     }
 
-    @Override
-    public Object __next__() {
-        if (setIterator.hasNext()) {
-            return setIterator.next();
-        }
+    public abstract Object __next__();
 
-        throw StopIterationException.INSTANCE;
+    /**
+     * This is only to make Java level iteration convenient. It is slower than directly iterate on a
+     * PIterator. However, StopIterationException is encapsulated.
+     */
+    @Override
+    public Iterator<Object> iterator() {
+        return new Iterator<Object>() {
+
+            private Object nextItem;
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                try {
+                    nextItem = __next__();
+                    return true;
+                } catch (StopIterationException e) {
+                    return false;
+                }
+            }
+
+            public Object next() {
+                return nextItem;
+            }
+        };
     }
 }

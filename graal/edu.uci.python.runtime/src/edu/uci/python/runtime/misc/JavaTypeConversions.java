@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.misc;
 
 import java.math.*;
 
@@ -344,9 +344,10 @@ public class JavaTypeConversions {
 
     // Taken from Jython PyString directly
     private static int endDouble(String string, int s) {
+        int end = s;
         int n = string.length();
-        while (s < n) {
-            char c = string.charAt(s++);
+        while (end < n) {
+            char c = string.charAt(end++);
             if (Character.isDigit(c)) {
                 continue;
             }
@@ -354,17 +355,17 @@ public class JavaTypeConversions {
                 continue;
             }
             if (c == 'e' || c == 'E') {
-                if (s < n) {
-                    c = string.charAt(s);
+                if (end < n) {
+                    c = string.charAt(end);
                     if (c == '+' || c == '-') {
-                        s++;
+                        end++;
                     }
                     continue;
                 }
             }
-            return s - 1;
+            return end - 1;
         }
-        return s;
+        return end;
     }
 
     // Taken from Jython __builtin__ class chr(int i) method

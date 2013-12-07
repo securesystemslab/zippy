@@ -33,6 +33,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
@@ -53,26 +54,12 @@ public class PythonTypesUtil {
         return new PTuple(values);
     }
 
-    public static PyList createPyList(Object[] values) {
-        PyObject[] adaptedValue = new PyObject[values.length];
-
-        for (int i = 0; i < values.length; i++) {
-            adaptedValue[i] = adaptToPyObject(values[i]);
-        }
-
-        return new PyList(adaptedValue);
-    }
-
-    public static PList createList(List<Object> values) {
-        return new PList(values);
-    }
-
     public static PSet createSet(List<Object> values) {
         return new PSet(values);
     }
 
-    public static PDictionary createDictionary(Map<Object, Object> map) {
-        return new PDictionary(map);
+    public static PDict createDictionary(Map<Object, Object> map) {
+        return new PDict(map);
     }
 
     @SlowPath
@@ -102,22 +89,28 @@ public class PythonTypesUtil {
             return new PyTuple(adaptToPyObjects(tuple.getArray()));
         } else if (value instanceof PList) {
             PList list = (PList) value;
-            return new PyList(adaptToPyObjects(list.getSequence()));
+            PyObject[] pyObjs = new PyObject[list.len()];
+
+            for (int i = 0; i < list.len(); i++) {
+                pyObjs[i] = adaptToPyObject(list.getItem(i));
+            }
+
+            return new PyList(pyObjs);
         } else if (value instanceof PSet) {
             PSet set = (PSet) value;
             return new PySet(adaptToPyObjects(set.getSet().toArray()));
         } else if (value instanceof PFrozenSet) {
             PFrozenSet set = (PFrozenSet) value;
             return new PySet(adaptToPyObjects(set.getSet().toArray()));
-        } else if (value instanceof PDictionary) {
-            PDictionary dict = (PDictionary) value;
+        } else if (value instanceof PDict) {
+            PDict dict = (PDict) value;
             ConcurrentHashMap<PyObject, PyObject> map = new ConcurrentHashMap<>();
             for (Object key : dict.keys()) {
                 map.put(adaptToPyObject(key), adaptToPyObject(dict.getItem(key)));
             }
             return new PyDictionary(map);
-        } else if (value instanceof PIntegerArray) {
-            return new PyArray(int.class, ((PIntegerArray) value).getSequence());
+        } else if (value instanceof PIntArray) {
+            return new PyArray(int.class, ((PIntArray) value).getSequence());
         } else if (value instanceof PDoubleArray) {
             return new PyArray(double.class, ((PDoubleArray) value).getSequence());
         } else if (value instanceof PCharArray) {
@@ -138,7 +131,13 @@ public class PythonTypesUtil {
         List<PyObject> converted = new ArrayList<>(values.length);
 
         for (Object value : values) {
-            converted.add(adaptToPyObject(value));
+            /**
+             * The null check here is to deal with the case where the physical storage of a sequence
+             * might have unused spaces.
+             */
+            if (value != null) {
+                converted.add(adaptToPyObject(value));
+            }
         }
 
         return converted.toArray(new PyObject[values.length]);

@@ -22,39 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.iterator;
 
-import java.util.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.function.*;
+public class PSequenceIterator extends PIterator {
 
-/**
- * The Python standard built-ins module.
- * 
- */
-public class BuiltinsModule extends PythonModule {
+    private final PSequence sequence;
+    private int index;
 
-    public BuiltinsModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
-        super(context, name);
-        builtins.initialize(context);
-        addBuiltins(builtins);
+    public PSequenceIterator(PSequence sequence) {
+        this.sequence = sequence;
     }
 
-    private void addBuiltins(PythonBuiltinsContainer builtins) {
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            setAttribute(methodName, function);
+    @Override
+    public Object __next__() {
+        if (index < sequence.len()) {
+            return sequence.getItem(index++);
         }
 
-        Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
-        for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
-            String className = entry.getKey();
-            PythonBuiltinClass function = entry.getValue();
-            setAttribute(className, function);
-        }
+        throw StopIterationException.INSTANCE;
     }
 }

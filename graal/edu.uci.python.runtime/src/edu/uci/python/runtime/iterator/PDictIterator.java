@@ -22,25 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.iterator;
 
 import java.util.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.exception.*;
 
-public class ArrayModule extends PythonModule {
+public class PDictIterator extends PIterator {
 
-    public ArrayModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
-        super(context, name);
-        builtins.initialize(context);
+    private final Iterator<?> keyIterator;
 
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            setAttribute(methodName, function);
+    public PDictIterator(Collection<Object> keys) {
+        keyIterator = keys.iterator();
+    }
+
+    @Override
+    public Object __next__() {
+        if (keyIterator.hasNext()) {
+            return keyIterator.next();
         }
+
+        throw StopIterationException.INSTANCE;
     }
 }

@@ -22,23 +22,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.sequence.storage;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+public abstract class BasicSequenceStorage extends SequenceStorage {
 
-import edu.uci.python.runtime.function.*;
+    // nominated storage length
+    int length;
 
-/**
- * A call target typed to PArguments.
- */
-public abstract class PythonCallTarget extends CallTarget {
-
-    protected abstract Object call(PackedFrame frame, PArguments args);
+    // physical storage length
+    int capacity;
 
     @Override
-    public Object call(PackedFrame frame, Arguments args) {
-        return call(frame, (PArguments) args);
+    public int length() {
+        return length;
     }
 
+    /**
+     * The capacity we should allocate for a given length.
+     */
+    public static int capacityFor(int length) {
+        return Math.max(16, length * 2);
+    }
+
+    /**
+     * Ensure that the current capacity is big enough. If not, we increase capacity to the next
+     * designated size (not necessarily the requested one).
+     */
+    protected void ensureCapacity(int newCapacity) {
+        if (newCapacity > capacity) {
+            increaseCapacityExactWithCopy(capacityFor(newCapacity));
+        }
+    }
+
+    protected abstract void increaseCapacityExactWithCopy(int newCapacity);
+
+    protected abstract void increaseCapacityExact(int newCapacity);
+
+    protected void minimizeCapacity() {
+        capacity = length;
+    }
+
+    @Override
+    public int index(Object value) {
+        for (int i = 0; i < length; i++) {
+            if (getItemInBound(i).equals(value)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 }

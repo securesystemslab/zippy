@@ -22,28 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public class PIntegerArray extends PArray implements Iterable<Integer> {
+public class PDoubleArray extends PArray implements Iterable<Double> {
 
-    private final int[] array;
+    private final double[] array;
 
-    public PIntegerArray() {
-        array = new int[0];
+    public PDoubleArray() {
+        array = new double[0];
     }
 
-    public PIntegerArray(int[] elements) {
+    public PDoubleArray(double[] elements) {
         if (elements == null) {
-            array = new int[0];
+            array = new double[0];
         } else {
-            array = new int[elements.length];
+            array = new double[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         }
     }
@@ -54,16 +56,16 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PIntegerArray(int[] elements, boolean copy) {
+    private PDoubleArray(double[] elements, boolean copy) {
         if (copy) {
-            array = new int[elements.length];
+            array = new double[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         } else {
             array = elements;
         }
     }
 
-    public int[] getSequence() {
+    public double[] getSequence() {
         return array;
     }
 
@@ -73,41 +75,46 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PIntegerArray getSlice(PSlice slice) {
+    public PDoubleArray getSlice(PSlice slice) {
         int length = slice.computeActualIndices(array.length);
         return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
     }
 
     @Override
-    public PIntegerArray getSlice(int start, int stop, int step, int length) {
-        int[] newArray = new int[length];
+    public PDoubleArray getSlice(int start, int stop, int step, int length) {
+        double[] newArray = new double[length];
 
         if (step == 1) {
             System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PIntegerArray(newArray, false);
+            return new PDoubleArray(newArray, false);
         }
         for (int i = start, j = 0; j < length; i += step, j++) {
             newArray[j] = array[i];
         }
-        return new PIntegerArray(newArray, false);
+        return new PDoubleArray(newArray, false);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.fixIndex(idx, array.length);
-        array[index] = (int) value;
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        array[index] = (double) value;
+    }
+
+    @Override
+    public void setSlice(PSlice slice, PArray other) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        double[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
     public Object getMin() {
-        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        double[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[0];
     }
@@ -118,13 +125,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject multiply(int value) {
-        int[] newArray = new int[value * array.length];
+    public PythonBuiltinObject __mul__(int value) {
+        double[] newArray = new double[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < array.length; j++) {
@@ -132,7 +134,16 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
             }
         }
 
-        return new PIntegerArray(newArray);
+        return new PDoubleArray(newArray);
+    }
+
+    @Override
+    public PArray append(PArray other) {
+        PDoubleArray otherArray = (PDoubleArray) other;
+        double[] joined = new double[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PDoubleArray(joined);
     }
 
     @Override
@@ -146,8 +157,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
         return buf.toString();
     }
 
-    private List<Integer> getList() {
-        List<Integer> list = new ArrayList<>();
+    private List<Double> getList() {
+        List<Double> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             list.add(array[i]);
         }
@@ -155,19 +166,10 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PArray append(PArray other) {
-        PIntegerArray otherArray = (PIntegerArray) other;
-        int[] joined = new int[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PIntegerArray(joined);
-    }
+    public Iterator<Double> iterator() {
+        return new Iterator<Double>() {
 
-    @Override
-    public Iterator<Integer> iterator() {
-        return new Iterator<Integer>() {
-
-            private final Iterator<Integer> iter = getList().iterator();
+            private final Iterator<Double> iter = getList().iterator();
 
             public void remove() {
                 throw new UnsupportedOperationException();
@@ -177,7 +179,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
                 return iter.hasNext();
             }
 
-            public Integer next() {
+            public Double next() {
                 return iter.next();
             }
         };

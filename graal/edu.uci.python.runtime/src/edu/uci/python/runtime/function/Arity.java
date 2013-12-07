@@ -50,16 +50,14 @@ public class Arity {
         this.keywordNames = keywordNames;
     }
 
-    public void arityCheck(int numOfArgs, int numOfKeywords, PKeyword[] keywords) {
-        System.out.println("functionName " + functionName + " takesKeywordArg " + takesKeywordArg);
-
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         if (numOfKeywords == 0) {
             arityCheck(numOfArgs);
         } else if (!takesKeywordArg && numOfKeywords > 0) {
             throw Py.TypeError(functionName + "() takes no keyword arguments");
         } else {
             for (int i = 0; i < keywords.length; i++) {
-                PKeyword keyword = keywords[i];
+                String keyword = keywords[i];
                 checkKeyword(keyword);
             }
         }
@@ -98,13 +96,13 @@ public class Arity {
 
     }
 
-    private void checkKeyword(PKeyword keyword) {
+    private void checkKeyword(String keyword) {
         for (int i = 0; i < keywordNames.length; i++) {
-            if (keywordNames[i].equals(keyword.getName())) {
+            if (keywordNames[i].equals(keyword)) {
                 return;
             }
         }
 
-        throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword.getName() + "'");
+        throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword + "'");
     }
 }

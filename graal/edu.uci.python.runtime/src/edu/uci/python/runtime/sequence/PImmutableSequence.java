@@ -28,9 +28,10 @@ import edu.uci.python.runtime.datatypes.*;
 
 public abstract class PImmutableSequence extends PSequence {
 
-    // TODO should the UnsupportedOperationException actually be a Python
-    // exception?
-    // "TypeError: 'tuple' object does not support item assignment"
+    /**
+     * TODO: should the UnsupportedOperationException actually be a Python exception?
+     * "TypeError: 'tuple' object does not support item assignment"
+     */
     @Override
     public final void setItem(int idx, Object value) {
         throw new UnsupportedOperationException();
@@ -48,11 +49,6 @@ public abstract class PImmutableSequence extends PSequence {
 
     @Override
     public final void delItem(int idx) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final void delItems(int start, int stop) {
         throw new UnsupportedOperationException();
     }
 }

@@ -30,6 +30,7 @@ import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PBuiltinFunction extends PythonBuiltinObject implements PythonCallable {
 
@@ -71,6 +72,11 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
     }
 
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        arity.arityCheck(numOfArgs, numOfKeywords, keywords);
+    }
+
     public CallTarget getCallTarget() {
         return callTarget;
     }
@@ -83,4 +89,5 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     public String toString() {
         return "<built-in function " + name + ">";
     }
+
 }

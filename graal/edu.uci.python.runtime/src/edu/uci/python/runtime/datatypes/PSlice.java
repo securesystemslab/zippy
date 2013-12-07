@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.datatypes;
 
 import org.python.core.*;
+import static edu.uci.python.runtime.sequence.SequenceUtil.*;
 
 public class PSlice {
 
@@ -73,7 +74,7 @@ public class PSlice {
             throw Py.ValueError("slice step cannot be zero");
         }
 
-        if (start == Integer.MIN_VALUE) {
+        if (start == MISSING_INDEX) {
             start = step < 0 ? len - 1 : 0;
         } else {
             if (start < 0) {
@@ -87,7 +88,7 @@ public class PSlice {
             }
         }
 
-        if (stop == Integer.MIN_VALUE) {
+        if (stop == MISSING_INDEX) {
             stop = step < 0 ? -1 : len;
         } else {
             if (stop < 0) {
@@ -117,5 +118,4 @@ public class PSlice {
 
         return length;
     }
-
 }

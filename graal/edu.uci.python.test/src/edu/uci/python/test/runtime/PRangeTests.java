@@ -39,7 +39,7 @@ public class PRangeTests {
     @Test
     public void loopWithOnlyStop() {
         PRange range = new PRange(10);
-        Iterator iter = range.iterator();
+        Iterator iter = range.__iter__().iterator();
         int index = 0;
 
         while (iter.hasNext()) {
@@ -52,7 +52,7 @@ public class PRangeTests {
     @Test
     public void loopWithStep() {
         PRange range = new PRange(0, 10, 2);
-        Iterator iter = range.iterator();
+        Iterator iter = range.__iter__().iterator();
         int index = 0;
 
         while (iter.hasNext()) {

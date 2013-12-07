@@ -34,7 +34,7 @@ import com.oracle.truffle.api.impl.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.standardtypes.*;
 import edu.uci.python.test.*;
 
 public class PythonModuleTests {
@@ -42,7 +42,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule(context, "testModule");
+        PythonModule module = new PythonModule("testModule", null, context);
 
         assertEquals("testModule", module.getAttribute("__name__").toString());
         assertEquals("", module.getAttribute("__doc__").toString());

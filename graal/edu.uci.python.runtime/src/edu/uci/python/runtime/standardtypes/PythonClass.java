@@ -26,8 +26,6 @@ package edu.uci.python.runtime.standardtypes;
 
 import java.util.*;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
@@ -89,7 +87,7 @@ public class PythonClass extends PythonObject {
             return (PythonCallable) attr;
         }
 
-        throw Py.TypeError(attr + " object is not callable");
+        return null;
     }
 
     public void addMethod(PFunction method) {
@@ -120,7 +118,6 @@ public class PythonClass extends PythonObject {
         for (PythonClass subClass : subClasses) {
             subClass.unmodifiedAssumption.invalidate();
         }
-
         super.setAttribute(name, value);
     }
 

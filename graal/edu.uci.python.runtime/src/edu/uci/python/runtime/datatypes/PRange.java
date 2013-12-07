@@ -30,7 +30,9 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public class PRange extends PImmutableSequence {
 
@@ -110,7 +112,7 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = SequenceUtil.fixIndex(idx, length);
+        int index = SequenceUtil.normalizeIndex(idx, length);
 
         if (index > length - 1) {
             getItemIndexOutOfBound();
@@ -136,7 +138,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Iterator<Object> iterator() {
+    public Iterator iterator() {
         return new Iterator<Object>() {
 
             private int index = 0;
@@ -156,24 +158,12 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Object[] getSequence() {
-        Integer[] array = new Integer[length];
-
-        for (int i = 0; i < length; i++) {
-            int item = start + step * i;
-            array[i] = item;
-        }
-
-        return array;
-    }
-
-    @Override
     public boolean lessThan(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public PSequence concat(PSequence sequence) {
+    public PSequence __add__(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
@@ -192,4 +182,13 @@ public class PRange extends PImmutableSequence {
         return length;
     }
 
+    @Override
+    public SequenceStorage getStorage() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int index(Object value) {
+        throw new UnsupportedOperationException();
+    }
 }

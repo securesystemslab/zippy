@@ -34,8 +34,10 @@ import com.oracle.truffle.api.ExactMath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
@@ -80,12 +82,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 7)
         PList doPList(PList left, PList right) {
-            return left.concat(right);
+            return left.__add__(right);
         }
 
         @Specialization(order = 8)
         PTuple doPTuple(PTuple left, PTuple right) {
-            return left.concat(right);
+            return left.__add__(right);
         }
 
         @Specialization(order = 10)
@@ -177,12 +179,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 6)
         PythonBuiltinObject doIntPObject(int left, PythonBuiltinObject right) {
-            return right.multiply(left);
+            return right.__mul__(left);
         }
 
         @Specialization(order = 7)
         PythonBuiltinObject doPObjectInt(PythonBuiltinObject left, int right) {
-            return left.multiply(right);
+            return left.__mul__(right);
         }
 
         // TODO: better type error message.

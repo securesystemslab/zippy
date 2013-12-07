@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.standardtypes;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
@@ -64,7 +64,7 @@ public abstract class PythonBuiltinObject {
     }
 
     @SuppressWarnings("unused")
-    public PythonBuiltinObject multiply(int value) {
+    public PythonBuiltinObject __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 }

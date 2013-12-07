@@ -26,6 +26,24 @@ package edu.uci.python.runtime.sequence;
 
 public class SequenceUtil {
 
+    public static final int MISSING_INDEX = Integer.MIN_VALUE;
+
+    public static int normalizeSliceStart(int start, int step, int size) {
+        if (start == MISSING_INDEX) {
+            return step < 0 ? size - 1 : 0;
+        }
+
+        return start;
+    }
+
+    public static int normalizeSliceStop(int stop, int step, int size) {
+        if (stop == MISSING_INDEX) {
+            return step < 0 ? -1 : size;
+        }
+
+        return stop;
+    }
+
     /**
      * Make step a long in case adding the start, stop and step together overflows an int.
      */
@@ -66,7 +84,7 @@ public class SequenceUtil {
         return length1 < length2 ? -1 : -3;
     }
 
-    public static int fixIndex(int index, int length) {
+    public static int normalizeIndex(int index, int length) {
         if (index < 0) {
             return index + length;
         } else {

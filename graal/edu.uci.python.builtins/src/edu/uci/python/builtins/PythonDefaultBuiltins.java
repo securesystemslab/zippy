@@ -32,17 +32,22 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 public final class PythonDefaultBuiltins extends PythonBuiltins {
 
@@ -104,7 +109,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = sequence.iterator();
+                Iterator iterator = sequence.iterator();
                 while (iterator.hasNext()) {
                     Object element = iterator.next();
                     if (!JavaTypeConversions.toBoolean(element)) {
@@ -161,7 +166,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = sequence.iterator();
+                Iterator iterator = sequence.iterator();
                 while (iterator.hasNext()) {
                     Object element = iterator.next();
                     if (JavaTypeConversions.toBoolean(element)) {
@@ -260,74 +265,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 }
 
                 throw Py.TypeError("an integer is required");
-            }
-        }
-
-        // enumerate(iterable, start=0)
-        @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"})
-        public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
-
-            public PythonEnumerateNode(String name) {
-                super(name);
-            }
-
-            public PythonEnumerateNode(PythonEnumerateNode prev) {
-                this(prev.getName());
-            }
-
-            /**
-             * TODO enumerate can take a keyword argument start, and currently that's not supported.
-             */
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(String str, Object keywordArg) {
-                return new PEnumerate(new PString(str));
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PSequence sequence, Object keywordArg) {
-                return new PEnumerate(sequence);
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
-            public PIterator enumerate(PBaseSet set, Object keywordArg) {
-                return new PEnumerate(set);
-            }
-
-            @Specialization
-            public PIterator enumerate(Object arg, Object keywordArg) {
-                if (keywordArg instanceof PNone) {
-                    if (arg instanceof String) {
-                        String str = (String) arg;
-                        return new PEnumerate(stringToCharList(str));
-                    } else if (arg instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence);
-                    } else if (arg instanceof PBaseSet) {
-                        PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet);
-                    }
-
-                    if (!(arg instanceof Iterable<?>)) {
-                        throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
-                    } else {
-                        throw new RuntimeException("enumerate does not support iterable object " + arg);
-                    }
-
-                } else {
-                    throw new RuntimeException("enumerate does not support keyword argument " + keywordArg);
-                }
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean noKeywordArg(Object arg, Object keywordArg) {
-                return (keywordArg instanceof PNone);
             }
         }
 
@@ -439,7 +376,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public int len(PDictionary arg) {
+            public int len(PDict arg) {
                 return arg.len();
             }
 
@@ -459,8 +396,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet argument = (PBaseSet) arg;
                     return argument.len();
-                } else if (arg instanceof PDictionary) {
-                    PDictionary argument = (PDictionary) arg;
+                } else if (arg instanceof PDict) {
+                    PDict argument = (PDict) arg;
                     return argument.len();
                 } else if (arg instanceof PArray) {
                     PArray argument = (PArray) arg;
@@ -487,38 +424,33 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxString(String arg1, Object[] args, Object keywordArg) {
                 PString pstring = new PString(arg1);
                 return pstring.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object maxBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
-            public Object maxDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+            @Specialization(guards = "hasOneArgument")
+            public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return null;
                 // return arg1.getMax();
             }
@@ -587,38 +519,33 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minString(String arg1, Object[] args, Object keywordArg) {
                 PString pstring = new PString(arg1);
                 return pstring.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
+            @Specialization(guards = "hasOneArgument")
             public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
             @SuppressWarnings("unused")
-            // @Specialization(guards = "hasOneArgument")
-            @Specialization
-            public Object minDictionary(PDictionary arg1, Object[] args, Object keywordArg) {
+            @Specialization(guards = "hasOneArgument")
+            public Object minDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
 
@@ -690,6 +617,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
         }
 
+        // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
@@ -869,15 +797,15 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public PDictionary dictionary(Object[] args) {
+            public PDict dictionary(Object[] args) {
                 if (args.length == 0) {
-                    return new PDictionary();
+                    return new PDict();
                 } else {
                     Object arg = args[0];
 
-                    if (arg instanceof PDictionary) {
+                    if (arg instanceof PDict) {
                         // argument is a mapping type
-                        return new PDictionary(((PDictionary) arg).getMap());
+                        return new PDict(((PDict) arg).getMap());
                     } else if (arg instanceof PSequence) { // iterator type
                         Iterator<?> iter = ((PSequence) arg).iterator();
                         Map<Object, Object> newMap = new HashMap<>();
@@ -892,11 +820,78 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                             }
                         }
 
-                        return new PDictionary(newMap);
+                        return new PDict(newMap);
                     } else {
                         throw new RuntimeException("invalid args for dict()");
                     }
                 }
+            }
+        }
+
+        // enumerate(iterable, start=0)
+        @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isClass = true)
+        public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
+
+            public PythonEnumerateNode(String name) {
+                super(name);
+            }
+
+            public PythonEnumerateNode(PythonEnumerateNode prev) {
+                this(prev.getName());
+            }
+
+            /**
+             * TODO enumerate can take a keyword argument start, and currently that's not supported.
+             */
+
+            @SuppressWarnings("unused")
+            @Specialization
+            // @Specialization(guards = "noKeywordArg")
+            public PEnumerate enumerate(String str, Object keywordArg) {
+                return new PEnumerate(new PString(str));
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(guards = "noKeywordArg")
+            public PEnumerate enumerate(PSequence sequence, Object keywordArg) {
+                return new PEnumerate(sequence);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public PEnumerate enumerate(PBaseSet set, Object keywordArg) {
+                return new PEnumerate(set);
+            }
+
+            @Specialization
+            public PEnumerate enumerate(Object arg, Object keywordArg) {
+                CompilerAsserts.neverPartOfCompilation();
+                if (keywordArg instanceof PNone) {
+                    if (arg instanceof String) {
+                        String str = (String) arg;
+                        return new PEnumerate(stringToCharList(str));
+                    } else if (arg instanceof PSequence) {
+                        PSequence sequence = (PSequence) arg;
+                        return new PEnumerate(sequence);
+                    } else if (arg instanceof PBaseSet) {
+                        PBaseSet baseSet = (PBaseSet) arg;
+                        return new PEnumerate(baseSet);
+                    }
+
+                    if (!(arg instanceof Iterable<?>)) {
+                        throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+                    } else {
+                        throw new RuntimeException("enumerate does not support iterable object " + arg);
+                    }
+
+                } else {
+                    throw new RuntimeException("enumerate does not support keyword argument " + keywordArg);
+                }
+            }
+
+            @SuppressWarnings("unused")
+            public static boolean noKeywordArg(Object arg, Object keywordArg) {
+                return (keywordArg instanceof PNone);
             }
         }
 
@@ -1022,31 +1017,62 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public PList list(String arg) {
-                return new PList(stringToCharList(arg));
+            public PList listString(String arg) {
+                char[] chars = arg.toCharArray();
+                PList list = new PList();
+
+                for (char c : chars) {
+                    list.append(c);
+                }
+
+                return list;
             }
 
             @Specialization
-            public PList list(PSequence sequence) {
-                return new PList(sequence);
+            public PList listRange(PRange range) {
+                return new PList(range.__iter__());
             }
 
             @Specialization
-            public PList list(PBaseSet baseSet) {
-                return new PList(baseSet);
+            public PList listSequence(PSequence sequence) {
+                return new PList(sequence.getStorage().copy());
             }
 
             @Specialization
-            public PList list(Object arg) {
+            public PList listSet(PBaseSet baseSet) {
+                return new PList(baseSet.__iter__());
+            }
+
+            @Specialization
+            public PList listEnumerate(PEnumerate enumerate) {
+                return new PList(enumerate.__iter__());
+            }
+
+            @Specialization
+            public PList listZip(PZip zip) {
+                return new PList(zip.__iter__());
+            }
+
+            @Specialization
+            public PList listObject(Object arg) {
+                CompilerAsserts.neverPartOfCompilation();
+                /**
+                 * This is not ideal!<br>
+                 * Truffle DSL does not support polymorphism for built-ins. It would be better if we
+                 * can rewrite the node by ourself.
+                 */
                 if (arg instanceof String) {
-                    String str = (String) arg;
-                    return new PList(stringToCharList(str));
+                    return listString((String) arg);
+                } else if (arg instanceof PRange) {
+                    return listRange((PRange) arg);
                 } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return new PList(sequence);
+                    return listSequence((PSequence) arg);
                 } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PList(baseSet);
+                    return listSet((PBaseSet) arg);
+                } else if (arg instanceof PEnumerate) {
+                    return listEnumerate((PEnumerate) arg);
+                } else if (arg instanceof PZip) {
+                    return listZip((PZip) arg);
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -1069,60 +1095,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
+            @SuppressWarnings("unused")
             @Specialization
-            public Object map(Object arg0, Object arg1, Object[] iterators) {
-                if (iterators.length == 0) {
-                    return map(arg0, arg1);
-                }
-
-                throw new RuntimeException("wrong number of arguments for map() ");
-
+            public Object mapString(PythonCallable arg0, String arg1, Object[] iterators) {
+                return doMap(arg0, new PString(arg1).__iter__());
             }
 
-            public PList map(Object arg0, Object arg1) {
-                PythonCallable callee = (PythonCallable) arg0;
-                Iterator iter = getIterable(arg1);
-
-                ArrayList<Object> sequence = new ArrayList<>();
-                while (iter.hasNext()) {
-                    sequence.add(callee.call(null, new Object[]{iter.next()}));
-                }
-
-                return new PList(sequence);
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object mapSequence(PythonCallable arg0, PSequence arg1, Object[] iterators) {
+                return doMap(arg0, arg1.__iter__());
             }
 
-            @SuppressWarnings("unchecked")
-            private static Iterator<Object> getIterable(Object o) {
-                if (o instanceof String) {
-                    return new PString((String) o).iterator();
-                } else if (o instanceof Iterable) {
-                    return ((Iterable<Object>) o).iterator();
-                } else {
-                    throw new RuntimeException("argument is not iterable ");
+            private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
+                PList list = new PList();
+
+                try {
+                    while (true) {
+                        list.append(mappingFunction.call(null, new Object[]{iter.__next__()}));
+                    }
+                } catch (StopIterationException e) {
+
                 }
+
+                return list;
             }
         }
-
-        // object()
-// @Builtin(name = "object", hasFixedNumOfArguments = true, fixedNumOfArguments = 0, isClass = true)
-// public abstract static class PythonObjectNode extends PythonBuiltinNode {
-//
-// private final PythonContext context;
-//
-// public PythonObjectNode(String name, PythonContext context) {
-// super(name);
-// this.context = context;
-// }
-//
-// public PythonObjectNode(PythonObjectNode prev) {
-// this(prev.getName(), prev.context);
-// }
-//
-// @Specialization
-// public Object object() {
-// return new PythonObject(context.getObjectClass());
-// }
-// }
 
         // range(stop)
         // range(start, stop[, step])
@@ -1298,9 +1296,60 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     throw new RuntimeException("tuple does not support iterable object " + arg);
                 }
             }
-
         }
 
+        // zip(*iterables)
+        @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
+        public abstract static class PythonZipNode extends PythonBuiltinNode {
+
+            public PythonZipNode(String name) {
+                super(name);
+            }
+
+            public PythonZipNode(PythonZipNode prev) {
+                this(prev.getName());
+            }
+
+            @Specialization
+            public PZip zip(Object[] args) {
+                Iterable<?>[] iterables = new Iterable[args.length];
+                for (int i = 0; i < args.length; i++) {
+                    Iterable<?> iterable = getIterableObject(args[i]);
+                    iterables[i] = iterable;
+                }
+
+                return new PZip(iterables);
+            }
+
+            private static Iterable<?> getIterableObject(Object arg) {
+                if (arg instanceof String) {
+                    String str = (String) arg;
+                    return new PString(str);
+                } else if (arg instanceof PSequence) {
+                    PSequence sequence = (PSequence) arg;
+                    return sequence;
+                } else if (arg instanceof PBaseSet) {
+                    PBaseSet baseSet = (PBaseSet) arg;
+                    return baseSet;
+                } else if (arg instanceof PIntArray) {
+                    PIntArray array = (PIntArray) arg;
+                    return array;
+                } else if (arg instanceof PCharArray) {
+                    PCharArray array = (PCharArray) arg;
+                    return array;
+                } else if (arg instanceof PDoubleArray) {
+                    PDoubleArray array = (PDoubleArray) arg;
+                    return array;
+                }
+
+                if (!(arg instanceof Iterable<?>)) {
+                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
+                } else {
+                    throw new RuntimeException("zip does not support iterable object " + arg.getClass());
+                }
+
+            }
+        }
     }
 
     private static List<Character> stringToCharList(String s) {

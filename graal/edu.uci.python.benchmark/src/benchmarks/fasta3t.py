@@ -112,12 +112,15 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("fasta: " + duration)
 
+def reset():
+    randomGenState = INITIAL_STATE
+    randomLUT = None    
+
 # warm up
 num = int(sys.argv[1])
 for run in range(500):
     main(500)
 
 # reset
-randomGenState = INITIAL_STATE
-randomLUT = None
+reset()
 measure()

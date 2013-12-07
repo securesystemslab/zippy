@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -62,7 +63,7 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
      * As a right hand side expression
      */
     @Specialization(order = 0)
-    public Object doPDictionary(PDictionary primary, Object slice, Object value) {
+    public Object doPDictionary(PDict primary, Object slice, Object value) {
         primary.setItem(slice, value);
         return null;
     }
@@ -79,25 +80,28 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
         return null;
     }
 
-    @Specialization(order = 3)
-    public Object doPArrayInt(PArray primary, int slice, int value) {
-        primary.setItem(slice, value);
-        return null;
+    /**
+     * Unboxed array stores.
+     */
+    @Specialization(order = 10)
+    public Object doPArrayInt(PIntArray primary, int slice, int value) {
+        primary.setIntItem(slice, value);
+        return PNone.NONE;
     }
 
-    @Specialization(order = 4)
+    @Specialization(order = 14)
     public Object doPArray(PArray primary, PSlice slice, PArray value) {
         primary.setSlice(slice, value);
         return null;
     }
 
-    @Specialization(order = 5)
+    @Specialization(order = 15)
     public Object doPArrayDouble(PArray primary, int slice, double value) {
         primary.setItem(slice, value);
         return null;
     }
 
-    @Specialization(order = 7)
+    @Specialization(order = 17)
     public Object doPArrayChar(PArray primary, int slice, char value) {
         primary.setItem(slice, value);
         return null;
@@ -112,8 +116,8 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
             } else if (slice instanceof PSlice) {
                 prim.setSlice((PSlice) slice, (PSequence) value);
             }
-        } else if (primary instanceof PDictionary) {
-            PDictionary prim = (PDictionary) primary;
+        } else if (primary instanceof PDict) {
+            PDict prim = (PDict) primary;
             prim.setItem(slice, value);
         } else if (primary instanceof PArray) {
             PArray prim = (PArray) primary;

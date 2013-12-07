@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -49,8 +50,8 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
 
     @Specialization(order = 0)
     public String doString(String primary, PSlice slice) {
-        int length = slice.computeActualIndices(primary.length());
-        int start = slice.getStart();
+        final int length = slice.computeActualIndices(primary.length());
+        final int start = slice.getStart();
         int stop = slice.getStop();
         int step = slice.getStep();
 
@@ -92,7 +93,7 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
     }
 
     @Specialization(order = 2)
-    public Object doPDictionary(PDictionary primary, Object slice) {
+    public Object doPDictionary(PDict primary, Object slice) {
         return primary.getItem(slice);
     }
 
@@ -106,12 +107,20 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
         return primary.getSlice(slice);
     }
 
-    @Specialization(order = 5)
+    /**
+     * Unboxed array reads.
+     */
+    @Specialization(order = 10)
+    public int doPIntArray(PIntArray primary, int index) {
+        return primary.getIntItem(index);
+    }
+
+    @Specialization(order = 14)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }
 
-    @Specialization(order = 6)
+    @Specialization(order = 15)
     public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
     }

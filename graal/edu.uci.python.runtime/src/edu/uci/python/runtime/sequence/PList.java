@@ -27,38 +27,46 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import org.python.core.*;
-import org.python.util.Generic;
+
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public class PList extends PSequence {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
-    private final List<Object> list;
+    @CompilationFinal private SequenceStorage store;
+
+    public PList() {
+        store = SequenceStorage.createStorage(null);
+    }
 
     public PList(Object[] elements) {
-        list = new ArrayList<>(Arrays.asList(elements));
+        assert elements != null;
+        store = SequenceStorage.createStorage(elements);
     }
 
-    public PList(Iterable<?> iterable) {
-        list = new ArrayList<>();
-        for (Object o : iterable) {
-            addItem(o);
-        }
+    public PList(SequenceStorage store) {
+        this.store = store;
     }
 
-    public PList(List<Object> list, boolean convert) {
-        if (!convert) {
-            this.list = list;
-        } else {
-            this.list = Generic.list(); // TODO make list of CollectionElement
-            for (int i = 0; i < list.size(); i++) {
-                addItem(list.get(i));
+    public PList(PIterator iter) {
+        store = SequenceStorage.createStorage(null);
+
+        try {
+            while (true) {
+                append(iter.__next__());
             }
+        } catch (StopIterationException e) {
+            // fall through
         }
     }
 
@@ -72,45 +80,32 @@ public class PList extends PSequence {
         return (PythonCallable) __class__.getAttribute(name);
     }
 
-    protected List<Object> getList() {
-        return list;
-    }
-
     @Override
-    public Object[] getSequence() {
-        return list.toArray();
+    public SequenceStorage getStorage() {
+        return store;
     }
 
     @Override
     public Object getItem(int idx) {
-        int index = SequenceUtil.fixIndex(idx, list.size());
-        return list.get(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getItemInBound(index);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.fixIndex(idx, list.size());
-        list.set(index, value);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setItemInBound(index, value);
     }
 
     @Override
     public Object getSlice(PSlice slice) {
-        int length = slice.computeActualIndices(list.size());
+        int length = slice.computeActualIndices(store.length());
         return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
     }
 
     @Override
     public Object getSlice(int start, int stop, int step, int length) {
-        List<Object> newList;
-        if (step == 1) {
-            newList = new ArrayList<>(list.subList(start, stop));
-        } else {
-            newList = new ArrayList<>(length);
-            for (int i = start, j = 0; j < length; i += step, j++) {
-                newList.add(list.get(i));
-            }
-        }
-        return new PList(newList, false);
+        return new PList(store.getSliceInBound(start, stop, step, length));
     }
 
     @Override
@@ -118,77 +113,21 @@ public class PList extends PSequence {
         setSlice(slice.getStart(), slice.getStop(), slice.getStep(), value);
     }
 
-    /**
-     * Set slice.
-     * 
-     * @param start
-     * @param stop
-     * @param step
-     * @param value the value can only be a TruffleSequence or a java.util.List
-     */
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
-        if (start == Integer.MIN_VALUE) {
-            start = step < 0 ? list.size() - 1 : 0;
+        final int normalizedStart = SequenceUtil.normalizeSliceStart(start, step, store.length());
+        int normalizedStop = SequenceUtil.normalizeSliceStop(stop, step, store.length());
+
+        if (normalizedStop < normalizedStart) {
+            normalizedStop = normalizedStart;
         }
 
-        if (stop == Integer.MIN_VALUE) {
-            stop = step < 0 ? -1 : list.size();
-        }
-
-        if (stop < start) {
-            stop = start;
-        }
-
-        setsliceIterator(start, stop, step, value.iterator());
-    }
-
-    private void setsliceIterator(int start, int stop, int step, Iterator<Object> iter) {
-        if (step == 1) {
-            List<Object> insertion = new ArrayList<>();
-            if (iter != null) {
-                while (iter.hasNext()) {
-                    insertion.add(iter.next());
-                }
-            }
-
-            list.subList(start, stop).clear();
-            list.addAll(start, insertion);
-        } else {
-            int size = list.size();
-            for (int j = start; iter.hasNext(); j += step) {
-                Object item = iter.next();
-
-                if (j >= size) {
-                    list.add(item);
-                } else {
-                    list.set(j, item);
-                }
-            }
-        }
+        store.setSliceInBound(normalizedStart, normalizedStop, step, value.getStorage());
     }
 
     @Override
     public void delItem(int idx) {
-        list.remove(idx);
-    }
-
-    @Override
-    public void delItems(int start, int stop) {
-        list.subList(start, stop).clear();
-    }
-
-    public void addItem(int index, Object element) {
-        list.add(index, element);
-    }
-
-    public boolean addItem(Object o) {
-        return list.add(o);
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return list.iterator();
+        store.delItemInBound(idx);
     }
 
     @Override
@@ -199,17 +138,13 @@ public class PList extends PSequence {
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("[");
-        int length = list.size();
-        int i = 0;
 
-        for (Object item : list) {
-            buf.append(item.toString());
+        for (int i = 0; i < store.length(); i++) {
+            buf.append(store.getItemInBound(i));
 
-            if (i < length - 1) {
+            if (i < store.length() - 1) {
                 buf.append(", ");
             }
-
-            i++;
         }
 
         buf.append("]");
@@ -218,66 +153,81 @@ public class PList extends PSequence {
 
     @Override
     public Object getMax() {
-        Object[] copy = this.list.toArray();
+        Object[] copy = store.getCopyOfInternalArray();
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
     public Object getMin() {
-        Object[] copy = this.list.toArray();
+        Object[] copy = store.getCopyOfInternalArray();
         Arrays.sort(copy);
         return copy[0];
     }
 
-    @Override
-    public int len() {
-        return list.size();
+    public void sort() {
+        store.sort();
     }
 
     @Override
-    public PythonBuiltinObject multiply(int value) {
-        ArrayList<Object> result = new ArrayList<>();
-        for (int i = 0; i < value; i++) {
-            for (int j = 0; j < list.size(); j++) {
-                result.add(list.get(j));
-            }
+    public int len() {
+        return store.length();
+    }
+
+    @Override
+    public PythonBuiltinObject __mul__(int value) {
+        assert value > 0;
+        SequenceStorage newStore = store.copy();
+
+        for (int i = 1; i < value; i++) {
+            newStore.extend(store.copy());
         }
 
-        return new PList(result);
+        return new PList(newStore);
     }
 
     public void reverse() {
-        Collections.reverse(list);
+        store.reverse();
     }
 
     public void append(Object value) {
-        list.add(value);
+        try {
+            store.append(value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
+            store.append(value);
+        }
     }
 
     public void extend(PList appendee) {
-        List<Object> tail = appendee.getList();
-        for (int i = 0; i < tail.size(); i++) {
-            list.add(tail.get(i));
+        SequenceStorage other = appendee.getStorage();
+
+        try {
+            store.extend(other);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(other.getIndicativeValue());
+            store.extend(other);
         }
     }
 
     @Override
-    public PList concat(PSequence other) {
-        List<Object> newList = new ArrayList<>();
-        newList.addAll(list);
-        newList.addAll(((PList) other).getList());
-        return new PList(newList, false);
+    public PList __add__(PSequence other) {
+        SequenceStorage otherStore = other.getStorage();
+        SequenceStorage newStore = store.copy();
+
+        try {
+            newStore.extend(otherStore);
+        } catch (SequenceStoreException e) {
+            newStore = newStore.generalizeFor(otherStore.getIndicativeValue());
+            newStore.extend(otherStore);
+        }
+
+        return new PList(newStore);
     }
 
+    @Override
     public int index(Object value) {
-        int index = -1;
-
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).equals(value)) {
-                index = i;
-            }
-        }
+        int index = store.index(value);
 
         if (index != -1) {
             return index;
@@ -287,20 +237,30 @@ public class PList extends PSequence {
     }
 
     public void insert(int index, Object value) {
-        list.add(index, value);
+        try {
+            store.insertItem(index, value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
+            store.insertItem(index, value);
+        }
     }
 
     @Override
     public boolean equals(Object other) {
-        List<Object> rlist = ((PList) other).getList();
-
-        if (list.size() != rlist.size()) {
+        if (!(other instanceof PList)) {
             return false;
         }
 
-        for (int i = 0; i < list.size(); i++) {
-            Object l = list.get(i);
-            Object r = rlist.get(i);
+        PList otherList = (PList) other;
+        SequenceStorage otherStore = otherList.getStorage();
+
+        if (store.length() != otherStore.length()) {
+            return false;
+        }
+
+        for (int i = 0; i < store.length(); i++) {
+            Object l = store.getItemInBound(i);
+            Object r = otherStore.getItemInBound(i);
             boolean isTheSame = ArithmeticUtil.is(l, r);
 
             if (!isTheSame) {
@@ -314,5 +274,26 @@ public class PList extends PSequence {
     @Override
     public int hashCode() {
         return super.hashCode();
+    }
+
+    public Iterator iterator() {
+        return new Iterator() {
+
+            private int index = 0;
+            private final SequenceStorage iterStore = PList.this.store;
+
+            public boolean hasNext() {
+                return index < iterStore.length();
+            }
+
+            public Object next() {
+                return iterStore.getItemInBound(index++);
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+        };
     }
 }

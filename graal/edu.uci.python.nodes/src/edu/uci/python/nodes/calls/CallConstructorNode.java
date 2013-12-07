@@ -27,6 +27,7 @@ package edu.uci.python.nodes.calls;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class CallConstructorNode extends PNode {
@@ -56,7 +57,10 @@ public class CallConstructorNode extends PNode {
             selfWithArgs[i] = args[i - 1];
         }
 
-        clazz.lookUpMethod("__init__").call(frame.pack(), selfWithArgs);
+        PythonCallable initMethod = clazz.lookUpMethod("__init__");
+        if (initMethod != null) {
+            initMethod.call(frame.pack(), selfWithArgs);
+        }
         return obj;
     }
 }

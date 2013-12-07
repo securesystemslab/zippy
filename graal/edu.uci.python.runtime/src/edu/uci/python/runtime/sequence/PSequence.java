@@ -24,11 +24,12 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.Iterator;
-
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PSequence extends PythonBuiltinObject implements Iterable<Object>, PIterable {
+public abstract class PSequence extends PythonBuiltinObject implements PIterable, Iterable {
 
     public PIterator __iter__() {
         return new PSequenceIterator(this);
@@ -48,13 +49,11 @@ public abstract class PSequence extends PythonBuiltinObject implements Iterable<
 
     public abstract void delItem(int idx);
 
-    public abstract void delItems(int start, int stop);
+    public abstract int index(Object value);
 
-    public abstract Iterator<Object> iterator();
-
-    public abstract Object[] getSequence();
+    public abstract SequenceStorage getStorage();
 
     public abstract boolean lessThan(PSequence sequence);
 
-    public abstract PSequence concat(PSequence sequence);
+    public abstract PSequence __add__(PSequence sequence);
 }

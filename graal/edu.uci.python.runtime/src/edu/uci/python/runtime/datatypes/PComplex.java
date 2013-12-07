@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.standardtypes.*;
+
 public class PComplex extends PythonBuiltinObject {
 
     private final double real;

@@ -22,25 +22,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.modules;
+package edu.uci.python.runtime.sequence.storage;
 
-import java.util.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.function.*;
+/**
+ * An sequence store cannot meet its target's storage type.
+ */
+public class SequenceStoreException extends ControlFlowException {
 
-public class BisectModule extends PythonModule {
+    private static final long serialVersionUID = -2938582159978230604L;
+    public static final SequenceStoreException INSTANCE = new SequenceStoreException();
 
-    public BisectModule(PythonContext context, PythonBuiltinsContainer builtins, String name) {
-        super(context, name);
-        builtins.initialize(context);
-
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            setAttribute(methodName, function);
-        }
-    }
 }

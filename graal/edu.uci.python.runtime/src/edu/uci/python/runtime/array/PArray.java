@@ -22,7 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
+
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PArray extends PythonBuiltinObject implements PIterable {
 

@@ -24,14 +24,13 @@
  */
 package edu.uci.python.nodes.function;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
@@ -50,8 +49,11 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
         PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame);
-        // TODO: It's a bad way to determine whether the
-        // generator should be evaluated immediately or not.
+
+        /**
+         * TODO: It's a bad way to determine whether the generator should be evaluated immediately
+         * or not.
+         */
         if (getParent() instanceof WriteNode) {
             return generator;
         } else {
@@ -62,14 +64,17 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     /**
      * This logic should belong to another node that wraps this definition node.
      */
-    public static Object executeGenerator(PGenerator generator) {
-        Iterator<?> iter = generator.evaluateToJavaIteratore();
-        List<Object> results = new ArrayList<>();
+    private static Object executeGenerator(PGenerator generator) {
+        PList list = new PList();
 
-        while (iter.hasNext()) {
-            results.add(iter.next());
+        try {
+            while (true) {
+                list.append(generator.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
 
-        return new PList(results);
+        return list;
     }
 }

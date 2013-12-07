@@ -27,6 +27,11 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
+
+/**
+ * @author Gulfem
+ */
 
 public class PEnumerate extends PIterator implements Iterable<Object> {
 
@@ -75,5 +80,10 @@ public class PEnumerate extends PIterator implements Iterable<Object> {
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    @Override
+    public String toString() {
+        return "<enumerate object at " + hashCode() + ">";
     }
 }

@@ -33,9 +33,10 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -101,8 +102,8 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPComplex(execute(frame));
     }
 
-    public PDictionary executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPDictionary(execute(frame));
+    public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPDict(execute(frame));
     }
 
     public PList executePList(VirtualFrame frame) throws UnexpectedResultException {
@@ -133,8 +134,20 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPBaseSet(execute(frame));
     }
 
+    public PIntArray executePIntArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPIntArray(execute(frame));
+    }
+
     public PArray executePArray(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPArray(execute(frame));
+    }
+
+    public PEnumerate executePEnumerate(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPEnumerate(execute(frame));
+    }
+
+    public PZip executePZip(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPZip(execute(frame));
     }
 
     public PSlice executePSlice(VirtualFrame frame) throws UnexpectedResultException {

@@ -31,6 +31,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object>, PIterable {
 

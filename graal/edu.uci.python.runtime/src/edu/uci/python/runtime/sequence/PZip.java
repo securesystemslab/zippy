@@ -24,23 +24,75 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import java.util.*;
+
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 
-public class PSequenceIterator extends PIterator {
+/**
+ * @author Gulfem
+ */
 
-    private final PSequence sequence;
+public class PZip extends PIterator implements Iterable<Object> {
+
     private int index;
+    private List<PTuple> tuples;
 
-    public PSequenceIterator(PSequence sequence) {
-        this.sequence = sequence;
+    public PZip(Iterable<?>[] iterables) {
+        Iterator[] iterators = new Iterator[iterables.length];
+
+        for (int i = 0; i < iterables.length; i++) {
+            iterators[i] = iterables[i].iterator();
+        }
+
+        this.tuples = new ArrayList<>();
+        int itemsize = iterables.length;
+        OutterLoop: while (true) {
+            Object[] temp = new Object[itemsize];
+
+            for (int i = 0; i < itemsize; i++) {
+                if (iterators[i].hasNext()) {
+                    temp[i] = iterators[i].next();
+                } else {
+                    break OutterLoop;
+                }
+            }
+
+            tuples.add(new PTuple(temp));
+        }
+    }
+
+    @Override
+    public Iterator<Object> iterator() {
+        return new Iterator<Object>() {
+
+            private final Iterator<PTuple> iter = tuples.iterator();
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+
+            public Object next() {
+                return iter.next();
+            }
+        };
     }
 
     @Override
     public Object __next__() {
-        if (index < sequence.len()) {
-            return sequence.getItem(index++);
+        if (index < tuples.size()) {
+            return tuples.get(index++);
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    @Override
+    public String toString() {
+        return "<zip object at " + hashCode() + ">";
     }
 }

@@ -59,7 +59,7 @@ print(x)
 # test builtin enumerate
 list1 = [1000, 2000, 3000]
 for s in enumerate(list1):
-    print (s)
+    print(s)
 
 # Currently removed because each element should be printed  as
 #(0, 'Spring')
@@ -139,6 +139,11 @@ print(list(range(1, 11))) # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
+
+# test builtin zip
+for s in zip["ABC", "123"]:
+    print(s)     
+     
 # test builtin iter
 for element in iter("hello"):
     print(element)
@@ -151,8 +156,9 @@ for element in iter([10, 20, 30]):
 
 # test isintance
 class Student:
-    id = 1234
+    def __init__(self, id):
+        self.id = id
 
-student = Student()
+student = Student(12)
 x = isinstance(student, Student)
 print(x)

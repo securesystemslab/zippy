@@ -50,6 +50,7 @@ import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
 public class PythonTreeTranslator extends Visitor {
@@ -170,8 +171,8 @@ public class PythonTreeTranslator extends Visitor {
         return targets;
     }
 
-    List<PNode> walkKeywordList(List<keyword> keywords) throws Exception {
-        List<PNode> targets = new ArrayList<>();
+    List<KeywordLiteralNode> walkKeywordList(List<keyword> keywords) throws Exception {
+        List<KeywordLiteralNode> targets = new ArrayList<>();
 
         for (keyword source : keywords) {
             targets.add(visitKeyword(source));
@@ -227,9 +228,9 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createBlock(imports);
     }
 
-    protected PNode visitKeyword(keyword node) throws Exception {
+    protected KeywordLiteralNode visitKeyword(keyword node) throws Exception {
         PNode value = (PNode) visit(node.getInternalValue());
-        return factory.createKeywordLiteral(value, node.getInternalArg());
+        return new KeywordLiteralNode(value, node.getInternalArg());
     }
 
     @Override
@@ -265,9 +266,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode callee = (PNode) visit(node.getInternalFunc());
         List<PNode> arguments = walkExprList(node.getInternalArgs());
         PNode[] argumentsArray = arguments.toArray(new PNode[arguments.size()]);
-
-        List<PNode> keywords = walkKeywordList(node.getInternalKeywords());
-        PNode[] keywordsArray = keywords.toArray(new PNode[keywords.size()]);
+        List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
+        KeywordLiteralNode[] keywordsArray = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
 
         if (callee instanceof LoadAttributeNode) {
             LoadAttributeNode attr = (LoadAttributeNode) callee;
@@ -385,10 +385,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode step = (PNode) (node.getInternalStep() == null ? null : visit(node.getInternalStep()));
 
         if (lower == null || lower instanceof NoneLiteralNode) {
-            lower = factory.createIntegerLiteral(Integer.MIN_VALUE);
+            lower = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
         if (upper == null || upper instanceof NoneLiteralNode) {
-            upper = factory.createIntegerLiteral(Integer.MIN_VALUE);
+            upper = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
         if (step == null || step instanceof NoneLiteralNode) {
             step = factory.createIntegerLiteral(1);

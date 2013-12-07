@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.iterator.*;
 
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForNode extends LoopNode {

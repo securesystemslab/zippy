@@ -22,28 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtypes.*;
 
-public class PDoubleArray extends PArray implements Iterable<Double> {
+public class PCharArray extends PArray implements Iterable<Character> {
 
-    private final double[] array;
+    private final char[] array;
 
-    public PDoubleArray() {
-        array = new double[0];
+    public PCharArray() {
+        array = new char[0];
     }
 
-    public PDoubleArray(double[] elements) {
+    public PCharArray(char[] elements) {
         if (elements == null) {
-            array = new double[0];
+            array = new char[0];
         } else {
-            array = new double[elements.length];
+            array = new char[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         }
     }
@@ -54,16 +56,16 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PDoubleArray(double[] elements, boolean copy) {
+    private PCharArray(char[] elements, boolean copy) {
         if (copy) {
-            array = new double[elements.length];
+            array = new char[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         } else {
             array = elements;
         }
     }
 
-    public double[] getSequence() {
+    public char[] getSequence() {
         return array;
     }
 
@@ -73,46 +75,51 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public PDoubleArray getSlice(PSlice slice) {
+    public void setItem(int idx, Object value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        array[index] = (char) value;
+    }
+
+    @Override
+    public PCharArray getSlice(PSlice slice) {
         int length = slice.computeActualIndices(array.length);
         return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
     }
 
     @Override
-    public PDoubleArray getSlice(int start, int stop, int step, int length) {
-        double[] newArray = new double[length];
+    public PCharArray getSlice(int start, int stop, int step, int length) {
+        char[] newArray = new char[length];
 
         if (step == 1) {
             System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PDoubleArray(newArray, false);
+            return new PCharArray(newArray, false);
         }
         for (int i = start, j = 0; j < length; i += step, j++) {
             newArray[j] = array[i];
         }
-        return new PDoubleArray(newArray, false);
+        return new PCharArray(newArray, false);
+    }
+
+    public void setItem(int idx, char value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        array[index] = value;
     }
 
     @Override
-    public void setItem(int idx, Object value) {
-        int index = SequenceUtil.fixIndex(idx, array.length);
-        array[index] = (double) value;
-    }
-
-    @Override
-    public void setSlice(PSlice slice, PArray other) {
+    public void setSlice(PSlice slice, PArray value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        double[] copy = Arrays.copyOf(this.array, this.array.length);
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
     public Object getMin() {
-        double[] copy = Arrays.copyOf(this.array, this.array.length);
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[0];
     }
@@ -123,8 +130,8 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public PythonBuiltinObject multiply(int value) {
-        double[] newArray = new double[value * array.length];
+    public PythonBuiltinObject __mul__(int value) {
+        char[] newArray = new char[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < array.length; j++) {
@@ -132,16 +139,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
             }
         }
 
-        return new PDoubleArray(newArray);
-    }
-
-    @Override
-    public PArray append(PArray other) {
-        PDoubleArray otherArray = (PDoubleArray) other;
-        double[] joined = new double[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PDoubleArray(joined);
+        return new PCharArray(newArray);
     }
 
     @Override
@@ -155,8 +153,17 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
         return buf.toString();
     }
 
-    private List<Double> getList() {
-        List<Double> list = new ArrayList<>();
+    @Override
+    public PArray append(PArray other) {
+        PCharArray otherArray = (PCharArray) other;
+        char[] joined = new char[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PCharArray(joined);
+    }
+
+    private List<Character> getList() {
+        List<Character> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             list.add(array[i]);
         }
@@ -164,10 +171,10 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     @Override
-    public Iterator<Double> iterator() {
-        return new Iterator<Double>() {
+    public Iterator<Character> iterator() {
+        return new Iterator<Character>() {
 
-            private final Iterator<Double> iter = getList().iterator();
+            private final Iterator<Character> iter = getList().iterator();
 
             public void remove() {
                 throw new UnsupportedOperationException();
@@ -177,7 +184,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
                 return iter.hasNext();
             }
 
-            public Double next() {
+            public Character next() {
                 return iter.next();
             }
         };

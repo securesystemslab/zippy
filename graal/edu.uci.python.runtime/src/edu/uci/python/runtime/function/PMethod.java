@@ -27,7 +27,6 @@ package edu.uci.python.runtime.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PMethod extends PythonBuiltinObject implements PythonCallable {
@@ -61,5 +60,9 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         Object[] combined = PFunction.applyKeywordArgs(function.getParameters(), args, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+    }
+
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
     }
 }

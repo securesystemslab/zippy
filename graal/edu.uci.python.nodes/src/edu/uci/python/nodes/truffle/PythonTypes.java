@@ -32,17 +32,19 @@ import com.oracle.truffle.api.dsl.TypeCast;
 import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.modules.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 @TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
 
-PyObject.class, PString.class, PythonClass.class, PDictionary.class, PList.class, PTuple.class, PRange.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PArray.class,
-                PSlice.class, PRangeIterator.class, PIterator.class, PythonModule.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, Object[].class})
+PyObject.class, PString.class, PythonClass.class, PDict.class, PList.class, PTuple.class, PRange.class, PSequence.class, PSet.class, PFrozenSet.class, PBaseSet.class, PIntArray.class, PArray.class,
+                PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PIterator.class, PythonModule.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class,
+                PythonCallable.class, Object[].class})
 public class PythonTypes {
 
     /**

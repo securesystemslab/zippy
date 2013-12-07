@@ -82,7 +82,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         }
 
         @Specialization
-        boolean doPDictionary(PDictionary operand) {
+        boolean doPDictionary(PDict operand) {
             return operand.len() != 0;
         }
 
@@ -141,7 +141,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         }
 
         @Specialization
-        boolean doPDictionary(PDictionary operand) {
+        boolean doPDictionary(PDict operand) {
             return operand.len() == 0;
         }
 

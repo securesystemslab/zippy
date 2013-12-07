@@ -28,10 +28,18 @@ import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
+
+/**
+ * @author Gulfem
+ */
 
 public final class ArrayModuleBuiltins extends PythonBuiltins {
 
@@ -77,7 +85,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                 case 'c':
                     return new PCharArray();
                 case 'i':
-                    return new PIntegerArray();
+                    return new PIntArray();
                 case 'd':
                     return new PDoubleArray();
                 default:
@@ -87,7 +95,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
 
         @SlowPath
         private static PArray makeArray(char type, Object initializer) {
-            Object[] copyArray;
+            SequenceStorage store;
             switch (type) {
                 case 'c':
                     if (initializer instanceof String) {
@@ -96,28 +104,32 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                         throw new RuntimeException("Unexpected argument type for array() ");
                     }
                 case 'i':
-                    copyArray = ((PSequence) initializer).getSequence();
-                    int[] intArray = new int[copyArray.length];
-                    for (int i = 0; i < intArray.length; i++) {
-                        if (copyArray[i] instanceof Integer) {
-                            intArray[i] = (int) copyArray[i];
-                        } else {
+                    PSequence seq = (PSequence) initializer;
+                    Iterator iter = seq.iterator();
+                    int[] intArray = new int[seq.len()];
+                    int i = 0;
+
+                    while (iter.hasNext()) {
+                        try {
+                            intArray[i++] = PythonTypesGen.PYTHONTYPES.expectInteger(iter.next());
+                        } catch (UnexpectedResultException e) {
                             throw new RuntimeException("Unexpected argument type for array() ");
                         }
                     }
-                    return new PIntegerArray(intArray);
+
+                    return new PIntArray(intArray);
                 case 'd':
-                    copyArray = ((PSequence) initializer).getSequence();
-                    double[] doubleArray = new double[copyArray.length];
-                    for (int i = 0; i < doubleArray.length; i++) {
-                        if (copyArray[i] instanceof Integer) {
-                            doubleArray[i] = (int) copyArray[i];
-                        } else if (copyArray[i] instanceof Double) {
-                            doubleArray[i] = (double) copyArray[i];
-                        } else {
+                    store = ((PSequence) initializer).getStorage();
+                    double[] doubleArray = new double[store.length()];
+
+                    for (i = 0; i < doubleArray.length; i++) {
+                        try {
+                            doubleArray[i] = PythonTypesGen.PYTHONTYPES.expectDouble(store.getItemInBound(i));
+                        } catch (UnexpectedResultException e) {
                             throw new RuntimeException("Unexpected argument type for array() ");
                         }
                     }
+
                     return new PDoubleArray(doubleArray);
                 default:
                     return null;
