@@ -355,7 +355,7 @@
   template(compileTheWorld_name,                  "compileTheWorld")                                                                  \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZ)V")                  \
+  template(compileMethod_signature,               "(JIZ)V")                                                                           \
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
   template(finalizeOptions_name,                  "finalizeOptions")                                                                  \

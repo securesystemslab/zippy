@@ -193,9 +193,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
   thread->set_is_graal_compiling(true);
-  Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
-  check_pending_exception("Error while calling createHotSpotResolvedObjectType");
-  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking);
+  VMToCompiler::compileMethod(method(), entry_bci, blocking);
   thread->set_is_graal_compiling(false);
 }
 
