@@ -22,31 +22,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.subscript;
 
-import org.python.core.*;
+import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public abstract class IndexNode extends UnaryOpNode {
+public abstract class SliceNode extends TernaryOpNode {
 
     @Specialization
-    public int doInteger(int index) {
-        return index;
+    public PSlice doPSlice(int start, int stop, int step) {
+        return new PSlice(start, stop, step);
     }
 
-    @SuppressWarnings("unused")
     @Specialization
-    public double doDouble(double index) {
-        throw Py.TypeError("list indices must be integers, not float");
+    public PSlice doPSlice(BigInteger start, BigInteger stop, BigInteger step) {
+        return new PSlice(start.intValue(), stop.intValue(), step.intValue());
     }
 
     @Generic
-    public Object doGeneric(Object index) {
-        return index;
+    public Object doGeneric(Object startObj, Object stopObj, Object stepObj) {
+        int start = 0;
+
+        if (startObj instanceof Integer) {
+            start = (Integer) startObj;
+        } else if (startObj instanceof BigInteger) {
+            start = ((BigInteger) startObj).intValue();
+        }
+
+        int stop = 0;
+        if (stopObj instanceof Integer) {
+            stop = (Integer) stopObj;
+        } else if (stopObj instanceof BigInteger) {
+            stop = ((BigInteger) stopObj).intValue();
+        }
+
+        int step = 1;
+        if (stepObj instanceof Integer) {
+            step = (Integer) stepObj;
+        } else if (stepObj instanceof BigInteger) {
+            step = ((BigInteger) stepObj).intValue();
+        }
+
+        return new PSlice(start, stop, step);
     }
 
 }

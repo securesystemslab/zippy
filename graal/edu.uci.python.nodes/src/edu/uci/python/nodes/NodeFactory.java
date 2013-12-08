@@ -41,6 +41,7 @@ import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.InnerGeneratorLoo
 import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.OuterGeneratorLoopNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.subscript.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
@@ -445,8 +446,16 @@ public class NodeFactory {
         return SubscriptLoadNodeFactory.create(primary, slice);
     }
 
+    public PNode createSubscriptLoadIndex(PNode primary, PNode slice) {
+        return SubscriptLoadIndexNodeFactory.create(primary, slice);
+    }
+
     public PNode createSubscriptStore(PNode primary, PNode slice, PNode value) {
         return SubscriptStoreNodeFactory.create(primary, slice, value);
+    }
+
+    public PNode createSubscriptStoreIndex(PNode primary, PNode slice, PNode value) {
+        return SubscriptStoreIndexNodeFactory.create(primary, slice, value);
     }
 
     public PNode createReadLocalVariable(FrameSlot slot) {
