@@ -133,12 +133,6 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   return result;
 C2V_END
 
-C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jlong metaspace_method))
-  Method* method = asMethod(metaspace_method);
-  assert(method != NULL && method->signature() != NULL, "signature required");
-  return (jstring)JNIHandles::make_local(java_lang_String::create_from_symbol(method->signature(), THREAD)());
-C2V_END
-
 C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
   ResourceMark rm;
   methodHandle method = asMethod(metaspace_method);
@@ -306,50 +300,31 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
   Handle name = JNIHandles::resolve(jname);
   Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
   assert(nameSymbol != NULL, "name to symbol creation failed");
+  assert(nameSymbol->size() > 1, "primitive types should be handled in Java code");
 
   oop result = NULL;
-  if (nameSymbol == vmSymbols::int_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_INT, THREAD);
-  } else if (nameSymbol == vmSymbols::long_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_LONG, THREAD);
-  } else if (nameSymbol == vmSymbols::bool_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_BOOLEAN, THREAD);
-  } else if (nameSymbol == vmSymbols::char_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_CHAR, THREAD);
-  } else if (nameSymbol == vmSymbols::short_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_SHORT, THREAD);
-  } else if (nameSymbol == vmSymbols::byte_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_BYTE, THREAD);
-  } else if (nameSymbol == vmSymbols::double_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_DOUBLE, THREAD);
-  } else if (nameSymbol == vmSymbols::float_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_FLOAT, THREAD);
-  } else if (nameSymbol == vmSymbols::void_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_VOID, THREAD);
+  Klass* resolved_type = NULL;
+  Handle classloader;
+  Handle protectionDomain;
+  if (JNIHandles::resolve(accessingClass) != NULL) {
+    classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->class_loader();
+    protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->protection_domain();
+  }
+
+  if (eagerResolve) {
+    resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
   } else {
-    Klass* resolved_type = NULL;
-    Handle classloader;
-    Handle protectionDomain;
-    if (JNIHandles::resolve(accessingClass) != NULL) {
-      classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->class_loader();
-      protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->protection_domain();
-    }
+    resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+  }
 
-    if (eagerResolve) {
-      resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
+  if (!HAS_PENDING_EXCEPTION) {
+    if (resolved_type == NULL) {
+      assert(!eagerResolve, "failed eager resolution should have caused an exception");
+      Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
+      result = type();
     } else {
-      resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
-    }
-
-    if (!HAS_PENDING_EXCEPTION) {
-      if (resolved_type == NULL) {
-        assert(!eagerResolve, "failed eager resolution should have caused an exception");
-        Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
-        result = type();
-      } else {
-        Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, name, CHECK_NULL);
-        result = type();
-      }
+      Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, name, CHECK_NULL);
+      result = type();
     }
   }
 
@@ -360,27 +335,19 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
-
   switch (tag.value()) {
   case JVM_CONSTANT_String:
-    {
       result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
       break;
-    }
-
   case JVM_CONSTANT_MethodHandle:
   case JVM_CONSTANT_MethodHandleInError:
   case JVM_CONSTANT_MethodType:
   case JVM_CONSTANT_MethodTypeInError:
-    {
       result = cp->resolve_constant_at(index, CHECK_NULL);
       break;
-    }
-
   default:
     fatal(err_msg_res("unknown constant pool tag %s at cpi %d in %s", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string()));
   }
-
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
@@ -389,7 +356,6 @@ C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jobject type, 
   index = GraalCompiler::to_cp_index(index, bc);
   constantPoolHandle cpool(InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants());
   oop appendix_oop = ConstantPool::appendix_at_if_loaded(cpool, index);
-
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
 
@@ -1026,7 +992,6 @@ C2V_END
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"getSignature",                  CC"("METASPACE_METHOD")"STRING,                                   FN_PTR(getSignature)},
   {CC"initializeExceptionHandlers",   CC"("METASPACE_METHOD EXCEPTION_HANDLERS")"EXCEPTION_HANDLERS,    FN_PTR(initializeExceptionHandlers)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
