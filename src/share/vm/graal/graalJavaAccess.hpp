@@ -49,8 +49,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
   start_class(HotSpotResolvedObjectType)                                                                                                                       \
-    long_field(HotSpotResolvedObjectType, metaspaceKlass)                                                                                                      \
-    oop_field(HotSpotResolvedObjectType, javaMirror, "Ljava/lang/Class;")                                                                                      \
+    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                      \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaMethod)                                                                                                                       \
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                                                                                           \

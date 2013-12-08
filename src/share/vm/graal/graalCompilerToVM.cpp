@@ -157,7 +157,7 @@ C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong
       ConstantPool* cp = InstanceKlass::cast(method->method_holder())->constants();
       KlassHandle loading_klass = method->method_holder();
       Handle catch_class = GraalCompiler::get_JavaType(cp, catch_class_index, loading_klass, CHECK_NULL);
-      if (catch_class->klass() == HotSpotResolvedObjectType::klass() && java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(catch_class)) == SystemDictionary::Throwable_klass()) {
+      if (catch_class->klass() == HotSpotResolvedObjectType::klass() && java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(catch_class)) == SystemDictionary::Throwable_klass()) {
         ExceptionHandler::set_catchType(entry, NULL);
         ExceptionHandler::set_catchTypeCPI(entry, 0);
       } else {
@@ -264,7 +264,7 @@ C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_
 C2V_END
 
 C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
-  InstanceKlass* klass = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(interface_type));
+  InstanceKlass* klass = (InstanceKlass*) java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(interface_type));
   assert(klass->is_interface(), "must be");
   if (klass->nof_implementors() == 1) {
     InstanceKlass* implementor = (InstanceKlass*) klass->implementor();
@@ -309,8 +309,8 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
   Handle classloader;
   Handle protectionDomain;
   if (JNIHandles::resolve(accessingClass) != NULL) {
-    classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->class_loader();
-    protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->protection_domain();
+    classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->class_loader();
+    protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->protection_domain();
   }
 
   if (eagerResolve) {
@@ -458,7 +458,7 @@ C2V_END
 C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(resolved_type));
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
   Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
   Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
@@ -474,7 +474,7 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return Dependencies::find_finalizable_subclass(klass) != NULL;
 C2V_END
@@ -482,7 +482,7 @@ C2V_END
 C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
   ResourceMark rm;
 
-  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass));
+  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass));
   GrowableArray<Handle> fields(k->java_fields_count());
 
   for (AllFieldStream fs(k()); !fs.done(); fs.next()) {
@@ -505,7 +505,7 @@ C2V_END
 C2V_VMENTRY(jobject, getMethods, (JNIEnv *, jobject, jobject klass))
   ResourceMark rm;
 
-  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass)));
+  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass)));
   Array<Method*>* methods = k->methods();
   int methods_length = methods->length();
 
@@ -531,13 +531,6 @@ C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
     return MAX2(ABS(off_low), ABS(off_high));
   }
   return -1;
-C2V_END
-
-C2V_VMENTRY(jobject, getResolvedType, (JNIEnv *env, jobject, jobject javaClass))
-  oop java_mirror = JNIHandles::resolve(javaClass);
-  assert(java_mirror != NULL, "argument to CompilerToVM.getResolvedType must not be NULL");
-  Handle type = GraalCompiler::get_JavaTypeFromClass(java_mirror, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, type());
 C2V_END
 
 
@@ -1010,7 +1003,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getResolvedType",               CC"("CLASS")"RESOLVED_TYPE,                                       FN_PTR(getResolvedType)},
   {CC"getMetaspaceMethod",            CC"("REFLECT_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,        FN_PTR(getMetaspaceMethod)},
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
