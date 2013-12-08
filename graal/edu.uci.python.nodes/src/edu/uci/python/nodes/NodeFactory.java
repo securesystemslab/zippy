@@ -443,7 +443,7 @@ public class NodeFactory {
     }
 
     public PNode createSubscriptLoad(PNode primary, PNode slice) {
-        return SubscriptLoadNodeFactory.create(primary, slice);
+        return SubscriptLoadSliceNodeFactory.create(primary, slice);
     }
 
     public PNode createSubscriptLoadIndex(PNode primary, PNode slice) {
@@ -451,7 +451,7 @@ public class NodeFactory {
     }
 
     public PNode createSubscriptStore(PNode primary, PNode slice, PNode value) {
-        return SubscriptStoreNodeFactory.create(primary, slice, value);
+        return SubscriptStoreSliceNodeFactory.create(primary, slice, value);
     }
 
     public PNode createSubscriptStoreIndex(PNode primary, PNode slice, PNode value) {

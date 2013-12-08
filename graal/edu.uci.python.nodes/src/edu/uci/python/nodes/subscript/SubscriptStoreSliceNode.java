@@ -24,18 +24,32 @@
  */
 package edu.uci.python.nodes.subscript;
 
+import com.oracle.truffle.api.dsl.*;
+
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.sequence.*;
 
-public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
+public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
 
-    public PNode getPrimary() {
-        return getLeftNode();
+    @Override
+    public PNode makeReadNode() {
+        return SubscriptLoadSliceNodeFactory.create(getPrimary(), getSlice());
     }
 
-    public PNode getSlice() {
-        return getRightNode();
+    @Specialization(order = 0)
+    public Object doPSequence(PSequence primary, PSlice slice, PSequence value) {
+        primary.setSlice(slice, value);
+        return null;
     }
 
+    /**
+     * Unboxed array stores.
+     */
+    @Specialization(order = 10)
+    public Object doPArray(PArray primary, PSlice slice, PArray value) {
+        primary.setSlice(slice, value);
+        return null;
+    }
 }

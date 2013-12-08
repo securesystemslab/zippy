@@ -30,9 +30,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.sequence.*;
 
 @NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
 public abstract class SubscriptStoreNode extends StatementNode implements WriteNode {
@@ -42,11 +39,6 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
     public abstract PNode getSlice();
 
     public abstract PNode getRight();
-
-    @Override
-    public PNode makeReadNode() {
-        return SubscriptLoadNodeFactory.create(getPrimary(), getSlice());
-    }
 
     @Override
     public PNode getRhs() {
@@ -59,75 +51,5 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
     }
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
-
-    /*
-     * As a right hand side expression
-     */
-    @Specialization(order = 0)
-    public Object doPDictionary(PDict primary, Object slice, Object value) {
-        primary.setItem(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 1)
-    public Object doPSequence(PSequence primary, int slice, Object value) {
-        primary.setItem(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 2)
-    public Object doPSequence(PSequence primary, PSlice slice, PSequence value) {
-        primary.setSlice(slice, value);
-        return null;
-    }
-
-    /**
-     * Unboxed array stores.
-     */
-    @Specialization(order = 10)
-    public Object doPArrayInt(PIntArray primary, int slice, int value) {
-        primary.setIntItem(slice, value);
-        return PNone.NONE;
-    }
-
-    @Specialization(order = 14)
-    public Object doPArray(PArray primary, PSlice slice, PArray value) {
-        primary.setSlice(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 15)
-    public Object doPArrayDouble(PArray primary, int slice, double value) {
-        primary.setItem(slice, value);
-        return null;
-    }
-
-    @Specialization(order = 17)
-    public Object doPArrayChar(PArray primary, int slice, char value) {
-        primary.setItem(slice, value);
-        return null;
-    }
-
-    @Generic
-    public Object doGeneric(Object primary, Object slice, Object value) {
-        if (primary instanceof PSequence) {
-            PSequence prim = (PSequence) primary;
-            if (slice instanceof Integer) {
-                prim.setItem((int) slice, value);
-            } else if (slice instanceof PSlice) {
-                prim.setSlice((PSlice) slice, (PSequence) value);
-            }
-        } else if (primary instanceof PDict) {
-            PDict prim = (PDict) primary;
-            prim.setItem(slice, value);
-        } else if (primary instanceof PArray) {
-            PArray prim = (PArray) primary;
-            prim.setItem((int) slice, value);
-        } else {
-            throw new RuntimeException("Unsupported Type!");
-        }
-
-        return PNone.NONE;
-    }
 
 }

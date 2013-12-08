@@ -25,40 +25,18 @@
 package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
-@NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "index", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
-public abstract class SubscriptStoreIndexNode extends StatementNode implements WriteNode {
-
-    public abstract PNode getPrimary();
-
-    public abstract PNode getIndex();
-
-    public abstract PNode getRight();
+public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
 
     @Override
     public PNode makeReadNode() {
-        return SubscriptLoadIndexNodeFactory.create(getPrimary(), getIndex());
+        return SubscriptLoadIndexNodeFactory.create(getPrimary(), getSlice());
     }
-
-    @Override
-    public PNode getRhs() {
-        return getRight();
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
-        return executeWith(frame, value);
-    }
-
-    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     @Specialization(order = 1)
     public Object doPSequence(PSequence primary, int index, Object value) {

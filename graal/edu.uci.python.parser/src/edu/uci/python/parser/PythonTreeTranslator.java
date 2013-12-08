@@ -412,7 +412,7 @@ public class PythonTreeTranslator extends Visitor {
             primary = ((StoreAttributeNode) primary).makeReadNode();
         }
 
-        if (node.getInternalSlice() instanceof Index) {
+        if (!(node.getInternalSlice() instanceof Slice)) {
             return factory.createSubscriptLoadIndex(primary, slice);
         } else {
             return factory.createSubscriptLoad(primary, slice);
