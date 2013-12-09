@@ -71,13 +71,21 @@ public class PCharArray extends PArray implements Iterable<Character> {
 
     @Override
     public Object getItem(int idx) {
+        return getCharItemInBound(idx);
+    }
+
+    public char getCharItemInBound(int idx) {
         return array[idx];
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        array[index] = (char) value;
+        setCharItemInBound(index, (char) value);
+    }
+
+    public void setCharItemInBound(int idx, char value) {
+        array[idx] = value;
     }
 
     @Override

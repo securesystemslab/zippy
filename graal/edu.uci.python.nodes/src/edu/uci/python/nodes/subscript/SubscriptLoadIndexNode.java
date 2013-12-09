@@ -88,6 +88,11 @@ public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements Rea
         return primary.getDoubleItemInBound(index);
     }
 
+    @Specialization(order = 12)
+    public char doPCharArray(PCharArray primary, int index) {
+        return primary.getCharItemInBound(index);
+    }
+
     @Specialization(order = 14)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
