@@ -981,6 +981,10 @@ def _basic_gate_body(args, tasks):
 
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
+            if 'eclipse' in str(test) and mx.java().version >= mx.JavaVersion('1.8'):
+                # DaCapo eclipse doesn't not run under JDK8
+                continue
+
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
@@ -1132,13 +1136,18 @@ def gv(args):
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
-    if (mx.java().version >= mx.JavaVersion('1.8')) :
-        mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
+    env = os.environ.copy()
+    if mx.java().version >= mx.JavaVersion('1.8'):
+        jdk7 = mx.get_env('JAVA7_HOME', None)
+        if jdk7:
+            env['JAVA_HOME'] = jdk7
+        else:
+            mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
             mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
 
 def bench(args):
     """run benchmarks and parse their output for results
