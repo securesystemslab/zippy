@@ -194,27 +194,10 @@ C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_metho
   return true;
 C2V_END
 
-// XXX getMetaspaceMethodBySlot
-C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jobject reflection_method_handle, jobject resultHolder))
-  oop reflection_method = JNIHandles::resolve(reflection_method_handle);
-  oop reflection_holder = java_lang_reflect_Method::clazz(reflection_method);
-  int slot = java_lang_reflect_Method::slot(reflection_method);
-  Klass* holder = java_lang_Class::as_Klass(reflection_holder);
+C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle, jint slot))
+  oop java_class = JNIHandles::resolve(holder_handle);
+  Klass* holder = java_lang_Class::as_Klass(java_class);
   methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
-  return (jlong) (address) method();
-}
-
-// XXX getMetaspaceConstructorBySlot
-C2V_VMENTRY(jlong, getMetaspaceConstructor, (JNIEnv *, jobject, jobject reflection_ctor_handle, jobject resultHolder))
-  oop reflection_ctor = JNIHandles::resolve(reflection_ctor_handle);
-  oop reflection_holder = java_lang_reflect_Constructor::clazz(reflection_ctor);
-  int slot = java_lang_reflect_Constructor::slot(reflection_ctor);
-  Klass* holder = java_lang_Class::as_Klass(reflection_holder);
-  methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
   return (jlong) (address) method();
 }
 
@@ -986,8 +969,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getMetaspaceMethod",            CC"("REFLECT_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,        FN_PTR(getMetaspaceMethod)},
-  {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
+  {CC"getMetaspaceMethod",            CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
