@@ -46,6 +46,8 @@ public class SequenceStorageFactory {
 
         if (canSpecializeToInt(values)) {
             return new IntSequenceStorage(specializeToInt(values));
+        } else if (canSpecializeToDouble(values)) {
+            return new DoubleSequenceStorage(specializeToDouble(values));
         } else {
             return new ObjectSequenceStorage(values);
         }
@@ -75,4 +77,27 @@ public class SequenceStorageFactory {
         return intVals;
     }
 
+    protected static boolean canSpecializeToDouble(Object[] values) {
+        if (!(values[0] instanceof Double)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            if (!(item instanceof Double)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected static double[] specializeToDouble(Object[] values) {
+        final double[] doubles = new double[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            doubles[i] = (double) values[i];
+        }
+
+        return doubles;
+    }
 }

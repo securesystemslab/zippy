@@ -49,11 +49,6 @@ public class PList extends PSequence {
         store = SequenceStorageFactory.createStorage(null);
     }
 
-    public PList(Object[] elements) {
-        assert elements != null;
-        store = SequenceStorageFactory.createStorage(elements);
-    }
-
     public PList(SequenceStorage store) {
         this.store = store;
     }

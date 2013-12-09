@@ -83,6 +83,8 @@ public abstract class ListLiteralNode extends LiteralNode {
 
             if (store instanceof IntSequenceStorage) {
                 replace(new IntListLiteralNode(values));
+            } else if (store instanceof DoubleSequenceStorage) {
+                replace(new DoubleListLiteralNode(values));
             } else {
                 replace(new ObjectListLiteralNode(values));
             }
@@ -117,6 +119,35 @@ public abstract class ListLiteralNode extends LiteralNode {
             }
 
             return new PList(new IntSequenceStorage(elements));
+        }
+    }
+
+    public static class DoubleListLiteralNode extends ListLiteralNode {
+
+        public DoubleListLiteralNode(PNode[] values) {
+            super(values);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final double[] elements = new double[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                try {
+                    elements[i] = values[i].executeInt(frame);
+                } catch (UnexpectedResultException e) {
+                    final Object[] evaluated = new Object[i];
+
+                    for (int j = 0; j < i; j++) {
+                        evaluated[j] = elements[j];
+                    }
+
+                    doGeneric(frame, evaluated);
+                }
+            }
+
+            return new PList(new DoubleSequenceStorage(elements));
         }
     }
 
