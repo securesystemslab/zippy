@@ -30,6 +30,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
 
@@ -38,16 +39,40 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return SubscriptLoadIndexNodeFactory.create(getPrimary(), getSlice());
     }
 
-    @Specialization(order = 1)
+    @Specialization(order = 1, guards = "isIntStore")
+    public Object doPListInt(PList primary, int idx, int value) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        final int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setIntItemInBound(index, value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 2, guards = "isIntStore")
+    public Object doPListDouble(PList primary, int idx, double value) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        final int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setDoubleItemInBound(index, value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 4)
     public Object doPSequence(PSequence primary, int index, Object value) {
         primary.setItem(index, value);
         return PNone.NONE;
     }
 
+    protected boolean isIntStore(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected boolean isDoubleStore(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
+    }
+
     /**
      * PDict key & value store.
      */
-    @Specialization(order = 2)
+    @Specialization(order = 5)
     public Object doPDict(PDict primary, Object key, Object value) {
         primary.setItem(key, value);
         return PNone.NONE;

@@ -32,6 +32,7 @@ import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements ReadNode {
 
@@ -47,24 +48,46 @@ public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements Rea
         return SubscriptStoreIndexNodeFactory.create(getPrimary(), getIndex(), rhs);
     }
 
-    @Specialization(order = 1)
-    public String doString(String primary, int slice) {
-        int fixedSlice = slice;
+    @Specialization(order = 0)
+    public String doString(String primary, int idx) {
+        int index = idx;
 
-        if (slice < 0) {
-            fixedSlice += primary.length();
+        if (idx < 0) {
+            index += primary.length();
         }
-        return charAtToString(primary, fixedSlice);
+        return charAtToString(primary, index);
     }
 
-    private static String charAtToString(String primary, int fixedSlice) {
-        char charactor = primary.charAt(fixedSlice);
+    private static String charAtToString(String primary, int index) {
+        char charactor = primary.charAt(index);
         return new String(new char[]{charactor});
     }
 
+    @Specialization(order = 1, guards = "isIntStore")
+    public int doPListInt(PList primary, int idx) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getIntItemInBound(index);
+    }
+
+    @Specialization(order = 2, guards = "isDoubleStore")
+    public double doPListDouble(PList primary, int idx) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getDoubleItemInBound(index);
+    }
+
     @Specialization(order = 3)
-    public Object doPSequence(PSequence primary, int slice) {
-        return primary.getItem(slice);
+    public Object doPSequence(PSequence primary, int idx) {
+        return primary.getItem(idx);
+    }
+
+    protected boolean isIntStore(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected boolean isDoubleStore(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
     /**
