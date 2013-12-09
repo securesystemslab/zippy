@@ -847,19 +847,20 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(String str, Object keywordArg) {
-                return new PEnumerate(new PString(str));
+                PString pstr = new PString(str);
+                return new PEnumerate(pstr.__iter__());
             }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(PSequence sequence, Object keywordArg) {
-                return new PEnumerate(sequence);
+                return new PEnumerate(sequence.__iter__());
             }
 
             @SuppressWarnings("unused")
             @Specialization
             public PEnumerate enumerate(PBaseSet set, Object keywordArg) {
-                return new PEnumerate(set);
+                return new PEnumerate(set.__iter__());
             }
 
             @Specialization
@@ -868,13 +869,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 if (keywordArg instanceof PNone) {
                     if (arg instanceof String) {
                         String str = (String) arg;
-                        return new PEnumerate(stringToCharList(str));
+                        PString pstr = new PString(str);
+                        return new PEnumerate(pstr.__iter__());
                     } else if (arg instanceof PSequence) {
                         PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence);
+                        return new PEnumerate(sequence.__iter__());
                     } else if (arg instanceof PBaseSet) {
                         PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet);
+                        return new PEnumerate(baseSet.__iter__());
                     }
 
                     if (!(arg instanceof Iterable<?>)) {
@@ -1196,12 +1198,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
+                // return null;
                 return new PSet(stringToCharList(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
                 return new PSet(sequence);
+                // return new PSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1213,10 +1217,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PSet set(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
+                    // return null;
                     return new PSet(stringToCharList(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
                     return new PSet(sequence);
+                    // return new PSet(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PSet(baseSet);

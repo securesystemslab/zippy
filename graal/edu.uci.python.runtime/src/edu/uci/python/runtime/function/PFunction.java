@@ -81,6 +81,7 @@ public final class PFunction extends PythonBuiltinObject implements PythonCallab
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
+        System.out.println("EXECUTING " + name);
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, args));
     }
 
