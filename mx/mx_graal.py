@@ -1132,6 +1132,8 @@ def gv(args):
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
+    if (mx.java().version >= mx.JavaVersion('1.8')) :
+        mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):

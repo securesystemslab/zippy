@@ -1523,15 +1523,15 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     assert(state == not_entrant, "other cases may need to be handled differently");
   }
 #ifdef GRAAL
-      if (_graal_installed_code != NULL) {
-        // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
-        HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
-      }
+  if (_graal_installed_code != NULL) {
+    // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
+    HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+  }
 #endif
 
   if (TraceCreateZombies) {
     ResourceMark m;
-    tty->print_cr("nmethod <" INTPTR_FORMAT "> %s code made %s", this, this->method()->name_and_sig_as_C_string(), (state == not_entrant) ? "not entrant" : "zombie");
+    tty->print_cr("nmethod <" INTPTR_FORMAT "> %s code made %s", this, this->method() ? this->method()->name_and_sig_as_C_string() : "null", (state == not_entrant) ? "not entrant" : "zombie");
   }
 
   NMethodSweeper::report_state_change(this);

@@ -207,6 +207,7 @@ address InterpreterGenerator::generate_deopt_entry_for(TosState state,
   __ movptr(Address(rbp, frame::interpreter_frame_last_sp_offset * wordSize), (int32_t)NULL_WORD);
   __ restore_bcp();
   __ restore_locals();
+#ifdef GRAAL
   // Check if we need to take lock at entry of synchronized method.
   {
     Label L;
@@ -220,6 +221,7 @@ address InterpreterGenerator::generate_deopt_entry_for(TosState state,
     lock_method();
     __ bind(L);
   }
+#endif
   // handle exceptions
   {
     Label L;

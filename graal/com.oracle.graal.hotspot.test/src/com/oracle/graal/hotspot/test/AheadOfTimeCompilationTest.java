@@ -23,6 +23,7 @@
 package com.oracle.graal.hotspot.test;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 
@@ -32,11 +33,11 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.java.*;
+import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.options.*;
@@ -207,8 +208,8 @@ public class AheadOfTimeCompilationTest extends GraalCompilerTest {
             CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
             // create suites everytime, as we modify options for the compiler
             final Suites suitesLocal = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getSuites().createSuites();
-            final CompilationResult compResult = GraalCompiler.compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
-                            new SpeculationLog(), suitesLocal, new CompilationResult());
+            final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
+                            getProfilingInfo(graph), new SpeculationLog(), suitesLocal, true, new CompilationResult(), CompilationResultBuilderFactory.Default);
             addMethod(method, compResult);
         }
 

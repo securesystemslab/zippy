@@ -142,6 +142,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
 
     @Override
     public AMD64AddressValue emitAddress(Value base, long displacement, Value index, int scale) {
+        assert (scale >= 1 && scale <= 8) || index.equals(Value.ILLEGAL) : "invalid scale";
         AllocatableValue baseRegister;
         long finalDisp = displacement;
         if (isConstant(base)) {
@@ -298,6 +299,28 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         }
     }
 
+    protected void emitCompareOp(Variable left, Value right) {
+        switch (left.getKind().getStackKind()) {
+            case Int:
+                append(new CompareOp(ICMP, left, right));
+                break;
+            case Long:
+                append(new CompareOp(LCMP, left, right));
+                break;
+            case Object:
+                append(new CompareOp(ACMP, left, right));
+                break;
+            case Float:
+                append(new CompareOp(FCMP, left, right));
+                break;
+            case Double:
+                append(new CompareOp(DCMP, left, right));
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
     /**
      * This method emits the compare instruction, and may reorder the operands. It returns true if
      * it did so.
@@ -319,25 +342,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
             right = loadNonConst(b);
             mirrored = false;
         }
-        switch (left.getKind().getStackKind()) {
-            case Int:
-                append(new CompareOp(ICMP, left, right));
-                break;
-            case Long:
-                append(new CompareOp(LCMP, left, right));
-                break;
-            case Object:
-                append(new CompareOp(ACMP, left, right));
-                break;
-            case Float:
-                append(new CompareOp(FCMP, left, right));
-                break;
-            case Double:
-                append(new CompareOp(DCMP, left, right));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
+        emitCompareOp(left, right);
         return mirrored;
     }
 
@@ -885,7 +890,7 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     protected void emitForeignCall(ForeignCallLinkage linkage, Value result, Value[] arguments, Value[] temps, LIRFrameState info) {
         long maxOffset = linkage.getMaxCallTargetOffset();
         if (maxOffset != (int) maxOffset) {
-            append(new AMD64Call.DirectFarForeignCallOp(this, linkage, result, arguments, temps, info));
+            append(new AMD64Call.DirectFarForeignCallOp(linkage, result, arguments, temps, info));
         } else {
             append(new AMD64Call.DirectNearForeignCallOp(linkage, result, arguments, temps, info));
         }

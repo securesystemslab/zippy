@@ -42,6 +42,8 @@ import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.runtime.*;
 
+//JaCoCo Exclude
+
 /**
  * Singleton class holding the instance of the {@link GraalRuntime}.
  */
@@ -235,7 +237,6 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider 
             registerBackend(factory.createBackend(this, hostBackend));
         }
 
-        GraalOptions.StackShadowPages.setValue(config.stackShadowPages);
         if (GraalOptions.CacheGraphs.getValue()) {
             cache = new HotSpotGraphCache(compilerToVm);
         }
@@ -256,8 +257,10 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider 
         String arch = System.getProperty("os.arch");
         switch (arch) {
             case "x86_64":
-                // This is what Mac OS X reports;
                 arch = "amd64";
+                break;
+            case "sparcv9":
+                arch = "sparc";
                 break;
         }
         return arch;
