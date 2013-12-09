@@ -24,29 +24,34 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PEnumerate extends PIterator {
+public class PEnumerate implements PIterable {
 
-    private int index;
-    public PIterator iterator;
+    private final PIterable iterable;
 
-    public PEnumerate(PIterator iter) {
-        this.iterator = iter;
+    public PEnumerate(PIterable iterable) {
+        this.iterable = iterable;
     }
 
     @Override
     public PIterator __iter__() {
-        return this;
+        return new PEnumerateIterator(iterable.__iter__());
     }
 
     @Override
-    public Object __next__() {
-        return new PTuple((new Object[]{index++, iterator.__next__()}));
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

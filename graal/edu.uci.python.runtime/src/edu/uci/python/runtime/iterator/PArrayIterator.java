@@ -27,6 +27,10 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.exception.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class PArrayIterator extends PIterator {
 
     private final PArray array;

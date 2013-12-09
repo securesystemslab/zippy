@@ -46,14 +46,6 @@ public abstract class PythonBuiltinObject {
         return __class__;
     }
 
-    public Object getMax() {
-        throw new UnsupportedOperationException();
-    }
-
-    public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
     public int len() {
         throw new UnsupportedOperationException();
     }

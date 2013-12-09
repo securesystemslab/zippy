@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 

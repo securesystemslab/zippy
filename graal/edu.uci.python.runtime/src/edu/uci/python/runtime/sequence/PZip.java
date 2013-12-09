@@ -24,33 +24,40 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PZip extends PIterator {
+public class PZip implements PIterable {
 
-    private PIterator[] iterables;
+    private final PIterable[] iterables;
 
-    public PZip(PIterator[] iterables) {
+    public PZip(PIterable[] iterables) {
         this.iterables = iterables;
     }
 
     @Override
     public PIterator __iter__() {
-        return this;
+
+        PIterator[] iterators = new PIterator[iterables.length];
+        for (int i = 0; i < iterables.length; i++) {
+            iterators[i] = iterables[i].__iter__();
+        }
+
+        return new PZipIterator(iterators);
     }
 
     @Override
-    public Object __next__() {
-        Object[] tupleElements = new Object[iterables.length];
-        for (int i = 0; i < iterables.length; i++) {
-            tupleElements[i] = iterables[i].__next__();
-        }
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
 
-        return new PTuple(tupleElements);
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

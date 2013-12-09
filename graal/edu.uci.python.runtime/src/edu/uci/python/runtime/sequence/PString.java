@@ -136,4 +136,14 @@ public class PString extends PImmutableSequence {
     public int index(Object value) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
 }
