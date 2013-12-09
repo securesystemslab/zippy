@@ -133,12 +133,6 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   return result;
 C2V_END
 
-C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jlong metaspace_method))
-  Method* method = asMethod(metaspace_method);
-  assert(method != NULL && method->signature() != NULL, "signature required");
-  return (jstring)JNIHandles::make_local(java_lang_String::create_from_symbol(method->signature(), THREAD)());
-C2V_END
-
 C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
   ResourceMark rm;
   methodHandle method = asMethod(metaspace_method);
@@ -163,7 +157,7 @@ C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong
       ConstantPool* cp = InstanceKlass::cast(method->method_holder())->constants();
       KlassHandle loading_klass = method->method_holder();
       Handle catch_class = GraalCompiler::get_JavaType(cp, catch_class_index, loading_klass, CHECK_NULL);
-      if (catch_class->klass() == HotSpotResolvedObjectType::klass() && java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(catch_class)) == SystemDictionary::Throwable_klass()) {
+      if (catch_class->klass() == HotSpotResolvedObjectType::klass() && java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(catch_class)) == SystemDictionary::Throwable_klass()) {
         ExceptionHandler::set_catchType(entry, NULL);
         ExceptionHandler::set_catchTypeCPI(entry, 0);
       } else {
@@ -200,42 +194,11 @@ C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_metho
   return true;
 C2V_END
 
-C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jobject reflection_method_handle, jobject resultHolder))
-  oop reflection_method = JNIHandles::resolve(reflection_method_handle);
-  oop reflection_holder = java_lang_reflect_Method::clazz(reflection_method);
-  int slot = java_lang_reflect_Method::slot(reflection_method);
-  Klass* holder = java_lang_Class::as_Klass(reflection_holder);
+C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle, jint slot))
+  oop java_class = JNIHandles::resolve(holder_handle);
+  Klass* holder = java_lang_Class::as_Klass(java_class);
   methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
   return (jlong) (address) method();
-}
-
-C2V_VMENTRY(jlong, getMetaspaceConstructor, (JNIEnv *, jobject, jobject reflection_ctor_handle, jobject resultHolder))
-  oop reflection_ctor = JNIHandles::resolve(reflection_ctor_handle);
-  oop reflection_holder = java_lang_reflect_Constructor::clazz(reflection_ctor);
-  int slot = java_lang_reflect_Constructor::slot(reflection_ctor);
-  Klass* holder = java_lang_Class::as_Klass(reflection_holder);
-  methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
-  return (jlong) (address) method();
-}
-
-C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_handle))
-  oop reflection_field = JNIHandles::resolve(reflection_field_handle);
-  oop reflection_holder = java_lang_reflect_Field::clazz(reflection_field);
-  int slot = java_lang_reflect_Field::slot(reflection_field);
-  InstanceKlass* holder = InstanceKlass::cast(java_lang_Class::as_Klass(reflection_holder));
-
-  int offset = holder->field_offset(slot);
-  int flags = holder->field_access_flags(slot);
-  Symbol* field_name = holder->field_name(slot);
-  Handle field_holder = GraalCompiler::get_JavaTypeFromClass(reflection_holder, CHECK_NULL);
-  Handle field_type = GraalCompiler::get_JavaTypeFromClass(java_lang_reflect_Field::type(reflection_field), CHECK_NULL);
-
-  Handle ret = GraalCompiler::get_JavaField(offset, flags, field_name, field_holder, field_type, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, ret());
 }
 
 C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
@@ -268,7 +231,7 @@ C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_
 C2V_END
 
 C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
-  InstanceKlass* klass = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(interface_type));
+  InstanceKlass* klass = (InstanceKlass*) java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(interface_type));
   assert(klass->is_interface(), "must be");
   if (klass->nof_implementors() == 1) {
     InstanceKlass* implementor = (InstanceKlass*) klass->implementor();
@@ -282,10 +245,7 @@ C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
-  Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
-  HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
-  HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
   HotSpotResolvedJavaMethod::set_exceptionHandlerCount(hotspot_method, method->exception_table_length());
   HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
   HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
@@ -298,12 +258,6 @@ C2V_VMENTRY(jboolean, isMethodCompilable,(JNIEnv *, jobject, jlong metaspace_met
   return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method);
 C2V_END
 
-C2V_VMENTRY(void, initializeMethodData,(JNIEnv *, jobject, jlong metaspace_method_data, jobject hotspot_method_data))
-  MethodData* method_data = asMethodData(metaspace_method_data);
-  HotSpotMethodData::set_normalDataSize(hotspot_method_data, method_data->data_size());
-  HotSpotMethodData::set_extraDataSize(hotspot_method_data, method_data->extra_data_size());
-C2V_END
-  
 C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_method))
   nmethod* code = (asMethod(metaspace_method))->code();
   return code == NULL ? 0 : code->insts_size();
@@ -315,124 +269,67 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
   Handle name = JNIHandles::resolve(jname);
   Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
   assert(nameSymbol != NULL, "name to symbol creation failed");
+  assert(nameSymbol->size() > 1, "primitive types should be handled in Java code");
 
   oop result = NULL;
-  if (nameSymbol == vmSymbols::int_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_INT, THREAD);
-  } else if (nameSymbol == vmSymbols::long_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_LONG, THREAD);
-  } else if (nameSymbol == vmSymbols::bool_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_BOOLEAN, THREAD);
-  } else if (nameSymbol == vmSymbols::char_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_CHAR, THREAD);
-  } else if (nameSymbol == vmSymbols::short_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_SHORT, THREAD);
-  } else if (nameSymbol == vmSymbols::byte_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_BYTE, THREAD);
-  } else if (nameSymbol == vmSymbols::double_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_DOUBLE, THREAD);
-  } else if (nameSymbol == vmSymbols::float_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_FLOAT, THREAD);
-  } else if (nameSymbol == vmSymbols::void_signature()) {
-    result = VMToCompiler::createPrimitiveJavaType((int) T_VOID, THREAD);
+  Klass* resolved_type = NULL;
+  Handle classloader;
+  Handle protectionDomain;
+  if (JNIHandles::resolve(accessingClass) != NULL) {
+    classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->class_loader();
+    protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->protection_domain();
+  }
+
+  if (eagerResolve) {
+    resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
   } else {
-    Klass* resolved_type = NULL;
-    Handle classloader;
-    Handle protectionDomain;
-    if (JNIHandles::resolve(accessingClass) != NULL) {
-      classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->class_loader();
-      protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(accessingClass))->protection_domain();
-    }
+    resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+  }
 
-    if (eagerResolve) {
-      resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
+  if (!HAS_PENDING_EXCEPTION) {
+    if (resolved_type == NULL) {
+      assert(!eagerResolve, "failed eager resolution should have caused an exception");
+      Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
+      result = type();
     } else {
-      resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
-    }
-
-    if (!HAS_PENDING_EXCEPTION) {
-      if (resolved_type == NULL) {
-        assert(!eagerResolve, "failed eager resolution should have caused an exception");
-        Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
-        result = type();
-      } else {
-        Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, name, CHECK_NULL);
-        result = type();
-      }
+      Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, name, CHECK_NULL);
+      result = type();
     }
   }
 
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, jint index))
-
-  ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
-
+C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
-
   switch (tag.value()) {
-  case JVM_CONSTANT_Integer:
-    result = VMToCompiler::createConstant(Kind::Int(), cp->int_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Long:
-    result = VMToCompiler::createConstant(Kind::Long(), cp->long_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Float:
-    result = VMToCompiler::createConstantFloat(cp->float_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Double:
-    result = VMToCompiler::createConstantDouble(cp->double_at(index), CHECK_NULL);
-    break;
-
-  case JVM_CONSTANT_Class:
-  case JVM_CONSTANT_UnresolvedClass:
-  case JVM_CONSTANT_UnresolvedClassInError:
-    {
-      Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
-      result = type();
-      break;
-    }
-
   case JVM_CONSTANT_String:
-    {
-      oop result_oop = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
-      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
       break;
-    }
-
   case JVM_CONSTANT_MethodHandle:
   case JVM_CONSTANT_MethodHandleInError:
   case JVM_CONSTANT_MethodType:
   case JVM_CONSTANT_MethodTypeInError:
-    {
-      oop result_oop = cp->resolve_constant_at(index, CHECK_NULL);
-      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      result = cp->resolve_constant_at(index, CHECK_NULL);
       break;
-    }
-
   default:
     fatal(err_msg_res("unknown constant pool tag %s at cpi %d in %s", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string()));
   }
-
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte opcode))
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
   index = GraalCompiler::to_cp_index(index, bc);
-  constantPoolHandle cpool(InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants());
-  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cpool, index);
-
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte opcode))
-  constantPoolHandle cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
+C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
@@ -457,15 +354,14 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
   }
 C2V_END
 
-C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jobject type, jint index))
-
-  ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
+C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   Handle result = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
   return JNIHandles::make_local(THREAD, result());
 C2V_END
 
-C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte op))
-  ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
+C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte op))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   Bytecodes::Code bc = (Bytecodes::Code) (((int) op) & 0xFF);
   if (bc != Bytecodes::_checkcast && bc != Bytecodes::_instanceof && bc != Bytecodes::_new && bc != Bytecodes::_anewarray
       && bc != Bytecodes::_multianewarray && bc != Bytecodes::_ldc && bc != Bytecodes::_ldc_w && bc != Bytecodes::_ldc2_w)
@@ -486,11 +382,11 @@ C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject typ
   }
 C2V_END
 
-C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte opcode))
+C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   ResourceMark rm;
 
   int cp_index = GraalCompiler::to_cp_index_u2(index);
-  constantPoolHandle cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(constantPoolHolder)))->constants();
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
 
   int nt_index = cp->name_and_type_ref_index_at(cp_index);
   int sig_index = cp->signature_ref_index_at(nt_index);
@@ -529,7 +425,7 @@ C2V_END
 C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(resolved_type));
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
   Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
   Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
@@ -544,36 +440,16 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
   return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
 C2V_END
 
-// TODO move to Java
-C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
-  assert(klass != NULL, "method must not be called for primitive types");
-  return InstanceKlass::cast(klass)->is_initialized();
-C2V_END
-
-// TODO move to Java
-C2V_VMENTRY(jboolean, isTypeLinked,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
-  assert(klass != NULL, "method must not be called for primitive types");
-  return InstanceKlass::cast(klass)->is_linked();
-C2V_END
-
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return Dependencies::find_finalizable_subclass(klass) != NULL;
-C2V_END
-
-C2V_VMENTRY(void, initializeType, (JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
-  assert(klass != NULL, "method must not be called for primitive types");
-  InstanceKlass::cast(klass)->initialize(JavaThread::current());
 C2V_END
 
 C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
   ResourceMark rm;
 
-  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass));
+  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass));
   GrowableArray<Handle> fields(k->java_fields_count());
 
   for (AllFieldStream fs(k()); !fs.done(); fs.next()) {
@@ -596,7 +472,7 @@ C2V_END
 C2V_VMENTRY(jobject, getMethods, (JNIEnv *, jobject, jobject klass))
   ResourceMark rm;
 
-  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass)));
+  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass)));
   Array<Method*>* methods = k->methods();
   int methods_length = methods->length();
 
@@ -622,13 +498,6 @@ C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
     return MAX2(ABS(off_low), ABS(off_high));
   }
   return -1;
-C2V_END
-
-C2V_VMENTRY(jobject, getResolvedType, (JNIEnv *env, jobject, jobject javaClass))
-  oop java_mirror = JNIHandles::resolve(javaClass);
-  assert(java_mirror != NULL, "argument to CompilerToVM.getResolvedType must not be NULL");
-  Handle type = GraalCompiler::get_JavaTypeFromClass(java_mirror, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, type());
 C2V_END
 
 
@@ -870,8 +739,8 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
   // a ResourceMark and the buffer expands within the scope of the mark,
   // the buffer becomes garbage when that scope is exited. Experience shows that
   // the disassembled code is typically about 10x the code size so a fixed buffer
-  // sized to 20x code size should be sufficient.
-  int bufferSize = cb->code_size() * 20;
+  // sized to 20x code size plus a fixed amount for header info should be sufficient.
+  int bufferSize = cb->code_size() * 20 + 1024;
   char* buffer = NEW_RESOURCE_ARRAY(char, bufferSize);
   stringStream st(buffer, bufferSize);
   if (cb->is_nmethod()) {
@@ -993,19 +862,6 @@ C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_
 C2V_END
 
 
-C2V_VMENTRY(jobject, getFileName, (JNIEnv *, jobject, jobject klass))
-  ResourceMark rm;
-  InstanceKlass* k = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(klass));
-  Symbol *s = k->source_file_name();
-  int length;
-  jchar *name = s->as_unicode(length);
-
-  Handle result = java_lang_String::create_from_unicode(name, length, CHECK_NULL);
-  return JNIHandles::make_local(result());
-
-C2V_END
-
-
 C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   MethodCounters* mcs = method->method_counters();
@@ -1076,26 +932,22 @@ C2V_END
 #define EXCEPTION_HANDLERS    "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
 #define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
-#define REFLECT_FIELD         "Ljava/lang/reflect/Field;"
 #define STRING                "Ljava/lang/String;"
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
-#define HS_RESOLVED_JAVA_TYPE "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
-#define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
-#define METASPACE_METHOD_DATA "J"
+#define METASPACE_CONSTANT_POOL "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"getSignature",                  CC"("METASPACE_METHOD")"STRING,                                   FN_PTR(getSignature)},
   {CC"initializeExceptionHandlers",   CC"("METASPACE_METHOD EXCEPTION_HANDLERS")"EXCEPTION_HANDLERS,    FN_PTR(initializeExceptionHandlers)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
@@ -1103,28 +955,21 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
-  {CC"lookupConstantInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupConstantInPool)},
-  {CC"lookupAppendixInPool",          CC"("HS_RESOLVED_TYPE"IB)"OBJECT,                                 FN_PTR(lookupAppendixInPool)},
-  {CC"lookupMethodInPool",            CC"("HS_RESOLVED_TYPE"IB)"METHOD,                                 FN_PTR(lookupMethodInPool)},
-  {CC"lookupTypeInPool",              CC"("HS_RESOLVED_TYPE"I)"TYPE,                                    FN_PTR(lookupTypeInPool)},
-  {CC"lookupReferencedTypeInPool",    CC"("HS_RESOLVED_TYPE"IB)V",                                      FN_PTR(lookupReferencedTypeInPool)},
-  {CC"lookupFieldInPool",             CC"("HS_RESOLVED_TYPE"IB)"FIELD,                                  FN_PTR(lookupFieldInPool)},
+  {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
+  {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"IB)"OBJECT,                          FN_PTR(lookupAppendixInPool)},
+  {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB)"METHOD,                          FN_PTR(lookupMethodInPool)},
+  {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
+  {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
+  {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
-  {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
-  {CC"isTypeLinked",                  CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeLinked)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
-  {CC"initializeType",                CC"("HS_RESOLVED_TYPE")V",                                        FN_PTR(initializeType)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getResolvedType",               CC"("CLASS")"RESOLVED_TYPE,                                       FN_PTR(getResolvedType)},
-  {CC"getMetaspaceMethod",            CC"("REFLECT_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,        FN_PTR(getMetaspaceMethod)},
-  {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
-  {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
+  {CC"getMetaspaceMethod",            CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
@@ -1134,7 +979,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
-  {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},

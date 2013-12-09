@@ -22,14 +22,23 @@
  */
 package com.oracle.graal.truffle;
 
-import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.debug.*;
+import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.nodes.*;
 
-public interface TruffleBackendFactory {
+public class TruffleTreeDumpHandler implements DebugDumpHandler {
 
-    Backend createBackend(Backend original);
+    @Override
+    public void dump(Object object, final String message) {
+        if (object instanceof DefaultCallTarget) {
+            DefaultCallTarget callTarget = (DefaultCallTarget) object;
+            if (callTarget.getRootNode() != null) {
+                new GraphPrintVisitor().beginGroup(callTarget.toString()).beginGraph(message).visit(callTarget.getRootNode()).printToNetwork();
+            }
+        }
+    }
 
-    /**
-     * Gets the CPU architecture of this backend.
-     */
-    String getArchitecture();
+    public void close() {
+        // nothing to do
+    }
 }

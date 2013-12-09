@@ -23,6 +23,7 @@
 package com.oracle.graal.hotspot;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.nodes.StructuredGraph.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.phases.common.InliningUtil.*;
@@ -35,12 +36,12 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.CompilerThreadFactory.CompilerThread;
-import com.oracle.graal.compiler.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
@@ -63,6 +64,7 @@ public final class CompilationTask implements Runnable {
     private final HotSpotBackend backend;
     private final PhasePlan plan;
     private final OptimisticOptimizations optimisticOpts;
+    private final ProfilingInfo profilingInfo;
     private final HotSpotResolvedJavaMethod method;
     private final int entryBCI;
     private final int id;
@@ -70,16 +72,18 @@ public final class CompilationTask implements Runnable {
 
     private StructuredGraph graph;
 
-    public static CompilationTask create(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
-        return new CompilationTask(backend, plan, optimisticOpts, method, entryBCI, id);
+    public static CompilationTask create(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI,
+                    int id) {
+        return new CompilationTask(backend, plan, optimisticOpts, profilingInfo, method, entryBCI, id);
     }
 
-    private CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
+    private CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
         assert id >= 0;
         this.backend = backend;
         this.plan = plan;
         this.method = method;
         this.optimisticOpts = optimisticOpts;
+        this.profilingInfo = profilingInfo;
         this.entryBCI = entryBCI;
         this.id = id;
         this.status = new AtomicReference<>(CompilationStatus.Queued);
@@ -161,8 +165,8 @@ public final class CompilationTask implements Runnable {
                 InlinedBytecodes.add(method.getCodeSize());
                 CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
                 Suites suites = providers.getSuites().getDefaultSuites();
-                result = GraalCompiler.compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, plan, optimisticOpts, method.getSpeculationLog(), suites,
-                                new CompilationResult());
+                result = compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, plan, optimisticOpts, profilingInfo, method.getSpeculationLog(), suites, true,
+                                new CompilationResult(), CompilationResultBuilderFactory.Default);
 
             } catch (Throwable e) {
                 throw Debug.handle(e);
@@ -232,12 +236,6 @@ public final class CompilationTask implements Runnable {
         HotSpotInstalledCode installedCode = null;
         try (Scope s = Debug.scope("CodeInstall", new DebugDumpScope(String.valueOf(id), true), codeCache, method)) {
             installedCode = codeCache.installMethod(method, entryBCI, compResult);
-            if (Debug.isDumpEnabled()) {
-                Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
-            }
-            if (Debug.isLogEnabled()) {
-                Debug.log("%s", backend.getProviders().getDisassembler().disassemble(installedCode));
-            }
         } catch (Throwable e) {
             throw Debug.handle(e);
         }

@@ -49,16 +49,17 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     /**
      * Reference to metaspace Method object.
      */
-    final long metaspaceMethod;
+    private final long metaspaceMethod;
 
     private final HotSpotResolvedObjectType holder;
-    private/* final */int codeSize;
+    private final HotSpotConstantPool constantPool;
+    private final HotSpotSignature signature;
+    private final int codeSize;
     private/* final */int exceptionHandlerCount;
     private boolean callerSensitive;
     private boolean forceInline;
     private boolean dontInline;
     private boolean ignoredBySecurityStackWalk;
-    private HotSpotSignature signature;
     private Boolean hasBalancedMonitors;
     private Map<Object, Object> compilerStorage;
     private HotSpotMethodData methodData;
@@ -75,13 +76,10 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
      */
     public static HotSpotResolvedObjectType getHolder(long metaspaceMethod) {
         HotSpotVMConfig config = runtime().getConfig();
-        long constMethod = unsafe.getAddress(metaspaceMethod + config.methodConstMethodOffset);
-        assert constMethod != 0;
-        long constantPool = unsafe.getAddress(constMethod + config.constMethodConstantsOffset);
-        assert constantPool != 0;
-        long holder = unsafe.getAddress(constantPool + config.constantPoolHolderOffset);
-        assert holder != 0;
-        return (HotSpotResolvedObjectType) HotSpotResolvedObjectType.fromMetaspaceKlass(holder);
+        final long metaspaceConstMethod = unsafe.getAddress(metaspaceMethod + config.methodConstMethodOffset);
+        final long metaspaceConstantPool = unsafe.getAddress(metaspaceConstMethod + config.constMethodConstantsOffset);
+        final long metaspaceKlass = unsafe.getAddress(metaspaceConstantPool + config.constantPoolHolderOffset);
+        return (HotSpotResolvedObjectType) HotSpotResolvedObjectType.fromMetaspaceKlass(metaspaceKlass);
     }
 
     /**
@@ -96,18 +94,46 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     }
 
     HotSpotResolvedJavaMethod(HotSpotResolvedObjectType holder, long metaspaceMethod) {
+        // It would be too much work to get the method name here so we fill it in later.
+        super(null);
         this.metaspaceMethod = metaspaceMethod;
         this.holder = holder;
+
+        HotSpotVMConfig config = runtime().getConfig();
+        final long constMethod = getConstMethod();
+
+        /*
+         * Get the constant pool from the metaspace method. Some methods (e.g. intrinsics for
+         * signature-polymorphic method handle methods) have their own constant pool instead of the
+         * one from their holder.
+         */
+        final long metaspaceConstantPool = unsafe.getAddress(constMethod + config.constMethodConstantsOffset);
+        this.constantPool = new HotSpotConstantPool(metaspaceConstantPool);
+
+        final int nameIndex = unsafe.getChar(constMethod + config.constMethodNameIndexOffset);
+        this.name = constantPool.lookupUtf8(nameIndex);
+
+        final int signatureIndex = unsafe.getChar(constMethod + config.constMethodSignatureIndexOffset);
+        this.signature = (HotSpotSignature) constantPool.lookupSignature(signatureIndex);
+        this.codeSize = unsafe.getChar(constMethod + config.constMethodCodeSizeOffset);
+
         runtime().getCompilerToVM().initializeMethod(metaspaceMethod, this);
+    }
+
+    /**
+     * Returns a pointer to this method's constant method data structure (
+     * {@code Method::_constMethod}).
+     * 
+     * @return pointer to this method's ConstMethod
+     */
+    private long getConstMethod() {
+        assert metaspaceMethod != 0;
+        return unsafe.getAddress(metaspaceMethod + runtime().getConfig().methodConstMethodOffset);
     }
 
     @Override
     public ResolvedJavaType getDeclaringClass() {
         return holder;
-    }
-
-    public long getMetaspaceMethod() {
-        return metaspaceMethod;
     }
 
     /**
@@ -139,7 +165,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         if (codeSize == 0) {
             return null;
         }
-        if (code == null && runtime().getCompilerToVM().isTypeLinked(holder)) {
+        if (code == null && holder.isLinked()) {
             code = runtime().getCompilerToVM().initializeBytecode(metaspaceMethod, new byte[codeSize]);
             assert code.length == codeSize : "expected: " + codeSize + ", actual: " + code.length;
         }
@@ -232,8 +258,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
             return 0;
         }
         HotSpotVMConfig config = runtime().getConfig();
-        long metaspaceConstMethod = unsafe.getAddress(metaspaceMethod + config.methodConstMethodOffset);
-        return unsafe.getShort(metaspaceConstMethod + config.methodMaxLocalsOffset) & 0xFFFF;
+        return unsafe.getChar(getConstMethod() + config.methodMaxLocalsOffset);
     }
 
     @Override
@@ -243,8 +268,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
             return 0;
         }
         HotSpotVMConfig config = runtime().getConfig();
-        long metaspaceConstMethod = unsafe.getAddress(metaspaceMethod + config.methodConstMethodOffset);
-        return config.extraStackEntries + (unsafe.getShort(metaspaceConstMethod + config.constMethodMaxStackOffset) & 0xFFFF);
+        return config.extraStackEntries + unsafe.getChar(getConstMethod() + config.constMethodMaxStackOffset);
     }
 
     @Override
@@ -269,9 +293,6 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public HotSpotSignature getSignature() {
-        if (signature == null) {
-            signature = new HotSpotSignature(runtime().getCompilerToVM().getSignature(metaspaceMethod));
-        }
         return signature;
     }
 
@@ -287,6 +308,14 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public ProfilingInfo getProfilingInfo() {
+        return getProfilingInfo(true, true);
+    }
+
+    public ProfilingInfo getCompilationProfilingInfo(boolean isOSR) {
+        return getProfilingInfo(!isOSR, isOSR);
+    }
+
+    private ProfilingInfo getProfilingInfo(boolean includeNormal, boolean includeOSR) {
         ProfilingInfo info;
 
         if (UseProfilingInformation.getValue() && methodData == null) {
@@ -305,7 +334,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
             // case of a deoptimization.
             info = DefaultProfilingInfo.get(TriState.FALSE);
         } else {
-            info = new HotSpotProfilingInfo(methodData, this);
+            info = new HotSpotProfilingInfo(methodData, this, includeNormal, includeOSR);
         }
         return info;
     }
@@ -325,7 +354,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public ConstantPool getConstantPool() {
-        return ((HotSpotResolvedObjectType) getDeclaringClass()).constantPool();
+        return constantPool;
     }
 
     @Override

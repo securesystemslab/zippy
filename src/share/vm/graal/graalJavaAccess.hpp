@@ -49,8 +49,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
   start_class(HotSpotResolvedObjectType)                                                                                                                       \
-    long_field(HotSpotResolvedObjectType, metaspaceKlass)                                                                                                      \
-    oop_field(HotSpotResolvedObjectType, javaMirror, "Ljava/lang/Class;")                                                                                      \
+    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                      \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaMethod)                                                                                                                       \
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                                                                                           \
@@ -63,18 +62,10 @@ void graal_compute_offsets();
     boolean_field(HotSpotResolvedJavaMethod, dontInline)                                                                                                       \
     boolean_field(HotSpotResolvedJavaMethod, ignoredBySecurityStackWalk)                                                                                       \
   end_class                                                                                                                                                    \
-  start_class(HotSpotMethodData)                                                                                                                               \
-    long_field(HotSpotMethodData, metaspaceMethodData)                                                                                                         \
-    int_field(HotSpotMethodData, normalDataSize)                                                                                                               \
-    int_field(HotSpotMethodData, extraDataSize)                                                                                                                \
-  end_class                                                                                                                                                    \
   start_class(HotSpotJavaType)                                                                                                                                 \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaField)                                                                                                                        \
-    oop_field(HotSpotResolvedJavaField, constant, "Lcom/oracle/graal/api/meta/Constant;")                                                                      \
-    int_field(HotSpotResolvedJavaField, offset)                                                                                                                \
-    int_field(HotSpotResolvedJavaField, flags)                                                                                                                 \
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \

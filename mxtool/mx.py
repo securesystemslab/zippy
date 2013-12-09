@@ -2011,7 +2011,7 @@ def build(args, parser=None):
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
 
 
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
                 if java().debug_port is not None:
                     javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
                 javacCmd += processorArgs
@@ -2251,7 +2251,7 @@ def pylint(args):
 
     for pyfile in pyfiles:
         log('Running pylint on ' + pyfile + '...')
-        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env, nonZeroIsFatal=False)
+        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
 def archive(args):
     """create jar files for projects and distributions"""
@@ -2832,13 +2832,23 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
     generate_eclipse_workingsets()
 
 def _check_ide_timestamp(suite, timestamp):
-    """return True if and only if the projects file, imports file, and mx itself are all older than timestamp"""
+    """return True if and only if the projects file, imports file, eclipse-settings files, and mx itself are all older than timestamp"""
     projectsFile = join(suite.mxDir, 'projects')
-    projectsFileOlder = not timestamp.isOlderThan(projectsFile)
-    importsFileOlder = not timestamp.isOlderThan(suite.import_timestamp())
+    if timestamp.isOlderThan(projectsFile):
+        return False
+    if timestamp.isOlderThan(suite.import_timestamp()):
+        return False
     # Assume that any mx change might imply changes to the generated IDE files
-    mxOlder = not timestamp.isOlderThan(__file__)
-    return projectsFileOlder and importsFileOlder and mxOlder
+    if timestamp.isOlderThan(__file__):
+        return False
+
+    eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
+    if exists(eclipseSettingsDir):
+        for name in os.listdir(eclipseSettingsDir):
+            path = join(eclipseSettingsDir, name)
+            if timestamp.isOlderThan(path):
+                return False
+    return True
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
@@ -2881,7 +2891,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
 
         # Every Java program depends on the JRE
-        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
+        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
 
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})

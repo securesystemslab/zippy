@@ -38,6 +38,10 @@ public abstract class HotSpotMethod extends CompilerObject implements JavaMethod
      */
     public static final boolean FULLY_QUALIFIED_METHOD_NAME = false;
 
+    protected HotSpotMethod(String name) {
+        this.name = name;
+    }
+
     @Override
     public final String getName() {
         return name;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,15 +27,18 @@ import static com.oracle.graal.api.code.ValueUtil.*;
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.CompilationResult.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.nodes.*;
 
-public class TargetMethodAssembler {
+/**
+ * Fills in a {@link CompilationResult} as its code is being assembled.
+ * 
+ * @see CompilationResultBuilderFactory
+ */
+public class CompilationResultBuilder {
 
     private static class ExceptionInfo {
 
@@ -56,14 +59,18 @@ public class TargetMethodAssembler {
     public final FrameMap frameMap;
 
     /**
-     * The object that emits code for managing a method's frame. If null, no frame is used by the
-     * method.
+     * The index of the block currently being processed in the code emitting block order.
+     */
+    private int currentBlockIndex;
+
+    /**
+     * The object that emits code for managing a method's frame.
      */
     public final FrameContext frameContext;
 
     private List<ExceptionInfo> exceptionInfoList;
 
-    public TargetMethodAssembler(CodeCacheProvider codeCache, ForeignCallsProvider foreignCalls, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext,
+    public CompilationResultBuilder(CodeCacheProvider codeCache, ForeignCallsProvider foreignCalls, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext,
                     CompilationResult compilationResult) {
         this.target = codeCache.getTarget();
         this.codeCache = codeCache;
@@ -72,6 +79,7 @@ public class TargetMethodAssembler {
         this.asm = asm;
         this.compilationResult = compilationResult;
         this.frameContext = frameContext;
+        assert frameContext != null;
     }
 
     public void setFrameSize(int frameSize) {
@@ -92,8 +100,12 @@ public class TargetMethodAssembler {
         compilationResult.addAnnotation(new CompilationResult.CodeComment(asm.codeBuffer.position(), s));
     }
 
-    public CompilationResult finishTargetMethod(StructuredGraph graph) {
-        // Install code, data and frame size
+    /**
+     * Sets the {@linkplain CompilationResult#setTargetCode(byte[], int) code} and
+     * {@linkplain CompilationResult#recordExceptionHandler(int, int) exception handler} fields of
+     * the compilation result.
+     */
+    public void finish() {
         compilationResult.setTargetCode(asm.codeBuffer.close(false), asm.codeBuffer.position());
 
         // Record exception handlers if they exist
@@ -103,31 +115,6 @@ public class TargetMethodAssembler {
                 compilationResult.recordExceptionHandler(codeOffset, ei.exceptionEdge.label().position());
             }
         }
-
-        if (Debug.isMeterEnabled()) {
-            List<DataPatch> ldp = compilationResult.getDataReferences();
-            DebugMetric[] dms = new DebugMetric[Kind.values().length];
-            for (int i = 0; i < dms.length; i++) {
-                dms[i] = Debug.metric("DataPatches-" + Kind.values()[i].toString());
-            }
-            DebugMetric dmRaw = Debug.metric("DataPatches-raw");
-
-            for (DataPatch dp : ldp) {
-                if (dp.constant != null) {
-                    dms[dp.constant.getKind().ordinal()].add(1);
-                } else {
-                    dmRaw.add(1);
-                }
-            }
-
-            Debug.metric("TargetMethods").increment();
-            Debug.metric("CodeBytesEmitted").add(compilationResult.getTargetCodeSize());
-            Debug.metric("InfopointsEmitted").add(compilationResult.getInfopoints().size());
-            Debug.metric("DataPatches").add(ldp.size());
-            Debug.metric("ExceptionHandlersEmitted").add(compilationResult.getExceptionHandlers().size());
-        }
-        Debug.log("Finished compiling %s", graph);
-        return compilationResult;
     }
 
     public void recordExceptionHandlers(int pcOffset, LIRFrameState info) {
@@ -295,5 +282,19 @@ public class TargetMethodAssembler {
         assert isStackSlot(value);
         StackSlot slot = asStackSlot(value);
         return asm.makeAddress(frameMap.registerConfig.getFrameRegister(), frameMap.offsetForStackSlot(slot));
+    }
+
+    /**
+     * Gets the index of the block currently being processed in the code emitting block order.
+     */
+    public int getCurrentBlockIndex() {
+        return currentBlockIndex;
+    }
+
+    /**
+     * Sets the index of the block currently being processed in the code emitting block order.
+     */
+    public void setCurrentBlockIndex(int index) {
+        this.currentBlockIndex = index;
     }
 }

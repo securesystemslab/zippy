@@ -25,13 +25,13 @@ package com.oracle.graal.lir.amd64;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
+import com.oracle.graal.amd64.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.amd64.AMD64Assembler.ConditionFlag;
 import com.oracle.graal.asm.amd64.*;
-import com.oracle.graal.asm.amd64.AMD64Assembler.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.nodes.spi.*;
 
 public class AMD64Call {
 
@@ -75,8 +75,8 @@ public class AMD64Call {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            directCall(tasm, masm, callTarget, null, true, state);
+        public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
+            directCall(crb, masm, callTarget, null, true, state);
         }
     }
 
@@ -91,8 +91,8 @@ public class AMD64Call {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            indirectCall(tasm, masm, asRegister(targetAddress), callTarget, state);
+        public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
+            indirectCall(crb, masm, asRegister(targetAddress), callTarget, state);
         }
 
         @Override
@@ -125,8 +125,8 @@ public class AMD64Call {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            directCall(tasm, masm, callTarget, null, false, state);
+        public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
+            directCall(crb, masm, callTarget, null, false, state);
         }
     }
 
@@ -135,20 +135,25 @@ public class AMD64Call {
 
         @Temp({REG}) protected AllocatableValue callTemp;
 
-        public DirectFarForeignCallOp(LIRGeneratorTool gen, ForeignCallLinkage callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
+        public DirectFarForeignCallOp(ForeignCallLinkage callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
             super(callTarget, result, parameters, temps, state);
-            callTemp = gen.newVariable(Kind.Long);
+            /*
+             * The register allocator does not support virtual registers that are used at the call
+             * site, so use a fixed register.
+             */
+            callTemp = AMD64.rax.asValue(Kind.Long);
+            assert ValueUtil.differentRegisters(parameters, callTemp);
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            directCall(tasm, masm, callTarget, ((RegisterValue) callTemp).getRegister(), false, state);
+        public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
+            directCall(crb, masm, callTarget, ((RegisterValue) callTemp).getRegister(), false, state);
         }
     }
 
-    public static void directCall(TargetMethodAssembler tasm, AMD64MacroAssembler masm, InvokeTarget callTarget, Register scratch, boolean align, LIRFrameState info) {
+    public static void directCall(CompilationResultBuilder crb, AMD64MacroAssembler masm, InvokeTarget callTarget, Register scratch, boolean align, LIRFrameState info) {
         if (align) {
-            emitAlignmentForDirectCall(tasm, masm);
+            emitAlignmentForDirectCall(crb, masm);
         }
         int before = masm.codeBuffer.position();
         if (scratch != null) {
@@ -160,43 +165,43 @@ public class AMD64Call {
             masm.call();
         }
         int after = masm.codeBuffer.position();
-        tasm.recordDirectCall(before, after, callTarget, info);
-        tasm.recordExceptionHandlers(after, info);
+        crb.recordDirectCall(before, after, callTarget, info);
+        crb.recordExceptionHandlers(after, info);
         masm.ensureUniquePC();
     }
 
-    protected static void emitAlignmentForDirectCall(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
+    protected static void emitAlignmentForDirectCall(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
         // make sure that the displacement word of the call ends up word aligned
         int offset = masm.codeBuffer.position();
-        offset += tasm.target.arch.getMachineCodeCallDisplacementOffset();
-        int modulus = tasm.target.wordSize;
+        offset += crb.target.arch.getMachineCodeCallDisplacementOffset();
+        int modulus = crb.target.wordSize;
         if (offset % modulus != 0) {
             masm.nop(modulus - offset % modulus);
         }
     }
 
-    public static void directJmp(TargetMethodAssembler tasm, AMD64MacroAssembler masm, InvokeTarget target) {
+    public static void directJmp(CompilationResultBuilder crb, AMD64MacroAssembler masm, InvokeTarget target) {
         int before = masm.codeBuffer.position();
         masm.jmp(0, true);
         int after = masm.codeBuffer.position();
-        tasm.recordDirectCall(before, after, target, null);
+        crb.recordDirectCall(before, after, target, null);
         masm.ensureUniquePC();
     }
 
-    public static void directConditionalJmp(TargetMethodAssembler tasm, AMD64MacroAssembler masm, InvokeTarget target, ConditionFlag cond) {
+    public static void directConditionalJmp(CompilationResultBuilder crb, AMD64MacroAssembler masm, InvokeTarget target, ConditionFlag cond) {
         int before = masm.codeBuffer.position();
         masm.jcc(cond, 0, true);
         int after = masm.codeBuffer.position();
-        tasm.recordDirectCall(before, after, target, null);
+        crb.recordDirectCall(before, after, target, null);
         masm.ensureUniquePC();
     }
 
-    public static void indirectCall(TargetMethodAssembler tasm, AMD64MacroAssembler masm, Register dst, InvokeTarget callTarget, LIRFrameState info) {
+    public static void indirectCall(CompilationResultBuilder crb, AMD64MacroAssembler masm, Register dst, InvokeTarget callTarget, LIRFrameState info) {
         int before = masm.codeBuffer.position();
         masm.call(dst);
         int after = masm.codeBuffer.position();
-        tasm.recordIndirectCall(before, after, callTarget, info);
-        tasm.recordExceptionHandlers(after, info);
+        crb.recordIndirectCall(before, after, callTarget, info);
+        crb.recordExceptionHandlers(after, info);
         masm.ensureUniquePC();
     }
 }

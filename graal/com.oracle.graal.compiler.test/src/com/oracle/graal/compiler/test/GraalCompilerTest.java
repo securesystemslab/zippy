@@ -23,6 +23,7 @@
 package com.oracle.graal.compiler.test;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 
@@ -38,13 +39,13 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.java.*;
+import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.spi.*;
@@ -554,31 +555,17 @@ public abstract class GraalCompilerTest extends GraalTest {
             GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(getMetaAccess(), getForeignCalls(), GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
             phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
             CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-            final CompilationResult compResult = GraalCompiler.compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
-                            new SpeculationLog(), getSuites(), new CompilationResult());
+            final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
+                            getProfilingInfo(graph), new SpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
             if (printCompilation) {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
             }
 
             try (Scope s = Debug.scope("CodeInstall", getCodeCache(), method)) {
-                InstalledCode code = addMethod(method, compResult);
-                if (code == null) {
+                installedCode = addMethod(method, compResult);
+                if (installedCode == null) {
                     throw new GraalInternalError("Could not install code for " + MetaUtil.format("%H.%n(%p)", method));
                 }
-                if (Debug.isDumpEnabled()) {
-                    Debug.dump(new Object[]{compResult, code}, "After code installation");
-                }
-                if (Debug.isLogEnabled()) {
-                    DisassemblerProvider dis = backend.getDisassembler();
-                    if (dis != null) {
-                        String text = dis.disassemble(code);
-                        if (text != null) {
-                            Debug.log("Code installed for %s%n%s", method, text);
-                        }
-                    }
-                }
-
-                installedCode = code;
             } catch (Throwable e) {
                 throw Debug.handle(e);
             }

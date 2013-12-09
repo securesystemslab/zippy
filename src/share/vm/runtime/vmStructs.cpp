@@ -390,9 +390,10 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(ObjArrayKlass,               _element_klass,                                Klass*)                                \
   nonstatic_field(ObjArrayKlass,               _bottom_klass,                                 Klass*)                                \
   volatile_nonstatic_field(Symbol,             _refcount,                                     short)                                 \
-  nonstatic_field(Symbol,                      _identity_hash,                                int)                                   \
   nonstatic_field(Symbol,                      _length,                                       unsigned short)                        \
+  nonstatic_field(Symbol,                      _identity_hash,                                int)                                   \
   unchecked_nonstatic_field(Symbol,            _body,                                         sizeof(jbyte)) /* NOTE: no type */     \
+  nonstatic_field(Symbol,                      _body[0],                                      jbyte)                                 \
   nonstatic_field(TypeArrayKlass,              _max_length,                                   int)                                   \
                                                                                                                                      \
   /***********************/                                                                                                          \
@@ -913,7 +914,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
      static_field(Threads,                     _return_code,                                  int)                                   \
                                                                                                                                      \
   nonstatic_field(ThreadShadow,                _pending_exception,                            oop)                                   \
-  nonstatic_field(ThreadShadow,                _pending_deoptimization,                       int)                                   \
   nonstatic_field(ThreadShadow,                _exception_file,                               const char*)                           \
   nonstatic_field(ThreadShadow,                _exception_line,                               int)                                   \
    volatile_nonstatic_field(Thread,            _suspend_flags,                                uint32_t)                              \
@@ -2313,6 +2313,33 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(JVM_ACC_FIELD_ACCESS_WATCHED)                          \
   declare_constant(JVM_ACC_FIELD_MODIFICATION_WATCHED)                    \
                                                                           \
+  declare_constant(JVM_CONSTANT_Utf8)                                     \
+  declare_constant(JVM_CONSTANT_Unicode)                                  \
+  declare_constant(JVM_CONSTANT_Integer)                                  \
+  declare_constant(JVM_CONSTANT_Float)                                    \
+  declare_constant(JVM_CONSTANT_Long)                                     \
+  declare_constant(JVM_CONSTANT_Double)                                   \
+  declare_constant(JVM_CONSTANT_Class)                                    \
+  declare_constant(JVM_CONSTANT_String)                                   \
+  declare_constant(JVM_CONSTANT_Fieldref)                                 \
+  declare_constant(JVM_CONSTANT_Methodref)                                \
+  declare_constant(JVM_CONSTANT_InterfaceMethodref)                       \
+  declare_constant(JVM_CONSTANT_NameAndType)                              \
+  declare_constant(JVM_CONSTANT_MethodHandle)                             \
+  declare_constant(JVM_CONSTANT_MethodType)                               \
+  declare_constant(JVM_CONSTANT_InvokeDynamic)                            \
+  declare_constant(JVM_CONSTANT_ExternalMax)                              \
+                                                                          \
+  declare_constant(JVM_CONSTANT_Invalid)                                  \
+  declare_constant(JVM_CONSTANT_InternalMin)                              \
+  declare_constant(JVM_CONSTANT_UnresolvedClass)                          \
+  declare_constant(JVM_CONSTANT_ClassIndex)                               \
+  declare_constant(JVM_CONSTANT_StringIndex)                              \
+  declare_constant(JVM_CONSTANT_UnresolvedClassInError)                   \
+  declare_constant(JVM_CONSTANT_MethodHandleInError)                      \
+  declare_constant(JVM_CONSTANT_MethodTypeInError)                        \
+  declare_constant(JVM_CONSTANT_InternalMax)                              \
+                                                                          \
   /*****************************/                                         \
   /* Thread::SuspendFlags enum */                                         \
   /*****************************/                                         \
@@ -2342,6 +2369,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   /******************************/                                        \
                                                                           \
   declare_constant(Klass::_primary_super_limit)                           \
+  declare_constant(Klass::_lh_neutral_value)                              \
   declare_constant(Klass::_lh_instance_slow_path_bit)                     \
   declare_constant(Klass::_lh_log2_element_size_shift)                    \
   declare_constant(Klass::_lh_log2_element_size_mask)                     \
@@ -2532,6 +2560,13 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(Deoptimization::Unpack_exception)                      \
   declare_constant(Deoptimization::Unpack_uncommon_trap)                  \
   declare_constant(Deoptimization::Unpack_reexecute)                      \
+                                                                          \
+  declare_constant(Deoptimization::_action_bits)                          \
+  declare_constant(Deoptimization::_reason_bits)                          \
+  declare_constant(Deoptimization::_speculation_id_bits)                  \
+  declare_constant(Deoptimization::_action_shift)                         \
+  declare_constant(Deoptimization::_reason_shift)                         \
+  declare_constant(Deoptimization::_speculation_id_shift)                 \
                                                                           \
   /*********************/                                                 \
   /* Matcher (C2 only) */                                                 \

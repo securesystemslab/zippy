@@ -153,7 +153,7 @@ project@com.oracle.graal.hotspot.sparc@workingSets=Graal,HotSpot,SPARC
 # graal.hotspot.ptx
 project@com.oracle.graal.hotspot.ptx@subDir=graal
 project@com.oracle.graal.hotspot.ptx@sourceDirs=src
-project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.ptx,com.oracle.graal.compiler.ptx
+project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.ptx,com.oracle.graal.compiler.ptx,com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.ptx@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.ptx@javaCompliance=1.7
@@ -403,7 +403,7 @@ project@com.oracle.graal.compiler.amd64.test@workingSets=Graal,AMD64,Test
 # graal.compiler.ptx
 project@com.oracle.graal.compiler.ptx@subDir=graal
 project@com.oracle.graal.compiler.ptx@sourceDirs=src
-project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.lir.ptx,com.oracle.graal.hotspot
+project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.lir.ptx,com.oracle.graal.compiler
 project@com.oracle.graal.compiler.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.ptx@javaCompliance=1.7
 project@com.oracle.graal.compiler.ptx@workingSets=Graal,PTX
@@ -667,10 +667,19 @@ project@com.oracle.graal.truffle.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.test@javaCompliance=1.7
 project@com.oracle.graal.truffle.test@workingSets=Graal,Truffle,Test
 
+# graal.truffle.hotspot
+project@com.oracle.graal.truffle.hotspot@subDir=graal
+project@com.oracle.graal.truffle.hotspot@sourceDirs=src
+project@com.oracle.graal.truffle.hotspot@dependencies=com.oracle.graal.truffle,com.oracle.graal.hotspot
+project@com.oracle.graal.truffle.hotspot@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.truffle.hotspot@javaCompliance=1.7
+project@com.oracle.graal.truffle.hotspot@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.truffle.hotspot@workingSets=Graal,Truffle
+
 # graal.truffle.hotspot.amd64
 project@com.oracle.graal.truffle.hotspot.amd64@subDir=graal
 project@com.oracle.graal.truffle.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.truffle.hotspot.amd64@dependencies=com.oracle.graal.truffle,com.oracle.graal.hotspot.amd64
+project@com.oracle.graal.truffle.hotspot.amd64@dependencies=com.oracle.graal.truffle.hotspot,com.oracle.graal.hotspot.amd64
 project@com.oracle.graal.truffle.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.hotspot.amd64@javaCompliance=1.7
 project@com.oracle.graal.truffle.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor

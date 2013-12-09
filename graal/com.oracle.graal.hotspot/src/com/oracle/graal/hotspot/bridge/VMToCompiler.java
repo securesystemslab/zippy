@@ -38,7 +38,7 @@ public interface VMToCompiler {
      * Compiles a method to machine code. This method is called from the VM
      * (VMToCompiler::compileMethod).
      */
-    void compileMethod(long metaspaceMethod, HotSpotResolvedObjectType holder, int entryBCI, boolean blocking);
+    void compileMethod(long metaspaceMethod, int entryBCI, boolean blocking);
 
     void shutdownCompiler() throws Exception;
 
@@ -67,22 +67,11 @@ public interface VMToCompiler {
      * @param name the {@linkplain JavaType#getName() name} of the type
      * @param simpleName a simple, unqualified name for the type
      * @param javaMirror the {@link Class} mirror
-     * @param sizeOrSpecies the size of an instance of the type, or
-     *            {@link HotSpotResolvedObjectType#INTERFACE_SPECIES_VALUE} or
-     *            {@link HotSpotResolvedObjectType#ARRAY_SPECIES_VALUE}
      * @return the resolved type associated with {@code javaMirror} which may not be the type
      *         instantiated by this call in the case of another thread racing to create the same
      *         type
      */
     ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies);
-
-    Constant createConstant(Kind kind, long value);
-
-    Constant createConstantFloat(float value);
-
-    Constant createConstantDouble(double value);
-
-    Constant createConstantObject(Object object);
 
     LocalImpl createLocalImpl(String name, String type, HotSpotResolvedObjectType holder, int bciStart, int bciEnd, int slot);
 }

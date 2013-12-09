@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.lir.ptx;
 
-import static com.oracle.graal.asm.ptx.PTXAssembler.*;
-import static com.oracle.graal.asm.ptx.PTXMacroAssembler.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.nodes.calc.Condition.*;
@@ -32,9 +30,12 @@ import com.oracle.graal.api.code.CompilationResult.JumpTable;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.ptx.*;
+import com.oracle.graal.asm.ptx.PTXAssembler.Global;
+import com.oracle.graal.asm.ptx.PTXAssembler.Setp;
+import com.oracle.graal.asm.ptx.PTXMacroAssembler.Mov;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.FallThroughOp;
+import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.calc.*;
 
@@ -49,10 +50,8 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            if (tasm.frameContext != null) {
-                tasm.frameContext.leave(tasm);
-            }
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            crb.frameContext.leave(crb);
             masm.exit();
         }
     }
@@ -63,40 +62,37 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            if (tasm.frameContext != null) {
-                tasm.frameContext.leave(tasm);
-            }
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            crb.frameContext.leave(crb);
             masm.ret();
         }
     }
 
     public static class BranchOp extends PTXLIRInstruction implements StandardOp.BranchOp {
 
-        protected Condition condition;
-        protected LabelRef destination;
+        protected final Condition condition;
+        protected final LabelRef trueDestination;
+        protected final LabelRef falseDestination;
         protected int predRegNum;
 
-        public BranchOp(Condition condition, LabelRef destination, int predReg) {
+        public BranchOp(Condition condition, LabelRef trueDestination, LabelRef falseDestination, int predReg) {
             this.condition = condition;
-            this.destination = destination;
+            this.trueDestination = trueDestination;
+            this.falseDestination = falseDestination;
             this.predRegNum = predReg;
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            masm.bra(masm.nameOf(destination.label()), predRegNum);
-        }
-
-        @Override
-        public LabelRef destination() {
-            return destination;
-        }
-
-        @Override
-        public void negate(LabelRef newDestination) {
-            destination = newDestination;
-            condition = condition.negate();
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            int sourceIndex = crb.getCurrentBlockIndex();
+            if (trueDestination.isCodeEmittingOrderSuccessorEdge(sourceIndex)) {
+                masm.bra(masm.nameOf(falseDestination.label()), predRegNum);
+            } else {
+                masm.bra(masm.nameOf(trueDestination.label()));
+                if (!falseDestination.isCodeEmittingOrderSuccessorEdge(sourceIndex)) {
+                    masm.jmp(falseDestination.label());
+                }
+            }
         }
     }
 
@@ -117,8 +113,8 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            cmove(tasm, masm, result, false, condition, false, trueValue, falseValue, predicate);
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            cmove(crb, masm, result, false, condition, false, trueValue, falseValue, predicate);
         }
     }
 
@@ -141,25 +137,25 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            cmove(tasm, masm, result, true, condition, unorderedIsTrue, trueValue, falseValue, predicate);
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            cmove(crb, masm, result, true, condition, unorderedIsTrue, trueValue, falseValue, predicate);
         }
     }
 
-    private static void cmove(TargetMethodAssembler tasm, PTXMacroAssembler asm, Value result, boolean isFloat, Condition condition, boolean unorderedIsTrue, Value trueValue, Value falseValue,
+    private static void cmove(CompilationResultBuilder crb, PTXMacroAssembler asm, Value result, boolean isFloat, Condition condition, boolean unorderedIsTrue, Value trueValue, Value falseValue,
                     int predicateRegister) {
         // check that we don't overwrite an input operand before it is used.
         assert !result.equals(trueValue);
 
-        PTXMove.move(tasm, asm, result, falseValue);
+        PTXMove.move(crb, asm, result, falseValue);
         cmove(asm, result, trueValue, predicateRegister);
 
         if (isFloat) {
             if (unorderedIsTrue && !trueOnUnordered(condition)) {
-                // cmove(tasm, masm, result, ConditionFlag.Parity, trueValue);
+                // cmove(crb, masm, result, ConditionFlag.Parity, trueValue);
                 throw GraalInternalError.unimplemented();
             } else if (!unorderedIsTrue && trueOnUnordered(condition)) {
-                // cmove(tasm, masm, result, ConditionFlag.Parity, falseValue);
+                // cmove(crb, masm, result, ConditionFlag.Parity, falseValue);
                 throw GraalInternalError.unimplemented();
             }
         }
@@ -197,7 +193,7 @@ public class PTXControlFlow {
         }
     }
 
-    public static class SequentialSwitchOp extends PTXLIRInstruction implements FallThroughOp {
+    public static class SequentialSwitchOp extends PTXLIRInstruction implements BlockEndOp {
 
         @Use({CONST}) protected Constant[] keyConstants;
         private final LabelRef[] keyTargets;
@@ -218,20 +214,20 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
             Kind keyKind = key.getKind();
 
             if (keyKind == Kind.Int || keyKind == Kind.Long) {
                 for (int i = 0; i < keyConstants.length; i++) {
-                    if (tasm.codeCache.needsDataPatch(keyConstants[i])) {
-                        tasm.recordDataReferenceInCode(keyConstants[i], 0, true);
+                    if (crb.codeCache.needsDataPatch(keyConstants[i])) {
+                        crb.recordDataReferenceInCode(keyConstants[i], 0, true);
                     }
                     new Setp(EQ, keyConstants[i], key, predRegNum).emit(masm);
                     masm.bra(masm.nameOf(keyTargets[i].label()), predRegNum);
                 }
             } else if (keyKind == Kind.Object) {
                 for (int i = 0; i < keyConstants.length; i++) {
-                    PTXMove.move(tasm, masm, scratch, keyConstants[i]);
+                    PTXMove.move(crb, masm, scratch, keyConstants[i]);
                     new Setp(EQ, keyConstants[i], scratch, predRegNum).emit(masm);
                     masm.bra(keyTargets[i].label().toString(), predRegNum);
                 }
@@ -239,24 +235,16 @@ public class PTXControlFlow {
                 throw new GraalInternalError("sequential switch only supported for int, long and object");
             }
             if (defaultTarget != null) {
-                masm.jmp(defaultTarget.label());
+                if (!defaultTarget.isCodeEmittingOrderSuccessorEdge(crb.getCurrentBlockIndex())) {
+                    masm.jmp(defaultTarget.label());
+                }
             } else {
                 // masm.hlt();
             }
         }
-
-        @Override
-        public LabelRef fallThroughTarget() {
-            return defaultTarget;
-        }
-
-        @Override
-        public void setFallThroughTarget(LabelRef target) {
-            defaultTarget = target;
-        }
     }
 
-    public static class TableSwitchOp extends PTXLIRInstruction {
+    public static class TableSwitchOp extends PTXLIRInstruction implements BlockEndOp {
 
         private final int lowKey;
         private final LabelRef defaultTarget;
@@ -276,13 +264,13 @@ public class PTXControlFlow {
         }
 
         @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXMacroAssembler masm) {
-            tableswitch(tasm, masm, lowKey, defaultTarget, targets, index, scratch, predRegNum);
+        public void emitCode(CompilationResultBuilder crb, PTXMacroAssembler masm) {
+            tableswitch(crb, masm, lowKey, defaultTarget, targets, index, scratch, predRegNum);
         }
     }
 
     @SuppressWarnings("unused")
-    private static void tableswitch(TargetMethodAssembler tasm, PTXAssembler masm, int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value value, Value scratch, int predNum) {
+    private static void tableswitch(CompilationResultBuilder crb, PTXAssembler masm, int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value value, Value scratch, int predNum) {
         Buffer buf = masm.codeBuffer;
 
         // Compare index against jump table bounds
@@ -311,7 +299,7 @@ public class PTXControlFlow {
 
         // bra(Value, name);
 
-        tasm.compilationResult.addAnnotation(jt);
+        crb.compilationResult.addAnnotation(jt);
 
     }
 }

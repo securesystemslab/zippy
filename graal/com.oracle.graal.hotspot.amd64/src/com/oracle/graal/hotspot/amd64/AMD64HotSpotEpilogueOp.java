@@ -30,13 +30,14 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.StandardOp.*;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
 
 /**
  * Superclass for operations that use the value of RBP saved in a method's prologue.
  */
-abstract class AMD64HotSpotEpilogueOp extends AMD64LIRInstruction {
+abstract class AMD64HotSpotEpilogueOp extends AMD64LIRInstruction implements BlockEndOp {
 
     /**
      * The type of location (i.e., stack or register) in which RBP is saved is not known until
@@ -47,18 +48,16 @@ abstract class AMD64HotSpotEpilogueOp extends AMD64LIRInstruction {
 
     @Use({REG, STACK}) protected AllocatableValue savedRbp = PLACEHOLDER;
 
-    protected void leaveFrameAndRestoreRbp(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
+    protected void leaveFrameAndRestoreRbp(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
         if (isStackSlot(savedRbp)) {
             // Restoring RBP from the stack must be done before the frame is removed
-            masm.movq(rbp, (AMD64Address) tasm.asAddress(savedRbp));
+            masm.movq(rbp, (AMD64Address) crb.asAddress(savedRbp));
         } else {
             Register framePointer = asRegister(savedRbp);
             if (!framePointer.equals(rbp)) {
                 masm.movq(rbp, framePointer);
             }
         }
-        if (tasm.frameContext != null) {
-            tasm.frameContext.leave(tasm);
-        }
+        crb.frameContext.leave(crb);
     }
 }
