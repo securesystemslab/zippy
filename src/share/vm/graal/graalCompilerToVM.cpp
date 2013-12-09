@@ -218,22 +218,6 @@ C2V_VMENTRY(jlong, getMetaspaceConstructor, (JNIEnv *, jobject, jobject reflecti
   return (jlong) (address) method();
 }
 
-C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_handle))
-  oop reflection_field = JNIHandles::resolve(reflection_field_handle);
-  oop reflection_holder = java_lang_reflect_Field::clazz(reflection_field);
-  int slot = java_lang_reflect_Field::slot(reflection_field);
-  InstanceKlass* holder = InstanceKlass::cast(java_lang_Class::as_Klass(reflection_holder));
-
-  int offset = holder->field_offset(slot);
-  int flags = holder->field_access_flags(slot);
-  Symbol* field_name = holder->field_name(slot);
-  Handle field_holder = GraalCompiler::get_JavaTypeFromClass(reflection_holder, CHECK_NULL);
-  Handle field_type = GraalCompiler::get_JavaTypeFromClass(java_lang_reflect_Field::type(reflection_field), CHECK_NULL);
-
-  Handle ret = GraalCompiler::get_JavaField(offset, flags, field_name, field_holder, field_type, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, ret());
-}
-
 C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
   methodHandle method = asMethod(metaspace_method);
   KlassHandle holder = method->method_holder();
@@ -965,7 +949,6 @@ C2V_END
 #define EXCEPTION_HANDLERS    "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
 #define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
-#define REFLECT_FIELD         "Ljava/lang/reflect/Field;"
 #define STRING                "Ljava/lang/String;"
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
@@ -1005,7 +988,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getMetaspaceMethod",            CC"("REFLECT_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,        FN_PTR(getMetaspaceMethod)},
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
-  {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},

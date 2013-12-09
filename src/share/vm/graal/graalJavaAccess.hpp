@@ -66,9 +66,6 @@ void graal_compute_offsets();
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaField)                                                                                                                        \
-    oop_field(HotSpotResolvedJavaField, constant, "Lcom/oracle/graal/api/meta/Constant;")                                                                      \
-    int_field(HotSpotResolvedJavaField, offset)                                                                                                                \
-    int_field(HotSpotResolvedJavaField, flags)                                                                                                                 \
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
