@@ -38,6 +38,8 @@ public class PZip extends PIterator implements Iterable<Object> {
     private int index;
     private List<PTuple> tuples;
 
+    // Array of PIterators
+
     public PZip(Iterable<?>[] iterables) {
         Iterator[] iterators = new Iterator[iterables.length];
 

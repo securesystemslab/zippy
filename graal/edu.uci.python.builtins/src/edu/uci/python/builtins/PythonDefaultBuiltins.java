@@ -843,8 +843,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
              */
 
             @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
+            @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(String str, Object keywordArg) {
                 return new PEnumerate(new PString(str));
             }
