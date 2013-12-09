@@ -71,11 +71,21 @@ public class PIntArray extends PArray implements Iterable<Integer> {
 
     @Override
     public Object getItem(int idx) {
-        return getIntItem(idx);
+        return getIntItemInBound(idx);
     }
 
-    public int getIntItem(int idx) {
+    public int getIntItemInBound(int idx) {
         return array[idx];
+    }
+
+    @Override
+    public void setItem(int idx, Object value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        setIntItemInBound(index, (int) value);
+    }
+
+    public void setIntItemInBound(int idx, int value) {
+        array[idx] = value;
     }
 
     @Override
@@ -96,16 +106,6 @@ public class PIntArray extends PArray implements Iterable<Integer> {
             newArray[j] = array[i];
         }
         return new PIntArray(newArray, false);
-    }
-
-    @Override
-    public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setIntItem(index, (int) value);
-    }
-
-    public void setIntItem(int idx, int value) {
-        array[idx] = value;
     }
 
     @Override

@@ -58,14 +58,14 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
      */
     @Specialization(order = 10)
     public Object doPArrayInt(PIntArray primary, int index, int value) {
-        primary.setIntItem(index, value);
+        primary.setIntItemInBound(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 15)
-    public Object doPArrayDouble(PArray primary, int index, double value) {
-        primary.setItem(index, value);
-        return PNone.NONE;
+    public double doPArrayDouble(PDoubleArray primary, int index, double value) {
+        primary.setDoubleItemInBound(index, value);
+        return 0;
     }
 
     @Specialization(order = 17)

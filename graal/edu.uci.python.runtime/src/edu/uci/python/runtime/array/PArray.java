@@ -39,24 +39,6 @@ public abstract class PArray extends PythonBuiltinObject implements PIterable {
 
     public abstract void setSlice(PSlice slice, PArray other);
 
-    /**
-     * Make step a long in case adding the start, stop and step together overflows an int.
-     */
-    public static final int sliceLength(int start, int stop, long step) {
-        int ret;
-        if (step > 0) {
-            ret = (int) ((stop - start + step - 1) / step);
-        } else {
-            ret = (int) ((stop - start + step + 1) / step);
-        }
-
-        if (ret < 0) {
-            return 0;
-        }
-
-        return ret;
-    }
-
     public abstract PArray append(PArray other);
 
 }

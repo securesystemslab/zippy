@@ -80,7 +80,12 @@ public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements Rea
      */
     @Specialization(order = 10)
     public int doPIntArray(PIntArray primary, int index) {
-        return primary.getIntItem(index);
+        return primary.getIntItemInBound(index);
+    }
+
+    @Specialization(order = 11)
+    public double doPDoubleArray(PDoubleArray primary, int index) {
+        return primary.getDoubleItemInBound(index);
     }
 
     @Specialization(order = 14)
