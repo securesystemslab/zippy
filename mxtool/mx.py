@@ -2251,7 +2251,7 @@ def pylint(args):
 
     for pyfile in pyfiles:
         log('Running pylint on ' + pyfile + '...')
-        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env, nonZeroIsFatal=False)
+        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
 def archive(args):
     """create jar files for projects and distributions"""
@@ -2841,14 +2841,14 @@ def _check_ide_timestamp(suite, timestamp):
     # Assume that any mx change might imply changes to the generated IDE files
     if timestamp.isOlderThan(__file__):
         return False
-    
+
     eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
     if exists(eclipseSettingsDir):
         for name in os.listdir(eclipseSettingsDir):
             path = join(eclipseSettingsDir, name)
             if timestamp.isOlderThan(path):
                 return False
-    return True 
+    return True
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
