@@ -53,7 +53,6 @@ public abstract class PIterator extends PythonBuiltinObject implements Iterable<
 
             public boolean hasNext() {
                 try {
-                    System.out.println("HAS NEXTO");
                     nextItem = __next__();
                     return true;
                 } catch (StopIterationException e) {

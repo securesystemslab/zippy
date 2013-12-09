@@ -46,7 +46,7 @@ public class PEnumerate extends PIterator {
 
     @Override
     public Object __next__() {
-        return new PTuple((new Object[]{index, iterator.__next__()}));
+        return new PTuple((new Object[]{index++, iterator.__next__()}));
     }
 
     @Override
