@@ -24,13 +24,15 @@
  */
 package edu.uci.python.nodes.literals;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-public class ListLiteralNode extends LiteralNode {
+public abstract class ListLiteralNode extends LiteralNode {
 
     @Children protected final PNode[] values;
 
@@ -38,29 +40,102 @@ public class ListLiteralNode extends LiteralNode {
         this.values = adoptChildren(values);
     }
 
-    protected ListLiteralNode(ListLiteralNode node) {
-        this(node.values);
-    }
-
     @ExplodeLoop
-    @Override
-    public PList executePList(VirtualFrame frame) {
+    protected PList doGeneric(VirtualFrame frame, Object[] evaluated) {
+        CompilerAsserts.neverPartOfCompilation();
         Object[] elements = new Object[values.length];
 
         for (int i = 0; i < values.length; i++) {
-            elements[i] = values[i].execute(frame);
+            if (i < evaluated.length) {
+                elements[i] = evaluated[i];
+            } else {
+                elements[i] = values[i].execute(frame);
+            }
         }
 
-        return new PList(elements);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return executePList(frame);
+        replace(new ObjectListLiteralNode(values));
+        return new PList(SequenceStorageFactory.createStorage(evaluated));
     }
 
     @Override
     public String toString() {
         return "list";
+    }
+
+    public static class UninitializedListLiteralNode extends ListLiteralNode {
+
+        public UninitializedListLiteralNode(PNode[] values) {
+            super(values);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            CompilerAsserts.neverPartOfCompilation();
+            final Object[] elements = new Object[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                elements[i] = values[i].execute(frame);
+            }
+
+            PList list = new PList(SequenceStorageFactory.createStorage(elements));
+            SequenceStorage store = list.getStorage();
+
+            if (store instanceof IntSequenceStorage) {
+                replace(new IntListLiteralNode(values));
+            } else {
+                replace(new ObjectListLiteralNode(values));
+            }
+
+            return list;
+        }
+    }
+
+    public static class IntListLiteralNode extends ListLiteralNode {
+
+        public IntListLiteralNode(PNode[] values) {
+            super(values);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final int[] elements = new int[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                try {
+                    elements[i] = values[i].executeInt(frame);
+                } catch (UnexpectedResultException e) {
+                    final Object[] evaluated = new Object[i];
+
+                    for (int j = 0; j < i; j++) {
+                        evaluated[j] = elements[j];
+                    }
+
+                    doGeneric(frame, evaluated);
+                }
+            }
+
+            return new PList(new IntSequenceStorage(elements));
+        }
+    }
+
+    public static class ObjectListLiteralNode extends ListLiteralNode {
+
+        public ObjectListLiteralNode(PNode[] values) {
+            super(values);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Object[] elements = new Object[values.length];
+
+            for (int i = 0; i < values.length; i++) {
+                elements[i] = values[i].execute(frame);
+            }
+
+            return new PList(new ObjectSequenceStorage(elements));
+        }
     }
 }

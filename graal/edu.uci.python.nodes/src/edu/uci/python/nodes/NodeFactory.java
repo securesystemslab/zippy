@@ -260,12 +260,12 @@ public class NodeFactory {
 
     public PNode createListLiteral(List<PNode> values) {
         PNode[] convertedValues = values.toArray(new PNode[values.size()]);
-        return new ListLiteralNode(convertedValues);
+        return new ListLiteralNode.UninitializedListLiteralNode(convertedValues);
     }
 
     public PNode createSetLiteral(Set<PNode> values) {
         PNode[] convertedValues = values.toArray(new PNode[values.size()]);
-        return new ListLiteralNode(convertedValues);
+        return new SetLiteralNode(convertedValues);
     }
 
     public PNode createListComprehension(FrameSlot frameSlot, PNode comprehension) {

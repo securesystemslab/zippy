@@ -24,42 +24,55 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
-public abstract class SequenceStorage {
+import edu.uci.python.runtime.*;
 
-    public abstract int length();
+public class SequenceStorageFactory {
 
-    public abstract SequenceStorage copy();
+    public static SequenceStorage createStorage(Object[] values) {
+        if (!PythonOptions.UnboxSequenceStorage) {
+            if (values == null) {
+                return new ObjectSequenceStorage();
+            } else {
+                return new ObjectSequenceStorage(values);
+            }
+        }
 
-    public abstract Object[] getInternalArray();
+        /**
+         * Try to use unboxed SequenceStorage.
+         */
+        if (values == null || values.length == 0) {
+            return EmptySequenceStorage.INSTANCE;
+        }
 
-    public abstract Object[] getCopyOfInternalArray();
+        if (canSpecializeToInt(values)) {
+            return new IntSequenceStorage(specializeToInt(values));
+        } else {
+            return new ObjectSequenceStorage(values);
+        }
+    }
 
-    public abstract Object getItemInBound(int idx);
+    protected static boolean canSpecializeToInt(Object[] values) {
+        if (!(values[0] instanceof Integer)) {
+            return false;
+        }
 
-    public abstract void setItemInBound(int idx, Object value) throws SequenceStoreException;
+        for (Object item : values) {
+            if (!(item instanceof Integer)) {
+                return false;
+            }
+        }
 
-    public abstract void insertItem(int idx, Object value) throws SequenceStoreException;
+        return true;
+    }
 
-    public abstract SequenceStorage getSliceInBound(int start, int stop, int step, int length);
+    protected static int[] specializeToInt(Object[] values) {
+        final int[] intVals = new int[values.length];
 
-    public abstract void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException;
+        for (int i = 0; i < values.length; i++) {
+            intVals[i] = (int) values[i];
+        }
 
-    public abstract void delItemInBound(int idx);
-
-    public abstract Object popInBound(int idx);
-
-    public abstract int index(Object value);
-
-    public abstract void append(Object value) throws SequenceStoreException;
-
-    public abstract void extend(SequenceStorage other) throws SequenceStoreException;
-
-    public abstract void reverse();
-
-    public abstract void sort();
-
-    public abstract SequenceStorage generalizeFor(Object value);
-
-    public abstract Object getIndicativeValue();
+        return intVals;
+    }
 
 }
