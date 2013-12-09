@@ -24,71 +24,33 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.*;
-
-import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PZip extends PIterator implements Iterable<Object> {
+public class PZip extends PIterator {
 
-    private int index;
-    private List<PTuple> tuples;
+    private PIterator[] iterables;
 
-    public PZip(Iterable<?>[] iterables) {
-        Iterator[] iterators = new Iterator[iterables.length];
-
-        for (int i = 0; i < iterables.length; i++) {
-            iterators[i] = iterables[i].iterator();
-        }
-
-        this.tuples = new ArrayList<>();
-        int itemsize = iterables.length;
-        OutterLoop: while (true) {
-            Object[] temp = new Object[itemsize];
-
-            for (int i = 0; i < itemsize; i++) {
-                if (iterators[i].hasNext()) {
-                    temp[i] = iterators[i].next();
-                } else {
-                    break OutterLoop;
-                }
-            }
-
-            tuples.add(new PTuple(temp));
-        }
+    public PZip(PIterator[] iterables) {
+        this.iterables = iterables;
     }
 
     @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<PTuple> iter = tuples.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+    public PIterator __iter__() {
+        return this;
     }
 
     @Override
     public Object __next__() {
-        if (index < tuples.size()) {
-            return tuples.get(index++);
+        Object[] tupleElements = new Object[iterables.length];
+        for (int i = 0; i < iterables.length; i++) {
+            tupleElements[i] = iterables[i].__next__();
         }
 
-        throw StopIterationException.INSTANCE;
+        return new PTuple(tupleElements);
     }
 
     @Override

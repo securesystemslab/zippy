@@ -24,62 +24,29 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.*;
-
-import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PEnumerate extends PIterator implements Iterable<Object> {
+public class PEnumerate extends PIterator {
 
     private int index;
-    private List<PTuple> list;
+    public PIterator iterator;
 
-    public PEnumerate(Iterable<?> iterable) {
-        this(iterable, 0);
-    }
-
-    @SuppressWarnings("unused")
-    public PEnumerate(Iterable<?> iterable, int start) {
-        this.list = new ArrayList<>();
-        int count = 0;
-
-        for (Object object : iterable) {
-            this.list.add(new PTuple(new Object[]{count, object}));
-            count++;
-        }
+    public PEnumerate(PIterator iter) {
+        this.iterator = iter;
     }
 
     @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<PTuple> iter = list.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+    public PIterator __iter__() {
+        return this;
     }
 
     @Override
     public Object __next__() {
-        if (index < list.size()) {
-            return list.get(index++);
-        }
-
-        throw StopIterationException.INSTANCE;
+        return new PTuple((new Object[]{index++, iterator.__next__()}));
     }
 
     @Override

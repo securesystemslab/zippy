@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -41,6 +42,16 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     public PBaseSet() {
         this.set = new HashSet<>();
     }
+
+// public PBaseSet(PIterator iter) {
+// try {
+// while (true) {
+// add(iter.__next__());
+// }
+// } catch (StopIterationException e) {
+// // fall through
+// }
+// }
 
     public PBaseSet(Iterable<?> iterable) {
         this();

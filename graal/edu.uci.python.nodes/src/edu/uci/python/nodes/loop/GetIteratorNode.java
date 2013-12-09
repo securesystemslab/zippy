@@ -48,6 +48,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     }
 
     @Specialization
+    public Object doPEnumerate(PEnumerate value) {
+        return value.__iter__();
+    }
+
+    @Specialization
     public Object doPIterator(PIterator value) {
         return value;
     }
