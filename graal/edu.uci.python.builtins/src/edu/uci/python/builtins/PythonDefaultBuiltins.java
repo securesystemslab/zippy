@@ -1317,34 +1317,29 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PZip zip(Object[] args) {
-                Iterable<?>[] iterables = new Iterable[args.length];
+                PIterator[] iterables = new PIterator[args.length];
+
                 for (int i = 0; i < args.length; i++) {
-                    Iterable<?> iterable = getIterableObject(args[i]);
-                    iterables[i] = iterable;
+                    iterables[i] = getIterator(args[i]);
                 }
 
                 return new PZip(iterables);
             }
 
-            private static Iterable<?> getIterableObject(Object arg) {
+            private static PIterator getIterator(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return new PString(str);
+                    PString pstr = new PString(str);
+                    return pstr.__iter__();
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    return sequence;
+                    return sequence.__iter__();
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
-                    return baseSet;
-                } else if (arg instanceof PIntArray) {
-                    PIntArray array = (PIntArray) arg;
-                    return array;
-                } else if (arg instanceof PCharArray) {
-                    PCharArray array = (PCharArray) arg;
-                    return array;
-                } else if (arg instanceof PDoubleArray) {
-                    PDoubleArray array = (PDoubleArray) arg;
-                    return array;
+                    return baseSet.__iter__();
+                } else if (arg instanceof PArray) {
+                    PArray array = (PArray) arg;
+                    return array.__iter__();
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

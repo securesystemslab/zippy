@@ -22,28 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.array;
+package edu.uci.python.runtime.iterator;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.exception.*;
 
-public abstract class PArray extends PythonBuiltinObject implements PIterable {
+public class PArrayIterator extends PIterator {
 
-    public PIterator __iter__() {
-        return new PArrayIterator(this);
+    private final PArray array;
+    private int index;
+
+    public PArrayIterator(PArray array) {
+        this.array = array;
     }
 
-    public abstract Object getItem(int idx);
+    @Override
+    public Object __next__() {
+        if (index < array.len()) {
+            return array.getItem(index++);
+        }
 
-    public abstract void setItem(int idx, Object value);
-
-    public abstract Object getSlice(int start, int stop, int step, int length);
-
-    public abstract Object getSlice(PSlice slice);
-
-    public abstract void setSlice(PSlice slice, PArray other);
-
-    public abstract PArray append(PArray other);
-
+        throw StopIterationException.INSTANCE;
+    }
 }
