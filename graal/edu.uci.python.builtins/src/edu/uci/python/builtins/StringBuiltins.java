@@ -29,7 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**

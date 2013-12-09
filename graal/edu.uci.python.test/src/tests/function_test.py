@@ -1,5 +1,7 @@
+#edited by Ankit Verma
+
 # simple function definition test
-print("----------------- simple func def")
+
 def main():
     bit = 128
     byte_acc = 0
@@ -9,7 +11,6 @@ def main():
 
 main()
 
-print("----------------- slightly more complicated func def")
 def add_two(a, b):
     return a + b
 

@@ -30,59 +30,23 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class BinaryArithTest {
-
+public class PeTest {
     @Test
-    public void binaryOps() {
-        Path script = Paths.get("basic_binary_ops_test.py");
-        assertPrints("3 2 12 3.5 3\n", script);
+    public void pe1() {
+        Path script = Paths.get("pe1_test.py");
+        assertPrints("42\n", script);
     }
 
     @Test
-    public void bigIntegerDiv() {
-        String source = "print(22222222222222222222 / 2)\n";
-        assertPrints("1.111111111111111E19\n", source);
+    public void pe2() {
+        Path script = Paths.get("pe2_test.py");
+        assertPrints("43\n", script);
     }
 
     @Test
-    public void additionAndMultiply() {
-        String source = "print(345606 + 364 * 2)\n";
-        assertPrints("346334\n", source);
+    public void pe3() {
+        Path script = Paths.get("pe3_test.py");
+        assertPrints("(1, 2, 4)\n", script);
     }
 
-    @Test
-    public void divisionAndMinus() {
-        String source = "print(1101010101 / 356 - 2002)\n";
-        assertPrints("3090723.0028089886\n", source);
-    }
-
-    @Test
-    public void minusAndMultiply() {
-        String source = "print(42 - 99999 * 543858438584385)\n";
-        assertPrints("-54385299999999915573\n", source);
-    }
-
-    @Test
-    public void divisonAndMultiply() {
-        String source = "print(1 / 356 * 2.0)\n";
-        assertPrints("0.0056179775280898875\n", source);
-    }
-
-    @Test
-    public void trueDivisionWithDouble() {
-        String source = "print(3 // 5.0)\n";
-        assertPrints("0.0\n", source);
-    }
-
-    @Test
-    public void complexBinaryArith2() {
-        Path script = Paths.get("complex_binary_arith_test2.py");
-        assertPrints("1.07343919141098672E17 1.07343919141098675E18 -8.21361754992E11 16 15.625\n", script);
-    }
-
-    @Test
-    public void binaryArithModulo() {
-        Path script = Paths.get("binaryArith_modulo_test.py");
-        assertPrints("4 20 2.7440432148750915E-9\n", script);
-    }
 }

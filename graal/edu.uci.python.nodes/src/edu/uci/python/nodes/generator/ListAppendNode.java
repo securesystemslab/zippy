@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * Implements LIST_APPEND bytecode in CPython.
@@ -57,7 +58,15 @@ public abstract class ListAppendNode extends FrameSlotNode {
 
     @Specialization
     public int doInteger(VirtualFrame frame, int right) {
-        getPList(frame).append(right);
+        PList list = getPList(frame);
+        SequenceStorage store = list.getStorage();
+
+        if (store instanceof IntSequenceStorage) {
+            ((IntSequenceStorage) store).appendInt(right);
+        } else {
+            list.append(right);
+        }
+
         return right;
     }
 

@@ -22,58 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.subscript;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
+public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements ReadNode {
 
     public PNode getPrimary() {
         return getLeftNode();
     }
 
-    public PNode getSlice() {
+    public PNode getIndex() {
         return getRightNode();
     }
 
-    @Override
     public PNode makeWriteNode(PNode rhs) {
-        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), rhs);
-    }
-
-    @Specialization(order = 0)
-    public String doString(String primary, PSlice slice) {
-        final int length = slice.computeActualIndices(primary.length());
-        final int start = slice.getStart();
-        int stop = slice.getStop();
-        int step = slice.getStep();
-
-        if (step > 0 && stop < start) {
-            stop = start;
-        }
-        if (step == 1) {
-            return getSubString(primary, start, stop);
-        } else {
-            char[] newChars = new char[length];
-            int j = 0;
-            for (int i = start; j < length; i += step) {
-                newChars[j++] = primary.charAt(i);
-            }
-
-            return new String(newChars);
-        }
-    }
-
-    private static String getSubString(String origin, int start, int stop) {
-        char[] chars = new char[stop - start];
-        origin.getChars(start, stop, chars, 0);
-        return new String(chars);
+        return SubscriptStoreIndexNodeFactory.create(getPrimary(), getIndex(), rhs);
     }
 
     @Specialization(order = 1)
@@ -91,40 +62,39 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
         return new String(new char[]{charactor});
     }
 
-    @Specialization(order = 2)
-    public Object doPDictionary(PDict primary, Object slice) {
-        return primary.getItem(slice);
-    }
-
     @Specialization(order = 3)
     public Object doPSequence(PSequence primary, int slice) {
         return primary.getItem(slice);
     }
 
-    @Specialization(order = 4)
-    public Object doPSequence(PSequence primary, PSlice slice) {
-        return primary.getSlice(slice);
+    /**
+     * PDict lookup using key.
+     */
+    @Specialization(order = 5)
+    public Object doPDict(PDict primary, Object key) {
+        return primary.getItem(key);
     }
 
-    @Specialization(order = 5)
+    /**
+     * Unboxed array reads.
+     */
+    @Specialization(order = 10)
+    public int doPIntArray(PIntArray primary, int index) {
+        return primary.getIntItemInBound(index);
+    }
+
+    @Specialization(order = 11)
+    public double doPDoubleArray(PDoubleArray primary, int index) {
+        return primary.getDoubleItemInBound(index);
+    }
+
+    @Specialization(order = 12)
+    public char doPCharArray(PCharArray primary, int index) {
+        return primary.getCharItemInBound(index);
+    }
+
+    @Specialization(order = 14)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }
-
-    @Specialization(order = 6)
-    public Object doPArray(PArray primary, PSlice slice) {
-        return primary.getSlice(slice);
-    }
-
-    @SuppressWarnings("unused")
-    @Generic
-    public Object doGeneric(Object primary, Object slice) {
-        throw new RuntimeException("Unsupported primary Type " + primary.getClass().getSimpleName());
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " = " + getLeftNode() + "[" + getRightNode() + "]";
-    }
-
 }

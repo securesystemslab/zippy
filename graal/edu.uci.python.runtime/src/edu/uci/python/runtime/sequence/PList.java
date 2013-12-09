@@ -46,12 +46,7 @@ public class PList extends PSequence {
     @CompilationFinal private SequenceStorage store;
 
     public PList() {
-        store = SequenceStorage.createStorage(null);
-    }
-
-    public PList(Object[] elements) {
-        assert elements != null;
-        store = SequenceStorage.createStorage(elements);
+        store = SequenceStorageFactory.createStorage(null);
     }
 
     public PList(SequenceStorage store) {
@@ -59,7 +54,7 @@ public class PList extends PSequence {
     }
 
     public PList(PIterator iter) {
-        store = SequenceStorage.createStorage(null);
+        store = SequenceStorageFactory.createStorage(null);
 
         try {
             while (true) {

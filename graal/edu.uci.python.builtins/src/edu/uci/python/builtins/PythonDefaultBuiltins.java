@@ -32,6 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -40,6 +41,7 @@ import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
@@ -862,6 +864,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PEnumerate enumerate(Object arg, Object keywordArg) {
+                CompilerAsserts.neverPartOfCompilation();
                 if (keywordArg instanceof PNone) {
                     if (arg instanceof String) {
                         String str = (String) arg;
@@ -1051,6 +1054,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PList listObject(Object arg) {
+                CompilerAsserts.neverPartOfCompilation();
                 /**
                  * This is not ideal!<br>
                  * Truffle DSL does not support polymorphism for built-ins. It would be better if we
@@ -1326,8 +1330,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return baseSet;
-                } else if (arg instanceof PIntegerArray) {
-                    PIntegerArray array = (PIntegerArray) arg;
+                } else if (arg instanceof PIntArray) {
+                    PIntArray array = (PIntArray) arg;
                     return array;
                 } else if (arg instanceof PCharArray) {
                     PCharArray array = (PCharArray) arg;

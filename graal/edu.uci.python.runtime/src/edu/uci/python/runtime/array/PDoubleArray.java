@@ -22,13 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -70,7 +69,21 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
 
     @Override
     public Object getItem(int idx) {
+        return getDoubleItemInBound(idx);
+    }
+
+    public double getDoubleItemInBound(int idx) {
         return array[idx];
+    }
+
+    @Override
+    public void setItem(int idx, Object value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        setDoubleItemInBound(index, (double) value);
+    }
+
+    public void setDoubleItemInBound(int idx, double value) {
+        array[idx] = value;
     }
 
     @Override
@@ -91,12 +104,6 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
             newArray[j] = array[i];
         }
         return new PDoubleArray(newArray, false);
-    }
-
-    @Override
-    public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        array[index] = (double) value;
     }
 
     @Override
@@ -127,6 +134,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     public PythonBuiltinObject __mul__(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
+
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < array.length; j++) {
                 newArray[count++] = array[j];
@@ -156,30 +164,23 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
         return buf.toString();
     }
 
-    private List<Double> getList() {
-        List<Double> list = new ArrayList<>();
-        for (int i = 0; i < array.length; i++) {
-            list.add(array[i]);
-        }
-        return list;
-    }
-
     @Override
     public Iterator<Double> iterator() {
         return new Iterator<Double>() {
 
-            private final Iterator<Double> iter = getList().iterator();
+            private int index;
+            private final double[] values = array;
 
             public void remove() {
                 throw new UnsupportedOperationException();
             }
 
             public boolean hasNext() {
-                return iter.hasNext();
+                return index < values.length;
             }
 
             public Double next() {
-                return iter.next();
+                return values[index++];
             }
         };
     }

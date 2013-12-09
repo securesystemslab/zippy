@@ -33,9 +33,11 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public class PythonTypesUtil {
 
@@ -108,8 +110,8 @@ public class PythonTypesUtil {
                 map.put(adaptToPyObject(key), adaptToPyObject(dict.getItem(key)));
             }
             return new PyDictionary(map);
-        } else if (value instanceof PIntegerArray) {
-            return new PyArray(int.class, ((PIntegerArray) value).getSequence());
+        } else if (value instanceof PIntArray) {
+            return new PyArray(int.class, ((PIntArray) value).getSequence());
         } else if (value instanceof PDoubleArray) {
             return new PyArray(double.class, ((PDoubleArray) value).getSequence());
         } else if (value instanceof PCharArray) {
@@ -158,7 +160,7 @@ public class PythonTypesUtil {
         } else if (value instanceof PyList) {
             PyList list = (PyList) value;
             PyObject[] values = list.getArray();
-            return new PList(unboxPyObjects(values));
+            return new PList(SequenceStorageFactory.createStorage(unboxPyObjects(values)));
         } else if (value instanceof PyArray) {
             // TODO Temporary fix
             PyList array = (PyList) ((PyArray) value).tolist();

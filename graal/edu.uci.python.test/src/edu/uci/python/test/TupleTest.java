@@ -30,10 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class BinaryBooleanTest {
+public class TupleTest {
     @Test
     public void simple() {
-        Path script = Paths.get("binary_boolean_test.py");
-        assertPrints("----------- and\n0 0 0 9.9292\n----------- or\n1 2 12953285437432947239 2.4343\n", script);
+        Path script = Paths.get("tuple_test.py");
+        assertPrints("(a, 123, b, 49324324242949949) ()\n", script);
     }
+
 }

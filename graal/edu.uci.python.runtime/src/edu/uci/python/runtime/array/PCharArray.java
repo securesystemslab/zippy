@@ -22,29 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.runtime.array;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PIntegerArray extends PArray implements Iterable<Integer> {
+public class PCharArray extends PArray implements Iterable<Character> {
 
-    private final int[] array;
+    private final char[] array;
 
-    public PIntegerArray() {
-        array = new int[0];
+    public PCharArray() {
+        array = new char[0];
     }
 
-    public PIntegerArray(int[] elements) {
+    public PCharArray(char[] elements) {
         if (elements == null) {
-            array = new int[0];
+            array = new char[0];
         } else {
-            array = new int[elements.length];
+            array = new char[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         }
     }
@@ -55,60 +56,78 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PIntegerArray(int[] elements, boolean copy) {
+    private PCharArray(char[] elements, boolean copy) {
         if (copy) {
-            array = new int[elements.length];
+            array = new char[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         } else {
             array = elements;
         }
     }
 
-    public int[] getSequence() {
+    public char[] getSequence() {
         return array;
     }
 
     @Override
     public Object getItem(int idx) {
+        return getCharItemInBound(idx);
+    }
+
+    public char getCharItemInBound(int idx) {
         return array[idx];
-    }
-
-    @Override
-    public PIntegerArray getSlice(PSlice slice) {
-        int length = slice.computeActualIndices(array.length);
-        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
-    }
-
-    @Override
-    public PIntegerArray getSlice(int start, int stop, int step, int length) {
-        int[] newArray = new int[length];
-
-        if (step == 1) {
-            System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PIntegerArray(newArray, false);
-        }
-        for (int i = start, j = 0; j < length; i += step, j++) {
-            newArray[j] = array[i];
-        }
-        return new PIntegerArray(newArray, false);
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        array[index] = (int) value;
+        setCharItemInBound(index, (char) value);
+    }
+
+    public void setCharItemInBound(int idx, char value) {
+        array[idx] = value;
+    }
+
+    @Override
+    public PCharArray getSlice(PSlice slice) {
+        int length = slice.computeActualIndices(array.length);
+        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
+    }
+
+    @Override
+    public PCharArray getSlice(int start, int stop, int step, int length) {
+        char[] newArray = new char[length];
+
+        if (step == 1) {
+            System.arraycopy(array, start, newArray, 0, stop - start);
+            return new PCharArray(newArray, false);
+        }
+        for (int i = start, j = 0; j < length; i += step, j++) {
+            newArray[j] = array[i];
+        }
+        return new PCharArray(newArray, false);
+    }
+
+    public void setItem(int idx, char value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        array[index] = value;
+    }
+
+    @Override
+    public void setSlice(PSlice slice, PArray value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Object getMax() {
-        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
     public Object getMin() {
-        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[0];
     }
@@ -119,13 +138,8 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PythonBuiltinObject __mul__(int value) {
-        int[] newArray = new int[value * array.length];
+        char[] newArray = new char[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < array.length; j++) {
@@ -133,7 +147,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
             }
         }
 
-        return new PIntegerArray(newArray);
+        return new PCharArray(newArray);
     }
 
     @Override
@@ -147,8 +161,17 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
         return buf.toString();
     }
 
-    private List<Integer> getList() {
-        List<Integer> list = new ArrayList<>();
+    @Override
+    public PArray append(PArray other) {
+        PCharArray otherArray = (PCharArray) other;
+        char[] joined = new char[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PCharArray(joined);
+    }
+
+    private List<Character> getList() {
+        List<Character> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             list.add(array[i]);
         }
@@ -156,19 +179,10 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PArray append(PArray other) {
-        PIntegerArray otherArray = (PIntegerArray) other;
-        int[] joined = new int[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PIntegerArray(joined);
-    }
+    public Iterator<Character> iterator() {
+        return new Iterator<Character>() {
 
-    @Override
-    public Iterator<Integer> iterator() {
-        return new Iterator<Integer>() {
-
-            private final Iterator<Integer> iter = getList().iterator();
+            private final Iterator<Character> iter = getList().iterator();
 
             public void remove() {
                 throw new UnsupportedOperationException();
@@ -178,7 +192,7 @@ public class PIntegerArray extends PArray implements Iterable<Integer> {
                 return iter.hasNext();
             }
 
-            public Integer next() {
+            public Character next() {
                 return iter.next();
             }
         };

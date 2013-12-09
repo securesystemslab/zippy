@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class BasicObjectTest {
-
+public class GlobalVarTest {
     @Test
     public void simple() {
-        Path script = Paths.get("basicobject_pressure_test.py");
-        assertPrints("1\n2\n3\n4\n5\n6\n", script);
+        Path script = Paths.get("globalvar_test.py");
+        assertPrints("20\n20\n", script);
     }
+
 }

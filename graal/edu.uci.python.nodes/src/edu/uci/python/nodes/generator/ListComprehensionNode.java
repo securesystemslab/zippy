@@ -51,7 +51,7 @@ public class ListComprehensionNode extends FrameSlotNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        setObject(frame, new PList(new Object[]{}));
+        setObject(frame, new PList());
         comprehension.execute(frame);
         return getObject(frame);
     }

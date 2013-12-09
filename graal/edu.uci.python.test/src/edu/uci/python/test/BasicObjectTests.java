@@ -22,31 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.test;
 
-import org.python.core.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import java.nio.file.*;
 
-import edu.uci.python.nodes.expressions.*;
+import org.junit.*;
 
-public abstract class IndexNode extends UnaryOpNode {
+public class BasicObjectTests {
 
-    @Specialization
-    public int doInteger(int index) {
-        return index;
+    @Test
+    public void simple() {
+        Path script = Paths.get("basicobject_pressure_test.py");
+        assertPrints("1\n2\n3\n4\n5\n6\n", script);
     }
-
-    @SuppressWarnings("unused")
-    @Specialization
-    public double doDouble(double index) {
-        throw Py.TypeError("list indices must be integers, not float");
-    }
-
-    @Generic
-    public Object doGeneric(Object index) {
-        return index;
-    }
-
 }

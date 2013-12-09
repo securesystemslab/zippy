@@ -22,40 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatypes;
+package edu.uci.python.test;
 
-import edu.uci.python.runtime.standardtypes.*;
+import static edu.uci.python.test.PythonTests.*;
 
-public abstract class PArray extends PythonBuiltinObject implements PIterable {
+import java.nio.file.*;
 
-    public abstract Object getItem(int idx);
+import org.junit.*;
 
-    public abstract void setItem(int idx, Object value);
-
-    public abstract Object getSlice(int start, int stop, int step, int length);
-
-    public abstract Object getSlice(PSlice slice);
-
-    public abstract void setSlice(PSlice slice, PArray other);
-
-    /**
-     * Make step a long in case adding the start, stop and step together overflows an int.
-     */
-    public static final int sliceLength(int start, int stop, long step) {
-        int ret;
-        if (step > 0) {
-            ret = (int) ((stop - start + step - 1) / step);
-        } else {
-            ret = (int) ((stop - start + step + 1) / step);
-        }
-
-        if (ret < 0) {
-            return 0;
-        }
-
-        return ret;
+public class DefaultArgTests {
+    @Test
+    public void simple() {
+        Path script = Paths.get("defaultarg_test.py");
+        assertPrints("1\n4\n", script);
     }
-
-    public abstract PArray append(PArray other);
 
 }
