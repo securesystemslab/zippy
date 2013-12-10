@@ -178,12 +178,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 6)
-        PythonBuiltinObject doIntPObject(int left, PythonBuiltinObject right) {
+        PythonBuiltinObject doIntPSequence(int left, PSequence right) {
             return right.__mul__(left);
         }
 
         @Specialization(order = 7)
-        PythonBuiltinObject doPObjectInt(PythonBuiltinObject left, int right) {
+        PythonBuiltinObject doPSequenceInt(PSequence left, int right) {
             return left.__mul__(right);
         }
 

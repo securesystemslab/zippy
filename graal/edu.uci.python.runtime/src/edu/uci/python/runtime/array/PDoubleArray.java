@@ -31,7 +31,8 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PDoubleArray extends PArray implements Iterable<Double> {
+//public class PDoubleArray extends PArray implements Iterable<Double> {
+public class PDoubleArray extends PArray {
 
     private final double[] array;
 

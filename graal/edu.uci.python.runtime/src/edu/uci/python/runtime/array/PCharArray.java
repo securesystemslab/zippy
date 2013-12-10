@@ -33,7 +33,8 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PCharArray extends PArray implements Iterable<Character> {
+//public class PCharArray extends PArray implements Iterable<Character> {
+public class PCharArray extends PArray {
 
     private final char[] array;
 

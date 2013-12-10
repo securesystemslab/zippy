@@ -57,4 +57,6 @@ public abstract class PSequence extends PythonBuiltinObject implements PIterable
 
     public abstract PSequence __add__(PSequence sequence);
 
+    public abstract PythonBuiltinObject __mul__(int value);
+
 }

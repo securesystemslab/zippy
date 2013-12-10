@@ -33,7 +33,8 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PIntArray extends PArray implements Iterable<Integer> {
+//public class PIntArray extends PArray implements Iterable<Integer> {
+public class PIntArray extends PArray {
 
     private final int[] array;
 
