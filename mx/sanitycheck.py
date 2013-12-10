@@ -112,6 +112,7 @@ python2MicroBenchmarks = {
     'for-range2'    : '0',
     'function-call2': '0',
     'list-comp'     : '0',
+    'list-indexing' : '0',
     #'builtin-len'   : '0',
 }
 
@@ -120,6 +121,7 @@ pythonMicroBenchmarks = {
     'for-range'     : '0',
     'function-call' : '0',
     'list-comp'     : '0',
+    'list-indexing' : '0',
     'builtin-len'   : '0',
 }
 
