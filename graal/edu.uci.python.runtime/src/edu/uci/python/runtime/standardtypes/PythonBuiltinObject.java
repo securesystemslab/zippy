@@ -54,9 +54,4 @@ public abstract class PythonBuiltinObject {
     public PythonCallable __getattribute__(String name) {
         throw new UnsupportedOperationException();
     }
-
-    @SuppressWarnings("unused")
-    public PythonBuiltinObject __mul__(int value) {
-        throw new UnsupportedOperationException();
-    }
 }

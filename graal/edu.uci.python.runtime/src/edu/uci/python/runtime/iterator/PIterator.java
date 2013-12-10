@@ -27,9 +27,8 @@ package edu.uci.python.runtime.iterator;
 import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PIterator extends PythonBuiltinObject implements Iterable<Object> {
+public abstract class PIterator implements Iterable<Object> {
 
     public PIterator __iter__() {
         return this;
