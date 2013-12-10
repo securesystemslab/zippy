@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -62,8 +61,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getValueUnsafe(frame, cachedStorage);
         } else {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getValue(frame, primaryObj);
+            throw new UnexpectedResultException(primaryObj);
         }
     }
 
@@ -72,8 +70,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getIntValueUnsafe(frame, cachedStorage);
         } else {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getIntValue(frame, primaryObj);
+            throw new UnexpectedResultException(primaryObj);
         }
     }
 
@@ -81,8 +78,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getDoubleValueUnsafe(frame, cachedStorage);
         } else {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getDoubleValue(frame, primaryObj);
+            throw new UnexpectedResultException(primaryObj);
         }
     }
 
@@ -91,8 +87,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
         if (primaryCheck.accept(frame, primaryObj)) {
             return getBooleanValueUnsafe(frame, cachedStorage);
         } else {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getBooleanValue(frame, primaryObj);
+            throw new UnexpectedResultException(primaryObj);
         }
     }
 
