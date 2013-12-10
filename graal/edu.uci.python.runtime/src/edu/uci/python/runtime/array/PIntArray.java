@@ -129,11 +129,6 @@ public class PIntArray extends PArray {
     }
 
     @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public PythonBuiltinObject __mul__(int value) {
         int[] newArray = new int[value * array.length];
         int count = 0;
@@ -166,7 +161,7 @@ public class PIntArray extends PArray {
     }
 
     @Override
-    public PArray append(PArray other) {
+    public PArray __add__(PSequence other) {
         PIntArray otherArray = (PIntArray) other;
         int[] joined = new int[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

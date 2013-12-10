@@ -90,9 +90,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.__add__(right);
         }
 
-        @Specialization(order = 10)
-        PArray doPDoubleArray(PArray left, PArray right) {
-            return left.append(right);
+        @Specialization(order = 9)
+        PArray doPArray(PArray left, PArray right) {
+            return ((PArray) (left.__add__(right)));
         }
 
         // TODO: type info for operands in type error message.

@@ -46,10 +46,6 @@ public abstract class PythonBuiltinObject {
         return __class__;
     }
 
-    public int len() {
-        throw new UnsupportedOperationException();
-    }
-
     @SuppressWarnings("unused")
     public PythonCallable __getattribute__(String name) {
         throw new UnsupportedOperationException();

@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import org.python.core.*;
+
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
@@ -42,6 +44,11 @@ public class PEnumerate implements PIterable {
     @Override
     public PIterator __iter__() {
         return new PEnumerateIterator(iterable.__iter__());
+    }
+
+    @Override
+    public int len() {
+        throw Py.AttributeError("'enumerate'" + " object has no attribute " + "'len'");
     }
 
     @Override
