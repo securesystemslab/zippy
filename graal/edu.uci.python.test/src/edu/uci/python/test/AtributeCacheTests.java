@@ -38,4 +38,15 @@ public class AtributeCacheTests {
         assertPrints("do stuff A\ndo stuff B\n", script);
     }
 
+    @Test
+    public void booleanAttr() {
+        String source = "class A:\n" + //
+                        "    def __init__(self, bool):" + //
+                        "        self.bool = bool" + //
+                        "\n" + //
+                        "a = A(True)\n" + //
+                        "print(a.bool)\n";
+        assertPrints("True\n", source);
+    }
+
 }

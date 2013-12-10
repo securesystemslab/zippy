@@ -206,6 +206,13 @@ public abstract class CallAttributeNode extends PNode {
     }
 
     private static void redirectFirstArgumentToSelf(RootNode root) {
+        /**
+         * No need to redirect argument access.
+         */
+        if (NodeUtil.findFirstNodeInstance(root, ReadSelfArgumentNode.class) != null) {
+            return;
+        }
+
         List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
 
         for (ReadArgumentNode read : argReads) {

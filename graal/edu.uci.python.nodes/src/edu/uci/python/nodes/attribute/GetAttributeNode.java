@@ -85,12 +85,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getIntValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getIntValue(frame, primaryObj);
         }
 
         @Override
@@ -99,12 +98,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getDoubleValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getDoubleValue(frame, primaryObj);
         }
 
         @Override
@@ -113,12 +111,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getBooleanValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getBooleanValue(frame, primaryObj);
         }
     }
 
