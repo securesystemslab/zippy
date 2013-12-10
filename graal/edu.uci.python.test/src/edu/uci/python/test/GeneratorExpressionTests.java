@@ -26,6 +26,8 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class GeneratorExpressionTests {
@@ -59,5 +61,11 @@ public class GeneratorExpressionTests {
                         "\n";
 
         assertPrints("0\n2\n4\n6\n8\n", source);
+    }
+
+    @Test
+    public void generatorexpTest() {
+        Path script = Paths.get("generatorexp_test.py");
+        assertPrints("[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0), (2, 1), (2, 2), (2, 3)]\n", script);
     }
 }

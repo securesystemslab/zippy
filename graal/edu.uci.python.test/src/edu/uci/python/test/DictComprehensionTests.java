@@ -30,54 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ListComprehensionTests {
-
+public class DictComprehensionTests {
     @Test
     public void simple() {
-        String source = "llist = [x*2 for x in range(5)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
-    }
-
-    @Test
-    public void doubleLoop() {
-        String source = "llist = [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
-    }
-
-    @Test
-    public void nestedListComp() {
-        String source = "llist = [[x for x in range(5)] for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]\n", source);
-    }
-
-    @Test
-    public void simpleWithLocalTarget() {
-        String source = "def foo():\n" + //
-                        "    return [x*2 for x in range(5)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
-    }
-
-    @Test
-    public void doubleLoopWithLocalTarget() {
-        String source = "def foo():" + //
-                        "    return [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
-    }
-
-    @Test
-    public void listCompTest() {
-        Path script = Paths.get("listcomp.py");
-        assertPrints("[0, 2, 4, 6, 8]\n", script);
+        Path script = Paths.get("dictcomp_test.py");
+        assertPrints("{a : 123, b : 49324324242949949} {}\n", script);
     }
 
 }

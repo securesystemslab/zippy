@@ -30,54 +30,23 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ListComprehensionTests {
-
+public class PartialEvaluationTests {
     @Test
-    public void simple() {
-        String source = "llist = [x*2 for x in range(5)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
+    public void pe1() {
+        Path script = Paths.get("pe1_test.py");
+        assertPrints("42\n", script);
     }
 
     @Test
-    public void doubleLoop() {
-        String source = "llist = [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
+    public void pe2() {
+        Path script = Paths.get("pe2_test.py");
+        assertPrints("43\n", script);
     }
 
     @Test
-    public void nestedListComp() {
-        String source = "llist = [[x for x in range(5)] for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]\n", source);
-    }
-
-    @Test
-    public void simpleWithLocalTarget() {
-        String source = "def foo():\n" + //
-                        "    return [x*2 for x in range(5)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
-    }
-
-    @Test
-    public void doubleLoopWithLocalTarget() {
-        String source = "def foo():" + //
-                        "    return [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
-    }
-
-    @Test
-    public void listCompTest() {
-        Path script = Paths.get("listcomp.py");
-        assertPrints("[0, 2, 4, 6, 8]\n", script);
+    public void pe3() {
+        Path script = Paths.get("pe3_test.py");
+        assertPrints("(1, 2, 4)\n", script);
     }
 
 }
