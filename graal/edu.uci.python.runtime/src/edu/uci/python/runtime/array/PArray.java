@@ -25,25 +25,10 @@
 package edu.uci.python.runtime.array;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-//public abstract class PArray extends PythonBuiltinObject implements PIterable {
 public abstract class PArray extends PSequence {
-
-// public PIterator __iter__() {
-// return new PArrayIterator(this);
-// }
-//
-// public abstract Object getItem(int idx);
-//
-// public abstract void setItem(int idx, Object value);
-//
-// public abstract Object getSlice(int start, int stop, int step, int length);
-//
-// public abstract Object getSlice(PSlice slice);
 
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
@@ -75,12 +60,4 @@ public abstract class PArray extends PSequence {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public PSequence __add__(PSequence sequence) {
-        throw new UnsupportedOperationException();
-    }
-
-    public abstract void setSlice(PSlice slice, PArray other);
-
-    public abstract PArray append(PArray other);
 }

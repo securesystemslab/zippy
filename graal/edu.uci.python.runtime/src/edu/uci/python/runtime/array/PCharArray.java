@@ -115,11 +115,6 @@ public class PCharArray extends PArray {
     }
 
     @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Object getMax() {
         char[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -163,7 +158,7 @@ public class PCharArray extends PArray {
     }
 
     @Override
-    public PArray append(PArray other) {
+    public PArray __add__(PSequence other) {
         PCharArray otherArray = (PCharArray) other;
         char[] joined = new char[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

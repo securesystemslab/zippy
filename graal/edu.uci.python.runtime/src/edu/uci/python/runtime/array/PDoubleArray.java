@@ -108,11 +108,6 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public void setSlice(PSlice slice, PArray other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Object getMax() {
         double[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -146,7 +141,7 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public PArray append(PArray other) {
+    public PArray __add__(PSequence other) {
         PDoubleArray otherArray = (PDoubleArray) other;
         double[] joined = new double[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());
