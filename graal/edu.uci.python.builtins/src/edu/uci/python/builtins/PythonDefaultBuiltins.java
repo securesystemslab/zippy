@@ -848,19 +848,19 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(String str, Object keywordArg) {
                 PString pstr = new PString(str);
-                return new PEnumerate(pstr.__iter__());
+                return new PEnumerate(pstr);
             }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(PSequence sequence, Object keywordArg) {
-                return new PEnumerate(sequence.__iter__());
+                return new PEnumerate(sequence);
             }
 
             @SuppressWarnings("unused")
             @Specialization
             public PEnumerate enumerate(PBaseSet set, Object keywordArg) {
-                return new PEnumerate(set.__iter__());
+                return new PEnumerate(set);
             }
 
             @Specialization
@@ -870,13 +870,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     if (arg instanceof String) {
                         String str = (String) arg;
                         PString pstr = new PString(str);
-                        return new PEnumerate(pstr.__iter__());
+                        return new PEnumerate(pstr);
                     } else if (arg instanceof PSequence) {
                         PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence.__iter__());
+                        return new PEnumerate(sequence);
                     } else if (arg instanceof PBaseSet) {
                         PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet.__iter__());
+                        return new PEnumerate(baseSet);
                     }
 
                     if (!(arg instanceof Iterable<?>)) {
@@ -1317,29 +1317,29 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PZip zip(Object[] args) {
-                PIterator[] iterables = new PIterator[args.length];
+                PIterable[] iterables = new PIterable[args.length];
 
                 for (int i = 0; i < args.length; i++) {
-                    iterables[i] = getIterator(args[i]);
+                    iterables[i] = getIterable(args[i]);
                 }
 
                 return new PZip(iterables);
             }
 
-            private static PIterator getIterator(Object arg) {
+            private static PIterable getIterable(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
                     PString pstr = new PString(str);
-                    return pstr.__iter__();
+                    return pstr;
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    return sequence.__iter__();
+                    return sequence;
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
-                    return baseSet.__iter__();
+                    return baseSet;
                 } else if (arg instanceof PArray) {
                     PArray array = (PArray) arg;
-                    return array.__iter__();
+                    return array;
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

@@ -22,43 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.runtime.iterator;
 
-import com.oracle.truffle.api.dsl.*;
-
-import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class GetIteratorNode extends UnaryOpNode {
+public class PZipIterator extends PIterator {
 
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
+    private final PIterator[] iterators;
+
+    public PZipIterator(PIterator[] iterators) {
+        this.iterators = iterators;
     }
 
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
-    }
+    @Override
+    public Object __next__() {
+        Object[] tupleElements = new Object[iterators.length];
+        for (int i = 0; i < iterators.length; i++) {
+            tupleElements[i] = iterators[i].__next__();
+        }
 
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
-    }
-
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPIterator(PIterator value) {
-        return value;
+        return new PTuple(tupleElements);
     }
 }
