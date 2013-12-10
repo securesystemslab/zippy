@@ -2336,6 +2336,10 @@ bool Arguments::check_vm_args_consistency() {
       warning("forcing ScavengeRootsInCode non-zero because Graal is enabled");
       ScavengeRootsInCode = 1;
   }
+  if (TypeProfileLevel != 0) {
+      warning("forcing TypeProfileLevel to 0 as HotSpotMethodData can not yet handle the new type profile info");
+      TypeProfileLevel = 0;
+  }
 #endif
 
   // Need to limit the extent of the padding to reasonable size.
