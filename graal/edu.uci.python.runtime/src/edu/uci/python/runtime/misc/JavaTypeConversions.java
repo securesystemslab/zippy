@@ -29,7 +29,6 @@ import java.math.*;
 import org.python.core.*;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class JavaTypeConversions {
 
