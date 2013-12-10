@@ -425,7 +425,7 @@ def measure(iteration):
     print("Start timing...")
     start = time.time()
 
-    result, startTime, endTime = entry_point(iterations)
+    result, startTime, endTime = entry_point(iteration)
     if not result:
         print("Incorrect results!")
         return -1

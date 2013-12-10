@@ -7,6 +7,7 @@
 #  Translation from C++, Mario Wolczko
 #  Outer loop added by Alex Jacoby
 from __future__ import print_function
+import sys
 
 # Task IDs
 I_IDLE = 1
@@ -413,9 +414,24 @@ def main(entry_point = entry_point, iterations = 10):
     print("Average time per iteration: %.2f ms" %(total_s*1000/iterations))
     return 42
 
-if __name__ == '__main__':
-    import sys
-    if len(sys.argv) >= 2:
-        main(iterations = int(sys.argv[1]))
-    else:
-        main()
+# if __name__ == '__main__':
+#     import sys
+#     if len(sys.argv) >= 2:
+#         main(iterations = int(sys.argv[1]))
+#     else:
+#         main()
+
+def measure(iteration):
+    print("Start timing...")
+    start = time.time()
+
+    result, startTime, endTime = entry_point(iteration)
+    if not result:
+        print("Incorrect results!")
+        return -1
+    print("finished.")
+
+    duration = "%.3f\n" % (time.time() - start)
+    print("richards: " + duration)
+
+measure(int(sys.argv[1]))
