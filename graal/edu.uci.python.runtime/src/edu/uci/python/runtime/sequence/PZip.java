@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import org.python.core.*;
+
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
@@ -51,6 +53,12 @@ public class PZip implements PIterable {
     }
 
     @Override
+    public int len() {
+        throw Py.AttributeError("'zip'" + " object has no attribute " + "'len'");
+
+    }
+
+    @Override
     public Object getMax() {
         throw new UnsupportedOperationException();
     }
@@ -64,4 +72,5 @@ public class PZip implements PIterable {
     public String toString() {
         return "<zip object at " + hashCode() + ">";
     }
+
 }

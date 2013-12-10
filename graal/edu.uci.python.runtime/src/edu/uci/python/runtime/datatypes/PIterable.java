@@ -32,6 +32,8 @@ import edu.uci.python.runtime.iterator.*;
  */
 public interface PIterable {
 
+    int len();
+
     Object getMax();
 
     Object getMin();
