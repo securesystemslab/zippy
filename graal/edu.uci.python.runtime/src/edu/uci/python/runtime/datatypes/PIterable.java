@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.datatypes;
 
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * @author Gulfem
@@ -38,9 +37,4 @@ public interface PIterable {
     Object getMin();
 
     PIterator __iter__();
-
-// @SuppressWarnings("unused")
-// public PythonBuiltinObject __mul__(int value) {
-// throw new UnsupportedOperationException();
-// }
 }

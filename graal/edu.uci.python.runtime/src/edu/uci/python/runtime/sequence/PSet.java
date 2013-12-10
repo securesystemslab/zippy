@@ -24,10 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.storage.*;
-
 public class PSet extends PBaseSet {
 
     public PSet() {

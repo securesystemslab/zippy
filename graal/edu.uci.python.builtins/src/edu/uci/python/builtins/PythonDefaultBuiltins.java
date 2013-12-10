@@ -32,7 +32,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -381,11 +380,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public int len(PArray arg) {
-                return arg.len();
-            }
-
-            @Specialization
             public int len(Object arg) {
                 if (arg instanceof String) {
                     String argument = (String) arg;
@@ -398,9 +392,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 } else if (arg instanceof PDict) {
                     PDict argument = (PDict) arg;
-                    return argument.len();
-                } else if (arg instanceof PArray) {
-                    PArray argument = (PArray) arg;
                     return argument.len();
                 }
 
@@ -433,12 +424,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
-                return arg1.getMax();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
-            public Object maxArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
@@ -533,12 +518,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
-            public Object minArray(PArray arg1, Object[] args, Object keywordArg) {
-                return arg1.getMin();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
             public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
@@ -599,23 +578,23 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // next(iterator[, default])
-        @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
-        public abstract static class PythonNextNode extends PythonBuiltinNode {
-
-            public PythonNextNode(String name) {
-                super(name);
-            }
-
-            public PythonNextNode(PythonNextNode prev) {
-                this(prev.getName());
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            public int next(Object iterator) {
-                return 10;
-            }
-        }
+// @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
+// public abstract static class PythonNextNode extends PythonBuiltinNode {
+//
+// public PythonNextNode(String name) {
+// super(name);
+// }
+//
+// public PythonNextNode(PythonNextNode prev) {
+// this(prev.getName());
+// }
+//
+// @SuppressWarnings("unused")
+// @Specialization
+// public int next(Object iterator) {
+// return 10;
+// }
+// }
 
         // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
@@ -1337,9 +1316,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return baseSet;
-                } else if (arg instanceof PArray) {
-                    PArray array = (PArray) arg;
-                    return array;
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
