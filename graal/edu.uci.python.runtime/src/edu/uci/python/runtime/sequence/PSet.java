@@ -47,7 +47,6 @@ public class PSet extends PBaseSet {
     }
 
     // update
-
     @Override
     public void update(PBaseSet other) {
         this.updateInternal(other);
@@ -64,7 +63,6 @@ public class PSet extends PBaseSet {
     }
 
     // TODO
-
     // add
     public boolean add(Object o) {
         throw new UnsupportedOperationException();

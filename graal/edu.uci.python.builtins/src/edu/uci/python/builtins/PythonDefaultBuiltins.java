@@ -1249,30 +1249,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PTuple tuple(String arg) {
-                return new PTuple(stringToCharList(arg));
+                return null;
+                // return new PTuple(stringToCharList(arg));
             }
 
             @Specialization
             public PTuple tuple(PSequence sequence) {
-                return new PTuple(sequence);
+                return new PTuple(sequence.__iter__());
             }
 
             @Specialization
             public PTuple tuple(PBaseSet baseSet) {
-                return new PTuple(baseSet);
+                return new PTuple(baseSet.__iter__());
             }
 
             @Specialization
             public PTuple tuple(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return new PTuple(stringToCharList(str));
+                    return null;
+                    // return new PTuple(stringToCharList(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    return new PTuple(sequence);
+                    return new PTuple(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
-                    return new PTuple(baseSet);
+                    return new PTuple(baseSet.__iter__());
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

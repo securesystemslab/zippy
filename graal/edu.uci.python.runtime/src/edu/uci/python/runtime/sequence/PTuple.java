@@ -27,6 +27,8 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -49,17 +51,22 @@ public class PTuple extends PImmutableSequence {
         }
     }
 
-    public PTuple(Iterable<?> iterable) {
+    public PTuple(PIterator iter) {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
          */
         List<Object> list = new ArrayList<>();
 
-        for (Object o : iterable) {
-            list.add(o);
+        try {
+            while (true) {
+                list.add(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
 
         array = list.toArray();
+
     }
 
     /**
