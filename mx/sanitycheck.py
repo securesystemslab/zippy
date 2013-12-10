@@ -129,7 +129,7 @@ pythonMicroBenchmarks = {
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
     'fannkuchredux3t' : '11',
-    #'fasta3t'         : '25000000',
+    'fasta3t'         : '25000000',
     'mandelbrot3t'    : '4000',
     #'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
@@ -139,7 +139,7 @@ pythonBenchmarks = {
 python2Benchmarks = {
     'binarytrees2t'   : '19',
     'fannkuchredux2t' : '11',
-    #'fasta2t'         : '25000000',
+    'fasta2t'         : '25000000',
     'mandelbrot2t'    : '4000',
     #'meteor2t'        : '2098',
     'nbody2t'         : '5000000',
