@@ -32,43 +32,46 @@ import edu.uci.python.runtime.datatypes.*;
 public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
+    public static final PArguments EMPTY_ARGUMENT = new PArguments(null);
+
     private final MaterializedFrame declarationFrame;
-    private MaterializedFrame generatorFrame;
+    private final MaterializedFrame generatorFrame;
 
     private Object self;
     private final Object[] arguments;
     private final PKeyword[] keywords;
 
-    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
+    public PArguments(Object self, MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, PKeyword[] keywords) {
         this.self = self;
         this.declarationFrame = declarationFrame;
+        this.generatorFrame = generatorFrame;
         this.arguments = arguments;
         this.keywords = keywords;
     }
 
     public PArguments(MaterializedFrame declarationFrame) {
-        this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+        this(null, declarationFrame, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    }
+
+    public PArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame) {
+        this(null, declarationFrame, generatorFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
     }
 
     public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {
-        this(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        this(self, declarationFrame, null, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public static PArguments get(Frame frame) {
         return frame.getArguments(PArguments.class);
     }
 
-    public MaterializedFrame getMaterializedFrame() {
+    public MaterializedFrame getGeneratorFrame() {
         assert generatorFrame != null;
         return generatorFrame;
     }
 
     public Object getSelf() {
         return self;
-    }
-
-    public void setGeneratorFrame(MaterializedFrame frame) {
-        generatorFrame = frame;
     }
 
     public final Object[] getArgumentsArray() {

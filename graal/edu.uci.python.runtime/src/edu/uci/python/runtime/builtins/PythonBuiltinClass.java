@@ -77,7 +77,7 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, null, args, keywords));
     }
 
     @Override
