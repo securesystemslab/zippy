@@ -24,8 +24,10 @@
  */
 package edu.uci.python.runtime.iterator;
 
-public interface PIterator {
+//public interface PIterator {
+public abstract class PIterator {
 
-    Object __next__();
+    // Object __next__();
+    public abstract Object __next__();
 
 }

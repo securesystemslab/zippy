@@ -31,7 +31,8 @@ import com.oracle.truffle.api.impl.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class PGenerator implements PIterator {
+//public class PGenerator implements PIterator {
+public class PGenerator extends PIterator {
 
     private final String name;
     private final CallTarget callTarget;

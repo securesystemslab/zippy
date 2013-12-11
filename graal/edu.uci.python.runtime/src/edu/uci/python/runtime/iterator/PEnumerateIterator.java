@@ -30,7 +30,8 @@ import edu.uci.python.runtime.sequence.*;
  * @author Gulfem
  */
 
-public class PEnumerateIterator implements PIterator {
+// public class PEnumerateIterator implements PIterator {
+public class PEnumerateIterator extends PIterator {
 
     private int index;
     private final PIterator iterator;

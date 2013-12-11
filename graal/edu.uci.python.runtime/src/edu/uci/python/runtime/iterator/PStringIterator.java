@@ -26,7 +26,8 @@ package edu.uci.python.runtime.iterator;
 
 import edu.uci.python.runtime.exception.*;
 
-public class PStringIterator implements PIterator {
+//public class PStringIterator implements PIterator {
+public class PStringIterator extends PIterator {
 
     private final String value;
     private int index;
