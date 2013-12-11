@@ -40,7 +40,6 @@ public class PRangeTests {
     @Test
     public void loopWithOnlyStop() {
         PRange range = new PRange(10);
-        // Iterator iter = range.__iter__().iterator();
         int index = 0;
         PIterator iter = range.__iter__();
 
@@ -53,18 +52,11 @@ public class PRangeTests {
         } catch (StopIterationException e) {
             // fall through
         }
-
-// while (iter.hasNext()) {
-// int item = (int) iter.next();
-// assertEquals(index, item);
-// index++;
-// }
     }
 
     @Test
     public void loopWithStep() {
         PRange range = new PRange(0, 10, 2);
-        // Iterator iter = range.__iter__().iterator();
         int index = 0;
         PIterator iter = range.__iter__();
 
@@ -77,12 +69,6 @@ public class PRangeTests {
         } catch (StopIterationException e) {
             // fall through
         }
-
-// while (iter.hasNext()) {
-// int item = (int) iter.next();
-// assertEquals(index, item);
-// index += 2;
-// }
     }
 
     @Test

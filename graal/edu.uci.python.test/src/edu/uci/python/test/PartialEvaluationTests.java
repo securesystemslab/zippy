@@ -28,12 +28,25 @@ import static edu.uci.python.test.PythonTests.*;
 
 import java.nio.file.*;
 
-public class DictCompTest {
+import org.junit.*;
 
-// @Test
-    public void simple() {
-        Path script = Paths.get("dictcomp_test.py");
-        assertPrints("{a : 123, b : 49324324242949949} {}\n", script);
+public class PartialEvaluationTests {
+    @Test
+    public void pe1() {
+        Path script = Paths.get("pe1_test.py");
+        assertPrints("42\n", script);
+    }
+
+    @Test
+    public void pe2() {
+        Path script = Paths.get("pe2_test.py");
+        assertPrints("43\n", script);
+    }
+
+    @Test
+    public void pe3() {
+        Path script = Paths.get("pe3_test.py");
+        assertPrints("(1, 2, 4)\n", script);
     }
 
 }
