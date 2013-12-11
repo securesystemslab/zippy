@@ -24,15 +24,19 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.iterator.*;
+
 /**
  * @author Gulfem
  * @author zwei
  */
 public interface PIterable {
 
+    int len();
+
     Object getMax();
 
     Object getMin();
 
-    int len();
+    PIterator __iter__();
 }

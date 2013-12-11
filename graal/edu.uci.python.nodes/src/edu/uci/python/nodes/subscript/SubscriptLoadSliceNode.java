@@ -22,30 +22,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
-
-    public PNode getPrimary() {
-        return getLeftNode();
-    }
-
-    public PNode getSlice() {
-        return getRightNode();
-    }
+public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), rhs);
+        return SubscriptStoreSliceNodeFactory.create(getPrimary(), getSlice(), rhs);
     }
 
     @Specialization(order = 0)
@@ -77,31 +68,6 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
         return new String(chars);
     }
 
-    @Specialization(order = 1)
-    public String doString(String primary, int slice) {
-        int fixedSlice = slice;
-
-        if (slice < 0) {
-            fixedSlice += primary.length();
-        }
-        return charAtToString(primary, fixedSlice);
-    }
-
-    private static String charAtToString(String primary, int fixedSlice) {
-        char charactor = primary.charAt(fixedSlice);
-        return new String(new char[]{charactor});
-    }
-
-    @Specialization(order = 2)
-    public Object doPDictionary(PDict primary, Object slice) {
-        return primary.getItem(slice);
-    }
-
-    @Specialization(order = 3)
-    public Object doPSequence(PSequence primary, int slice) {
-        return primary.getItem(slice);
-    }
-
     @Specialization(order = 4)
     public Object doPSequence(PSequence primary, PSlice slice) {
         return primary.getSlice(slice);
@@ -110,16 +76,6 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 10)
-    public int doPIntArray(PIntArray primary, int index) {
-        return primary.getIntItem(index);
-    }
-
-    @Specialization(order = 14)
-    public Object doPArray(PArray primary, int slice) {
-        return primary.getItem(slice);
-    }
-
     @Specialization(order = 15)
     public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
@@ -135,5 +91,4 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
     public String toString() {
         return this.getClass().getSimpleName() + " = " + getLeftNode() + "[" + getRightNode() + "]";
     }
-
 }

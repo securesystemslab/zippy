@@ -80,73 +80,108 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
      * 
      * @param afterFrameInit specifies if the stack pointer has already been adjusted to allocate
      *            the current frame
+     * @param isVerifiedEntryPoint specifies if the code buffer is currently at the verified entry
+     *            point
      */
-    protected static void emitStackOverflowCheck(TargetMethodAssembler tasm, boolean afterFrameInit) {
-        if (StackShadowPages.getValue() > 0) {
+    protected static void emitStackOverflowCheck(CompilationResultBuilder crb, int stackShadowPages, boolean afterFrameInit, boolean isVerifiedEntryPoint) {
+        if (stackShadowPages > 0) {
 
-            AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
-            int frameSize = tasm.frameMap.frameSize();
+            AMD64MacroAssembler asm = (AMD64MacroAssembler) crb.asm;
+            int frameSize = crb.frameMap.frameSize();
             if (frameSize > 0) {
                 int lastFramePage = frameSize / unsafe.pageSize();
                 // emit multiple stack bangs for methods with frames larger than a page
                 for (int i = 0; i <= lastFramePage; i++) {
-                    int disp = (i + StackShadowPages.getValue()) * unsafe.pageSize();
+                    int disp = (i + stackShadowPages) * unsafe.pageSize();
                     if (afterFrameInit) {
                         disp -= frameSize;
                     }
-                    tasm.blockComment("[stack overflow check]");
+                    crb.blockComment("[stack overflow check]");
+                    int pos = asm.codeBuffer.position();
                     asm.movq(new AMD64Address(rsp, -disp), AMD64.rax);
+                    assert i > 0 || !isVerifiedEntryPoint || asm.codeBuffer.position() - pos >= PATCHED_VERIFIED_ENTRY_POINT_INSTRUCTION_SIZE;
                 }
             }
         }
     }
 
+    /**
+     * The size of the instruction used to patch the verified entry point of an nmethod when the
+     * nmethod is made non-entrant or a zombie (e.g. during deopt or class unloading). The first
+     * instruction emitted at an nmethod's verified entry point must be at least this length to
+     * ensure mt-safe patching.
+     */
+    public static final int PATCHED_VERIFIED_ENTRY_POINT_INSTRUCTION_SIZE = 5;
+
+    /**
+     * Emits code at the verified entry point and return point(s) of a method.
+     */
     class HotSpotFrameContext implements FrameContext {
 
         final boolean isStub;
+        final boolean omitFrame;
 
-        HotSpotFrameContext(boolean isStub) {
+        HotSpotFrameContext(boolean isStub, boolean omitFrame) {
             this.isStub = isStub;
+            this.omitFrame = omitFrame;
+        }
+
+        public boolean hasFrame() {
+            return !omitFrame;
         }
 
         @Override
-        public void enter(TargetMethodAssembler tasm) {
-            FrameMap frameMap = tasm.frameMap;
+        public void enter(CompilationResultBuilder crb) {
+            FrameMap frameMap = crb.frameMap;
             int frameSize = frameMap.frameSize();
-
-            AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
-            if (!isStub) {
-                emitStackOverflowCheck(tasm, false);
-            }
-            asm.decrementq(rsp, frameSize);
-            if (ZapStackOnMethodEntry.getValue()) {
-                final int intSize = 4;
-                for (int i = 0; i < frameSize / intSize; ++i) {
-                    asm.movl(new AMD64Address(rsp, i * intSize), 0xC1C1C1C1);
+            AMD64MacroAssembler asm = (AMD64MacroAssembler) crb.asm;
+            if (omitFrame) {
+                if (!isStub) {
+                    asm.nop(PATCHED_VERIFIED_ENTRY_POINT_INSTRUCTION_SIZE);
+                }
+            } else {
+                int verifiedEntryPointOffset = asm.codeBuffer.position();
+                if (!isStub && stackShadowPages > 0) {
+                    emitStackOverflowCheck(crb, stackShadowPages, false, true);
+                    assert asm.codeBuffer.position() - verifiedEntryPointOffset >= PATCHED_VERIFIED_ENTRY_POINT_INSTRUCTION_SIZE;
+                }
+                if (!isStub && asm.codeBuffer.position() == verifiedEntryPointOffset) {
+                    asm.subq(rsp, frameSize, true);
+                    assert asm.codeBuffer.position() - verifiedEntryPointOffset >= PATCHED_VERIFIED_ENTRY_POINT_INSTRUCTION_SIZE;
+                } else {
+                    asm.decrementq(rsp, frameSize);
+                }
+                if (ZapStackOnMethodEntry.getValue()) {
+                    final int intSize = 4;
+                    for (int i = 0; i < frameSize / intSize; ++i) {
+                        asm.movl(new AMD64Address(rsp, i * intSize), 0xC1C1C1C1);
+                    }
+                }
+                CalleeSaveLayout csl = frameMap.registerConfig.getCalleeSaveLayout();
+                if (csl != null && csl.size != 0) {
+                    int frameToCSA = frameMap.offsetToCalleeSaveArea();
+                    assert frameToCSA >= 0;
+                    asm.save(csl, frameToCSA);
                 }
             }
-            CalleeSaveLayout csl = frameMap.registerConfig.getCalleeSaveLayout();
-            if (csl != null && csl.size != 0) {
-                int frameToCSA = frameMap.offsetToCalleeSaveArea();
-                assert frameToCSA >= 0;
-                asm.save(csl, frameToCSA);
-            }
         }
 
         @Override
-        public void leave(TargetMethodAssembler tasm) {
-            int frameSize = tasm.frameMap.frameSize();
-            AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
-            CalleeSaveLayout csl = tasm.frameMap.registerConfig.getCalleeSaveLayout();
+        public void leave(CompilationResultBuilder crb) {
+            if (!omitFrame) {
+                AMD64MacroAssembler asm = (AMD64MacroAssembler) crb.asm;
+                CalleeSaveLayout csl = crb.frameMap.registerConfig.getCalleeSaveLayout();
 
-            if (csl != null && csl.size != 0) {
-                tasm.compilationResult.setRegisterRestoreEpilogueOffset(asm.codeBuffer.position());
-                // saved all registers, restore all registers
-                int frameToCSA = tasm.frameMap.offsetToCalleeSaveArea();
-                asm.restore(csl, frameToCSA);
+                if (csl != null && csl.size != 0) {
+                    crb.compilationResult.setRegisterRestoreEpilogueOffset(asm.codeBuffer.position());
+                    // saved all registers, restore all registers
+                    int frameToCSA = crb.frameMap.offsetToCalleeSaveArea();
+                    asm.restore(csl, frameToCSA);
+                }
+
+                int frameSize = crb.frameMap.frameSize();
+                asm.incrementq(rsp, frameSize);
             }
-
-            asm.incrementq(rsp, frameSize);
         }
     }
 
@@ -156,7 +191,7 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
     }
 
     @Override
-    public TargetMethodAssembler newAssembler(LIRGenerator lirGen, CompilationResult compilationResult) {
+    public CompilationResultBuilder newCompilationResultBuilder(LIRGenerator lirGen, CompilationResult compilationResult, CompilationResultBuilderFactory factory) {
         // Omit the frame if the method:
         // - has no spill slots or other slots allocated during register allocation
         // - has no callee-saved registers
@@ -171,12 +206,12 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
 
         Stub stub = gen.getStub();
         AbstractAssembler masm = createAssembler(frameMap);
-        HotSpotFrameContext frameContext = omitFrame ? null : new HotSpotFrameContext(stub != null);
-        TargetMethodAssembler tasm = new TargetMethodAssembler(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
-        tasm.setFrameSize(frameMap.frameSize());
+        HotSpotFrameContext frameContext = new HotSpotFrameContext(stub != null, omitFrame);
+        CompilationResultBuilder crb = factory.createBuilder(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
+        crb.setFrameSize(frameMap.frameSize());
         StackSlot deoptimizationRescueSlot = gen.deoptimizationRescueSlot;
         if (deoptimizationRescueSlot != null && stub == null) {
-            tasm.compilationResult.setCustomStackAreaOffset(frameMap.offsetForStackSlot(deoptimizationRescueSlot));
+            crb.compilationResult.setCustomStackAreaOffset(frameMap.offsetForStackSlot(deoptimizationRescueSlot));
         }
 
         if (stub != null) {
@@ -184,34 +219,36 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
             updateStub(stub, definedRegisters, gen.calleeSaveInfo, frameMap);
         }
 
-        return tasm;
+        return crb;
     }
 
     @Override
-    public void emitCode(TargetMethodAssembler tasm, LIRGenerator lirGen, ResolvedJavaMethod installedCodeOwner) {
-        AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
-        FrameMap frameMap = tasm.frameMap;
+    public void emitCode(CompilationResultBuilder crb, LIRGenerator lirGen, ResolvedJavaMethod installedCodeOwner) {
+        AMD64MacroAssembler asm = (AMD64MacroAssembler) crb.asm;
+        FrameMap frameMap = crb.frameMap;
         RegisterConfig regConfig = frameMap.registerConfig;
         HotSpotVMConfig config = getRuntime().getConfig();
-        Label verifiedStub = new Label();
+        Label verifiedEntry = new Label();
 
         // Emit the prefix
-        emitCodePrefix(installedCodeOwner, tasm, asm, regConfig, config, verifiedStub);
+        emitCodePrefix(installedCodeOwner, crb, asm, regConfig, config, verifiedEntry);
 
         // Emit code for the LIR
-        emitCodeBody(installedCodeOwner, tasm, lirGen);
+        emitCodeBody(installedCodeOwner, crb, lirGen);
 
         // Emit the suffix
-        emitCodeSuffix(installedCodeOwner, tasm, lirGen, asm, frameMap);
+        emitCodeSuffix(installedCodeOwner, crb, lirGen, asm, frameMap);
     }
 
     /**
+     * Emits the code prior to the verified entry point.
+     * 
      * @param installedCodeOwner see {@link Backend#emitCode}
      */
-    public void emitCodePrefix(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, AMD64MacroAssembler asm, RegisterConfig regConfig, HotSpotVMConfig config, Label verifiedStub) {
+    public void emitCodePrefix(ResolvedJavaMethod installedCodeOwner, CompilationResultBuilder crb, AMD64MacroAssembler asm, RegisterConfig regConfig, HotSpotVMConfig config, Label verifiedEntry) {
         HotSpotProviders providers = getProviders();
         if (installedCodeOwner != null && !isStatic(installedCodeOwner.getModifiers())) {
-            tasm.recordMark(Marks.MARK_UNVERIFIED_ENTRY);
+            crb.recordMark(Marks.MARK_UNVERIFIED_ENTRY);
             CallingConvention cc = regConfig.getCallingConvention(JavaCallee, null, new JavaType[]{providers.getMetaAccess().lookupJavaType(Object.class)}, getTarget(), false);
             Register inlineCacheKlass = rax; // see definition of IC_Klass in
                                              // c1_LIRAssembler_x86.cpp
@@ -226,34 +263,36 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
             } else {
                 asm.cmpq(inlineCacheKlass, src);
             }
-            AMD64Call.directConditionalJmp(tasm, asm, getForeignCalls().lookupForeignCall(IC_MISS_HANDLER), ConditionFlag.NotEqual);
+            AMD64Call.directConditionalJmp(crb, asm, getForeignCalls().lookupForeignCall(IC_MISS_HANDLER), ConditionFlag.NotEqual);
         }
 
         asm.align(config.codeEntryAlignment);
-        tasm.recordMark(Marks.MARK_OSR_ENTRY);
-        asm.bind(verifiedStub);
-        tasm.recordMark(Marks.MARK_VERIFIED_ENTRY);
+        crb.recordMark(Marks.MARK_OSR_ENTRY);
+        asm.bind(verifiedEntry);
+        crb.recordMark(Marks.MARK_VERIFIED_ENTRY);
+    }
+
+    /**
+     * Emits the code which starts at the verified entry point.
+     * 
+     * @param installedCodeOwner see {@link Backend#emitCode}
+     */
+    public void emitCodeBody(ResolvedJavaMethod installedCodeOwner, CompilationResultBuilder crb, LIRGenerator lirGen) {
+        lirGen.lir.emitCode(crb);
     }
 
     /**
      * @param installedCodeOwner see {@link Backend#emitCode}
      */
-    public void emitCodeBody(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, LIRGenerator lirGen) {
-        lirGen.lir.emitCode(tasm);
-    }
-
-    /**
-     * @param installedCodeOwner see {@link Backend#emitCode}
-     */
-    public void emitCodeSuffix(ResolvedJavaMethod installedCodeOwner, TargetMethodAssembler tasm, LIRGenerator lirGen, AMD64MacroAssembler asm, FrameMap frameMap) {
+    public void emitCodeSuffix(ResolvedJavaMethod installedCodeOwner, CompilationResultBuilder crb, LIRGenerator lirGen, AMD64MacroAssembler asm, FrameMap frameMap) {
         HotSpotProviders providers = getProviders();
-        HotSpotFrameContext frameContext = (HotSpotFrameContext) tasm.frameContext;
-        if (frameContext != null && !frameContext.isStub) {
+        HotSpotFrameContext frameContext = (HotSpotFrameContext) crb.frameContext;
+        if (!frameContext.isStub) {
             HotSpotForeignCallsProvider foreignCalls = providers.getForeignCalls();
-            tasm.recordMark(Marks.MARK_EXCEPTION_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, foreignCalls.lookupForeignCall(EXCEPTION_HANDLER), null, false, null);
-            tasm.recordMark(Marks.MARK_DEOPT_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, foreignCalls.lookupForeignCall(DEOPT_HANDLER), null, false, null);
+            crb.recordMark(Marks.MARK_EXCEPTION_HANDLER_ENTRY);
+            AMD64Call.directCall(crb, asm, foreignCalls.lookupForeignCall(EXCEPTION_HANDLER), null, false, null);
+            crb.recordMark(Marks.MARK_DEOPT_HANDLER_ENTRY);
+            AMD64Call.directCall(crb, asm, foreignCalls.lookupForeignCall(DEOPT_HANDLER), null, false, null);
         } else {
             // No need to emit the stubs for entries back into the method since
             // it has no calls that can cause such "return" entries

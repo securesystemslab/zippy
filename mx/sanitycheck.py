@@ -105,6 +105,7 @@ pythonTestBenchmarks = {
     'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
+    #'richards3'     : '5',
 }
 
 python2MicroBenchmarks = {
@@ -112,7 +113,8 @@ python2MicroBenchmarks = {
     'for-range2'    : '0',
     'function-call2': '0',
     'list-comp'     : '0',
-    'builtin-len'   : '0',
+    'list-indexing' : '0',
+    #'builtin-len'   : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -120,15 +122,16 @@ pythonMicroBenchmarks = {
     'for-range'     : '0',
     'function-call' : '0',
     'list-comp'     : '0',
+    'list-indexing' : '0',
     'builtin-len'   : '0',
 }
 
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
     'fannkuchredux3t' : '11',
-    #'fasta3t'         : '25000000',
+    'fasta3t'         : '25000000',
     'mandelbrot3t'    : '4000',
-    #'meteor3t'        : '2098',
+    'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',
 }
@@ -136,9 +139,9 @@ pythonBenchmarks = {
 python2Benchmarks = {
     'binarytrees2t'   : '19',
     'fannkuchredux2t' : '11',
-    #'fasta2t'         : '25000000',
+    'fasta3t'         : '25000000',
     'mandelbrot2t'    : '4000',
-    #'meteor2t'        : '2098',
+    'meteor3t'        : '2098',
     'nbody2t'         : '5000000',
     'spectralnorm2t'  : '5500',   
 }

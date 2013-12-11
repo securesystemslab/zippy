@@ -25,38 +25,39 @@
 package edu.uci.python.runtime.array;
 
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-public abstract class PArray extends PythonBuiltinObject implements PIterable {
+public abstract class PArray extends PSequence {
 
-    public abstract Object getItem(int idx);
-
-    public abstract void setItem(int idx, Object value);
-
-    public abstract Object getSlice(int start, int stop, int step, int length);
-
-    public abstract Object getSlice(PSlice slice);
-
-    public abstract void setSlice(PSlice slice, PArray other);
-
-    /**
-     * Make step a long in case adding the start, stop and step together overflows an int.
-     */
-    public static final int sliceLength(int start, int stop, long step) {
-        int ret;
-        if (step > 0) {
-            ret = (int) ((stop - start + step - 1) / step);
-        } else {
-            ret = (int) ((stop - start + step + 1) / step);
-        }
-
-        if (ret < 0) {
-            return 0;
-        }
-
-        return ret;
+    @Override
+    public void setSlice(int start, int stop, int step, PSequence value) {
+        throw new UnsupportedOperationException();
     }
 
-    public abstract PArray append(PArray other);
+    @Override
+    public void setSlice(PSlice slice, PSequence value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void delItem(int idx) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int index(Object value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SequenceStorage getStorage() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean lessThan(PSequence sequence) {
+        throw new UnsupportedOperationException();
+    }
 
 }

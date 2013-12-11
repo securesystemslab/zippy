@@ -138,6 +138,14 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPIntArray(execute(frame));
     }
 
+    public PDoubleArray executePDoubleArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPDoubleArray(execute(frame));
+    }
+
+    public PCharArray executePCharArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPCharArray(execute(frame));
+    }
+
     public PArray executePArray(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPArray(execute(frame));
     }

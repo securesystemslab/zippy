@@ -121,4 +121,14 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     public int len() {
         return map.size();
     }
+
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
 }

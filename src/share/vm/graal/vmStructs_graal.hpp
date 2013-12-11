@@ -30,6 +30,7 @@
 
 #define VM_STRUCTS_GRAAL(nonstatic_field, static_field)                       \
   static_field(java_lang_Class, _graal_mirror_offset, int)                    \
+  nonstatic_field(ThreadShadow, _pending_deoptimization, int)                 \
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
 

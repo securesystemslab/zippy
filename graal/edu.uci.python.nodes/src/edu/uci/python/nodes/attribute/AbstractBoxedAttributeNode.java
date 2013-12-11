@@ -44,7 +44,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, PythonBasicObject primaryObj);
+    public abstract Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException;
 
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
@@ -147,7 +147,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) {
+        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreter();
             return rewrite(primaryObj).getValue(frame, primaryObj);
         }

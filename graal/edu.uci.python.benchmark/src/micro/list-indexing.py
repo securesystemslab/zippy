@@ -16,8 +16,8 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	ll = [x*2 for x in range(10000)]
-	last_item = index_list(ll, 10000) #1000000
+	ll = [x*2 for x in range(1000)]
+	last_item = index_list(ll, 1000000) #1000000
 
 	print("Last item ", last_item)
 
@@ -25,7 +25,7 @@ def measure():
 	print("list-indexing: " + duration)
 
 #warm up
-for run in range(10000):
-	index_list([1,2,3,4,5,6,7,8,9,10], 10)
+for run in range(1000):
+	index_list([1,2,3,4,5,6,7,8,9,10], 1000)
 
 measure()

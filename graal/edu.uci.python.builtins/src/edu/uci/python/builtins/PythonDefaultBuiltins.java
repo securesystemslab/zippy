@@ -32,7 +32,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -381,11 +380,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public int len(PArray arg) {
-                return arg.len();
-            }
-
-            @Specialization
             public int len(Object arg) {
                 if (arg instanceof String) {
                     String argument = (String) arg;
@@ -398,9 +392,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 } else if (arg instanceof PDict) {
                     PDict argument = (PDict) arg;
-                    return argument.len();
-                } else if (arg instanceof PArray) {
-                    PArray argument = (PArray) arg;
                     return argument.len();
                 }
 
@@ -433,12 +424,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
-                return arg1.getMax();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
-            public Object maxArray(PArray arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
@@ -533,12 +518,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
-            public Object minArray(PArray arg1, Object[] args, Object keywordArg) {
-                return arg1.getMin();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
             public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMin();
             }
@@ -599,23 +578,23 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // next(iterator[, default])
-        @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
-        public abstract static class PythonNextNode extends PythonBuiltinNode {
-
-            public PythonNextNode(String name) {
-                super(name);
-            }
-
-            public PythonNextNode(PythonNextNode prev) {
-                this(prev.getName());
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization
-            public int next(Object iterator) {
-                return 10;
-            }
-        }
+// @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
+// public abstract static class PythonNextNode extends PythonBuiltinNode {
+//
+// public PythonNextNode(String name) {
+// super(name);
+// }
+//
+// public PythonNextNode(PythonNextNode prev) {
+// this(prev.getName());
+// }
+//
+// @SuppressWarnings("unused")
+// @Specialization
+// public int next(Object iterator) {
+// return 10;
+// }
+// }
 
         // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
@@ -845,10 +824,10 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
              */
 
             @SuppressWarnings("unused")
-            @Specialization
-            // @Specialization(guards = "noKeywordArg")
+            @Specialization(guards = "noKeywordArg")
             public PEnumerate enumerate(String str, Object keywordArg) {
-                return new PEnumerate(new PString(str));
+                PString pstr = new PString(str);
+                return new PEnumerate(pstr);
             }
 
             @SuppressWarnings("unused")
@@ -869,7 +848,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 if (keywordArg instanceof PNone) {
                     if (arg instanceof String) {
                         String str = (String) arg;
-                        return new PEnumerate(stringToCharList(str));
+                        PString pstr = new PString(str);
+                        return new PEnumerate(pstr);
                     } else if (arg instanceof PSequence) {
                         PSequence sequence = (PSequence) arg;
                         return new PEnumerate(sequence);
@@ -1197,12 +1177,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
+                // return null;
                 return new PSet(stringToCharList(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
                 return new PSet(sequence);
+                // return new PSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1214,10 +1196,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PSet set(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
+                    // return null;
                     return new PSet(stringToCharList(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
                     return new PSet(sequence);
+                    // return new PSet(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PSet(baseSet);
@@ -1312,34 +1296,26 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PZip zip(Object[] args) {
-                Iterable<?>[] iterables = new Iterable[args.length];
+                PIterable[] iterables = new PIterable[args.length];
+
                 for (int i = 0; i < args.length; i++) {
-                    Iterable<?> iterable = getIterableObject(args[i]);
-                    iterables[i] = iterable;
+                    iterables[i] = getIterable(args[i]);
                 }
 
                 return new PZip(iterables);
             }
 
-            private static Iterable<?> getIterableObject(Object arg) {
+            private static PIterable getIterable(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return new PString(str);
+                    PString pstr = new PString(str);
+                    return pstr;
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
                     return sequence;
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return baseSet;
-                } else if (arg instanceof PIntArray) {
-                    PIntArray array = (PIntArray) arg;
-                    return array;
-                } else if (arg instanceof PCharArray) {
-                    PCharArray array = (PCharArray) arg;
-                    return array;
-                } else if (arg instanceof PDoubleArray) {
-                    PDoubleArray array = (PDoubleArray) arg;
-                    return array;
                 }
 
                 if (!(arg instanceof Iterable<?>)) {

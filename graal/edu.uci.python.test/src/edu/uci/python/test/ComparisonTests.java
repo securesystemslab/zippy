@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ControlFlowTest {
+public class ComparisonTests {
     @Test
     public void simple() {
-        Path script = Paths.get("controlflow_test.py");
-        assertPrints("taken\n4\n3\n2\n1\n0\n", script);
+        Path script = Paths.get("comp_test.py");
+        assertPrints("False\n", script);
     }
 
 }

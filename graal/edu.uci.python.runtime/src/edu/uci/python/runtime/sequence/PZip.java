@@ -24,75 +24,53 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.*;
+import org.python.core.*;
 
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PZip extends PIterator implements Iterable<Object> {
+public class PZip implements PIterable {
 
-    private int index;
-    private List<PTuple> tuples;
+    private final PIterable[] iterables;
 
-    public PZip(Iterable<?>[] iterables) {
-        Iterator[] iterators = new Iterator[iterables.length];
+    public PZip(PIterable[] iterables) {
+        this.iterables = iterables;
+    }
 
+    @Override
+    public PIterator __iter__() {
+
+        PIterator[] iterators = new PIterator[iterables.length];
         for (int i = 0; i < iterables.length; i++) {
-            iterators[i] = iterables[i].iterator();
+            iterators[i] = iterables[i].__iter__();
         }
 
-        this.tuples = new ArrayList<>();
-        int itemsize = iterables.length;
-        OutterLoop: while (true) {
-            Object[] temp = new Object[itemsize];
-
-            for (int i = 0; i < itemsize; i++) {
-                if (iterators[i].hasNext()) {
-                    temp[i] = iterators[i].next();
-                } else {
-                    break OutterLoop;
-                }
-            }
-
-            tuples.add(new PTuple(temp));
-        }
+        return new PZipIterator(iterators);
     }
 
     @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
+    public int len() {
+        throw Py.AttributeError("'zip'" + " object has no attribute " + "'len'");
 
-            private final Iterator<PTuple> iter = tuples.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
     }
 
     @Override
-    public Object __next__() {
-        if (index < tuples.size()) {
-            return tuples.get(index++);
-        }
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
 
-        throw StopIterationException.INSTANCE;
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String toString() {
         return "<zip object at " + hashCode() + ">";
     }
+
 }

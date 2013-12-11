@@ -24,62 +24,41 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.*;
+import org.python.core.*;
 
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**
  * @author Gulfem
  */
 
-public class PEnumerate extends PIterator implements Iterable<Object> {
+public class PEnumerate implements PIterable {
 
-    private int index;
-    private List<PTuple> list;
+    private final PIterable iterable;
 
-    public PEnumerate(Iterable<?> iterable) {
-        this(iterable, 0);
-    }
-
-    @SuppressWarnings("unused")
-    public PEnumerate(Iterable<?> iterable, int start) {
-        this.list = new ArrayList<>();
-        int count = 0;
-
-        for (Object object : iterable) {
-            this.list.add(new PTuple(new Object[]{count, object}));
-            count++;
-        }
+    public PEnumerate(PIterable iterable) {
+        this.iterable = iterable;
     }
 
     @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<PTuple> iter = list.iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
+    public PIterator __iter__() {
+        return new PEnumerateIterator(iterable.__iter__());
     }
 
     @Override
-    public Object __next__() {
-        if (index < list.size()) {
-            return list.get(index++);
-        }
+    public int len() {
+        throw Py.AttributeError("'enumerate'" + " object has no attribute " + "'len'");
+    }
 
-        throw StopIterationException.INSTANCE;
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

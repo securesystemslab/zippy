@@ -33,7 +33,8 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PCharArray extends PArray implements Iterable<Character> {
+//public class PCharArray extends PArray implements Iterable<Character> {
+public class PCharArray extends PArray {
 
     private final char[] array;
 
@@ -71,13 +72,21 @@ public class PCharArray extends PArray implements Iterable<Character> {
 
     @Override
     public Object getItem(int idx) {
+        return getCharItemInBound(idx);
+    }
+
+    public char getCharItemInBound(int idx) {
         return array[idx];
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        array[index] = (char) value;
+        setCharItemInBound(index, (char) value);
+    }
+
+    public void setCharItemInBound(int idx, char value) {
+        array[idx] = value;
     }
 
     @Override
@@ -103,11 +112,6 @@ public class PCharArray extends PArray implements Iterable<Character> {
     public void setItem(int idx, char value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
         array[index] = value;
-    }
-
-    @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -154,7 +158,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     @Override
-    public PArray append(PArray other) {
+    public PArray __add__(PSequence other) {
         PCharArray otherArray = (PCharArray) other;
         char[] joined = new char[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

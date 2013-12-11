@@ -36,6 +36,7 @@ import edu.uci.python.nodes.calls.*;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.objects.*;
 import edu.uci.python.runtime.standardtypes.*;
@@ -71,12 +72,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
             }
-
-            return cache.getValue(frame, primaryObj);
         }
 
         @Override
@@ -85,12 +85,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getIntValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getIntValue(frame, primaryObj);
         }
 
         @Override
@@ -99,12 +98,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getDoubleValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getDoubleValue(frame, primaryObj);
         }
 
         @Override
@@ -113,12 +111,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
+                return cache.getBooleanValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreter();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
-
-            return cache.getBooleanValue(frame, primaryObj);
         }
     }
 
@@ -219,7 +216,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         }
     }
 
-    protected static Object bootstrapBoxedOrUnboxed(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
+    protected Object bootstrapBoxedOrUnboxed(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (primaryObj instanceof PythonBasicObject) {
@@ -236,11 +233,17 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         }
     }
 
-    protected static Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
-        AbstractBoxedAttributeNode cacheNode = new AbstractBoxedAttributeNode.UninitializedCachedAttributeNode(current.attributeId);
-        Object value = cacheNode.getValue(frame, primaryObj);
+    protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
+        AbstractBoxedAttributeNode cacheNode = new AbstractBoxedAttributeNode.UninitializedCachedAttributeNode(current.attributeId).rewrite(primaryObj);
+        Object value;
 
-        if (value instanceof PFunction) {
+        try {
+            value = cacheNode.getValue(frame, primaryObj);
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
+        if (value instanceof PFunction && !(primaryObj instanceof PythonClass)) {
             value = CallAttributeNode.createPMethodFor((PythonObject) primaryObj, (PFunction) value);
             current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode, (PMethod) value));
         } else {
@@ -250,16 +253,17 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         return value;
     }
 
-    protected static Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
-        AbstractUnboxedAttributeNode cacheNode = new AbstractUnboxedAttributeNode.UninitializedCachedAttributeNode(current.context, current.attributeId);
+    protected Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
+        AbstractUnboxedAttributeNode cacheNode = new AbstractUnboxedAttributeNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(primaryObj);
         Object value = null;
+
         try {
             value = cacheNode.getValue(frame, primaryObj);
         } catch (UnexpectedResultException e) {
             throw new IllegalStateException("Attribute access failed in slow path!");
         }
 
-        if (value instanceof PBuiltinFunction) {
+        if (value instanceof PBuiltinFunction && !(primaryObj instanceof PythonBuiltinClass)) {
             try {
                 value = CallAttributeNode.createPBuiltinMethodFor(current.context.boxAsPythonBuiltinObject(primaryObj), (PBuiltinFunction) value);
             } catch (UnexpectedResultException e) {

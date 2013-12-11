@@ -26,9 +26,11 @@ package edu.uci.python.nodes.statements;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatypes.*;
 
 public class RaiseNode extends StatementNode {
 
@@ -47,6 +49,12 @@ public class RaiseNode extends StatementNode {
         Object i = (inst == null) ? null : inst.execute(frame);
 // Object b = (tback == null) ? null : tback.execute(frame);
 
+        doRaise(t, i);
+        return PNone.NONE;
+    }
+
+    @SlowPath
+    private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
 }

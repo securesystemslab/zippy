@@ -59,8 +59,15 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) throws UnexpectedResultException {
-        PythonBuiltinObject pbObj = context.boxAsPythonBuiltinObject(primaryObj);
+    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) {
+        PythonBuiltinObject pbObj = null;
+
+        try {
+            pbObj = context.boxAsPythonBuiltinObject(primaryObj);
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
         PythonClass current = pbObj.__class__();
         assert current != null;
 

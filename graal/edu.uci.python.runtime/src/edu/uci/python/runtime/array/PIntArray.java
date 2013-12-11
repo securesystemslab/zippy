@@ -33,7 +33,8 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public class PIntArray extends PArray implements Iterable<Integer> {
+//public class PIntArray extends PArray implements Iterable<Integer> {
+public class PIntArray extends PArray {
 
     private final int[] array;
 
@@ -71,11 +72,21 @@ public class PIntArray extends PArray implements Iterable<Integer> {
 
     @Override
     public Object getItem(int idx) {
-        return getIntItem(idx);
+        return getIntItemInBound(idx);
     }
 
-    public int getIntItem(int idx) {
+    public int getIntItemInBound(int idx) {
         return array[idx];
+    }
+
+    @Override
+    public void setItem(int idx, Object value) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        setIntItemInBound(index, (int) value);
+    }
+
+    public void setIntItemInBound(int idx, int value) {
+        array[idx] = value;
     }
 
     @Override
@@ -99,16 +110,6 @@ public class PIntArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setIntItem(index, (int) value);
-    }
-
-    public void setIntItem(int idx, int value) {
-        array[idx] = value;
-    }
-
-    @Override
     public Object getMax() {
         int[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
@@ -125,11 +126,6 @@ public class PIntArray extends PArray implements Iterable<Integer> {
     @Override
     public int len() {
         return array.length;
-    }
-
-    @Override
-    public void setSlice(PSlice slice, PArray value) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -165,7 +161,7 @@ public class PIntArray extends PArray implements Iterable<Integer> {
     }
 
     @Override
-    public PArray append(PArray other) {
+    public PArray __add__(PSequence other) {
         PIntArray otherArray = (PIntArray) other;
         int[] joined = new int[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

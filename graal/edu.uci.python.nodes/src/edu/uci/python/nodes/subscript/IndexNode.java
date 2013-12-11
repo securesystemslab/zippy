@@ -22,20 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.subscript;
 
-import static edu.uci.python.test.PythonTests.*;
+import org.python.core.*;
 
-import java.nio.file.*;
+import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.dsl.Specialization;
 
-import org.junit.*;
+import edu.uci.python.nodes.expressions.*;
 
-public class BinaryBitwiseTest {
-    @Test
-    public void simple() {
-        Path script = Paths.get("binary_bitwise_test.py");
-        assertPrints("----------- << >>\n8 2 680564733841876926926749214863536422912 0 -256 -1\n----------- & | ^\n0 441 415\n----------- & | ^ w/ BitInteger\n0 943824320482304948 544382094820482034324155\n",
-                        script);
+public abstract class IndexNode extends UnaryOpNode {
+
+    @Specialization
+    public int doInteger(int index) {
+        return index;
+    }
+
+    @SuppressWarnings("unused")
+    @Specialization
+    public double doDouble(double index) {
+        throw Py.TypeError("list indices must be integers, not float");
+    }
+
+    @Generic
+    public Object doGeneric(Object index) {
+        return index;
     }
 
 }

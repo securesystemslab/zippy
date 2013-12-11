@@ -22,31 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.runtime.iterator;
 
-import org.python.core.*;
+import edu.uci.python.runtime.sequence.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+public class PZipIterator extends PIterator {
 
-import edu.uci.python.nodes.expressions.*;
+    private final PIterator[] iterators;
 
-public abstract class IndexNode extends UnaryOpNode {
-
-    @Specialization
-    public int doInteger(int index) {
-        return index;
+    public PZipIterator(PIterator[] iterators) {
+        this.iterators = iterators;
     }
 
-    @SuppressWarnings("unused")
-    @Specialization
-    public double doDouble(double index) {
-        throw Py.TypeError("list indices must be integers, not float");
-    }
+    @Override
+    public Object __next__() {
+        Object[] tupleElements = new Object[iterators.length];
+        for (int i = 0; i < iterators.length; i++) {
+            tupleElements[i] = iterators[i].__next__();
+        }
 
-    @Generic
-    public Object doGeneric(Object index) {
-        return index;
+        return new PTuple(tupleElements);
     }
-
 }

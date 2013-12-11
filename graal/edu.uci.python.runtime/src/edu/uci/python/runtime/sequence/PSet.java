@@ -34,6 +34,10 @@ public class PSet extends PBaseSet {
         super(iterable);
     }
 
+// public PSet(PIterator iter) {
+// super(iter);
+// }
+
     public PSet(PBaseSet pBaseSet) {
         super(pBaseSet);
     }

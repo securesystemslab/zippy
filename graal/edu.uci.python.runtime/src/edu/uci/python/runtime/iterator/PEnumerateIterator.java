@@ -22,18 +22,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.runtime.iterator;
 
-import static edu.uci.python.test.PythonTests.*;
+import edu.uci.python.runtime.sequence.*;
 
-import java.nio.file.*;
+public class PEnumerateIterator extends PIterator {
 
-import org.junit.*;
+    private int index;
+    private final PIterator iterator;
 
-public class BinaryBooleanTest {
-    @Test
-    public void simple() {
-        Path script = Paths.get("binary_boolean_test.py");
-        assertPrints("----------- and\n0 0 0 9.9292\n----------- or\n1 2 12953285437432947239 2.4343\n", script);
+    public PEnumerateIterator(PIterator iterator) {
+        this.iterator = iterator;
+    }
+
+    @Override
+    public Object __next__() {
+        return new PTuple((new Object[]{index++, iterator.__next__()}));
     }
 }

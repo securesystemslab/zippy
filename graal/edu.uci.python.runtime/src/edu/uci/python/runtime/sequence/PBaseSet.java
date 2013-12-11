@@ -42,6 +42,16 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         this.set = new HashSet<>();
     }
 
+// public PBaseSet(PIterator iter) {
+// try {
+// while (true) {
+// add(iter.__next__());
+// }
+// } catch (StopIterationException e) {
+// // fall through
+// }
+// }
+
     public PBaseSet(Iterable<?> iterable) {
         this();
         Iterator<?> iter = iterable.iterator();

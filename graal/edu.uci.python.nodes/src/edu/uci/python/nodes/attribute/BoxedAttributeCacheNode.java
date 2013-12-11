@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -57,7 +56,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
     }
 
     @Override
-    public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) {
+    public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
             if (primaryCheck.accept(frame, primaryObj)) {
                 return getValueUnsafe(frame, cachedStorage);
@@ -66,8 +65,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        CompilerDirectives.transferToInterpreter();
-        return rewrite(primaryObj).getValue(frame, primaryObj);
+        throw new UnexpectedResultException(primaryObj);
     }
 
     @Override
@@ -80,8 +78,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        CompilerDirectives.transferToInterpreter();
-        return rewrite(primaryObj).getIntValue(frame, primaryObj);
+        throw new UnexpectedResultException(primaryObj);
     }
 
     @Override
@@ -94,8 +91,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        CompilerDirectives.transferToInterpreter();
-        return rewrite(primaryObj).getDoubleValue(frame, primaryObj);
+        throw new UnexpectedResultException(primaryObj);
     }
 
     @Override
@@ -108,8 +104,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
             // fall through
         }
 
-        CompilerDirectives.transferToInterpreter();
-        return rewrite(primaryObj).getBooleanValue(frame, primaryObj);
+        throw new UnexpectedResultException(primaryObj);
     }
 
     public abstract Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage);
