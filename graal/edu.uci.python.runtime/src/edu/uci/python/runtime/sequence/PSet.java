@@ -24,29 +24,29 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import java.util.*;
+
+import edu.uci.python.runtime.iterator.*;
+
 public class PSet extends PBaseSet {
 
     public PSet() {
         super();
     }
 
-    public PSet(Iterable<?> iterable) {
-        super(iterable);
+    public PSet(Set<Object> elements) {
+        super(elements);
     }
 
-// public PSet(PIterator iter) {
-// super(iter);
-// }
+    public PSet(PIterator iterator) {
+        super(iterator);
+    }
 
     public PSet(PBaseSet pBaseSet) {
         super(pBaseSet);
     }
 
     // update
-    @Override
-    public void update(Iterable<Object> other) {
-        this.updateInternal(other);
-    }
 
     @Override
     public void update(PBaseSet other) {
@@ -54,87 +54,39 @@ public class PSet extends PBaseSet {
     }
 
     @Override
-    public void update(Object[] args) {
-        for (int i = 0; i < args.length; i++) {
-            this.updateInternal(args[i]);
-        }
-    }
-
-    // intersection_update
-    @Override
-    public void intersectionUpdate(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void intersectionUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void intersectionUpdate(Object[] args) {
-        throw new UnsupportedOperationException();
-    }
-
-    // difference_update
-    @Override
-    public void differenceUpdate(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void differenceUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void differenceUpdate(Object[] args) {
-        throw new UnsupportedOperationException();
-    }
-
-    // symmetric_difference_update
-    @Override
-    public void symmetricDifferenceUpdate(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void symmetricDifferenceUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    // add
-    @Override
-    public boolean add(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    // remove
-    @Override
-    public boolean remove(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    // discard
-    @Override
-    public boolean discard(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    // pop
-    @Override
-    public boolean pop() {
-        throw new UnsupportedOperationException();
-    }
-
-    // clear
-    @Override
-    public boolean clear() {
-        throw new UnsupportedOperationException();
+    public void update(PIterator other) {
+        this.updateInternal(other);
     }
 
     @Override
     protected PBaseSet cloneThisSet() {
         return new PSet(this);
+    }
+
+    // TODO
+
+    // add
+    public boolean add(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    // remove
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    // discard
+    public boolean discard(Object o) {
+        throw new UnsupportedOperationException();
+    }
+
+    // pop
+    public boolean pop() {
+        throw new UnsupportedOperationException();
+    }
+
+    // clear
+    public boolean clear() {
+        throw new UnsupportedOperationException();
     }
 }

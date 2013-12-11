@@ -27,6 +27,7 @@ package edu.uci.python.nodes.loop;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -45,6 +46,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     @Specialization
     public Object doString(String value) {
         return new PStringIterator(value);
+    }
+
+    @Specialization
+    public Object doPDictionary(PDict value) {
+        return value.__iter__();
     }
 
     @Specialization
