@@ -33,6 +33,8 @@ public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
     private final MaterializedFrame declarationFrame;
+    private MaterializedFrame generatorFrame;
+
     private Object self;
     private final Object[] arguments;
     private final PKeyword[] keywords;
@@ -57,16 +59,16 @@ public class PArguments extends Arguments {
     }
 
     public MaterializedFrame getMaterializedFrame() {
-        assert self != null;
-        return CompilerDirectives.unsafeCast(self, MaterializedFrame.class, true);
+        assert generatorFrame != null;
+        return generatorFrame;
     }
 
     public Object getSelf() {
         return self;
     }
 
-    public void setSelfUnsafe(Object value) {
-        self = value;
+    public void setGeneratorFrame(MaterializedFrame frame) {
+        generatorFrame = frame;
     }
 
     public final Object[] getArgumentsArray() {
@@ -94,8 +96,6 @@ public class PArguments extends Arguments {
         }
 
         return null;
-
-        // throw new RuntimeException("Does not have a keyword:" + name);
     }
 
     public PKeyword[] getKeywords() {
