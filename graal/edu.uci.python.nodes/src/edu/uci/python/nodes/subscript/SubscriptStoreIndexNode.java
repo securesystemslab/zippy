@@ -61,14 +61,6 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
-    protected boolean isIntStore(PList list) {
-        return list.getStorage() instanceof IntSequenceStorage;
-    }
-
-    protected boolean isDoubleStore(PList list) {
-        return list.getStorage() instanceof DoubleSequenceStorage;
-    }
-
     /**
      * PDict key & value store.
      */

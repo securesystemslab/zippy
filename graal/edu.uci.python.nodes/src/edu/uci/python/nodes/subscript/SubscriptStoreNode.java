@@ -30,6 +30,8 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 @NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
 public abstract class SubscriptStoreNode extends StatementNode implements WriteNode {
@@ -51,5 +53,13 @@ public abstract class SubscriptStoreNode extends StatementNode implements WriteN
     }
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
+
+    protected boolean isIntStore(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected boolean isDoubleStore(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
+    }
 
 }
