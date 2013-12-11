@@ -35,6 +35,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
 @NodeChild(value = "iteratorNode", type = PNode.class)
@@ -42,7 +43,9 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
     @Child protected CastToBooleanNode condition;
     @Child protected PNode target;
-    protected Iterator<?> iterator;
+    // protected Iterator<?> iterator;
+
+    protected PIterator iterator;
 
     public abstract PNode getIteratorNode();
 
@@ -74,11 +77,21 @@ public abstract class GeneratorLoopNode extends LoopNode {
         @Specialization
         public Object doPSequence(VirtualFrame frame, PSequence sequence) {
             if (iterator == null) {
-                iterator = sequence.iterator();
+                // iterator = sequence.iterator();
+                iterator = sequence.__iter__();
+                // iterator = sequence.__iter__().iterator();
             }
 
-            while (iterator.hasNext()) {
-                generateNextValue(frame);
+// while (iterator.hasNext()) {
+// generateNextValue(frame);
+// }
+
+            try {
+                while (true) {
+                    generateNextValue(frame);
+                }
+            } catch (StopIterationException e) {
+                // fall through
             }
 
             iterator = null;
@@ -86,7 +99,8 @@ public abstract class GeneratorLoopNode extends LoopNode {
         }
 
         protected final void generateNextValue(VirtualFrame frame) {
-            Object value = iterator.next();
+            // Object value = iterator.next();
+            Object value = iterator.__next__();
             ((WriteNode) target).executeWrite(frame, value);
 
             if (!evaluateCondition(frame)) {
@@ -114,12 +128,24 @@ public abstract class GeneratorLoopNode extends LoopNode {
         @Specialization
         public Object doPSequence(VirtualFrame frame, PSequence sequence) {
             if (iterator == null) {
-                iterator = sequence.iterator();
+                // iterator = sequence.iterator();
+                iterator = sequence.__iter__();
+                // iterator = sequence.__iter__().iterator();
+
             }
 
-            do {
-                generateNextValue(frame);
-            } while (iterator.hasNext());
+// do {
+// generateNextValue(frame);
+// } while (iterator.hasNext());
+
+            try {
+                while (true) {
+                    // System.out.println("WHILEDA");
+                    generateNextValue(frame);
+                }
+            } catch (StopIterationException e) {
+                // fall through
+            }
 
             iterator = null;
             throw StopIterationException.INSTANCE;
@@ -127,7 +153,8 @@ public abstract class GeneratorLoopNode extends LoopNode {
 
         protected final void generateNextValue(VirtualFrame frame) {
             try {
-                currentValue = currentValue == null ? iterator.next() : currentValue;
+                // currentValue = currentValue == null ? iterator.next() : currentValue;
+                currentValue = currentValue == null ? iterator.__next__() : currentValue;
                 ((WriteNode) target).executeWrite(frame, currentValue);
 
                 if (!evaluateCondition(frame)) {

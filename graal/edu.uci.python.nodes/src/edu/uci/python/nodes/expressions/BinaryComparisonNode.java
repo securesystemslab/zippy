@@ -25,13 +25,14 @@
 package edu.uci.python.nodes.expressions;
 
 import java.math.*;
-import java.util.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
@@ -285,16 +286,20 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @Specialization
         public boolean doPSequence(Object left, PSequence right) {
             boolean has = false;
-            Iterator<?> iter = right.iterator();
+            PIterator iter = right.__iter__();
 
-            while (iter.hasNext()) {
-                Object item = iter.next();
-                boolean equals = ArithmeticUtil.is(left, item);
+            try {
+                while (true) {
+                    Object item = iter.__next__();
+                    boolean equals = ArithmeticUtil.is(left, item);
+                    if (equals) {
+                        has = true;
+                        break;
+                    }
 
-                if (equals) {
-                    has = true;
-                    break;
                 }
+            } catch (StopIterationException e) {
+                // fall through
             }
 
             return has;

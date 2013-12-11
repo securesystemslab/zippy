@@ -50,7 +50,6 @@ public class SetLiteralNode extends LiteralNode {
     public PSet executePSet(VirtualFrame frame) {
         Set<Object> elements = new HashSet<Object>();
 
-        int i = 0;
         for (PNode v : this.values) {
             elements.add(v.execute(frame));
         }

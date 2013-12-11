@@ -26,14 +26,12 @@ package edu.uci.python.runtime.array;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-//public class PIntArray extends PArray implements Iterable<Integer> {
 public class PIntArray extends PArray {
 
     private final int[] array;
@@ -167,25 +165,5 @@ public class PIntArray extends PArray {
         System.arraycopy(array, 0, joined, 0, len());
         System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
         return new PIntArray(joined);
-    }
-
-    @Override
-    public Iterator<Integer> iterator() {
-        return new Iterator<Integer>() {
-
-            private final Iterator<Integer> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Integer next() {
-                return iter.next();
-            }
-        };
     }
 }

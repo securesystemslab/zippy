@@ -282,6 +282,7 @@ public class PList extends PSequence {
             }
 
             public Object next() {
+                System.out.println("NEXTO");
                 return iterStore.getItemInBound(index++);
             }
 

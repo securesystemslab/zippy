@@ -136,26 +136,6 @@ public class PTuple extends PImmutableSequence {
     }
 
     @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<Object> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
-    }
-
-    @Override
     public boolean lessThan(PSequence sequence) {
         int i = SequenceUtil.cmp(this, sequence);
         if (i < 0) {

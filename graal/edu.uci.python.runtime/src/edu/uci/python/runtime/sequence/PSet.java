@@ -62,18 +62,20 @@ public class PSet extends PBaseSet {
         return new PSet(this);
     }
 
-    // TODO
     // add
+    @SuppressWarnings("unused")
     public boolean add(Object o) {
         throw new UnsupportedOperationException();
     }
 
     // remove
+    @SuppressWarnings("unused")
     public boolean remove(Object o) {
         throw new UnsupportedOperationException();
     }
 
     // discard
+    @SuppressWarnings("unused")
     public boolean discard(Object o) {
         throw new UnsupportedOperationException();
     }

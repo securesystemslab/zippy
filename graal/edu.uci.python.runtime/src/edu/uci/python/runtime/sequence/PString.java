@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.sequence;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import edu.uci.python.runtime.*;
@@ -65,27 +64,6 @@ public class PString extends PImmutableSequence {
         }
 
         return list;
-    }
-
-    @Deprecated
-    @Override
-    public Iterator iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<String> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
     }
 
     public String getValue() {

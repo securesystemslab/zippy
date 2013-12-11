@@ -28,8 +28,6 @@ import static edu.uci.python.test.PythonTests.*;
 
 import java.nio.file.*;
 
-import org.junit.*;
-
 public class DictCompTest {
 
 // @Test

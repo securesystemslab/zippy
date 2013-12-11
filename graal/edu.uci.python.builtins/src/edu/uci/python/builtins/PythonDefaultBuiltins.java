@@ -108,12 +108,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -125,12 +130,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -165,12 +175,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -182,12 +197,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -786,17 +806,20 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         // argument is a mapping type
                         return new PDict(((PDict) arg).getMap());
                     } else if (arg instanceof PSequence) { // iterator type
-                        Iterator<?> iter = ((PSequence) arg).iterator();
+                        PIterator iter = ((PSequence) arg).__iter__();
                         Map<Object, Object> newMap = new HashMap<>();
 
-                        while (iter.hasNext()) {
-                            Object obj = iter.next();
-
-                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
-                                newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
-                            } else {
-                                throw new RuntimeException("invalid args for dict()");
+                        try {
+                            while (true) {
+                                Object obj = iter.__next__();
+                                if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+                                    newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
+                                } else {
+                                    throw new RuntimeException("invalid args for dict()");
+                                }
                             }
+                        } catch (StopIterationException e) {
+                            // fall through
                         }
 
                         return new PDict(newMap);

@@ -28,7 +28,6 @@ import static edu.uci.python.test.PythonTests.*;
 import static org.junit.Assert.*;
 
 import java.nio.file.*;
-import java.util.*;
 
 import org.junit.*;
 
