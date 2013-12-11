@@ -35,7 +35,6 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * Implements LIST_APPEND bytecode in CPython.
- * 
  */
 @NodeChild(value = "rightNode", type = PNode.class)
 public abstract class ListAppendNode extends FrameSlotNode {

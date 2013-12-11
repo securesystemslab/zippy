@@ -43,7 +43,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
@@ -454,13 +453,13 @@ public class PythonTreeTranslator extends Visitor {
         return current;
     }
 
-    private LoopNode createForInScope(PNode target, PNode iterator, StatementNode body) {
+    private LoopNode createForInScope(PNode target, PNode iterator, PNode body) {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
         if (environment.isInFunctionScope()) {
-            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, getIterator, body);
+            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, getIterator, (StatementNode) body);
         } else {
-            return factory.createFor(target, getIterator, body);
+            return factory.createFor(target, getIterator, (StatementNode) body);
         }
     }
 
@@ -474,17 +473,24 @@ public class PythonTreeTranslator extends Visitor {
 
             // target and iterator
             PNode incomplete = (PNode) visit(comp.getInternalTarget());
-            PNode target = ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
+            WriteLocalVariableNode target = (WriteLocalVariableNode) ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
             PNode iterator = (PNode) visit(comp.getInternalIter());
+            GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
             // Just deal with one condition.
             List<expr> conditions = comp.getInternalIfs();
             PNode condition = (conditions == null || conditions.isEmpty()) ? null : (PNode) visit(conditions.get(0));
 
             if (i == 0) {
-                current = factory.createInnerGeneratorLoop(target, iterator, factory.toBooleanCastNode(condition), (PNode) visit(body));
+                PNode bodyNode = factory.createYield((PNode) visit(body));
+
+                if (condition != null) {
+                    bodyNode = factory.createIf(factory.toBooleanCastNode(condition), bodyNode, PNode.EMPTYNODE);
+                }
+
+                current = factory.createInnerGeneratorForNode(target, getIterator, bodyNode);
             } else {
-                current = factory.createOuterGeneratorLoop(target, iterator, factory.toBooleanCastNode(condition), current);
+                current = factory.createOuterGeneratorForNode(target, getIterator, current);
             }
         }
 
@@ -495,7 +501,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
-        GeneratorLoopNode comprehension = (GeneratorLoopNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        LoopNode comprehension = (LoopNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorExpressionRootNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);

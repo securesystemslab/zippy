@@ -43,6 +43,16 @@ public class GeneratorExpressionTests {
     }
 
     @Test
+    public void withCondition() {
+        String source = "genexp = (x*2 for x in range(5) if x != 2)\n" + //
+                        "for i in genexp:\n" + //
+                        "    print(i)\n" + //
+                        "\n";
+
+        assertPrints("0\n2\n6\n8\n", source);
+    }
+
+    @Test
     public void nested() {
         String source = "genexp = (x+y for x in range(5) for y in range(3))\n" + //
                         "for i in genexp:\n" + //

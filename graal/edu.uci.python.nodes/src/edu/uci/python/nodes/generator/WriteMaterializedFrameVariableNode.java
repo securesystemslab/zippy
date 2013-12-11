@@ -43,7 +43,7 @@ public abstract class WriteMaterializedFrameVariableNode extends FrameSlotNode i
         super(slot);
     }
 
-    public WriteMaterializedFrameVariableNode(WriteMaterializedFrameVariableNode specialized) {
+    protected WriteMaterializedFrameVariableNode(WriteMaterializedFrameVariableNode specialized) {
         this(specialized.frameSlot);
     }
 

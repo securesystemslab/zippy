@@ -37,7 +37,7 @@ public class PArguments extends Arguments {
     private final MaterializedFrame declarationFrame;
     private final MaterializedFrame generatorFrame;
 
-    private Object self;
+    private final Object self;
     private final Object[] arguments;
     private final PKeyword[] keywords;
 

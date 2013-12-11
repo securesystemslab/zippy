@@ -32,6 +32,8 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class BlockNode extends StatementNode {
 
+    public static BlockNode EMPTYBLOCK = new BlockNode(new PNode[]{PNode.EMPTYNODE});
+
     @Children protected final PNode[] statements;
 
     public BlockNode(PNode[] statements) {

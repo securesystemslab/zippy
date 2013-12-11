@@ -57,4 +57,5 @@ public class RaiseNode extends StatementNode {
     private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
+
 }

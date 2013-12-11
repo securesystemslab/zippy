@@ -69,7 +69,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     /**
-     * This is needed because BigInteger is in between primitive types (int, double) in zippy's type
+     * This is needed because BigInteger sits between primitive types (int, double) in zippy's type
      * lattice. So if a variable's type changes from BigInteger to another reference type, node
      * rewrite should occur.
      */

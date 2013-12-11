@@ -37,16 +37,10 @@ import edu.uci.python.runtime.exception.*;
  */
 public class YieldNode extends StatementNode {
 
-    @Child PNode right;
+    @Child protected PNode right;
 
     public YieldNode(PNode right) {
         this.right = adoptChild(right);
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        Object returnValue = right.execute(frame);
-        throw new ExplicitYieldException(returnValue);
     }
 
     @Override

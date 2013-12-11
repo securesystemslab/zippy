@@ -112,6 +112,10 @@ public class TranslationEnvironment {
         return getScopeKind() == ScopeInfo.ScopeKind.Class;
     }
 
+    public boolean isInGeneratorScope() {
+        return getScopeKind() == ScopeInfo.ScopeKind.GeneratorExpr;
+    }
+
     public FrameDescriptor getCurrentFrame() {
         FrameDescriptor frameDescriptor = currentScope.getFrameDescriptor();
         assert frameDescriptor != null;

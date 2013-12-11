@@ -171,7 +171,7 @@ public class NodeFactory {
         return new WhileNode(condition, body);
     }
 
-    public StatementNode createIf(CastToBooleanNode condition, BlockNode thenPart, BlockNode elsePart) {
+    public StatementNode createIf(CastToBooleanNode condition, PNode thenPart, PNode elsePart) {
         return new IfNode(condition, thenPart, elsePart);
     }
 
@@ -284,6 +284,14 @@ public class NodeFactory {
         return InnerGeneratorLoopNodeFactory.create(target, condition, loopBody, iterator);
     }
 
+    public LoopNode createOuterGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode.OuterGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    }
+
+    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode.InnerGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    }
+
     public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         // replace write local with write materialized frame
         for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
@@ -297,7 +305,7 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorExpressionRootNode createGenerator(GeneratorLoopNode comprehension, PNode returnValue) {
+    public GeneratorExpressionRootNode createGenerator(LoopNode comprehension, PNode returnValue) {
         return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
