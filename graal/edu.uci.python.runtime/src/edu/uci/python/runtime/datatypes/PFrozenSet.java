@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class PFrozenSet extends PBaseSet {
@@ -32,17 +33,12 @@ public class PFrozenSet extends PBaseSet {
         super();
     }
 
-    public PFrozenSet(Iterable<?> iterable) {
-        super(iterable);
+    public PFrozenSet(PIterator iterator) {
+        super(iterator);
     }
 
     public PFrozenSet(PBaseSet pBaseSet) {
         super(pBaseSet);
-    }
-
-    @Override
-    public void update(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -51,72 +47,12 @@ public class PFrozenSet extends PBaseSet {
     }
 
     @Override
-    public void update(Object[] args) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void intersectionUpdate(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void intersectionUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void intersectionUpdate(Object[] args) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void differenceUpdate(Iterable<Object> other) {
+    public void update(PIterator iterator) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void differenceUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void differenceUpdate(Object[] args) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void symmetricDifferenceUpdate(Iterable<Object> other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void symmetricDifferenceUpdate(PBaseSet other) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean add(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean discard(Object o) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean pop() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean clear() {
         throw new UnsupportedOperationException();
     }
 

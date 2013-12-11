@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 
@@ -42,22 +43,21 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         this.set = new HashSet<>();
     }
 
-// public PBaseSet(PIterator iter) {
-// try {
-// while (true) {
-// add(iter.__next__());
-// }
-// } catch (StopIterationException e) {
-// // fall through
-// }
-// }
-
-    public PBaseSet(Iterable<?> iterable) {
+    public PBaseSet(Set<Object> elements) {
         this();
-        Iterator<?> iter = iterable.iterator();
+        for (Object element : elements) {
+            this.set.add(element);
+        }
+    }
 
-        while (iter.hasNext()) {
-            this.set.add(iter.next());
+    public PBaseSet(PIterator iter) {
+        this();
+        try {
+            while (true) {
+                this.set.add(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
     }
 
@@ -79,19 +79,15 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     // disjoint
-    public boolean isDisjoint(Iterable<Object> other) {
-        return this.isDisjoint(new PSet(other));
-    }
-
     public boolean isDisjoint(PBaseSet other) {
         return Collections.disjoint(this.set, other.set);
     }
 
-    // subset
-    public boolean isSubset(Iterable<Object> other) {
-        return this.isSubset(new PSet(other)); // pack the iterable into a PSet
+    public boolean isDisjoint(PIterator other) {
+        throw new UnsupportedOperationException();
     }
 
+    // subset
     public boolean isSubset(PBaseSet other) {
         if (this.len() > other.len()) {
             return false;
@@ -104,18 +100,22 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         return true;
     }
 
+    public boolean isSubset(PIterator other) {
+        return this.isSubset(new PSet(other)); // pack the iterable into a PSet
+    }
+
     public boolean isProperSubset(PBaseSet other) {
         return this.len() < other.len() && this.isSubset(other);
     }
 
     // superset
-    public boolean isSuperset(Iterable<Object> other) {
-        return this.isSuperset(new PSet(other));
-    }
-
     public boolean isSuperset(PBaseSet other) {
         return other.isSubset(this); // use subset comparison with this/other
                                      // order changed
+    }
+
+    public boolean isSuperset(PIterator other) {
+        return this.isSuperset(new PSet(other));
     }
 
     public boolean isProperSuperset(PBaseSet other) { // is proper superset
@@ -123,87 +123,42 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     // union
-    public PBaseSet union(Iterable<Object> other) {
-        return this.union(new PSet(other));
-    }
-
     public PBaseSet union(PBaseSet other) {
         PBaseSet newSet = cloneThisSet();
         newSet.set.addAll(other.set);
         return newSet;
     }
 
-    public PBaseSet union(Object[] args) {
-        PBaseSet result = cloneThisSet();
-        for (int i = 0; i < args.length; i++) {
-            result.updateInternal(args[i]);
-        }
-        return result;
+    public PBaseSet union(PIterator other) {
+        return this.union(new PSet(other));
     }
 
     // intersection
-    public PBaseSet intersection(Iterable<Object> other) {
-        return this.intersection(new PSet(other));
-    }
-
     public PBaseSet intersection(PBaseSet other) {
         PBaseSet newSet = cloneThisSet();
         newSet.set.retainAll(other.set);
         return newSet;
     }
 
-    @SuppressWarnings("unchecked")
-    public PBaseSet intersection(Object[] args) { // TODO
-        PBaseSet result = cloneThisSet();
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof PBaseSet) {
-                result.intersection((PBaseSet) args[i]);
-            } else if (args[i] instanceof Iterable) {
-                result.intersection((Iterable<Object>) args[i]);
-            }
-        }
-        return result;
-    }
-
-    // difference
-    public PBaseSet difference(Iterable<Object> other) {
+    public PBaseSet intersection(PIterator other) {
         return this.intersection(new PSet(other));
     }
 
+    // difference
     public PBaseSet difference(PBaseSet other) {
         PBaseSet newSet = cloneThisSet();
         newSet.set.removeAll(other.set);
         return newSet;
     }
 
-    @SuppressWarnings("unchecked")
-    public PBaseSet difference(Object[] args) { // TODO
-        PBaseSet result = cloneThisSet();
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof PBaseSet) {
-                result.difference((PBaseSet) args[i]);
-            } else if (args[i] instanceof Iterable) {
-                result.difference((Iterable<Object>) args[i]);
-            }
-        }
-        return result;
-    }
-
-    // symmetric_difference
-    public PBaseSet symmetricDifference(Iterable<Object> other) {
+    public PBaseSet difference(PIterator other) {
         return this.intersection(new PSet(other));
     }
 
+    // symmetric_difference
     @SuppressWarnings("unused")
     public PBaseSet symmetricDifference(PBaseSet other) {
-        // TODO
-        return null;
-    }
-
-    @SuppressWarnings("unused")
-    public PBaseSet symmetricDifference(Object[] args) {
-        // TODO
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     // copy
@@ -212,47 +167,36 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     // update
-    public abstract void update(Iterable<Object> other);
-
     public abstract void update(PBaseSet other);
 
-    public abstract void update(Object[] args);
+    public abstract void update(PIterator iterator);
 
     // intersection_update
-    public abstract void intersectionUpdate(Iterable<Object> other);
+    public void intersectionUpdate(PBaseSet other) {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract void intersectionUpdate(PBaseSet other);
-
-    public abstract void intersectionUpdate(Object[] args);
+    public void intersectionUpdate(PIterator iterator) {
+        throw new UnsupportedOperationException();
+    }
 
     // difference_update
-    public abstract void differenceUpdate(Iterable<Object> other);
+    public void differenceUpdate(PBaseSet other) {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract void differenceUpdate(PBaseSet other);
-
-    public abstract void differenceUpdate(Object[] args);
+    public void differenceUpdate(PIterator iterator) {
+        throw new UnsupportedOperationException();
+    }
 
     // symmetric_difference_update
-    public abstract void symmetricDifferenceUpdate(Iterable<Object> other);
+    public void symmetricDifferenceUpdate(PBaseSet other) {
+        throw new UnsupportedOperationException();
+    }
 
-    public abstract void symmetricDifferenceUpdate(PBaseSet other);
-
-    // TODO
-
-    // add
-    public abstract boolean add(Object o);
-
-    // remove
-    public abstract boolean remove(Object o);
-
-    // discard
-    public abstract boolean discard(Object o);
-
-    // pop
-    public abstract boolean pop();
-
-    // clear
-    public abstract boolean clear();
+    public void symmetricDifferenceUpdate(PIterator iterator) {
+        throw new UnsupportedOperationException();
+    }
 
     protected abstract PBaseSet cloneThisSet();
 
@@ -265,8 +209,8 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     protected void updateInternal(Object data) {
         if (data instanceof PBaseSet) {
             updateInternal((PBaseSet) data);
-        } else if (data instanceof Iterable) {
-            updateInternal((Iterable<Object>) data);
+        } else if (data instanceof PIterator) {
+
         }
     }
 
@@ -275,15 +219,13 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         set.addAll(data.set);
     }
 
-    protected void updateInternal(Iterable<Object> data) {
-        for (Object item : data) {
-            set.add(item);
-        }
-    }
-
-    protected void updateInternal(Object[] data) {
-        for (int i = 0; i < data.length; i++) {
-            set.add(data[i]);
+    protected void updateInternal(PIterator iterator) {
+        try {
+            while (true) {
+                set.add(iterator.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
     }
 

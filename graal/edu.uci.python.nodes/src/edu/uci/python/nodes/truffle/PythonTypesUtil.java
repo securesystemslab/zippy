@@ -55,7 +55,7 @@ public class PythonTypesUtil {
         return new PTuple(values);
     }
 
-    public static PSet createSet(List<Object> values) {
+    public static PSet createSet(Set<Object> values) {
         return new PSet(values);
     }
 

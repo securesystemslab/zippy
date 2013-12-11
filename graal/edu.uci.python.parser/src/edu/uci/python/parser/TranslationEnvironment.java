@@ -210,7 +210,7 @@ public class TranslationEnvironment {
                 level++;
             }
         } finally {
-            if (current != null) {
+            if (current != null && current != globalScope) {
                 current = currentScope;
                 while (level-- > 0) {
                     current.setNeedsDeclaringScope();

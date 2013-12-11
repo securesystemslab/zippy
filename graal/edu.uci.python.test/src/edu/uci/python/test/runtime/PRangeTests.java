@@ -33,33 +33,57 @@ import java.util.*;
 import org.junit.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 
 public class PRangeTests {
 
     @Test
     public void loopWithOnlyStop() {
         PRange range = new PRange(10);
-        Iterator iter = range.__iter__().iterator();
+        // Iterator iter = range.__iter__().iterator();
         int index = 0;
+        PIterator iter = range.__iter__();
 
-        while (iter.hasNext()) {
-            int item = (int) iter.next();
-            assertEquals(index, item);
-            index++;
+        try {
+            while (true) {
+                int item = (int) (iter.__next__());
+                assertEquals(index, item);
+                index++;
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
+
+// while (iter.hasNext()) {
+// int item = (int) iter.next();
+// assertEquals(index, item);
+// index++;
+// }
     }
 
     @Test
     public void loopWithStep() {
         PRange range = new PRange(0, 10, 2);
-        Iterator iter = range.__iter__().iterator();
+        // Iterator iter = range.__iter__().iterator();
         int index = 0;
+        PIterator iter = range.__iter__();
 
-        while (iter.hasNext()) {
-            int item = (int) iter.next();
-            assertEquals(index, item);
-            index += 2;
+        try {
+            while (true) {
+                int item = (int) (iter.__next__());
+                assertEquals(index, item);
+                index += 2;
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
+
+// while (iter.hasNext()) {
+// int item = (int) iter.next();
+// assertEquals(index, item);
+// index += 2;
+// }
     }
 
     @Test

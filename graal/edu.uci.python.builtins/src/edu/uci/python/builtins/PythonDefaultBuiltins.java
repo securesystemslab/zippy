@@ -921,12 +921,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PFrozenSet frozenset(String arg) {
-                return new PFrozenSet(stringToCharList(arg));
+                return null;
+                // return new PFrozenSet(stringToCharList(arg));
             }
 
             @Specialization
             public PFrozenSet frozenset(PSequence sequence) {
-                return new PFrozenSet(sequence);
+                return new PFrozenSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1177,13 +1178,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
-                // return null;
-                return new PSet(stringToCharList(arg));
+                return null;
+                // return new PSet(stringToCharList(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
-                return new PSet(sequence);
+                return new PSet(sequence.__iter__());
                 // return new PSet(sequence.__iter__());
             }
 
@@ -1196,12 +1197,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PSet set(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    // return null;
-                    return new PSet(stringToCharList(str));
+                    return null;
+                    // return new PSet(stringToCharList(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    return new PSet(sequence);
-                    // return new PSet(sequence.__iter__());
+                    // return new PSet(sequence);
+                    return new PSet(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
                     return new PSet(baseSet);

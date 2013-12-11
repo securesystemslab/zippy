@@ -26,6 +26,6 @@ def measure():
 
 #warm up
 for run in range(1000):
-	index_list([1,2,3,4,5,6,7,8,9,10], 1000)
+	index_list([1,2,3,4,5,6,7,8,9,10], 10000)
 
 measure()
