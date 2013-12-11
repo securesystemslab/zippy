@@ -26,6 +26,8 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class ListComprehensionTests {
@@ -71,4 +73,11 @@ public class ListComprehensionTests {
 
         assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
     }
+
+    @Test
+    public void listCompTest() {
+        Path script = Paths.get("listcomp.py");
+        assertPrints("[0, 2, 4, 6, 8]\n", script);
+    }
+
 }

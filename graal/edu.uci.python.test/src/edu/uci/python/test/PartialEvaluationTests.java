@@ -30,11 +30,23 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ListComp {
+public class PartialEvaluationTests {
     @Test
-    public void simple() {
-        Path script = Paths.get("listcomp.py");
-        assertPrints("[0, 2, 4, 6, 8]\n", script);
+    public void pe1() {
+        Path script = Paths.get("pe1_test.py");
+        assertPrints("42\n", script);
+    }
+
+    @Test
+    public void pe2() {
+        Path script = Paths.get("pe2_test.py");
+        assertPrints("43\n", script);
+    }
+
+    @Test
+    public void pe3() {
+        Path script = Paths.get("pe3_test.py");
+        assertPrints("(1, 2, 4)\n", script);
     }
 
 }
