@@ -35,7 +35,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object>, PIterable {
+public abstract class PBaseSet extends PythonBuiltinObject implements PIterable {
 
     protected Set<Object> set;
 
@@ -71,7 +71,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     public PIterator __iter__() {
-        return new PBaseSetIterator(this);
+        return new PBaseSetIterator(set.iterator());
     }
 
     public boolean contains(Object o) {
@@ -233,10 +233,6 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         } catch (StopIterationException e) {
             // fall through
         }
-    }
-
-    public Iterator<Object> iterator() {
-        return set.iterator();
     }
 
     @Override

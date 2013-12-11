@@ -352,7 +352,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization
             public Object iter(PBaseSet set, Object sentinel) {
-                return new PBaseSetIterator(set);
+                return set.__iter__();
             }
 
             @SuppressWarnings("unused")
@@ -456,8 +456,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
-                return null;
-                // return arg1.getMax();
+                return arg1.getMax();
             }
 
             @Specialization
