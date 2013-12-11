@@ -469,25 +469,10 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
   return JNIHandles::make_local(THREAD, field_array());
 C2V_END
 
-C2V_VMENTRY(jobject, getMethods, (JNIEnv *, jobject, jobject klass))
-  ResourceMark rm;
-
+C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jobject klass))
   instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass)));
-  Array<Method*>* methods = k->methods();
-  int methods_length = methods->length();
-
-  // Allocate result
-  objArrayOop r = oopFactory::new_objArray(SystemDictionary::HotSpotResolvedJavaMethod_klass(), methods_length, CHECK_NULL);
-  objArrayHandle result (THREAD, r);
-
-  for (int i = 0; i < methods_length; i++) {
-    methodHandle method(THREAD, methods->at(i));
-    Handle holder = JNIHandles::resolve(klass);
-    oop m = VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD);
-    result->obj_at_put(i, m);
-  }
-
-  return JNIHandles::make_local(THREAD, result());
+  Method* clinit = k->class_initializer();
+  return (jlong) (address) clinit;
 C2V_END
 
 C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
@@ -966,7 +951,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
-  {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
+  {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getMetaspaceMethod",            CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},

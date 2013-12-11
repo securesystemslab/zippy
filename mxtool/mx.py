@@ -2155,13 +2155,17 @@ def eclipseformat(args):
 
     log('{0} files were modified'.format(len(modified)))
     if len(modified) != 0:
+        arcbase = _primary_suite.dir
         if args.backup:
             backup = os.path.abspath('eclipseformat.backup.zip')
-            arcbase = _primary_suite.dir
             zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
-            for fi in modified:
-                arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
+        for fi in modified:
+            name = os.path.relpath(fi.path, arcbase)
+            log(' - {0}'.format(name))
+            if args.backup:
+                arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)
+        if args.backup:
             zf.close()
             log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
         return 1

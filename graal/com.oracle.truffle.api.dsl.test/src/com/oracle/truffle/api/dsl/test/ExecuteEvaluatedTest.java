@@ -26,8 +26,22 @@ import org.junit.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.*;
-import com.oracle.truffle.api.dsl.test.TypeSystemTest.*;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.DoubleEvaluatedNodeFactory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.EvaluatedNodeFactory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedGenerationFactory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs0Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs1Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs2Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs3Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs4Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.TestEvaluatedVarArgs5Factory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.UseDoubleEvaluatedNodeFactory;
+import com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTestFactory.UseEvaluatedNodeFactory;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.ArgumentNode;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.ChildrenNode;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.TestArguments;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.TestRootNode;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.ValueNode;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -123,6 +137,122 @@ public class ExecuteEvaluatedTest {
         @Specialization
         int call(int exp0) {
             return exp0;
+        }
+    }
+
+    @Test
+    public void test0VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs0> root = TestHelper.createRoot(TestEvaluatedVarArgs0Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null));
+    }
+
+    abstract static class TestEvaluatedVarArgs0 extends ChildrenNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call() {
+            return 42;
+        }
+    }
+
+    @Test
+    public void test1VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs1> root = TestHelper.createRoot(TestEvaluatedVarArgs1Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null, 42));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void test1VarArgs2() {
+        TestRootNode<TestEvaluatedVarArgs2> root = TestHelper.createRoot(TestEvaluatedVarArgs2Factory.getInstance());
+        Assert.assertEquals(-1, root.getNode().execute1(null));
+    }
+
+    abstract static class TestEvaluatedVarArgs1 extends ChildrenNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call(int exp0) {
+            return exp0;
+        }
+    }
+
+    @Test
+    public void test2VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs2> root = TestHelper.createRoot(TestEvaluatedVarArgs2Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null, 21, 21));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void test2VarArgs2() {
+        TestRootNode<TestEvaluatedVarArgs2> root = TestHelper.createRoot(TestEvaluatedVarArgs2Factory.getInstance());
+        Assert.assertEquals(-1, root.getNode().execute1(null, 42));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void test2VarArgs3() {
+        TestRootNode<TestEvaluatedVarArgs2> root = TestHelper.createRoot(TestEvaluatedVarArgs2Factory.getInstance());
+        Assert.assertEquals(-1, root.getNode().execute1(null));
+    }
+
+    abstract static class TestEvaluatedVarArgs2 extends ChildrenNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call(int exp0, int exp1) {
+            return exp0 + exp1;
+        }
+    }
+
+    @Test
+    public void test3VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs3> root = TestHelper.createRoot(TestEvaluatedVarArgs3Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null, 42));
+    }
+
+    @NodeChild
+    abstract static class TestEvaluatedVarArgs3 extends ValueNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call(int exp0) {
+            return exp0;
+        }
+    }
+
+    @Test
+    public void test4VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs4> root = TestHelper.createRoot(TestEvaluatedVarArgs4Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null, 21, 21));
+    }
+
+    @NodeChildren({@NodeChild, @NodeChild})
+    abstract static class TestEvaluatedVarArgs4 extends ValueNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call(int exp0, int exp1) {
+            return exp0 + exp1;
+        }
+    }
+
+    @Test
+    public void test5VarArgs1() {
+        TestRootNode<TestEvaluatedVarArgs5> root = TestHelper.createRoot(TestEvaluatedVarArgs5Factory.getInstance());
+        Assert.assertEquals(42, root.getNode().execute1(null));
+    }
+
+    abstract static class TestEvaluatedVarArgs5 extends ValueNode {
+
+        public abstract Object execute1(VirtualFrame frame, Object... value);
+
+        @Specialization
+        int call() {
+            return 42;
         }
     }
 
