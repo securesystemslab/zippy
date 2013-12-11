@@ -29,7 +29,7 @@ import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PSequence extends PythonBuiltinObject implements PIterable, Iterable {
+public abstract class PSequence extends PythonBuiltinObject implements PIterable {
 
     public PIterator __iter__() {
         return new PSequenceIterator(this);

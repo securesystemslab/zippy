@@ -30,12 +30,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.sequence.*;
 
-/**
- * A wrapper node for {@link GeneratorLoopNode}s.<br>
- * 
- * It evaluates its children {@link GeneratorLoopNode}s and returns the result as a {@link PList}.
- * 
- */
 public class ListComprehensionNode extends FrameSlotNode {
 
     @Child protected PNode comprehension;

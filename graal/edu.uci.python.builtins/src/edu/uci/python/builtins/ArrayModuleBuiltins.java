@@ -34,6 +34,8 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -105,16 +107,21 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     }
                 case 'i':
                     PSequence seq = (PSequence) initializer;
-                    Iterator iter = seq.iterator();
+                    PIterator iter = seq.__iter__();
+
                     int[] intArray = new int[seq.len()];
                     int i = 0;
 
-                    while (iter.hasNext()) {
-                        try {
-                            intArray[i++] = PythonTypesGen.PYTHONTYPES.expectInteger(iter.next());
-                        } catch (UnexpectedResultException e) {
-                            throw new RuntimeException("Unexpected argument type for array() ");
+                    try {
+                        while (true) {
+                            try {
+                                intArray[i++] = PythonTypesGen.PYTHONTYPES.expectInteger(iter.__next__());
+                            } catch (UnexpectedResultException e) {
+                                throw new RuntimeException("Unexpected argument type for array() ");
+                            }
                         }
+                    } catch (StopIterationException e) {
+                        // fall through
                     }
 
                     return new PIntArray(intArray);

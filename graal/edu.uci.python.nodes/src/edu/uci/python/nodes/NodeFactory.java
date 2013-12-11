@@ -37,8 +37,6 @@ import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.InnerGeneratorLoopNodeFactory;
-import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.OuterGeneratorLoopNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.subscript.*;
@@ -274,14 +272,6 @@ public class NodeFactory {
 
     public PNode createListAppend(FrameSlot frameSlot, PNode right) {
         return ListAppendNodeFactory.create(frameSlot, right);
-    }
-
-    public PNode createOuterGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode innerLoop) {
-        return OuterGeneratorLoopNodeFactory.create(target, condition, innerLoop, iterator);
-    }
-
-    public PNode createInnerGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode loopBody) {
-        return InnerGeneratorLoopNodeFactory.create(target, condition, loopBody, iterator);
     }
 
     public LoopNode createOuterGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {

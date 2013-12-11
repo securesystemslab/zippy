@@ -108,12 +108,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -125,12 +130,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -165,12 +175,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -182,12 +197,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -453,7 +473,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         System.arraycopy(args, 0, argsArray, 1, args.length);
                         Object min = getMax(argsArray);
                         return min;
-
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
@@ -786,17 +805,20 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         // argument is a mapping type
                         return new PDict(((PDict) arg).getMap());
                     } else if (arg instanceof PSequence) { // iterator type
-                        Iterator<?> iter = ((PSequence) arg).iterator();
+                        PIterator iter = ((PSequence) arg).__iter__();
                         Map<Object, Object> newMap = new HashMap<>();
 
-                        while (iter.hasNext()) {
-                            Object obj = iter.next();
-
-                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
-                                newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
-                            } else {
-                                throw new RuntimeException("invalid args for dict()");
+                        try {
+                            while (true) {
+                                Object obj = iter.__next__();
+                                if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+                                    newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
+                                } else {
+                                    throw new RuntimeException("invalid args for dict()");
+                                }
                             }
+                        } catch (StopIterationException e) {
+                            // fall through
                         }
 
                         return new PDict(newMap);
@@ -921,8 +943,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PFrozenSet frozenset(String arg) {
-                return null;
-                // return new PFrozenSet(stringToCharList(arg));
+                return new PFrozenSet(new PStringIterator(arg));
             }
 
             @Specialization
@@ -1178,14 +1199,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
-                return null;
-                // return new PSet(stringToCharList(arg));
+                return new PSet(new PStringIterator(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
                 return new PSet(sequence.__iter__());
-                // return new PSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1197,11 +1216,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PSet set(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return null;
-                    // return new PSet(stringToCharList(str));
+                    return new PSet(new PStringIterator(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    // return new PSet(sequence);
                     return new PSet(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
@@ -1249,30 +1266,30 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PTuple tuple(String arg) {
-                return new PTuple(stringToCharList(arg));
+                return new PTuple(new PStringIterator(arg));
             }
 
             @Specialization
             public PTuple tuple(PSequence sequence) {
-                return new PTuple(sequence);
+                return new PTuple(sequence.__iter__());
             }
 
             @Specialization
             public PTuple tuple(PBaseSet baseSet) {
-                return new PTuple(baseSet);
+                return new PTuple(baseSet.__iter__());
             }
 
             @Specialization
             public PTuple tuple(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return new PTuple(stringToCharList(str));
+                    return new PTuple(new PStringIterator(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    return new PTuple(sequence);
+                    return new PTuple(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
-                    return new PTuple(baseSet);
+                    return new PTuple(baseSet.__iter__());
                 }
 
                 if (!(arg instanceof Iterable<?>)) {
@@ -1329,13 +1346,4 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    private static List<Character> stringToCharList(String s) {
-        ArrayList<Character> sequence = new ArrayList<>();
-
-        char[] charArray = s.toCharArray();
-        for (int i = 0; i < charArray.length; i++) {
-            sequence.add(charArray[i]);
-        }
-        return sequence;
-    }
 }

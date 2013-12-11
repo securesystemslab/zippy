@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
-
 import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
@@ -136,26 +134,6 @@ public class PRange extends PImmutableSequence {
     @Override
     public Object getSlice(PSlice slice) {
         return PNone.NONE;
-    }
-
-    @Override
-    public Iterator iterator() {
-        return new Iterator<Object>() {
-
-            private int index = 0;
-
-            public final void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public final boolean hasNext() {
-                return index <= length - 1;
-            }
-
-            public final Object next() {
-                return index++ * step + start;
-            }
-        };
     }
 
     @Override

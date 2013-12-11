@@ -27,14 +27,14 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PTuple extends PImmutableSequence {
 
     private final Object[] array;
-
-    private volatile List<Object> cachedList = null;
 
     public PTuple() {
         array = new Object[0];
@@ -49,17 +49,22 @@ public class PTuple extends PImmutableSequence {
         }
     }
 
-    public PTuple(Iterable<?> iterable) {
+    public PTuple(PIterator iter) {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
          */
         List<Object> list = new ArrayList<>();
 
-        for (Object o : iterable) {
-            list.add(o);
+        try {
+            while (true) {
+                list.add(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
 
         array = list.toArray();
+
     }
 
     /**
@@ -114,38 +119,6 @@ public class PTuple extends PImmutableSequence {
             newArray[j] = array[i];
         }
         return new PTuple(newArray, false);
-    }
-
-    /**
-     * Cache the array into a list. The operation is safe since the tuple is immutable.
-     * 
-     * @return the array as a list
-     */
-    private List<Object> getList() {
-        if (cachedList == null) {
-            cachedList = Arrays.asList(array);
-        }
-        return cachedList;
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<Object> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
     }
 
     @Override

@@ -24,6 +24,10 @@
  */
 package edu.uci.python.runtime.iterator;
 
+import java.util.*;
+
+import edu.uci.python.runtime.exception.*;
+
 //public abstract class PIterator implements Iterable<Object> {
 public abstract class PIterator {
 
