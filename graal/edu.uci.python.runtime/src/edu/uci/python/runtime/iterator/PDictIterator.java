@@ -32,8 +32,8 @@ public class PDictIterator implements PIterator {
 
     private final Iterator<?> keyIterator;
 
-    public PDictIterator(Collection<Object> keys) {
-        keyIterator = keys.iterator();
+    public PDictIterator(Iterator<?> iterator) {
+        keyIterator = iterator;
     }
 
     @Override

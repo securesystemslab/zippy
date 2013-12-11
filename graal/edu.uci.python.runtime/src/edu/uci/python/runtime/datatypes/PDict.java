@@ -90,11 +90,11 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     }
 
     public PIterator __iter__() {
-        return new PDictIterator(map.keySet());
+        return new PDictIterator(map.keySet().iterator());
     }
 
     public PIterator values() {
-        return new PDictIterator(map.values());
+        return new PDictIterator(map.values().iterator());
     }
 
     @Override
