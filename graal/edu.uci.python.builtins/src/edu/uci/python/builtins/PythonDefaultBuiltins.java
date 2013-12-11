@@ -473,7 +473,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         System.arraycopy(args, 0, argsArray, 1, args.length);
                         Object min = getMax(argsArray);
                         return min;
-
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
@@ -944,8 +943,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PFrozenSet frozenset(String arg) {
-                return null;
-                // return new PFrozenSet(stringToCharList(arg));
+                return new PFrozenSet(new PStringIterator(arg));
             }
 
             @Specialization
@@ -1201,14 +1199,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
-                return null;
-                // return new PSet(stringToCharList(arg));
+                return new PSet(new PStringIterator(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
                 return new PSet(sequence.__iter__());
-                // return new PSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1220,11 +1216,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PSet set(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return null;
-                    // return new PSet(stringToCharList(str));
+                    return new PSet(new PStringIterator(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
-                    // return new PSet(sequence);
                     return new PSet(sequence.__iter__());
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet baseSet = (PBaseSet) arg;
@@ -1272,8 +1266,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PTuple tuple(String arg) {
-                return null;
-                // return new PTuple(stringToCharList(arg));
+                return new PTuple(new PStringIterator(arg));
             }
 
             @Specialization
@@ -1290,8 +1283,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PTuple tuple(Object arg) {
                 if (arg instanceof String) {
                     String str = (String) arg;
-                    return null;
-                    // return new PTuple(stringToCharList(str));
+                    return new PTuple(new PStringIterator(str));
                 } else if (arg instanceof PSequence) {
                     PSequence sequence = (PSequence) arg;
                     return new PTuple(sequence.__iter__());
