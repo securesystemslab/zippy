@@ -28,8 +28,7 @@ import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
 
-//public class PDictIterator implements PIterator {
-public class PDictIterator extends PIterator {
+public class PDictIterator implements PIterator {
 
     private final Iterator<?> keyIterator;
 

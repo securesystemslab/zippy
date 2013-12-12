@@ -30,8 +30,7 @@ import edu.uci.python.runtime.sequence.*;
  * @author Gulfem
  */
 
-// public class PZipIterator implements PIterator {
-public class PZipIterator extends PIterator {
+public class PZipIterator implements PIterator {
 
     private final PIterator[] iterators;
 

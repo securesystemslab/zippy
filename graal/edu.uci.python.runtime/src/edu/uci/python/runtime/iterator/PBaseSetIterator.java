@@ -28,8 +28,7 @@ import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
 
-//public class PBaseSetIterator implements PIterator {
-public class PBaseSetIterator extends PIterator {
+public class PBaseSetIterator implements PIterator {
 
     private final Iterator<?> setIterator;
 
