@@ -63,6 +63,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
  protected:
 #ifdef GRAAL
   int _pending_deoptimization;
+  oop _pending_failed_speculation;
   bool _pending_monitorenter;
 #endif
   oop  _pending_exception;                       // Thread has gc actions.
@@ -85,6 +86,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   int  exception_line() const                    { return _exception_line; }
 #ifdef GRAAL
   int  pending_deoptimization() const            { return _pending_deoptimization; }
+  oop  pending_failed_speculation() const        { return _pending_failed_speculation; }
   bool has_pending_monitorenter() const          { return _pending_monitorenter; }
 #endif
 
@@ -93,9 +95,11 @@ class ThreadShadow: public CHeapObj<mtThread> {
 #ifdef GRAAL
   static ByteSize pending_deoptimization_offset() { return byte_offset_of(ThreadShadow, _pending_deoptimization); }
   static ByteSize pending_monitorenter_offset()  { return byte_offset_of(ThreadShadow, _pending_monitorenter); }
+  static ByteSize pending_failed_speculation_offset() { return byte_offset_of(ThreadShadow, _pending_failed_speculation); }
 
   void set_pending_monitorenter(bool b)          { _pending_monitorenter = b; }
   void set_pending_deoptimization(int reason)    { _pending_deoptimization = reason; }
+  void set_pending_failed_speculation(oop failed_speculation)    { _pending_failed_speculation = failed_speculation; }
 #endif
 
   // use THROW whenever possible!
@@ -107,7 +111,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   ThreadShadow() : _pending_exception(NULL),
                    _exception_file(NULL), _exception_line(0)
 #ifdef GRAAL
-                   , _pending_monitorenter(false), _pending_deoptimization(-1)
+                   , _pending_monitorenter(false), _pending_deoptimization(-1), _pending_failed_speculation(NULL)
 #endif
   {}
 };

@@ -1347,7 +1347,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     DeoptReason reason = trap_request_reason(trap_request);
     DeoptAction action = trap_request_action(trap_request);
 #ifdef GRAAL
-    short speculation_id = trap_request_speculation_id(trap_request);
+    short debug_id = trap_request_debug_id(trap_request);
 #endif
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
@@ -1361,7 +1361,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     if (TraceDeoptimization) {
       tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", speculation=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string()
 #ifdef GRAAL
-          , speculation_id
+          , debug_id
 #endif
           );
     }
@@ -1369,6 +1369,15 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     methodHandle    trap_method = trap_scope->method();
     int             trap_bci    = trap_scope->bci();
 #ifdef GRAAL
+    oop speculation = thread->pending_failed_speculation();
+    if (speculation != NULL) {
+      oop speculation_log = nm->speculation_log();
+      if (speculation_log != NULL) {
+        SpeculationLog::set_lastFailed(speculation_log, speculation);
+      }
+      thread->set_pending_failed_speculation(NULL);
+    }
+
     if (trap_bci == SynchronizationEntryBCI) {
       trap_bci = 0;
       Thread::current()->set_pending_monitorenter(true);
@@ -1483,7 +1492,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
                    trap_action_name(action),
                    unloaded_class_index
 #ifdef GRAAL
-                   , speculation_id
+                   , debug_id
 #endif
                    );
         if (class_name != NULL) {
@@ -2007,21 +2016,21 @@ const char* Deoptimization::format_trap_request(char* buf, size_t buflen,
   const char* reason = trap_reason_name(trap_request_reason(trap_request));
   const char* action = trap_action_name(trap_request_action(trap_request));
 #ifdef GRAAL
-  short speculation_id = trap_request_speculation_id(trap_request);
+  short debug_id = trap_request_debug_id(trap_request);
 #endif
   size_t len;
   if (unloaded_class_index < 0) {
     len = jio_snprintf(buf, buflen, "reason='%s' action='%s'" GRAAL_ONLY(" speculation='%d'"),
                        reason, action
 #ifdef GRAAL
-                       ,speculation_id
+                       ,debug_id
 #endif
                        );
   } else {
     len = jio_snprintf(buf, buflen, "reason='%s' action='%s' index='%d'" GRAAL_ONLY(" speculation='%d'"),
                        reason, action, unloaded_class_index
 #ifdef GRAAL
-                       ,speculation_id
+                       ,debug_id
 #endif
                        );
   }

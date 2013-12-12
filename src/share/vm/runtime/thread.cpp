@@ -834,6 +834,7 @@ void Thread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf)
   active_handles()->oops_do(f);
   // Do oop for ThreadShadow
   f->do_oop((oop*)&_pending_exception);
+  f->do_oop((oop*)&_pending_failed_speculation);
   handle_area()->oops_do(f);
 }
 
