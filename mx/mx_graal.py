@@ -1346,6 +1346,12 @@ def sl(args):
     vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
 
+def trufflejar(args=None):
+    """make truffle.jar"""
+    # We use the DSL processor as the starting point for the classpath - this
+    # therefore includes the DSL processor, the DSL and the API.
+    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None)
+
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
@@ -1390,7 +1396,8 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]']
+        'sl' : [sl, '[SL args|@VM options]'],
+        'trufflejar' : [trufflejar, ''],
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
@@ -1436,3 +1443,35 @@ def mx_post_parse_cmd_line(opts):  #
     _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
+
+def packagejar(classpath, outputFile, mainClass):
+    prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
+    print "creating", outputFile
+    filecount, totalsize = 0, 0
+    with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
+        manifest = "Manifest-Version: 1.0\n"
+        if mainClass != None:
+            manifest += "Main-Class: %s\n\n" % (mainClass)
+        zf.writestr("META-INF/MANIFEST.MF", manifest)
+        for cp in classpath:
+            print "+", cp
+            if cp.endswith(".jar"):
+                with zipfile.ZipFile(cp, 'r') as jar:
+                    for arcname in jar.namelist():
+                        if arcname.endswith('/') or arcname == 'META-INF/MANIFEST.MF' or arcname.endswith('.java') or arcname.lower().startswith("license") or arcname in [".project", ".classpath"]:
+                            continue
+                        zf.writestr(arcname, jar.read(arcname))
+            else:
+                for root, _, files in os.walk(cp):
+                    for f in files:
+                        fullname = os.path.join(root, f)
+                        arcname = fullname[len(cp)+1:].replace('\\', '/')
+                        if f.endswith(".class"):
+                            zf.write(prefix + fullname, arcname)
+
+        for zi in zf.infolist():
+            filecount += 1
+            totalsize += zi.file_size
+    print "%d files (total size: %.2f kB, jar size: %.2f kB)" % (filecount, totalsize / 1e3, os.path.getsize(outputFile) / 1e3)
+    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r', '-G', outputFile])
+    print "repacked jar size: %.2f kB" % (os.path.getsize(outputFile) / 1e3)

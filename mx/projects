@@ -570,7 +570,6 @@ project@com.oracle.graal.compiler.hsail.test@dependencies=com.oracle.graal.compi
 project@com.oracle.graal.compiler.hsail.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.hsail.test@javaCompliance=1.7
 
-
 # graal.asm.hsail
 project@com.oracle.graal.asm.hsail@subDir=graal
 project@com.oracle.graal.asm.hsail@sourceDirs=src
