@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import java.util.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
@@ -105,7 +107,8 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PIterator __iter__() {
+    // public PIterator __iter__() {
+    public PRangeIterator __iter__() {
         return new PRangeIterator(this);
     }
 
@@ -175,4 +178,33 @@ public class PRange extends PImmutableSequence {
     public PythonBuiltinObject __mul__(int value) {
         throw new UnsupportedOperationException();
     }
+
+// @Override
+// public Iterator iterator() {
+//
+// return new Iterator<Integer>() {
+//
+// // private int index = 0;
+// private int index = start;
+//
+// public final void remove() {
+// throw new UnsupportedOperationException();
+// }
+//
+// public final boolean hasNext() {
+// return index <= length - 1;
+// }
+//
+// public final Integer next() {
+// // return index++ * step + start;
+// // return start + (index++ * step);
+//
+// int value = index;
+// index += step;
+// return value;
+// }
+//
+// };
+//
+// }
 }

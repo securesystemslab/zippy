@@ -24,8 +24,7 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
@@ -130,4 +129,9 @@ public class PString extends PImmutableSequence {
     public PythonBuiltinObject __mul__(int multiplier) {
         throw new UnsupportedOperationException();
     }
+
+// @Override
+// public Iterator iterator() {
+// throw new RuntimeException("Not implemented");
+// }
 }

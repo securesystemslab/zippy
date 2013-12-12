@@ -62,4 +62,14 @@ public final class PRangeIterator extends PIterator {
 
         throw StopIterationException.INSTANCE;
     }
+
+    public int __nextInt__() {
+        if (index < stop) {
+            int value = index;
+            index += step;
+            return value;
+        }
+
+        throw StopIterationException.INSTANCE;
+    }
 }

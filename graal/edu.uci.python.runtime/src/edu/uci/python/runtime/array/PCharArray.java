@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.array;
 
-import java.util.Arrays;
+import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
@@ -161,5 +161,35 @@ public class PCharArray extends PArray {
         System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
         return new PCharArray(joined);
     }
+
+    private List<Character> getList() {
+        List<Character> list = new ArrayList<>();
+        for (int i = 0; i < array.length; i++) {
+            list.add(array[i]);
+        }
+        return list;
+    }
+
+// @Override
+// public Iterator<Character> iterator() {
+// throw new RuntimeException("Not implemented");
+
+// return new Iterator<Character>() {
+//
+// private final Iterator<Character> iter = getList().iterator();
+//
+// public void remove() {
+// throw new UnsupportedOperationException();
+// }
+//
+// public boolean hasNext() {
+// return iter.hasNext();
+// }
+//
+// public Character next() {
+// return iter.next();
+// }
+// };
+// }
 
 }

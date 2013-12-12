@@ -26,6 +26,8 @@ package edu.uci.python.builtins;
 
 import java.util.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
@@ -72,8 +74,45 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public PArray arrayWithInitializer(String typeCode, Object initializer) {
+        public PArray arrayWithRangeInitializer(String typeCode, PRange range) {
+            if (!typeCode.equals("i")) {
+                typeError(typeCode, range);
+            }
+
+            PRangeIterator iter = range.__iter__();
+            int[] intArray = new int[range.len()];
+            int i = 0;
+
+            try {
+                while (true) {
+                    intArray[i++] = iter.__nextInt__();
+                }
+            } catch (StopIterationException e) {
+                // fall through
+            }
+
+            return new PIntArray(intArray);
+        }
+
+        @Specialization(order = 3)
+        public PArray arrayWithSequenceInitializer(String typeCode, String str) {
+            if (!typeCode.equals("c")) {
+                typeError(typeCode, str);
+            }
+
+            return new PCharArray(str.toCharArray());
+
+        }
+
+        @Specialization(order = 4)
+        public PArray arrayWithSequenceInitializer(String typeCode, PSequence initializer) {
             return makeArray(typeCode.charAt(0), initializer);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 5)
+        public PArray arrayWithObjectInitializer(String typeCode, Object initializer) {
+            throw new RuntimeException("Unsupported initializer " + initializer);
         }
 
         @SuppressWarnings("unused")
@@ -96,20 +135,12 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
         }
 
         @SlowPath
-        private static PArray makeArray(char type, Object initializer) {
+        private static PArray makeArray(char type, PSequence sequence) {
             SequenceStorage store;
             switch (type) {
-                case 'c':
-                    if (initializer instanceof String) {
-                        return new PCharArray(((String) initializer).toCharArray());
-                    } else {
-                        throw new RuntimeException("Unexpected argument type for array() ");
-                    }
                 case 'i':
-                    PSequence seq = (PSequence) initializer;
-                    PIterator iter = seq.__iter__();
-
-                    int[] intArray = new int[seq.len()];
+                    PIterator iter = sequence.__iter__();
+                    int[] intArray = new int[sequence.len()];
                     int i = 0;
 
                     try {
@@ -123,10 +154,9 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     } catch (StopIterationException e) {
                         // fall through
                     }
-
                     return new PIntArray(intArray);
                 case 'd':
-                    store = ((PSequence) initializer).getStorage();
+                    store = sequence.getStorage();
                     double[] doubleArray = new double[store.length()];
 
                     for (i = 0; i < doubleArray.length; i++) {
@@ -141,6 +171,11 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                 default:
                     return null;
             }
+        }
+
+        @SlowPath
+        private static void typeError(String typeCode, Object initializer) {
+            throw Py.TypeError("unsupported operand type:" + typeCode.charAt(0) + " " + initializer + " and 'array.array'");
         }
     }
 }

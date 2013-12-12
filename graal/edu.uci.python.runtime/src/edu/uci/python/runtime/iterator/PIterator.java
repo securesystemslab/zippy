@@ -30,4 +30,8 @@ public abstract class PIterator {
     // Object __next__();
     public abstract Object __next__();
 
+// public int __nextInt__() {
+// throw new RuntimeException("Not implented");
+// }
+
 }
