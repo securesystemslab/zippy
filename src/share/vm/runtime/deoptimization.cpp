@@ -1373,6 +1373,11 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     if (speculation != NULL) {
       oop speculation_log = nm->speculation_log();
       if (speculation_log != NULL) {
+        if (TraceUncollectedSpeculations) {
+          if (SpeculationLog::lastFailed(speculation_log) != NULL) {
+            tty->print_cr("A speculation that was not collected by the compiler is being overwritten");
+          }
+        }
         SpeculationLog::set_lastFailed(speculation_log, speculation);
       }
       thread->set_pending_failed_speculation(NULL);
