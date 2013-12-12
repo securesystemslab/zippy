@@ -22,45 +22,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 
-public class GeneratorDefinitionNode extends FunctionRootNode {
+public class GeneratorBlockNode extends BlockNode {
 
-    private VirtualFrame continuingFrame;
+    protected int index;
 
-    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public GeneratorBlockNode(PNode[] statements) {
+        super(statements);
     }
 
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-        this.continuingFrame = frame;
-        return new PGenerator(null, null, null, null);
-
-    }
-
-    public Object next() throws ImplicitReturnException {
-        StatementNode current = body;
-
-        while (current != null) {
-            try {
-                current.executeVoid(continuingFrame);
-            } catch (ExplicitYieldException eye) {
-                return eye.getValue();
+        try {
+            while (index < statements.length) {
+                statements[index].executeVoid(frame);
+                index++;
             }
+        } catch (StopIterationException e) {
+            index = 0;
+            throw e;
         }
 
-        throw new ImplicitReturnException();
+        return PNone.NONE;
     }
+
+    public static final class InnerGeneratorBlockNode extends GeneratorBlockNode {
+
+        public InnerGeneratorBlockNode(PNode[] statements) {
+            super(statements);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            while (index < statements.length) {
+                statements[index++].executeVoid(frame);
+            }
+
+            index = 0;
+            return PNone.NONE;
+        }
+    }
+
 }

@@ -49,4 +49,9 @@ public class ListComprehensionNode extends FrameSlotNode {
         comprehension.execute(frame);
         return getObject(frame);
     }
+
+    @Override
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -22,26 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.runtime.function;
 
+import java.util.*;
+
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public class GeneratorExpressionRootNode extends FunctionRootNode {
+public final class PGeneratorFunction extends PFunction {
 
-    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return body.execute(frame);
-        } catch (ExplicitYieldException eye) {
-            return eye.getValue();
-        }
+    public Object call(PackedFrame caller, Object[] args) {
+        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args);
     }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+        throw new UnsupportedOperationException();
+    }
+
 }

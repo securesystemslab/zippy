@@ -100,12 +100,16 @@ public class TranslationEnvironment {
         return currentScope.getScopeKind();
     }
 
+    public void setToGeneratorScope() {
+        currentScope.setAsGenerator();
+    }
+
     public boolean isInModuleScope() {
         return getScopeKind() == ScopeInfo.ScopeKind.Module;
     }
 
     public boolean isInFunctionScope() {
-        return getScopeKind() == ScopeInfo.ScopeKind.Function;
+        return getScopeKind() == ScopeInfo.ScopeKind.Function || getScopeKind() == ScopeInfo.ScopeKind.GeneratorExpr;
     }
 
     public boolean isInClassScope() {

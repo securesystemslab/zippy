@@ -24,9 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -52,18 +49,6 @@ public class PString extends PImmutableSequence {
     @Override
     public PythonCallable __getattribute__(String name) {
         return (PythonCallable) __class__.getAttribute(name);
-    }
-
-    @Deprecated
-    public List<String> getList() {
-        ArrayList<String> list = new ArrayList<>();
-
-        char[] array = value.toCharArray();
-        for (int i = 0; i < array.length; i++) {
-            list.add(String.valueOf(array[i]));
-        }
-
-        return list;
     }
 
     public String getValue() {

@@ -22,48 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.literals;
+package edu.uci.python.test;
 
-import java.util.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import org.junit.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.sequence.*;
+public class GeneratorTests {
 
-public class SetLiteralNode extends LiteralNode {
+    @Test
+    public void simpleLoop() {
+        String source = "def loopgen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "\n" + //
+                        "for i in loopgen(5):\n" + //
+                        "    print(i)\n";
 
-    @Children protected final PNode[] values;
-
-    public SetLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+        assertPrints("0\n1\n2\n3\n4\n", source);
     }
 
-    protected SetLiteralNode(SetLiteralNode node) {
-        this(node.values);
-    }
-
-    @ExplodeLoop
-    @Override
-    public PSet executePSet(VirtualFrame frame) {
-        Set<Object> elements = new HashSet<>();
-
-        for (PNode v : this.values) {
-            elements.add(v.execute(frame));
-        }
-
-        return PythonTypesUtil.createSet(elements);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return executePSet(frame);
-    }
-
-    @Override
-    public String toString() {
-        return "list";
-    }
 }

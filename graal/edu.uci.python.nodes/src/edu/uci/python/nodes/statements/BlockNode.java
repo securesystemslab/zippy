@@ -40,6 +40,10 @@ public class BlockNode extends StatementNode {
         this.statements = adoptChildren(statements);
     }
 
+    public PNode[] getStatements() {
+        return statements;
+    }
+
     public boolean isEmpty() {
         return statements.length == 0;
     }
@@ -47,9 +51,7 @@ public class BlockNode extends StatementNode {
     @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
-            statements[i].executeVoid(frame);
-        }
+        execute(frame);
     }
 
     @ExplodeLoop

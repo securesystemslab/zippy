@@ -87,8 +87,8 @@ public class NodeFactory {
         return new FunctionRootNode(functionName, parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorDefinitionNode(functionName, parameters, body, returnValue);
+    public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new GeneratorFunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -282,7 +282,7 @@ public class NodeFactory {
         return new GeneratorForNode.InnerGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         // replace write local with write materialized frame
         for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
             write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
@@ -295,8 +295,8 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorExpressionRootNode createGenerator(LoopNode comprehension, PNode returnValue) {
-        return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+    public GeneratorRootNode createGeneratorRoot(ParametersNode params, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode("generator_exp", params, body, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

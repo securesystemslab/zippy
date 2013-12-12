@@ -53,8 +53,8 @@ public class PArguments extends Arguments {
         this(null, declarationFrame, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
     }
 
-    public PArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame) {
-        this(null, declarationFrame, generatorFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    public PArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
+        this(null, declarationFrame, generatorFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {

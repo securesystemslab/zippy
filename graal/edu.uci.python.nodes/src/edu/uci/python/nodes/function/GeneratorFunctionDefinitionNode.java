@@ -22,48 +22,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.literals;
+package edu.uci.python.nodes.function;
 
-import java.util.*;
-
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.function.*;
 
-public class SetLiteralNode extends LiteralNode {
+public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
-    @Children protected final PNode[] values;
-
-    public SetLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+    public GeneratorFunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        super(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
-    protected SetLiteralNode(SetLiteralNode node) {
-        this(node.values);
-    }
-
-    @ExplodeLoop
-    @Override
-    public PSet executePSet(VirtualFrame frame) {
-        Set<Object> elements = new HashSet<>();
-
-        for (PNode v : this.values) {
-            elements.add(v.execute(frame));
-        }
-
-        return PythonTypesUtil.createSet(elements);
-    }
-
+    /**
+     * FIXME: this class is being rewritten (very rough).
+     */
     @Override
     public Object execute(VirtualFrame frame) {
-        return executePSet(frame);
+        parameters.evaluateDefaults(frame);
+        MaterializedFrame declarationFrame = needsDeclarationFrame() ? frame.materialize() : null;
+        return new PGeneratorFunction(getName(), parameters.getParameterNames(), getCallTarget(), getFrameDescriptor(), declarationFrame);
     }
 
-    @Override
-    public String toString() {
-        return "list";
-    }
 }

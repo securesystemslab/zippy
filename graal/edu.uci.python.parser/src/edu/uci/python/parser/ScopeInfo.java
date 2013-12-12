@@ -41,8 +41,8 @@ public class ScopeInfo {
     }
 
     private final String scopeId;
-    private final ScopeKind scopeKind;
     private final FrameDescriptor frameDescriptor;
+    private ScopeKind scopeKind;
     private final ScopeInfo parent;
     private boolean needsDeclaringScope;
 
@@ -72,6 +72,11 @@ public class ScopeInfo {
 
     public ScopeKind getScopeKind() {
         return scopeKind;
+    }
+
+    public void setAsGenerator() {
+        assert scopeKind == ScopeKind.Function;
+        scopeKind = ScopeKind.GeneratorExpr;
     }
 
     public FrameDescriptor getFrameDescriptor() {

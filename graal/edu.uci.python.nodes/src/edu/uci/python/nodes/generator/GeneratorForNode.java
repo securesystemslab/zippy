@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 
@@ -59,7 +60,7 @@ public abstract class GeneratorForNode extends LoopNode {
 
     public static class OuterGeneratorForNode extends GeneratorForNode {
 
-        private boolean doNext = true;
+        private boolean isResuming;
 
         public OuterGeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
             super(target, getIterator, body);
@@ -75,8 +76,9 @@ public abstract class GeneratorForNode extends LoopNode {
 
                     try {
                         body.executeVoid(frame);
-                    } catch (StopIterationException e) {
-                        doNext = true;
+                    } catch (ExplicitYieldException e) {
+                        isResuming = true;
+                        throw e;
                     }
                 }
             } catch (StopIterationException e) {
@@ -89,9 +91,10 @@ public abstract class GeneratorForNode extends LoopNode {
          * Do not advance the iterator unless the inner loop terminates.
          */
         private void doNext(VirtualFrame frame) {
-            if (doNext) {
+            if (isResuming) {
+                isResuming = false;
+            } else {
                 target.executeWith(frame, iterator.__next__());
-                doNext = false;
             }
         }
     }
@@ -113,8 +116,9 @@ public abstract class GeneratorForNode extends LoopNode {
                 }
             } catch (StopIterationException e) {
                 iterator = null;
-                throw e;
             }
+
+            return PNone.NONE;
         }
     }
 }
