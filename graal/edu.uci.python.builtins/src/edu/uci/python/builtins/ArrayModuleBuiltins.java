@@ -67,10 +67,10 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
         @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "noInitializer")
         public PArray array(String typeCode, Object initializer) {
-            return makeEmptyArray(typeCode.charAt(0));
             /**
              * TODO @param typeCode should be a char, not a string
              */
+            return makeEmptyArray(typeCode.charAt(0));
         }
 
         @Specialization(order = 2)
@@ -79,16 +79,15 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                 typeError(typeCode, range);
             }
 
-            PRangeIterator iter = range.__iter__();
             int[] intArray = new int[range.len()];
-            int i = 0;
 
-            try {
-                while (true) {
-                    intArray[i++] = iter.__nextInt__();
-                }
-            } catch (StopIterationException e) {
-                // fall through
+            int start = range.getStart();
+            int stop = range.getStop();
+            int step = range.getStep();
+
+            int index = 0;
+            for (int i = start; i < stop; i += step) {
+                intArray[index++] = i;
             }
 
             return new PIntArray(intArray);
@@ -101,7 +100,6 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             }
 
             return new PCharArray(str.toCharArray());
-
         }
 
         @Specialization(order = 4)

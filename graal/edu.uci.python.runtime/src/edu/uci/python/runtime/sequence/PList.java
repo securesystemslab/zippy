@@ -56,14 +56,6 @@ public class PList extends PSequence {
     public PList(PIterator iter) {
         store = SequenceStorageFactory.createStorage(null);
 
-// try {
-// while (true) {
-// append(iter.__next__());
-// }
-// } catch (StopIterationException e) {
-// // fall through
-// }
-
         try {
             while (true) {
                 append(iter.__next__());
@@ -279,25 +271,4 @@ public class PList extends PSequence {
         return super.hashCode();
     }
 
-// @Override
-// public Iterator iterator() {
-// throw new RuntimeException("Not implemented");
-// return new Iterator() {
-//
-// private int index = 0;
-// private final SequenceStorage iterStore = PList.this.store;
-//
-// public boolean hasNext() {
-// return index < iterStore.length();
-// }
-//
-// public Object next() {
-// return iterStore.getItemInBound(index++);
-// }
-//
-// public void remove() {
-// throw new UnsupportedOperationException();
-// }
-// };
-// }
 }

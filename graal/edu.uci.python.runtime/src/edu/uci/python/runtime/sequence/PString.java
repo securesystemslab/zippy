@@ -129,9 +129,4 @@ public class PString extends PImmutableSequence {
     public PythonBuiltinObject __mul__(int multiplier) {
         throw new UnsupportedOperationException();
     }
-
-// @Override
-// public Iterator iterator() {
-// throw new RuntimeException("Not implemented");
-// }
 }

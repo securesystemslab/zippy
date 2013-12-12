@@ -157,26 +157,4 @@ public class PDoubleArray extends PArray {
         buf.append(")");
         return buf.toString();
     }
-
-// @Override
-// public Iterator<Double> iterator() {
-// throw new RuntimeException("Not implemented");
-// return new Iterator<Double>() {
-//
-// private int index;
-// private final double[] values = array;
-//
-// public void remove() {
-// throw new UnsupportedOperationException();
-// }
-//
-// public boolean hasNext() {
-// return index < values.length;
-// }
-//
-// public Double next() {
-// return values[index++];
-// }
-// };
-// }
 }
