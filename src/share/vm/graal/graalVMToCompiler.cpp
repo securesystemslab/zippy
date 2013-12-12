@@ -254,21 +254,3 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   check_pending_exception("Error while calling createResolvedJavaType");
   return (oop) result.get_jobject();
 }
-
-oop VMToCompiler::createLocal(Handle name, Handle typeInfo, int bci_start, int bci_end, int slot, Handle holder, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(name);
-  args.push_oop(typeInfo);
-  args.push_oop(holder);
-  args.push_int(bci_start);
-  args.push_int(bci_end);
-  args.push_int(slot);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createLocalImpl_name(), vmSymbols::createLocalImpl_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createConstantFloat");
-  return (oop) result.get_jobject();
-
-}
-
-

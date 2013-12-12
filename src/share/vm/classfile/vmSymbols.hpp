@@ -312,7 +312,6 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
-  template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
   template(com_oracle_graal_hotspot_CompilerThread,                  "com/oracle/graal/hotspot/CompilerThread")                       \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
@@ -373,8 +372,6 @@
   template(createResolvedJavaType_signature,      "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/Class;I)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
   template(createPrimitiveJavaType_name,          "createPrimitiveJavaType")                                                          \
   template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
-  template(createLocalImpl_name,                  "createLocalImpl")                                                                  \
-  template(createLocalImpl_signature,             "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;III)Lcom/oracle/graal/hotspot/debug/LocalImpl;") \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
   template(runtime_name,                          "runtime")                                                                          \

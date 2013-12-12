@@ -784,38 +784,20 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot
   return result;
 C2V_END
 
-C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jobject hotspot_method))
   ResourceMark rm;
-
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
   if (!method->has_localvariable_table()) {
-    return NULL;
+    return 0;
   }
-  int localvariable_table_length = method->localvariable_table_length();
-
-  objArrayHandle local_array = oopFactory::new_objArray(SystemDictionary::LocalImpl_klass(), localvariable_table_length, CHECK_NULL);
-  LocalVariableTableElement* table = method->localvariable_table_start();
-  for (int i = 0; i < localvariable_table_length; i++) {
-    u2 start_bci = table[i].start_bci;
-    u4 end_bci = (u4)(start_bci + table[i].length);
-    u2 nameCPIdx = table[i].name_cp_index;
-    u2 typeCPIdx = table[i].descriptor_cp_index;
-    u2 slot = table[i].slot;
-
-    char* name = method->constants()->symbol_at(nameCPIdx)->as_C_string();
-    Handle nameHandle = java_lang_String::create_from_str(name, CHECK_NULL);
-
-    char* typeInfo = method->constants()->symbol_at(typeCPIdx)->as_C_string();
-    Handle typeHandle = java_lang_String::create_from_str(typeInfo, CHECK_NULL);
-
-    Handle holderHandle = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
-    Handle local = VMToCompiler::createLocal(nameHandle, typeHandle, (int) start_bci, (int) end_bci, (int) slot, holderHandle, Thread::current());
-    local_array->obj_at_put(i, local());
-  }
-
-  return JNIHandles::make_local(local_array());
+  return (jlong) (address) method->localvariable_table_start();
 C2V_END
 
+C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jobject hotspot_method))
+  ResourceMark rm;
+  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  return method->localvariable_table_length();
+C2V_END
 
 C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
@@ -882,7 +864,6 @@ C2V_END
 #define CONSTANT_POOL         "Lcom/oracle/graal/api/meta/ConstantPool;"
 #define CONSTANT              "Lcom/oracle/graal/api/meta/Constant;"
 #define KIND                  "Lcom/oracle/graal/api/meta/Kind;"
-#define LOCAL                  "Lcom/oracle/graal/api/meta/Local;"
 #define RUNTIME_CALL          "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
 #define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
@@ -932,7 +913,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
-  {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
+  {CC"getLocalVariableTableStart",    CC"("HS_RESOLVED_METHOD")J",                                      FN_PTR(getLocalVariableTableStart)},
+  {CC"getLocalVariableTableLength",   CC"("HS_RESOLVED_METHOD")I",                                      FN_PTR(getLocalVariableTableLength)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
