@@ -133,41 +133,11 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   return result;
 C2V_END
 
-C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
+C2V_VMENTRY(jlong, exceptionTableStart, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
   methodHandle method = asMethod(metaspace_method);
-  int handler_count = method->exception_table_length();
-  objArrayHandle array = (objArrayOop) JNIHandles::resolve(java_handlers);
-  assert(array->length() == handler_count, "wrong length");
-  ExceptionTableElement* handlers = handler_count == 0 ? NULL : method->exception_table_start();
-
-  for (int i = 0; i < handler_count; i++) {
-    ExceptionTableElement* handler = handlers + i;
-    Handle entry = array->obj_at(i);
-    assert(!entry.is_null(), "entry should not be null");
-    ExceptionHandler::set_startBCI(entry, handler->start_pc);
-    ExceptionHandler::set_endBCI(entry, handler->end_pc);
-    ExceptionHandler::set_handlerBCI(entry, handler->handler_pc);
-    int catch_class_index = handler->catch_type_index;
-    ExceptionHandler::set_catchTypeCPI(entry, catch_class_index);
-
-    if (catch_class_index == 0) {
-      ExceptionHandler::set_catchType(entry, NULL);
-    } else {
-      ConstantPool* cp = InstanceKlass::cast(method->method_holder())->constants();
-      KlassHandle loading_klass = method->method_holder();
-      Handle catch_class = GraalCompiler::get_JavaType(cp, catch_class_index, loading_klass, CHECK_NULL);
-      if (catch_class->klass() == HotSpotResolvedObjectType::klass() && java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(catch_class)) == SystemDictionary::Throwable_klass()) {
-        ExceptionHandler::set_catchType(entry, NULL);
-        ExceptionHandler::set_catchTypeCPI(entry, 0);
-      } else {
-        ExceptionHandler::set_catchType(entry, catch_class());
-      }
-    }
-    array->obj_at_put(i, entry());
-  }
-
-  return (jobjectArray) JNIHandles::make_local(array());
+  assert(method->exception_table_length() != 0, "should be handled in Java code");
+  return (jlong) (address) method->exception_table_start();
 C2V_END
 
 C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_method))
@@ -914,7 +884,6 @@ C2V_END
 #define KIND                  "Lcom/oracle/graal/api/meta/Kind;"
 #define LOCAL                  "Lcom/oracle/graal/api/meta/Local;"
 #define RUNTIME_CALL          "Lcom/oracle/graal/api/code/RuntimeCall;"
-#define EXCEPTION_HANDLERS    "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
 #define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
 #define STRING                "Ljava/lang/String;"
@@ -933,7 +902,7 @@ C2V_END
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"initializeExceptionHandlers",   CC"("METASPACE_METHOD EXCEPTION_HANDLERS")"EXCEPTION_HANDLERS,    FN_PTR(initializeExceptionHandlers)},
+  {CC"exceptionTableStart",           CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
   {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
