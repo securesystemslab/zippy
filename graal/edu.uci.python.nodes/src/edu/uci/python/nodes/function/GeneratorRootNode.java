@@ -52,6 +52,5 @@ public class GeneratorRootNode extends FunctionRootNode {
         } catch (ExplicitYieldException eye) {
             return eye.getValue();
         }
-
     }
 }

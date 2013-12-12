@@ -274,8 +274,8 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public LoopNode createOuterGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
-        return new GeneratorForNode.OuterGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
     public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {

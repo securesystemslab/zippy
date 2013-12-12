@@ -507,7 +507,7 @@ public class PythonTreeTranslator extends Visitor {
 
                 current = factory.createInnerGeneratorForNode(target, getIterator, bodyNode);
             } else {
-                current = factory.createOuterGeneratorForNode(target, getIterator, current);
+                current = factory.createGeneratorForNode(target, getIterator, current);
             }
         }
 

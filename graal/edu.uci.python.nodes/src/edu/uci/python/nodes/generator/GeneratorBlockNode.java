@@ -53,6 +53,7 @@ public class GeneratorBlockNode extends BlockNode {
             throw e;
         }
 
+        index = 0;
         return PNone.NONE;
     }
 

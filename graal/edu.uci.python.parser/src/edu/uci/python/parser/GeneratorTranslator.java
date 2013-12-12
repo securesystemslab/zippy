@@ -73,7 +73,7 @@ public class GeneratorTranslator {
             if (depth == 0) {
                 node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody()));
             } else {
-                node.replace(new GeneratorForNode.OuterGeneratorForNode(target, getIter, forNode.getBody()));
+                node.replace(new GeneratorForNode(target, getIter, forNode.getBody()));
             }
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
