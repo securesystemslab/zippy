@@ -44,8 +44,12 @@ public class GeneratorBlockNode extends BlockNode {
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            while (index < statements.length) {
-                statements[index].executeVoid(frame);
+            for (int i = 0; i < statements.length; i++) {
+                if (i < index) {
+                    continue;
+                }
+
+                statements[i].executeVoid(frame);
                 index++;
             }
         } catch (StopIterationException e) {
@@ -66,8 +70,13 @@ public class GeneratorBlockNode extends BlockNode {
         @ExplodeLoop
         @Override
         public Object execute(VirtualFrame frame) {
-            while (index < statements.length) {
-                statements[index++].executeVoid(frame);
+            for (int i = 0; i < statements.length; i++) {
+                if (i < index) {
+                    continue;
+                }
+
+                index++;
+                statements[i].executeVoid(frame);
             }
 
             index = 0;
