@@ -68,6 +68,11 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 3)
+    public Object doPTuple(PTuple tuple, int idx) {
+        return tuple.getItem(idx);
+    }
+
+    @Specialization(order = 4)
     public Object doPSequence(PSequence primary, int idx) {
         return primary.getItem(idx);
     }

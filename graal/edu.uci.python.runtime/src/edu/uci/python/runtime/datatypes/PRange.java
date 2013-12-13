@@ -164,9 +164,4 @@ public class PRange extends PImmutableSequence {
     public int index(Object value) {
         throw new UnsupportedOperationException();
     }
-
-    @Override
-    public PSequence __mul__(int value) {
-        throw new UnsupportedOperationException();
-    }
 }
