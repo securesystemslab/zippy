@@ -188,8 +188,12 @@ public class PythonTypesUtil {
             return "tuple";
         } else if (object instanceof PRange) {
             return "range";
+        } else if (object instanceof PArray) {
+            return "array";
         } else if (object instanceof PSet) {
             return "set";
+        } else if (object instanceof PDict) {
+            return "dict";
         }
 
         throw new RuntimeException("Unsupported type name " + object.getClass());
