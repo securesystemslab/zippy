@@ -43,7 +43,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
@@ -127,30 +126,34 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
 
         if (environment.isInGeneratorScope()) {
-            /**
-             * Generator function
-             */
-            GeneratorRootNode gnode = factory.createGeneratorRoot(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-            FrameDescriptor fd = environment.getCurrentFrame();
-            CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
-            funcDef = factory.createGeneratorDef(name, parameters, ct, fd, environment.needsDeclarationFrame());
-            GeneratorTranslator.translate(gnode);
+            funcDef = createGeneratorFunctionDefinition(name, parameters, body);
         } else {
-            /**
-             * Ordinary function
-             */
-            FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-            result.addParsedFunction(name, funcRoot);
-            funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
+            funcDef = createFunctionDefinitnion(name, parameters, body);
         }
 
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
-    private PNode wrapRootNodeInFunctionDefinitnion(String name, RootNode root, ParametersNode parameters) {
-        CallTarget ct = Truffle.getRuntime().createCallTarget(root, environment.getCurrentFrame());
+    private PNode createFunctionDefinitnion(String name, ParametersNode parameters, StatementNode body) {
+        FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        result.addParsedFunction(name, funcRoot);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
         return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+    }
+
+    private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        GeneratorTranslator.translate(funcRoot);
+        FrameDescriptor fd = environment.getCurrentFrame();
+        return factory.createGeneratorDef(name, parameters, Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
+    }
+
+    private PNode createGeneratorExpressionDefinition(StatementNode body) {
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot(ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        GeneratorTranslator.translate(funcRoot);
+        FrameDescriptor fd = environment.getCurrentFrame();
+        return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
     }
 
     public ParametersNode visitArgs(arguments node) throws Exception {
@@ -256,12 +259,8 @@ public class PythonTreeTranslator extends Visitor {
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
-        List<PNode> statements = visitStatements(node.getInternalBody());
-        BlockNode body = factory.createBlock(statements);
-        FunctionRootNode methodRoot = factory.createFunctionRoot(name, ParametersNode.EMPTY_PARAMS, body, PNode.EMPTYNODE);
-        CallTarget ct = Truffle.getRuntime().createCallTarget(methodRoot, environment.getCurrentFrame());
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) factory.createFunctionDef("(" + name + "-def)", ParametersNode.EMPTY_PARAMS, ct, environment.getCurrentFrame(),
-                        environment.needsDeclarationFrame());
+        BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) createFunctionDefinitnion(name, ParametersNode.EMPTY_PARAMS, body);
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.
@@ -438,35 +437,31 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitListComp(ListComp node) throws Exception {
         FrameSlot slot = environment.nextListComprehensionSlot();
-        PNode comp = visitListComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        PNode body = factory.createListAppend(environment.getListComprehensionSlot(), (PNode) visit(node.getInternalElt()));
+        PNode comp = visitComprehensions(node.getInternalGenerators(), body);
         return factory.createListComprehension(slot, comp);
+
     }
 
-    private PNode visitListComprehensions(List<comprehension> comprehensions, expr body) throws Exception {
+    private PNode visitComprehensions(List<comprehension> comprehensions, PNode body) throws Exception {
         assert body != null;
+        PNode current = body;
         List<comprehension> reversed = Lists.reverse(comprehensions);
-        PNode listAppendNode = factory.createListAppend(environment.getListComprehensionSlot(), (PNode) visit(body));
-        BlockNode bodyNode = factory.createSingleStatementBlock(listAppendNode);
-        PNode current = null;
 
         for (int i = 0; i < reversed.size(); i++) {
             comprehension comp = reversed.get(i);
 
-            // target and iterator
-            PNode incomplete = (PNode) visit(comp.getInternalTarget());
-            PNode target = ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
-            PNode iterator = (PNode) visit(comp.getInternalIter());
-
-            if (i == 0) {
-                // inner most
-                current = createForInScope(target, iterator, bodyNode);
-            } else {
-                // outer
-                bodyNode = factory.createSingleStatementBlock(current);
-                current = createForInScope(target, iterator, bodyNode);
+            List<expr> conditions = comp.getInternalIfs();
+            if (conditions != null && !conditions.isEmpty()) {
+                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, PNode.EMPTYNODE);
             }
+
+            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(factory.createRuntimeValueNode());
+            PNode iterator = (PNode) visit(comp.getInternalIter());
+            current = createForInScope(target, iterator, current);
         }
 
+        assert current != null;
         return current;
     }
 
@@ -474,58 +469,20 @@ public class PythonTreeTranslator extends Visitor {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
         if (environment.isInFunctionScope()) {
-            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, getIterator, (StatementNode) body);
+            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, getIterator, body);
         } else {
-            return factory.createFor(target, getIterator, (StatementNode) body);
+            return factory.createFor(target, getIterator, body);
         }
-    }
-
-    private Object visitComprehensions(List<comprehension> generators, expr body) throws Exception {
-        assert body != null;
-        List<comprehension> reversed = Lists.reverse(generators);
-        PNode current = null;
-
-        for (int i = 0; i < reversed.size(); i++) {
-            comprehension comp = reversed.get(i);
-
-            // target and iterator
-            PNode incomplete = (PNode) visit(comp.getInternalTarget());
-            WriteLocalVariableNode target = (WriteLocalVariableNode) ((ReadNode) incomplete).makeWriteNode(factory.createRuntimeValueNode());
-            PNode iterator = (PNode) visit(comp.getInternalIter());
-            GetIteratorNode getIterator = factory.createGetIterator(iterator);
-
-            // Just deal with one condition.
-            List<expr> conditions = comp.getInternalIfs();
-            PNode condition = (conditions == null || conditions.isEmpty()) ? null : (PNode) visit(conditions.get(0));
-
-            if (i == 0) {
-                PNode bodyNode = factory.createYield((PNode) visit(body));
-
-                if (condition != null) {
-                    bodyNode = factory.createIf(factory.toBooleanCastNode(condition), bodyNode, PNode.EMPTYNODE);
-                }
-
-                current = factory.createInnerGeneratorForNode(target, getIterator, bodyNode);
-            } else {
-                current = factory.createGeneratorForNode(target, getIterator, current);
-            }
-        }
-
-        assert current != null;
-        return current;
     }
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
-        LoopNode comprehension = (LoopNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
-        StatementNode body = new GeneratorBlockNode(new PNode[]{comprehension, new StopIterationNode()});
-        GeneratorRootNode gnode = factory.createGeneratorRoot(ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        FrameDescriptor fd = environment.getCurrentFrame();
-        CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
-        boolean needsDeclarationFrame = environment.needsDeclarationFrame();
+        PNode body = factory.createYield((PNode) visit(node.getInternalElt()));
+        LoopNode comprehension = (LoopNode) visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
+        PNode genExprDef = createGeneratorExpressionDefinition(comprehension);
         environment.endScope(node);
-        return factory.createGeneratorExpression(ct, gnode, fd, needsDeclarationFrame);
+        return genExprDef;
     }
 
     @Override

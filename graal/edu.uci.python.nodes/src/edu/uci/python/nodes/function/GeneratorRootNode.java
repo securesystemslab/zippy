@@ -46,11 +46,12 @@ public class GeneratorRootNode extends FunctionRootNode {
         }
 
         try {
-            Object returnVal = body.execute(frame);
+            body.execute(frame);
             firstEntry = true;
-            return returnVal;
+            throw StopIterationException.INSTANCE;
         } catch (ExplicitYieldException eye) {
             return eye.getValue();
         }
     }
+
 }

@@ -57,8 +57,9 @@ public class GeneratorForNode extends LoopNode {
             }
         } catch (StopIterationException e) {
             iterator = null;
-            throw e;
         }
+
+        return PNone.NONE;
     }
 
     protected void executeIterator(VirtualFrame frame) {

@@ -216,7 +216,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
         if (data instanceof PBaseSet) {
             updateInternal((PBaseSet) data);
         } else if (data instanceof PIterator) {
-
+            throw new UnsupportedOperationException();
         }
     }
 

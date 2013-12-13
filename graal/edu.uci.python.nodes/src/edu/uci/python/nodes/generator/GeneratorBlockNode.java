@@ -30,7 +30,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
 public class GeneratorBlockNode extends BlockNode {
 
@@ -43,18 +42,13 @@ public class GeneratorBlockNode extends BlockNode {
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        try {
-            for (int i = 0; i < statements.length; i++) {
-                if (i < index) {
-                    continue;
-                }
-
-                statements[i].executeVoid(frame);
-                index++;
+        for (int i = 0; i < statements.length; i++) {
+            if (i < index) {
+                continue;
             }
-        } catch (StopIterationException e) {
-            index = 0;
-            throw e;
+
+            statements[i].executeVoid(frame);
+            index++;
         }
 
         index = 0;

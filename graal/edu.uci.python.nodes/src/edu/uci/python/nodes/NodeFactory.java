@@ -177,11 +177,11 @@ public class NodeFactory {
         return GetIteratorNodeFactory.create(collection);
     }
 
-    public LoopNode createFor(PNode target, GetIteratorNode iterator, StatementNode body) {
+    public LoopNode createFor(PNode target, GetIteratorNode iterator, PNode body) {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, StatementNode body) {
+    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, PNode body) {
         return ForWithLocalTargetNodeFactory.create(target, body, iterator);
     }
 
@@ -282,16 +282,7 @@ public class NodeFactory {
         return new GeneratorForNode.InnerGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        // replace write local with write materialized frame
-        for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
-            write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
-        }
-
-        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(generator, ReadLocalVariableNode.class)) {
-            read.replace(ReadMaterializedFrameVariableNodeFactory.create(read.getSlot()));
-        }
-
+    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
