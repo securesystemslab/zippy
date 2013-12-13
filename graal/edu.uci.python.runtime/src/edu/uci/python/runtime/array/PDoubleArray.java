@@ -28,7 +28,6 @@ import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PDoubleArray extends PArray {
 
@@ -125,7 +124,7 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PArray __mul__(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
 
@@ -139,7 +138,7 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public PArray __add__(PSequence other) {
+    public PArray __add__(PArray other) {
         PDoubleArray otherArray = (PDoubleArray) other;
         double[] joined = new double[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

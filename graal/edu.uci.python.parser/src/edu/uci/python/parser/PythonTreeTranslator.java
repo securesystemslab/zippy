@@ -487,7 +487,6 @@ public class PythonTreeTranslator extends Visitor {
                 if (condition != null) {
                     bodyNode = factory.createIf(factory.toBooleanCastNode(condition), bodyNode, PNode.EMPTYNODE);
                 }
-
                 current = factory.createInnerGeneratorForNode(target, getIterator, bodyNode);
             } else {
                 current = factory.createOuterGeneratorForNode(target, getIterator, current);

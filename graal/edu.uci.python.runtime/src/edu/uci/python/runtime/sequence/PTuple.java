@@ -30,7 +30,6 @@ import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PTuple extends PImmutableSequence {
 
@@ -178,15 +177,13 @@ public class PTuple extends PImmutableSequence {
         return copy[copy.length - 1];
     }
 
-    @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PTuple __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public PTuple __add__(PSequence sequence) {
-        Object[] newArray = new Object[len() + sequence.len()];
-        Object[] rightArray = ((PTuple) sequence).getArray();
+    public PTuple __add__(PTuple tuple) {
+        Object[] newArray = new Object[len() + tuple.len()];
+        Object[] rightArray = tuple.getArray();
 
         System.arraycopy(getArray(), 0, newArray, 0, len());
         System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
@@ -202,9 +199,4 @@ public class PTuple extends PImmutableSequence {
     public int index(Object value) {
         throw new UnsupportedOperationException();
     }
-
-// @Override
-// public Iterator iterator() {
-// throw new RuntimeException("Not implemented");
-// }
 }

@@ -28,7 +28,6 @@ import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PIntArray extends PArray {
 
@@ -125,7 +124,7 @@ public class PIntArray extends PArray {
     }
 
     @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PArray __mul__(int value) {
         int[] newArray = new int[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
@@ -149,7 +148,7 @@ public class PIntArray extends PArray {
     }
 
     @Override
-    public PArray __add__(PSequence other) {
+    public PArray __add__(PArray other) {
         PIntArray otherArray = (PIntArray) other;
         int[] joined = new int[len() + other.len()];
         System.arraycopy(array, 0, joined, 0, len());

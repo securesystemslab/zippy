@@ -102,7 +102,7 @@ se_nh = get_senh(board, cti)
 
 def solve(n, i_min, free, curr_board, pieces_left, solutions,
           fps=fps, se_nh=se_nh, bisect=bisect):
-
+    
     fp_i_cands = fps[i_min]
     for p in pieces_left:
         fp_cands = fp_i_cands[p]

@@ -31,7 +31,6 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PRange extends PImmutableSequence {
 
@@ -142,11 +141,6 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PSequence __add__(PSequence sequence) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Object getMax() {
         throw new UnsupportedOperationException();
     }
@@ -172,7 +166,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PSequence __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 }
