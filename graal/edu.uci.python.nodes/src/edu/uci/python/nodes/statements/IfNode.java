@@ -33,9 +33,7 @@ import edu.uci.python.runtime.datatypes.*;
 public class IfNode extends StatementNode {
 
     @Child protected CastToBooleanNode condition;
-
     @Child protected PNode then;
-
     @Child protected PNode orelse;
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
@@ -59,4 +57,5 @@ public class IfNode extends StatementNode {
     public String toString() {
         return super.toString() + "(" + condition + ")";
     }
+
 }

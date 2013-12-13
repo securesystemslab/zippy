@@ -34,8 +34,8 @@ public class ScopeInfo {
 
     public static enum ScopeKind {
         Module, Function, Class,
-        // generator expression
-        GeneratorExpr,
+        // generator expression or generator function
+        Generator,
         // list comprehension
         ListComp
     }
@@ -76,7 +76,7 @@ public class ScopeInfo {
 
     public void setAsGenerator() {
         assert scopeKind == ScopeKind.Function;
-        scopeKind = ScopeKind.GeneratorExpr;
+        scopeKind = ScopeKind.Generator;
     }
 
     public FrameDescriptor getFrameDescriptor() {

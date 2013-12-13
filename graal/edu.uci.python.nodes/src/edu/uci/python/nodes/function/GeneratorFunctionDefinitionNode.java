@@ -36,9 +36,6 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
         super(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);

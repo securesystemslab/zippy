@@ -54,4 +54,5 @@ public class ListComprehensionNode extends FrameSlotNode {
     public Object executeWrite(VirtualFrame frame, Object value) {
         throw new UnsupportedOperationException();
     }
+
 }

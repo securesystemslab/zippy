@@ -51,18 +51,6 @@ public class PythonTypesUtil {
         return new PyTuple(adaptedValue);
     }
 
-    public static PTuple createTuple(Object[] values) {
-        return new PTuple(values);
-    }
-
-    public static PSet createSet(Set<Object> values) {
-        return new PSet(values);
-    }
-
-    public static PDict createDictionary(Map<Object, Object> map) {
-        return new PDict(map);
-    }
-
     @SlowPath
     public static PyObject adaptToPyObject(Object value) {
         CompilerAsserts.neverPartOfCompilation();

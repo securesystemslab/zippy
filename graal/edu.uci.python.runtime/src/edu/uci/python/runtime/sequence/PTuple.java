@@ -64,7 +64,6 @@ public class PTuple extends PImmutableSequence {
         }
 
         array = list.toArray();
-
     }
 
     /**
