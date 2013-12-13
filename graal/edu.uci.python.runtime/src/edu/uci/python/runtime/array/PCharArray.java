@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.array;
 
-import java.util.Arrays;
+import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
@@ -161,5 +161,4 @@ public class PCharArray extends PArray {
         System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
         return new PCharArray(joined);
     }
-
 }

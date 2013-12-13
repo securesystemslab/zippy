@@ -26,7 +26,11 @@ package edu.uci.python.runtime.iterator;
 
 import edu.uci.python.runtime.sequence.*;
 
-public class PEnumerateIterator extends PIterator {
+/**
+ * @author Gulfem
+ */
+
+public class PEnumerateIterator implements PIterator {
 
     private int index;
     private final PIterator iterator;
@@ -37,6 +41,10 @@ public class PEnumerateIterator extends PIterator {
 
     @Override
     public Object __next__() {
+        /**
+         * StopIterationException is not explicitly thrown, but it can be implicitly thrown and
+         * stops the iteration when the __next__() method is called on the iterated object.
+         */
         return new PTuple((new Object[]{index++, iterator.__next__()}));
     }
 }

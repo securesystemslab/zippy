@@ -120,6 +120,34 @@ public class BuiltinsTests {
     }
 
     @Test
+    public void isinstanceTest() {
+        String source = "class Student:\n\t" +
+
+        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
+
+        "student = Student(10)\n" +
+
+        "x = isinstance(student, Student)\n" +
+
+        "print(x)\n";
+
+        assertPrints("True\n", source);
+    }
+
+    @Test
+    public void iterTest() {
+        String source = "for element in iter(\"hello\"):\n\t" +
+
+        "print(element)\n" +
+
+        "for element in iter([10, 20, 30]):\n\t" +
+
+        "print(element)\n";
+
+        assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
+    }
+
+    @Test
     public void lenTest() {
         String source = "value = \"hello\"\n" + "print(len(value))\n" +
 
@@ -142,6 +170,19 @@ public class BuiltinsTests {
     }
 
     @Test
+    public void nextTest() {
+        String source = "x = iter([10, 20, 30])\n" +
+
+        "print(next(x))\n" +
+
+        "print(next(x))\n" +
+
+        "print(next(x))\n";
+
+        assertPrints("10\n20\n30\n", source);
+    }
+
+    @Test
     public void rangeTest() {
         String source = "print(list(range(10)))\n" +
 
@@ -156,34 +197,5 @@ public class BuiltinsTests {
     public void zipTest() {
         String source = "for s in zip('ABC', '123'):\n" + "\tprint(s)\n";
         assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
-    }
-
-    @Test
-    public void iterTest() {
-        String source = "for element in iter(\"hello\"):\n\t" +
-
-        "print(element)\n" +
-
-        "for element in iter([10, 20, 30]):\n\t" +
-
-        "print(element)\n";
-
-        assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
-    }
-
-    @Test
-    public void isinstanceTest() {
-        String source = "class Student:\n\t" +
-
-        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
-
-        "student = Student(10)\n" +
-
-        "x = isinstance(student, Student)\n" +
-
-        "print(x)\n";
-
-        assertPrints("True\n", source);
-
     }
 }

@@ -202,4 +202,9 @@ public class PTuple extends PImmutableSequence {
     public int index(Object value) {
         throw new UnsupportedOperationException();
     }
+
+// @Override
+// public Iterator iterator() {
+// throw new RuntimeException("Not implemented");
+// }
 }

@@ -141,18 +141,24 @@ print(list(range(0, 30, 5))) # [0, 5, 10, 15, 20, 25]
      
 
 # test builtin zip
-for s in zip["ABC", "123"]:
+for s in zip(["ABC", "123"]):
     print(s)     
      
 # test builtin iter
 for element in iter("hello"):
     print(element)
     
-for element in iter([10, 20, 30]):
-    print(element)
+#for element in iter([10, 20, 30]):
+#    print(element)
     
 #for element in iter({"a", "b", "c"}):
-    #print(element)
+#    print(element)
+
+# test builtin next
+x = iter([10, 20, 30])
+print(next(x))
+print(next(x))
+print(next(x))
 
 # test isintance
 class Student:

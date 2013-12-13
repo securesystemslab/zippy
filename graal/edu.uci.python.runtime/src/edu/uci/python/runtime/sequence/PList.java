@@ -271,24 +271,4 @@ public class PList extends PSequence {
         return super.hashCode();
     }
 
-    public Iterator iterator() {
-        return new Iterator() {
-
-            private int index = 0;
-            private final SequenceStorage iterStore = PList.this.store;
-
-            public boolean hasNext() {
-                return index < iterStore.length();
-            }
-
-            public Object next() {
-                return iterStore.getItemInBound(index++);
-            }
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-        };
-    }
 }

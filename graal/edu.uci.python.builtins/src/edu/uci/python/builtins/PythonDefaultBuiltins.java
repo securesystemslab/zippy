@@ -344,25 +344,31 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
             public Object iter(PSequence sequence, Object sentinel) {
                 return sequence.__iter__();
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
             public Object iter(PBaseSet set, Object sentinel) {
-                return new PBaseSetIterator(set);
+                return set.__iter__();
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
+            public Object iter(PDict dictionary, Object sentinel) {
+                return dictionary.__iter__();
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(guards = "noSentinel")
             public Object iter(Object object, Object sentinel) {
                 throw new RuntimeException("Not supported sentinel case");
             }
 
             @SuppressWarnings("unused")
-            public static boolean noSentinel(String object, Object sentinel) {
+            public static boolean noSentinel(Object object, Object sentinel) {
                 return (sentinel instanceof PNone);
             }
         }
@@ -456,8 +462,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
-                return null;
-                // return arg1.getMax();
+                return arg1.getMax();
             }
 
             @Specialization
@@ -597,23 +602,34 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // next(iterator[, default])
-// @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
-// public abstract static class PythonNextNode extends PythonBuiltinNode {
-//
-// public PythonNextNode(String name) {
-// super(name);
-// }
-//
-// public PythonNextNode(PythonNextNode prev) {
-// this(prev.getName());
-// }
-//
-// @SuppressWarnings("unused")
-// @Specialization
-// public int next(Object iterator) {
-// return 10;
-// }
-// }
+        @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
+        public abstract static class PythonNextNode extends PythonBuiltinNode {
+
+            public PythonNextNode(String name) {
+                super(name);
+            }
+
+            public PythonNextNode(PythonNextNode prev) {
+                this(prev.getName());
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object next(PIterator iterator, Object defaultObject) {
+                return iterator.__next__();
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object next(Object iterator, Object defaultObject) {
+                throw new RuntimeException("Unsupported iterator " + iterator);
+            }
+
+            @SuppressWarnings("unused")
+            public static boolean noDefault(Object object, Object defaultObject) {
+                return (defaultObject instanceof PNone);
+            }
+        }
 
         // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)

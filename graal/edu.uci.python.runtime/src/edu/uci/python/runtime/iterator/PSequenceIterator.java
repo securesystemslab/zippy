@@ -27,7 +27,7 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
-public class PSequenceIterator extends PIterator {
+public class PSequenceIterator implements PIterator {
 
     private final PSequence sequence;
     private int index;

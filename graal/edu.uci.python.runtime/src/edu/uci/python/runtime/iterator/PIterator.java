@@ -24,41 +24,8 @@
  */
 package edu.uci.python.runtime.iterator;
 
-import java.util.*;
+public interface PIterator {
 
-import edu.uci.python.runtime.exception.*;
+    Object __next__();
 
-//public abstract class PIterator implements Iterable<Object> {
-public abstract class PIterator {
-
-    public abstract Object __next__();
-
-    /**
-     * This is only to make Java level iteration convenient. It is slower than directly iterate on a
-     * PIterator. However, StopIterationException is encapsulated.
-     */
-// @Override
-// public Iterator<Object> iterator() {
-// return new Iterator<Object>() {
-//
-// private Object nextItem;
-//
-// public void remove() {
-// throw new UnsupportedOperationException();
-// }
-//
-// public boolean hasNext() {
-// try {
-// nextItem = __next__();
-// return true;
-// } catch (StopIterationException e) {
-// return false;
-// }
-// }
-//
-// public Object next() {
-// return nextItem;
-// }
-// };
-// }
 }

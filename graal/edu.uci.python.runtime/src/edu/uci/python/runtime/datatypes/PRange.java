@@ -105,7 +105,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PIterator __iter__() {
+    public PRangeIterator __iter__() {
         return new PRangeIterator(this);
     }
 
