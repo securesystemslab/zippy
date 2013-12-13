@@ -62,15 +62,19 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         }
     }
 
-    private static String getSubString(String origin, int start, int stop) {
-        char[] chars = new char[stop - start];
-        origin.getChars(start, stop, chars, 0);
-        return new String(chars);
+    @Specialization(order = 4)
+    public Object doPList(PList list, PSlice slice) {
+        return list.getSlice(slice);
     }
 
-    @Specialization(order = 4)
-    public Object doPSequence(PSequence primary, PSlice slice) {
-        return primary.getSlice(slice);
+    @Specialization(order = 5)
+    public Object doPTuple(PTuple tuple, PSlice slice) {
+        return tuple.getSlice(slice);
+    }
+
+    @Specialization(order = 6)
+    public Object doPRange(PRange range, PSlice slice) {
+        return range.getSlice(slice);
     }
 
     /**
@@ -85,6 +89,12 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
     @Generic
     public Object doGeneric(Object primary, Object slice) {
         throw new RuntimeException("Unsupported primary Type " + primary.getClass().getSimpleName());
+    }
+
+    private static String getSubString(String origin, int start, int stop) {
+        char[] chars = new char[stop - start];
+        origin.getChars(start, stop, chars, 0);
+        return new String(chars);
     }
 
     @Override
