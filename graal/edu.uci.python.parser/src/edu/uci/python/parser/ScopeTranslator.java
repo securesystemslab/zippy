@@ -248,7 +248,7 @@ public class ScopeTranslator extends Visitor {
         List<expr> args = new ArrayList<>();
         args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
-        environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
 
         // visit first iterator in the new scope
         if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {

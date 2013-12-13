@@ -30,7 +30,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.sequence.*;
 
 public class SetLiteralNode extends LiteralNode {
@@ -48,13 +47,13 @@ public class SetLiteralNode extends LiteralNode {
     @ExplodeLoop
     @Override
     public PSet executePSet(VirtualFrame frame) {
-        Set<Object> elements = new HashSet<Object>();
+        Set<Object> elements = new HashSet<>();
 
         for (PNode v : this.values) {
             elements.add(v.execute(frame));
         }
 
-        return PythonTypesUtil.createSet(elements);
+        return new PSet(elements);
     }
 
     @Override

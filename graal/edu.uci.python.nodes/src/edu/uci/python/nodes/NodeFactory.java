@@ -87,8 +87,8 @@ public class NodeFactory {
         return new FunctionRootNode(functionName, parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorDefinitionNode(functionName, parameters, body, returnValue);
+    public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new GeneratorFunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -274,15 +274,15 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public LoopNode createOuterGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
-        return new GeneratorForNode.OuterGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
     public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
         return new GeneratorForNode.InnerGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
+    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         // replace write local with write materialized frame
         for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
             write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
@@ -295,8 +295,8 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorExpressionRootNode createGenerator(LoopNode comprehension, PNode returnValue) {
-        return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+    public GeneratorRootNode createGeneratorRoot(ParametersNode params, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode("generator_exp", params, body, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -485,8 +485,6 @@ public class NodeFactory {
         return new ObjectLiteralNode(obj);
     }
 
-    // public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords,
-// PythonContext context) {
     public PNode createCallFunction(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         return new UninitializedCallFunctionNode(callee, arguments, keywords, context);
     }

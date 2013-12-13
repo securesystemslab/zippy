@@ -22,59 +22,66 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
 
-public class GeneratorExpressionDefinitionNode extends PNode {
+public class GeneratorBlockNode extends BlockNode {
 
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
+    protected int index;
 
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        this.callTarget = callTarget;
-        this.frameDescriptor = descriptor;
-        this.needsDeclarationFrame = needsDeclarationFrame;
+    public GeneratorBlockNode(PNode[] statements) {
+        super(statements);
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null);
-
-        /**
-         * TODO: It's a bad way to determine whether the generator should be evaluated immediately
-         * or not.
-         */
-        if (getParent() instanceof WriteNode) {
-            return generator;
-        } else {
-            return executeGenerator(generator);
-        }
-    }
-
-    /**
-     * This logic should belong to another node that wraps this definition node.
-     */
-    private static Object executeGenerator(PGenerator generator) {
-        PList list = new PList();
-
         try {
-            while (true) {
-                list.append(generator.__next__());
+            for (int i = 0; i < statements.length; i++) {
+                if (i < index) {
+                    continue;
+                }
+
+                statements[i].executeVoid(frame);
+                index++;
             }
         } catch (StopIterationException e) {
-            // fall through
+            index = 0;
+            throw e;
         }
 
-        return list;
+        index = 0;
+        return PNone.NONE;
     }
+
+    public static final class InnerGeneratorBlockNode extends GeneratorBlockNode {
+
+        public InnerGeneratorBlockNode(PNode[] statements) {
+            super(statements);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            for (int i = 0; i < statements.length; i++) {
+                if (i < index) {
+                    continue;
+                }
+
+                index++;
+                statements[i].executeVoid(frame);
+            }
+
+            index = 0;
+            return PNone.NONE;
+        }
+    }
+
 }

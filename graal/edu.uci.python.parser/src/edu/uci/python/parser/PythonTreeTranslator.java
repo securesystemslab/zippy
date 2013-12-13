@@ -43,6 +43,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.objects.*;
@@ -123,10 +124,26 @@ public class PythonTreeTranslator extends Visitor {
         ParametersNode parameters = visitArgs(node.getInternalArgs());
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
+        PNode funcDef;
 
-        FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        result.addParsedFunction(name, funcRoot);
-        PNode funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
+        if (environment.isInGeneratorScope()) {
+            /**
+             * Generator function
+             */
+            GeneratorRootNode gnode = factory.createGeneratorRoot(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+            FrameDescriptor fd = environment.getCurrentFrame();
+            CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
+            funcDef = factory.createGeneratorDef(name, parameters, ct, fd, environment.needsDeclarationFrame());
+            GeneratorTranslator.translate(gnode);
+        } else {
+            /**
+             * Ordinary function
+             */
+            FunctionRootNode funcRoot = factory.createFunctionRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+            result.addParsedFunction(name, funcRoot);
+            funcDef = wrapRootNodeInFunctionDefinitnion(name, funcRoot, parameters);
+        }
+
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }
@@ -489,7 +506,7 @@ public class PythonTreeTranslator extends Visitor {
                 }
                 current = factory.createInnerGeneratorForNode(target, getIterator, bodyNode);
             } else {
-                current = factory.createOuterGeneratorForNode(target, getIterator, current);
+                current = factory.createGeneratorForNode(target, getIterator, current);
             }
         }
 
@@ -499,9 +516,10 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
-        environment.beginScope(node, ScopeInfo.ScopeKind.GeneratorExpr);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
         LoopNode comprehension = (LoopNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
-        GeneratorExpressionRootNode gnode = factory.createGenerator(comprehension, factory.createReadLocalVariable(environment.getReturnSlot()));
+        StatementNode body = new GeneratorBlockNode(new PNode[]{comprehension, new StopIterationNode()});
+        GeneratorRootNode gnode = factory.createGeneratorRoot(ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(gnode, fd);
         boolean needsDeclarationFrame = environment.needsDeclarationFrame();
@@ -667,6 +685,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitYield(Yield node) throws Exception {
+        environment.setToGeneratorScope();
         PNode right = (PNode) visit(node.getInternalValue());
         return factory.createYield(right);
     }

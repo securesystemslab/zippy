@@ -24,57 +24,20 @@
  */
 package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
 
-public class GeneratorExpressionDefinitionNode extends PNode {
-
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
-
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        this.callTarget = callTarget;
-        this.frameDescriptor = descriptor;
-        this.needsDeclarationFrame = needsDeclarationFrame;
-    }
+/**
+ * The lastly executed node in a generator. <br>
+ * It throws the {@link StopIterationException} to terminate the execution of the generator.
+ */
+public class StopIterationNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null);
-
-        /**
-         * TODO: It's a bad way to determine whether the generator should be evaluated immediately
-         * or not.
-         */
-        if (getParent() instanceof WriteNode) {
-            return generator;
-        } else {
-            return executeGenerator(generator);
-        }
+        throw StopIterationException.INSTANCE;
     }
 
-    /**
-     * This logic should belong to another node that wraps this definition node.
-     */
-    private static Object executeGenerator(PGenerator generator) {
-        PList list = new PList();
-
-        try {
-            while (true) {
-                list.append(generator.__next__());
-            }
-        } catch (StopIterationException e) {
-            // fall through
-        }
-
-        return list;
-    }
 }

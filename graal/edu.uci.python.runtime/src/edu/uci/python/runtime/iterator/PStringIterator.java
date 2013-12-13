@@ -43,4 +43,5 @@ public class PStringIterator implements PIterator {
 
         throw StopIterationException.INSTANCE;
     }
+
 }

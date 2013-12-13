@@ -37,9 +37,9 @@ import edu.uci.python.runtime.iterator.*;
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected WriteLocalVariableNode target;
+    @Child protected FrameSlotNode target;
 
-    public ForWithLocalTargetNode(WriteLocalVariableNode target, PNode body) {
+    public ForWithLocalTargetNode(FrameSlotNode target, PNode body) {
         super(body);
         this.target = adoptChild(target);
     }
@@ -47,6 +47,16 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
     protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
         this(previous.target, previous.body);
     }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public PNode getTarget() {
+        return target;
+    }
+
+    public abstract PNode getIterator();
 
     @Specialization(order = 0)
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
@@ -57,7 +67,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             for (int i = start; i < stop; i += step) {
-                target.executeWith(frame, i);
+                target.executeWrite(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -79,7 +89,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             while (true) {
-                target.executeWith(frame, iterator.__next__());
+                target.executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -96,4 +106,5 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         return PNone.NONE;
     }
+
 }

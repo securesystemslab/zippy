@@ -34,15 +34,15 @@ public class ScopeInfo {
 
     public static enum ScopeKind {
         Module, Function, Class,
-        // generator expression
-        GeneratorExpr,
+        // generator expression or generator function
+        Generator,
         // list comprehension
         ListComp
     }
 
     private final String scopeId;
-    private final ScopeKind scopeKind;
     private final FrameDescriptor frameDescriptor;
+    private ScopeKind scopeKind;
     private final ScopeInfo parent;
     private boolean needsDeclaringScope;
 
@@ -72,6 +72,11 @@ public class ScopeInfo {
 
     public ScopeKind getScopeKind() {
         return scopeKind;
+    }
+
+    public void setAsGenerator() {
+        assert scopeKind == ScopeKind.Function;
+        scopeKind = ScopeKind.Generator;
     }
 
     public FrameDescriptor getFrameDescriptor() {

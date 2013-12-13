@@ -24,24 +24,23 @@
  */
 package edu.uci.python.nodes.function;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class GeneratorExpressionRootNode extends FunctionRootNode {
+public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
-    public GeneratorExpressionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public GeneratorFunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        super(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        try {
-            return body.execute(frame);
-        } catch (ExplicitYieldException eye) {
-            return eye.getValue();
-        }
+        parameters.evaluateDefaults(frame);
+        MaterializedFrame declarationFrame = needsDeclarationFrame() ? frame.materialize() : null;
+        return new PGeneratorFunction(getName(), parameters.getParameterNames(), getCallTarget(), getFrameDescriptor(), declarationFrame);
     }
+
 }

@@ -27,19 +27,10 @@ package edu.uci.python.nodes.access;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.Frame;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 
-/**
- * Followed the same logic from com.oracle.truffle.sl.nodes.FrameSlotNode.
- * 
- * @author zwei
- * 
- */
 public abstract class FrameSlotNode extends PNode {
 
     protected final FrameSlot frameSlot;
@@ -161,4 +152,10 @@ public abstract class FrameSlotNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + frameSlot + ")";
     }
+
+    /**
+     * To be Overridden by {@link WriteNode}s, {@link ReadNode}s should throw Unsupported Error.
+     */
+    public abstract Object executeWrite(VirtualFrame frame, Object value);
+
 }

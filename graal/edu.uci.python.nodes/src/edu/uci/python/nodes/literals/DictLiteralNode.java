@@ -31,13 +31,11 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class DictLiteralNode extends LiteralNode {
 
     @Children final PNode[] keys;
-
     @Children final PNode[] values;
 
     public DictLiteralNode(PNode[] keys, PNode[] values) {
@@ -69,7 +67,7 @@ public class DictLiteralNode extends LiteralNode {
             map.put(resolvedKeys.get(i), resolvedValues.get(i));
         }
 
-        return PythonTypesUtil.createDictionary(map);
+        return new PDict(map);
     }
 
     @Override

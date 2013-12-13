@@ -118,7 +118,6 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             return (initializer instanceof PNone);
         }
 
-        @SlowPath
         private static PArray makeEmptyArray(char type) {
             switch (type) {
                 case 'c':
@@ -132,7 +131,6 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             }
         }
 
-        @SlowPath
         private static PArray makeArray(char type, PSequence sequence) {
             SequenceStorage store;
             switch (type) {
@@ -146,7 +144,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                             try {
                                 intArray[i++] = PythonTypesGen.PYTHONTYPES.expectInteger(iter.__next__());
                             } catch (UnexpectedResultException e) {
-                                throw new RuntimeException("Unexpected argument type for array() ");
+                                operandTypeError();
                             }
                         }
                     } catch (StopIterationException e) {
@@ -161,7 +159,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                         try {
                             doubleArray[i] = PythonTypesGen.PYTHONTYPES.expectDouble(store.getItemInBound(i));
                         } catch (UnexpectedResultException e) {
-                            throw new RuntimeException("Unexpected argument type for array() ");
+                            operandTypeError();
                         }
                     }
 
@@ -174,6 +172,11 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
         @SlowPath
         private static void typeError(String typeCode, Object initializer) {
             throw Py.TypeError("unsupported operand type:" + typeCode.charAt(0) + " " + initializer + " and 'array.array'");
+        }
+
+        @SlowPath
+        private static void operandTypeError() {
+            throw new RuntimeException("Unexpected argument type for array() ");
         }
     }
 }

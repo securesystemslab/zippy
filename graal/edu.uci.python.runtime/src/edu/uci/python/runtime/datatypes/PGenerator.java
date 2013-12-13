@@ -38,7 +38,7 @@ public class PGenerator implements PIterator {
     private final FrameDescriptor frameDescriptor;
     private final PArguments arguments;
 
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
@@ -46,7 +46,7 @@ public class PGenerator implements PIterator {
          * Setting up persistent frame in {@link #arguments}.
          */
         MaterializedFrame generatorFrame = new DefaultVirtualFrame(frameDescriptor, null, PArguments.EMPTY_ARGUMENT).materialize();
-        this.arguments = new PArguments(declarationFrame, generatorFrame);
+        this.arguments = new PArguments(declarationFrame, generatorFrame, arguments);
     }
 
     public FrameDescriptor getFrameDescriptor() {

@@ -22,45 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.runtime.function;
 
+import java.util.*;
+
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
 
-public class GeneratorDefinitionNode extends FunctionRootNode {
+public final class PGeneratorFunction extends PFunction {
 
-    private VirtualFrame continuingFrame;
-
-    public GeneratorDefinitionNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        super(functionName, parameters, body, returnValue);
+    public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
     }
 
-    /**
-     * FIXME: this class is being rewritten (very rough).
-     */
     @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-        this.continuingFrame = frame;
-        return new PGenerator(null, null, null, null);
-
+    public Object call(PackedFrame caller, Object[] args) {
+        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args);
     }
 
-    public Object next() throws ImplicitReturnException {
-        StatementNode current = body;
-
-        while (current != null) {
-            try {
-                current.executeVoid(continuingFrame);
-            } catch (ExplicitYieldException eye) {
-                return eye.getValue();
-            }
-        }
-
-        throw new ImplicitReturnException();
+    @Override
+    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+        throw new UnsupportedOperationException();
     }
+
 }

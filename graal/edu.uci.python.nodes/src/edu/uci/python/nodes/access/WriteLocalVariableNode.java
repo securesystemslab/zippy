@@ -105,4 +105,5 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
         setObject(frame, right);
         return right;
     }
+
 }

@@ -29,10 +29,11 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 
-public abstract class GeneratorForNode extends LoopNode {
+public class GeneratorForNode extends LoopNode {
 
     @Child protected WriteMaterializedFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
@@ -45,58 +46,35 @@ public abstract class GeneratorForNode extends LoopNode {
         this.getIterator = adoptChild(getIterator);
     }
 
-    protected final void executeIterator(VirtualFrame frame) {
+    @Override
+    public Object execute(VirtualFrame frame) {
+        executeIterator(frame);
+
+        try {
+            while (true) {
+                body.executeVoid(frame);
+                target.executeWith(frame, iterator.__next__());
+            }
+        } catch (StopIterationException e) {
+            iterator = null;
+            throw e;
+        }
+    }
+
+    protected void executeIterator(VirtualFrame frame) {
         if (iterator != null) {
             return;
         }
 
         try {
-            this.iterator = getIterator.executePIterator(frame);
+            iterator = getIterator.executePIterator(frame);
+            target.executeWith(frame, iterator.__next__());
         } catch (UnexpectedResultException e) {
             throw new RuntimeException();
         }
     }
 
-    public static class OuterGeneratorForNode extends GeneratorForNode {
-
-        private boolean doNext = true;
-
-        public OuterGeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
-            super(target, getIterator, body);
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            executeIterator(frame);
-
-            try {
-                while (true) {
-                    doNext(frame);
-
-                    try {
-                        body.executeVoid(frame);
-                    } catch (StopIterationException e) {
-                        doNext = true;
-                    }
-                }
-            } catch (StopIterationException e) {
-                iterator = null;
-                throw e;
-            }
-        }
-
-        /**
-         * Do not advance the iterator unless the inner loop terminates.
-         */
-        private void doNext(VirtualFrame frame) {
-            if (doNext) {
-                target.executeWith(frame, iterator.__next__());
-                doNext = false;
-            }
-        }
-    }
-
-    public static class InnerGeneratorForNode extends GeneratorForNode {
+    public static final class InnerGeneratorForNode extends GeneratorForNode {
 
         public InnerGeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
             super(target, getIterator, body);
@@ -113,7 +91,21 @@ public abstract class GeneratorForNode extends LoopNode {
                 }
             } catch (StopIterationException e) {
                 iterator = null;
-                throw e;
+            }
+
+            return PNone.NONE;
+        }
+
+        @Override
+        protected void executeIterator(VirtualFrame frame) {
+            if (iterator != null) {
+                return;
+            }
+
+            try {
+                iterator = getIterator.executePIterator(frame);
+            } catch (UnexpectedResultException e) {
+                throw new RuntimeException();
             }
         }
     }

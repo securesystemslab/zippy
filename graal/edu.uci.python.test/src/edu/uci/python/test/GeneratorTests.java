@@ -22,37 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.sequence.*;
+import org.junit.*;
 
-public class ListComprehensionNode extends FrameSlotNode {
+public class GeneratorTests {
 
-    @Child protected PNode comprehension;
+    @Test
+    public void simpleLoop() {
+        String source = "def loopgen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "\n" + //
+                        "for i in loopgen(5):\n" + //
+                        "    print(i)\n";
 
-    public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
-        super(frameSlot);
-        this.comprehension = adoptChild(comprehension);
-    }
-
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.frameSlot, node.comprehension);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        setObject(frame, new PList());
-        comprehension.execute(frame);
-        return getObject(frame);
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
+        assertPrints("0\n1\n2\n3\n4\n", source);
     }
 
 }

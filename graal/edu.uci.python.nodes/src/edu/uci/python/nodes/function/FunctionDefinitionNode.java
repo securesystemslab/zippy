@@ -53,6 +53,18 @@ public class FunctionDefinitionNode extends PNode {
         return name;
     }
 
+    protected CallTarget getCallTarget() {
+        return callTarget;
+    }
+
+    protected FrameDescriptor getFrameDescriptor() {
+        return frameDescriptor;
+    }
+
+    protected boolean needsDeclarationFrame() {
+        return needsDeclarationFrame;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);

@@ -29,12 +29,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.exception.*;
 
-/**
- * Yield doesn't work yet.
- * 
- * @author zwei
- * 
- */
 public class YieldNode extends StatementNode {
 
     @Child protected PNode right;
