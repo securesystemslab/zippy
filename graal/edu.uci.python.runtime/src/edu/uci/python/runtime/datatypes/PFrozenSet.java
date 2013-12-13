@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.datatypes;
 
+import java.util.*;
+
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -59,5 +61,19 @@ public class PFrozenSet extends PBaseSet {
     @Override
     protected PBaseSet cloneThisSet() {
         return new PFrozenSet(this);
+    }
+
+    @Override
+    public Object getMax() {
+        Object[] copy = this.set.toArray();
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
+    public Object getMin() {
+        Object[] copy = this.set.toArray();
+        Arrays.sort(copy);
+        return copy[0];
     }
 }

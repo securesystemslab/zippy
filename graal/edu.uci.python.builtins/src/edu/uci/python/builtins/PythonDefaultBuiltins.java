@@ -476,8 +476,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         Object[] argsArray = new Object[args.length + 1];
                         argsArray[0] = arg1;
                         System.arraycopy(args, 0, argsArray, 1, args.length);
-                        Object min = getMax(argsArray);
-                        return min;
+                        Object max = getMax(argsArray);
+                        return max;
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
@@ -820,7 +820,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     if (arg instanceof PDict) {
                         // argument is a mapping type
                         return new PDict(((PDict) arg).getMap());
-                    } else if (arg instanceof PSequence) { // iterator type
+                    } else if (arg instanceof PSequence) {
+                        // iterator type
                         PIterator iter = ((PSequence) arg).__iter__();
                         Map<Object, Object> newMap = new HashMap<>();
 

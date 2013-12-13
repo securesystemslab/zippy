@@ -60,4 +60,8 @@ public abstract class PArray extends PSequence {
         throw new UnsupportedOperationException();
     }
 
+    public abstract PArray __add__(PArray tuple);
+
+    public abstract PArray __mul__(int value);
+
 }

@@ -29,7 +29,6 @@ import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PString extends PImmutableSequence {
 
@@ -81,11 +80,6 @@ public class PString extends PImmutableSequence {
     }
 
     @Override
-    public PSequence __add__(PSequence sequence) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public String toString() {
         return value;
     }
@@ -108,11 +102,6 @@ public class PString extends PImmutableSequence {
 
     @Override
     public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject __mul__(int multiplier) {
         throw new UnsupportedOperationException();
     }
 }
