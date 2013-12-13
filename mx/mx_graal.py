@@ -808,7 +808,7 @@ def _run_tests(args, harness, annotations, testfile):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations):
+def _unittest(args, annotations, prefixcp=""):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -830,9 +830,9 @@ def _unittest(args, annotations):
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile)
@@ -1348,9 +1348,17 @@ def sl(args):
 
 def trufflejar(args=None):
     """make truffle.jar"""
+    
+    # Test with the built classes
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
+    
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
-    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None)
+    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
+    
+    # Test with the JAR
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
+
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
@@ -1444,7 +1452,7 @@ def mx_post_parse_cmd_line(opts):  #
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
 
-def packagejar(classpath, outputFile, mainClass):
+def packagejar(classpath, outputFile, mainClass, annotationProcessor=None):
     prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
     print "creating", outputFile
     filecount, totalsize = 0, 0
@@ -1453,6 +1461,8 @@ def packagejar(classpath, outputFile, mainClass):
         if mainClass != None:
             manifest += "Main-Class: %s\n\n" % (mainClass)
         zf.writestr("META-INF/MANIFEST.MF", manifest)
+        if annotationProcessor != None:
+            zf.writestr("META-INF/services/javax.annotation.processing.Processor", annotationProcessor)
         for cp in classpath:
             print "+", cp
             if cp.endswith(".jar"):

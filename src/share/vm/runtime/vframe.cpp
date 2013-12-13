@@ -266,7 +266,7 @@ StackValueCollection* interpretedVFrame::locals() const {
 
   // Get oopmap describing oops and int for current bci
   InterpreterOopMap oop_mask;
-  if (TraceDeoptimization && Verbose) {
+  if ((TraceDeoptimization && Verbose) GRAAL_ONLY( || PrintDeoptimizationDetails)) {
     methodHandle m_h(thread(), method());
     OopMapCache::compute_one_oop_map(m_h, bci(), &oop_mask);
   } else {
@@ -333,7 +333,7 @@ StackValueCollection*  interpretedVFrame::expressions() const {
 
   InterpreterOopMap oop_mask;
   // Get oopmap describing oops and int for current bci
-  if (TraceDeoptimization && Verbose) {
+  if ((TraceDeoptimization && Verbose) GRAAL_ONLY( || PrintDeoptimizationDetails)) {
     methodHandle m_h(method());
     OopMapCache::compute_one_oop_map(m_h, bci(), &oop_mask);
   } else {
