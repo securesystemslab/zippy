@@ -68,19 +68,24 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 3)
+    public Object doPListObject(PList list, int idx) {
+        return list.getItem(idx);
+    }
+
+    @Specialization(order = 4)
     public Object doPTuple(PTuple tuple, int idx) {
         return tuple.getItem(idx);
     }
 
-    @Specialization(order = 4)
-    public Object doPSequence(PSequence primary, int idx) {
+    @Specialization(order = 5)
+    public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
 
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 5)
+    @Specialization(order = 6)
     public Object doPDict(PDict primary, Object key) {
         return primary.getItem(key);
     }

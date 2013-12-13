@@ -182,7 +182,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 7)
-        PList doPSequenceInt(PList left, int right) {
+        PList doPListInt(PList left, int right) {
             return left.__mul__(right);
         }
 
