@@ -124,6 +124,15 @@ public class PIntArray extends PArray {
     }
 
     @Override
+    public PArray __add__(PArray other) {
+        PIntArray otherArray = (PIntArray) other;
+        int[] joined = new int[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PIntArray(joined);
+    }
+
+    @Override
     public PArray __mul__(int value) {
         int[] newArray = new int[value * array.length];
         int count = 0;
@@ -145,15 +154,6 @@ public class PIntArray extends PArray {
         buf.append(array[array.length - 1]);
         buf.append(")");
         return buf.toString();
-    }
-
-    @Override
-    public PArray __add__(PArray other) {
-        PIntArray otherArray = (PIntArray) other;
-        int[] joined = new int[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PIntArray(joined);
     }
 
 }

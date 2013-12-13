@@ -176,10 +176,6 @@ public class PTuple extends PImmutableSequence {
         return copy[copy.length - 1];
     }
 
-    public PTuple __mul__(int value) {
-        throw new UnsupportedOperationException();
-    }
-
     public PTuple __add__(PTuple tuple) {
         Object[] newArray = new Object[len() + tuple.len()];
         Object[] rightArray = tuple.getArray();
@@ -187,6 +183,10 @@ public class PTuple extends PImmutableSequence {
         System.arraycopy(getArray(), 0, newArray, 0, len());
         System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
         return new PTuple(newArray);
+    }
+
+    public PTuple __mul__(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
