@@ -1452,7 +1452,7 @@ def mx_post_parse_cmd_line(opts):  #
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
 
-def packagejar(classpath, outputFile, mainClass, annotationProcessor=None):
+def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
     prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
     print "creating", outputFile
     filecount, totalsize = 0, 0
@@ -1483,5 +1483,5 @@ def packagejar(classpath, outputFile, mainClass, annotationProcessor=None):
             filecount += 1
             totalsize += zi.file_size
     print "%d files (total size: %.2f kB, jar size: %.2f kB)" % (filecount, totalsize / 1e3, os.path.getsize(outputFile) / 1e3)
-    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r', '-G', outputFile])
+    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r'] + (['-G'] if stripDebug else []) + [outputFile])
     print "repacked jar size: %.2f kB" % (os.path.getsize(outputFile) / 1e3)
