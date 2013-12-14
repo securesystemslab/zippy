@@ -33,7 +33,7 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
     int capacity;
 
     @Override
-    public int length() {
+    public final int length() {
         return length;
     }
 

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.loop;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -45,6 +46,23 @@ public abstract class ForNode extends LoopNode {
 
     protected ForNode(ForNode previous) {
         this(previous.target, previous.body);
+    }
+
+    @Specialization(order = 0)
+    public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+
+        final int start = iterator.getStart();
+        final int stop = iterator.getStop();
+        final int step = iterator.getStep();
+
+        for (int i = start; i < stop; i += step) {
+            rvn.setValue(i);
+            target.execute(frame);
+            body.executeVoid(frame);
+        }
+
+        return PNone.NONE;
     }
 
     @Specialization

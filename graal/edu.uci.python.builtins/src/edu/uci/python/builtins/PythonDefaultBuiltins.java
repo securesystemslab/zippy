@@ -1309,7 +1309,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PTuple(new PStringIterator(arg));
             }
 
-            @Specialization
+            @Specialization(order = 2)
+            public PTuple tuple(PRange range) {
+                return new PTuple(range.__iter__());
+            }
+
+            @Specialization(order = 3)
             public PTuple tuple(PSequence sequence) {
                 return new PTuple(sequence.__iter__());
             }

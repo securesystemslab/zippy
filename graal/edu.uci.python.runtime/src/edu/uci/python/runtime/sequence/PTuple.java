@@ -48,6 +48,23 @@ public class PTuple extends PImmutableSequence {
         }
     }
 
+    public PTuple(PRangeIterator iter) {
+        /**
+         * TODO Can be improved Currently creates a list, and then creates an array
+         */
+        List<Object> list = new ArrayList<>();
+
+        final int start = iter.getStart();
+        final int stop = iter.getStop();
+        final int step = iter.getStep();
+
+        for (int i = start; i < stop; i += step) {
+            list.add(i);
+        }
+
+        array = list.toArray();
+    }
+
     public PTuple(PIterator iter) {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
