@@ -20,7 +20,7 @@ def measure():
 	print("Final length ", length)
 
 	duration = "%.3f\n" % (time.time() - start)
-	print("builtin-len: " + duration)
+	print("builtin-len-tuple: " + duration)
 
 #warm up
 for run in range(10000):

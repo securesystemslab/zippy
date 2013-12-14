@@ -200,9 +200,10 @@ public abstract class CallAttributeNode extends PNode {
     }
 
     public static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PBuiltinFunction function) {
-        RootNode root = (RootNode) function.getFunctionRootNode().copy();
+        PBuiltinFunction copied = function.duplicate();
+        RootNode root = copied.getFunctionRootNode();
         redirectFirstArgumentToSelf(root);
-        return new PBuiltinMethod(primaryObj, PBuiltinFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root)));
+        return new PBuiltinMethod(primaryObj, copied);
     }
 
     private static void redirectFirstArgumentToSelf(RootNode root) {

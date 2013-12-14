@@ -35,7 +35,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
- * Python built-in immutable class.
+ * A Python built-in class that is immutable.
  * 
  * @author zwei
  * 

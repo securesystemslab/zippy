@@ -67,7 +67,7 @@ public class CallFunctionNoKeywordNode extends PNode {
             } else {
                 PBuiltinFunction function = (PBuiltinFunction) callable;
                 if (PythonOptions.InlineBuiltinFunctionCalls) {
-                    return new CallBuiltinFunctionNokeywordInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged, builtinsModuleUnchanged);
+                    return new CallBuiltinFunctionNokeywordInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
                 } else {
                     return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
                 }
