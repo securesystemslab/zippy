@@ -411,12 +411,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return array.len();
             }
 
-            @Specialization
+            @Specialization(order = 5)
             public int len(PBaseSet arg) {
                 return arg.len();
             }
 
-            @Specialization
+            @Specialization(order = 6)
             public int len(PDict arg) {
                 return arg.len();
             }
@@ -446,7 +446,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 }
 
-                throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+                String message = "object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()";
+                typeError(message);
+                return 0;
             }
         }
 
@@ -725,6 +727,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 // CheckStyle: resume system..print check
                 return null;
             }
+        }
+
+        @SlowPath
+        private static void typeError(String message) {
+            throw Py.TypeError(message);
         }
     }
 

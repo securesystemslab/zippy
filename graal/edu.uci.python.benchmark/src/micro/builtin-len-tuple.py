@@ -14,7 +14,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	ll = [x*2 for x in range(1000)]
+	ll = tuple(range(1000))
 	length = callLen(1000000000, ll) #1000000
 
 	print("Final length ", length)
@@ -24,6 +24,7 @@ def measure():
 
 #warm up
 for run in range(10000):
-	callLen(50000, [1,2,3,4,5])
+	callLen(50000, (1,2,3,4,5))
+
 
 measure()
