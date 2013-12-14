@@ -76,4 +76,10 @@ public class PFrozenSet extends PBaseSet {
         Arrays.sort(copy);
         return copy[0];
     }
+
+    @Override
+    public String toString() {
+        return "frozenset" + super.toString();
+    }
+
 }

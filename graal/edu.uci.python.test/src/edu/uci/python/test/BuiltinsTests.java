@@ -198,4 +198,15 @@ public class BuiltinsTests {
         String source = "for s in zip('ABC', '123'):\n" + "\tprint(s)\n";
         assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
     }
+
+    /**
+     * extracted from meteor3.py.
+     */
+    @Test
+    public void frozenSetFromRangeLen() {
+        String source = "board = [1,2,3,4,5]\n" + //
+                        "free = frozenset(range(len(board)))\n" + //
+                        "print(free)";
+        assertPrints("frozenset({0, 1, 2, 3, 4})\n", source);
+    }
 }

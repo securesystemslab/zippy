@@ -28,10 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
@@ -48,33 +45,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        PGenerator generator = new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null);
-
-        /**
-         * TODO: It's a bad way to determine whether the generator should be evaluated immediately
-         * or not.
-         */
-        if (getParent() instanceof WriteNode) {
-            return generator;
-        } else {
-            return executeGenerator(generator);
-        }
+        return new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null);
     }
 
-    /**
-     * This logic should belong to another node that wraps this definition node.
-     */
-    private static Object executeGenerator(PGenerator generator) {
-        PList list = new PList();
-
-        try {
-            while (true) {
-                list.append(generator.__next__());
-            }
-        } catch (StopIterationException e) {
-            // fall through
-        }
-
-        return list;
-    }
 }

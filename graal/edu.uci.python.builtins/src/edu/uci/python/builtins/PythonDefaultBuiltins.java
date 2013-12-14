@@ -269,14 +269,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return Character.toString((char) arg);
             }
 
-// @Specialization
-// public char charFromInt(int arg) {
-// if (arg < 0 || arg > 0x10FFFF) {
-// throw Py.ValueError("chr() arg not in range(0x110000)");
-// }
-// return (char) arg;
-// }
-
             @Specialization
             public char charFromInt(Object arg) {
                 if (arg instanceof Double) {
@@ -810,39 +802,54 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization
-            public PDict dictionary(Object[] args) {
-                if (args.length == 0) {
-                    return new PDict();
-                } else {
-                    Object arg = args[0];
+            protected static boolean emptyArgument(Object[] args) {
+                return args.length == 0;
+            }
 
-                    if (arg instanceof PDict) {
-                        // argument is a mapping type
-                        return new PDict(((PDict) arg).getMap());
-                    } else if (arg instanceof PSequence) {
-                        // iterator type
-                        PIterator iter = ((PSequence) arg).__iter__();
-                        Map<Object, Object> newMap = new HashMap<>();
+            protected static boolean oneArgument(Object[] args) {
+                return args.length == 1;
+            }
 
-                        try {
-                            while (true) {
-                                Object obj = iter.__next__();
-                                if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
-                                    newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
-                                } else {
-                                    throw new RuntimeException("invalid args for dict()");
-                                }
-                            }
-                        } catch (StopIterationException e) {
-                            // fall through
-                        }
+            protected static boolean firstArgIsDict(Object[] args) {
+                return args[0] instanceof PDict;
+            }
 
-                        return new PDict(newMap);
-                    } else {
-                        throw new RuntimeException("invalid args for dict()");
-                    }
-                }
+            protected static boolean firstArgIsIterable(Object[] args) {
+                return args[0] instanceof PIterable;
+            }
+
+            protected static boolean firstArgIsIterator(Object[] args) {
+                return args[0] instanceof PIterator;
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(order = 0, guards = "emptyArgument")
+            public PDict dictEmpty(Object[] args) {
+                return new PDict();
+            }
+
+            @Specialization(order = 1, guards = {"oneArgument", "firstArgIsDict"})
+            public PDict dictFromDict(Object[] args) {
+                return new PDict(((PDict) args[0]).getMap());
+            }
+
+            @Specialization(order = 2, guards = {"oneArgument", "firstArgIsIterable"})
+            public PDict dictFromIterable(Object[] args) {
+                PIterable iterable = (PIterable) args[0];
+                PIterator iter = iterable.__iter__();
+                return new PDict(iter);
+            }
+
+            @Specialization(order = 3, guards = {"oneArgument", "firstArgIsIterator"})
+            public PDict dictFromIterator(Object[] args) {
+                PIterator iter = (PIterator) args[0];
+                return new PDict(iter);
+            }
+
+            @SuppressWarnings("unused")
+            @Generic
+            public PDict dictionary(Object args) {
+                throw new RuntimeException("invalid args for dict()");
             }
         }
 
@@ -958,25 +965,46 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization
+            protected static boolean emptyArgument(Object arg) {
+                return arg.equals(PNone.NONE);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(order = 0, guards = "emptyArgument")
+            public PFrozenSet frozensetEmpty(Object arg) {
+                return new PFrozenSet();
+            }
+
+            @Specialization(order = 1)
             public PFrozenSet frozenset(String arg) {
                 return new PFrozenSet(new PStringIterator(arg));
             }
 
-            @Specialization
-            public PFrozenSet frozenset(PSequence sequence) {
-                return new PFrozenSet(sequence.__iter__());
-            }
-
-            @Specialization
+            @Specialization(order = 2)
             public PFrozenSet frozenset(PBaseSet baseSet) {
                 return new PFrozenSet(baseSet);
             }
 
-            @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(order = 3)
+            public PFrozenSet frozensetSequence(PSequence sequence) {
+                return new PFrozenSet(sequence.__iter__());
+            }
+
+            @Specialization(order = 4)
+            public PFrozenSet frozensetIterator(PIterator iterator) {
+                PFrozenSet set = new PFrozenSet(iterator);
+                return set;
+            }
+
+            @Generic
             public PFrozenSet frozenset(Object arg) {
-                return new PFrozenSet();
+                if (arg instanceof PSequence) {
+                    return frozensetSequence((PSequence) arg);
+                } else if (arg instanceof PIterator) {
+                    return frozensetIterator((PIterator) arg);
+                }
+
+                throw new UnsupportedOperationException();
             }
         }
 
