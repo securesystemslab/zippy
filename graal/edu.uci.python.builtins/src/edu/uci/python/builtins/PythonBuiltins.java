@@ -34,6 +34,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
+import com.oracle.truffle.api.dsl.NodeFactory;
 
 /**
  * @author Gulfem
@@ -41,66 +42,53 @@ import edu.uci.python.nodes.function.*;
 
 public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
-    protected abstract List<? extends com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
+    protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
 
     @SuppressWarnings("unchecked")
     @Override
     public void initialize(PythonContext context) {
 
-        List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>> factories = (List<com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode>>) getNodeFactories();
+        List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
+        assert factories != null : "No factories found. Override getFactories() to resolve this.";
 
-        if (factories == null) {
-            throw new IllegalArgumentException("No factories found. Override getFactories() to resolve this.");
-        }
-
-        for (com.oracle.truffle.api.dsl.NodeFactory<PythonBuiltinNode> factory : factories) {
+        for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
-            PNode[] argsKeywords = createArgumentsList(builtin);
-
-            PythonBuiltinNode builtinNode;
-
-            if (builtin.requiresContext()) {
-                builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
-            } else {
-                builtinNode = factory.createNode(builtin.name(), argsKeywords);
-            }
-
-            BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+            CallTarget callTarget = createBuiltinCallTarget(factory, builtin, createArgumentsList(builtin), context);
+            Arity arity = createArity(builtin);
 
             if (builtin.isClass()) {
-                Arity arity;
-
-                if (builtin.hasFixedNumOfArguments()) {
-                    arity = new Arity(builtin.name(), builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                    builtin.takesVariableArguments(), builtin.keywordNames());
-
-                } else {
-                    arity = new Arity(builtin.name(), builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                    builtin.takesVariableArguments(), builtin.keywordNames());
-                }
-
                 PythonBuiltinClass builtinClass;
                 builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity, callTarget);
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {
-                Arity arity;
                 PBuiltinFunction function;
-
-                if (builtin.hasFixedNumOfArguments()) {
-                    arity = new Arity(builtin.name(), builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                    builtin.takesVariableArguments(), builtin.keywordNames());
-
-                    function = new PBuiltinFunction(builtin.name(), arity, callTarget);
-                } else {
-                    arity = new Arity(builtin.name(), builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                                    builtin.takesVariableArguments(), builtin.keywordNames());
-                    function = new PBuiltinFunction(builtin.name(), arity, callTarget);
-                }
-
+                function = new PBuiltinFunction(builtin.name(), arity, callTarget);
                 setBuiltinFunction(builtin.name(), function);
             }
+        }
+    }
 
+    private static CallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, Builtin builtin, PNode[] argsKeywords, PythonContext context) {
+        PythonBuiltinNode builtinNode;
+
+        if (builtin.requiresContext()) {
+            builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
+        } else {
+            builtinNode = factory.createNode(builtin.name(), argsKeywords);
+        }
+
+        BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
+        return Truffle.getRuntime().createCallTarget(rootNode);
+    }
+
+    private static Arity createArity(Builtin builtin) {
+        if (builtin.hasFixedNumOfArguments()) {
+            return new Arity(builtin.name(), builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                            builtin.takesVariableArguments(), builtin.keywordNames());
+
+        } else {
+            return new Arity(builtin.name(), builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
+                            builtin.takesVariableArguments(), builtin.keywordNames());
         }
     }
 

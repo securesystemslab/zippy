@@ -62,9 +62,6 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     /**
      * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
      */
     public void setAttributeUnsafe(String name, Object value) {
         super.setAttribute(name, value);
