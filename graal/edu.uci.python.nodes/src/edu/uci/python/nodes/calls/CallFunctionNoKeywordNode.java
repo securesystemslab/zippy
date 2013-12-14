@@ -34,8 +34,8 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.objects.*;
 
 public class CallFunctionNoKeywordNode extends PNode {
 
@@ -48,30 +48,47 @@ public class CallFunctionNoKeywordNode extends PNode {
         this.arguments = adoptChildren(arguments);
     }
 
-    public static CallFunctionNoKeywordNode create(PNode calleeNode, PNode[] argumentNodes, PythonCallable callable, PythonContext context) {
-        if (callable instanceof PythonBasicObject) {
-            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
+    public static CallFunctionNoKeywordNode create(PNode callee, PNode[] argumentNodes, PythonCallable callable, PythonContext context) {
+        /**
+         * Any non global scope callable lookup is not optimized.
+         */
+        if (!(callee instanceof ReadGlobalScopeNode)) {
+            return new CallFunctionNoKeywordNode(callee, argumentNodes);
         }
 
-        if (calleeNode instanceof ReadGlobalScopeNode) {
-            Assumption globalScopeUnchanged = ((ReadGlobalScopeNode) calleeNode).getGlobaScope().getUnmodifiedAssumption();
-            Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
+        ReadGlobalScopeNode calleeNode = (ReadGlobalScopeNode) callee;
 
-            if (callable instanceof PFunction) {
-                PFunction function = (PFunction) callable;
-                if (PythonOptions.InlineFunctionCalls) {
-                    return new CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
-                } else {
-                    return new CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
-                }
-            } else {
-                PBuiltinFunction function = (PBuiltinFunction) callable;
-                if (PythonOptions.InlineBuiltinFunctionCalls) {
-                    return new CallBuiltinFunctionNokeywordInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
-                } else {
-                    return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
-                }
-            }
+        if (callable instanceof PythonBuiltinClass) {
+            /**
+             * Built-in class constructor
+             */
+            PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass) callable).getAttribute("__init__");
+            return createBuiltinCall(function, calleeNode, argumentNodes, context);
+        } else if (callable instanceof PFunction) {
+            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes);
+        } else if (callable instanceof PBuiltinFunction) {
+            return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+
+        if (PythonOptions.InlineFunctionCalls) {
+            return new CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+        } else {
+            return new CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+        }
+    }
+
+    private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+        Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
+
+        if (PythonOptions.InlineBuiltinFunctionCalls) {
+            return new CallBuiltinFunctionNokeywordInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         }

@@ -72,11 +72,17 @@ public class BuiltinsTests {
 
     @Test
     public void complexTest() {
-        String source = "x = complex(2, 3)\n" + "print(x)\n" +
+        String source = "x = complex(2, 3)\n" + //
+                        "print(x)\n" + //
 
-        "x = complex(3.4, 4.9)\n" + "print(x)\n" +
+                        "x = complex(3.4, 4.9)\n" + //
+                        "print(x)\n" + //
 
-        "x = complex(2)\n" + "print(x)\n" + "x = complex()\n" + "print(x)\n";
+                        "x = complex(2)\n" + //
+                        "print(x)\n" + //
+
+                        "x = complex()\n" + //
+                        "print(x)\n";
 
         assertPrints("(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n", source);
     }

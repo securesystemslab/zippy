@@ -754,30 +754,25 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization(guards = "hasRealAndImaginary")
-            public PComplex complexFromIntInt(int real, int imaginary) {
-                return new PComplex(real, imaginary);
-            }
-
-            @Specialization(guards = "hasRealAndImaginary")
             public PComplex complexFromDoubleDouble(double real, double imaginary) {
                 return new PComplex(real, imaginary);
             }
 
+            @SuppressWarnings("unused")
+            @Specialization
+            public PComplex complexFromDouble(double real, PNone image) {
+                return new PComplex(real, 0);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public PComplex complexFromNone(PNone real, PNone image) {
+                return new PComplex(0, 0);
+            }
+
             @Specialization
             public PComplex complexFromObjectObject(Object real, Object imaginary) {
-                if (real instanceof PNone) {
-                    return new PComplex(0, 0);
-                }
-
-                if (real instanceof Integer || real instanceof Double) {
-                    double realPart = (double) real;
-                    if (imaginary instanceof PNone) {
-                        return new PComplex(realPart, 0);
-                    } else if (imaginary instanceof Integer || imaginary instanceof Double) {
-                        double imagPart = (double) imaginary;
-                        return new PComplex(realPart, imagPart);
-                    }
-                } else if (real instanceof String) {
+                if (real instanceof String) {
                     if (!(imaginary instanceof PNone)) {
                         throw Py.TypeError("complex() can't take second arg if first is a string");
                     }

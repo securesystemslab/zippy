@@ -49,7 +49,7 @@ public class PythonObjectClass extends PythonBuiltinClass {
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        // arity.arityCheck(args.length, keywords.length, keywords);
         return new PythonObject(this);
     }
+
 }

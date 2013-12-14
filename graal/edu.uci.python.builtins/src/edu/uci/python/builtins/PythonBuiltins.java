@@ -47,7 +47,6 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
     @SuppressWarnings("unchecked")
     @Override
     public void initialize(PythonContext context) {
-
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
         assert factories != null : "No factories found. Override getFactories() to resolve this.";
 
@@ -55,14 +54,13 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
             CallTarget callTarget = createBuiltinCallTarget(factory, builtin, createArgumentsList(builtin), context);
             Arity arity = createArity(builtin);
+            PBuiltinFunction function = new PBuiltinFunction(builtin.name(), arity, callTarget);
 
             if (builtin.isClass()) {
-                PythonBuiltinClass builtinClass;
-                builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity, callTarget);
+                PythonBuiltinClass builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity, callTarget);
+                builtinClass.setAttributeUnsafe("__init__", function);
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {
-                PBuiltinFunction function;
-                function = new PBuiltinFunction(builtin.name(), arity, callTarget);
                 setBuiltinFunction(builtin.name(), function);
             }
         }
