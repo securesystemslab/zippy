@@ -53,11 +53,10 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
         for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
             CallTarget callTarget = createBuiltinCallTarget(factory, builtin, createArgumentsList(builtin), context);
-            Arity arity = createArity(builtin);
-            PBuiltinFunction function = new PBuiltinFunction(builtin.name(), arity, callTarget);
+            PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isClass()) {
-                PythonBuiltinClass builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name(), arity, callTarget);
+                PythonBuiltinClass builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
                 builtinClass.setAttributeUnsafe("__init__", function);
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {

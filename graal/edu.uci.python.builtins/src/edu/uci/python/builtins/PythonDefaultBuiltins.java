@@ -893,18 +893,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PEnumerate enumerate(Object arg, Object keywordArg) {
                 CompilerAsserts.neverPartOfCompilation();
                 if (keywordArg instanceof PNone) {
-                    if (arg instanceof String) {
-                        String str = (String) arg;
-                        PString pstr = new PString(str);
-                        return new PEnumerate(pstr);
-                    } else if (arg instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence);
-                    } else if (arg instanceof PBaseSet) {
-                        PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet);
-                    }
-
                     if (!(arg instanceof Iterable<?>)) {
                         throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                     } else {
@@ -997,14 +985,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return set;
             }
 
+            @SuppressWarnings("unused")
             @Generic
             public PFrozenSet frozenset(Object arg) {
-                if (arg instanceof PSequence) {
-                    return frozensetSequence((PSequence) arg);
-                } else if (arg instanceof PIterator) {
-                    return frozensetIterator((PIterator) arg);
-                }
-
                 throw new UnsupportedOperationException();
             }
         }
@@ -1104,24 +1087,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @Specialization
             public PList listObject(Object arg) {
                 CompilerAsserts.neverPartOfCompilation();
-                /**
-                 * This is not ideal!<br>
-                 * Truffle DSL does not support polymorphism for built-ins. It would be better if we
-                 * can rewrite the node by ourself.
-                 */
-                if (arg instanceof String) {
-                    return listString((String) arg);
-                } else if (arg instanceof PRange) {
-                    return listRange((PRange) arg);
-                } else if (arg instanceof PSequence) {
-                    return listSequence((PSequence) arg);
-                } else if (arg instanceof PBaseSet) {
-                    return listSet((PBaseSet) arg);
-                } else if (arg instanceof PEnumerate) {
-                    return listEnumerate((PEnumerate) arg);
-                } else if (arg instanceof PZip) {
-                    return listZip((PZip) arg);
-                }
 
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
@@ -1260,17 +1225,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(Object arg) {
-                if (arg instanceof String) {
-                    String str = (String) arg;
-                    return new PSet(new PStringIterator(str));
-                } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return new PSet(sequence.__iter__());
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PSet(baseSet);
-                }
-
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                 } else {
@@ -1332,17 +1286,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PTuple tuple(Object arg) {
-                if (arg instanceof String) {
-                    String str = (String) arg;
-                    return new PTuple(new PStringIterator(str));
-                } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return new PTuple(sequence.__iter__());
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PTuple(baseSet.__iter__());
-                }
-
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                 } else {
