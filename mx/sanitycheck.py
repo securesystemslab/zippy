@@ -124,6 +124,7 @@ pythonMicroBenchmarks = {
     'list-comp'     : '0',
     'list-indexing' : '0',
     'builtin-len'   : '0',
+    'builtin-len-tuple'   : '0',
 }
 
 pythonBenchmarks = {

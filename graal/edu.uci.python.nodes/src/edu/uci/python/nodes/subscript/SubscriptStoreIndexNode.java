@@ -56,21 +56,15 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     }
 
     @Specialization(order = 3)
-    public Object doPTuple(PTuple tuple, int index, Object value) {
-        tuple.setItem(index, value);
-        return PNone.NONE;
-    }
-
-    @Specialization(order = 4)
-    public Object doPSequence(PSequence primary, int index, Object value) {
-        primary.setItem(index, value);
+    public Object doPListObject(PList list, int index, Object value) {
+        list.setItem(index, value);
         return PNone.NONE;
     }
 
     /**
      * PDict key & value store.
      */
-    @Specialization(order = 5)
+    @Specialization(order = 6)
     public Object doPDict(PDict primary, Object key, Object value) {
         primary.setItem(key, value);
         return PNone.NONE;

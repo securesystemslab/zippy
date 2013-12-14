@@ -39,9 +39,9 @@ public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
     }
 
     @Specialization(order = 0)
-    public Object doPSequence(PSequence primary, PSlice slice, PSequence value) {
+    public Object doPList(PList primary, PSlice slice, PSequence value) {
         primary.setSlice(slice, value);
-        return null;
+        return PNone.NONE;
     }
 
     /**
@@ -50,6 +50,6 @@ public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
     @Specialization(order = 10)
     public Object doPArray(PArray primary, PSlice slice, PArray value) {
         primary.setSlice(slice, value);
-        return null;
+        return PNone.NONE;
     }
 }

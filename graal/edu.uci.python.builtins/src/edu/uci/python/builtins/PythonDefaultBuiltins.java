@@ -32,6 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -382,17 +383,32 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return arg.length();
             }
 
-            @Specialization
-            public int len(PSequence arg) {
-                return arg.len();
+            @Specialization(order = 1)
+            public int len(PList list) {
+                return list.len();
             }
 
-            @Specialization
+            @Specialization(order = 2)
+            public int len(PTuple tuple) {
+                return tuple.len();
+            }
+
+            @Specialization(order = 3)
+            public int len(PRange range) {
+                return range.len();
+            }
+
+            @Specialization(order = 4)
+            public int len(PArray array) {
+                return array.len();
+            }
+
+            @Specialization(order = 5)
             public int len(PBaseSet arg) {
                 return arg.len();
             }
 
-            @Specialization
+            @Specialization(order = 6)
             public int len(PDict arg) {
                 return arg.len();
             }
@@ -402,8 +418,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 if (arg instanceof String) {
                     String argument = (String) arg;
                     return argument.length();
-                } else if (arg instanceof PSequence) {
-                    PSequence argument = (PSequence) arg;
+                } else if (arg instanceof PList) {
+                    PList argument = (PList) arg;
+                    return argument.len();
+                } else if (arg instanceof PTuple) {
+                    PTuple argument = (PTuple) arg;
+                    return argument.len();
+                } else if (arg instanceof PRange) {
+                    PRange argument = (PRange) arg;
+                    return argument.len();
+                } else if (arg instanceof PArray) {
+                    PArray argument = (PArray) arg;
                     return argument.len();
                 } else if (arg instanceof PBaseSet) {
                     PBaseSet argument = (PBaseSet) arg;
@@ -413,9 +438,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return argument.len();
                 }
 
-                throw new RuntimeException();
-                // throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) +
-// "' has no len()");
+                String message = "object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()";
+                typeError(message);
+                return 0;
             }
         }
 
@@ -694,6 +719,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 // CheckStyle: resume system..print check
                 return null;
             }
+        }
+
+        @SlowPath
+        private static void typeError(String message) {
+            throw Py.TypeError(message);
         }
     }
 
@@ -1314,7 +1344,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return new PTuple(new PStringIterator(arg));
             }
 
-            @Specialization
+            @Specialization(order = 2)
+            public PTuple tuple(PRange range) {
+                return new PTuple(range.__iter__());
+            }
+
+            @Specialization(order = 3)
             public PTuple tuple(PSequence sequence) {
                 return new PTuple(sequence.__iter__());
             }
