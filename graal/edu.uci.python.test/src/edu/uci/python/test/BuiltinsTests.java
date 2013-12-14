@@ -149,13 +149,17 @@ public class BuiltinsTests {
 
     @Test
     public void lenTest() {
-        String source = "value = \"hello\"\n" + "print(len(value))\n" +
+        String source = "value = \"hello\"\n" + //
+                        "print(len(value))\n" + //
 
-        "value = (100, 200, 300)\n" + "print(len(value))\n" +
+                        "value = (100, 200, 300)\n" + //
+                        "print(len(value))\n" + //
 
-        "value = ['a', 'b', 'c', 'd']\n" + "print(len(value))\n" +
+                        "value = ['a', 'b', 'c', 'd']\n" + //
+                        "print(len(value))\n" + //
 
-        "value = {'id' : 17, 'name' : \"gulfem\"}\n" + "print(len(value))\n";
+                        "value = {'id' : 17, 'name' : \"gulfem\"}\n" + //
+                        "print(len(value))\n";
 
         assertPrints("5\n3\n4\n2\n", source);
     }

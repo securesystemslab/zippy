@@ -115,16 +115,17 @@ python2MicroBenchmarks = {
     'list-comp'     : '0',
     'list-indexing' : '0',
     #'builtin-len'   : '0',
+    'builtin-len-tuple' : '0',
 }
 
 pythonMicroBenchmarks = {
-    'arith-binop'   : '0',
-    'for-range'     : '0',
-    'function-call' : '0',
-    'list-comp'     : '0',
-    'list-indexing' : '0',
-    'builtin-len'   : '0',
-    'builtin-len-tuple'   : '0',
+    'arith-binop'       : '0',
+    'for-range'         : '0',
+    'function-call'     : '0',
+    'list-comp'         : '0',
+    'list-indexing'     : '0',
+    'builtin-len'       : '0',
+    'builtin-len-tuple' : '0',
 }
 
 pythonBenchmarks = {

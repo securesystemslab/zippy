@@ -413,33 +413,9 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return arg.len();
             }
 
-            @Specialization
+            @Generic
             public int len(Object arg) {
-                if (arg instanceof String) {
-                    String argument = (String) arg;
-                    return argument.length();
-                } else if (arg instanceof PList) {
-                    PList argument = (PList) arg;
-                    return argument.len();
-                } else if (arg instanceof PTuple) {
-                    PTuple argument = (PTuple) arg;
-                    return argument.len();
-                } else if (arg instanceof PRange) {
-                    PRange argument = (PRange) arg;
-                    return argument.len();
-                } else if (arg instanceof PArray) {
-                    PArray argument = (PArray) arg;
-                    return argument.len();
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet argument = (PBaseSet) arg;
-                    return argument.len();
-                } else if (arg instanceof PDict) {
-                    PDict argument = (PDict) arg;
-                    return argument.len();
-                }
-
-                String message = "object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()";
-                typeError(message);
+                Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
                 return 0;
             }
         }

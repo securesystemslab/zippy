@@ -78,6 +78,12 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     @Override
+    public Object execute(VirtualFrame frame) {
+        final PythonCallable callable = (PythonCallable) callee.execute(frame);
+        return executeCall(frame, callable);
+    }
+
+    @Override
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(execute(frame));
     }
@@ -90,12 +96,6 @@ public class CallFunctionNoKeywordNode extends PNode {
     public Object executeCall(VirtualFrame frame, PythonCallable callable) {
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         return callable.call(frame.pack(), args);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        final PythonCallable callable = (PythonCallable) callee.execute(frame);
-        return executeCall(frame, callable);
     }
 
     @SlowPath
@@ -234,6 +234,17 @@ public class CallFunctionNoKeywordNode extends PNode {
                 callCount++;
             }
             return super.execute(frame);
+        }
+
+        /**
+         * Invoke the copied built-in function instead of the original one. This way makes sure that
+         * every call site's bootstrapping does not depend on a previous call to the same built-in
+         * function.
+         */
+        @Override
+        public Object executeCall(VirtualFrame frame, PythonCallable callable) {
+            final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+            return function.call(frame.pack(), args);
         }
     }
 }
