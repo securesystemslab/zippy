@@ -37,8 +37,6 @@ import edu.uci.python.nodes.literals.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.InnerGeneratorLoopNodeFactory;
-import edu.uci.python.nodes.generator.GeneratorLoopNodeFactory.OuterGeneratorLoopNodeFactory;
 import edu.uci.python.nodes.objects.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.subscript.*;
@@ -89,8 +87,8 @@ public class NodeFactory {
         return new FunctionRootNode(functionName, parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new GeneratorDefinitionNode(functionName, parameters, body, returnValue);
+    public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new GeneratorFunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -171,7 +169,7 @@ public class NodeFactory {
         return new WhileNode(condition, body);
     }
 
-    public StatementNode createIf(CastToBooleanNode condition, BlockNode thenPart, BlockNode elsePart) {
+    public StatementNode createIf(CastToBooleanNode condition, PNode thenPart, PNode elsePart) {
         return new IfNode(condition, thenPart, elsePart);
     }
 
@@ -179,11 +177,11 @@ public class NodeFactory {
         return GetIteratorNodeFactory.create(collection);
     }
 
-    public LoopNode createFor(PNode target, GetIteratorNode iterator, StatementNode body) {
+    public LoopNode createFor(PNode target, GetIteratorNode iterator, PNode body) {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, StatementNode body) {
+    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, PNode body) {
         return ForWithLocalTargetNodeFactory.create(target, body, iterator);
     }
 
@@ -276,29 +274,20 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public PNode createOuterGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode innerLoop) {
-        return OuterGeneratorLoopNodeFactory.create(target, condition, innerLoop, iterator);
+    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createInnerGeneratorLoop(PNode target, PNode iterator, CastToBooleanNode condition, PNode loopBody) {
-        return InnerGeneratorLoopNodeFactory.create(target, condition, loopBody, iterator);
+    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
+        return new GeneratorForNode.InnerGeneratorForNode(WriteMaterializedFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, GeneratorExpressionRootNode generator, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        // replace write local with write materialized frame
-        for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(generator, WriteLocalVariableNode.class)) {
-            write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
-        }
-
-        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(generator, ReadLocalVariableNode.class)) {
-            read.replace(ReadMaterializedFrameVariableNodeFactory.create(read.getSlot()));
-        }
-
+    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorExpressionRootNode createGenerator(GeneratorLoopNode comprehension, PNode returnValue) {
-        return new GeneratorExpressionRootNode("generator_exp", ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
+    public GeneratorRootNode createGeneratorRoot(ParametersNode params, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode("generator_exp", params, body, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -487,8 +476,6 @@ public class NodeFactory {
         return new ObjectLiteralNode(obj);
     }
 
-    // public PNode createCallFunction(PNode callee, PNode[] arguments, PNode[] keywords,
-// PythonContext context) {
     public PNode createCallFunction(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         return new UninitializedCallFunctionNode(callee, arguments, keywords, context);
     }

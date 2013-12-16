@@ -50,8 +50,9 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         this.arity = null;
     }
 
-    public static PBuiltinFunction duplicate(PBuiltinFunction function, CallTarget newCallTarget) {
-        return new PBuiltinFunction(function.name, function.arity, newCallTarget);
+    public PBuiltinFunction duplicate() {
+        RootNode copiedRoot = (RootNode) getFunctionRootNode().copy();
+        return new PBuiltinFunction(name, arity, Truffle.getRuntime().createCallTarget(copiedRoot));
     }
 
     public RootNode getFunctionRootNode() {
@@ -61,15 +62,13 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        // arity.arityCheck(args.length, 0, null);
         return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         assert keywords != null && keywords.length > 0;
-        // arity.arityCheck(args.length, keywords.length, keywords);
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
+        return callTarget.call(caller, new PArguments(PNone.NONE, null, null, args, keywords));
     }
 
     @Override

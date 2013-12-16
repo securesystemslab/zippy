@@ -26,7 +26,6 @@ package edu.uci.python.nodes.subscript;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expressions.*;
@@ -44,9 +43,9 @@ public abstract class IndexNode extends UnaryOpNode {
         throw Py.TypeError("list indices must be integers, not float");
     }
 
-    @Generic
-    public Object doGeneric(Object index) {
-        return index;
+    @Specialization
+    public String doString(String key) {
+        return key;
     }
 
 }

@@ -22,19 +22,60 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.generator;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import java.nio.file.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.datatypes.*;
 
-import org.junit.*;
+public class GeneratorBlockNode extends BlockNode {
 
-public class DictComprehensionTests {
-    @Test
-    public void simple() {
-        Path script = Paths.get("dictcomp_test.py");
-        assertPrints("{a : 123, b : 49324324242949949} {}\n", script);
+    protected int index;
+
+    public GeneratorBlockNode(PNode[] statements) {
+        super(statements);
+    }
+
+    @ExplodeLoop
+    @Override
+    public Object execute(VirtualFrame frame) {
+        for (int i = 0; i < statements.length; i++) {
+            if (i < index) {
+                continue;
+            }
+
+            statements[i].executeVoid(frame);
+            index++;
+        }
+
+        index = 0;
+        return PNone.NONE;
+    }
+
+    public static final class InnerGeneratorBlockNode extends GeneratorBlockNode {
+
+        public InnerGeneratorBlockNode(PNode[] statements) {
+            super(statements);
+        }
+
+        @ExplodeLoop
+        @Override
+        public Object execute(VirtualFrame frame) {
+            for (int i = 0; i < statements.length; i++) {
+                if (i < index) {
+                    continue;
+                }
+
+                index++;
+                statements[i].executeVoid(frame);
+            }
+
+            index = 0;
+            return PNone.NONE;
+        }
     }
 
 }

@@ -166,6 +166,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPIterator(execute(frame));
     }
 
+    public PNone executePNone(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPNone(execute(frame));
+    }
+
     public PythonBuiltinObject executePythonBuiltinObject(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPythonBuiltinObject(execute(frame));
     }

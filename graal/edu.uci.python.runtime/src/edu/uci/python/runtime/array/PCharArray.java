@@ -24,16 +24,11 @@
  */
 package edu.uci.python.runtime.array;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-//public class PCharArray extends PArray implements Iterable<Character> {
 public class PCharArray extends PArray {
 
     private final char[] array;
@@ -134,7 +129,16 @@ public class PCharArray extends PArray {
     }
 
     @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PArray __add__(PArray other) {
+        PCharArray otherArray = (PCharArray) other;
+        char[] joined = new char[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PCharArray(joined);
+    }
+
+    @Override
+    public PArray __mul__(int value) {
         char[] newArray = new char[value * array.length];
         int count = 0;
         for (int i = 0; i < value; i++) {
@@ -155,42 +159,5 @@ public class PCharArray extends PArray {
         buf.append(array[array.length - 1]);
         buf.append(")");
         return buf.toString();
-    }
-
-    @Override
-    public PArray __add__(PSequence other) {
-        PCharArray otherArray = (PCharArray) other;
-        char[] joined = new char[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PCharArray(joined);
-    }
-
-    private List<Character> getList() {
-        List<Character> list = new ArrayList<>();
-        for (int i = 0; i < array.length; i++) {
-            list.add(array[i]);
-        }
-        return list;
-    }
-
-    @Override
-    public Iterator<Character> iterator() {
-        return new Iterator<Character>() {
-
-            private final Iterator<Character> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Character next() {
-                return iter.next();
-            }
-        };
     }
 }

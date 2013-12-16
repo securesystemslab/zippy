@@ -37,7 +37,6 @@ import com.oracle.truffle.api.dsl.Generic;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
@@ -92,7 +91,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 9)
         PArray doPArray(PArray left, PArray right) {
-            return ((PArray) (left.__add__(right)));
+            return left.__add__(right);
         }
 
         // TODO: type info for operands in type error message.
@@ -178,12 +177,32 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 6)
-        PythonBuiltinObject doIntPSequence(int left, PSequence right) {
+        PList doIntPList(int left, PList right) {
             return right.__mul__(left);
         }
 
         @Specialization(order = 7)
-        PythonBuiltinObject doPSequenceInt(PSequence left, int right) {
+        PList doPListInt(PList left, int right) {
+            return left.__mul__(right);
+        }
+
+        @Specialization(order = 8)
+        PTuple doIntPTuple(int left, PTuple right) {
+            return right.__mul__(left);
+        }
+
+        @Specialization(order = 9)
+        PTuple doPTupleInt(PTuple left, int right) {
+            return left.__mul__(right);
+        }
+
+        @Specialization(order = 10)
+        PArray doIntPArray(int left, PArray right) {
+            return right.__mul__(left);
+        }
+
+        @Specialization(order = 11)
+        PArray doPArrayInt(PArray left, int right) {
             return left.__mul__(right);
         }
 

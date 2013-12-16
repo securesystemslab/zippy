@@ -105,7 +105,7 @@ pythonTestBenchmarks = {
     'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
-    #'richards3'     : '5',
+    'richards3'     : '5',
 }
 
 python2MicroBenchmarks = {
@@ -115,15 +115,17 @@ python2MicroBenchmarks = {
     'list-comp'     : '0',
     'list-indexing' : '0',
     #'builtin-len'   : '0',
+    #'builtin-len-tuple' : '0',
 }
 
 pythonMicroBenchmarks = {
-    'arith-binop'   : '0',
-    'for-range'     : '0',
-    'function-call' : '0',
-    'list-comp'     : '0',
-    'list-indexing' : '0',
-    'builtin-len'   : '0',
+    'arith-binop'       : '0',
+    'for-range'         : '0',
+    'function-call'     : '0',
+    'list-comp'         : '0',
+    'list-indexing'     : '0 -NoInlineBuiltinFunctionCalls',
+    'builtin-len'       : '0',
+    'builtin-len-tuple' : '0',
 }
 
 pythonBenchmarks = {

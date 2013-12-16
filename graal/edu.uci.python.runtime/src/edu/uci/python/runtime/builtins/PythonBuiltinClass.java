@@ -26,33 +26,22 @@ package edu.uci.python.runtime.builtins;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
- * Python built-in immutable class.
+ * A Python built-in class that is immutable.
  * 
  * @author zwei
  * 
  */
 public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
-    protected Arity arity;
-    protected CallTarget callTarget;
-
     public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
         super(context, superClass, name);
-    }
-
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name, Arity arity, CallTarget callTarget) {
-        super(context, superClass, name);
-        this.arity = arity;
-        this.callTarget = callTarget;
     }
 
     @Override
@@ -62,9 +51,6 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     /**
      * Modify attributes in an unsafe way, should only use when initializing.
-     * 
-     * @param name
-     * @param value
      */
     public void setAttributeUnsafe(String name, Object value) {
         super.setAttribute(name, value);
@@ -72,16 +58,19 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args));
+        PythonCallable init = (PythonCallable) getAttribute("__init__");
+        return init.call(caller, args);
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, null, args, keywords));
+        PythonCallable init = (PythonCallable) getAttribute("__init__");
+        return init.call(caller, args, keywords);
     }
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         // arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
+
 }

@@ -100,16 +100,24 @@ public class TranslationEnvironment {
         return currentScope.getScopeKind();
     }
 
+    public void setToGeneratorScope() {
+        currentScope.setAsGenerator();
+    }
+
     public boolean isInModuleScope() {
         return getScopeKind() == ScopeInfo.ScopeKind.Module;
     }
 
     public boolean isInFunctionScope() {
-        return getScopeKind() == ScopeInfo.ScopeKind.Function;
+        return getScopeKind() == ScopeInfo.ScopeKind.Function || getScopeKind() == ScopeInfo.ScopeKind.Generator;
     }
 
     public boolean isInClassScope() {
         return getScopeKind() == ScopeInfo.ScopeKind.Class;
+    }
+
+    public boolean isInGeneratorScope() {
+        return getScopeKind() == ScopeInfo.ScopeKind.Generator;
     }
 
     public FrameDescriptor getCurrentFrame() {
@@ -141,7 +149,7 @@ public class TranslationEnvironment {
         switch (getScopeKind()) {
             case Module:
                 return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule("__main__"), name);
-            case GeneratorExpr:
+            case Generator:
             case ListComp:
             case Function:
                 if (slot != null) {

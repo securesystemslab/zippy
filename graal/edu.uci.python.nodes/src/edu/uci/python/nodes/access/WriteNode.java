@@ -35,4 +35,5 @@ public interface WriteNode {
     PNode getRhs();
 
     Object executeWrite(VirtualFrame frame, Object value);
+
 }

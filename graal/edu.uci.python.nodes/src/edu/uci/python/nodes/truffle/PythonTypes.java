@@ -43,8 +43,8 @@ import edu.uci.python.runtime.standardtypes.*;
 @TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
 
 PyObject.class, PString.class, PythonClass.class, PDict.class, PList.class, PTuple.class, PRange.class, PIntArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSequence.class,
-                PSet.class, PFrozenSet.class, PBaseSet.class, PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PIterator.class, PythonModule.class, PythonBuiltinObject.class,
-                PythonObject.class, PythonBasicObject.class, PythonCallable.class, Object[].class})
+                PSet.class, PFrozenSet.class, PBaseSet.class, PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PIterator.class, PythonModule.class, PNone.class,
+                PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, Object[].class})
 public class PythonTypes {
 
     /**

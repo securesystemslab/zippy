@@ -32,6 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -108,12 +109,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -125,12 +131,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (!JavaTypeConversions.toBoolean(element)) {
-                        return false;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (!JavaTypeConversions.toBoolean(element)) {
+                            return false;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return true;
@@ -165,12 +176,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator iterator = sequence.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = sequence.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -182,12 +198,17 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                     return false;
                 }
 
-                Iterator<Object> iterator = baseset.iterator();
-                while (iterator.hasNext()) {
-                    Object element = iterator.next();
-                    if (JavaTypeConversions.toBoolean(element)) {
-                        return true;
+                PIterator iterator = baseset.__iter__();
+
+                try {
+                    while (true) {
+                        Object element = iterator.__next__();
+                        if (JavaTypeConversions.toBoolean(element)) {
+                            return true;
+                        }
                     }
+                } catch (StopIterationException e) {
+                    // fall through
                 }
 
                 return false;
@@ -248,14 +269,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public String charFromInt(int arg) {
                 return Character.toString((char) arg);
             }
-
-// @Specialization
-// public char charFromInt(int arg) {
-// if (arg < 0 || arg > 0x10FFFF) {
-// throw Py.ValueError("chr() arg not in range(0x110000)");
-// }
-// return (char) arg;
-// }
 
             @Specialization
             public char charFromInt(Object arg) {
@@ -324,25 +337,31 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
             public Object iter(PSequence sequence, Object sentinel) {
                 return sequence.__iter__();
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
             public Object iter(PBaseSet set, Object sentinel) {
-                return new PBaseSetIterator(set);
+                return set.__iter__();
             }
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(guards = "noSentinel")
+            public Object iter(PDict dictionary, Object sentinel) {
+                return dictionary.__iter__();
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(guards = "noSentinel")
             public Object iter(Object object, Object sentinel) {
                 throw new RuntimeException("Not supported sentinel case");
             }
 
             @SuppressWarnings("unused")
-            public static boolean noSentinel(String object, Object sentinel) {
+            public static boolean noSentinel(Object object, Object sentinel) {
                 return (sentinel instanceof PNone);
             }
         }
@@ -364,40 +383,40 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return arg.length();
             }
 
-            @Specialization
-            public int len(PSequence arg) {
-                return arg.len();
+            @Specialization(order = 1)
+            public int len(PList list) {
+                return list.len();
             }
 
-            @Specialization
+            @Specialization(order = 2)
+            public int len(PTuple tuple) {
+                return tuple.len();
+            }
+
+            @Specialization(order = 3)
+            public int len(PRange range) {
+                return range.len();
+            }
+
+            @Specialization(order = 4)
+            public int len(PArray array) {
+                return array.len();
+            }
+
+            @Specialization(order = 5)
             public int len(PBaseSet arg) {
                 return arg.len();
             }
 
-            @Specialization
+            @Specialization(order = 6)
             public int len(PDict arg) {
                 return arg.len();
             }
 
-            @Specialization
+            @Generic
             public int len(Object arg) {
-                if (arg instanceof String) {
-                    String argument = (String) arg;
-                    return argument.length();
-                } else if (arg instanceof PSequence) {
-                    PSequence argument = (PSequence) arg;
-                    return argument.len();
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet argument = (PBaseSet) arg;
-                    return argument.len();
-                } else if (arg instanceof PDict) {
-                    PDict argument = (PDict) arg;
-                    return argument.len();
-                }
-
-                throw new RuntimeException();
-                // throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) +
-// "' has no len()");
+                Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
+                return 0;
             }
         }
 
@@ -436,8 +455,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
-                return null;
-                // return arg1.getMax();
+                return arg1.getMax();
             }
 
             @Specialization
@@ -451,9 +469,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         Object[] argsArray = new Object[args.length + 1];
                         argsArray[0] = arg1;
                         System.arraycopy(args, 0, argsArray, 1, args.length);
-                        Object min = getMax(argsArray);
-                        return min;
-
+                        Object max = getMax(argsArray);
+                        return max;
                     }
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
@@ -578,23 +595,34 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
 
         // next(iterator[, default])
-// @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
-// public abstract static class PythonNextNode extends PythonBuiltinNode {
-//
-// public PythonNextNode(String name) {
-// super(name);
-// }
-//
-// public PythonNextNode(PythonNextNode prev) {
-// this(prev.getName());
-// }
-//
-// @SuppressWarnings("unused")
-// @Specialization
-// public int next(Object iterator) {
-// return 10;
-// }
-// }
+        @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
+        public abstract static class PythonNextNode extends PythonBuiltinNode {
+
+            public PythonNextNode(String name) {
+                super(name);
+            }
+
+            public PythonNextNode(PythonNextNode prev) {
+                this(prev.getName());
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object next(PIterator iterator, Object defaultObject) {
+                return iterator.__next__();
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public Object next(Object iterator, Object defaultObject) {
+                throw new RuntimeException("Unsupported iterator " + iterator);
+            }
+
+            @SuppressWarnings("unused")
+            public static boolean noDefault(Object object, Object defaultObject) {
+                return (defaultObject instanceof PNone);
+            }
+        }
 
         // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
@@ -668,6 +696,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 return null;
             }
         }
+
+        @SlowPath
+        private static void typeError(String message) {
+            throw Py.TypeError(message);
+        }
     }
 
     public static class PythonBuiltinClasses {
@@ -721,30 +754,25 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization(guards = "hasRealAndImaginary")
-            public PComplex complexFromIntInt(int real, int imaginary) {
-                return new PComplex(real, imaginary);
-            }
-
-            @Specialization(guards = "hasRealAndImaginary")
             public PComplex complexFromDoubleDouble(double real, double imaginary) {
                 return new PComplex(real, imaginary);
             }
 
+            @SuppressWarnings("unused")
+            @Specialization
+            public PComplex complexFromDouble(double real, PNone image) {
+                return new PComplex(real, 0);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization
+            public PComplex complexFromNone(PNone real, PNone image) {
+                return new PComplex(0, 0);
+            }
+
             @Specialization
             public PComplex complexFromObjectObject(Object real, Object imaginary) {
-                if (real instanceof PNone) {
-                    return new PComplex(0, 0);
-                }
-
-                if (real instanceof Integer || real instanceof Double) {
-                    double realPart = (double) real;
-                    if (imaginary instanceof PNone) {
-                        return new PComplex(realPart, 0);
-                    } else if (imaginary instanceof Integer || imaginary instanceof Double) {
-                        double imagPart = (double) imaginary;
-                        return new PComplex(realPart, imagPart);
-                    }
-                } else if (real instanceof String) {
+                if (real instanceof String) {
                     if (!(imaginary instanceof PNone)) {
                         throw Py.TypeError("complex() can't take second arg if first is a string");
                     }
@@ -775,35 +803,54 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization
-            public PDict dictionary(Object[] args) {
-                if (args.length == 0) {
-                    return new PDict();
-                } else {
-                    Object arg = args[0];
+            protected static boolean emptyArgument(Object[] args) {
+                return args.length == 0;
+            }
 
-                    if (arg instanceof PDict) {
-                        // argument is a mapping type
-                        return new PDict(((PDict) arg).getMap());
-                    } else if (arg instanceof PSequence) { // iterator type
-                        Iterator<?> iter = ((PSequence) arg).iterator();
-                        Map<Object, Object> newMap = new HashMap<>();
+            protected static boolean oneArgument(Object[] args) {
+                return args.length == 1;
+            }
 
-                        while (iter.hasNext()) {
-                            Object obj = iter.next();
+            protected static boolean firstArgIsDict(Object[] args) {
+                return args[0] instanceof PDict;
+            }
 
-                            if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
-                                newMap.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
-                            } else {
-                                throw new RuntimeException("invalid args for dict()");
-                            }
-                        }
+            protected static boolean firstArgIsIterable(Object[] args) {
+                return args[0] instanceof PIterable;
+            }
 
-                        return new PDict(newMap);
-                    } else {
-                        throw new RuntimeException("invalid args for dict()");
-                    }
-                }
+            protected static boolean firstArgIsIterator(Object[] args) {
+                return args[0] instanceof PIterator;
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(order = 0, guards = "emptyArgument")
+            public PDict dictEmpty(Object[] args) {
+                return new PDict();
+            }
+
+            @Specialization(order = 1, guards = {"oneArgument", "firstArgIsDict"})
+            public PDict dictFromDict(Object[] args) {
+                return new PDict(((PDict) args[0]).getMap());
+            }
+
+            @Specialization(order = 2, guards = {"oneArgument", "firstArgIsIterable"})
+            public PDict dictFromIterable(Object[] args) {
+                PIterable iterable = (PIterable) args[0];
+                PIterator iter = iterable.__iter__();
+                return new PDict(iter);
+            }
+
+            @Specialization(order = 3, guards = {"oneArgument", "firstArgIsIterator"})
+            public PDict dictFromIterator(Object[] args) {
+                PIterator iter = (PIterator) args[0];
+                return new PDict(iter);
+            }
+
+            @SuppressWarnings("unused")
+            @Generic
+            public PDict dictionary(Object args) {
+                throw new RuntimeException("invalid args for dict()");
             }
         }
 
@@ -846,18 +893,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             public PEnumerate enumerate(Object arg, Object keywordArg) {
                 CompilerAsserts.neverPartOfCompilation();
                 if (keywordArg instanceof PNone) {
-                    if (arg instanceof String) {
-                        String str = (String) arg;
-                        PString pstr = new PString(str);
-                        return new PEnumerate(pstr);
-                    } else if (arg instanceof PSequence) {
-                        PSequence sequence = (PSequence) arg;
-                        return new PEnumerate(sequence);
-                    } else if (arg instanceof PBaseSet) {
-                        PBaseSet baseSet = (PBaseSet) arg;
-                        return new PEnumerate(baseSet);
-                    }
-
                     if (!(arg instanceof Iterable<?>)) {
                         throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                     } else {
@@ -919,26 +954,41 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 this(prev.getName());
             }
 
-            @Specialization
+            protected static boolean emptyArgument(Object arg) {
+                return arg.equals(PNone.NONE);
+            }
+
+            @SuppressWarnings("unused")
+            @Specialization(order = 0, guards = "emptyArgument")
+            public PFrozenSet frozensetEmpty(Object arg) {
+                return new PFrozenSet();
+            }
+
+            @Specialization(order = 1)
             public PFrozenSet frozenset(String arg) {
-                return null;
-                // return new PFrozenSet(stringToCharList(arg));
+                return new PFrozenSet(new PStringIterator(arg));
             }
 
-            @Specialization
-            public PFrozenSet frozenset(PSequence sequence) {
-                return new PFrozenSet(sequence.__iter__());
-            }
-
-            @Specialization
+            @Specialization(order = 2)
             public PFrozenSet frozenset(PBaseSet baseSet) {
                 return new PFrozenSet(baseSet);
             }
 
+            @Specialization(order = 3)
+            public PFrozenSet frozensetSequence(PSequence sequence) {
+                return new PFrozenSet(sequence.__iter__());
+            }
+
+            @Specialization(order = 4)
+            public PFrozenSet frozensetIterator(PIterator iterator) {
+                PFrozenSet set = new PFrozenSet(iterator);
+                return set;
+            }
+
             @SuppressWarnings("unused")
-            @Specialization
+            @Generic
             public PFrozenSet frozenset(Object arg) {
-                return new PFrozenSet();
+                throw new UnsupportedOperationException();
             }
         }
 
@@ -1037,24 +1087,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @Specialization
             public PList listObject(Object arg) {
                 CompilerAsserts.neverPartOfCompilation();
-                /**
-                 * This is not ideal!<br>
-                 * Truffle DSL does not support polymorphism for built-ins. It would be better if we
-                 * can rewrite the node by ourself.
-                 */
-                if (arg instanceof String) {
-                    return listString((String) arg);
-                } else if (arg instanceof PRange) {
-                    return listRange((PRange) arg);
-                } else if (arg instanceof PSequence) {
-                    return listSequence((PSequence) arg);
-                } else if (arg instanceof PBaseSet) {
-                    return listSet((PBaseSet) arg);
-                } else if (arg instanceof PEnumerate) {
-                    return listEnumerate((PEnumerate) arg);
-                } else if (arg instanceof PZip) {
-                    return listZip((PZip) arg);
-                }
 
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
@@ -1178,14 +1210,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(String arg) {
-                return null;
-                // return new PSet(stringToCharList(arg));
+                return new PSet(new PStringIterator(arg));
             }
 
             @Specialization
             public PSet set(PSequence sequence) {
                 return new PSet(sequence.__iter__());
-                // return new PSet(sequence.__iter__());
             }
 
             @Specialization
@@ -1195,19 +1225,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PSet set(Object arg) {
-                if (arg instanceof String) {
-                    String str = (String) arg;
-                    return null;
-                    // return new PSet(stringToCharList(str));
-                } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    // return new PSet(sequence);
-                    return new PSet(sequence.__iter__());
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PSet(baseSet);
-                }
-
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                 } else {
@@ -1249,32 +1266,26 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public PTuple tuple(String arg) {
-                return new PTuple(stringToCharList(arg));
+                return new PTuple(new PStringIterator(arg));
             }
 
-            @Specialization
+            @Specialization(order = 2)
+            public PTuple tuple(PRange range) {
+                return new PTuple(range.__iter__());
+            }
+
+            @Specialization(order = 3)
             public PTuple tuple(PSequence sequence) {
-                return new PTuple(sequence);
+                return new PTuple(sequence.__iter__());
             }
 
             @Specialization
             public PTuple tuple(PBaseSet baseSet) {
-                return new PTuple(baseSet);
+                return new PTuple(baseSet.__iter__());
             }
 
             @Specialization
             public PTuple tuple(Object arg) {
-                if (arg instanceof String) {
-                    String str = (String) arg;
-                    return new PTuple(stringToCharList(str));
-                } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return new PTuple(sequence);
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return new PTuple(baseSet);
-                }
-
                 if (!(arg instanceof Iterable<?>)) {
                     throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
                 } else {
@@ -1329,13 +1340,4 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         }
     }
 
-    private static List<Character> stringToCharList(String s) {
-        ArrayList<Character> sequence = new ArrayList<>();
-
-        char[] charArray = s.toCharArray();
-        for (int i = 0; i < charArray.length; i++) {
-            sequence.add(charArray[i]);
-        }
-        return sequence;
-    }
 }

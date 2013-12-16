@@ -27,14 +27,13 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PTuple extends PImmutableSequence {
 
     private final Object[] array;
-
-    private volatile List<Object> cachedList = null;
 
     public PTuple() {
         array = new Object[0];
@@ -49,14 +48,35 @@ public class PTuple extends PImmutableSequence {
         }
     }
 
-    public PTuple(Iterable<?> iterable) {
+    public PTuple(PRangeIterator iter) {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
          */
         List<Object> list = new ArrayList<>();
 
-        for (Object o : iterable) {
-            list.add(o);
+        final int start = iter.getStart();
+        final int stop = iter.getStop();
+        final int step = iter.getStep();
+
+        for (int i = start; i < stop; i += step) {
+            list.add(i);
+        }
+
+        array = list.toArray();
+    }
+
+    public PTuple(PIterator iter) {
+        /**
+         * TODO Can be improved Currently creates a list, and then creates an array
+         */
+        List<Object> list = new ArrayList<>();
+
+        try {
+            while (true) {
+                list.add(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
         }
 
         array = list.toArray();
@@ -116,38 +136,6 @@ public class PTuple extends PImmutableSequence {
         return new PTuple(newArray, false);
     }
 
-    /**
-     * Cache the array into a list. The operation is safe since the tuple is immutable.
-     * 
-     * @return the array as a list
-     */
-    private List<Object> getList() {
-        if (cachedList == null) {
-            cachedList = Arrays.asList(array);
-        }
-        return cachedList;
-    }
-
-    @Override
-    public Iterator<Object> iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<Object> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
-    }
-
     @Override
     public boolean lessThan(PSequence sequence) {
         int i = SequenceUtil.cmp(this, sequence);
@@ -205,19 +193,18 @@ public class PTuple extends PImmutableSequence {
         return copy[copy.length - 1];
     }
 
-    @Override
-    public PythonBuiltinObject __mul__(int value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PTuple __add__(PSequence sequence) {
-        Object[] newArray = new Object[len() + sequence.len()];
-        Object[] rightArray = ((PTuple) sequence).getArray();
+    public PTuple __add__(PTuple tuple) {
+        Object[] newArray = new Object[len() + tuple.len()];
+        Object[] rightArray = tuple.getArray();
 
         System.arraycopy(getArray(), 0, newArray, 0, len());
         System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
         return new PTuple(newArray);
+    }
+
+    @SuppressWarnings("unused")
+    public PTuple __mul__(int value) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

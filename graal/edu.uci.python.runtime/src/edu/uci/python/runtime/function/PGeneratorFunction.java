@@ -22,23 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.builtins;
+package edu.uci.python.runtime.function;
 
 import java.util.*;
 
-public class BuiltinClassAttributes {
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-    Map<String, Object> attributes;
+import edu.uci.python.runtime.datatypes.*;
 
-    public BuiltinClassAttributes() {
-        attributes = new HashMap<>();
+public final class PGeneratorFunction extends PFunction {
+
+    public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
     }
 
-    public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args);
     }
 
-    public Object getAttribute(String name) {
-        return attributes.get(name);
+    @Override
+    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+        throw new UnsupportedOperationException();
     }
+
 }

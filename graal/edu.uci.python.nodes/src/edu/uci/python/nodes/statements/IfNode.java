@@ -26,18 +26,17 @@ package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public class IfNode extends StatementNode {
 
     @Child protected CastToBooleanNode condition;
+    @Child protected PNode then;
+    @Child protected PNode orelse;
 
-    @Child protected BlockNode then;
-
-    @Child protected BlockNode orelse;
-
-    public IfNode(CastToBooleanNode condition, BlockNode then, BlockNode orelse) {
+    public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = adoptChild(condition);
         this.then = adoptChild(then);
         this.orelse = adoptChild(orelse);
@@ -58,4 +57,5 @@ public class IfNode extends StatementNode {
     public String toString() {
         return super.toString() + "(" + condition + ")";
     }
+
 }

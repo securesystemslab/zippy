@@ -37,7 +37,6 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PList extends PSequence {
 
@@ -169,8 +168,7 @@ public class PList extends PSequence {
         return store.length();
     }
 
-    @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PList __mul__(int value) {
         assert value > 0;
         SequenceStorage newStore = store.copy();
 
@@ -205,8 +203,7 @@ public class PList extends PSequence {
         }
     }
 
-    @Override
-    public PList __add__(PSequence other) {
+    public PList __add__(PList other) {
         SequenceStorage otherStore = other.getStorage();
         SequenceStorage newStore = store.copy();
 
@@ -271,24 +268,4 @@ public class PList extends PSequence {
         return super.hashCode();
     }
 
-    public Iterator iterator() {
-        return new Iterator() {
-
-            private int index = 0;
-            private final SequenceStorage iterStore = PList.this.store;
-
-            public boolean hasNext() {
-                return index < iterStore.length();
-            }
-
-            public Object next() {
-                return iterStore.getItemInBound(index++);
-            }
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-        };
-    }
 }

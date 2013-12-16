@@ -26,15 +26,20 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class FunctionTest {
+public class GeneratorTests {
+
     @Test
-    public void simple() {
-        Path script = Paths.get("function_test.py");
-        assertPrints("128\n0\n9\n8\n7\n6\n5\n4\n3\n2\n1\n0\n", script);
+    public void simpleLoop() {
+        String source = "def loopgen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "\n" + //
+                        "for i in loopgen(5):\n" + //
+                        "    print(i)\n";
+
+        assertPrints("0\n1\n2\n3\n4\n", source);
     }
 
 }

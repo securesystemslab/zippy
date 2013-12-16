@@ -32,10 +32,16 @@ import edu.uci.python.runtime.datatypes.*;
 
 public class BlockNode extends StatementNode {
 
+    public static BlockNode EMPTYBLOCK = new BlockNode(new PNode[]{PNode.EMPTYNODE});
+
     @Children protected final PNode[] statements;
 
     public BlockNode(PNode[] statements) {
         this.statements = adoptChildren(statements);
+    }
+
+    public PNode[] getStatements() {
+        return statements;
     }
 
     public boolean isEmpty() {
@@ -45,9 +51,7 @@ public class BlockNode extends StatementNode {
     @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
-            statements[i].executeVoid(frame);
-        }
+        execute(frame);
     }
 
     @ExplodeLoop

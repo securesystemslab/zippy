@@ -90,7 +90,7 @@ public class TranslationUtil {
             scopeId = "function " + ((FunctionDef) scopeEntity).getInternalName();
         } else if (kind == ScopeInfo.ScopeKind.Class) {
             scopeId = "class " + ((ClassDef) scopeEntity).getInternalName();
-        } else if (kind == ScopeInfo.ScopeKind.GeneratorExpr) {
+        } else if (kind == ScopeInfo.ScopeKind.Generator) {
             scopeId = scopeEntity.toString();
         } else if (kind == ScopeInfo.ScopeKind.ListComp) {
             scopeId = scopeEntity.toString();

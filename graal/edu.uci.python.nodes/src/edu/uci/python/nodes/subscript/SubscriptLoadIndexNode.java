@@ -27,25 +27,15 @@ package edu.uci.python.nodes.subscript;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements ReadNode {
-
-    public PNode getPrimary() {
-        return getLeftNode();
-    }
-
-    public PNode getIndex() {
-        return getRightNode();
-    }
+public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     public PNode makeWriteNode(PNode rhs) {
-        return SubscriptStoreIndexNodeFactory.create(getPrimary(), getIndex(), rhs);
+        return SubscriptStoreIndexNodeFactory.create(getPrimary(), getSlice(), rhs);
     }
 
     @Specialization(order = 0)
@@ -78,22 +68,24 @@ public abstract class SubscriptLoadIndexNode extends BinaryOpNode implements Rea
     }
 
     @Specialization(order = 3)
-    public Object doPSequence(PSequence primary, int idx) {
+    public Object doPListObject(PList list, int idx) {
+        return list.getItem(idx);
+    }
+
+    @Specialization(order = 4)
+    public Object doPTuple(PTuple tuple, int idx) {
+        return tuple.getItem(idx);
+    }
+
+    @Specialization(order = 5)
+    public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
-    }
-
-    protected boolean isIntStore(PList list) {
-        return list.getStorage() instanceof IntSequenceStorage;
-    }
-
-    protected boolean isDoubleStore(PList list) {
-        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 5)
+    @Specialization(order = 6)
     public Object doPDict(PDict primary, Object key) {
         return primary.getItem(key);
     }

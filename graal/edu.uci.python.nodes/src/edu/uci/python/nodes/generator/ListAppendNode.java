@@ -35,7 +35,6 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * Implements LIST_APPEND bytecode in CPython.
- * 
  */
 @NodeChild(value = "rightNode", type = PNode.class)
 public abstract class ListAppendNode extends FrameSlotNode {
@@ -72,7 +71,15 @@ public abstract class ListAppendNode extends FrameSlotNode {
 
     @Specialization
     public double doDouble(VirtualFrame frame, double right) {
-        getPList(frame).append(right);
+        PList list = getPList(frame);
+        SequenceStorage store = list.getStorage();
+
+        if (store instanceof IntSequenceStorage) {
+            ((DoubleSequenceStorage) store).appendDouble(right);
+        } else {
+            list.append(right);
+        }
+
         return right;
     }
 

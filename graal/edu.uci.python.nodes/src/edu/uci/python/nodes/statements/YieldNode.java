@@ -29,24 +29,12 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.exception.*;
 
-/**
- * Yield doesn't work yet.
- * 
- * @author zwei
- * 
- */
 public class YieldNode extends StatementNode {
 
-    @Child PNode right;
+    @Child protected PNode right;
 
     public YieldNode(PNode right) {
         this.right = adoptChild(right);
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        Object returnValue = right.execute(frame);
-        throw new ExplicitYieldException(returnValue);
     }
 
     @Override

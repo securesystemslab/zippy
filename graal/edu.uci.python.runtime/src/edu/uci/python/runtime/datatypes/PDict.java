@@ -28,8 +28,10 @@ import java.util.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 public class PDict extends PythonBuiltinObject implements PIterable {
@@ -45,6 +47,26 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     public PDict(Map<Object, Object> map) {
         this();
         this.map.putAll(map);
+    }
+
+    public PDict(PIterator iter) {
+        map = new HashMap<>();
+
+        try {
+            while (true) {
+                unpackKeyValuePair(iter.__next__());
+            }
+        } catch (StopIterationException e) {
+            // fall through
+        }
+    }
+
+    private void unpackKeyValuePair(Object obj) {
+        if (obj instanceof PSequence && ((PSequence) obj).len() == 2) {
+            map.put(((PSequence) obj).getItem(0), ((PSequence) obj).getItem(1));
+        } else {
+            throw new RuntimeException("invalid args for dict()");
+        }
     }
 
     @Override
@@ -90,11 +112,11 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     }
 
     public PIterator __iter__() {
-        return new PDictIterator(map.keySet());
+        return new PDictIterator(map.keySet().iterator());
     }
 
     public PIterator values() {
-        return new PDictIterator(map.values());
+        return new PDictIterator(map.values().iterator());
     }
 
     @Override

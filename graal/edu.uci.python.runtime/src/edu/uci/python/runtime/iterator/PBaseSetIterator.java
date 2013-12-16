@@ -27,14 +27,13 @@ package edu.uci.python.runtime.iterator;
 import java.util.*;
 
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
 
-public class PBaseSetIterator extends PIterator {
+public class PBaseSetIterator implements PIterator {
 
     private final Iterator<?> setIterator;
 
-    public PBaseSetIterator(PBaseSet baseSet) {
-        this.setIterator = baseSet.iterator();
+    public PBaseSetIterator(Iterator<?> iterator) {
+        this.setIterator = iterator;
     }
 
     @Override

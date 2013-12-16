@@ -26,7 +26,11 @@ package edu.uci.python.runtime.iterator;
 
 import edu.uci.python.runtime.sequence.*;
 
-public class PZipIterator extends PIterator {
+/**
+ * @author Gulfem
+ */
+
+public class PZipIterator implements PIterator {
 
     private final PIterator[] iterators;
 
@@ -36,6 +40,10 @@ public class PZipIterator extends PIterator {
 
     @Override
     public Object __next__() {
+        /**
+         * StopIterationException is not explicitly thrown, but it can be implicitly thrown and
+         * stops the iteration when the __next__() method is called on one of the iterated objects.
+         */
         Object[] tupleElements = new Object[iterators.length];
         for (int i = 0; i < iterators.length; i++) {
             tupleElements[i] = iterators[i].__next__();

@@ -55,24 +55,16 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 4)
-    public Object doPSequence(PSequence primary, int index, Object value) {
-        primary.setItem(index, value);
+    @Specialization(order = 3)
+    public Object doPListObject(PList list, int index, Object value) {
+        list.setItem(index, value);
         return PNone.NONE;
-    }
-
-    protected boolean isIntStore(PList list) {
-        return list.getStorage() instanceof IntSequenceStorage;
-    }
-
-    protected boolean isDoubleStore(PList list) {
-        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
     /**
      * PDict key & value store.
      */
-    @Specialization(order = 5)
+    @Specialization(order = 6)
     public Object doPDict(PDict primary, Object key, Object value) {
         primary.setItem(key, value);
         return PNone.NONE;

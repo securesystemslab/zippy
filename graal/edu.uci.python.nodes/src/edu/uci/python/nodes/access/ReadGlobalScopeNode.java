@@ -115,20 +115,20 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         return value;
     }
 
-    @SlowPath
-    protected void replaceWithGlobalDirect() {
+    protected final void replaceWithGlobalDirect() {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         replace(new ReadGlobalDirectNode(this));
     }
 
-    @SlowPath
-    protected void cacheBuiltin(Object builtin) {
+    protected final void cacheBuiltin(Object builtin) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         Assumption globalScopeUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__main__").getUnmodifiedAssumption();
         Assumption builtinsModuleUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
         replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
     }
 
-    @SlowPath
-    protected Object uninitialize(VirtualFrame frame) {
+    protected final Object uninitialize(VirtualFrame frame) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         return replace(new ReadGlobalScopeNode(this)).execute(frame);
     }
 

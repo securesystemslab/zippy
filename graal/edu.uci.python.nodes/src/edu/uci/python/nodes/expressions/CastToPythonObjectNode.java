@@ -45,4 +45,5 @@ public abstract class CastToPythonObjectNode extends UnaryOpNode {
     public Object doInteger(int value) {
         return new PInt(value);
     }
+
 }

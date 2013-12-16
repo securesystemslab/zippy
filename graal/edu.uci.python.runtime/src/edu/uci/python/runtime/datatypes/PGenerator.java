@@ -31,23 +31,22 @@ import com.oracle.truffle.api.impl.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class PGenerator extends PIterator {
+public class PGenerator implements PIterator {
 
     private final String name;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
-    private final PArguments argument;
+    private final PArguments arguments;
 
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         /**
-         * Setting up persistent frame and arguments.
+         * Setting up persistent frame in {@link #arguments}.
          */
-        this.argument = new PArguments(declarationFrame);
-        MaterializedFrame generatorFrame = new DefaultVirtualFrame(frameDescriptor, null, argument).materialize();
-        argument.setGeneratorFrame(generatorFrame);
+        MaterializedFrame generatorFrame = new DefaultVirtualFrame(frameDescriptor, null, PArguments.EMPTY_ARGUMENT).materialize();
+        this.arguments = new PArguments(declarationFrame, generatorFrame, arguments);
     }
 
     public FrameDescriptor getFrameDescriptor() {
@@ -56,11 +55,12 @@ public class PGenerator extends PIterator {
 
     @Override
     public Object __next__() {
-        return callTarget.call(null, argument);
+        return callTarget.call(null, arguments);
     }
 
     @Override
     public String toString() {
         return "<generator object '" + name + "' at " + hashCode() + ">";
     }
+
 }

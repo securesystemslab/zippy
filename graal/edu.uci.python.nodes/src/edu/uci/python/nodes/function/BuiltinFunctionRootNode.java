@@ -33,7 +33,7 @@ import com.oracle.truffle.api.nodes.*;
  */
 public class BuiltinFunctionRootNode extends RootNode {
 
-    @Child private PythonBuiltinNode builtinNode;
+    @Child protected PythonBuiltinNode builtinNode;
     private final PythonBuiltinNode uninitialized;
 
     public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {

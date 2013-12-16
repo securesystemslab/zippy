@@ -72,11 +72,17 @@ public class BuiltinsTests {
 
     @Test
     public void complexTest() {
-        String source = "x = complex(2, 3)\n" + "print(x)\n" +
+        String source = "x = complex(2, 3)\n" + //
+                        "print(x)\n" + //
 
-        "x = complex(3.4, 4.9)\n" + "print(x)\n" +
+                        "x = complex(3.4, 4.9)\n" + //
+                        "print(x)\n" + //
 
-        "x = complex(2)\n" + "print(x)\n" + "x = complex()\n" + "print(x)\n";
+                        "x = complex(2)\n" + //
+                        "print(x)\n" + //
+
+                        "x = complex()\n" + //
+                        "print(x)\n";
 
         assertPrints("(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n", source);
     }
@@ -120,14 +126,46 @@ public class BuiltinsTests {
     }
 
     @Test
+    public void isinstanceTest() {
+        String source = "class Student:\n\t" +
+
+        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
+
+        "student = Student(10)\n" +
+
+        "x = isinstance(student, Student)\n" +
+
+        "print(x)\n";
+
+        assertPrints("True\n", source);
+    }
+
+    @Test
+    public void iterTest() {
+        String source = "for element in iter(\"hello\"):\n\t" +
+
+        "print(element)\n" +
+
+        "for element in iter([10, 20, 30]):\n\t" +
+
+        "print(element)\n";
+
+        assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
+    }
+
+    @Test
     public void lenTest() {
-        String source = "value = \"hello\"\n" + "print(len(value))\n" +
+        String source = "value = \"hello\"\n" + //
+                        "print(len(value))\n" + //
 
-        "value = (100, 200, 300)\n" + "print(len(value))\n" +
+                        "value = (100, 200, 300)\n" + //
+                        "print(len(value))\n" + //
 
-        "value = ['a', 'b', 'c', 'd']\n" + "print(len(value))\n" +
+                        "value = ['a', 'b', 'c', 'd']\n" + //
+                        "print(len(value))\n" + //
 
-        "value = {'id' : 17, 'name' : \"gulfem\"}\n" + "print(len(value))\n";
+                        "value = {'id' : 17, 'name' : \"gulfem\"}\n" + //
+                        "print(len(value))\n";
 
         assertPrints("5\n3\n4\n2\n", source);
     }
@@ -139,6 +177,19 @@ public class BuiltinsTests {
         "x = max(20.8, 10.3)\n" + "print(x)";
 
         assertPrints("20\n20.8\n", source);
+    }
+
+    @Test
+    public void nextTest() {
+        String source = "x = iter([10, 20, 30])\n" +
+
+        "print(next(x))\n" +
+
+        "print(next(x))\n" +
+
+        "print(next(x))\n";
+
+        assertPrints("10\n20\n30\n", source);
     }
 
     @Test
@@ -158,32 +209,14 @@ public class BuiltinsTests {
         assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
     }
 
+    /**
+     * extracted from meteor3.py.
+     */
     @Test
-    public void iterTest() {
-        String source = "for element in iter(\"hello\"):\n\t" +
-
-        "print(element)\n" +
-
-        "for element in iter([10, 20, 30]):\n\t" +
-
-        "print(element)\n";
-
-        assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
-    }
-
-    @Test
-    public void isinstanceTest() {
-        String source = "class Student:\n\t" +
-
-        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
-
-        "student = Student(10)\n" +
-
-        "x = isinstance(student, Student)\n" +
-
-        "print(x)\n";
-
-        assertPrints("True\n", source);
-
+    public void frozenSetFromRangeLen() {
+        String source = "board = [1,2,3,4,5]\n" + //
+                        "free = frozenset(range(len(board)))\n" + //
+                        "print(free)";
+        assertPrints("frozenset({0, 1, 2, 3, 4})\n", source);
     }
 }

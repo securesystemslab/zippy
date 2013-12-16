@@ -35,7 +35,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.standardtypes.*;
 
-public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<Object>, PIterable {
+public abstract class PBaseSet extends PythonBuiltinObject implements PIterable {
 
     protected Set<Object> set;
 
@@ -71,7 +71,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     }
 
     public PIterator __iter__() {
-        return new PBaseSetIterator(this);
+        return new PBaseSetIterator(set.iterator());
     }
 
     public boolean contains(Object o) {
@@ -83,6 +83,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         return Collections.disjoint(this.set, other.set);
     }
 
+    @SuppressWarnings("unused")
     public boolean isDisjoint(PIterator other) {
         throw new UnsupportedOperationException();
     }
@@ -172,28 +173,34 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     public abstract void update(PIterator iterator);
 
     // intersection_update
+    @SuppressWarnings("unused")
     public void intersectionUpdate(PBaseSet other) {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unused")
     public void intersectionUpdate(PIterator iterator) {
         throw new UnsupportedOperationException();
     }
 
     // difference_update
+    @SuppressWarnings("unused")
     public void differenceUpdate(PBaseSet other) {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unused")
     public void differenceUpdate(PIterator iterator) {
         throw new UnsupportedOperationException();
     }
 
     // symmetric_difference_update
+    @SuppressWarnings("unused")
     public void symmetricDifferenceUpdate(PBaseSet other) {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unused")
     public void symmetricDifferenceUpdate(PIterator iterator) {
         throw new UnsupportedOperationException();
     }
@@ -205,12 +212,11 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
     // the type of the first operand.
     // For example: frozenset('ab') | set('bc') returns an instance of
     // frozenset."
-    @SuppressWarnings("unchecked")
     protected void updateInternal(Object data) {
         if (data instanceof PBaseSet) {
             updateInternal((PBaseSet) data);
         } else if (data instanceof PIterator) {
-
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -227,10 +233,6 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
         } catch (StopIterationException e) {
             // fall through
         }
-    }
-
-    public Iterator<Object> iterator() {
-        return set.iterator();
     }
 
     @Override
@@ -254,7 +256,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder().append("([");
+        StringBuilder buf = new StringBuilder().append("({");
 
         for (Iterator<Object> i = set.iterator(); i.hasNext();) {
             buf.append((i.next()).toString());
@@ -264,7 +266,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements Iterable<O
             }
         }
 
-        buf.append("])");
+        buf.append("})");
         return buf.toString();
     }
 

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.datatypes;
 
-import java.util.*;
-
 import org.python.core.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
@@ -33,7 +31,6 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PRange extends PImmutableSequence {
 
@@ -107,7 +104,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PIterator __iter__() {
+    public PRangeIterator __iter__() {
         return new PRangeIterator(this);
     }
 
@@ -139,32 +136,7 @@ public class PRange extends PImmutableSequence {
     }
 
     @Override
-    public Iterator iterator() {
-        return new Iterator<Object>() {
-
-            private int index = 0;
-
-            public final void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public final boolean hasNext() {
-                return index <= length - 1;
-            }
-
-            public final Object next() {
-                return index++ * step + start;
-            }
-        };
-    }
-
-    @Override
     public boolean lessThan(PSequence sequence) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PSequence __add__(PSequence sequence) {
         throw new UnsupportedOperationException();
     }
 
@@ -190,11 +162,6 @@ public class PRange extends PImmutableSequence {
 
     @Override
     public int index(Object value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject __mul__(int value) {
         throw new UnsupportedOperationException();
     }
 }

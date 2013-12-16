@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
@@ -197,11 +198,14 @@ public class ListBuiltins extends PythonBuiltins {
             PList selfList = (PList) self;
             int count = 0;
 
-            Iterator iter = selfList.iterator();
-            while (iter.hasNext()) {
-                if (iter.next().equals(arg)) {
-                    count++;
+            try {
+                while (true) {
+                    if (selfList.__iter__().__next__().equals(arg)) {
+                        count++;
+                    }
                 }
+            } catch (StopIterationException e) {
+                // fall through
             }
 
             return count;

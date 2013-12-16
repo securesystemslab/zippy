@@ -22,19 +22,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.function;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.frame.*;
 
-import java.nio.file.*;
+import edu.uci.python.nodes.statements.*;
+import edu.uci.python.runtime.exception.*;
 
-import org.junit.*;
+/**
+ * The lastly executed node in a generator. <br>
+ * It throws the {@link StopIterationException} to terminate the execution of the generator.
+ */
+public class StopIterationNode extends StatementNode {
 
-public class SimpleTest {
-    @Test
-    public void simple() {
-        Path script = Paths.get("simple.py");
-        assertPrints("[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0), (2, 1), (2, 2), (2, 3)]\n", script);
+    @Override
+    public Object execute(VirtualFrame frame) {
+        throw StopIterationException.INSTANCE;
     }
 
 }

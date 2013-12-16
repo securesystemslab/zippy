@@ -24,16 +24,11 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
 
 public class PString extends PImmutableSequence {
 
@@ -53,39 +48,6 @@ public class PString extends PImmutableSequence {
     @Override
     public PythonCallable __getattribute__(String name) {
         return (PythonCallable) __class__.getAttribute(name);
-    }
-
-    @Deprecated
-    public List<String> getList() {
-        ArrayList<String> list = new ArrayList<>();
-
-        char[] array = value.toCharArray();
-        for (int i = 0; i < array.length; i++) {
-            list.add(String.valueOf(array[i]));
-        }
-
-        return list;
-    }
-
-    @Deprecated
-    @Override
-    public Iterator iterator() {
-        return new Iterator<Object>() {
-
-            private final Iterator<String> iter = getList().iterator();
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return iter.hasNext();
-            }
-
-            public Object next() {
-                return iter.next();
-            }
-        };
     }
 
     public String getValue() {
@@ -118,11 +80,6 @@ public class PString extends PImmutableSequence {
     }
 
     @Override
-    public PSequence __add__(PSequence sequence) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public String toString() {
         return value;
     }
@@ -145,11 +102,6 @@ public class PString extends PImmutableSequence {
 
     @Override
     public Object getMin() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PythonBuiltinObject __mul__(int multiplier) {
         throw new UnsupportedOperationException();
     }
 }

@@ -51,18 +51,6 @@ public class PythonTypesUtil {
         return new PyTuple(adaptedValue);
     }
 
-    public static PTuple createTuple(Object[] values) {
-        return new PTuple(values);
-    }
-
-    public static PSet createSet(Set<Object> values) {
-        return new PSet(values);
-    }
-
-    public static PDict createDictionary(Map<Object, Object> map) {
-        return new PDict(map);
-    }
-
     @SlowPath
     public static PyObject adaptToPyObject(Object value) {
         CompilerAsserts.neverPartOfCompilation();
@@ -200,8 +188,12 @@ public class PythonTypesUtil {
             return "tuple";
         } else if (object instanceof PRange) {
             return "range";
+        } else if (object instanceof PArray) {
+            return "array";
         } else if (object instanceof PSet) {
             return "set";
+        } else if (object instanceof PDict) {
+            return "dict";
         }
 
         throw new RuntimeException("Unsupported type name " + object.getClass());

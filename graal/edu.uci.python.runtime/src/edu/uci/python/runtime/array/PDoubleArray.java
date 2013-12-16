@@ -24,14 +24,11 @@
  */
 package edu.uci.python.runtime.array;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
 
-//public class PDoubleArray extends PArray implements Iterable<Double> {
 public class PDoubleArray extends PArray {
 
     private final double[] array;
@@ -127,7 +124,16 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public PythonBuiltinObject __mul__(int value) {
+    public PArray __add__(PArray other) {
+        PDoubleArray otherArray = (PDoubleArray) other;
+        double[] joined = new double[len() + other.len()];
+        System.arraycopy(array, 0, joined, 0, len());
+        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
+        return new PDoubleArray(joined);
+    }
+
+    @Override
+    public PArray __mul__(int value) {
         double[] newArray = new double[value * array.length];
         int count = 0;
 
@@ -141,15 +147,6 @@ public class PDoubleArray extends PArray {
     }
 
     @Override
-    public PArray __add__(PSequence other) {
-        PDoubleArray otherArray = (PDoubleArray) other;
-        double[] joined = new double[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PDoubleArray(joined);
-    }
-
-    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("(");
         for (int i = 0; i < array.length - 1; i++) {
@@ -158,26 +155,5 @@ public class PDoubleArray extends PArray {
         buf.append(array[array.length - 1]);
         buf.append(")");
         return buf.toString();
-    }
-
-    @Override
-    public Iterator<Double> iterator() {
-        return new Iterator<Double>() {
-
-            private int index;
-            private final double[] values = array;
-
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-
-            public boolean hasNext() {
-                return index < values.length;
-            }
-
-            public Double next() {
-                return values[index++];
-            }
-        };
     }
 }
