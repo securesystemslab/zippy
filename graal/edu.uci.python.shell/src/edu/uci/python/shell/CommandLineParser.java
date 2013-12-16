@@ -51,6 +51,10 @@ public class CommandLineParser {
                 PythonOptions.PrintFunction = true;
             }
 
+            if (arg.equals("-NoInlineBuiltinFunctionCalls")) {
+                PythonOptions.InlineBuiltinFunctionCalls = false;
+            }
+
             index++;
         }
 
