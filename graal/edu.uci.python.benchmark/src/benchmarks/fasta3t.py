@@ -118,7 +118,7 @@ def reset():
 
 # warm up
 num = int(sys.argv[1])
-for run in range(500):
+for run in range(600):
     main(500)
 
 # reset
