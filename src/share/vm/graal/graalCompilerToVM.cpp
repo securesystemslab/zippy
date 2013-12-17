@@ -670,6 +670,10 @@ C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id
   }
 C2V_END
 
+C2V_VMENTRY(void, printCompilationStatistics, (JNIEnv *jniEnv, jobject, jboolean per_compiler, jboolean aggregate))
+CompileBroker::print_times(per_compiler, aggregate);
+C2V_END
+
 C2V_VMENTRY(void, resetCompilationStatistics, (JNIEnv *jniEnv, jobject))
   CompilerStatistics* stats = GraalCompiler::instance()->stats();
   stats->_standard._time.reset();
@@ -908,6 +912,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
+  {CC"printCompilationStatistics",    CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
   {CC"resetCompilationStatistics",    CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
