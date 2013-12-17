@@ -27,12 +27,16 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.PNode;
+import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
  * @author zwei
  */
+@NodeField(name = "context", type = PythonContext.class)
 @NodeChild(value = "arguments", type = PNode[].class)
 public abstract class PythonBuiltinNode extends PNode {
+
+    public abstract PythonContext getContext();
 
 }

@@ -31,7 +31,6 @@ import org.python.core.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.exception.*;
@@ -540,16 +539,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
         public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
-            private final PythonContext context;
-
-            public PythonPrintNode(PythonContext context) {
-                this.context = context;
-            }
-
-            public PythonPrintNode(PythonPrintNode prev) {
-                this(prev.context);
-            }
-
             @Specialization
             public Object print(Object[] values, Object[] keywords) {
                 String sep = null;
@@ -575,7 +564,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 String end = possibleEnd;
                 // CheckStyle: stop system..print check
                 if (values.length == 0) {
-                    context.getStandardOut().print(System.getProperty("line.separator"));
+                    getContext().getStandardOut().print(System.getProperty("line.separator"));
                 } else {
                     if (sep == null) {
                         sep = "";
@@ -600,7 +589,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                         sb.append(values[values.length - 1]);
                     }
 
-                    context.getStandardOut().print(sb.toString() + sep + end);
+                    getContext().getStandardOut().print(sb.toString() + sep + end);
 
                 }
                 // CheckStyle: resume system..print check

@@ -38,8 +38,8 @@ import com.oracle.truffle.api.dsl.NodeFactory;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
-
 public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
@@ -52,7 +52,7 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
         for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
-            CallTarget callTarget = createBuiltinCallTarget(factory, builtin, createArgumentsList(builtin), context);
+            CallTarget callTarget = createBuiltinCallTarget(factory, createArgumentsList(builtin), context);
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isClass()) {
@@ -65,15 +65,8 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
         }
     }
 
-    private static CallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, Builtin builtin, PNode[] argsKeywords, PythonContext context) {
-        PythonBuiltinNode builtinNode;
-
-        if (builtin.requiresContext()) {
-            builtinNode = factory.createNode(context, argsKeywords);
-        } else {
-            builtinNode = factory.createNode((Object) argsKeywords);
-        }
-
+    private static CallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, PNode[] argsKeywords, PythonContext context) {
+        PythonBuiltinNode builtinNode = factory.createNode(argsKeywords, context);
         BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);
         return Truffle.getRuntime().createCallTarget(rootNode);
     }
@@ -120,4 +113,5 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
         PNode[] argsKeywords = args.toArray(new PNode[args.size()]);
         return argsKeywords;
     }
+
 }
