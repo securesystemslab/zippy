@@ -1,5 +1,5 @@
 # The format of this file is described in the documentation for my.py.
-
+mxversion=1.0
 suite=graal
 
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
