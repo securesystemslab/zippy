@@ -26,6 +26,8 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class GeneratorTests {
@@ -40,6 +42,12 @@ public class GeneratorTests {
                         "    print(i)\n";
 
         assertPrints("0\n1\n2\n3\n4\n", source);
+    }
+
+    @Test
+    public void conditionAndLoop() {
+        Path script = Paths.get("generator-if-and-loop-test.py");
+        assertPrints("10\n0\n1\n2\n3\n4\n", script);
     }
 
 }
