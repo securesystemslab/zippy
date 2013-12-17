@@ -42,9 +42,7 @@ public class FunctionRootNode extends RootNode {
     private final String functionName;
 
     @Child protected ParametersNode parameters;
-
     @Child protected StatementNode body;
-
     @Child protected PNode returnValue;
 
     private final ParametersNode uninitializedParams;

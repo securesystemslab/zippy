@@ -31,7 +31,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtins.*;
@@ -69,7 +68,7 @@ public class CallFunctionNoKeywordNode extends PNode {
              * Cache but do not inline generator calls.
              */
             Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-            return new CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+            return new CallFunctionCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
         } else if (callable instanceof PFunction) {
             return createFunctionCall((PFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PBuiltinFunction) {
@@ -83,9 +82,9 @@ public class CallFunctionNoKeywordNode extends PNode {
         Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
 
         if (PythonOptions.InlineFunctionCalls) {
-            return new CallFunctionNoKeywordInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+            return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
         } else {
-            return new CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+            return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
         }
     }
 
@@ -94,7 +93,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
 
         if (PythonOptions.InlineBuiltinFunctionCalls) {
-            return new CallBuiltinFunctionNokeywordInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
+            return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         }
@@ -131,12 +130,12 @@ public class CallFunctionNoKeywordNode extends PNode {
      * The callee node of a cached call function node should not be local accessor node, since we
      * don't make assumption about local variables.
      */
-    public static class CallFunctionNoKeywordCachedNode extends CallFunctionNoKeywordNode {
+    public static class CallFunctionCachedNode extends CallFunctionNoKeywordNode {
 
         protected final PythonCallable cached;
         protected final Assumption globalScopeUnchanged;
 
-        public CallFunctionNoKeywordCachedNode(PNode callee, PNode[] arguments, PythonCallable cached, Assumption globalScopeUnchanged) {
+        public CallFunctionCachedNode(PNode callee, PNode[] arguments, PythonCallable cached, Assumption globalScopeUnchanged) {
             super(callee, arguments);
             this.cached = cached;
             this.globalScopeUnchanged = globalScopeUnchanged;
@@ -151,123 +150,6 @@ public class CallFunctionNoKeywordNode extends PNode {
             }
 
             return executeCall(frame, cached);
-        }
-    }
-
-    public static class CallFunctionNoKeywordInlinableNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
-
-        private final PFunction function;
-        private final FunctionRootNode functionRoot;
-        private final Assumption globalScopeUnchanged;
-        @CompilationFinal private int callCount;
-
-        public CallFunctionNoKeywordInlinableNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged) {
-            super(callee, arguments);
-            this.function = function;
-            this.globalScopeUnchanged = globalScopeUnchanged;
-            functionRoot = (FunctionRootNode) function.getFunctionRootNode();
-        }
-
-        public int getCallCount() {
-            return callCount;
-        }
-
-        public void resetCallCount() {
-            callCount = 0;
-        }
-
-        public Node getInlineTree() {
-            return functionRoot.getInlinedRootNode();
-        }
-
-        public CallTarget getCallTarget() {
-            return function.getCallTarget();
-        }
-
-        public boolean inline(FrameFactory factory) {
-            CompilerAsserts.neverPartOfCompilation();
-
-            if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.function, this.globalScopeUnchanged, this.functionRoot, factory);
-                replace(inlinedCallNode);
-                return true;
-            }
-
-            return false;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            if (CompilerDirectives.inInterpreter()) {
-                callCount++;
-            }
-            return super.execute(frame);
-        }
-    }
-
-    public static class CallBuiltinFunctionNokeywordInlinableNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
-
-        private final PBuiltinFunction function;
-        private final BuiltinFunctionRootNode functionRoot;
-        private final Assumption globalScopeUnchanged;
-        private final Assumption builtinModuleUnchanged;
-        @CompilationFinal private int callCount;
-
-        public CallBuiltinFunctionNokeywordInlinableNode(PNode callee, PNode[] arguments, PBuiltinFunction function, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
-            super(callee, arguments);
-            this.function = function;
-            this.functionRoot = (BuiltinFunctionRootNode) function.getFunctionRootNode();
-            this.globalScopeUnchanged = globalScopeUnchanged;
-            this.builtinModuleUnchanged = builtinModuleUnchanged;
-            this.callCount = 0;
-        }
-
-        public int getCallCount() {
-            return callCount;
-        }
-
-        public void resetCallCount() {
-            callCount = 0;
-        }
-
-        public Node getInlineTree() {
-            return functionRoot.copy();
-        }
-
-        public CallTarget getCallTarget() {
-            return function.getCallTarget();
-        }
-
-        public boolean inline(FrameFactory factory) {
-            CompilerAsserts.neverPartOfCompilation();
-
-            if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallBuiltinFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
-                                this.builtinModuleUnchanged, factory);
-                replace(inlinedCallNode);
-                return true;
-            }
-
-            return false;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            if (CompilerDirectives.inInterpreter()) {
-                callCount++;
-            }
-            return super.execute(frame);
-        }
-
-        /**
-         * Invoke the copied built-in function instead of the original one. This way makes sure that
-         * every call site's bootstrapping does not depend on a previous call to the same built-in
-         * function.
-         */
-        @Override
-        public Object executeCall(VirtualFrame frame, PythonCallable callable) {
-            final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-            return function.call(frame.pack(), args);
         }
     }
 }
