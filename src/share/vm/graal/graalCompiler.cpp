@@ -116,8 +116,9 @@ void GraalCompiler::initialize() {
         FlagSetting a(UseInterpreter, true);
         FlagSetting b(BackgroundCompilation, true);
 #ifndef PRODUCT
-        // Turn off CompileTheWorld during bootstrap
-        // so that a complete bootstrap occurs
+        // Turn off CompileTheWorld during bootstrap so that a counter overflow event
+        // triggers further compilation (see NonTieredCompPolicy::event()) hence
+        // allowing a complete bootstrap
         FlagSetting c(CompileTheWorld, false);
 #endif
         VMToCompiler::bootstrap();
