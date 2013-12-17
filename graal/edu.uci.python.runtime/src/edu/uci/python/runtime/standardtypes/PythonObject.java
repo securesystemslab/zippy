@@ -25,8 +25,8 @@
 package edu.uci.python.runtime.standardtypes;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.objects.*;
 
 /**

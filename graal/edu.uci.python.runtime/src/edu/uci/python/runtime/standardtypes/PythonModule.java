@@ -28,9 +28,9 @@ import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.assumptions.*;
 import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
