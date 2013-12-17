@@ -470,12 +470,6 @@ bool Reflection::verify_class_access(Klass* current_class, Klass* new_class, boo
     return true;
   }
 
-  // Also allow all accesses from
-  // java/lang/invoke/MagicLambdaImpl subclasses to succeed trivially.
-  if (current_class->is_subclass_of(SystemDictionary::lambda_MagicLambdaImpl_klass())) {
-    return true;
-  }
-
   return can_relax_access_check_for(current_class, new_class, classloader_only);
 }
 
@@ -543,15 +537,26 @@ bool Reflection::verify_field_access(Klass* current_class,
     return true;
   }
 
+  Klass* host_class = current_class;
+  while (host_class->oop_is_instance() &&
+         InstanceKlass::cast(host_class)->is_anonymous()) {
+    Klass* next_host_class = InstanceKlass::cast(host_class)->host_klass();
+    if (next_host_class == NULL)  break;
+    host_class = next_host_class;
+  }
+  if (host_class == field_class) {
+    return true;
+  }
+
   if (access.is_protected()) {
     if (!protected_restriction) {
-      // See if current_class is a subclass of field_class
-      if (current_class->is_subclass_of(field_class)) {
+      // See if current_class (or outermost host class) is a subclass of field_class
+      if (host_class->is_subclass_of(field_class)) {
         if (access.is_static() || // static fields are ok, see 6622385
             current_class == resolved_class ||
             field_class == resolved_class ||
-            current_class->is_subclass_of(resolved_class) ||
-            resolved_class->is_subclass_of(current_class)) {
+            host_class->is_subclass_of(resolved_class) ||
+            resolved_class->is_subclass_of(host_class)) {
           return true;
         }
       }
@@ -567,12 +572,6 @@ bool Reflection::verify_field_access(Klass* current_class,
   if (   JDK_Version::is_gte_jdk14x_version()
       && UseNewReflection
       && current_class->is_subclass_of(SystemDictionary::reflect_MagicAccessorImpl_klass())) {
-    return true;
-  }
-
-  // Also allow all accesses from
-  // java/lang/invoke/MagicLambdaImpl subclasses to succeed trivially.
-  if (current_class->is_subclass_of(SystemDictionary::lambda_MagicLambdaImpl_klass())) {
     return true;
   }
 
