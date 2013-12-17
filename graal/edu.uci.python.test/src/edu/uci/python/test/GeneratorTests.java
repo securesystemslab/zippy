@@ -50,4 +50,10 @@ public class GeneratorTests {
         assertPrints("10\n0\n1\n2\n3\n4\n", script);
     }
 
+    @Test
+    public void accumulator() {
+        Path script = Paths.get("generator-accumulator-test.py");
+        assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);
+    }
+
 }

@@ -134,7 +134,13 @@ public class PList extends PSequence {
         StringBuilder buf = new StringBuilder("[");
 
         for (int i = 0; i < store.length(); i++) {
-            buf.append(store.getItemInBound(i));
+            Object item = store.getItemInBound(i);
+
+            if (item instanceof String) {
+                buf.append("'" + item.toString() + "'");
+            } else {
+                buf.append(item.toString());
+            }
 
             if (i < store.length() - 1) {
                 buf.append(", ");

@@ -75,7 +75,7 @@ public class ScopeInfo {
     }
 
     public void setAsGenerator() {
-        assert scopeKind == ScopeKind.Function;
+        assert scopeKind == ScopeKind.Function || scopeKind == ScopeKind.Generator;
         scopeKind = ScopeKind.Generator;
     }
 
