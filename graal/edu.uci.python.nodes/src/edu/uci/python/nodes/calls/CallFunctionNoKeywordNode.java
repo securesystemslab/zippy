@@ -64,6 +64,12 @@ public class CallFunctionNoKeywordNode extends PNode {
              */
             PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass) callable).getAttribute("__init__");
             return createBuiltinCall(function, calleeNode, argumentNodes, context);
+        } else if (callable instanceof PGeneratorFunction) {
+            /**
+             * Cache but do not inline generator calls.
+             */
+            Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+            return new CallFunctionNoKeywordCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
         } else if (callable instanceof PFunction) {
             return createFunctionCall((PFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PBuiltinFunction) {
