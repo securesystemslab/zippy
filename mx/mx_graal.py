@@ -1348,14 +1348,14 @@ def sl(args):
 
 def trufflejar(args=None):
     """make truffle.jar"""
-    
+
     # Test with the built classes
     _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
-    
+
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
     packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
-    
+
     # Test with the JAR
     _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
 
@@ -1453,7 +1453,7 @@ def mx_post_parse_cmd_line(opts):  #
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
 
 def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
-    prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
+    prefix = '' if mx.get_os() != 'windows' else '\\??\\'  # long file name hack
     print "creating", outputFile
     filecount, totalsize = 0, 0
     with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -1475,7 +1475,7 @@ def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, 
                 for root, _, files in os.walk(cp):
                     for f in files:
                         fullname = os.path.join(root, f)
-                        arcname = fullname[len(cp)+1:].replace('\\', '/')
+                        arcname = fullname[len(cp) + 1:].replace('\\', '/')
                         if f.endswith(".class"):
                             zf.write(prefix + fullname, arcname)
 

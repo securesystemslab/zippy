@@ -675,6 +675,7 @@ class Suite:
         self.imports = []
         self.commands = None
         self.primary = primary
+        self.requiredMxVersion = None
         self.name = _suitename(mxDir)  # validated in _load_projects
         if load:
             # load suites bottom up to make sure command overriding works properly
@@ -714,10 +715,17 @@ class Suite:
                     parts = key.split('@')
 
                     if len(parts) == 1:
-                        if parts[0] != 'suite':
+                        if parts[0] == 'suite':
+                            if self.name != value:
+                                abort('suite name in project file does not match ' + _suitename(self.mxDir))
+                        elif parts[0] == 'mxversion':
+                            try:
+                                self.requiredMxVersion = JavaVersion(value)
+                            except AssertionError as ae:
+                                abort('Exception while parsing "mxversion" in project file: ' + str(ae))
+                        else:
                             abort('Single part property must be "suite": ' + key)
-                        if self.name != value:
-                            abort('suite name in project file does not match ' + _suitename(self.mxDir))
+
                         continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
@@ -889,6 +897,10 @@ class Suite:
 
     def _post_init(self, opts):
         self._load_projects()
+        if self.requiredMxVersion is None:
+            warn("This suite does not express any required mx version. Consider adding 'mxversion=<version>' to your projects file.")
+        elif self.requiredMxVersion > version:
+            abort("This suite requires mx version " + str(self.requiredMxVersion) + " while your current mx verion is " + str(version) + ". Please update mx.")
         # set the global data structures, checking for conflicts unless _check_global_structures is False
         for p in self.projects:
             existing = _projects.get(p.name)
@@ -1552,7 +1564,7 @@ class JavaVersion:
     def __init__(self, versionString):
         validChar = r'[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
         separator = r'[.\-_]'
-        m = re.match(validChar + '+(' + separator + validChar + '+)*', versionString)
+        m = re.match("^" + validChar + '+(' + separator + validChar + '+)*$', versionString)
         assert m is not None, 'not a recognized version string: ' + versionString
         self.versionString = versionString
         self.parts = [int(f) if f.isdigit() else f for f in re.split(separator, versionString)]
@@ -4515,6 +4527,8 @@ def main():
     except KeyboardInterrupt:
         # no need to show the stack trace when the user presses CTRL-C
         abort(1)
+
+version = JavaVersion("1.0")
 
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules

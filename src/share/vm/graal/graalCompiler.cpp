@@ -115,6 +115,11 @@ void GraalCompiler::initialize() {
         // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
         FlagSetting a(UseInterpreter, true);
         FlagSetting b(BackgroundCompilation, true);
+#ifndef PRODUCT
+        // Turn off CompileTheWorld during bootstrap
+        // so that a complete bootstrap occurs
+        FlagSetting c(CompileTheWorld, false);
+#endif
         VMToCompiler::bootstrap();
       }
 

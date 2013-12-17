@@ -28,6 +28,7 @@ import static com.oracle.graal.api.meta.Value.*;
 import static com.oracle.graal.lir.LIR.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -39,10 +40,7 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.BlockEndOp;
-import com.oracle.graal.lir.StandardOp.JumpOp;
-import com.oracle.graal.lir.StandardOp.LabelOp;
-import com.oracle.graal.lir.StandardOp.NoOp;
+import com.oracle.graal.lir.StandardOp.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -136,6 +134,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         public String toString() {
             return block + "#" + op;
         }
+
+        /**
+         * Removes the {@link #op} from its original location if it is still at that location.
+         */
+        public void unpin(LIR lir) {
+            if (index >= 0) {
+                // Replace the move with a filler op so that the operation
+                // list does not need to be adjusted.
+                List<LIRInstruction> instructions = lir.lir(block);
+                instructions.set(index, new NoOp(null, -1));
+                index = -1;
+            }
+        }
     }
 
     private Map<Constant, LoadConstant> constantLoads;
@@ -174,6 +185,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
         this.traceLevel = Options.TraceLIRGeneratorLevel.getValue();
         this.printIRWithLIR = Options.PrintIRWithLIR.getValue();
+    }
+
+    /**
+     * Returns a value for a interval definition, which can be used for re-materialization.
+     * 
+     * @param op An instruction which defines a value
+     * @param operand The destination operand of the instruction
+     * @return Returns the value which is moved to the instruction and which can be reused at all
+     *         reload-locations in case the interval of this instruction is spilled. Currently this
+     *         can only be a {@link Constant}.
+     */
+    public Constant getMaterializedValue(LIRInstruction op, Value operand) {
+        return null;
     }
 
     @SuppressWarnings("hiding")
@@ -248,7 +272,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
                     LoadConstant load = constantLoads.get(value);
                     if (load == null) {
                         int index = lir.lir(currentBlock).size();
-                        // loadedValue = newVariable(value.getPlatformKind());
                         loadedValue = emitMove(value);
                         LIRInstruction op = lir.lir(currentBlock).get(index);
                         constantLoads.put(value, new LoadConstant(loadedValue, currentBlock, index, op));
@@ -256,13 +279,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
                         Block dominator = ControlFlowGraph.commonDominator(load.block, currentBlock);
                         loadedValue = load.variable;
                         if (dominator != load.block) {
-                            if (load.index >= 0) {
-                                // Replace the move with a filler op so that the operation
-                                // list does not need to be adjusted.
-                                List<LIRInstruction> instructions = lir.lir(load.block);
-                                instructions.set(load.index, new NoOp(null, -1));
-                                load.index = -1;
-                            }
+                            load.unpin(lir);
                         } else {
                             assert load.block != currentBlock || load.index < lir.lir(currentBlock).size();
                         }
@@ -870,6 +887,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             // Remove loads where all usages are in the same block.
             for (Iterator<Map.Entry<Constant, LoadConstant>> iter = constantLoads.entrySet().iterator(); iter.hasNext();) {
                 LoadConstant lc = iter.next().getValue();
+
+                // Move loads of constant outside of loops
+                if (OptScheduleOutOfLoops.getValue()) {
+                    Block outOfLoopDominator = lc.block;
+                    while (outOfLoopDominator.getLoop() != null) {
+                        outOfLoopDominator = outOfLoopDominator.getDominator();
+                    }
+                    if (outOfLoopDominator != lc.block) {
+                        lc.unpin(lir);
+                        lc.block = outOfLoopDominator;
+                    }
+                }
+
                 if (lc.index != -1) {
                     assert lir.lir(lc.block).get(lc.index) == lc.op;
                     iter.remove();
