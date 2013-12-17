@@ -34,6 +34,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public final class StringBuiltins extends PythonBuiltins {
@@ -46,14 +47,6 @@ public final class StringBuiltins extends PythonBuiltins {
     // str.join(iterable)
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonStringJoinNode extends PythonBuiltinNode {
-
-        public PythonStringJoinNode(String name) {
-            super(name);
-        }
-
-        public PythonStringJoinNode(PythonStringJoinNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public String join(Object self, Object arg) {
@@ -96,14 +89,6 @@ public final class StringBuiltins extends PythonBuiltins {
     // str.upper()
     @Builtin(name = "upper", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonStringUpperNode extends PythonBuiltinNode {
-
-        public PythonStringUpperNode(String name) {
-            super(name);
-        }
-
-        public PythonStringUpperNode(PythonStringUpperNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public String upper(String self) {

@@ -69,9 +69,9 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
         PythonBuiltinNode builtinNode;
 
         if (builtin.requiresContext()) {
-            builtinNode = factory.createNode(builtin.name(), context, argsKeywords);
+            builtinNode = factory.createNode(context, argsKeywords);
         } else {
-            builtinNode = factory.createNode(builtin.name(), argsKeywords);
+            builtinNode = factory.createNode((Object) argsKeywords);
         }
 
         BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(builtinNode);

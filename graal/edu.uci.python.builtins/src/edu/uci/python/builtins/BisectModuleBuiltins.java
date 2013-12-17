@@ -34,6 +34,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public final class BisectModuleBuiltins extends PythonBuiltins {
@@ -46,14 +47,6 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
     // bisect.bisect(a, x, lo=0, hi=len(a))
     @Builtin(name = "bisect", hasFixedNumOfArguments = true, fixedNumOfArguments = 2, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"lo", "hi"})
     public abstract static class PythonBisectNode extends PythonBuiltinNode {
-
-        public PythonBisectNode(String name) {
-            super(name);
-        }
-
-        public PythonBisectNode(PythonBisectNode prev) {
-            this(prev.getName());
-        }
 
         @SuppressWarnings("unused")
         @Specialization

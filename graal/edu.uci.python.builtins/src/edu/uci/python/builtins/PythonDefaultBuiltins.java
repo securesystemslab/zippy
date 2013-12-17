@@ -62,14 +62,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "abs", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAbsNode extends PythonBuiltinNode {
 
-            public PythonAbsNode(String name) {
-                super(name);
-            }
-
-            public PythonAbsNode(PythonAbsNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public int absInt(int arg) {
                 return Math.abs(arg);
@@ -94,14 +86,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // all(iterable)
         @Builtin(name = "all", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAllNode extends PythonBuiltinNode {
-
-            public PythonAllNode(String name) {
-                super(name);
-            }
-
-            public PythonAllNode(PythonAllNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public boolean all(PSequence sequence) {
@@ -162,14 +146,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "any", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonAnyNode extends PythonBuiltinNode {
 
-            public PythonAnyNode(String name) {
-                super(name);
-            }
-
-            public PythonAnyNode(PythonAnyNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public boolean any(PSequence sequence) {
                 if (sequence.len() == 0) {
@@ -229,14 +205,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "callable", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonCallableNode extends PythonBuiltinNode {
 
-            public PythonCallableNode(String name) {
-                super(name);
-            }
-
-            public PythonCallableNode(PythonCallableNode prev) {
-                this(prev.getName());
-            }
-
             @SuppressWarnings("unused")
             @Specialization
             public boolean callable(PythonCallable callable) {
@@ -257,14 +225,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonChrNode extends PythonBuiltinNode {
 
-            public PythonChrNode(String name) {
-                super(name);
-            }
-
-            public PythonChrNode(PythonChrNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public String charFromInt(int arg) {
                 return Character.toString((char) arg);
@@ -283,14 +243,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // isinstance(object, classinfo)
         @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
         public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
-
-            public PythonIsIntanceNode(String name) {
-                super(name);
-            }
-
-            public PythonIsIntanceNode(PythonIsIntanceNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public Object isinstance(PythonObject object, PythonClass clazz) {
@@ -321,14 +273,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // iter(object[, sentinel])
         @Builtin(name = "iter", minNumOfArguments = 1, maxNumOfArguments = 2)
         public abstract static class PythonIterNode extends PythonBuiltinNode {
-
-            public PythonIterNode(String name) {
-                super(name);
-            }
-
-            public PythonIterNode(PythonIterNode prev) {
-                this(prev.getName());
-            }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "noSentinel")
@@ -369,14 +313,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // len(s)
         @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
         public abstract static class PythonLenNode extends PythonBuiltinNode {
-
-            public PythonLenNode(String name) {
-                super(name);
-            }
-
-            public PythonLenNode(PythonLenNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public int len(String arg) {
@@ -424,14 +360,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // max(arg1, arg2, *args[, key])
         @Builtin(name = "max", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
         public abstract static class PythonMaxNode extends PythonBuiltinNode {
-
-            public PythonMaxNode(String name) {
-                super(name);
-            }
-
-            public PythonMaxNode(PythonMaxNode prev) {
-                this(prev.getName());
-            }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
@@ -512,14 +440,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "min", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
         public abstract static class PythonMinNode extends PythonBuiltinNode {
 
-            public PythonMinNode(String name) {
-                super(name);
-            }
-
-            public PythonMinNode(PythonMinNode prev) {
-                this(prev.getName());
-            }
-
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
             public Object minString(String arg1, Object[] args, Object keywordArg) {
@@ -598,14 +518,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
         public abstract static class PythonNextNode extends PythonBuiltinNode {
 
-            public PythonNextNode(String name) {
-                super(name);
-            }
-
-            public PythonNextNode(PythonNextNode prev) {
-                this(prev.getName());
-            }
-
             @SuppressWarnings("unused")
             @Specialization
             public Object next(PIterator iterator, Object defaultObject) {
@@ -630,13 +542,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             private final PythonContext context;
 
-            public PythonPrintNode(String name, PythonContext context) {
-                super(name);
+            public PythonPrintNode(PythonContext context) {
                 this.context = context;
             }
 
             public PythonPrintNode(PythonPrintNode prev) {
-                this(prev.getName(), prev.context);
+                this(prev.context);
             }
 
             @Specialization
@@ -709,14 +620,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "bool", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonBoolNode extends PythonBuiltinNode {
 
-            public PythonBoolNode(String name) {
-                super(name);
-            }
-
-            public PythonBoolNode(PythonBoolNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public boolean bool(int arg) {
                 return arg != 0;
@@ -744,14 +647,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // complex([real[, imag]])
         @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isClass = true)
         public abstract static class PythonComplexNode extends PythonBuiltinNode {
-
-            public PythonComplexNode(String name) {
-                super(name);
-            }
-
-            public PythonComplexNode(PythonComplexNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization(guards = "hasRealAndImaginary")
             public PComplex complexFromDoubleDouble(double real, double imaginary) {
@@ -794,14 +689,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // dict(iterable, **kwarg)
         @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
         public abstract static class PythonDictionaryNode extends PythonBuiltinNode {
-
-            public PythonDictionaryNode(String name) {
-                super(name);
-            }
-
-            public PythonDictionaryNode(PythonDictionaryNode prev) {
-                this(prev.getName());
-            }
 
             protected static boolean emptyArgument(Object[] args) {
                 return args.length == 0;
@@ -858,14 +745,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isClass = true)
         public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
 
-            public PythonEnumerateNode(String name) {
-                super(name);
-            }
-
-            public PythonEnumerateNode(PythonEnumerateNode prev) {
-                this(prev.getName());
-            }
-
             /**
              * TODO enumerate can take a keyword argument start, and currently that's not supported.
              */
@@ -914,14 +793,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonFloatNode extends PythonBuiltinNode {
 
-            public PythonFloatNode(String name) {
-                super(name);
-            }
-
-            public PythonFloatNode(PythonFloatNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public double floatFromInt(int arg) {
                 return arg;
@@ -945,14 +816,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // frozenset([iterable])
         @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
-
-            public PythonFrozenSetNode(String name) {
-                super(name);
-            }
-
-            public PythonFrozenSetNode(PythonFrozenSetNode prev) {
-                this(prev.getName());
-            }
 
             protected static boolean emptyArgument(Object arg) {
                 return arg.equals(PNone.NONE);
@@ -996,13 +859,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // int(x, base=10)
         @Builtin(name = "int", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"base"}, isClass = true)
         public abstract static class PythonIntNode extends PythonBuiltinNode {
-            public PythonIntNode(String name) {
-                super(name);
-            }
-
-            public PythonIntNode(PythonIntNode prev) {
-                this(prev.getName());
-            }
 
             @SuppressWarnings("unused")
             @Specialization(guards = "noKeywordArg")
@@ -1038,14 +894,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // list([iterable])
         @Builtin(name = "list", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonListNode extends PythonBuiltinNode {
-
-            public PythonListNode(String name) {
-                super(name);
-            }
-
-            public PythonListNode(PythonListNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public PList listString(String arg) {
@@ -1100,14 +948,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isClass = true)
         public abstract static class PythonMapNode extends PythonBuiltinNode {
 
-            public PythonMapNode(String name) {
-                super(name);
-            }
-
-            public PythonMapNode(PythonMapNode prev) {
-                this(prev.getName());
-            }
-
             @SuppressWarnings("unused")
             @Specialization
             public Object mapString(PythonCallable arg0, String arg1, Object[] iterators) {
@@ -1139,14 +979,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // range(start, stop[, step])
         @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isClass = true)
         public abstract static class PythonRangeNode extends PythonBuiltinNode {
-
-            public PythonRangeNode(String name) {
-                super(name);
-            }
-
-            public PythonRangeNode(PythonRangeNode prev) {
-                this(prev.getName());
-            }
 
             @SuppressWarnings("unused")
             @Specialization(order = 1, guards = "caseStop")
@@ -1200,14 +1032,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "set", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonSetNode extends PythonBuiltinNode {
 
-            public PythonSetNode(String name) {
-                super(name);
-            }
-
-            public PythonSetNode(PythonSetNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public PSet set(String arg) {
                 return new PSet(new PStringIterator(arg));
@@ -1238,14 +1062,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "str", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"object, encoding, errors"}, isClass = true)
         public abstract static class PythonStrNode extends PythonBuiltinNode {
 
-            public PythonStrNode(String name) {
-                super(name);
-            }
-
-            public PythonStrNode(PythonStrNode prev) {
-                this(prev.getName());
-            }
-
             @Specialization
             public String str(Object arg) {
                 return arg.toString();
@@ -1255,14 +1071,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // tuple([iterable])
         @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonTupleNode extends PythonBuiltinNode {
-
-            public PythonTupleNode(String name) {
-                super(name);
-            }
-
-            public PythonTupleNode(PythonTupleNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public PTuple tuple(String arg) {
@@ -1297,14 +1105,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         // zip(*iterables)
         @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
         public abstract static class PythonZipNode extends PythonBuiltinNode {
-
-            public PythonZipNode(String name) {
-                super(name);
-            }
-
-            public PythonZipNode(PythonZipNode prev) {
-                this(prev.getName());
-            }
 
             @Specialization
             public PZip zip(Object[] args) {

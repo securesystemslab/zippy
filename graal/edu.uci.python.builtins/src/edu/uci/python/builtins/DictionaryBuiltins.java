@@ -34,6 +34,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public final class DictionaryBuiltins extends PythonBuiltins {
@@ -46,14 +47,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     // setdefault(key[, default])
     @Builtin(name = "setdefault", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionarySetDefaultNode extends PythonBuiltinNode {
-
-        public PythonDictionarySetDefaultNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionarySetDefaultNode(PythonDictionarySetDefaultNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public Object setDefalut(Object self, Object arg0, Object arg1) {
@@ -71,14 +64,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     // pop(key[, default])
     @Builtin(name = "pop", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryPopNode extends PythonBuiltinNode {
-
-        public PythonDictionaryPopNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryPopNode(PythonDictionaryPopNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public Object pop(Object self, Object arg0, Object arg1) {
@@ -98,14 +83,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     @Builtin(name = "keys", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryKeysNode extends PythonBuiltinNode {
 
-        public PythonDictionaryKeysNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryKeysNode(PythonDictionaryKeysNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList keys(PDict self) {
             return new PList(self.__iter__());
@@ -116,14 +93,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     @Builtin(name = "items", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryItemsNode extends PythonBuiltinNode {
 
-        public PythonDictionaryItemsNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryItemsNode(PythonDictionaryItemsNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList items(PDict self) {
             return new PList(self.__iter__());
@@ -133,14 +102,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     // get(key[, default])
     @Builtin(name = "get", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryGetNode extends PythonBuiltinNode {
-
-        public PythonDictionaryGetNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryGetNode(PythonDictionaryGetNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public Object get(Object self, Object arg0, Object arg1) {
@@ -158,14 +119,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     @Builtin(name = "copy", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryCopyNode extends PythonBuiltinNode {
 
-        public PythonDictionaryCopyNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryCopyNode(PythonDictionaryCopyNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PDict copy(Object self) {
             PDict dict = (PDict) self;
@@ -176,14 +129,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     // clear()
     @Builtin(name = "clear", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryClearNode extends PythonBuiltinNode {
-
-        public PythonDictionaryClearNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryClearNode(PythonDictionaryClearNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public PDict copy(Object self) {
@@ -196,14 +141,6 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     // values()
     @Builtin(name = "values", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryValuesNode extends PythonBuiltinNode {
-
-        public PythonDictionaryValuesNode(String name) {
-            super(name);
-        }
-
-        public PythonDictionaryValuesNode(PythonDictionaryValuesNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public PList values(PDict self) {

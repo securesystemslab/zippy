@@ -45,14 +45,6 @@ public final class TimeModuleBuiltins extends PythonBuiltins {
     @Builtin(name = "time", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
     public abstract static class PythonTimeNode extends PythonBuiltinNode {
 
-        public PythonTimeNode(String name) {
-            super(name);
-        }
-
-        public PythonTimeNode(PythonTimeNode prev) {
-            this(prev.getName());
-        }
-
         /**
          * The logic is borrowed from Jython.
          * 
@@ -68,14 +60,6 @@ public final class TimeModuleBuiltins extends PythonBuiltins {
     // time.clock()
     @Builtin(name = "clock", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
     public abstract static class PythonClockNode extends PythonBuiltinNode {
-
-        public PythonClockNode(String name) {
-            super(name);
-        }
-
-        public PythonClockNode(PythonClockNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public double clock() {

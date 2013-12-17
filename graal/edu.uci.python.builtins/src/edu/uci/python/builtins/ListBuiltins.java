@@ -34,6 +34,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public class ListBuiltins extends PythonBuiltins {
@@ -47,14 +48,6 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "append", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListAppendNode extends PythonBuiltinNode {
 
-        public PythonListAppendNode(String name) {
-            super(name);
-        }
-
-        public PythonListAppendNode(PythonListAppendNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList append(Object self, Object arg) {
             PList selfList = (PList) self;
@@ -67,14 +60,6 @@ public class ListBuiltins extends PythonBuiltins {
     // list.extend(L)
     @Builtin(name = "extend", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListExtendNode extends PythonBuiltinNode {
-
-        public PythonListExtendNode(String name) {
-            super(name);
-        }
-
-        public PythonListExtendNode(PythonListExtendNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public PList extend(Object self, Object arg) {
@@ -93,14 +78,6 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "insert", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
     public abstract static class PythonListInsertNode extends PythonBuiltinNode {
 
-        public PythonListInsertNode(String name) {
-            super(name);
-        }
-
-        public PythonListInsertNode(PythonListInsertNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList insert(Object self, Object arg0, Object arg1) {
             PList selfList = (PList) self;
@@ -118,14 +95,6 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "remove", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListRemoveNode extends PythonBuiltinNode {
 
-        public PythonListRemoveNode(String name) {
-            super(name);
-        }
-
-        public PythonListRemoveNode(PythonListRemoveNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList remove(Object self, Object arg) {
             PList selfList = (PList) self;
@@ -138,14 +107,6 @@ public class ListBuiltins extends PythonBuiltins {
     // list.pop([i])
     @Builtin(name = "pop", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
-
-        public PythonListPopNode(String name) {
-            super(name);
-        }
-
-        public PythonListPopNode(PythonListPopNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public Object pop(Object self, Object arg) {
@@ -166,14 +127,6 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "index", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListIndexNode extends PythonBuiltinNode {
 
-        public PythonListIndexNode(String name) {
-            super(name);
-        }
-
-        public PythonListIndexNode(PythonListIndexNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public int index(Object self, Object arg) {
             PList selfList = (PList) self;
@@ -184,14 +137,6 @@ public class ListBuiltins extends PythonBuiltins {
     // list.count(x)
     @Builtin(name = "count", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListCountNode extends PythonBuiltinNode {
-
-        public PythonListCountNode(String name) {
-            super(name);
-        }
-
-        public PythonListCountNode(PythonListCountNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public int count(Object self, Object arg) {
@@ -216,14 +161,6 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "sort", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonListSortNode extends PythonBuiltinNode {
 
-        public PythonListSortNode(String name) {
-            super(name);
-        }
-
-        public PythonListSortNode(PythonListSortNode prev) {
-            this(prev.getName());
-        }
-
         @Specialization
         public PList sort(Object self) {
             PList selfList = (PList) self;
@@ -235,14 +172,6 @@ public class ListBuiltins extends PythonBuiltins {
     // list.reverse()
     @Builtin(name = "reverse", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonListReverseNode extends PythonBuiltinNode {
-
-        public PythonListReverseNode(String name) {
-            super(name);
-        }
-
-        public PythonListReverseNode(PythonListReverseNode prev) {
-            this(prev.getName());
-        }
 
         @Specialization
         public PList reverse(Object self) {

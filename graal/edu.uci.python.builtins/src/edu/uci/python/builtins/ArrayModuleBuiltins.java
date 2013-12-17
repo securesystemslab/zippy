@@ -43,6 +43,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public final class ArrayModuleBuiltins extends PythonBuiltins {
@@ -55,14 +56,6 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
     // array.array(typecode[, initializer])
     @Builtin(name = "array", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonArrayNode extends PythonBuiltinNode {
-
-        public PythonArrayNode(String name) {
-            super(name);
-        }
-
-        public PythonArrayNode(PythonArrayNode prev) {
-            this(prev.getName());
-        }
 
         @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "noInitializer")
