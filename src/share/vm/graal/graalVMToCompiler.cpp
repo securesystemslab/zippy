@@ -111,15 +111,13 @@ void VMToCompiler::finalizeOptions(jboolean ciTime) {
   check_pending_exception("Error while calling finalizeOptions");
 }
 
-void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking) {
+void VMToCompiler::compileMethod(Method* method, int entry_bci, jboolean blocking) {
   assert(method != NULL, "just checking");
-  assert(!holder.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_long((jlong) (address) method);
-  args.push_oop(holder());
   args.push_int(entry_bci);
   args.push_int(blocking);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
@@ -256,21 +254,3 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   check_pending_exception("Error while calling createResolvedJavaType");
   return (oop) result.get_jobject();
 }
-
-oop VMToCompiler::createLocal(Handle name, Handle typeInfo, int bci_start, int bci_end, int slot, Handle holder, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(name);
-  args.push_oop(typeInfo);
-  args.push_oop(holder);
-  args.push_int(bci_start);
-  args.push_int(bci_end);
-  args.push_int(slot);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createLocalImpl_name(), vmSymbols::createLocalImpl_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createConstantFloat");
-  return (oop) result.get_jobject();
-
-}
-
-

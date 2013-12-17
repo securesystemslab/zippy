@@ -60,8 +60,8 @@ public:
   // public static void HotSpotOptions.finalizeOptions(boolean ciTime);
   static void finalizeOptions(jboolean ciTime);
 
-  // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
-  static void compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking);
+  // public abstract boolean compileMethod(long vmId, int entry_bci, boolean blocking);
+  static void compileMethod(Method* method, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
@@ -92,21 +92,6 @@ public:
 
   // public abstract JavaType createPrimitiveJavaType(int basicType);
   static oop createPrimitiveJavaType(int basicType, TRAPS);
-
-  // public abstract Constant createConstant(Kind kind, long value);
-  static oop createConstant(Handle kind, jlong value, TRAPS);
-
-  // public abstract Constant createConstantFloat(float value);
-  static oop createConstantFloat(jfloat value, TRAPS);
-
-  // public abstract Constant createConstantDouble(double value);
-  static oop createConstantDouble(jdouble value, TRAPS);
-
-  // public abstract Constant createConstantObject(long vmId);
-  static oop createConstantObject(Handle object, TRAPS);
-
-  // public abstract Local createLocal(String name, int bci_start, int bci_end);
-  static oop createLocal(Handle name, Handle type, int bci_start, int bci_end, int slot, Handle holder, TRAPS);
 };
 
 inline void check_pending_exception(const char* message, bool dump_core = false) {

@@ -55,8 +55,7 @@ import com.oracle.graal.lir.amd64.AMD64ControlFlow.CondMoveOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.FloatBranchOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.FloatCondMoveOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.ReturnOp;
-import com.oracle.graal.lir.amd64.AMD64ControlFlow.SequentialSwitchOp;
-import com.oracle.graal.lir.amd64.AMD64ControlFlow.SwitchRangesOp;
+import com.oracle.graal.lir.amd64.AMD64ControlFlow.StrategySwitchOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.TableSwitchOp;
 import com.oracle.graal.lir.amd64.AMD64Move.LeaOp;
 import com.oracle.graal.lir.amd64.AMD64Move.MembarOp;
@@ -220,22 +219,23 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
 
     @Override
     public void emitJump(LabelRef label) {
+        assert label != null;
         append(new JumpOp(label));
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label) {
+    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueLabel, LabelRef falseLabel) {
         boolean mirrored = emitCompare(left, right);
         Condition finalCondition = mirrored ? cond.mirror() : cond;
         switch (left.getKind().getStackKind()) {
             case Int:
             case Long:
             case Object:
-                append(new BranchOp(finalCondition, label));
+                append(new BranchOp(finalCondition, trueLabel, falseLabel));
                 break;
             case Float:
             case Double:
-                append(new FloatBranchOp(finalCondition, unorderedIsTrue, label));
+                append(new FloatBranchOp(finalCondition, unorderedIsTrue, trueLabel, falseLabel));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("" + left.getKind());
@@ -250,14 +250,22 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitOverflowCheckBranch(LabelRef destination, boolean negated) {
-        append(new BranchOp(negated ? ConditionFlag.NoOverflow : ConditionFlag.Overflow, destination));
+    public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated) {
+        if (negated) {
+            append(new BranchOp(ConditionFlag.NoOverflow, noOverflow, overflow));
+        } else {
+            append(new BranchOp(ConditionFlag.Overflow, overflow, noOverflow));
+        }
     }
 
     @Override
-    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label) {
+    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination) {
         emitIntegerTest(left, right);
-        append(new BranchOp(negated ? Condition.NE : Condition.EQ, label));
+        if (negated) {
+            append(new BranchOp(Condition.NE, falseDestination, trueDestination));
+        } else {
+            append(new BranchOp(Condition.EQ, trueDestination, falseDestination));
+        }
     }
 
     @Override
@@ -972,20 +980,10 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected void emitSequentialSwitch(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key) {
-        // Making a copy of the switch value is necessary because jump table destroys the input
-        // value
-        if (key.getKind() == Kind.Int || key.getKind() == Kind.Long) {
-            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, Value.ILLEGAL));
-        } else {
-            assert key.getKind() == Kind.Object : key.getKind();
-            append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, newVariable(Kind.Object)));
-        }
-    }
-
-    @Override
-    protected void emitSwitchRanges(int[] lowKeys, int[] highKeys, LabelRef[] targets, LabelRef defaultTarget, Value key) {
-        append(new SwitchRangesOp(lowKeys, highKeys, targets, defaultTarget, key));
+    protected void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
+        // a temp is needed for loading object constants
+        boolean needsTemp = key.getKind() == Kind.Object;
+        append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, needsTemp ? newVariable(key.getKind()) : Value.ILLEGAL));
     }
 
     @Override

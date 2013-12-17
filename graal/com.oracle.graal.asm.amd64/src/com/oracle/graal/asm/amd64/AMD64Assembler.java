@@ -1446,6 +1446,14 @@ public class AMD64Assembler extends AbstractAssembler {
         emitByte(0x50 | encode);
     }
 
+    public void pushfq() {
+        emitByte(0x9c);
+    }
+
+    public void popfq() {
+        emitByte(0x9D);
+    }
+
     public final void ret(int imm16) {
         if (imm16 == 0) {
             emitByte(0xC3);
@@ -2279,7 +2287,11 @@ public class AMD64Assembler extends AbstractAssembler {
         subq(dst, imm32, false);
     }
 
-    public final void subq(Register dst, int imm32, boolean force32Imm) {
+    public final void subqWide(Register dst, int imm32) {
+        subq(dst, imm32, true);
+    }
+
+    private void subq(Register dst, int imm32, boolean force32Imm) {
         prefixqAndEncode(dst.encoding);
         emitArith(0x81, 0xE8, dst, imm32, force32Imm);
     }

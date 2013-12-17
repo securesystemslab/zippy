@@ -2155,13 +2155,17 @@ def eclipseformat(args):
 
     log('{0} files were modified'.format(len(modified)))
     if len(modified) != 0:
+        arcbase = _primary_suite.dir
         if args.backup:
             backup = os.path.abspath('eclipseformat.backup.zip')
-            arcbase = _primary_suite.dir
             zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
-            for fi in modified:
-                arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
+        for fi in modified:
+            name = os.path.relpath(fi.path, arcbase)
+            log(' - {0}'.format(name))
+            if args.backup:
+                arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)
+        if args.backup:
             zf.close()
             log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
         return 1
@@ -2251,7 +2255,7 @@ def pylint(args):
 
     for pyfile in pyfiles:
         log('Running pylint on ' + pyfile + '...')
-        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env, nonZeroIsFatal=False)
+        run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
 def archive(args):
     """create jar files for projects and distributions"""
@@ -2841,14 +2845,14 @@ def _check_ide_timestamp(suite, timestamp):
     # Assume that any mx change might imply changes to the generated IDE files
     if timestamp.isOlderThan(__file__):
         return False
-    
+
     eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
     if exists(eclipseSettingsDir):
         for name in os.listdir(eclipseSettingsDir):
             path = join(eclipseSettingsDir, name)
             if timestamp.isOlderThan(path):
                 return False
-    return True 
+    return True
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))

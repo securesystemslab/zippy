@@ -61,9 +61,9 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     Value emitAddress(StackSlot slot);
 
-    Value emitLoad(Kind kind, Value address, DeoptimizingNode deopting);
+    Value emitLoad(Kind kind, Value address, Access access);
 
-    void emitStore(Kind kind, Value address, Value input, DeoptimizingNode deopting);
+    void emitStore(Kind kind, Value address, Value input, Access access);
 
     void emitMembar(int barriers);
 
@@ -102,6 +102,7 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     /**
      * Called just before register allocation is performed on the LIR owned by this generator.
+     * Overriding implementations of this method must call the overridden method.
      */
     void beforeRegisterAllocation();
 

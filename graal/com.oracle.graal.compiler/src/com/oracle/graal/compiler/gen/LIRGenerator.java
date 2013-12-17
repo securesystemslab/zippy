@@ -25,9 +25,9 @@ package com.oracle.graal.compiler.gen;
 import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.api.meta.Value.*;
+import static com.oracle.graal.lir.LIR.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
-import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -39,9 +39,10 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.FallThroughOp;
+import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.StandardOp.LabelOp;
+import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -82,10 +83,62 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     private final boolean printIRWithLIR;
 
     /**
-     * Maps constants the variables within the scope of a single block to avoid loading a constant
-     * more than once per block.
+     * Handle for an operation that loads a constant into a variable. The operation starts in the
+     * first block where the constant is used but will eventually be
+     * {@linkplain LIRGenerator#insertConstantLoads() moved} to a block dominating all usages of the
+     * constant.
      */
-    private Map<Constant, Variable> constantsLoadedInCurrentBlock;
+    public static class LoadConstant implements Comparable<LoadConstant> {
+        /**
+         * The index of {@link #op} within {@link #block}'s instruction list or -1 if {@code op} is
+         * to be moved to a dominator block.
+         */
+        int index;
+
+        /**
+         * The operation that loads the constant.
+         */
+        private final LIRInstruction op;
+
+        /**
+         * The block that does or will contain {@link #op}. This is initially the block where the
+         * first usage of the constant is seen during LIR generation.
+         */
+        private Block block;
+
+        /**
+         * The variable into which the constant is loaded.
+         */
+        private final Variable variable;
+
+        public LoadConstant(Variable variable, Block block, int index, LIRInstruction op) {
+            this.variable = variable;
+            this.block = block;
+            this.index = index;
+            this.op = op;
+        }
+
+        /**
+         * Sorts {@link LoadConstant} objects according to their enclosing blocks. This is used to
+         * group loads per block in {@link LIRGenerator#insertConstantLoads()}.
+         */
+        public int compareTo(LoadConstant o) {
+            if (block.getId() < o.block.getId()) {
+                return -1;
+            }
+            if (block.getId() > o.block.getId()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        @Override
+        public String toString() {
+            return block + "#" + op;
+        }
+    }
+
+    private Map<Constant, LoadConstant> constantLoads;
 
     private ValueNode currentInstruction;
     private ValueNode lastInstructionPrinted; // Debugging only
@@ -121,6 +174,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
         this.traceLevel = Options.TraceLIRGeneratorLevel.getValue();
         this.printIRWithLIR = Options.PrintIRWithLIR.getValue();
+    }
+
+    /**
+     * Returns a value for a interval definition, which can be used for re-materialization.
+     * 
+     * @param op An instruction which defines a value
+     * @param operand The destination operand of the instruction
+     * @return Returns the value which is moved to the instruction and which can be reused at all
+     *         reload-locations in case the interval of this instruction is spilled. Currently this
+     *         can only be a {@link Constant}.
+     */
+    public Constant getMaterializedValue(LIRInstruction op, Value operand) {
+        return null;
     }
 
     @SuppressWarnings("hiding")
@@ -174,7 +240,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         if (nodeOperands == null) {
             return null;
         }
-        Value operand = !node.isExternal() ? nodeOperands.get(node) : null;
+        Value operand = nodeOperands.get(node);
         if (operand == null) {
             return getConstantOperand(node);
         }
@@ -186,18 +252,34 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             Constant value = node.asConstant();
             if (value != null) {
                 if (canInlineConstant(value)) {
-                    return !node.isExternal() ? setResult(node, value) : value;
+                    return setResult(node, value);
                 } else {
                     Variable loadedValue;
-                    if (constantsLoadedInCurrentBlock == null) {
-                        constantsLoadedInCurrentBlock = new HashMap<>();
-                        loadedValue = null;
-                    } else {
-                        loadedValue = constantsLoadedInCurrentBlock.get(value);
+                    if (constantLoads == null) {
+                        constantLoads = new HashMap<>();
                     }
-                    if (loadedValue == null) {
+                    LoadConstant load = constantLoads.get(value);
+                    if (load == null) {
+                        int index = lir.lir(currentBlock).size();
+                        // loadedValue = newVariable(value.getPlatformKind());
                         loadedValue = emitMove(value);
-                        constantsLoadedInCurrentBlock.put(value, loadedValue);
+                        LIRInstruction op = lir.lir(currentBlock).get(index);
+                        constantLoads.put(value, new LoadConstant(loadedValue, currentBlock, index, op));
+                    } else {
+                        Block dominator = ControlFlowGraph.commonDominator(load.block, currentBlock);
+                        loadedValue = load.variable;
+                        if (dominator != load.block) {
+                            if (load.index >= 0) {
+                                // Replace the move with a filler op so that the operation
+                                // list does not need to be adjusted.
+                                List<LIRInstruction> instructions = lir.lir(load.block);
+                                instructions.set(load.index, new NoOp(null, -1));
+                                load.index = -1;
+                            }
+                        } else {
+                            assert load.block != currentBlock || load.index < lir.lir(currentBlock).size();
+                        }
+                        load.block = dominator;
                     }
                     return loadedValue;
                 }
@@ -350,7 +432,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
 
         currentBlock = block;
-        resetLoadedConstants();
 
         // set up the list of LIR instructions
         assert lir.lir(block) == null : "LIR list already computed for this block";
@@ -395,12 +476,13 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
                 }
             }
         }
-        if (block.getSuccessorCount() >= 1 && !endsWithJump(block)) {
+        if (block.getSuccessorCount() >= 1 && !hasBlockEnd(block)) {
             NodeClassIterable successors = block.getEndNode().successors();
             assert successors.isNotEmpty() : "should have at least one successor : " + block.getEndNode();
-
             emitJump(getLIRBlock((FixedNode) successors.first()));
         }
+
+        assert verifyBlock(lir, block);
 
         if (traceLevel >= 1) {
             TTY.println("END Generating LIR for block B" + block.getId());
@@ -413,26 +495,14 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
     }
 
-    private void resetLoadedConstants() {
-        if (constantsLoadedInCurrentBlock != null && !constantsLoadedInCurrentBlock.isEmpty()) {
-            constantsLoadedInCurrentBlock.clear();
-        }
-    }
-
     protected abstract boolean peephole(ValueNode valueNode);
 
-    private boolean endsWithJump(Block block) {
-        List<LIRInstruction> instructions = lir.lir(block);
-        if (instructions.size() == 0) {
+    private boolean hasBlockEnd(Block block) {
+        List<LIRInstruction> ops = lir.lir(block);
+        if (ops.size() == 0) {
             return false;
         }
-        LIRInstruction lirInstruction = instructions.get(instructions.size() - 1);
-        if (lirInstruction instanceof StandardOp.JumpOp) {
-            return true;
-        } else if (lirInstruction instanceof FallThroughOp) {
-            return ((FallThroughOp) lirInstruction).fallThroughTarget() != null;
-        }
-        return false;
+        return ops.get(ops.size() - 1) instanceof BlockEndOp;
     }
 
     private void doRoot(ValueNode instr) {
@@ -569,23 +639,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     private void emitNullCheckBranch(IsNullNode node, LabelRef trueSuccessor, LabelRef falseSuccessor) {
-        emitCompareBranch(operand(node.object()), Constant.NULL_OBJECT, Condition.NE, false, falseSuccessor);
-        emitJump(trueSuccessor);
+        emitCompareBranch(operand(node.object()), Constant.NULL_OBJECT, Condition.EQ, false, trueSuccessor, falseSuccessor);
     }
 
-    public void emitCompareBranch(CompareNode compare, LabelRef trueSuccessorBlock, LabelRef falseSuccessorBlock) {
-        emitCompareBranch(operand(compare.x()), operand(compare.y()), compare.condition().negate(), !compare.unorderedIsTrue(), falseSuccessorBlock);
-        emitJump(trueSuccessorBlock);
+    public void emitCompareBranch(CompareNode compare, LabelRef trueSuccessor, LabelRef falseSuccessor) {
+        emitCompareBranch(operand(compare.x()), operand(compare.y()), compare.condition(), compare.unorderedIsTrue(), trueSuccessor, falseSuccessor);
     }
 
     public void emitOverflowCheckBranch(LabelRef noOverflowBlock, LabelRef overflowBlock) {
-        emitOverflowCheckBranch(overflowBlock, false);
-        emitJump(noOverflowBlock);
+        emitOverflowCheckBranch(overflowBlock, noOverflowBlock, false);
     }
 
-    public void emitIntegerTestBranch(IntegerTestNode test, LabelRef trueSuccessorBlock, LabelRef falseSuccessorBlock) {
-        emitIntegerTestBranch(operand(test.x()), operand(test.y()), true, falseSuccessorBlock);
-        emitJump(trueSuccessorBlock);
+    public void emitIntegerTestBranch(IntegerTestNode test, LabelRef trueSuccessor, LabelRef falseSuccessor) {
+        emitIntegerTestBranch(operand(test.x()), operand(test.y()), false, trueSuccessor, falseSuccessor);
     }
 
     public void emitConstantBranch(boolean value, LabelRef trueSuccessorBlock, LabelRef falseSuccessorBlock) {
@@ -619,11 +685,11 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     public abstract void emitJump(LabelRef label);
 
-    public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label);
+    public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination);
 
-    public abstract void emitOverflowCheckBranch(LabelRef label, boolean negated);
+    public abstract void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated);
 
-    public abstract void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label);
+    public abstract void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination);
 
     public abstract Variable emitConditionalMove(Value leftVal, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue);
 
@@ -738,117 +804,65 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
      */
     @Override
     public void emitSwitch(SwitchNode x) {
+        assert x.defaultSuccessor() != null;
+        LabelRef defaultTarget = getLIRBlock(x.defaultSuccessor());
         int keyCount = x.keyCount();
         if (keyCount == 0) {
-            emitJump(getLIRBlock(x.defaultSuccessor()));
+            emitJump(defaultTarget);
         } else {
             Variable value = load(operand(x.value()));
-            LabelRef defaultTarget = x.defaultSuccessor() == null ? null : getLIRBlock(x.defaultSuccessor());
-            if (value.getKind() != Kind.Int) {
-                // hopefully only a few entries
-                emitSequentialSwitch(x, value, defaultTarget);
+            if (keyCount == 1) {
+                assert defaultTarget != null;
+                emitCompareBranch(load(operand(x.value())), x.keyAt(0), Condition.EQ, false, getLIRBlock(x.keySuccessor(0)), defaultTarget);
             } else {
-                assert value.getKind() == Kind.Int;
-                long valueRange = x.keyAt(keyCount - 1).asLong() - x.keyAt(0).asLong() + 1;
-                int switchRangeCount = switchRangeCount(x);
-                if (switchRangeCount == 0) {
-                    emitJump(getLIRBlock(x.defaultSuccessor()));
-                } else if (switchRangeCount >= MinimumJumpTableSize.getValue() && keyCount / (double) valueRange >= MinTableSwitchDensity.getValue()) {
-                    int minValue = x.keyAt(0).asInt();
-                    assert valueRange < Integer.MAX_VALUE;
-                    LabelRef[] targets = new LabelRef[(int) valueRange];
-                    for (int i = 0; i < valueRange; i++) {
-                        targets[i] = defaultTarget;
-                    }
-                    for (int i = 0; i < keyCount; i++) {
-                        targets[x.keyAt(i).asInt() - minValue] = getLIRBlock(x.keySuccessor(i));
-                    }
-                    emitTableSwitch(minValue, defaultTarget, targets, value);
-                } else if (keyCount / switchRangeCount >= RangeTestsSwitchDensity.getValue()) {
-                    emitSwitchRanges(x, switchRangeCount, value, defaultTarget);
+                LabelRef[] keyTargets = new LabelRef[keyCount];
+                Constant[] keyConstants = new Constant[keyCount];
+                double[] keyProbabilities = new double[keyCount];
+                for (int i = 0; i < keyCount; i++) {
+                    keyTargets[i] = getLIRBlock(x.keySuccessor(i));
+                    keyConstants[i] = x.keyAt(i);
+                    keyProbabilities[i] = x.keyProbability(i);
+                }
+                if (value.getKind() != Kind.Int || !x.isSorted()) {
+                    // hopefully only a few entries
+                    emitStrategySwitch(new SwitchStrategy.SequentialStrategy(keyProbabilities, keyConstants), value, keyTargets, defaultTarget);
                 } else {
-                    emitSequentialSwitch(x, value, defaultTarget);
+                    emitStrategySwitch(keyConstants, keyProbabilities, keyTargets, defaultTarget, value);
                 }
             }
         }
     }
 
-    protected void emitSequentialSwitch(final SwitchNode x, Variable key, LabelRef defaultTarget) {
-        int keyCount = x.keyCount();
-        Integer[] indexes = Util.createSortedPermutation(keyCount, new Comparator<Integer>() {
-
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return x.keyProbability(o1) < x.keyProbability(o2) ? 1 : x.keyProbability(o1) > x.keyProbability(o2) ? -1 : 0;
+    protected void emitStrategySwitch(Constant[] keyConstants, double[] keyProbabilities, LabelRef[] keyTargets, LabelRef defaultTarget, Variable value) {
+        int keyCount = keyConstants.length;
+        SwitchStrategy strategy = SwitchStrategy.getBestStrategy(keyProbabilities, keyConstants, keyTargets);
+        long valueRange = keyConstants[keyCount - 1].asLong() - keyConstants[0].asLong() + 1;
+        double tableSwitchDensity = keyCount / (double) valueRange;
+        /*
+         * This heuristic tries to find a compromise between the effort for the best switch strategy
+         * and the density of a tableswitch. If the effort for the strategy is at least 4, then a
+         * tableswitch is preferred if better than a certain value that starts at 0.5 and lowers
+         * gradually with additional effort.
+         */
+        if (strategy.getAverageEffort() < 4 || tableSwitchDensity < (1 / Math.sqrt(strategy.getAverageEffort()))) {
+            emitStrategySwitch(strategy, value, keyTargets, defaultTarget);
+        } else {
+            int minValue = keyConstants[0].asInt();
+            assert valueRange < Integer.MAX_VALUE;
+            LabelRef[] targets = new LabelRef[(int) valueRange];
+            for (int i = 0; i < valueRange; i++) {
+                targets[i] = defaultTarget;
             }
-        });
-        LabelRef[] keyTargets = new LabelRef[keyCount];
-        Constant[] keyConstants = new Constant[keyCount];
-        for (int i = 0; i < keyCount; i++) {
-            keyTargets[i] = getLIRBlock(x.keySuccessor(indexes[i]));
-            keyConstants[i] = x.keyAt(indexes[i]);
+            for (int i = 0; i < keyCount; i++) {
+                targets[keyConstants[i].asInt() - minValue] = keyTargets[i];
+            }
+            emitTableSwitch(minValue, defaultTarget, targets, value);
         }
-        emitSequentialSwitch(keyConstants, keyTargets, defaultTarget, key);
     }
 
-    protected abstract void emitSequentialSwitch(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key);
-
-    protected abstract void emitSwitchRanges(int[] lowKeys, int[] highKeys, LabelRef[] targets, LabelRef defaultTarget, Value key);
+    protected abstract void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget);
 
     protected abstract void emitTableSwitch(int lowKey, LabelRef defaultTarget, LabelRef[] targets, Value key);
-
-    private static int switchRangeCount(SwitchNode x) {
-        int keyCount = x.keyCount();
-        int switchRangeCount = 0;
-        int defaultSux = x.defaultSuccessorIndex();
-
-        int key = x.keyAt(0).asInt();
-        int sux = x.keySuccessorIndex(0);
-        for (int i = 0; i < keyCount; i++) {
-            int newKey = x.keyAt(i).asInt();
-            int newSux = x.keySuccessorIndex(i);
-            if (newSux != defaultSux && (newKey != key + 1 || sux != newSux)) {
-                switchRangeCount++;
-            }
-            key = newKey;
-            sux = newSux;
-        }
-        return switchRangeCount;
-    }
-
-    private void emitSwitchRanges(SwitchNode x, int switchRangeCount, Variable keyValue, LabelRef defaultTarget) {
-        assert switchRangeCount >= 1 : "switch ranges should not be used for emitting only the default case";
-
-        int[] lowKeys = new int[switchRangeCount];
-        int[] highKeys = new int[switchRangeCount];
-        LabelRef[] targets = new LabelRef[switchRangeCount];
-
-        int keyCount = x.keyCount();
-        int defaultSuccessor = x.defaultSuccessorIndex();
-
-        int current = -1;
-        int key = -1;
-        int successor = -1;
-        for (int i = 0; i < keyCount; i++) {
-            int newSuccessor = x.keySuccessorIndex(i);
-            int newKey = x.keyAt(i).asInt();
-            if (newSuccessor != defaultSuccessor) {
-                if (key + 1 == newKey && successor == newSuccessor) {
-                    // still in same range
-                    highKeys[current] = newKey;
-                } else {
-                    current++;
-                    lowKeys[current] = newKey;
-                    highKeys[current] = newKey;
-                    targets[current] = getLIRBlock(x.blockSuccessor(newSuccessor));
-                }
-            }
-            key = newKey;
-            successor = newSuccessor;
-        }
-        assert current == switchRangeCount - 1;
-        emitSwitchRanges(lowKeys, highKeys, targets, defaultTarget, keyValue);
-    }
 
     public FrameMap frameMap() {
         return frameMap;
@@ -856,10 +870,74 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     @Override
     public void beforeRegisterAllocation() {
+        insertConstantLoads();
     }
 
     /**
-     * Gets an garbage vale for a given kind.
+     * Moves deferred {@linkplain LoadConstant loads} of constants into blocks dominating all usages
+     * of the constant. Any operations inserted into a block are guaranteed to be immediately prior
+     * to the first control flow instruction near the end of the block.
+     */
+    private void insertConstantLoads() {
+        if (constantLoads != null) {
+            // Remove loads where all usages are in the same block.
+            for (Iterator<Map.Entry<Constant, LoadConstant>> iter = constantLoads.entrySet().iterator(); iter.hasNext();) {
+                LoadConstant lc = iter.next().getValue();
+                if (lc.index != -1) {
+                    assert lir.lir(lc.block).get(lc.index) == lc.op;
+                    iter.remove();
+                }
+            }
+            if (constantLoads.isEmpty()) {
+                return;
+            }
+
+            // Sorting groups the loads per block.
+            LoadConstant[] groupedByBlock = constantLoads.values().toArray(new LoadConstant[constantLoads.size()]);
+            Arrays.sort(groupedByBlock);
+
+            int groupBegin = 0;
+            while (true) {
+                int groupEnd = groupBegin + 1;
+                Block block = groupedByBlock[groupBegin].block;
+                while (groupEnd < groupedByBlock.length && groupedByBlock[groupEnd].block == block) {
+                    groupEnd++;
+                }
+                int groupSize = groupEnd - groupBegin;
+
+                List<LIRInstruction> ops = lir.lir(block);
+                int lastIndex = ops.size() - 1;
+                assert ops.get(lastIndex) instanceof BlockEndOp;
+                int insertionIndex = lastIndex;
+                for (int i = Math.max(0, lastIndex - MAX_EXCEPTION_EDGE_OP_DISTANCE_FROM_END); i < lastIndex; i++) {
+                    if (getExceptionEdge(ops.get(i)) != null) {
+                        insertionIndex = i;
+                        break;
+                    }
+                }
+
+                if (groupSize == 1) {
+                    ops.add(insertionIndex, groupedByBlock[groupBegin].op);
+                } else {
+                    assert groupSize > 1;
+                    List<LIRInstruction> moves = new ArrayList<>(groupSize);
+                    for (int i = groupBegin; i < groupEnd; i++) {
+                        moves.add(groupedByBlock[i].op);
+                    }
+                    ops.addAll(insertionIndex, moves);
+                }
+
+                if (groupEnd == groupedByBlock.length) {
+                    break;
+                }
+                groupBegin = groupEnd;
+            }
+            constantLoads = null;
+        }
+    }
+
+    /**
+     * Gets a garbage value for a given kind.
      */
     protected Constant zapValueForKind(PlatformKind kind) {
         long dead = 0xDEADDEADDEADDEADL;

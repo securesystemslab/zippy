@@ -50,8 +50,7 @@ import com.oracle.graal.lir.sparc.SPARCControlFlow.BranchOp;
 import com.oracle.graal.lir.sparc.SPARCControlFlow.CondMoveOp;
 import com.oracle.graal.lir.sparc.SPARCControlFlow.FloatCondMoveOp;
 import com.oracle.graal.lir.sparc.SPARCControlFlow.ReturnOp;
-import com.oracle.graal.lir.sparc.SPARCControlFlow.SequentialSwitchOp;
-import com.oracle.graal.lir.sparc.SPARCControlFlow.SwitchRangesOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.StrategySwitchOp;
 import com.oracle.graal.lir.sparc.SPARCControlFlow.TableSwitchOp;
 import com.oracle.graal.lir.sparc.SPARCMove.LoadAddressOp;
 import com.oracle.graal.lir.sparc.SPARCMove.MembarOp;
@@ -231,7 +230,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label) {
+    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination) {
         boolean mirrored = emitCompare(left, right);
         Condition finalCondition = mirrored ? cond.mirror() : cond;
         Kind kind = left.getKind().getStackKind();
@@ -239,7 +238,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
             case Int:
             case Long:
             case Object:
-                append(new BranchOp(finalCondition, label, kind));
+                append(new BranchOp(finalCondition, trueDestination, falseDestination, kind));
                 break;
             // case Float:
             // append(new CompareOp(FCMP, x, y));
@@ -255,15 +254,15 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitOverflowCheckBranch(LabelRef label, boolean negated) {
+    public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated) {
         // append(new BranchOp(negated ? ConditionFlag.NoOverflow : ConditionFlag.Overflow, label));
         throw GraalInternalError.unimplemented();
     }
 
     @Override
-    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label) {
+    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination) {
         emitIntegerTest(left, right);
-        append(new BranchOp(negated ? Condition.NE : Condition.EQ, label, left.getKind().getStackKind()));
+        append(new BranchOp(negated ? Condition.NE : Condition.EQ, trueDestination, falseDestination, left.getKind().getStackKind()));
     }
 
     private void emitIntegerTest(Value a, Value b) {
@@ -359,16 +358,10 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected void emitSequentialSwitch(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key) {
-        // Making a copy of the switch value is necessary because jump table destroys the input
-        // value
-        assert key.getKind() == Kind.Int || key.getKind() == Kind.Long || key.getKind() == Kind.Object : key.getKind();
-        append(new SequentialSwitchOp(keyConstants, keyTargets, defaultTarget, key, newVariable(key.getKind())));
-    }
-
-    @Override
-    protected void emitSwitchRanges(int[] lowKeys, int[] highKeys, LabelRef[] targets, LabelRef defaultTarget, Value key) {
-        append(new SwitchRangesOp(lowKeys, highKeys, targets, defaultTarget, key));
+    protected void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
+        // a temp is needed for loading long and object constants
+        boolean needsTemp = key.getKind() == Kind.Long || key.getKind() == Kind.Object;
+        append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, needsTemp ? newVariable(key.getKind()) : Value.ILLEGAL));
     }
 
     @Override

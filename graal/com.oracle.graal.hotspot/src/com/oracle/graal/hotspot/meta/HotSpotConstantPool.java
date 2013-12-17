@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,20 +37,13 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
 
     private static final long serialVersionUID = -5443206401485234850L;
 
-    private final HotSpotResolvedObjectType type;
-
-    public HotSpotConstantPool(HotSpotResolvedObjectType type) {
-        this.type = type;
-    }
-
     /**
-     * Returns the address of this type's constant pool ({@code InstanceKlass::_constants}).
-     * 
-     * @return native address of this type's constant pool
+     * Reference to the C++ ConstantPool object.
      */
-    private long getAddress() {
-        HotSpotVMConfig config = runtime().getConfig();
-        return unsafe.getAddress(type.metaspaceKlass() + config.instanceKlassConstantsOffset);
+    private final long metaspaceConstantPool;
+
+    public HotSpotConstantPool(long metaspaceConstantPool) {
+        this.metaspaceConstantPool = metaspaceConstantPool;
     }
 
     /**
@@ -62,7 +55,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private int getTagAt(int index) {
         assertBounds(index);
         HotSpotVMConfig config = runtime().getConfig();
-        long tags = unsafe.getAddress(getAddress() + config.constantPoolTagsOffset);
+        long tags = unsafe.getAddress(metaspaceConstantPool + config.constantPoolTagsOffset);
         return unsafe.getByteVolatile(null, tags + config.arrayU1DataOffset + index);
     }
 
@@ -75,7 +68,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private long getEntryAt(int index) {
         assertBounds(index);
         HotSpotVMConfig config = runtime().getConfig();
-        return unsafe.getAddress(getAddress() + config.constantPoolSize + index * runtime().getTarget().wordSize);
+        return unsafe.getAddress(metaspaceConstantPool + config.constantPoolSize + index * runtime().getTarget().wordSize);
     }
 
     /**
@@ -87,7 +80,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private int getIntAt(int index) {
         HotSpotVMConfig config = runtime().getConfig();
         assertTag(index, config.jvmConstantInteger);
-        return unsafe.getInt(getAddress() + config.constantPoolSize + index * runtime().getTarget().wordSize);
+        return unsafe.getInt(metaspaceConstantPool + config.constantPoolSize + index * runtime().getTarget().wordSize);
     }
 
     /**
@@ -99,7 +92,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private long getLongAt(int index) {
         HotSpotVMConfig config = runtime().getConfig();
         assertTag(index, config.jvmConstantLong);
-        return unsafe.getLong(getAddress() + config.constantPoolSize + index * runtime().getTarget().wordSize);
+        return unsafe.getLong(metaspaceConstantPool + config.constantPoolSize + index * runtime().getTarget().wordSize);
     }
 
     /**
@@ -111,7 +104,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private float getFloatAt(int index) {
         HotSpotVMConfig config = runtime().getConfig();
         assertTag(index, config.jvmConstantFloat);
-        return unsafe.getFloat(getAddress() + config.constantPoolSize + index * runtime().getTarget().wordSize);
+        return unsafe.getFloat(metaspaceConstantPool + config.constantPoolSize + index * runtime().getTarget().wordSize);
     }
 
     /**
@@ -123,7 +116,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     private double getDoubleAt(int index) {
         HotSpotVMConfig config = runtime().getConfig();
         assertTag(index, config.jvmConstantDouble);
-        return unsafe.getDouble(getAddress() + config.constantPoolSize + index * runtime().getTarget().wordSize);
+        return unsafe.getDouble(metaspaceConstantPool + config.constantPoolSize + index * runtime().getTarget().wordSize);
     }
 
     /**
@@ -132,7 +125,7 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
      * @param index constant pool index
      */
     private void assertBounds(int index) {
-        assert 0 <= index && index < length() : "index " + index + " not between 0 or " + length();
+        assert 0 <= index && index < length() : "index " + index + " not between 0 and " + length();
     }
 
     /**
@@ -142,13 +135,69 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
      * @param tag expected tag
      */
     private void assertTag(int index, int tag) {
-        assert getTagAt(index) == tag : "constant pool tag at index " + index + " is " + getTagAt(index) + " but expected " + tag;
+        assert getTagAt(index) == tag : "constant pool tag at index " + index + " is " + getNameForTag(getTagAt(index)) + " but expected " + getNameForTag(tag);
+    }
+
+    private static String getNameForTag(int tag) {
+        HotSpotVMConfig config = runtime().getConfig();
+        if (tag == config.jvmConstantUtf8) {
+            return "JVM_CONSTANT_Utf8";
+        }
+        if (tag == config.jvmConstantInteger) {
+            return "JVM_CONSTANT_Integer";
+        }
+        if (tag == config.jvmConstantLong) {
+            return "JVM_CONSTANT_Long";
+        }
+        if (tag == config.jvmConstantFloat) {
+            return "JVM_CONSTANT_Float";
+        }
+        if (tag == config.jvmConstantDouble) {
+            return "JVM_CONSTANT_Double";
+        }
+        if (tag == config.jvmConstantClass) {
+            return "JVM_CONSTANT_Class";
+        }
+        if (tag == config.jvmConstantUnresolvedClass) {
+            return "JVM_CONSTANT_UnresolvedClass";
+        }
+        if (tag == config.jvmConstantUnresolvedClassInError) {
+            return "JVM_CONSTANT_UnresolvedClassInError";
+        }
+        if (tag == config.jvmConstantString) {
+            return "JVM_CONSTANT_String";
+        }
+        if (tag == config.jvmConstantFieldref) {
+            return "JVM_CONSTANT_Fieldref";
+        }
+        if (tag == config.jvmConstantMethodref) {
+            return "JVM_CONSTANT_Methodref";
+        }
+        if (tag == config.jvmConstantInterfaceMethodref) {
+            return "JVM_CONSTANT_InterfaceMethodref";
+        }
+        if (tag == config.jvmConstantNameAndType) {
+            return "JVM_CONSTANT_NameAndType";
+        }
+        if (tag == config.jvmConstantMethodHandle) {
+            return "JVM_CONSTANT_MethodHandle";
+        }
+        if (tag == config.jvmConstantMethodHandleInError) {
+            return "JVM_CONSTANT_MethodHandleInError";
+        }
+        if (tag == config.jvmConstantMethodType) {
+            return "JVM_CONSTANT_MethodType";
+        }
+        if (tag == config.jvmConstantMethodTypeInError) {
+            return "JVM_CONSTANT_MethodTypeInError";
+        }
+        return "unknown constant tag " + tag;
     }
 
     @Override
     public int length() {
         HotSpotVMConfig config = runtime().getConfig();
-        return unsafe.getInt(getAddress() + config.constantPoolLengthOffset);
+        return unsafe.getInt(metaspaceConstantPool + config.constantPoolLengthOffset);
     }
 
     @Override
@@ -178,11 +227,11 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
             return lookupType(cpi, opcode);
         }
         if (tag == config.jvmConstantString) {
-            Object string = runtime().getCompilerToVM().lookupConstantInPool(type, cpi);
+            Object string = runtime().getCompilerToVM().lookupConstantInPool(metaspaceConstantPool, cpi);
             return Constant.forObject(string);
         }
         if (tag == config.jvmConstantMethodHandle || tag == config.jvmConstantMethodHandleInError || tag == config.jvmConstantMethodType || tag == config.jvmConstantMethodTypeInError) {
-            Object obj = runtime().getCompilerToVM().lookupConstantInPool(type, cpi);
+            Object obj = runtime().getCompilerToVM().lookupConstantInPool(metaspaceConstantPool, cpi);
             return Constant.forObject(obj);
         }
 
@@ -205,26 +254,26 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     @Override
     public Object lookupAppendix(int cpi, int opcode) {
         assert Bytecodes.isInvoke(opcode);
-        return runtime().getCompilerToVM().lookupAppendixInPool(type, cpi, (byte) opcode);
+        return runtime().getCompilerToVM().lookupAppendixInPool(metaspaceConstantPool, cpi, (byte) opcode);
     }
 
     @Override
     public JavaMethod lookupMethod(int cpi, int opcode) {
-        return runtime().getCompilerToVM().lookupMethodInPool(type, cpi, (byte) opcode);
+        return runtime().getCompilerToVM().lookupMethodInPool(metaspaceConstantPool, cpi, (byte) opcode);
     }
 
     @Override
     public JavaType lookupType(int cpi, int opcode) {
-        return runtime().getCompilerToVM().lookupTypeInPool(type, cpi);
+        return runtime().getCompilerToVM().lookupTypeInPool(metaspaceConstantPool, cpi);
     }
 
     @Override
     public JavaField lookupField(int cpi, int opcode) {
-        return runtime().getCompilerToVM().lookupFieldInPool(type, cpi, (byte) opcode);
+        return runtime().getCompilerToVM().lookupFieldInPool(metaspaceConstantPool, cpi, (byte) opcode);
     }
 
     @Override
     public void loadReferencedType(int cpi, int opcode) {
-        runtime().getCompilerToVM().lookupReferencedTypeInPool(type, cpi, (byte) opcode);
+        runtime().getCompilerToVM().lookupReferencedTypeInPool(metaspaceConstantPool, cpi, (byte) opcode);
     }
 }

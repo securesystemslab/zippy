@@ -69,39 +69,41 @@ public final class VirtualUtil {
         for (Node node : graph.getNodes()) {
             if (flood.isMarked(node)) {
                 for (Node input : node.inputs()) {
-                    if (!input.isExternal()) {
-                        flood.add(input);
-                        if (!path.containsKey(input)) {
-                            path.put(input, node);
-                        }
+                    flood.add(input);
+                    if (!path.containsKey(input)) {
+                        path.put(input, node);
                     }
                 }
             }
         }
         for (Node current : flood) {
             for (Node input : current.inputs()) {
-                if (!input.isExternal()) {
-                    flood.add(input);
-                    if (!path.containsKey(input)) {
-                        path.put(input, current);
-                    }
+                flood.add(input);
+                if (!path.containsKey(input)) {
+                    path.put(input, current);
                 }
             }
         }
         boolean success = true;
         for (Node node : obsoleteNodes) {
             if (flood.isMarked(node)) {
-                TTY.print("offending node path:");
+                TTY.println("offending node path:");
                 Node current = node;
-                while (current != null) {
-                    TTY.println(current.toString());
+                TTY.print(current.toString());
+                while (true) {
                     current = path.get(current);
-                    if (current != null && current instanceof FixedNode && !obsoleteNodes.contains(current)) {
-                        break;
+                    if (current != null) {
+                        TTY.print(" -> " + current.toString());
+                        if (current instanceof FixedNode && !obsoleteNodes.contains(current)) {
+                            break;
+                        }
                     }
                 }
                 success = false;
             }
+        }
+        if (!success) {
+            TTY.println();
         }
         return success;
     }

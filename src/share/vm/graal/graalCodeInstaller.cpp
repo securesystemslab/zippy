@@ -143,7 +143,7 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
     jlong prim = Constant::primitive(constant);
     if (obj != NULL) {
       if (obj->is_a(HotSpotResolvedObjectType::klass())) {
-        Klass* klass = (Klass*) (address) HotSpotResolvedObjectType::metaspaceKlass(obj);
+        Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(obj));
         assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
         int index = oop_recorder->find_index(klass);
         TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
@@ -247,7 +247,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   } else if (value->is_a(VirtualObject::klass())) {
     oop type = VirtualObject::type(value);
     int id = VirtualObject::id(value);
-    oop javaMirror = HotSpotResolvedObjectType::javaMirror(type);
+    oop javaMirror = HotSpotResolvedObjectType::javaClass(type);
     Klass* klass = java_lang_Class::as_Klass(javaMirror);
     bool isLongArray = klass == Universe::longArrayKlassObj();
 
@@ -549,15 +549,15 @@ void CodeInstaller::assumption_MethodContents(Handle assumption) {
 
 void CodeInstaller::assumption_NoFinalizableSubclass(Handle assumption) {
   Handle receiverType_handle = Assumptions_NoFinalizableSubclass::receiverType(assumption());
-  Klass* receiverType = asKlass(HotSpotResolvedObjectType::metaspaceKlass(receiverType_handle));
+  Klass* receiverType = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(receiverType_handle));
   _dependencies->assert_has_no_finalizable_subclasses(receiverType);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Handle context_handle = Assumptions_ConcreteSubtype::context(assumption());
   Handle subtype_handle = Assumptions_ConcreteSubtype::subtype(assumption());
-  Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
-  Klass* subtype = asKlass(HotSpotResolvedObjectType::metaspaceKlass(subtype_handle));
+  Klass* context = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(context_handle));
+  Klass* subtype = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(subtype_handle));
 
   _dependencies->assert_leaf_type(subtype);
   if (context != subtype) {
@@ -571,7 +571,7 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   Handle context_handle = Assumptions_ConcreteMethod::context(assumption());
 
   methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
-  Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
+  Klass* context = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(context_handle));
 
   _dependencies->assert_unique_concrete_method(context, impl());
 }

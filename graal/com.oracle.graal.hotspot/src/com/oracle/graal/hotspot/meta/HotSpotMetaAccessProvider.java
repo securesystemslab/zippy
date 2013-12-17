@@ -22,12 +22,13 @@
  */
 package com.oracle.graal.hotspot.meta;
 
+import static com.oracle.graal.graph.UnsafeAccess.*;
+
 import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.bridge.*;
 
 /**
  * HotSpot implementation of {@link MetaAccessProvider}.
@@ -59,24 +60,68 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
         return new HotSpotSignature(signature);
     }
 
+    /**
+     * {@link Field} object of {@link Method#slot}.
+     */
+    @SuppressWarnings("javadoc") private Field reflectionMethodSlot = getReflectionSlotField(Method.class);
+
+    /**
+     * {@link Field} object of {@link Constructor#slot}.
+     */
+    @SuppressWarnings("javadoc") private Field reflectionConstructorSlot = getReflectionSlotField(Constructor.class);
+
+    private static Field getReflectionSlotField(Class<?> reflectionClass) {
+        try {
+            Field field = reflectionClass.getDeclaredField("slot");
+            field.setAccessible(true);
+            return field;
+        } catch (NoSuchFieldException | SecurityException e) {
+            throw new GraalInternalError(e);
+        }
+    }
+
     public ResolvedJavaMethod lookupJavaMethod(Method reflectionMethod) {
-        CompilerToVM c2vm = runtime.getCompilerToVM();
-        HotSpotResolvedObjectType[] resultHolder = {null};
-        long metaspaceMethod = c2vm.getMetaspaceMethod(reflectionMethod, resultHolder);
-        assert metaspaceMethod != 0L;
-        return resultHolder[0].createMethod(metaspaceMethod);
+        try {
+            Class<?> holder = reflectionMethod.getDeclaringClass();
+            final int slot = reflectionMethodSlot.getInt(reflectionMethod);
+            final long metaspaceMethod = runtime.getCompilerToVM().getMetaspaceMethod(holder, slot);
+            return HotSpotResolvedJavaMethod.fromMetaspace(metaspaceMethod);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw new GraalInternalError(e);
+        }
     }
 
     public ResolvedJavaMethod lookupJavaConstructor(Constructor reflectionConstructor) {
-        CompilerToVM c2vm = runtime.getCompilerToVM();
-        HotSpotResolvedObjectType[] resultHolder = {null};
-        long metaspaceMethod = c2vm.getMetaspaceConstructor(reflectionConstructor, resultHolder);
-        assert metaspaceMethod != 0L;
-        return resultHolder[0].createMethod(metaspaceMethod);
+        try {
+            Class<?> holder = reflectionConstructor.getDeclaringClass();
+            final int slot = reflectionConstructorSlot.getInt(reflectionConstructor);
+            final long metaspaceMethod = runtime.getCompilerToVM().getMetaspaceMethod(holder, slot);
+            return HotSpotResolvedJavaMethod.fromMetaspace(metaspaceMethod);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw new GraalInternalError(e);
+        }
     }
 
     public ResolvedJavaField lookupJavaField(Field reflectionField) {
-        return runtime.getCompilerToVM().getJavaField(reflectionField);
+        String name = reflectionField.getName();
+        Class<?> fieldHolder = reflectionField.getDeclaringClass();
+        Class<?> fieldType = reflectionField.getType();
+        // java.lang.reflect.Field's modifiers should be enough here since VM internal modifier bits
+        // are not used (yet).
+        final int modifiers = reflectionField.getModifiers();
+        final long offset = Modifier.isStatic(modifiers) ? unsafe.staticFieldOffset(reflectionField) : unsafe.objectFieldOffset(reflectionField);
+        final boolean internal = false;
+
+        ResolvedJavaType holder = HotSpotResolvedObjectType.fromClass(fieldHolder);
+        ResolvedJavaType type = HotSpotResolvedObjectType.fromClass(fieldType);
+
+        if (offset != -1) {
+            HotSpotResolvedObjectType resolved = (HotSpotResolvedObjectType) holder;
+            return resolved.createField(name, type, offset, modifiers, internal);
+        } else {
+            // TODO this cast will not succeed
+            return (ResolvedJavaField) new HotSpotUnresolvedField(holder, name, type);
+        }
     }
 
     private static int intMaskRight(int n) {

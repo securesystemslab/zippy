@@ -23,8 +23,6 @@
 
 package com.oracle.graal.hotspot.bridge;
 
-import java.lang.reflect.*;
-
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
@@ -45,9 +43,7 @@ public interface CompilerToVM {
      */
     byte[] initializeBytecode(long metaspaceMethod, byte[] code);
 
-    String getSignature(long metaspaceMethod);
-
-    ExceptionHandler[] initializeExceptionHandlers(long metaspaceMethod, ExceptionHandler[] handlers);
+    long exceptionTableStart(long metaspaceMethod);
 
     /**
      * Determines if a given metaspace Method object has balanced monitors.
@@ -113,17 +109,17 @@ public interface CompilerToVM {
      */
     JavaType lookupType(String name, HotSpotResolvedObjectType accessingClass, boolean eagerResolve);
 
-    Object lookupConstantInPool(HotSpotResolvedObjectType pool, int cpi);
+    Object lookupConstantInPool(long metaspaceConstantPool, int cpi);
 
-    JavaMethod lookupMethodInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
+    JavaMethod lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
 
-    JavaType lookupTypeInPool(HotSpotResolvedObjectType pool, int cpi);
+    JavaType lookupTypeInPool(long metaspaceConstantPool, int cpi);
 
-    JavaField lookupFieldInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
+    JavaField lookupFieldInPool(long metaspaceConstantPool, int cpi, byte opcode);
 
-    void lookupReferencedTypeInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
+    void lookupReferencedTypeInPool(long metaspaceConstantPool, int cpi, byte opcode);
 
-    Object lookupAppendixInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
+    Object lookupAppendixInPool(long metaspaceConstantPool, int cpi, byte opcode);
 
     public enum CodeInstallResult {
         OK("ok"), DEPENDENCIES_FAILED("dependencies failed"), CACHE_FULL("code cache is full"), CODE_TOO_LARGE("code is too large");
@@ -199,13 +195,9 @@ public interface CompilerToVM {
 
     JavaMethod resolveMethod(HotSpotResolvedObjectType klass, String name, String signature);
 
-    void initializeType(HotSpotResolvedObjectType klass);
-
-    ResolvedJavaType getResolvedType(Class<?> javaClass);
-
     HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
 
-    HotSpotResolvedJavaMethod[] getMethods(HotSpotResolvedObjectType klass);
+    long getClassInitializer(HotSpotResolvedObjectType klass);
 
     boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
 
@@ -218,17 +210,14 @@ public interface CompilerToVM {
     int getCompiledCodeSize(long metaspaceMethod);
 
     /**
-     * Gets the metaspace Method object corresponding to a given reflection {@link Method} object.
+     * Gets the metaspace Method object corresponding to a given {@link Class} object and slot
+     * number.
      * 
-     * @param reflectionMethod
-     * @param resultHolder the holder of the result is put in element 0 of this array
-     * @return the metaspace Method result for {@code reflectionMethod}
+     * @param holder method holder
+     * @param slot slot number of the method
+     * @return the metaspace Method
      */
-    long getMetaspaceMethod(Method reflectionMethod, HotSpotResolvedObjectType[] resultHolder);
-
-    long getMetaspaceConstructor(Constructor reflectionConstructor, HotSpotResolvedObjectType[] resultHolder);
-
-    HotSpotResolvedJavaField getJavaField(Field reflectionField);
+    long getMetaspaceMethod(Class<?> holder, int slot);
 
     long getMaxCallTargetOffset(long address);
 
@@ -244,7 +233,9 @@ public interface CompilerToVM {
 
     long[] getLineNumberTable(HotSpotResolvedJavaMethod method);
 
-    Local[] getLocalVariableTable(HotSpotResolvedJavaMethod method);
+    long getLocalVariableTableStart(HotSpotResolvedJavaMethod method);
+
+    int getLocalVariableTableLength(HotSpotResolvedJavaMethod method);
 
     String getFileName(HotSpotResolvedJavaType method);
 

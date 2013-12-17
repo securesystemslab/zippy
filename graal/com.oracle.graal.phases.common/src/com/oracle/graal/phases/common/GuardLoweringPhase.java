@@ -27,6 +27,7 @@ import static com.oracle.graal.phases.GraalOptions.*;
 import java.util.*;
 import java.util.Map.Entry;
 
+import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
@@ -34,7 +35,6 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.util.*;
-import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.graph.*;
 import com.oracle.graal.phases.schedule.*;
@@ -54,13 +54,6 @@ import com.oracle.graal.phases.tiers.*;
  * does the actual control-flow expansion of the remaining {@link GuardNode GuardNodes}.
  */
 public class GuardLoweringPhase extends BasePhase<MidTierContext> {
-    static class Options {
-        //@formatter:off
-        @Option(help = "")
-        public static final OptionValue<Boolean> UseGuardIdAsSpeculationId = new OptionValue<>(false);
-        //@formatter:on
-    }
-
     private static class UseImplicitNullChecks extends ScheduledNodeIterator {
 
         private final IdentityHashMap<ValueNode, GuardNode> nullGuarded = new IdentityHashMap<>();
@@ -95,12 +88,13 @@ public class GuardLoweringPhase extends BasePhase<MidTierContext> {
             GuardNode guard = nullGuarded.get(access.object());
             if (guard != null && isImplicitNullCheck(access.nullCheckLocation())) {
                 access.setGuard(guard.getGuard());
-                Access fixedAccess = access;
+                FixedAccessNode fixedAccess;
                 if (access instanceof FloatingAccessNode) {
                     fixedAccess = ((FloatingAccessNode) access).asFixedNode();
-                    replaceCurrent((FixedWithNextNode) fixedAccess.asNode());
+                    replaceCurrent(fixedAccess.asNode());
+                } else {
+                    fixedAccess = (FixedAccessNode) access;
                 }
-                assert fixedAccess instanceof FixedNode;
                 fixedAccess.setNullCheck(true);
                 LogicNode condition = guard.condition();
                 guard.replaceAndDelete(fixedAccess.asNode());
@@ -133,9 +127,9 @@ public class GuardLoweringPhase extends BasePhase<MidTierContext> {
         private final Block block;
         private boolean useGuardIdAsSpeculationId;
 
-        public LowerGuards(Block block) {
+        public LowerGuards(Block block, boolean useGuardIdAsSpeculationId) {
             this.block = block;
-            this.useGuardIdAsSpeculationId = Options.UseGuardIdAsSpeculationId.getValue();
+            this.useGuardIdAsSpeculationId = useGuardIdAsSpeculationId;
         }
 
         @Override
@@ -185,20 +179,23 @@ public class GuardLoweringPhase extends BasePhase<MidTierContext> {
 
     @Override
     protected void run(StructuredGraph graph, MidTierContext context) {
-        SchedulePhase schedule = new SchedulePhase(SchedulingStrategy.EARLIEST);
-        schedule.apply(graph);
+        if (graph.getGuardsStage().ordinal() < GuardsStage.FIXED_DEOPTS.ordinal()) {
+            SchedulePhase schedule = new SchedulePhase(SchedulingStrategy.EARLIEST);
+            schedule.apply(graph);
 
-        for (Block block : schedule.getCFG().getBlocks()) {
-            processBlock(block, schedule, context.getTarget().implicitNullCheckLimit);
+            for (Block block : schedule.getCFG().getBlocks()) {
+                processBlock(block, schedule, context != null ? context.getTarget().implicitNullCheckLimit : 0);
+            }
+            graph.setGuardsStage(GuardsStage.FIXED_DEOPTS);
         }
 
-        graph.setGuardsStage(GuardsStage.FIXED_DEOPTS);
+        assert graph.getNodes(GuardNode.class).isEmpty();
     }
 
     private static void processBlock(Block block, SchedulePhase schedule, int implicitNullCheckLimit) {
         if (OptImplicitNullChecks.getValue() && implicitNullCheckLimit > 0) {
             new UseImplicitNullChecks(implicitNullCheckLimit).processNodes(block, schedule);
         }
-        new LowerGuards(block).processNodes(block, schedule);
+        new LowerGuards(block, Debug.isDumpEnabledForMethod() || Debug.isLogEnabledForMethod()).processNodes(block, schedule);
     }
 }

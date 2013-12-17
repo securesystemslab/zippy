@@ -44,17 +44,15 @@ import com.oracle.graal.lir.hsail.HSAILArithmetic.Op2Stack;
 import com.oracle.graal.lir.hsail.HSAILArithmetic.ShiftOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.CompareBranchOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.CondMoveOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.FloatCompareBranchOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.FloatCondMoveOp;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.ReturnOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.SwitchOp;
+import com.oracle.graal.lir.hsail.HSAILControlFlow.StrategySwitchOp;
 import com.oracle.graal.lir.hsail.HSAILMove.LeaOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MembarOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveFromRegOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveToRegOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.phases.util.*;
 
 /**
@@ -191,8 +189,8 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label) {
-        // We don't have top worry about mirroring the condition on HSAIL.
+    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination) {
+        // We don't have to worry about mirroring the condition on HSAIL.
         Condition finalCondition = cond;
         Variable result = newVariable(left.getKind());
         Kind kind = left.getKind().getStackKind();
@@ -200,11 +198,11 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
             case Int:
             case Long:
             case Object:
-                append(new CompareBranchOp(mapKindToCompareOp(kind), finalCondition, left, right, result, result, label));
+                append(new CompareBranchOp(mapKindToCompareOp(kind), finalCondition, left, right, result, result, trueDestination, falseDestination, false));
                 break;
             case Float:
             case Double:
-                append(new FloatCompareBranchOp(mapKindToCompareOp(kind), finalCondition, left, right, result, result, label, unorderedIsTrue));
+                append(new CompareBranchOp(mapKindToCompareOp(kind), finalCondition, left, right, result, result, trueDestination, falseDestination, unorderedIsTrue));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("" + left.getKind());
@@ -212,12 +210,12 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitOverflowCheckBranch(LabelRef label, boolean negated) {
+    public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated) {
         throw GraalInternalError.unimplemented();
     }
 
     @Override
-    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label) {
+    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination) {
         throw GraalInternalError.unimplemented();
     }
 
@@ -648,11 +646,61 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         throw GraalInternalError.unimplemented();
     }
 
+    /**
+     * Emits the LIR code for the {@link HSAILArithmetic#ABS} operation.
+     * 
+     * @param input the source operand
+     * @return Value representing the result of the operation
+     */
     @Override
     public Value emitMathAbs(Value input) {
-        throw GraalInternalError.unimplemented();
+        Variable result = newVariable(input.getPlatformKind());
+        append(new Op1Stack(ABS, result, input));
+        return result;
     }
 
+    /**
+     * Emits the LIR code for the {@link HSAILArithmetic#CEIL} operation.
+     * 
+     * @param input the source operand
+     * @return Value representing the result of the operation
+     */
+    public Value emitMathCeil(Value input) {
+        Variable result = newVariable(input.getPlatformKind());
+        append(new Op1Stack(CEIL, result, input));
+        return result;
+    }
+
+    /**
+     * Emits the LIR code for the {@link HSAILArithmetic#FLOOR} operation.
+     * 
+     * @param input the source operand
+     * @return Value representing the result of the operation
+     */
+    public Value emitMathFloor(Value input) {
+        Variable result = newVariable(input.getPlatformKind());
+        append(new Op1Stack(FLOOR, result, input));
+        return result;
+    }
+
+    /**
+     * Emits the LIR code for the {@link HSAILArithmetic#RINT} operation.
+     * 
+     * @param input the source operand
+     * @return Value representing the result of the operation
+     */
+    public Value emitMathRint(Value input) {
+        Variable result = newVariable(input.getPlatformKind());
+        append(new Op1Stack(RINT, result, input));
+        return result;
+    }
+
+    /**
+     * Emits the LIR code for the {@link HSAILArithmetic#SQRT} operation.
+     * 
+     * @param input the source operand
+     * @return value representing the result of the operation
+     */
     @Override
     public Value emitMathSqrt(Value input) {
         Variable result = newVariable(input.getPlatformKind());
@@ -703,17 +751,10 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      * 
      * Note: Only IntegerSwitchNodes are currently supported. The IntegerSwitchNode is the node that
      * Graal generates for any switch construct appearing in Java bytecode.
-     * 
-     * @param x the SwitchNode
      */
     @Override
-    public void emitSwitch(SwitchNode x) {
-        // get the key of the switch.
-        Variable key = load(operand(x.value()));
-        // set the default target.
-        LabelRef defaultTarget = x.defaultSuccessor() == null ? null : getLIRBlock(x.defaultSuccessor());
-        // emit a sequential switch for the specified key and default target.
-        emitSequentialSwitch(x, key, defaultTarget);
+    protected void emitStrategySwitch(Constant[] keyConstants, double[] keyProbabilities, LabelRef[] keyTargets, LabelRef defaultTarget, Variable value) {
+        emitStrategySwitch(new SwitchStrategy.SequentialStrategy(keyProbabilities, keyConstants), value, keyTargets, defaultTarget);
     }
 
     /**
@@ -728,28 +769,23 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      * handling operations related to method dispatch. We haven't yet added support for the
      * TypeSwitchNode, so for the time being we have added a check to ensure that the keys are of
      * type int. This also allows us to flag any test cases/execution paths that may trigger the
-     * creation fo a TypeSwitchNode which we don't support yet.
+     * creation of a TypeSwitchNode which we don't support yet.
      * 
      * 
-     * @param keyConstants array of key constants used for the case statements.
+     * @param strategy the strategy used for this switch.
      * @param keyTargets array of branch targets for each of the cases.
      * @param defaultTarget the branch target for the default case.
      * @param key the key that is compared against the key constants in the case statements.
      */
     @Override
-    protected void emitSequentialSwitch(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key) {
+    protected void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
         if (key.getKind() == Kind.Int) {
             // Append the LIR instruction for generating compare and branch instructions.
-            append(new SwitchOp(keyConstants, keyTargets, defaultTarget, key));
+            append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key));
         } else {
             // Throw an exception if the keys aren't ints.
             throw GraalInternalError.unimplemented("Switch statements are only supported for keys of type int");
         }
-    }
-
-    @Override
-    protected void emitSwitchRanges(int[] lowKeys, int[] highKeys, LabelRef[] targets, LabelRef defaultTarget, Value key) {
-        throw GraalInternalError.unimplemented();
     }
 
     @Override

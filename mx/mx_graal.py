@@ -808,7 +808,7 @@ def _run_tests(args, harness, annotations, testfile):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations):
+def _unittest(args, annotations, prefixcp=""):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -830,9 +830,9 @@ def _unittest(args, annotations):
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile)
@@ -981,6 +981,10 @@ def _basic_gate_body(args, tasks):
 
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
+            if 'eclipse' in str(test) and mx.java().version >= mx.JavaVersion('1.8'):
+                # DaCapo eclipse doesn't not run under JDK8
+                continue
+
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
@@ -1132,13 +1136,18 @@ def gv(args):
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
-    if (mx.java().version >= mx.JavaVersion('1.8')) :
-        mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
+    env = os.environ.copy()
+    if mx.java().version >= mx.JavaVersion('1.8'):
+        jdk7 = mx.get_env('JAVA7_HOME', None)
+        if jdk7:
+            env['JAVA_HOME'] = jdk7
+        else:
+            mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
             mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
 
 def bench(args):
     """run benchmarks and parse their output for results
@@ -1383,6 +1392,20 @@ def sl(args):
     vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
 
+def trufflejar(args=None):
+    """make truffle.jar"""
+    
+    # Test with the built classes
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
+    
+    # We use the DSL processor as the starting point for the classpath - this
+    # therefore includes the DSL processor, the DSL and the API.
+    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
+    
+    # Test with the JAR
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
+
+
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
@@ -1444,7 +1467,8 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]']
+        'sl' : [sl, '[SL args|@VM options]'],
+        'trufflejar' : [trufflejar, ''],
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
@@ -1490,3 +1514,37 @@ def mx_post_parse_cmd_line(opts):  #
     _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
+
+def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
+    prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
+    print "creating", outputFile
+    filecount, totalsize = 0, 0
+    with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
+        manifest = "Manifest-Version: 1.0\n"
+        if mainClass != None:
+            manifest += "Main-Class: %s\n\n" % (mainClass)
+        zf.writestr("META-INF/MANIFEST.MF", manifest)
+        if annotationProcessor != None:
+            zf.writestr("META-INF/services/javax.annotation.processing.Processor", annotationProcessor)
+        for cp in classpath:
+            print "+", cp
+            if cp.endswith(".jar"):
+                with zipfile.ZipFile(cp, 'r') as jar:
+                    for arcname in jar.namelist():
+                        if arcname.endswith('/') or arcname == 'META-INF/MANIFEST.MF' or arcname.endswith('.java') or arcname.lower().startswith("license") or arcname in [".project", ".classpath"]:
+                            continue
+                        zf.writestr(arcname, jar.read(arcname))
+            else:
+                for root, _, files in os.walk(cp):
+                    for f in files:
+                        fullname = os.path.join(root, f)
+                        arcname = fullname[len(cp)+1:].replace('\\', '/')
+                        if f.endswith(".class"):
+                            zf.write(prefix + fullname, arcname)
+
+        for zi in zf.infolist():
+            filecount += 1
+            totalsize += zi.file_size
+    print "%d files (total size: %.2f kB, jar size: %.2f kB)" % (filecount, totalsize / 1e3, os.path.getsize(outputFile) / 1e3)
+    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r'] + (['-G'] if stripDebug else []) + [outputFile])
+    print "repacked jar size: %.2f kB" % (os.path.getsize(outputFile) / 1e3)

@@ -2369,6 +2369,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   /******************************/                                        \
                                                                           \
   declare_constant(Klass::_primary_super_limit)                           \
+  declare_constant(Klass::_lh_neutral_value)                              \
   declare_constant(Klass::_lh_instance_slow_path_bit)                     \
   declare_constant(Klass::_lh_log2_element_size_shift)                    \
   declare_constant(Klass::_lh_log2_element_size_mask)                     \

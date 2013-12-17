@@ -79,7 +79,8 @@ define_pd_global(bool, UseMembar,            false);
 // GC Ergo Flags
 define_pd_global(uintx, CMSYoungGenPerWorker, 64*M);  // default max size of CMS young gen, per GC worker thread
 
-define_pd_global(uintx, TypeProfileLevel, 111);
+// Disabled in GRAAL until HotSpotMethodData is updated to be aware of the new profiling tags
+define_pd_global(uintx, TypeProfileLevel, GRAAL_ONLY(0) NOT_GRAAL(111));
 
 #define ARCH_FLAGS(develop, product, diagnostic, experimental, notproduct) \
                                                                             \
