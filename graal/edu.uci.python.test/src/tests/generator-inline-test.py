@@ -7,7 +7,7 @@ def generator(n):
 
 def call_generator():
     for i in range(5000):
-        for i in generator(10):
+        for i in generator(100):
             item = i
 
     return item

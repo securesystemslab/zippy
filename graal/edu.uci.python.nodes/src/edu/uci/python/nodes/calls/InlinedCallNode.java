@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
@@ -50,11 +51,12 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
         return frameFactory.create(frameDescriptor, caller.pack(), argument);
     }
 
-    protected Node prepareBody(Node clonedBody) {
+    protected PNode prepareBody(PNode clonedBody) {
         clonedBody.accept(new NodeVisitor() {
 
             public boolean visit(Node node) {
                 prepareBodyNode(node);
+                assert !(node instanceof FunctionRootNode);
                 return true;
             }
 

@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * Transfer a local variable value from current frame to its caller's frame.
@@ -48,31 +49,36 @@ public abstract class FrameTransferNode extends FrameSlotNode {
 
     @Specialization(order = 0, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
-        frame.getCaller().unpack().setBoolean(frameSlot, right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setBoolean(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
-        frame.getCaller().unpack().setInt(frameSlot, value);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setInt(frameSlot, value);
         return value;
     }
 
     @Specialization(guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
-        setObject(frame.getCaller().unpack(), value);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        setObject(cargoFrame, value);
         return value;
     }
 
     @Specialization(guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
-        frame.getCaller().unpack().setDouble(frameSlot, right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setDouble(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
-        setObject(frame.getCaller().unpack(), right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        setObject(cargoFrame, right);
         return right;
     }
 

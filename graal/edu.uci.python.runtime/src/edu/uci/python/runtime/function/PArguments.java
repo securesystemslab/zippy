@@ -65,6 +65,10 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.class);
     }
 
+    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
+        return frame.getArguments(PArguments.VirtualFrameCargoArguments.class);
+    }
+
     public MaterializedFrame getGeneratorFrame() {
         assert generatorFrame != null;
         return generatorFrame;
@@ -107,6 +111,21 @@ public class PArguments extends Arguments {
 
     public int getLength() {
         return arguments.length;
+    }
+
+    public static class VirtualFrameCargoArguments extends PArguments {
+
+        private final VirtualFrame cargoFrame;
+
+        public VirtualFrameCargoArguments(Object self, MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
+            super(self, declarationFrame, null, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.cargoFrame = cargoFrame;
+        }
+
+        public VirtualFrame getCargoFrame() {
+            return cargoFrame;
+        }
+
     }
 
 }

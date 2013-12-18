@@ -37,25 +37,22 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
 
     private final PGeneratorFunction generator;
     private final Assumption globalScopeUnchanged;
-    @Child protected GeneratorRootNode generatorRoot;
+    @Child protected PNode generatorRoot;
 
-    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
+    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, GeneratorRootNode generatorRoot, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
         super(callee, arguments, generator.getFrameDescriptor().copy(), frameFactory);
         this.generator = generator;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        GeneratorRootNode original = (GeneratorRootNode) generator.getFunctionRootNode();
-        GeneratorRootNode newRoot = new GeneratorRootNode(generator.getName(), original.getUninitializedParams(), original.getUninitializedBody(), original.getUninitializedReturn());
-        /**
-         * Parked but not adopted, since RootNode should not have parent.
-         */
-        this.generatorRoot = (GeneratorRootNode) prepareBody(newRoot);
+        GeneratorRootNode original = generatorRoot;
+        PNode root = new FunctionRootNode.InlinedFunctionRootNode(generator.getName(), original.getUninitializedParams(), original.getUninitializedBody(), original.getUninitializedReturn());
+        this.generatorRoot = adoptChild(prepareBody(root));
     }
 
     public CallTarget getCallTarget() {
         return generator.getCallTarget();
     }
 
-    public GeneratorRootNode getGeneratorRoot() {
+    public PNode getGeneratorRoot() {
         return generatorRoot;
     }
 
@@ -68,7 +65,7 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         }
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments(PNone.NONE, null, args);
+        final PArguments pargs = new PArguments.VirtualFrameCargoArguments(PNone.NONE, null, frame, args);
         return generatorRoot.execute(createInlinedFrame(frame, pargs));
     }
 
