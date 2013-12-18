@@ -33,17 +33,20 @@ import com.oracle.truffle.api.nodes.*;
  */
 public class BuiltinFunctionRootNode extends RootNode {
 
+    private final String functionName;
+
     @Child protected PythonBuiltinNode builtinNode;
     private final PythonBuiltinNode uninitialized;
 
-    public BuiltinFunctionRootNode(PythonBuiltinNode builtinNode) {
+    public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
+        this.functionName = functionName;
         this.builtinNode = adoptChild(builtinNode);
         this.uninitialized = NodeUtil.cloneNode(builtinNode);
     }
 
     @Override
     public RootNode copy() {
-        return new BuiltinFunctionRootNode(NodeUtil.cloneNode(uninitialized));
+        return new BuiltinFunctionRootNode(functionName, NodeUtil.cloneNode(uninitialized));
     }
 
     @Override
@@ -53,6 +56,6 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     @Override
     public String toString() {
-        return "<Builtin function " + builtinNode.toString() + " at " + Integer.toHexString(hashCode()) + ">";
+        return "<builtin function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
     }
 }

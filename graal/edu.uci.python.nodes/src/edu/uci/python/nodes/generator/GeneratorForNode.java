@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.generator;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -49,14 +50,22 @@ public class GeneratorForNode extends LoopNode {
     @Override
     public Object execute(VirtualFrame frame) {
         executeIterator(frame);
+        int count = 0;
 
         try {
             while (true) {
                 body.executeVoid(frame);
                 target.executeWith(frame, iterator.__next__());
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
             }
         } catch (StopIterationException e) {
             iterator = null;
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         return PNone.NONE;
@@ -84,14 +93,22 @@ public class GeneratorForNode extends LoopNode {
         @Override
         public Object execute(VirtualFrame frame) {
             executeIterator(frame);
+            int count = 0;
 
             try {
                 while (true) {
                     target.executeWith(frame, iterator.__next__());
                     body.executeVoid(frame);
+
+                    if (CompilerDirectives.inInterpreter()) {
+                        count++;
+                    }
                 }
             } catch (StopIterationException e) {
                 iterator = null;
+                if (CompilerDirectives.inInterpreter()) {
+                    reportLoopCount(count);
+                }
             }
 
             return PNone.NONE;

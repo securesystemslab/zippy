@@ -29,45 +29,32 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallBuiltinFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+public class CallGeneratorInlinedNode extends CallGeneratorNode implements InlinedCallSite {
 
-    private final PBuiltinFunction function;
-    private final BuiltinFunctionRootNode functionRoot;
-    private final Assumption globalScopeUnchanged;
-    private final Assumption builtinModuleUnchanged;
     private final FrameFactory frameFactory;
-    private static final FrameDescriptor FrameDescriptor = new FrameDescriptor();
+    private final FrameDescriptor frameDescriptor;
 
-    public CallBuiltinFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged,
-                    Assumption builtinModuleUnchanged, FrameFactory frameFactory) {
-        super(callee, arguments);
-        this.function = function;
-        this.functionRoot = functionRoot;
-        this.globalScopeUnchanged = globalScopeUnchanged;
-        this.builtinModuleUnchanged = builtinModuleUnchanged;
+    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
+        super(callee, arguments, generator, globalScopeUnchanged);
         this.frameFactory = frameFactory;
-    }
-
-    public CallTarget getCallTarget() {
-        return function.getCallTarget();
+        this.frameDescriptor = generator.getFrameDescriptor().copy();
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
             globalScopeUnchanged.check();
-            builtinModuleUnchanged.check();
         } catch (InvalidAssumptionException e) {
             return uninitialize(frame);
         }
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(PNone.NONE, null, args);
-        VirtualFrame inlinedFrame = frameFactory.create(FrameDescriptor, frame.pack(), pargs);
-        return functionRoot.execute(inlinedFrame);
+        VirtualFrame inlinedFrame = frameFactory.create(frameDescriptor, frame.pack(), pargs);
+        return getGeneratorRoot().execute(inlinedFrame);
     }
+
 }

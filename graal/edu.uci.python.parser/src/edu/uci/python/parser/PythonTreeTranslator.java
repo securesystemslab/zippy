@@ -143,14 +143,14 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         return factory.createGeneratorDef(name, parameters, Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
     }
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot(ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot("generator_exp", ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());

@@ -286,8 +286,8 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorRootNode createGeneratorRoot(ParametersNode params, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode("generator_exp", params, body, returnValue);
+    public GeneratorRootNode createGeneratorRoot(String name, ParametersNode params, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode(name, params, body, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

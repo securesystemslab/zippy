@@ -64,11 +64,7 @@ public class CallFunctionNoKeywordNode extends PNode {
             PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass) callable).getAttribute("__init__");
             return createBuiltinCall(function, calleeNode, argumentNodes, context);
         } else if (callable instanceof PGeneratorFunction) {
-            /**
-             * Cache but do not inline generator calls.
-             */
-            Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-            return new CallFunctionCachedNode(calleeNode, argumentNodes, callable, globalScopeUnchanged);
+            return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PFunction) {
             return createFunctionCall((PFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PBuiltinFunction) {
@@ -96,6 +92,16 @@ public class CallFunctionNoKeywordNode extends PNode {
             return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
+        }
+    }
+
+    private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+
+        if (PythonOptions.InlineGeneratorCalls) {
+            return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
+        } else {
+            return new CallFunctionCachedNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
         }
     }
 
@@ -152,4 +158,5 @@ public class CallFunctionNoKeywordNode extends PNode {
             return executeCall(frame, cached);
         }
     }
+
 }

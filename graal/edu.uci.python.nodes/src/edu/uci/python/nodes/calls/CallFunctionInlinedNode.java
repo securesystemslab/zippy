@@ -35,7 +35,7 @@ import edu.uci.python.nodes.function.FunctionRootNode.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+public class CallFunctionInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
 
     private final PFunction function;
     private final Assumption globalScopeUnchanged;
@@ -43,7 +43,7 @@ public class CallFunctionNoKeywordInlinedNode extends CallFunctionNoKeywordNode 
     private final FrameDescriptor frameDescriptor;
     @Child protected InlinedFunctionRootNode functionRoot;
 
-    public CallFunctionNoKeywordInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
+    public CallFunctionInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
         super(callee, arguments);
         this.function = function;
         this.globalScopeUnchanged = globalScopeUnchanged;

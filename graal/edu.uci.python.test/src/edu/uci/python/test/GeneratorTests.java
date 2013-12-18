@@ -56,4 +56,10 @@ public class GeneratorTests {
         assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);
     }
 
+    @Test
+    public void inline() {
+        Path script = Paths.get("generator-inline-test.py");
+        assertPrints("9\n", script);
+    }
+
 }

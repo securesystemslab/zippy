@@ -50,12 +50,6 @@ public class BlockNode extends StatementNode {
 
     @ExplodeLoop
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        execute(frame);
-    }
-
-    @ExplodeLoop
-    @Override
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < statements.length; i++) {
             statements[i].executeVoid(frame);
@@ -63,4 +57,5 @@ public class BlockNode extends StatementNode {
 
         return PNone.NONE;
     }
+
 }

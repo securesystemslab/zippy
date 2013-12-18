@@ -77,7 +77,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             CompilerAsserts.neverPartOfCompilation();
 
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.function, this.globalScopeUnchanged, this.functionRoot, factory);
+                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
                 replace(inlinedCallNode);
                 return true;
             }
@@ -117,7 +117,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             CompilerAsserts.neverPartOfCompilation();
 
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallBuiltinFunctionNoKeywordInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
+                CallFunctionNoKeywordNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
                                 this.builtinModuleUnchanged, factory);
                 replace(inlinedCallNode);
                 return true;
