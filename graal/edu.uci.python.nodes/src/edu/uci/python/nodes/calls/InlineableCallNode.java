@@ -106,7 +106,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         }
 
         public Node getInlineTree() {
-            return functionRoot.copy();
+            return functionRoot;
         }
 
         public CallTarget getCallTarget() {

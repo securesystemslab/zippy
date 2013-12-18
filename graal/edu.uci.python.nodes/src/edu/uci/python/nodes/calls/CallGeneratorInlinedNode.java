@@ -29,18 +29,30 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallGeneratorInlinedNode extends CallGeneratorNode implements InlinedCallSite {
+public class CallGeneratorInlinedNode extends InlinedCallNode {
 
-    private final FrameFactory frameFactory;
-    private final FrameDescriptor frameDescriptor;
+    private final PGeneratorFunction generator;
+    private final Assumption globalScopeUnchanged;
+    @Child protected GeneratorRootNode generatorRoot;
 
     public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
-        super(callee, arguments, generator, globalScopeUnchanged);
-        this.frameFactory = frameFactory;
-        this.frameDescriptor = generator.getFrameDescriptor().copy();
+        super(callee, arguments, generator.getFrameDescriptor().copy(), frameFactory);
+        this.generator = generator;
+        this.globalScopeUnchanged = globalScopeUnchanged;
+        GeneratorRootNode original = (GeneratorRootNode) generator.getFunctionRootNode();
+        GeneratorRootNode newRoot = new GeneratorRootNode(generator.getName(), original.getUninitializedParams(), original.getUninitializedBody(), original.getUninitializedReturn());
+        /**
+         * Parked but not adopted, since RootNode should not have parent.
+         */
+        this.generatorRoot = (GeneratorRootNode) prepareBody(newRoot);
+    }
+
+    public CallTarget getCallTarget() {
+        return generator.getCallTarget();
     }
 
     @Override
@@ -53,8 +65,7 @@ public class CallGeneratorInlinedNode extends CallGeneratorNode implements Inlin
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(PNone.NONE, null, args);
-        VirtualFrame inlinedFrame = frameFactory.create(frameDescriptor, frame.pack(), pargs);
-        return getGeneratorRoot().execute(inlinedFrame);
+        return generatorRoot.execute(createInlinedFrame(frame, pargs));
     }
 
 }
