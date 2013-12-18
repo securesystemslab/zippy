@@ -78,7 +78,6 @@ public:
   static Handle get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS);
 
   static Handle createHotSpotResolvedObjectType(KlassHandle klass, Handle name, TRAPS);
-  static Handle createHotSpotResolvedObjectType(methodHandle method, TRAPS);
 
   void exit();
 

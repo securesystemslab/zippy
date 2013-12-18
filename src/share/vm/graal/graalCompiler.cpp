@@ -280,18 +280,6 @@ Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, H
   return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
 }
 
-Handle GraalCompiler::createHotSpotResolvedObjectType(methodHandle method, TRAPS) {
-  KlassHandle klass = method->method_holder();
-  oop java_class = klass->java_mirror();
-  oop graal_mirror = java_lang_Class::graal_mirror(java_class);
-  if (graal_mirror != NULL) {
-    assert(graal_mirror->is_a(HotSpotResolvedObjectType::klass()), "unexpected class...");
-    return graal_mirror;
-  }
-  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NH);
-  return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NH);
-}
-
 Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle name, TRAPS) {
   oop java_class = klass->java_mirror();
   oop graal_mirror = java_lang_Class::graal_mirror(java_class);
