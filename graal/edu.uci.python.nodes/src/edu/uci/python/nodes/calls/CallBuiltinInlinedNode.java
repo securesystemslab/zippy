@@ -33,23 +33,22 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallBuiltinInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+public class CallBuiltinInlinedNode extends InlinedCallNode {
 
     private final PBuiltinFunction function;
     private final BuiltinFunctionRootNode functionRoot;
     private final Assumption globalScopeUnchanged;
     private final Assumption builtinModuleUnchanged;
-    private final FrameFactory frameFactory;
+
     private static final FrameDescriptor FrameDescriptor = new FrameDescriptor();
 
-    public CallBuiltinInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged,
-                    Assumption builtinModuleUnchanged, FrameFactory frameFactory) {
-        super(callee, arguments);
+    public CallBuiltinInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged,
+                    FrameFactory frameFactory) {
+        super(callee, arguments, FrameDescriptor, frameFactory);
         this.function = function;
         this.functionRoot = functionRoot;
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
-        this.frameFactory = frameFactory;
     }
 
     public CallTarget getCallTarget() {
@@ -67,7 +66,7 @@ public class CallBuiltinInlinedNode extends CallFunctionNoKeywordNode implements
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(PNone.NONE, null, args);
-        VirtualFrame inlinedFrame = frameFactory.create(FrameDescriptor, frame.pack(), pargs);
-        return functionRoot.execute(inlinedFrame);
+        return functionRoot.execute(createInlinedFrame(frame, pargs));
     }
+
 }

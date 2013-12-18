@@ -25,7 +25,7 @@ def measure():
 	print("list-indexing: " + duration)
 
 #warm up
-for run in range(1000):
+for run in range(1200):
 	index_list([1,2,3,4,5,6,7,8,9,10], 10000)
 
 measure()

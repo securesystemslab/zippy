@@ -41,7 +41,8 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
     public CallGeneratorNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged) {
         super(callee, arguments, generator, globalScopeUnchanged);
-        this.generatorRoot = (GeneratorRootNode) generator.getFunctionRootNode();
+        GeneratorRootNode original = (GeneratorRootNode) generator.getFunctionRootNode();
+        this.generatorRoot = new GeneratorRootNode(generator.getName(), original.getUninitializedParams(), original.getUninitializedBody(), original.getUninitializedReturn());
     }
 
     public int getCallCount() {
@@ -67,7 +68,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
-            callCount += 100;
+            callCount += 1000000000;
         }
 
         return super.execute(frame);

@@ -29,61 +29,25 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.function.FunctionRootNode.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallFunctionInlinedNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+public class CallFunctionInlinedNode extends InlinedCallNode {
 
     private final PFunction function;
     private final Assumption globalScopeUnchanged;
-    private final FrameFactory frameFactory;
-    private final FrameDescriptor frameDescriptor;
-    @Child protected InlinedFunctionRootNode functionRoot;
+    @Child protected PNode functionRoot;
 
     public CallFunctionInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
-        super(callee, arguments);
+        super(callee, arguments, function.getFrameDescriptor().copy(), frameFactory);
         this.function = function;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        this.frameFactory = frameFactory;
-        this.frameDescriptor = function.getFrameDescriptor().copy();
         this.functionRoot = adoptChild(prepareBody(functionRoot.getInlinedRootNode()));
     }
 
     public CallTarget getCallTarget() {
         return function.getCallTarget();
-    }
-
-    private InlinedFunctionRootNode prepareBody(InlinedFunctionRootNode clonedBody) {
-        clonedBody.accept(new NodeVisitor() {
-
-            public boolean visit(Node node) {
-                prepareBodyNode(node);
-                assert !(node instanceof FunctionRootNode);
-                return true;
-            }
-
-        });
-        return clonedBody;
-    }
-
-    private void prepareBodyNode(Node node) {
-        NodeFactory factory = NodeFactory.getInstance();
-
-        if (node instanceof FrameSlotNode) {
-            FrameSlotNode fsNode = (FrameSlotNode) node;
-            FrameSlot origSlot = fsNode.getSlot();
-            FrameSlot newSlot = frameDescriptor.findFrameSlot(origSlot.getIdentifier());
-            assert newSlot != null;
-
-            if (node instanceof ReadLocalVariableNode) {
-                node.replace(factory.createReadLocalVariable(newSlot));
-            } else if (node instanceof WriteLocalVariableNode) {
-                node.replace(factory.createWriteLocalVariable(((WriteLocalVariableNode) node).getRhs(), newSlot));
-            }
-        }
     }
 
     @Override
@@ -96,7 +60,7 @@ public class CallFunctionInlinedNode extends CallFunctionNoKeywordNode implement
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(PNone.NONE, null, args);
-        VirtualFrame inlinedFrame = frameFactory.create(frameDescriptor, frame.pack(), pargs);
-        return functionRoot.execute(inlinedFrame);
+        return functionRoot.execute(createInlinedFrame(frame, pargs));
     }
+
 }

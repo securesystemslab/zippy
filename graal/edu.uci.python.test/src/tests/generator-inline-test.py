@@ -5,8 +5,12 @@ def generator(n):
     for i in range(n):
         yield i
 
-for i in range(500):
-    for i in generator(10):
-        item = i
+def call_generator():
+    for i in range(5000):
+        for i in generator(10):
+            item = i
 
-print(item)
+    return item
+
+for i in range(5):
+    print(call_generator())

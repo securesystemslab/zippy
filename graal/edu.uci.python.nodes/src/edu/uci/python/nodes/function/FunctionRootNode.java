@@ -47,7 +47,7 @@ public class FunctionRootNode extends RootNode {
 
     private final ParametersNode uninitializedParams;
     private final StatementNode uninitializedBody;
-    private final PNode unitializedReturn;
+    private final PNode uninitializedReturn;
 
     public FunctionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
         this.functionName = functionName;
@@ -56,7 +56,7 @@ public class FunctionRootNode extends RootNode {
         this.returnValue = adoptChild(returnValue);
         this.uninitializedParams = NodeUtil.cloneNode(parameters);
         this.uninitializedBody = NodeUtil.cloneNode(body);
-        this.unitializedReturn = NodeUtil.cloneNode(returnValue);
+        this.uninitializedReturn = NodeUtil.cloneNode(returnValue);
     }
 
     public void setBody(StatementNode body) {
@@ -67,13 +67,21 @@ public class FunctionRootNode extends RootNode {
         return new InlinedFunctionRootNode(this);
     }
 
+    public ParametersNode getUninitializedParams() {
+        return uninitializedParams;
+    }
+
     public StatementNode getUninitializedBody() {
         return uninitializedBody;
     }
 
+    public PNode getUninitializedReturn() {
+        return uninitializedReturn;
+    }
+
     @Override
     public FunctionRootNode copy() {
-        return new FunctionRootNode(this.functionName, this.uninitializedParams, this.uninitializedBody, this.unitializedReturn);
+        return new FunctionRootNode(this.functionName, this.uninitializedParams, this.uninitializedBody, this.uninitializedReturn);
     }
 
     @Override
@@ -105,7 +113,7 @@ public class FunctionRootNode extends RootNode {
             this.functionName = node.functionName;
             this.parameters = adoptChild(NodeUtil.cloneNode(node.uninitializedParams));
             this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));
-            this.returnValue = adoptChild(NodeUtil.cloneNode(node.unitializedReturn));
+            this.returnValue = adoptChild(NodeUtil.cloneNode(node.uninitializedReturn));
         }
 
         @Override

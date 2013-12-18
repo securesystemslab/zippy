@@ -59,7 +59,7 @@ public class GeneratorTests {
     @Test
     public void inline() {
         Path script = Paths.get("generator-inline-test.py");
-        assertPrints("9\n", script);
+        assertPrints("9\n9\n9\n9\n9\n", script);
     }
 
 }
