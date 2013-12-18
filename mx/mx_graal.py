@@ -970,8 +970,8 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
-        t = Task('BootstrapWithAOTConfiguration:product')
-        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
+        t = Task('BootstrapWithImmutableCode:product')
+        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
