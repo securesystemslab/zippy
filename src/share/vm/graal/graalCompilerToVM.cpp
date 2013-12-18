@@ -171,33 +171,14 @@ C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle,
   return (jlong) (address) method();
 }
 
-C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
+C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   KlassHandle holder = method->method_holder();
-  if (holder->is_interface()) {
-    // Cannot trust interfaces. Because of:
-    // interface I { void foo(); }
-    // class A { public void foo() {} }
-    // class B extends A implements I { }
-    // class C extends B { public void foo() { } }
-    // class D extends B { }
-    // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
-    return 0L;
-  }
-  methodHandle ucm;
-  {
-    ResourceMark rm;
-    MutexLocker locker(Compile_lock);
-    ucm = Dependencies::find_unique_concrete_method(holder(), method());
-  }
-
-  if (ucm.is_null()) {
-    return 0L;
-  }
-
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(ucm(), CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
-  return (jlong) (address) ucm();
+  assert(!holder->is_interface(), "should be handled in Java code");
+  ResourceMark rm;
+  MutexLocker locker(Compile_lock);
+  Method* ucm = Dependencies::find_unique_concrete_method(holder(), method());
+  return (jlong) (address) ucm;
 C2V_END
 
 C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
@@ -670,6 +651,10 @@ C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id
   }
 C2V_END
 
+C2V_VMENTRY(void, printCompilationStatistics, (JNIEnv *jniEnv, jobject, jboolean per_compiler, jboolean aggregate))
+CompileBroker::print_times(per_compiler, aggregate);
+C2V_END
+
 C2V_VMENTRY(void, resetCompilationStatistics, (JNIEnv *jniEnv, jobject))
   CompilerStatistics* stats = GraalCompiler::instance()->stats();
   stats->_standard._time.reset();
@@ -885,7 +870,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
   {CC"exceptionTableStart",           CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
-  {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
+  {CC"findUniqueConcreteMethod",      CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
   {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
@@ -908,6 +893,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
+  {CC"printCompilationStatistics",    CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
   {CC"resetCompilationStatistics",    CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},

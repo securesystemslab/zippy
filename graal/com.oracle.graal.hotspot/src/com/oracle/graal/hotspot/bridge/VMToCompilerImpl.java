@@ -25,6 +25,7 @@ package com.oracle.graal.hotspot.bridge;
 
 import static com.oracle.graal.compiler.GraalDebugConfig.*;
 import static com.oracle.graal.graph.UnsafeAccess.*;
+import static com.oracle.graal.hotspot.CompileTheWorld.Options.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 
 import java.io.*;
@@ -42,6 +43,7 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.CompileTheWorld.Config;
 import com.oracle.graal.hotspot.debug.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.phases.*;
@@ -64,6 +66,10 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     @Option(help = "Print compilation queue activity periodically")
     private static final OptionValue<Boolean> PrintQueue = new OptionValue<>(false);
+
+    @Option(help = "Interval in milliseconds at which to print compilation rate periodically. " +
+                   "The compilation statistics are reset after each print out.")
+    private static final OptionValue<Integer> PrintCompRate = new OptionValue<>(0);
 
     @Option(help = "Print bootstrap progress and summary")
     private static final OptionValue<Boolean> PrintBootstrap = new OptionValue<>(true);
@@ -97,6 +103,10 @@ public class VMToCompilerImpl implements VMToCompiler {
         this.runtime = runtime;
     }
 
+    public int allocateCompileTaskId() {
+        return compileTaskIds.incrementAndGet();
+    }
+
     public void startCompiler(boolean bootstrapEnabled) throws Throwable {
 
         FastNodeClassRegistry.initialize();
@@ -111,8 +121,6 @@ public class VMToCompilerImpl implements VMToCompiler {
                 throw new RuntimeException("couldn't open log file: " + LogFile.getValue(), e);
             }
         }
-
-        runtime.getCompilerToVM();
 
         TTY.initialize(log);
 
@@ -176,6 +184,29 @@ public class VMToCompilerImpl implements VMToCompiler {
             };
             t.setDaemon(true);
             t.start();
+        }
+
+        if (PrintCompRate.getValue() != 0) {
+            if (!runtime.getConfig().ciTime && !runtime.getConfig().ciTimeEach) {
+                TTY.println("PrintCompRate requires CITime or CITimeEach");
+            } else {
+                Thread t = new Thread() {
+
+                    @Override
+                    public void run() {
+                        while (true) {
+                            runtime.getCompilerToVM().printCompilationStatistics(true, false);
+                            runtime.getCompilerToVM().resetCompilationStatistics();
+                            try {
+                                Thread.sleep(PrintCompRate.getValue());
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    }
+                };
+                t.setDaemon(true);
+                t.start();
+            }
         }
 
         BenchmarkCounters.initialize(runtime.getCompilerToVM());
@@ -303,7 +334,14 @@ public class VMToCompilerImpl implements VMToCompiler {
     }
 
     public void compileTheWorld() throws Throwable {
-        new CompileTheWorld().compile();
+        int iterations = CompileTheWorld.Options.CompileTheWorldIterations.getValue();
+        for (int i = 0; i < iterations; i++) {
+            runtime.getCompilerToVM().resetCompilationStatistics();
+            TTY.println("CompileTheWorld : iteration " + i);
+            CompileTheWorld ctw = new CompileTheWorld(CompileTheWorldClasspath.getValue(), new Config(CompileTheWorldConfig.getValue()), CompileTheWorldStartAt.getValue(),
+                            CompileTheWorldStopAt.getValue(), CompileTheWorldVerbose.getValue());
+            ctw.compile();
+        }
         System.exit(0);
     }
 
@@ -556,12 +594,12 @@ public class VMToCompilerImpl implements VMToCompiler {
 
                 final ProfilingInfo profilingInfo = method.getCompilationProfilingInfo(osrCompilation);
                 final OptimisticOptimizations optimisticOpts = new OptimisticOptimizations(profilingInfo);
-                int id = compileTaskIds.incrementAndGet();
+                int id = allocateCompileTaskId();
                 HotSpotBackend backend = runtime.getHostBackend();
                 CompilationTask task = CompilationTask.create(backend, createPhasePlan(backend.getProviders(), optimisticOpts, osrCompilation), optimisticOpts, profilingInfo, method, entryBCI, id);
 
                 if (blocking) {
-                    task.runCompilation();
+                    task.runCompilation(true);
                 } else {
                     try {
                         method.setCurrentTask(task);

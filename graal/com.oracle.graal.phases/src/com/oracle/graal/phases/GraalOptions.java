@@ -87,14 +87,6 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Integer> DeoptsToDisableOptimisticOptimization = new OptionValue<>(40);
 
-    // compilation queue
-    @Option(help = "Compile all methods in all classes on given class path")
-    public static final OptionValue<String> CompileTheWorld = new OptionValue<>(null);
-    @Option(help = "First class to consider when using CompileTheWorld")
-    public static final OptionValue<Integer> CompileTheWorldStartAt = new OptionValue<>(1);
-    @Option(help = "Last class to consider when using CompileTheWorld")
-    public static final OptionValue<Integer> CompileTheWorldStopAt = new OptionValue<>(Integer.MAX_VALUE);
-
     // graph caching
     @Option(help = "")
     public static final OptionValue<Boolean> CacheGraphs = new OptionValue<>(true);
@@ -226,9 +218,7 @@ public final class GraalOptions {
     public static final OptionValue<Boolean> CanOmitFrame = new OptionValue<>(true);
 
     @Option(help = "")
-    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(false);
-    @Option(help = "")
-    public static final OptionValue<Boolean> NewMemoryAwareScheduling = new OptionValue<>(true);
+    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(true);
 
     // Translating tableswitch instructions
     @Option(help = "")

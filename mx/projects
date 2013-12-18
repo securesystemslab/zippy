@@ -1,5 +1,5 @@
 # The format of this file is described in the documentation for my.py.
-
+mxversion=1.0
 suite=graal
 
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
@@ -162,7 +162,7 @@ project@com.oracle.graal.hotspot.ptx@workingSets=Graal,HotSpot,PTX
 # graal.hotspot.hsail
 project@com.oracle.graal.hotspot.hsail@subDir=graal
 project@com.oracle.graal.hotspot.hsail@sourceDirs=src
-project@com.oracle.graal.hotspot.hsail@dependencies=com.oracle.graal.compiler.hsail,com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.hsail@dependencies=com.oracle.graal.replacements.hsail,com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.hsail@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.hsail@javaCompliance=1.7
@@ -310,6 +310,14 @@ project@com.oracle.graal.replacements.amd64@dependencies=com.oracle.graal.replac
 project@com.oracle.graal.replacements.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.amd64@javaCompliance=1.7
 project@com.oracle.graal.replacements.amd64@workingSets=Graal,Replacements,AMD64
+
+# graal.replacements.hsail
+project@com.oracle.graal.replacements.hsail@subDir=graal
+project@com.oracle.graal.replacements.hsail@sourceDirs=src
+project@com.oracle.graal.replacements.hsail@dependencies=com.oracle.graal.compiler.hsail
+project@com.oracle.graal.replacements.hsail@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.replacements.hsail@javaCompliance=1.7
+project@com.oracle.graal.replacements.hsail@workingSets=Graal,Replacements,HSAIL
 
 # graal.replacements.test
 project@com.oracle.graal.replacements.test@subDir=graal

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,40 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
-package com.oracle.graal.compiler.hsail.test;
+package com.oracle.truffle.api.test.utilities;
 
 import org.junit.*;
 
-import com.oracle.graal.compiler.hsail.test.infra.*;
+import com.oracle.truffle.api.utilities.*;
 
-/**
- * Tests floating point square root.
- */
-public class FloatSqrtTest extends GraalKernelTester {
-
-    static final int size = 64;
-    float[] input = new float[size];
-    @Result float[] output = new float[size];
-    {
-        for (int i = 0; i < size; i++) {
-            input[i] = i;
-            output[i] = -1.0f;
-        }
-
-    }
-
-    public static void run(float[] input1, float[] output1, int gid) {
-        output1[gid] = (float) Math.sqrt(input1[gid]);
-    }
-
-    @Override
-    public void runTest() {
-        dispatchMethodKernel(size, input, output);
-    }
+public class BranchProfileTest {
 
     @Test
-    public void test() {
-        testGeneratedHsail();
+    public void testEnter() {
+        BranchProfile profile = new BranchProfile();
+        profile.enter();
+        profile.enter();
     }
+
 }

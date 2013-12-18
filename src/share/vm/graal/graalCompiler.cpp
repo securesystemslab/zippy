@@ -115,6 +115,12 @@ void GraalCompiler::initialize() {
         // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
         FlagSetting a(UseInterpreter, true);
         FlagSetting b(BackgroundCompilation, true);
+#ifndef PRODUCT
+        // Turn off CompileTheWorld during bootstrap so that a counter overflow event
+        // triggers further compilation (see NonTieredCompPolicy::event()) hence
+        // allowing a complete bootstrap
+        FlagSetting c(CompileTheWorld, false);
+#endif
         VMToCompiler::bootstrap();
       }
 
@@ -272,18 +278,6 @@ Handle GraalCompiler::get_JavaType(KlassHandle klass, TRAPS) {
 Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
   Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NH);
   return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
-}
-
-Handle GraalCompiler::createHotSpotResolvedObjectType(methodHandle method, TRAPS) {
-  KlassHandle klass = method->method_holder();
-  oop java_class = klass->java_mirror();
-  oop graal_mirror = java_lang_Class::graal_mirror(java_class);
-  if (graal_mirror != NULL) {
-    assert(graal_mirror->is_a(HotSpotResolvedObjectType::klass()), "unexpected class...");
-    return graal_mirror;
-  }
-  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NH);
-  return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NH);
 }
 
 Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle name, TRAPS) {

@@ -73,11 +73,10 @@ public interface CompilerToVM {
      * Used to implement {@link ResolvedJavaType#findUniqueConcreteMethod(ResolvedJavaMethod)}.
      * 
      * @param metaspaceMethod the metaspace Method on which to based the search
-     * @param resultHolder the holder of the result is put in element 0 of this array
      * @return the metaspace Method result or 0 is there is no unique concrete method for
      *         {@code metaspaceMethod}
      */
-    long getUniqueConcreteMethod(long metaspaceMethod, HotSpotResolvedObjectType[] resultHolder);
+    long findUniqueConcreteMethod(long metaspaceMethod);
 
     /**
      * Used to determine if an interface has exactly one implementor.
@@ -188,6 +187,8 @@ public interface CompilerToVM {
      * @param installedCode the nmethod installed as a result of the compilation
      */
     void notifyCompilationStatistics(int id, HotSpotResolvedJavaMethod method, boolean osr, int processedBytecodes, long time, long timeUnitsPerSecond, HotSpotInstalledCode installedCode);
+
+    void printCompilationStatistics(boolean perCompiler, boolean aggregate);
 
     void resetCompilationStatistics();
 

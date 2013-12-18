@@ -47,7 +47,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.tiers.*;
 
-public final class CompilationTask implements Runnable {
+public class CompilationTask implements Runnable {
 
     public static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
 
@@ -77,7 +77,7 @@ public final class CompilationTask implements Runnable {
         return new CompilationTask(backend, plan, optimisticOpts, profilingInfo, method, entryBCI, id);
     }
 
-    private CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
+    protected CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
         assert id >= 0;
         this.backend = backend;
         this.plan = plan;
@@ -104,7 +104,7 @@ public final class CompilationTask implements Runnable {
     public void run() {
         withinEnqueue.set(Boolean.FALSE);
         try {
-            runCompilation();
+            runCompilation(true);
         } finally {
             if (method.currentTask() == this) {
                 method.setCurrentTask(null);
@@ -120,7 +120,11 @@ public final class CompilationTask implements Runnable {
 
     public static final DebugTimer CodeInstallationTime = Debug.timer("CodeInstallation");
 
-    public void runCompilation() {
+    protected Suites getSuites(HotSpotProviders providers) {
+        return providers.getSuites().getDefaultSuites();
+    }
+
+    public void runCompilation(boolean clearFromCompilationQueue) {
         /*
          * no code must be outside this try/finally because it could happen otherwise that
          * clearQueuedForCompilation() is not executed
@@ -164,7 +168,7 @@ public final class CompilationTask implements Runnable {
                 }
                 InlinedBytecodes.add(method.getCodeSize());
                 CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
-                Suites suites = providers.getSuites().getDefaultSuites();
+                Suites suites = getSuites(providers);
                 result = compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, plan, optimisticOpts, profilingInfo, method.getSpeculationLog(), suites, true,
                                 new CompilationResult(), CompilationResultBuilderFactory.Default);
 
@@ -211,8 +215,10 @@ public final class CompilationTask implements Runnable {
                 c2vm.notifyCompilationStatistics(id, method, entryBCI != INVOCATION_ENTRY_BCI, (int) processedBytes, time, timeUnitsPerSecond, installedCode);
             }
 
-            assert method.isQueuedForCompilation();
-            method.clearQueuedForCompilation();
+            if (clearFromCompilationQueue) {
+                assert method.isQueuedForCompilation();
+                method.clearQueuedForCompilation();
+            }
         }
     }
 

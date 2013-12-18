@@ -28,6 +28,7 @@ import static com.oracle.graal.api.meta.Value.*;
 import static com.oracle.graal.lir.LIR.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -39,9 +40,7 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.BlockEndOp;
-import com.oracle.graal.lir.StandardOp.JumpOp;
-import com.oracle.graal.lir.StandardOp.LabelOp;
+import com.oracle.graal.lir.StandardOp.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -82,10 +81,75 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     private final boolean printIRWithLIR;
 
     /**
-     * Maps constants the variables within the scope of a single block to avoid loading a constant
-     * more than once per block.
+     * Handle for an operation that loads a constant into a variable. The operation starts in the
+     * first block where the constant is used but will eventually be
+     * {@linkplain LIRGenerator#insertConstantLoads() moved} to a block dominating all usages of the
+     * constant.
      */
-    private Map<Constant, Variable> constantsLoadedInCurrentBlock;
+    public static class LoadConstant implements Comparable<LoadConstant> {
+        /**
+         * The index of {@link #op} within {@link #block}'s instruction list or -1 if {@code op} is
+         * to be moved to a dominator block.
+         */
+        int index;
+
+        /**
+         * The operation that loads the constant.
+         */
+        private final LIRInstruction op;
+
+        /**
+         * The block that does or will contain {@link #op}. This is initially the block where the
+         * first usage of the constant is seen during LIR generation.
+         */
+        private Block block;
+
+        /**
+         * The variable into which the constant is loaded.
+         */
+        private final Variable variable;
+
+        public LoadConstant(Variable variable, Block block, int index, LIRInstruction op) {
+            this.variable = variable;
+            this.block = block;
+            this.index = index;
+            this.op = op;
+        }
+
+        /**
+         * Sorts {@link LoadConstant} objects according to their enclosing blocks. This is used to
+         * group loads per block in {@link LIRGenerator#insertConstantLoads()}.
+         */
+        public int compareTo(LoadConstant o) {
+            if (block.getId() < o.block.getId()) {
+                return -1;
+            }
+            if (block.getId() > o.block.getId()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        @Override
+        public String toString() {
+            return block + "#" + op;
+        }
+
+        /**
+         * Removes the {@link #op} from its original location if it is still at that location.
+         */
+        public void unpin(LIR lir) {
+            if (index >= 0) {
+                // Replace the move with a filler op so that the operation
+                // list does not need to be adjusted.
+                List<LIRInstruction> instructions = lir.lir(block);
+                instructions.set(index, new NoOp(null, -1));
+                index = -1;
+            }
+        }
+    }
+
+    private Map<Constant, LoadConstant> constantLoads;
 
     private ValueNode currentInstruction;
     private ValueNode lastInstructionPrinted; // Debugging only
@@ -121,6 +185,19 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
         this.traceLevel = Options.TraceLIRGeneratorLevel.getValue();
         this.printIRWithLIR = Options.PrintIRWithLIR.getValue();
+    }
+
+    /**
+     * Returns a value for a interval definition, which can be used for re-materialization.
+     * 
+     * @param op An instruction which defines a value
+     * @param operand The destination operand of the instruction
+     * @return Returns the value which is moved to the instruction and which can be reused at all
+     *         reload-locations in case the interval of this instruction is spilled. Currently this
+     *         can only be a {@link Constant}.
+     */
+    public Constant getMaterializedValue(LIRInstruction op, Value operand) {
+        return null;
     }
 
     @SuppressWarnings("hiding")
@@ -174,7 +251,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         if (nodeOperands == null) {
             return null;
         }
-        Value operand = !node.isExternal() ? nodeOperands.get(node) : null;
+        Value operand = nodeOperands.get(node);
         if (operand == null) {
             return getConstantOperand(node);
         }
@@ -186,18 +263,27 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             Constant value = node.asConstant();
             if (value != null) {
                 if (canInlineConstant(value)) {
-                    return !node.isExternal() ? setResult(node, value) : value;
+                    return setResult(node, value);
                 } else {
                     Variable loadedValue;
-                    if (constantsLoadedInCurrentBlock == null) {
-                        constantsLoadedInCurrentBlock = new HashMap<>();
-                        loadedValue = null;
-                    } else {
-                        loadedValue = constantsLoadedInCurrentBlock.get(value);
+                    if (constantLoads == null) {
+                        constantLoads = new HashMap<>();
                     }
-                    if (loadedValue == null) {
+                    LoadConstant load = constantLoads.get(value);
+                    if (load == null) {
+                        int index = lir.lir(currentBlock).size();
                         loadedValue = emitMove(value);
-                        constantsLoadedInCurrentBlock.put(value, loadedValue);
+                        LIRInstruction op = lir.lir(currentBlock).get(index);
+                        constantLoads.put(value, new LoadConstant(loadedValue, currentBlock, index, op));
+                    } else {
+                        Block dominator = ControlFlowGraph.commonDominator(load.block, currentBlock);
+                        loadedValue = load.variable;
+                        if (dominator != load.block) {
+                            load.unpin(lir);
+                        } else {
+                            assert load.block != currentBlock || load.index < lir.lir(currentBlock).size();
+                        }
+                        load.block = dominator;
                     }
                     return loadedValue;
                 }
@@ -350,7 +436,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
 
         currentBlock = block;
-        resetLoadedConstants();
 
         // set up the list of LIR instructions
         assert lir.lir(block) == null : "LIR list already computed for this block";
@@ -411,12 +496,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
         if (printIRWithLIR) {
             TTY.println();
-        }
-    }
-
-    private void resetLoadedConstants() {
-        if (constantsLoadedInCurrentBlock != null && !constantsLoadedInCurrentBlock.isEmpty()) {
-            constantsLoadedInCurrentBlock.clear();
         }
     }
 
@@ -795,10 +874,87 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     @Override
     public void beforeRegisterAllocation() {
+        insertConstantLoads();
     }
 
     /**
-     * Gets an garbage vale for a given kind.
+     * Moves deferred {@linkplain LoadConstant loads} of constants into blocks dominating all usages
+     * of the constant. Any operations inserted into a block are guaranteed to be immediately prior
+     * to the first control flow instruction near the end of the block.
+     */
+    private void insertConstantLoads() {
+        if (constantLoads != null) {
+            // Remove loads where all usages are in the same block.
+            for (Iterator<Map.Entry<Constant, LoadConstant>> iter = constantLoads.entrySet().iterator(); iter.hasNext();) {
+                LoadConstant lc = iter.next().getValue();
+
+                // Move loads of constant outside of loops
+                if (OptScheduleOutOfLoops.getValue()) {
+                    Block outOfLoopDominator = lc.block;
+                    while (outOfLoopDominator.getLoop() != null) {
+                        outOfLoopDominator = outOfLoopDominator.getDominator();
+                    }
+                    if (outOfLoopDominator != lc.block) {
+                        lc.unpin(lir);
+                        lc.block = outOfLoopDominator;
+                    }
+                }
+
+                if (lc.index != -1) {
+                    assert lir.lir(lc.block).get(lc.index) == lc.op;
+                    iter.remove();
+                }
+            }
+            if (constantLoads.isEmpty()) {
+                return;
+            }
+
+            // Sorting groups the loads per block.
+            LoadConstant[] groupedByBlock = constantLoads.values().toArray(new LoadConstant[constantLoads.size()]);
+            Arrays.sort(groupedByBlock);
+
+            int groupBegin = 0;
+            while (true) {
+                int groupEnd = groupBegin + 1;
+                Block block = groupedByBlock[groupBegin].block;
+                while (groupEnd < groupedByBlock.length && groupedByBlock[groupEnd].block == block) {
+                    groupEnd++;
+                }
+                int groupSize = groupEnd - groupBegin;
+
+                List<LIRInstruction> ops = lir.lir(block);
+                int lastIndex = ops.size() - 1;
+                assert ops.get(lastIndex) instanceof BlockEndOp;
+                int insertionIndex = lastIndex;
+                for (int i = Math.max(0, lastIndex - MAX_EXCEPTION_EDGE_OP_DISTANCE_FROM_END); i < lastIndex; i++) {
+                    if (getExceptionEdge(ops.get(i)) != null) {
+                        insertionIndex = i;
+                        break;
+                    }
+                }
+
+                if (groupSize == 1) {
+                    ops.add(insertionIndex, groupedByBlock[groupBegin].op);
+                } else {
+                    assert groupSize > 1;
+                    List<LIRInstruction> moves = new ArrayList<>(groupSize);
+                    for (int i = groupBegin; i < groupEnd; i++) {
+                        moves.add(groupedByBlock[i].op);
+                    }
+                    ops.addAll(insertionIndex, moves);
+                }
+
+                if (groupEnd == groupedByBlock.length) {
+                    break;
+                }
+                groupBegin = groupEnd;
+            }
+            constantLoads = null;
+        }
+    }
+
+    /**
+     * Gets a garbage value for a given kind.
      */
     protected Constant zapValueForKind(PlatformKind kind) {
         long dead = 0xDEADDEADDEADDEADL;

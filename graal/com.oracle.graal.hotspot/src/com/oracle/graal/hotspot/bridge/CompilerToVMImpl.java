@@ -56,7 +56,7 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native boolean isMethodCompilable(long metaspaceMethod);
 
     @Override
-    public native long getUniqueConcreteMethod(long metaspaceMethod, HotSpotResolvedObjectType[] resultHolder);
+    public native long findUniqueConcreteMethod(long metaspaceMethod);
 
     @Override
     public native ResolvedJavaType getUniqueImplementor(HotSpotResolvedObjectType interfaceType);
@@ -153,6 +153,8 @@ public class CompilerToVMImpl implements CompilerToVM {
 
     public synchronized native void notifyCompilationStatistics(int id, HotSpotResolvedJavaMethod method, boolean osr, int processedBytecodes, long time, long timeUnitsPerSecond,
                     HotSpotInstalledCode installedCode);
+
+    public synchronized native void printCompilationStatistics(boolean perCompiler, boolean aggregate);
 
     public native void resetCompilationStatistics();
 
