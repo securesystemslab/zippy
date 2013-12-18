@@ -31,7 +31,9 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.calls.CallFunctionNoKeywordNode.CallFunctionCachedNode;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorNode extends CallFunctionCachedNode implements InlinableCallSite {
@@ -86,9 +88,14 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     }
 
     private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
-        @SuppressWarnings("unused")
         PNode body = loop.getBody();
-        loop.replace(new CallGeneratorInlinedNode(callee, arguments, (PGeneratorFunction) cached, globalScopeUnchanged, factory));
+        CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, (PGeneratorFunction) cached, globalScopeUnchanged, factory);
+        loop.replace(inlinedNode);
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(body));
+            yield.replace(frameSwapper);
+        }
     }
 
 }

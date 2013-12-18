@@ -55,6 +55,10 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         return generator.getCallTarget();
     }
 
+    public GeneratorRootNode getGeneratorRoot() {
+        return generatorRoot;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         try {

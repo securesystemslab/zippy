@@ -22,74 +22,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.generator;
 
 import java.math.*;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class WriteLocalVariableNode extends FrameSlotNode implements WriteNode {
+/**
+ * Transfer a local variable value from current frame to its caller's frame.
+ */
+@NodeChild(value = "right", type = PNode.class)
+public abstract class FrameTransferNode extends FrameSlotNode {
 
-    public abstract PNode getRightNode();
-
-    public WriteLocalVariableNode(FrameSlot slot) {
+    public FrameTransferNode(FrameSlot slot) {
         super(slot);
     }
 
-    public WriteLocalVariableNode(WriteLocalVariableNode specialized) {
-        this(specialized.frameSlot);
+    protected FrameTransferNode(FrameTransferNode prev) {
+        super(prev.frameSlot);
     }
-
-    @Override
-    public PNode makeReadNode() {
-        return ReadLocalVariableNodeFactory.create(frameSlot);
-    }
-
-    @Override
-    public PNode getRhs() {
-        return getRightNode();
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
-        return executeWith(frame, value);
-    }
-
-    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     @Specialization(order = 0, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
-        frame.setBoolean(frameSlot, right);
+        frame.getCaller().unpack().setBoolean(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
-        frame.setInt(frameSlot, value);
+        frame.getCaller().unpack().setInt(frameSlot, value);
         return value;
     }
 
     @Specialization(guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
-        setObject(frame, value);
+        setObject(frame.getCaller().unpack(), value);
         return value;
     }
 
     @Specialization(guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
-        frame.setDouble(frameSlot, right);
+        frame.getCaller().unpack().setDouble(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
-        setObject(frame, right);
+        setObject(frame.getCaller().unpack(), right);
         return right;
     }
 
