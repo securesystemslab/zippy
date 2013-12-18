@@ -171,33 +171,14 @@ C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle,
   return (jlong) (address) method();
 }
 
-C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
+C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   KlassHandle holder = method->method_holder();
-  if (holder->is_interface()) {
-    // Cannot trust interfaces. Because of:
-    // interface I { void foo(); }
-    // class A { public void foo() {} }
-    // class B extends A implements I { }
-    // class C extends B { public void foo() { } }
-    // class D extends B { }
-    // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
-    return 0L;
-  }
-  methodHandle ucm;
-  {
-    ResourceMark rm;
-    MutexLocker locker(Compile_lock);
-    ucm = Dependencies::find_unique_concrete_method(holder(), method());
-  }
-
-  if (ucm.is_null()) {
-    return 0L;
-  }
-
-  Handle type = GraalCompiler::createHotSpotResolvedObjectType(ucm(), CHECK_0);
-  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
-  return (jlong) (address) ucm();
+  assert(!holder->is_interface(), "should be handled in Java code");
+  ResourceMark rm;
+  MutexLocker locker(Compile_lock);
+  Method* ucm = Dependencies::find_unique_concrete_method(holder(), method());
+  return (jlong) (address) ucm;
 C2V_END
 
 C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
@@ -206,7 +187,7 @@ C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface
   if (klass->nof_implementors() == 1) {
     InstanceKlass* implementor = (InstanceKlass*) klass->implementor();
     if (!implementor->is_abstract() && !implementor->is_interface() && implementor->is_leaf_class()) {
-      Handle type = GraalCompiler::get_JavaType(implementor, CHECK_NULL);
+      Handle type = GraalCompiler::createHotSpotResolvedObjectType(implementor, CHECK_NULL);
       return JNIHandles::make_local(THREAD, type());
     }
   }
@@ -262,7 +243,7 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
       Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
       result = type();
     } else {
-      Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, name, CHECK_NULL);
+      Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, CHECK_NULL);
       result = type();
     }
   }
@@ -307,7 +288,7 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_
 
   methodHandle method = GraalEnv::get_method_by_index(cp, cp_index, bc, pool_holder);
   if (!method.is_null()) {
-    Handle holder = GraalCompiler::get_JavaType(method->method_holder(), CHECK_NULL);
+    Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method->method_holder(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
@@ -382,7 +363,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
       flags = result.access_flags();
       holder_klass = result.field_holder();
       basic_type = result.field_type();
-      holder = GraalCompiler::get_JavaType(holder_klass, CHECK_NULL);
+      holder = GraalCompiler::createHotSpotResolvedObjectType(holder_klass, CHECK_NULL);
     }
   }
 
@@ -392,22 +373,20 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
   return JNIHandles::make_local(THREAD, field_handle());
 C2V_END
 
-C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
-
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
   Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
   Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
-  methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
-  if (method.is_null()) {
+  Method* method = klass->lookup_method(name_symbol, signature_symbol);
+  if (method == NULL) {
     if (TraceGraal >= 3) {
       ResourceMark rm;
       tty->print_cr("Could not resolve method %s %s on klass %s", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->name()->as_C_string());
     }
-    return NULL;
+    return 0;
   }
-  Handle holder = GraalCompiler::get_JavaType(method->method_holder(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
+  return (jlong) (address) method;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
@@ -889,7 +868,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
   {CC"exceptionTableStart",           CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
-  {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
+  {CC"findUniqueConcreteMethod",      CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
   {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
@@ -903,7 +882,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
   {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
   {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
-  {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
+  {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
