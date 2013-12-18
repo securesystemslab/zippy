@@ -34,7 +34,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * Transfer a local variable value from current frame to its caller's frame.
+ * Transfer a local variable value from the current frame to a cargo frame.
  */
 @NodeChild(value = "right", type = PNode.class)
 public abstract class FrameTransferNode extends FrameSlotNode {

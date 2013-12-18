@@ -141,4 +141,5 @@ public class FunctionRootNode extends RootNode {
             return "<inlined function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
         }
     }
+
 }

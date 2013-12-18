@@ -35,30 +35,27 @@ public class PArguments extends Arguments {
     public static final PArguments EMPTY_ARGUMENT = new PArguments(null);
 
     private final MaterializedFrame declarationFrame;
-    private final MaterializedFrame generatorFrame;
-
     private final Object self;
     private final Object[] arguments;
     private final PKeyword[] keywords;
 
-    public PArguments(Object self, MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, PKeyword[] keywords) {
+    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
         this.self = self;
         this.declarationFrame = declarationFrame;
-        this.generatorFrame = generatorFrame;
         this.arguments = arguments;
         this.keywords = keywords;
     }
 
     public PArguments(MaterializedFrame declarationFrame) {
-        this(null, declarationFrame, null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+        this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
     }
 
-    public PArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
-        this(null, declarationFrame, generatorFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+    public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
+        this(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {
-        this(self, declarationFrame, null, arguments, PKeyword.EMPTY_KEYWORDS);
+        this(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public static PArguments get(Frame frame) {
@@ -69,9 +66,8 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.VirtualFrameCargoArguments.class);
     }
 
-    public MaterializedFrame getGeneratorFrame() {
-        assert generatorFrame != null;
-        return generatorFrame;
+    public static GeneratorArguments getGeneratorArguments(Frame frame) {
+        return frame.getArguments(PArguments.GeneratorArguments.class);
     }
 
     public Object getSelf() {
@@ -113,12 +109,31 @@ public class PArguments extends Arguments {
         return arguments.length;
     }
 
+    public static class GeneratorArguments extends PArguments {
+
+        private final MaterializedFrame generatorFrame;
+
+        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
+            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.generatorFrame = generatorFrame;
+        }
+
+        public MaterializedFrame getGeneratorFrame() {
+            return generatorFrame;
+        }
+
+    }
+
+    /**
+     * Carry the {@link VirtualFrame} into a inlined Python function.<br>
+     * Should only be used within a complete Truffle compilation unit and never escape it.
+     */
     public static class VirtualFrameCargoArguments extends PArguments {
 
         private final VirtualFrame cargoFrame;
 
         public VirtualFrameCargoArguments(Object self, MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
-            super(self, declarationFrame, null, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.cargoFrame = cargoFrame;
         }
 

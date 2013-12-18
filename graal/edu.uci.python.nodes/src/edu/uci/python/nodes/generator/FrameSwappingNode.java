@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
@@ -41,6 +42,24 @@ public class FrameSwappingNode extends PNode {
     public Object execute(VirtualFrame frame) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
         return child.execute(cargoFrame);
+    }
+
+    @Override
+    public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeBoolean(cargoFrame);
+    }
+
+    @Override
+    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeInt(cargoFrame);
+    }
+
+    @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeDouble(cargoFrame);
     }
 
 }
