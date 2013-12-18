@@ -650,7 +650,7 @@ C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id
 C2V_END
 
 C2V_VMENTRY(void, printCompilationStatistics, (JNIEnv *jniEnv, jobject, jboolean per_compiler, jboolean aggregate))
-CompileBroker::print_times(per_compiler, aggregate);
+  CompileBroker::print_times(per_compiler == JNI_TRUE, aggregate == JNI_TRUE);
 C2V_END
 
 C2V_VMENTRY(void, resetCompilationStatistics, (JNIEnv *jniEnv, jobject))
