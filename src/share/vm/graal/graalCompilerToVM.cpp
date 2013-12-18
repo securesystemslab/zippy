@@ -373,22 +373,20 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
   return JNIHandles::make_local(THREAD, field_handle());
 C2V_END
 
-C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
-
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
   Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
   Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
-  methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
-  if (method.is_null()) {
+  Method* method = klass->lookup_method(name_symbol, signature_symbol);
+  if (method == NULL) {
     if (TraceGraal >= 3) {
       ResourceMark rm;
       tty->print_cr("Could not resolve method %s %s on klass %s", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->name()->as_C_string());
     }
-    return NULL;
+    return 0;
   }
-  Handle holder = GraalCompiler::get_JavaType(method->method_holder(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
+  return (jlong) (address) method;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
@@ -884,7 +882,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
   {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
   {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
-  {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
+  {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
