@@ -230,7 +230,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public char charFromInt(Object arg) {
+            public char charFromObject(Object arg) {
                 if (arg instanceof Double) {
                     throw Py.TypeError("integer argument expected, got float");
                 }

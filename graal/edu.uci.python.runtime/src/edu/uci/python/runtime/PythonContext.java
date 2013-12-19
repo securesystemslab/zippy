@@ -36,22 +36,20 @@ public class PythonContext {
 
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
+    private final PythonBuiltinsContainer builtinsModuleBuiltins;
     private PythonBuiltinClass typeClass;
     private PythonBuiltinClass objectClass;
     private PythonBuiltinClass moduleClass;
     private PythonModule builtinsModule;
     private PythonModule mainModule;
-    private PythonBuiltinsContainer builtinsModuleBuiltins;
-    private PythonBuiltinsContainer mainModuleBuiltins;
 
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer builtinsModuleBuiltins, PythonBuiltinsContainer mainModuleBuiltins) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsContainer builtinsModuleBuiltins) {
         this.options = opts;
-        this.lookup = lookup;
+        this.lookup = new PythonBuiltinsLookup();
         currentContext = this;
         this.builtinsModuleBuiltins = builtinsModuleBuiltins;
-        this.mainModuleBuiltins = mainModuleBuiltins;
         initialize();
     }
 
@@ -65,7 +63,7 @@ public class PythonContext {
         builtinsModule.setAttribute("object", objectClass);
         lookup.addModule("__builtins__", builtinsModule);
 
-        mainModule = new PythonModule("__main__", mainModuleBuiltins, this);
+        mainModule = new PythonModule("__main__", null, this);
         mainModule.setAttribute("__builtins__", builtinsModule);
         lookup.addModule("__main__", mainModule);
     }
