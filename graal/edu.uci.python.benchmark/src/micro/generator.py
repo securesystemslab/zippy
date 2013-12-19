@@ -2,15 +2,16 @@
 # subscribe simple generator
 import time
 
-def gen(n):
+def generator(n):
 	for i in range(n):
-		yield i
+		yield i * 2
 
 def call_generator(num, iteration):
-
+	item = 0
 	for t in range(iteration):
-		for i in gen(num):
-			item = i
+		num += t % 5
+		for i in generator(num):
+			item = i + item % 5
 
 	return item
 
@@ -20,7 +21,7 @@ def measure():
 	start = time.time()
 
 	num = 1000
-	last_item = call_generator(num, 100000) #1000000
+	last_item = call_generator(num, 10000) #1000000
 
 	print("Last item ", last_item)
 
@@ -29,6 +30,6 @@ def measure():
 
 #warm up
 for run in range(1000):
-	call_generator(10, 10000)
+	call_generator(10, 100)
 
 measure()
