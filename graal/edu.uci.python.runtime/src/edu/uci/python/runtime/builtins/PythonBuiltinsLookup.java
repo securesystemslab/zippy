@@ -24,8 +24,7 @@
  */
 package edu.uci.python.runtime.builtins;
 
-import java.util.*;
-
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtypes.*;
 
 /**
@@ -34,31 +33,12 @@ import edu.uci.python.runtime.standardtypes.*;
  * @author zwei
  * 
  */
-public class PythonBuiltinsLookup {
+public interface PythonBuiltinsLookup {
 
-    private final Map<String, PythonModule> builtinModules;
-    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
+    void addBuiltins(PythonContext context);
 
-    public PythonBuiltinsLookup() {
-        builtinModules = new HashMap<>();
-        builtinTypes = new HashMap<>();
-    }
+    PythonModule lookupModule(String name);
 
-    public void addModule(String name, PythonModule module) {
-        builtinModules.put(name, module);
-    }
+    PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz);
 
-    public void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
-        builtinTypes.put(clazz, type);
-    }
-
-    public PythonModule lookupModule(String name) {
-        PythonModule module = builtinModules.get(name);
-        return module;
-    }
-
-    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
-        PythonBuiltinClass type = builtinTypes.get(clazz);
-        return type;
-    }
 }

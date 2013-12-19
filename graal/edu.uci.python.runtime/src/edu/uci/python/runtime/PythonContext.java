@@ -36,7 +36,7 @@ public class PythonContext {
 
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
-    private final PythonBuiltinsContainer builtinsModuleBuiltins;
+    private final PythonBuiltinsContainer defaultBuiltins;
     private PythonBuiltinClass typeClass;
     private PythonBuiltinClass objectClass;
     private PythonBuiltinClass moduleClass;
@@ -45,12 +45,13 @@ public class PythonContext {
 
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsContainer builtinsModuleBuiltins) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonBuiltinsContainer defaultBuiltins) {
         this.options = opts;
-        this.lookup = new PythonBuiltinsLookup();
+        this.lookup = lookup;
         currentContext = this;
-        this.builtinsModuleBuiltins = builtinsModuleBuiltins;
+        this.defaultBuiltins = defaultBuiltins;
         initialize();
+        this.lookup.addBuiltins(this);
     }
 
     public void initialize() {
@@ -59,13 +60,19 @@ public class PythonContext {
         typeClass.unsafeSetSuperClass(objectClass);
         moduleClass = new PythonBuiltinClass(this, objectClass, "module");
 
-        builtinsModule = new PythonModule("__builtins__", builtinsModuleBuiltins, this);
+        builtinsModule = new PythonModule("__builtins__", defaultBuiltins, this);
         builtinsModule.setAttribute("object", objectClass);
-        lookup.addModule("__builtins__", builtinsModule);
 
         mainModule = new PythonModule("__main__", null, this);
         mainModule.setAttribute("__builtins__", builtinsModule);
-        lookup.addModule("__main__", mainModule);
+    }
+
+    public PythonModule getBuiltinsModule() {
+        return builtinsModule;
+    }
+
+    public PythonModule getMainModule() {
+        return mainModule;
     }
 
     public PythonOptions getPythonOptions() {

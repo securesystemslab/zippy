@@ -35,21 +35,38 @@ import edu.uci.python.runtime.standardtypes.*;
 
 /**
  * @author Gulfem
- * @author zwei
  */
-public class PythonBuiltinsInitializer {
 
-    public static void initialize(PythonContext context) {
-        PythonBuiltinsLookup lookup = context.getPythonBuiltinsLookup();
+public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
-        lookup.addModule("array", new PythonModule("array", new ArrayModuleBuiltins(), context));
-        lookup.addModule("bisect", new PythonModule("bisect", new BisectModuleBuiltins(), context));
-        lookup.addModule("time", new PythonModule("time", new TimeModuleBuiltins(), context));
+    private final Map<String, PythonModule> builtinModules;
+    private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
+
+    public PythonDefaultBuiltinsLookup() {
+        builtinModules = new HashMap<>();
+        builtinTypes = new HashMap<>();
+    }
+
+    public void addBuiltins(PythonContext context) {
+        addModule("__builtins__", context.getBuiltinsModule());
+        addModule("__main__", context.getMainModule());
+
+        addModule("array", new PythonModule("array", new ArrayModuleBuiltins(), context));
+        addModule("bisect", new PythonModule("bisect", new BisectModuleBuiltins(), context));
+        addModule("time", new PythonModule("time", new TimeModuleBuiltins(), context));
 
         PythonBuiltinClass typeClass = context.getTypeClass();
-        lookup.addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
-        lookup.addType(PString.class, initBuiltinClass(context, typeClass, "str", new StringBuiltins()));
-        lookup.addType(PDict.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
+        addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
+        addType(PString.class, initBuiltinClass(context, typeClass, "str", new StringBuiltins()));
+        addType(PDict.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
+    }
+
+    private void addModule(String name, PythonModule module) {
+        builtinModules.put(name, module);
+    }
+
+    private void addType(Class<? extends PythonBuiltinObject> clazz, PythonBuiltinClass type) {
+        builtinTypes.put(clazz, type);
     }
 
     private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
@@ -64,5 +81,15 @@ public class PythonBuiltinsInitializer {
         }
 
         return clazz;
+    }
+
+    public PythonModule lookupModule(String name) {
+        PythonModule module = builtinModules.get(name);
+        return module;
+    }
+
+    public PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz) {
+        PythonBuiltinClass type = builtinTypes.get(clazz);
+        return type;
     }
 }
