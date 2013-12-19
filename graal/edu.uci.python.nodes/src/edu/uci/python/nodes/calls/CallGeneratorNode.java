@@ -70,13 +70,15 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
-            callCount += 1000000000;
+            callCount += 10000000;
         }
 
         return super.execute(frame);
     }
 
     public boolean inline(FrameFactory factory) {
+        CompilerAsserts.neverPartOfCompilation();
+
         assert this.getParent() != null;
         PNode parent = (PNode) getParent();
         assert parent.getParent() != null;
@@ -105,4 +107,5 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             yield.replace(block);
         }
     }
+
 }
