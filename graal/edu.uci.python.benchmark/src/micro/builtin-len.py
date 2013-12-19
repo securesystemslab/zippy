@@ -5,6 +5,7 @@ import time
 def callLen(num, ll):
 	length = 0
 	for i in range(num):
+		ll[i % 5] = i
 		length = len(ll)
 
 	return length
@@ -15,7 +16,7 @@ def measure():
 	start = time.time()
 
 	ll = [x*2 for x in range(1000)]
-	length = callLen(1000000000, ll) #1000000
+	length = callLen(500000000, ll) #1000000000
 
 	print("Final length ", length)
 

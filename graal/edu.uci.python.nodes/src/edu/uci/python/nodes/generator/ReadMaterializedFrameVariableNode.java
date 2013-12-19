@@ -52,31 +52,31 @@ public abstract class ReadMaterializedFrameVariableNode extends FrameSlotNode im
 
     @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.get(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
         return getInteger(mframe);
     }
 
     @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.get(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
         return getBigInteger(mframe);
     }
 
     @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.get(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
         return getDouble(mframe);
     }
 
     @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.get(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
         return getBoolean(mframe);
     }
 
     @Specialization(guards = "isNotIllegal")
     public Object doObject(VirtualFrame frame) {
-        MaterializedFrame mframe = PArguments.get(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
         return getObject(mframe);
     }
 

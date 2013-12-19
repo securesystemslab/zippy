@@ -31,85 +31,55 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class WriteMaterializedFrameVariableNode extends FrameSlotNode implements WriteNode {
+/**
+ * Transfer a local variable value from the current frame to a cargo frame.
+ */
+@NodeChild(value = "right", type = PNode.class)
+public abstract class FrameTransferNode extends FrameSlotNode {
 
-    public abstract PNode getRightNode();
-
-    public WriteMaterializedFrameVariableNode(FrameSlot slot) {
+    public FrameTransferNode(FrameSlot slot) {
         super(slot);
     }
 
-    protected WriteMaterializedFrameVariableNode(WriteMaterializedFrameVariableNode specialized) {
-        this(specialized.frameSlot);
+    protected FrameTransferNode(FrameTransferNode prev) {
+        super(prev.frameSlot);
     }
-
-    @Override
-    public PNode makeReadNode() {
-        return null;
-    }
-
-    @Override
-    public PNode getRhs() {
-        return getRightNode();
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
-        return executeWith(frame, value);
-    }
-
-    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     @Specialization(order = 0, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        mframe.setBoolean(frameSlot, right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setBoolean(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        mframe.setInt(frameSlot, value);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setInt(frameSlot, value);
         return value;
     }
 
     @Specialization(guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        setObject(mframe, value);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        setObject(cargoFrame, value);
         return value;
     }
 
     @Specialization(guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        mframe.setDouble(frameSlot, right);
-        return right;
-    }
-
-    @Specialization(guards = "isObjectKind")
-    public PComplex write(VirtualFrame frame, PComplex right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        setObject(mframe, right);
-        return right;
-    }
-
-    @Specialization(guards = "isObjectKind")
-    public String write(VirtualFrame frame, String right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        setObject(mframe, right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        cargoFrame.setDouble(frameSlot, right);
         return right;
     }
 
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        setObject(mframe, right);
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        setObject(cargoFrame, right);
         return right;
     }
+
 }

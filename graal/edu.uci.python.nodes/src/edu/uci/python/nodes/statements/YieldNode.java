@@ -37,6 +37,10 @@ public class YieldNode extends StatementNode {
         this.right = adoptChild(right);
     }
 
+    public PNode getRhs() {
+        return right;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         Object returnValue = right.execute(frame);

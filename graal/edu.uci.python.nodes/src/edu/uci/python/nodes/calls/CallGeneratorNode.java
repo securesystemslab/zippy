@@ -29,9 +29,12 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.calls.CallFunctionNoKeywordNode.CallFunctionCachedNode;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorNode extends CallFunctionCachedNode implements InlinableCallSite {
@@ -67,14 +70,18 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
-            callCount += 1000000000;
+            callCount += 10000000;
         }
 
         return super.execute(frame);
     }
 
     public boolean inline(FrameFactory factory) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        assert this.getParent() != null;
         PNode parent = (PNode) getParent();
+        assert parent.getParent() != null;
         PNode grandpa = (PNode) parent.getParent();
 
         if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
@@ -86,9 +93,19 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     }
 
     private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
-        @SuppressWarnings("unused")
+        CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, (PGeneratorFunction) cached, generatorRoot, globalScopeUnchanged, factory);
+        loop.replace(inlinedNode);
+
         PNode body = loop.getBody();
-        loop.replace(new CallGeneratorInlinedNode(callee, arguments, (PGeneratorFunction) cached, globalScopeUnchanged, factory));
+        PNode target = loop.getTarget();
+        FrameSlot yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(body));
+            BlockNode block = new BlockNode(new PNode[]{frameTransfer, frameSwapper});
+            yield.replace(block);
+        }
     }
 
 }

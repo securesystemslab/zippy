@@ -46,7 +46,7 @@ public class PGenerator implements PIterator {
          * Setting up persistent frame in {@link #arguments}.
          */
         MaterializedFrame generatorFrame = new DefaultVirtualFrame(frameDescriptor, null, PArguments.EMPTY_ARGUMENT).materialize();
-        this.arguments = new PArguments(declarationFrame, generatorFrame, arguments);
+        this.arguments = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments);
     }
 
     public FrameDescriptor getFrameDescriptor() {

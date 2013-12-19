@@ -22,55 +22,44 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.function;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.function.*;
 
-public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
+public class FrameSwappingNode extends PNode {
 
-    private final PBuiltinFunction function;
-    private PythonBuiltinObject self;
-    private final CallTarget callTarget;
+    @Child protected PNode child;
 
-    public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
-        this.self = self;
-        this.function = function;
-        this.callTarget = function.getCallTarget();
-    }
-
-    public PBuiltinFunction __func__() {
-        return function;
-    }
-
-    public PythonBuiltinObject __self__() {
-        return self;
-    }
-
-    public void bind(PythonBuiltinObject newSelf) {
-        this.self = newSelf;
-    }
-
-    /**
-     * There is no declaration frame for built-in methods.
-     */
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, null, args));
-    }
-
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return callTarget.call(caller, new PArguments(self, null, args, keywords));
+    public FrameSwappingNode(PNode child) {
+        this.child = adoptChild(child);
     }
 
     @Override
-    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
-        function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+    public Object execute(VirtualFrame frame) {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.execute(cargoFrame);
     }
 
     @Override
-    public String toString() {
-        return "<method '" + function.getName() + "' of '" + self + "' objects>";
+    public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeBoolean(cargoFrame);
     }
+
+    @Override
+    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeInt(cargoFrame);
+    }
+
+    @Override
+    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        return child.executeDouble(cargoFrame);
+    }
+
 }

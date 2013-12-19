@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "rightNode", type = PNode.class)
 public abstract class WriteLocalVariableNode extends FrameSlotNode implements WriteNode {
@@ -85,18 +84,6 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
     @Specialization(guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
         frame.setDouble(frameSlot, right);
-        return right;
-    }
-
-    @Specialization(guards = "isObjectKind")
-    public PComplex write(VirtualFrame frame, PComplex right) {
-        setObject(frame, right);
-        return right;
-    }
-
-    @Specialization(guards = "isObjectKind")
-    public String write(VirtualFrame frame, String right) {
-        setObject(frame, right);
         return right;
     }
 

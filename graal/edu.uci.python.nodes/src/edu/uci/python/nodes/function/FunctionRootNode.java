@@ -109,6 +109,13 @@ public class FunctionRootNode extends RootNode {
         @Child protected StatementNode body;
         @Child protected PNode returnValue;
 
+        public InlinedFunctionRootNode(String functionName, ParametersNode params, StatementNode body, PNode returnNode) {
+            this.functionName = functionName;
+            this.parameters = adoptChild(params);
+            this.body = adoptChild(body);
+            this.returnValue = adoptChild(returnNode);
+        }
+
         protected InlinedFunctionRootNode(FunctionRootNode node) {
             this.functionName = node.functionName;
             this.parameters = adoptChild(NodeUtil.cloneNode(node.uninitializedParams));
@@ -134,4 +141,5 @@ public class FunctionRootNode extends RootNode {
             return "<inlined function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
         }
     }
+
 }
