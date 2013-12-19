@@ -1260,7 +1260,7 @@ def bench(args):
         vm = 'jython'
 
     if 'pypy-micro' in args:
-        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
         vm = 'pypy'
 
     if 'pypy3-micro' in args:

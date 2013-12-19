@@ -16,7 +16,7 @@ def measure():
 	start = time.time()
 
 	ll = [x*2 for x in range(1000)]
-	length = callLen(1000000000, ll) #1000000000
+	length = callLen(500000000, ll) #1000000000
 
 	print("Final length ", length)
 
