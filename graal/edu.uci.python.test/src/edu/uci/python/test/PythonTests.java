@@ -84,7 +84,7 @@ public class PythonTests {
 
     public static PythonContext getContext() {
         PythonOptions opts = new PythonOptions();
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonDefaultBuiltins());
+        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup());
         return context;
     }
 
@@ -93,7 +93,7 @@ public class PythonTests {
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
 
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonDefaultBuiltins());
+        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup());
         return context;
     }
 }

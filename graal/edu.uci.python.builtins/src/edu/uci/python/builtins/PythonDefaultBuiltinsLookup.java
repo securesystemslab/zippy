@@ -48,17 +48,18 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     public void addBuiltins(PythonContext context) {
+        addBuiltinsToModule(context.getBuiltinsModule(), new PythonDefaultBuiltins(), context);
         addModule("__builtins__", context.getBuiltinsModule());
         addModule("__main__", context.getMainModule());
 
-        addModule("array", new PythonModule("array", new ArrayModuleBuiltins(), context));
-        addModule("bisect", new PythonModule("bisect", new BisectModuleBuiltins(), context));
-        addModule("time", new PythonModule("time", new TimeModuleBuiltins(), context));
+        addModule("array", createModule("array", new ArrayModuleBuiltins(), context));
+        addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
+        addModule("time", createModule("time", new TimeModuleBuiltins(), context));
 
         PythonBuiltinClass typeClass = context.getTypeClass();
-        addType(PList.class, initBuiltinClass(context, typeClass, "list", new ListBuiltins()));
-        addType(PString.class, initBuiltinClass(context, typeClass, "str", new StringBuiltins()));
-        addType(PDict.class, initBuiltinClass(context, typeClass, "dict", new DictionaryBuiltins()));
+        addType(PList.class, createType("list", typeClass, new ListBuiltins(), context));
+        addType(PString.class, createType("str", typeClass, new StringBuiltins(), context));
+        addType(PDict.class, createType("dict", typeClass, new DictionaryBuiltins(), context));
     }
 
     private void addModule(String name, PythonModule module) {
@@ -69,18 +70,44 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinTypes.put(clazz, type);
     }
 
-    private static PythonBuiltinClass initBuiltinClass(PythonContext context, PythonBuiltinClass superClass, String name, PythonBuiltins classBuiltin) {
-        classBuiltin.initialize(context);
+    private static PythonModule createModule(String name, PythonBuiltins builtins, PythonContext context) {
+        PythonModule module = new PythonModule(name, context);
+        addBuiltinsToModule(module, builtins, context);
+        return module;
+    }
+
+    private static PythonBuiltinClass createType(String name, PythonClass superClass, PythonBuiltins builtins, PythonContext context) {
         PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
-        Map<String, PBuiltinFunction> builtinFunctions = classBuiltin.getBuiltinFunctions();
+        addBuiltinsToClass(clazz, builtins, context);
+        return clazz;
+    }
+
+    private static void addBuiltinsToModule(PythonModule module, PythonBuiltins builtins, PythonContext context) {
+        builtins.initialize(context);
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+            String methodName = entry.getKey();
+            PBuiltinFunction function = entry.getValue();
+            module.setAttribute(methodName, function);
+        }
+
+        Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
+        for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
+            String className = entry.getKey();
+            PythonBuiltinClass function = entry.getValue();
+            module.setAttribute(className, function);
+        }
+    }
+
+    private static void addBuiltinsToClass(PythonBuiltinClass clazz, PythonBuiltins builtins, PythonContext context) {
+        builtins.initialize(context);
+        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
 
         for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
             String methodName = entry.getKey();
             PBuiltinFunction function = entry.getValue();
             clazz.setAttributeUnsafe(methodName, function);
         }
-
-        return clazz;
     }
 
     public PythonModule lookupModule(String name) {

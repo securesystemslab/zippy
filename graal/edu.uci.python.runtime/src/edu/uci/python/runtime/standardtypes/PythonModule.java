@@ -31,7 +31,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.misc.*;
@@ -47,18 +46,11 @@ public class PythonModule extends PythonBasicObject {
 
     private final CyclicAssumption unmodifiedAssumption;
 
-    @SuppressWarnings("unused") private final PythonContext context;
-
-    public PythonModule(String name, PythonBuiltinsContainer builtins, PythonContext context) {
+    public PythonModule(String name, PythonContext context) {
         super(context.getModuleClass());
-        this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
         setAttribute(__NAME__, name);
         addBuiltinMethodsAndConstants(PythonModule.class);
-        if (builtins != null) {
-            builtins.initialize(context);
-            addBuiltins(builtins);
-        }
     }
 
     @Override
@@ -122,22 +114,6 @@ public class PythonModule extends PythonBasicObject {
             return new AnnotatedBuiltinMethod(names, methodAnnotation.isClassMethod(), (PythonCallTarget) field.get(null));
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private void addBuiltins(PythonBuiltinsContainer builtins) {
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            setAttribute(methodName, function);
-        }
-
-        Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
-        for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
-            String className = entry.getKey();
-            PythonBuiltinClass function = entry.getValue();
-            setAttribute(className, function);
         }
     }
 
