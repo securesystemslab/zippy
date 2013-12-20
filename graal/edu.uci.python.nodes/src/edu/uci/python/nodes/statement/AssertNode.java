@@ -30,7 +30,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public class AssertNode extends StatementNode {
 

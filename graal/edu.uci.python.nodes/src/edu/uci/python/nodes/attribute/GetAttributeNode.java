@@ -36,10 +36,10 @@ import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class GetAttributeNode extends PNode implements ReadNode {
 

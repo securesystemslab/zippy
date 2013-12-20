@@ -27,8 +27,8 @@ package edu.uci.python.nodes.attribute;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.builtins.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class UnboxedCheckNode extends Node {
 

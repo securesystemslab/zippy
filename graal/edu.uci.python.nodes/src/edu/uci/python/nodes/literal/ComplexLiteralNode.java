@@ -26,7 +26,7 @@ package edu.uci.python.nodes.literal;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public class ComplexLiteralNode extends LiteralNode {
 

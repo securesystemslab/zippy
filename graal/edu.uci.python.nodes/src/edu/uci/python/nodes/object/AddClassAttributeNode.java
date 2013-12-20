@@ -29,9 +29,9 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 @NodeInfo(shortName = "add-class-attr")
 public class AddClassAttributeNode extends PNode {

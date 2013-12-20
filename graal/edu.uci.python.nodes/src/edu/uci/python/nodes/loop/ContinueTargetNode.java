@@ -27,7 +27,7 @@ package edu.uci.python.nodes.loop;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
 public class ContinueTargetNode extends StatementNode {

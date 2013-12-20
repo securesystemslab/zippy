@@ -28,8 +28,8 @@ import org.python.core.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class LoadAttributeNode extends PNode implements ReadNode {
 

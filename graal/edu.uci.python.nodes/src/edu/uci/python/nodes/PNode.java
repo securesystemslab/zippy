@@ -34,11 +34,11 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 @TypeSystemReference(PythonTypes.class)
 public abstract class PNode extends Node {

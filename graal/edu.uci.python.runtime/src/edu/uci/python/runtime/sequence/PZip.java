@@ -26,7 +26,7 @@ package edu.uci.python.runtime.sequence;
 
 import org.python.core.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 
 /**

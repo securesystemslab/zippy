@@ -39,7 +39,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild("primary")

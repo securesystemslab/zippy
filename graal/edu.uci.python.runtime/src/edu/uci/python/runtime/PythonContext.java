@@ -28,9 +28,9 @@ import java.io.*;
 
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 

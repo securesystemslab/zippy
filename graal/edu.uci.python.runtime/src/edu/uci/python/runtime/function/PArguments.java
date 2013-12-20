@@ -27,7 +27,7 @@ package edu.uci.python.runtime.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public class PArguments extends Arguments {
 

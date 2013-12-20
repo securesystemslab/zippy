@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class PImmutableSequence extends PSequence {
 

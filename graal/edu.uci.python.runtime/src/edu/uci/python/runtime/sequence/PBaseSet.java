@@ -30,10 +30,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PBaseSet extends PythonBuiltinObject implements PIterable {
 

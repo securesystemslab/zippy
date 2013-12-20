@@ -35,8 +35,8 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class ReadGlobalScopeNode extends PNode implements ReadNode {
 

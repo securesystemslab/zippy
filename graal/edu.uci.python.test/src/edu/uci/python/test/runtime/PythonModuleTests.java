@@ -32,9 +32,9 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtins.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
 public class PythonModuleTests {

@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.object.*;
 
 public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
 

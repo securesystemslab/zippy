@@ -30,7 +30,7 @@ import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class SliceNode extends TernaryOpNode {
 

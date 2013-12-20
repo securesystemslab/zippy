@@ -24,10 +24,10 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PSequence extends PythonBuiltinObject implements PIterable {
 

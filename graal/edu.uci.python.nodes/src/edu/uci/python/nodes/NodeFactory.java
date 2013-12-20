@@ -59,8 +59,8 @@ import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryBitwiseNodeFactory.*;
 import edu.uci.python.nodes.expression.UnaryArithmeticNodeFactory.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class NodeFactory {
 

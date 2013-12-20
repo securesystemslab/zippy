@@ -48,7 +48,7 @@ import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 

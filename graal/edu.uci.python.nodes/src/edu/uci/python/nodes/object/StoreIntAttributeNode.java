@@ -28,7 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.object.*;
 
 public class StoreIntAttributeNode extends StoreSpecializedAttributeNode {
 

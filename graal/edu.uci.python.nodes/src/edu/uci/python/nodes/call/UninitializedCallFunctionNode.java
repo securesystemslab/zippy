@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class UninitializedCallFunctionNode extends CallFunctionNode {
 
@@ -51,9 +51,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();
         Object calleeObj = callee.execute(frame);
+
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
+
             if (keywords.length == 0) {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
                 replace(callFunction);
@@ -84,4 +86,5 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
         return keywordNames;
     }
+
 }

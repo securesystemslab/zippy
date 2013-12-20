@@ -28,8 +28,8 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.datatypes.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 
 public final class StoreGenericAttributeNode extends StoreAttributeNode {
 

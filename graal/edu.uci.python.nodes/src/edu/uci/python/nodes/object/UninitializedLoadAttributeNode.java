@@ -29,7 +29,7 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.object.*;
 
 public class UninitializedLoadAttributeNode extends LoadAttributeNode {
 

@@ -43,8 +43,8 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
 public class AttributeCachingTests {

@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 @NodeInfo(shortName = "class-def")
 public class ClassDefinitionNode extends StatementNode {

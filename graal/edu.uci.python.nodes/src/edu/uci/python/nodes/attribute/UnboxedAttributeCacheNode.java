@@ -29,7 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.object.*;
 
 public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttributeNode {
 

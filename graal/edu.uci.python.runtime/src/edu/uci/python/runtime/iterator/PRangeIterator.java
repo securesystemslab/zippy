@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.iterator;
 
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
 public final class PRangeIterator implements PIterator {

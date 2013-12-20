@@ -33,12 +33,12 @@ import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 
 import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.objects.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 
 @TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
 

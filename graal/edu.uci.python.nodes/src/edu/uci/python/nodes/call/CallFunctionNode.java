@@ -36,7 +36,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild(value = "callee", type = PNode.class)

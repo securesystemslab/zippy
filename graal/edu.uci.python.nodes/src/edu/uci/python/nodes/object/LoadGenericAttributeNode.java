@@ -31,8 +31,8 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.objects.*;
-import edu.uci.python.runtime.standardtypes.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class LoadGenericAttributeNode extends LoadAttributeNode {
 

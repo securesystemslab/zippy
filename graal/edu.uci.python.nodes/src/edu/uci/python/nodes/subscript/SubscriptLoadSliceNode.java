@@ -29,7 +29,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
