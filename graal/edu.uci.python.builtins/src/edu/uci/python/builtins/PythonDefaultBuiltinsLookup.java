@@ -48,9 +48,13 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     public void addBuiltins(PythonContext context) {
-        addBuiltinsToModule(context.getBuiltinsModule(), new PythonDefaultBuiltins(), context);
-        addModule("__builtins__", context.getBuiltinsModule());
-        addModule("__main__", context.getMainModule());
+        PythonModule builtinsModule = createModule("__builtins__", new PythonDefaultBuiltins(), context);
+        builtinsModule.setAttribute("object", context.getObjectClass());
+        addModule("__builtins__", builtinsModule);
+
+        PythonModule mainModule = createModule("__main__", null, context);
+        mainModule.setAttribute("__builtins__", builtinsModule);
+        addModule("__main__", mainModule);
 
         addModule("array", createModule("array", new ArrayModuleBuiltins(), context));
         addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
@@ -82,30 +86,34 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     private static void addBuiltinsToModule(PythonModule module, PythonBuiltins builtins, PythonContext context) {
-        builtins.initialize(context);
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            module.setAttribute(methodName, function);
-        }
+        if (builtins != null) {
+            builtins.initialize(context);
+            Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+            for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+                String methodName = entry.getKey();
+                PBuiltinFunction function = entry.getValue();
+                module.setAttribute(methodName, function);
+            }
 
-        Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
-        for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
-            String className = entry.getKey();
-            PythonBuiltinClass function = entry.getValue();
-            module.setAttribute(className, function);
+            Map<String, PythonBuiltinClass> builtinClasses = builtins.getBuiltinClasses();
+            for (Map.Entry<String, PythonBuiltinClass> entry : builtinClasses.entrySet()) {
+                String className = entry.getKey();
+                PythonBuiltinClass function = entry.getValue();
+                module.setAttribute(className, function);
+            }
         }
     }
 
     private static void addBuiltinsToClass(PythonBuiltinClass clazz, PythonBuiltins builtins, PythonContext context) {
-        builtins.initialize(context);
-        Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+        if (builtins != null) {
+            builtins.initialize(context);
+            Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
 
-        for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-            String methodName = entry.getKey();
-            PBuiltinFunction function = entry.getValue();
-            clazz.setAttributeUnsafe(methodName, function);
+            for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
+                String methodName = entry.getKey();
+                PBuiltinFunction function = entry.getValue();
+                clazz.setAttributeUnsafe(methodName, function);
+            }
         }
     }
 
