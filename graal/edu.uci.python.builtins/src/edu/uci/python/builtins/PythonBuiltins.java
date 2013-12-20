@@ -40,12 +40,15 @@ import com.oracle.truffle.api.dsl.NodeFactory;
  * @author Gulfem
  * @author zwei
  */
-public abstract class PythonBuiltins extends PythonBuiltinsContainer {
+public abstract class PythonBuiltins {
+
+    private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
+
+    private final Map<String, PythonBuiltinClass> builtinClasses = new HashMap<>();
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
 
     @SuppressWarnings("unchecked")
-    @Override
     public void initialize(PythonContext context) {
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
         assert factories != null : "No factories found. Override getFactories() to resolve this.";
@@ -112,6 +115,22 @@ public abstract class PythonBuiltins extends PythonBuiltinsContainer {
 
         PNode[] argsKeywords = args.toArray(new PNode[args.size()]);
         return argsKeywords;
+    }
+
+    public void setBuiltinFunction(String name, PBuiltinFunction function) {
+        builtinFunctions.put(name, function);
+    }
+
+    public void setBuiltinClass(String name, PythonBuiltinClass clazz) {
+        builtinClasses.put(name, clazz);
+    }
+
+    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
+        return builtinFunctions;
+    }
+
+    public Map<String, PythonBuiltinClass> getBuiltinClasses() {
+        return builtinClasses;
     }
 
 }

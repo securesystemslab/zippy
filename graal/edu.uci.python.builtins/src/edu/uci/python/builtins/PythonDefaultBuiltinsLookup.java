@@ -56,10 +56,9 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
         addModule("time", createModule("time", new TimeModuleBuiltins(), context));
 
-        PythonBuiltinClass typeClass = context.getTypeClass();
-        addType(PList.class, createType("list", typeClass, new ListBuiltins(), context));
-        addType(PString.class, createType("str", typeClass, new StringBuiltins(), context));
-        addType(PDict.class, createType("dict", typeClass, new DictionaryBuiltins(), context));
+        addType(PList.class, createType("list", new ListBuiltins(), context));
+        addType(PString.class, createType("str", new StringBuiltins(), context));
+        addType(PDict.class, createType("dict", new DictionaryBuiltins(), context));
     }
 
     private void addModule(String name, PythonModule module) {
@@ -76,8 +75,8 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         return module;
     }
 
-    private static PythonBuiltinClass createType(String name, PythonClass superClass, PythonBuiltins builtins, PythonContext context) {
-        PythonBuiltinClass clazz = new PythonBuiltinClass(context, superClass, name);
+    private static PythonBuiltinClass createType(String name, PythonBuiltins builtins, PythonContext context) {
+        PythonBuiltinClass clazz = new PythonBuiltinClass(context, context.getTypeClass(), name);
         addBuiltinsToClass(clazz, builtins, context);
         return clazz;
     }
