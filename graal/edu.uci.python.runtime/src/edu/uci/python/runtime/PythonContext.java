@@ -36,41 +36,21 @@ public class PythonContext {
 
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
-    private PythonBuiltinClass typeClass;
-    private PythonBuiltinClass objectClass;
-    private PythonBuiltinClass moduleClass;
-    private PythonModule builtinsModule;
-    private PythonModule mainModule;
+    private final PythonBuiltinClass typeClass;
+    private final PythonBuiltinClass objectClass;
+    private final PythonBuiltinClass moduleClass;
 
     private static PythonContext currentContext;
 
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
         this.options = opts;
         this.lookup = lookup;
+        this.typeClass = new PythonBuiltinClass(this, null, "type");
+        this.objectClass = new PythonObjectClass(this);
+        this.typeClass.unsafeSetSuperClass(objectClass);
+        this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
         currentContext = this;
-        initialize();
         this.lookup.addBuiltins(this);
-    }
-
-    public void initialize() {
-        typeClass = new PythonBuiltinClass(this, null, "type");
-        objectClass = new PythonObjectClass(this);
-        typeClass.unsafeSetSuperClass(objectClass);
-        moduleClass = new PythonBuiltinClass(this, objectClass, "module");
-
-        builtinsModule = new PythonModule("__builtins__", this);
-        builtinsModule.setAttribute("object", objectClass);
-
-        mainModule = new PythonModule("__main__", this);
-        mainModule.setAttribute("__builtins__", builtinsModule);
-    }
-
-    public PythonModule getBuiltinsModule() {
-        return builtinsModule;
-    }
-
-    public PythonModule getMainModule() {
-        return mainModule;
     }
 
     public PythonOptions getPythonOptions() {
@@ -97,6 +77,14 @@ public class PythonContext {
         return typeClass;
     }
 
+    public PythonBuiltinClass getObjectClass() {
+        return objectClass;
+    }
+
+    public PythonClass getModuleClass() {
+        return moduleClass;
+    }
+
     public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) throws UnexpectedResultException {
         if (obj instanceof PythonBuiltinObject) {
             return (PythonBuiltinObject) obj;
@@ -110,13 +98,5 @@ public class PythonContext {
         }
 
         throw new UnexpectedResultException(obj);
-    }
-
-    public PythonBuiltinClass getObjectClass() {
-        return objectClass;
-    }
-
-    public PythonClass getModuleClass() {
-        return moduleClass;
     }
 }

@@ -118,19 +118,19 @@ public abstract class PythonBuiltins {
         return argsKeywords;
     }
 
-    public void setBuiltinFunction(String name, PBuiltinFunction function) {
+    private void setBuiltinFunction(String name, PBuiltinFunction function) {
         builtinFunctions.put(name, function);
     }
 
-    public void setBuiltinClass(String name, PythonBuiltinClass clazz) {
+    private void setBuiltinClass(String name, PythonBuiltinClass clazz) {
         builtinClasses.put(name, clazz);
     }
 
-    public Map<String, PBuiltinFunction> getBuiltinFunctions() {
+    protected Map<String, PBuiltinFunction> getBuiltinFunctions() {
         return builtinFunctions;
     }
 
-    public Map<String, PythonBuiltinClass> getBuiltinClasses() {
+    protected Map<String, PythonBuiltinClass> getBuiltinClasses() {
         return builtinClasses;
     }
 
