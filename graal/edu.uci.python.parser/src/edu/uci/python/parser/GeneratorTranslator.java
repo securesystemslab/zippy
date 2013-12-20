@@ -31,7 +31,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 

@@ -28,7 +28,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.dsl.Specialization;
 
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.expression.*;
 
 public abstract class IndexNode extends UnaryOpNode {
 

@@ -29,7 +29,7 @@ import java.math.BigInteger;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class SliceNode extends TernaryOpNode {

@@ -27,7 +27,7 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.function.*;
 
 public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {

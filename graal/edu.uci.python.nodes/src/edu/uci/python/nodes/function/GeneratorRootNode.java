@@ -27,7 +27,7 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 
 public class GeneratorRootNode extends FunctionRootNode {
