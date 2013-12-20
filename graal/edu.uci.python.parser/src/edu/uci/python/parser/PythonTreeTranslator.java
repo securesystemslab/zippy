@@ -41,12 +41,12 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.expressions.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.literals.*;
+import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.objects.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.sequence.*;

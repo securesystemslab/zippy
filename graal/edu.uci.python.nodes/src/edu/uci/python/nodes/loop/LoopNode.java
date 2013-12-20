@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 
 public abstract class LoopNode extends StatementNode {
 

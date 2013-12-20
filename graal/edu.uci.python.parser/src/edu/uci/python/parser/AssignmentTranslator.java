@@ -34,7 +34,7 @@ import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 
 public class AssignmentTranslator {
 

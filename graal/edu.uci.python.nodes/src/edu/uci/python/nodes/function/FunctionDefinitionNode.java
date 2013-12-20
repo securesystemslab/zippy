@@ -28,7 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.function.*;
 
 public class FunctionDefinitionNode extends PNode {
