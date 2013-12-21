@@ -30,6 +30,7 @@ import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subproc
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
+import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
@@ -1136,18 +1137,24 @@ def gv(args):
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
-    env = os.environ.copy()
-    if mx.java().version >= mx.VersionSpec('1.8'):
-        jdk7 = mx.get_env('JAVA7_HOME', None)
-        if jdk7:
-            env['JAVA_HOME'] = jdk7
-        else:
-            mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
-        if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
-            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
+        nbplatform = join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')
+
+        # Remove NetBeans platform if it is earlier than the current supported version
+        if exists(nbplatform):
+            dom = xml.dom.minidom.parse(join(nbplatform, 'platform', 'update_tracking', 'org-netbeans-core.xml'))
+            currentVersion = mx.VersionSpec(dom.getElementsByTagName('module_version')[0].getAttribute('specification_version'))
+            supportedVersion = mx.VersionSpec('3.43.1')
+            if currentVersion < supportedVersion:
+                mx.log('Replacing NetBeans platform version ' + str(currentVersion) + ' with version ' + str(supportedVersion))
+                shutil.rmtree(nbplatform)
+            elif supportedVersion < currentVersion:
+                mx.log('Supported NetBeans version in igv command should be updated to ' + str(currentVersion))
+
+        if not exists(nbplatform):
+            mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def bench(args):
     """run benchmarks and parse their output for results
