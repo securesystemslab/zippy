@@ -22,31 +22,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.runtime;
 
 import java.util.*;
 
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.function.*;
-
 public class PythonParseResult {
 
-    private ModuleNode module;
+    private RootNode module;
+
+    private PythonContext context;
 
     private final Map<String, RootNode> functions = new HashMap<>();
 
-    public void setModule(ModuleNode module) {
+    public RootNode getModuleRoot() {
+        return module;
+    }
+
+    public void setModule(RootNode module) {
         this.module = module;
     }
 
-    public void addParsedFunction(String name, FunctionRootNode function) {
-        functions.put(name, function);
+    public PythonContext getContext() {
+        return context;
     }
 
-    public ModuleNode getModuleRoot() {
-        return module;
+    public void setContext(PythonContext context) {
+        this.context = context;
+    }
+
+    public void addParsedFunction(String name, RootNode function) {
+        functions.put(name, function);
     }
 
     public void printAST() {
