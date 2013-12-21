@@ -35,8 +35,9 @@ public class BuiltinTests {
 // @Test
     public void builtins() {
         Path script = Paths.get("builtins_test.py");
-        assertPrints("False\nTrue\n10\n10.25\n2.23606797749979\nTrue\nFalse\nFalse\nTrue\nTrue\nFalse\nA\n(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n(0, 1000)\n(1, 2000)\n(2, 3000)\n2.0\n1.23\n-12345.0\n0.001\n1000000.0\n0.0\n3\n2\n4\n2147483648\n0\n5\n3\n4\n2\n20\n20.8\n[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n[0, 5, 10, 15, 20, 25]\nh\ne\nl\nl\no\n10\n20\n30\nTrue\n",
-                        script);
+        assertPrints("False\nTrue\n10\n10.25\n2.23606797749979\nTrue\nFalse\nFalse\nTrue\n" + "True\nFalse\nA\n(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n(0, 1000)\n(1, 2000)\n(2, 3000)\n2.0\n"
+                        + "1.23\n-12345.0\n0.001\n1000000.0\n0.0\n3\n2\n4\n2147483648\n0\n5\n3\n4\n2\n"
+                        + "20\n20.8\n[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n[0, 5, 10, 15, 20, 25]\n" + "h\ne\nl\nl\no\n10\n20\n30\nTrue\n", script);
     }
 
     @Test
