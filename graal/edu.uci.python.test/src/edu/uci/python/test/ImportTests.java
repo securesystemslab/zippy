@@ -22,39 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.shell;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.*;
+import java.nio.file.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.parser.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
+import org.junit.*;
 
-public class ASTInterpreter {
+import static edu.uci.python.test.PythonTests.*;
 
-    public static boolean debug;
+public class ImportTests {
 
-    @SuppressWarnings("hiding")
-    public static void init(boolean debug) {
-        ASTInterpreter.debug = debug;
+    @Test
+    public void scriptImportTest() {
+        Path script = Paths.get("import_test.py");
+        assertPrints("imported foo()\n" + "local foo()\n" + "local variable\n" + "imported variable\n", script);
     }
 
-    public static void interpret(PythonParseResult result, boolean log) {
-
-        ModuleNode root = (ModuleNode) result.getModuleRoot();
-        CallTarget module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
-
-        Arguments arguments = new PArguments(null);
-
-        long start = System.nanoTime();
-        module.call(null, arguments);
-        long end = System.nanoTime();
-
-        if (log) {
-            // CheckStyle: stop system..print check
-            System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
-            // CheckStyle: resume system..print check
-        }
-    }
 }
