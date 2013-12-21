@@ -77,7 +77,7 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.JavaVersion('1.7.0_04')
+_minVersion = mx.VersionSpec('1.7.0_04')
 
 def _get_vm():
     """
@@ -981,7 +981,7 @@ def _basic_gate_body(args, tasks):
 
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.JavaVersion('1.8'):
+            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
                 # DaCapo eclipse doesn't not run under JDK8
                 continue
 
@@ -1137,7 +1137,7 @@ def gv(args):
 def igv(args):
     """run the Ideal Graph Visualizer"""
     env = os.environ.copy()
-    if mx.java().version >= mx.JavaVersion('1.8'):
+    if mx.java().version >= mx.VersionSpec('1.8'):
         jdk7 = mx.get_env('JAVA7_HOME', None)
         if jdk7:
             env['JAVA_HOME'] = jdk7

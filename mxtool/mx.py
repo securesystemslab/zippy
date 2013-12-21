@@ -720,7 +720,7 @@ class Suite:
                                 abort('suite name in project file does not match ' + _suitename(self.mxDir))
                         elif parts[0] == 'mxversion':
                             try:
-                                self.requiredMxVersion = JavaVersion(value)
+                                self.requiredMxVersion = VersionSpec(value)
                             except AssertionError as ae:
                                 abort('Exception while parsing "mxversion" in project file: ' + str(ae))
                         else:
@@ -1558,9 +1558,9 @@ class JavaCompliance:
         return cmp(self.value, other.value)
 
 """
-A Java version as defined in JSR-56
+A version specification as defined in JSR-56
 """
-class JavaVersion:
+class VersionSpec:
     def __init__(self, versionString):
         validChar = r'[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
         separator = r'[.\-_]'
@@ -1612,7 +1612,7 @@ class JavaConfig:
 
         output = output.split()
         assert output[1] == 'version'
-        self.version = JavaVersion(output[2].strip('"'))
+        self.version = VersionSpec(output[2].strip('"'))
         self.javaCompliance = JavaCompliance(self.version.versionString)
 
         if self.debug_port is not None:
@@ -4528,7 +4528,7 @@ def main():
         # no need to show the stack trace when the user presses CTRL-C
         abort(1)
 
-version = JavaVersion("1.0")
+version = VersionSpec("1.0")
 
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
