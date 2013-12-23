@@ -24,6 +24,8 @@
  */
 package edu.uci.python.parser;
 
+import java.util.*;
+
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -36,6 +38,14 @@ import edu.uci.python.nodes.statement.*;
 public class GeneratorTranslator {
 
     public static void translate(GeneratorRootNode root) {
+        /**
+         * Replace {@link ReturnTargetNode}.
+         */
+        List<ReturnTargetNode> returnTargets = NodeUtil.findAllNodeInstances(root, ReturnTargetNode.class);
+        assert returnTargets.size() == 1;
+        ReturnTargetNode returnTarget = returnTargets.get(0);
+        returnTarget.replace(new GeneratorReturnTargetNode(returnTarget));
+
         /**
          * Redirect local variable accesses to materialized persistent frame.
          */

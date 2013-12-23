@@ -29,8 +29,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -41,22 +39,13 @@ public class FunctionRootNode extends RootNode {
 
     private final String functionName;
 
-    @Child protected ParametersNode parameters;
-    @Child protected StatementNode body;
-    @Child protected PNode returnValue;
+    @Child protected PNode body;
+    private final PNode uninitializedBody;
 
-    private final ParametersNode uninitializedParams;
-    private final StatementNode uninitializedBody;
-    private final PNode uninitializedReturn;
-
-    public FunctionRootNode(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
+    public FunctionRootNode(String functionName, PNode body) {
         this.functionName = functionName;
-        this.parameters = adoptChild(parameters);
         this.body = adoptChild(body);
-        this.returnValue = adoptChild(returnValue);
-        this.uninitializedParams = NodeUtil.cloneNode(parameters);
         this.uninitializedBody = NodeUtil.cloneNode(body);
-        this.uninitializedReturn = NodeUtil.cloneNode(returnValue);
     }
 
     public void setBody(StatementNode body) {
@@ -67,34 +56,18 @@ public class FunctionRootNode extends RootNode {
         return new InlinedFunctionRootNode(this);
     }
 
-    public ParametersNode getUninitializedParams() {
-        return uninitializedParams;
-    }
-
-    public StatementNode getUninitializedBody() {
+    public PNode getUninitializedBody() {
         return uninitializedBody;
-    }
-
-    public PNode getUninitializedReturn() {
-        return uninitializedReturn;
     }
 
     @Override
     public FunctionRootNode copy() {
-        return new FunctionRootNode(this.functionName, this.uninitializedParams, this.uninitializedBody, this.uninitializedReturn);
+        return new FunctionRootNode(this.functionName, this.uninitializedBody);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-
-        try {
-            return body.execute(frame);
-        } catch (ImplicitReturnException ire) {
-            return PNone.NONE;
-        } catch (ExplicitReturnException ere) {
-            return returnValue.execute(frame);
-        }
+        return body.execute(frame);
     }
 
     @Override
@@ -105,35 +78,21 @@ public class FunctionRootNode extends RootNode {
     public static class InlinedFunctionRootNode extends PNode {
 
         private final String functionName;
-        @Child protected ParametersNode parameters;
-        @Child protected StatementNode body;
-        @Child protected PNode returnValue;
+        @Child protected PNode body;
 
-        public InlinedFunctionRootNode(String functionName, ParametersNode params, StatementNode body, PNode returnNode) {
+        public InlinedFunctionRootNode(String functionName, PNode body) {
             this.functionName = functionName;
-            this.parameters = adoptChild(params);
             this.body = adoptChild(body);
-            this.returnValue = adoptChild(returnNode);
         }
 
         protected InlinedFunctionRootNode(FunctionRootNode node) {
             this.functionName = node.functionName;
-            this.parameters = adoptChild(NodeUtil.cloneNode(node.uninitializedParams));
             this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));
-            this.returnValue = adoptChild(NodeUtil.cloneNode(node.uninitializedReturn));
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            parameters.executeVoid(frame);
-
-            try {
-                return body.execute(frame);
-            } catch (ImplicitReturnException ire) {
-                return PNone.NONE;
-            } catch (ExplicitReturnException ere) {
-                return returnValue.execute(frame);
-            }
+            return body.execute(frame);
         }
 
         @Override

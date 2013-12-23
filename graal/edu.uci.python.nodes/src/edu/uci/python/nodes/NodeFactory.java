@@ -82,8 +82,8 @@ public class NodeFactory {
         return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
-    public FunctionRootNode createFunctionRoot(String functionName, ParametersNode parameters, StatementNode body, PNode returnValue) {
-        return new FunctionRootNode(functionName, parameters, body, returnValue);
+    public FunctionRootNode createFunctionRoot(String functionName, PNode body) {
+        return new FunctionRootNode(functionName, body);
     }
 
     public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
@@ -285,8 +285,8 @@ public class NodeFactory {
         return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
     }
 
-    public GeneratorRootNode createGeneratorRoot(String name, ParametersNode params, StatementNode body, PNode returnValue) {
-        return new GeneratorRootNode(name, params, body, returnValue);
+    public GeneratorRootNode createGeneratorRoot(String name, PNode body) {
+        return new GeneratorRootNode(name, body);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

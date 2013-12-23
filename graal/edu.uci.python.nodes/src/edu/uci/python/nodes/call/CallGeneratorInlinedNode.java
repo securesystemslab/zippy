@@ -44,7 +44,7 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         this.generator = generator;
         this.globalScopeUnchanged = globalScopeUnchanged;
         GeneratorRootNode original = generatorRoot;
-        PNode root = new FunctionRootNode.InlinedFunctionRootNode(generator.getName(), original.getUninitializedParams(), original.getUninitializedBody(), original.getUninitializedReturn());
+        PNode root = new FunctionRootNode.InlinedFunctionRootNode(generator.getName(), original.getUninitializedBody());
         this.generatorRoot = adoptChild(prepareBody(root));
     }
 

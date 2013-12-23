@@ -22,21 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
 
-public class GeneratorRootNode extends FunctionRootNode {
+public class ReturnTargetNode extends StatementNode {
 
-    public GeneratorRootNode(String functionName, PNode body) {
-        super(functionName, body);
+    @Child protected ParametersNode parameters;
+    @Child protected PNode body;
+    @Child protected PNode returnValue;
+
+    public ReturnTargetNode(ParametersNode parameters, PNode body, PNode returnValue) {
+        this.parameters = adoptChild(parameters);
+        this.body = adoptChild(body);
+        this.returnValue = adoptChild(returnValue);
+    }
+
+    protected ReturnTargetNode(ReturnTargetNode prev) {
+        this(prev.parameters, prev.body, prev.returnValue);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
+        parameters.executeVoid(frame);
+
+        try {
+            return body.execute(frame);
+        } catch (ImplicitReturnException ire) {
+            return PNone.NONE;
+        } catch (ExplicitReturnException ere) {
+            return returnValue.execute(frame);
+        }
     }
 
 }
