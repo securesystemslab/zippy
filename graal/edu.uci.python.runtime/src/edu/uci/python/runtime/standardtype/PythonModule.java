@@ -46,11 +46,23 @@ public class PythonModule extends PythonBasicObject {
 
     private final CyclicAssumption unmodifiedAssumption;
 
+    private PythonContext context;
+
     public PythonModule(String name, PythonContext context) {
         super(context.getModuleClass());
+        this.context = context;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
         setAttribute(__NAME__, name);
         addBuiltinMethodsAndConstants(PythonModule.class);
+    }
+
+    public PythonModule(String name, PythonModule module) {
+        super(module.context.getModuleClass(), module);
+        unmodifiedAssumption = module.unmodifiedAssumption;
+        this.context = module.context;
+        setAttribute(__NAME__, name);
+        builtinMethods.addAll(module.builtinMethods);
+        builtinConstants.addAll(module.builtinConstants);
     }
 
     @Override

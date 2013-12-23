@@ -26,27 +26,44 @@ package edu.uci.python.shell;
 
 import java.io.*;
 
-import org.python.antlr.base.*;
 import org.python.core.*;
 import org.python.util.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.source.*;
 
 public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup());
-        execfile(s, name, context);
+        IPythonParser parser = new PythonParserImpl();
+
+        String path = ".";
+        String fileName = new StringBuilder(name).reverse().toString();
+        int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
+        int filenameln = name.length() - separtorLoc;
+        fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc, name.length());
+        final File file = new File(name);
+        if (file.exists()) {
+            try {
+                path = file.getCanonicalPath();
+                path = path.substring(0, path.length() - filenameln);
+            } catch (IOException e) {
+            }
+        }
+
+        SourceManager sourceManager = new SourceManager(path, fileName, s);
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, sourceManager);
+        execfile(context);
     }
 
-    public void execfile(java.io.InputStream s, String name, PythonContext context) {
+    public void execfile(PythonContext context) {
         setSystemState();
 
         ASTInterpreter.init(false);
-        PythonParseResult result = parseToAST(s, name, CompileMode.exec, cflags, context);
+        PythonParseResult result = context.getParser().parse(context, CompileMode.exec, cflags);
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();
@@ -68,31 +85,6 @@ public class CustomConsole extends JLineConsole {
         }
 
         Py.flushLine();
-    }
-
-    /**
-     * Truffle: Parse input program to AST that is ready to interpret itself.
-     */
-    public static PythonParseResult parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags, PythonContext context) {
-
-        mod node = null;
-        if (!PythonOptions.PrintFunction) {
-            // enable printing flag for python's builtin function (v3.x) in parser.
-            String print = "from __future__ import print_function \n";
-            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
-            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
-
-            node = ParserFacade.parse(withPrintFlag, kind, filename, cflags);
-        } else {
-            node = ParserFacade.parse(istream, kind, filename, cflags);
-        }
-        TranslationEnvironment environment = new TranslationEnvironment(node, context);
-        ScopeTranslator ptp = new ScopeTranslator(environment);
-        node = ptp.process(node);
-
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
-        PythonParseResult result = ptt.translate(node);
-        return result;
     }
 
     public static void printBanner(String phase) {
