@@ -2879,6 +2879,7 @@ def _check_ide_timestamp(suite, timestamp):
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     configZip = TimeStampFile(join(suite.mxDir, 'eclipse-config.zip'))
+    configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
     if refreshOnly and not configZip.exists():
         return
 
@@ -2887,6 +2888,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         return
 
     files = []
+    libFiles = []
     if buildProcessorJars:
         files += _processorjars_suite(suite)
 
@@ -2952,7 +2954,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     if sourcePath is not None:
                         attributes['sourcepath'] = sourcePath
                     out.element('classpathentry', attributes)
-                    files.append(path)
+                    libFiles.append(path)
             else:
                 out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
@@ -3090,6 +3092,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     files.append(launchFile)
 
     _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
 
 def _zip_files(files, baseDir, zipPath):
     fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)
@@ -3336,6 +3339,7 @@ def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
 
 def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
     configZip = TimeStampFile(join(suite.mxDir, 'netbeans-config.zip'))
+    configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
     if refreshOnly and not configZip.exists():
         return
 
@@ -3345,6 +3349,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
 
     updated = False
     files = []
+    libFiles = []
     for p in suite.projects:
         if p.native:
             continue
@@ -3535,7 +3540,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                         path = path.replace('\\', '\\\\')
                     ref = 'file.reference.' + dep.name + '-bin'
                     print >> out, ref + '=' + path
-                    files.append(path)
+                    libFiles.append(path)
 
             else:
                 n = dep.name.replace('.', '_')
@@ -3564,6 +3569,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
     _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
 
 def ideclean(args):
     """remove all Eclipse and NetBeans project configurations"""
