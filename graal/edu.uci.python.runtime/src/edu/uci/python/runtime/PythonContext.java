@@ -30,19 +30,24 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.source.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
+
     private final PythonBuiltinClass typeClass;
     private final PythonBuiltinClass objectClass;
     private final PythonBuiltinClass moduleClass;
 
+    private final SourceManager sourceManager;
+    private final IPythonParser parser;
+
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, IPythonParser parser, SourceManager sourceManager) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
@@ -50,7 +55,14 @@ public class PythonContext {
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
         currentContext = this;
+        this.sourceManager = sourceManager;
+        this.parser = parser;
+
         this.lookup.addBuiltins(this);
+    }
+
+    public PythonContext(PythonContext context, SourceManager sourceManager) {
+        this(context.options, context.lookup, context.parser, sourceManager);
     }
 
     public PythonOptions getPythonOptions() {
@@ -99,4 +111,13 @@ public class PythonContext {
 
         throw new UnexpectedResultException(obj);
     }
+
+    public IPythonParser getParser() {
+        return parser;
+    }
+
+    public SourceManager getSourceManager() {
+        return sourceManager;
+    }
+
 }

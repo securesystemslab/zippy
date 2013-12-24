@@ -81,6 +81,8 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         result.setModule(module);
+        result.setContext(context);
+
         return result;
     }
 

@@ -105,7 +105,7 @@ public class RunScript {
         }
     }
 
-    public static void runScript(String[] args, String script, PythonContext context) {
+    public static void runTrowableScript(String[] args, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -114,14 +114,14 @@ public class RunScript {
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
+        String script = context.getSourceManager().getFilename();
         if (script != null) {
             Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
-            InputStream stream = new ByteArrayInputStream(script.getBytes());
-            interp.execfile(stream, "(test)", context);
+            interp.execfile(context);
         }
     }
 
-    public static void runScript(String[] args, InputStream script, PythonContext context) {
+    public static void runScript(String[] args, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -130,11 +130,13 @@ public class RunScript {
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
+        InputStream script = context.getSourceManager().getInputStream();
         if (script != null) {
             try {
-                Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
+                PyString path = new PyString(System.getProperty("user.dir"));
+                Py.getSystemState().path.insert(0, path);
 
-                interp.execfile(script, "(test)", context);
+                interp.execfile(context);
             } catch (Throwable t) {
                 if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
                     // Shutdown this instance...

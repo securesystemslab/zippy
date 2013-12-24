@@ -243,7 +243,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
             throw new IllegalStateException();
         }
 
-        if (value instanceof PFunction && !(primaryObj instanceof PythonClass)) {
+        if (value instanceof PFunction && !(primaryObj instanceof PythonClass) && !(primaryObj instanceof PythonModule)) {
             value = CallAttributeNode.createPMethodFor((PythonObject) primaryObj, (PFunction) value);
             current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode, (PMethod) value));
         } else {

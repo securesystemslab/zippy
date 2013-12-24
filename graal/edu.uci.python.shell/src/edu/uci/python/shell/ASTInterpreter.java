@@ -27,7 +27,7 @@ package edu.uci.python.shell;
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.parser.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 public class ASTInterpreter {
@@ -40,10 +40,9 @@ public class ASTInterpreter {
     }
 
     public static void interpret(PythonParseResult result, boolean log) {
-        CallTarget module;
 
-        ModuleNode root = result.getModuleRoot();
-        module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
+        ModuleNode root = (ModuleNode) result.getModuleRoot();
+        CallTarget module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
 
         Arguments arguments = new PArguments(null);
 

@@ -29,7 +29,9 @@ import java.nio.file.*;
 
 import static org.junit.Assert.*;
 import edu.uci.python.builtins.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.source.*;
 import edu.uci.python.shell.*;
 
 public class PythonTests {
@@ -38,7 +40,10 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        RunScript.runScript(new String[0], source, getContext(printStream, System.err));
+        String path = "../../graal/edu.uci.python.test/src/tests";
+        InputStream stream = new ByteArrayInputStream(source.getBytes());
+        SourceManager sourceManager = new SourceManager(path, "(test)", stream);
+        RunScript.runScript(new String[0], getContext(sourceManager, printStream, System.err));
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
     }
@@ -49,7 +54,10 @@ public class PythonTests {
         String error = "no error!";
 
         try {
-            RunScript.runScript(new String[0], source, getContext(System.out, printStream));
+            String path = "../../graal/edu.uci.python.test/src/tests";
+            InputStream stream = new ByteArrayInputStream(source.getBytes());
+            SourceManager sourceManager = new SourceManager(path, "(test)", stream);
+            RunScript.runTrowableScript(new String[0], getContext(sourceManager, System.out, printStream));
         } catch (Throwable err) {
             error = err.toString();
         }
@@ -62,10 +70,13 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         Path scriptFile;
+        String path = null;
         if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
-            scriptFile = Paths.get("graal/edu.uci.python.test/src/tests").resolve(scriptName.toString());
+            path = "graal/edu.uci.python.test/src/tests";
+            scriptFile = Paths.get(path).resolve(scriptName.toString());
         } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
-            scriptFile = Paths.get("../../graal/edu.uci.python.test/src/tests").resolve(scriptName.toString());
+            path = "../../graal/edu.uci.python.test/src/tests";
+            scriptFile = Paths.get(path).resolve(scriptName.toString());
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
         }
@@ -76,24 +87,24 @@ public class PythonTests {
         } catch (IOException e) {
             throw new RuntimeException();
         }
-
-        RunScript.runScript(new String[0], scriptStream, getContext(printStream, System.err));
+        SourceManager sourceManager = new SourceManager(path, scriptName.toString(), scriptStream);
+        RunScript.runScript(new String[0], getContext(sourceManager, printStream, System.err));
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
     }
 
     public static PythonContext getContext() {
         PythonOptions opts = new PythonOptions();
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup());
+        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl(), null);
         return context;
     }
 
-    public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
+    public static PythonContext getContext(SourceManager sm, PrintStream stdout, PrintStream stderr) {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
 
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup());
+        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl(), sm);
         return context;
     }
 }

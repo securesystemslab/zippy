@@ -22,28 +22,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.runtime.source;
 
-import static edu.uci.python.test.PythonTests.*;
+import java.io.*;
 
-import java.nio.file.*;
+import com.oracle.truffle.api.*;
 
-import org.junit.*;
+/**
+ * @author Qunaibit
+ */
+public class SourceImpl implements Source {
 
-public class BuiltinTests {
+    private String name;
 
-// @Test
-    public void builtins() {
-        Path script = Paths.get("builtins_test.py");
-        assertPrints("False\nTrue\n10\n10.25\n2.23606797749979\nTrue\nFalse\nFalse\nTrue\n" + "True\nFalse\nA\n(2+3j)\n(3.4+4.9j)\n(2+0j)\n0j\n(0, 1000)\n(1, 2000)\n(2, 3000)\n2.0\n"
-                        + "1.23\n-12345.0\n0.001\n1000000.0\n0.0\n3\n2\n4\n2147483648\n0\n5\n3\n4\n2\n"
-                        + "20\n20.8\n[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n[0, 5, 10, 15, 20, 25]\n" + "h\ne\nl\nl\no\n10\n20\n30\nTrue\n", script);
+    private String code;
+
+    @SuppressWarnings("unused")
+    public SourceImpl(InputStream reader) {
+        this.name = "Python3";
+
+        this.code = ""; // readSource(reader);
     }
 
-    @Test
-    public void builtin_call() {
-        Path script = Paths.get("builtin_call_test.py");
-        assertPrints("42\n", script);
+    @Override
+    public String getName() {
+        return name;
     }
 
+    @Override
+    public String getCode() {
+        return code;
+    }
+
+    @SuppressWarnings("unused")
+    private static String readSource(InputStream reader) throws IOException {
+        StringBuilder sourceCode = new StringBuilder();
+        byte[] buf = new byte[1024];
+        int n = reader.read(buf);
+
+        while (n == -1) {
+            sourceCode.append(new String(buf, 0, n));
+            n = reader.read(buf);
+        }
+
+        return sourceCode.toString();
+    }
 }

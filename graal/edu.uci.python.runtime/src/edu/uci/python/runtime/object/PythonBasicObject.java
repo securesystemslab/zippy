@@ -71,6 +71,17 @@ public abstract class PythonBasicObject {
         objectLayout = ObjectLayout.EMPTY;
     }
 
+    public PythonBasicObject(PythonClass pythonClass, PythonBasicObject module) {
+        if (pythonClass != null) {
+            unsafeSetPythonClass(pythonClass);
+        } else {
+            this.pythonClass = null;
+        }
+
+        this.objectLayout = module.objectLayout;
+        this.objectStorageLocations = module.objectStorageLocations;
+    }
+
     public PythonClass getPythonClass() {
         assert pythonClass != null;
         return pythonClass;
