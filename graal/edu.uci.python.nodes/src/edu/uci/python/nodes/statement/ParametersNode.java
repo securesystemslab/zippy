@@ -45,16 +45,8 @@ public class ParametersNode extends PNode {
         return parameterNames;
     }
 
-    public int indexOf(String name) {
-        return parameterNames.indexOf(name);
-    }
-
     public int size() {
         return parameterNames.size();
-    }
-
-    @SuppressWarnings("unused")
-    public void evaluateDefaults(VirtualFrame frame) {
     }
 
     @Override

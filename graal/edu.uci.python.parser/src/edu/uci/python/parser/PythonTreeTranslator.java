@@ -124,24 +124,35 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
 
+        /**
+         * Parameters
+         */
+        Arity arity = createArity(name, node.getInternalArgs());
         ParametersNode parameters = visitArgs(node.getInternalArgs());
+
+        /**
+         * Funciton body
+         */
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
-        PNode funcDef;
+        body = new ReturnTargetNode(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
 
+        /**
+         * Definition
+         */
+        PNode funcDef;
         if (environment.isInGeneratorScope()) {
-            funcDef = createGeneratorFunctionDefinition(name, parameters, body);
+            funcDef = createGeneratorFunctionDefinition(name, arity, parameters, body);
         } else {
-            funcDef = createFunctionDefinitnion(name, parameters, body);
+            funcDef = createFunctionDefinitnion(name, arity, parameters, body);
         }
 
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
-    private PNode createFunctionDefinitnion(String name, ParametersNode parameters, StatementNode body) {
-        PNode wrappedBody = new ReturnTargetNode(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        FunctionRootNode funcRoot = factory.createFunctionRoot(name, wrappedBody);
+    private PNode createFunctionDefinitnion(String name, Arity arity, ParametersNode parameters, StatementNode body) {
+        FunctionRootNode funcRoot = factory.createFunctionRoot(name, body);
         result.addParsedFunction(name, funcRoot);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
 
@@ -149,18 +160,16 @@ public class PythonTreeTranslator extends Visitor {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
             ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
             StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-            Arity arity = new Arity(name, parameters.size() - environment.getDefaultArgumentNodes().size(), parameters.size(), parameters.getParameterNames());
             return new FunctionDefinitionNode(name, arity, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         } else {
-            Arity arity = new Arity(name, parameters.size(), parameters.size(), parameters.getParameterNames());
             return new FunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         }
     }
 
-    private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {
-        PNode wrappedBody = new ReturnTargetNode(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, wrappedBody);
+    private PNode createGeneratorFunctionDefinition(String name, Arity arity, ParametersNode parameters, StatementNode body) {
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, body);
         GeneratorTranslator.translate(funcRoot);
+        result.addParsedFunction(name, funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
 
@@ -168,10 +177,8 @@ public class PythonTreeTranslator extends Visitor {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
             ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
             StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-            Arity arity = new Arity(name, parameters.size() - environment.getDefaultArgumentNodes().size(), parameters.size(), parameters.getParameterNames());
             return new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         } else {
-            Arity arity = new Arity(name, parameters.size(), parameters.size(), parameters.getParameterNames());
             return new GeneratorFunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, fd, environment.needsDeclarationFrame());
         }
     }
@@ -182,6 +189,18 @@ public class PythonTreeTranslator extends Visitor {
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
+    }
+
+    public Arity createArity(String functionName, arguments node) {
+        int numOfArguments = node.getInternalArgs().size();
+        int numOfDefaultArguments = node.getInternalDefaults().size();
+        List<String> parameterIds = new ArrayList<>();
+
+        for (expr arg : node.getInternalArgs()) {
+            parameterIds.add(((Name) arg).getInternalId());
+        }
+
+        return new Arity(functionName, numOfArguments - numOfDefaultArguments, numOfArguments, parameterIds);
     }
 
     public ParametersNode visitArgs(arguments node) throws Exception {
@@ -288,7 +307,7 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) createFunctionDefinitnion(name, ParametersNode.EMPTY_PARAMS, body);
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) createFunctionDefinitnion(name, new Arity(name, 0, 0, new ArrayList<String>()), ParametersNode.EMPTY_PARAMS, body);
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.

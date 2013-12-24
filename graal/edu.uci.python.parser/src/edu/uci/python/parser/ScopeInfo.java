@@ -57,6 +57,7 @@ public class ScopeInfo {
      * function has default arguments.
      */
     private List<PNode> defaultArgumentNodes;
+    private List<PNode> defaultArgumentReads;
 
     public ScopeInfo(String scopeId, ScopeKind kind, FrameDescriptor frameDescriptor, ScopeInfo parent) {
         this.scopeId = scopeId;
@@ -113,6 +114,14 @@ public class ScopeInfo {
 
     public List<PNode> getDefaultArgumentNodes() {
         return defaultArgumentNodes;
+    }
+
+    public void setDefaultArgumentReads(List<PNode> defaultArgumentReads) {
+        this.defaultArgumentReads = defaultArgumentReads;
+    }
+
+    public List<PNode> getDefaultArgumentReads() {
+        return this.defaultArgumentReads;
     }
 
     @Override

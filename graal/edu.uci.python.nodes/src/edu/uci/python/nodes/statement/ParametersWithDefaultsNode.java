@@ -52,13 +52,6 @@ public final class ParametersWithDefaultsNode extends ParametersNode {
         return defaultReads;
     }
 
-    @Override
-    public void evaluateDefaults(VirtualFrame frame) {
-        for (ReadDefaultArgumentNode rdan : defaultReads) {
-            rdan.evaluateDefault(frame);
-        }
-    }
-
     /**
      * invoked when CallTarget is called, applies runtime arguments to the newly created
      * VirtualFrame.

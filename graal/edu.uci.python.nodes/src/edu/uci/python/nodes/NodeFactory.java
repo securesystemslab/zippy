@@ -91,13 +91,7 @@ public class NodeFactory {
     }
 
     public ParametersNode createParameters(List<PNode> args, List<String> paramNames) {
-        if (args.size() == 1) {
-            return createParametersOfSizeOne(args.get(0), paramNames);
-        } else if (args.size() == 2) {
-            return createParametersOfSizeTwo(args.get(0), args.get(1), paramNames);
-        } else {
-            return createParametersWithNoDefaults(args, paramNames);
-        }
+        return new ParametersWithNoDefaultsNode(args.toArray(new PNode[args.size()]), paramNames);
     }
 
     public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
@@ -133,10 +127,6 @@ public class NodeFactory {
         }
 
         return new ParametersWithDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames, defaultReads, defaultWrites);
-    }
-
-    public ParametersNode createParametersWithNoDefaults(List<PNode> parameters, List<String> paramNames) {
-        return new ParametersWithNoDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames);
     }
 
     public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {

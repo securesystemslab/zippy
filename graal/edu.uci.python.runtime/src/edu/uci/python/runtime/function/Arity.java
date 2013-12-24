@@ -66,6 +66,10 @@ public class Arity {
         return parameterIds;
     }
 
+    public int parametersSize() {
+        return parameterIds.size();
+    }
+
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         CompilerAsserts.neverPartOfCompilation();
 
