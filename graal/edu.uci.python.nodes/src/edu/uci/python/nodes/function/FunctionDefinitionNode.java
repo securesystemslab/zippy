@@ -33,10 +33,10 @@ import edu.uci.python.runtime.function.*;
 
 public class FunctionDefinitionNode extends PNode {
 
-    private final String name;
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
+    protected final String name;
+    protected final CallTarget callTarget;
+    protected final FrameDescriptor frameDescriptor;
+    protected final boolean needsDeclarationFrame;
 
     // It's parked here, but not adopted.
     @Child protected ParametersNode parameters;
@@ -49,22 +49,6 @@ public class FunctionDefinitionNode extends PNode {
         this.needsDeclarationFrame = needsDeclarationFrame;
         this.parameters = parameters;
         this.defaults = adoptChild(defaults);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    protected CallTarget getCallTarget() {
-        return callTarget;
-    }
-
-    protected FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
-    }
-
-    protected boolean needsDeclarationFrame() {
-        return needsDeclarationFrame;
     }
 
     @Override

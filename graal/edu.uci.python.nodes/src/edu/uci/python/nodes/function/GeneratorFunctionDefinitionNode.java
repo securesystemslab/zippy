@@ -39,8 +39,8 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
-        MaterializedFrame declarationFrame = needsDeclarationFrame() ? frame.materialize() : null;
-        return new PGeneratorFunction(getName(), parameters.getParameterNames(), getCallTarget(), getFrameDescriptor(), declarationFrame);
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
+        return new PGeneratorFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor, declarationFrame);
     }
 
 }
