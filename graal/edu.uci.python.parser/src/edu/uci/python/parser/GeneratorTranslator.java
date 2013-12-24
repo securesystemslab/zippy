@@ -37,23 +37,13 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    public static void translate(GeneratorRootNode root) {
+    public static void translate(FunctionRootNode root) {
         /**
          * Replace {@link ReturnTargetNode}.
          */
         List<ReturnTargetNode> returnTargets = NodeUtil.findAllNodeInstances(root, ReturnTargetNode.class);
         assert returnTargets.size() == 1;
-        ReturnTargetNode returnTarget = returnTargets.get(0);
-
-        if (returnTarget.getBody() instanceof BlockNode) {
-            BlockNode body = (BlockNode) returnTarget.getBody();
-            assert body.getStatements().length == 2;
-            BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
-            body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
-        } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
-        }
+        splitArgumentLoads(returnTargets.get(0));
 
         /**
          * Redirect local variable accesses to materialized persistent frame.
@@ -69,10 +59,23 @@ public class GeneratorTranslator {
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
             int depth = 0;
             PNode current = yield;
+
             while (current.getParent() != root) {
                 current = (PNode) current.getParent();
                 replaceControls(current, depth++);
             }
+        }
+    }
+
+    private static void splitArgumentLoads(ReturnTargetNode returnTarget) {
+        if (returnTarget.getBody() instanceof BlockNode) {
+            BlockNode body = (BlockNode) returnTarget.getBody();
+            assert body.getStatements().length == 2;
+            BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
+            body = (BlockNode) body.getStatements()[1];
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
+        } else {
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 

@@ -168,7 +168,7 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     private PNode createGeneratorFunctionDefinition(String name, Arity arity, StatementNode body) {
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(name, body);
         GeneratorTranslator.translate(funcRoot);
         result.addParsedFunction(name, funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
@@ -186,7 +186,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
         PNode wrappedBody = new ReturnTargetNode(body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot("generator_exp", wrappedBody);
+        FunctionRootNode funcRoot = factory.createFunctionRoot("generator_exp", wrappedBody);
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
@@ -205,48 +205,49 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     public BlockNode visitArgs(arguments node) throws Exception {
-        // parse arguments
+        /**
+         * parse arguments
+         */
         new ArgListCompiler().visitArgs(node);
-        List<PNode> argumentReads = new ArrayList<>();
-        List<String> paramNames = new ArrayList<>();
 
+        /**
+         * Argument reads.
+         */
+        List<PNode> argumentReads = new ArrayList<>();
         for (int i = 0; i < node.getInternalArgs().size(); i++) {
             expr arg = node.getInternalArgs().get(i);
-
-            if (arg instanceof Name) {
-                argumentReads.add((PNode) visit(arg));
-                paramNames.add(((Name) arg).getInternalId());
-            } else {
-                throw notCovered("Unexpected parameter type " + arg.getClass().getSimpleName());
-            }
+            assert arg instanceof Name;
+            argumentReads.add((PNode) visit(arg));
         }
 
+        /**
+         * Positional arguments only. A simple block will do it.
+         */
         if (node.getInternalDefaults().size() == 0) {
             return factory.createBlock(argumentReads);
         }
 
         /**
-         * default reads.
+         * Default reads.
          */
-        int paramsSize = node.getInternalArgs().size();
-        int defaultsSize = environment.getDefaultArgumentNodes().size();
-        ReadDefaultArgumentNode[] defaultReads = new ReadDefaultArgumentNode[defaultsSize];
-        for (int i = 0; i < defaultsSize; i++) {
+        int sizeOfParams = node.getInternalArgs().size();
+        int sizeOfDefaults = environment.getDefaultArgumentNodes().size();
+        ReadDefaultArgumentNode[] defaultReads = new ReadDefaultArgumentNode[sizeOfDefaults];
+        for (int i = 0; i < sizeOfDefaults; i++) {
             defaultReads[i] = new ReadDefaultArgumentNode();
         }
         environment.setDefaultArgumentReads(defaultReads);
 
         /**
-         * default writes. <br>
+         * Default writes. <br>
          * The alignment between default argument and parameter relies on the restriction that
-         * default arguments are right aligned. The Vararg case is not covered yet.
+         * default arguments are right aligned. Vararg case is not covered yet.
          */
-        PNode[] defaultWrites = new PNode[defaultsSize];
-        int offset = paramsSize - defaultsSize;
-        for (int i = 0; i < defaultsSize; i++) {
+        PNode[] defaultWrites = new PNode[sizeOfDefaults];
+        int offset = sizeOfParams - sizeOfDefaults;
+        for (int i = 0; i < sizeOfDefaults; i++) {
             FrameSlotNode slotNode = (FrameSlotNode) argumentReads.get(i + offset);
-            FrameSlot slot = slotNode.getSlot();
-            defaultWrites[i] = factory.createWriteLocalVariable(defaultReads[i], slot);
+            defaultWrites[i] = factory.createWriteLocalVariable(defaultReads[i], slotNode.getSlot());
         }
 
         BlockNode loadDefaults = factory.createBlock(defaultWrites);

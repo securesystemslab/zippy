@@ -39,13 +39,11 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
     private final Assumption globalScopeUnchanged;
     @Child protected PNode generatorRoot;
 
-    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, GeneratorRootNode generatorRoot, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
+    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, FunctionRootNode generatorRoot, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
         super(callee, arguments, generator.getFrameDescriptor().copy(), frameFactory);
         this.generator = generator;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        GeneratorRootNode original = generatorRoot;
-        PNode root = new FunctionRootNode.InlinedFunctionRootNode(generator.getName(), original.getUninitializedBody());
-        this.generatorRoot = adoptChild(prepareBody(root));
+        this.generatorRoot = adoptChild(prepareBody(generatorRoot.getInlinedRootNode()));
     }
 
     public CallTarget getCallTarget() {

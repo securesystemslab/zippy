@@ -39,12 +39,12 @@ import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorNode extends CallFunctionCachedNode implements InlinableCallSite {
 
-    private final GeneratorRootNode generatorRoot;
+    private final FunctionRootNode generatorRoot;
     private int callCount;
 
     public CallGeneratorNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged) {
         super(callee, arguments, generator, globalScopeUnchanged);
-        this.generatorRoot = (GeneratorRootNode) generator.getFunctionRootNode();
+        this.generatorRoot = (FunctionRootNode) generator.getFunctionRootNode();
     }
 
     public int getCallCount() {
@@ -61,10 +61,6 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
     public CallTarget getCallTarget() {
         return generatorRoot.getCallTarget();
-    }
-
-    protected GeneratorRootNode getGeneratorRoot() {
-        return generatorRoot;
     }
 
     @Override
