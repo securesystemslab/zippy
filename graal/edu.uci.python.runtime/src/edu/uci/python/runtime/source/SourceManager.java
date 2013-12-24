@@ -31,18 +31,15 @@ import java.io.*;
  */
 public class SourceManager extends SourceImpl {
 
-    private String path;
+    private final String path;
 
-    private String filename;
-
-    private InputStream inputStream;
+    private final String filename;
 
     public SourceManager(String path, String filename, InputStream inputStream) {
         super(inputStream);
 
         this.path = path;
         this.filename = filename;
-        this.inputStream = inputStream;
     }
 
     public String getPath() {
@@ -54,7 +51,6 @@ public class SourceManager extends SourceImpl {
     }
 
     public InputStream getInputStream() {
-        return inputStream;
+        return new ByteArrayInputStream(this.getCode().getBytes());
     }
-
 }
