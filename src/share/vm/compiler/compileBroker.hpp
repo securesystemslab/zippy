@@ -434,7 +434,7 @@ class CompileBroker: AllStatic {
   static void mark_on_stack();
 
   // Print a detailed accounting of compilation time
-  static void print_times();
+  static void print_times(bool per_compiler = true, bool aggregate = true);
 
   // Debugging output for failure
   static void print_last_compile();

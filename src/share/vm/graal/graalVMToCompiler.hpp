@@ -87,8 +87,8 @@ public:
   // public abstract JavaType createUnresolvedJavaType(String name);
   static oop createUnresolvedJavaType(Handle name, TRAPS);
 
-  // public abstract ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies);
-  static oop createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jint sizeOrSpecies, TRAPS);
+  // public abstract ResolvedJavaType createResolvedJavaType(Class javaMirror);
+  static oop createResolvedJavaType(Handle java_mirror, TRAPS);
 
   // public abstract JavaType createPrimitiveJavaType(int basicType);
   static oop createPrimitiveJavaType(int basicType, TRAPS);

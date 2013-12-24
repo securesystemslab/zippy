@@ -41,7 +41,7 @@ import com.oracle.graal.replacements.SnippetTemplate.Arguments;
 /**
  * Represents a field in a HotSpot type.
  */
-public class HotSpotResolvedJavaField extends CompilerObject implements ResolvedJavaField, LocationIdentity {
+public class HotSpotResolvedJavaField extends CompilerObject implements ResolvedJavaField {
 
     // Must not conflict with any fields flags used by the VM - the assertion in the constructor
     // checks this assumption
@@ -117,7 +117,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
         return false;
     }
 
-    private static final Set<ResolvedJavaField> notEmbeddable = new HashSet<>();
+    private static final List<ResolvedJavaField> notEmbeddable = new ArrayList<>();
 
     private static void addResolvedToSet(Field field) {
         MetaAccessProvider metaAccess = runtime().getHostProviders().getMetaAccess();
@@ -160,7 +160,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
      * in AOT mode, some fields should never be embedded even for snippets/replacements.
      */
     private boolean isEmbeddable() {
-        if (AOTCompilation.getValue() && notEmbeddable.contains(this)) {
+        if (ImmutableCode.getValue() && notEmbeddable.contains(this)) {
             return false;
         }
         return true;
@@ -176,7 +176,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
      */
     @Override
     public Constant readConstantValue(Constant receiver) {
-        assert !AOTCompilation.getValue() || isCalledForSnippets() : receiver;
+        assert !ImmutableCode.getValue() || isCalledForSnippets() : receiver;
 
         if (receiver == null) {
             assert Modifier.isStatic(modifiers);

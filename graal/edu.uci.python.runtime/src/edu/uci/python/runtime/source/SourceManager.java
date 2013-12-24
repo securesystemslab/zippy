@@ -42,6 +42,7 @@ public class SourceManager extends SourceImpl {
         this.filename = filename;
     }
 
+    @Override
     public String getPath() {
         return path;
     }
@@ -50,6 +51,7 @@ public class SourceManager extends SourceImpl {
         return filename;
     }
 
+    @Override
     public InputStream getInputStream() {
         return new ByteArrayInputStream(this.getCode().getBytes());
     }

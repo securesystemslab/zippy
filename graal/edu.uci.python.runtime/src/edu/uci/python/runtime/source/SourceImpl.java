@@ -71,4 +71,44 @@ public class SourceImpl implements Source {
 
         return sourceCode.toString();
     }
+
+    public String getPath() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Reader getReader() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public InputStream getInputStream() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public String getCode(int lineNumber) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public int getLineCount() {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public int getLineNumber(int offset) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public int getLineStartOffset(int lineNumber) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    public int getLineLength(int lineNumber) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
 }
