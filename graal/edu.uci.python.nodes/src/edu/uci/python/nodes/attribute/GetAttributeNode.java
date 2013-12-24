@@ -29,7 +29,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.sun.xml.internal.ws.policy.sourcemodel.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;

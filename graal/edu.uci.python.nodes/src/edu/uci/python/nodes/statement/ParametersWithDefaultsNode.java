@@ -26,7 +26,7 @@ package edu.uci.python.nodes.statement;
 
 import java.util.List;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;

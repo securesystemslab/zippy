@@ -33,14 +33,22 @@ import com.oracle.truffle.api.*;
  */
 public class SourceImpl implements Source {
 
-    private String name;
+    private final String name;
 
-    private String code;
+    private final String code;
 
+    @SuppressWarnings("unused")
     public SourceImpl(InputStream reader) {
+        String sourceCode = null;
         this.name = "Python3";
 
-        this.code = ""; // readSource(reader);
+        try {
+            sourceCode = readSource(reader);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        this.code = sourceCode;
     }
 
     @Override
@@ -53,12 +61,12 @@ public class SourceImpl implements Source {
         return code;
     }
 
+    @SuppressWarnings("unused")
     private static String readSource(InputStream reader) throws IOException {
         StringBuilder sourceCode = new StringBuilder();
         byte[] buf = new byte[1024];
         int n = reader.read(buf);
-
-        while (n == -1) {
+        while (n != -1) {
             sourceCode.append(new String(buf, 0, n));
             n = reader.read(buf);
         }

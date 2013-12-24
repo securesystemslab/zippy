@@ -27,7 +27,6 @@ package edu.uci.python.shell;
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
