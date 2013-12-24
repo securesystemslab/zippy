@@ -40,13 +40,15 @@ public class FunctionDefinitionNode extends PNode {
 
     // It's parked here, but not adopted.
     @Child protected ParametersNode parameters;
+    @Child protected StatementNode defaults;
 
-    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, ParametersNode parameters, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
-        this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
+        this.parameters = parameters;
+        this.defaults = adoptChild(defaults);
     }
 
     public String getName() {
@@ -67,7 +69,7 @@ public class FunctionDefinitionNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.evaluateDefaults(frame);
+        defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
         return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor, declarationFrame);
     }
@@ -76,4 +78,5 @@ public class FunctionDefinitionNode extends PNode {
     public String toString() {
         return super.toString() + "(" + name + ")";
     }
+
 }

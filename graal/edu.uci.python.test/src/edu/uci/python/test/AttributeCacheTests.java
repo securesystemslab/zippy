@@ -22,25 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.function.*;
+import java.nio.file.*;
 
-public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
+import org.junit.*;
 
-    public GeneratorFunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        super(name, parameters, null, callTarget, frameDescriptor, needsDeclarationFrame);
+public class AttributeCacheTests {
+
+    @Test
+    public void bimorphicCallSite() {
+        Path script = Paths.get("bimorphic_call_test.py");
+        assertPrints("do stuff A\ndo stuff B\n", script);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        parameters.evaluateDefaults(frame);
-        MaterializedFrame declarationFrame = needsDeclarationFrame() ? frame.materialize() : null;
-        return new PGeneratorFunction(getName(), parameters.getParameterNames(), getCallTarget(), getFrameDescriptor(), declarationFrame);
+    @Test
+    public void booleanAttr() {
+        String source = "class A:\n" + //
+                        "    def __init__(self, bool):" + //
+                        "        self.bool = bool" + //
+                        "\n" + //
+                        "a = A(True)\n" + //
+                        "print(a.bool)\n";
+        assertPrints("True\n", source);
     }
 
 }

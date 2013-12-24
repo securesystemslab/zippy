@@ -48,6 +48,10 @@ public final class ParametersWithDefaultsNode extends ParametersNode {
         this.defaultWrites = adoptChildren(defaultWrites);
     }
 
+    public PNode[] getDefaultReads() {
+        return defaultReads;
+    }
+
     @Override
     public void evaluateDefaults(VirtualFrame frame) {
         for (ReadDefaultArgumentNode rdan : defaultReads) {

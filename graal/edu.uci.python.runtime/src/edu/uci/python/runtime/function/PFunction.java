@@ -38,6 +38,7 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
     private final List<String> parameters;
+
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;

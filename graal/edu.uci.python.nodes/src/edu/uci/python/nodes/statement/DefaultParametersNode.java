@@ -22,31 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.nodes.statement;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import java.nio.file.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.argument.*;
+import edu.uci.python.runtime.datatype.*;
 
-import org.junit.*;
+/**
+ * Evaluates default arguments in the declaration scope and feeds the evaluated values to the
+ * {@link ReadDefaultArgumentNode}s.
+ */
+public class DefaultParametersNode extends StatementNode {
 
-public class AtributeCacheTests {
+    @Children final PNode[] functionDefaults;
+    @Children final ReadDefaultArgumentNode[] defaultReads; // It's parked here, but not adopted.
 
-    @Test
-    public void bimorphicCallSite() {
-        Path script = Paths.get("bimorphic_call_test.py");
-        assertPrints("do stuff A\ndo stuff B\n", script);
+    public DefaultParametersNode(PNode[] functionDefaults, ReadDefaultArgumentNode[] defaultReads) {
+        assert functionDefaults != null & functionDefaults.length > 0;
+        assert defaultReads != null & defaultReads.length > 0;
+        this.functionDefaults = adoptChildren(functionDefaults);
+        this.defaultReads = defaultReads;
     }
 
-    @Test
-    public void booleanAttr() {
-        String source = "class A:\n" + //
-                        "    def __init__(self, bool):" + //
-                        "        self.bool = bool" + //
-                        "\n" + //
-                        "a = A(True)\n" + //
-                        "print(a.bool)\n";
-        assertPrints("True\n", source);
+    @ExplodeLoop
+    @Override
+    public Object execute(VirtualFrame frame) {
+        for (int i = 0; i < functionDefaults.length; i++) {
+            Object defaultVal = functionDefaults[i].execute(frame);
+            defaultReads[i].setValue(defaultVal);
+        }
+
+        return PNone.NONE;
     }
 
 }

@@ -41,6 +41,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
@@ -142,7 +143,15 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot(name, wrappedBody);
         result.addParsedFunction(name, funcRoot);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
-        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+
+        if (environment.hasDefaultArguments()) {
+            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
+            ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
+            StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
+            return factory.createFunctionDef(name, parameters, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+        } else {
+            return factory.createFunctionDef(name, parameters, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+        }
     }
 
     private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {

@@ -112,8 +112,6 @@ public class ScopeInfo {
     }
 
     public List<PNode> getDefaultArgumentNodes() {
-        assert scopeKind == ScopeKind.Function;
-        assert defaultArgumentNodes != null;
         return defaultArgumentNodes;
     }
 
