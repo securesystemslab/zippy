@@ -32,15 +32,15 @@ import edu.uci.python.runtime.function.*;
 
 public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
-    public GeneratorFunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        super(name, parameters, null, callTarget, frameDescriptor, needsDeclarationFrame);
+    public GeneratorFunctionDefinitionNode(String name, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        super(name, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.evaluateDefaults(frame);
-        MaterializedFrame declarationFrame = needsDeclarationFrame() ? frame.materialize() : null;
-        return new PGeneratorFunction(getName(), parameters.getParameterNames(), getCallTarget(), getFrameDescriptor(), declarationFrame);
+        defaults.executeVoid(frame);
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
+        return new PGeneratorFunction(name, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
 }

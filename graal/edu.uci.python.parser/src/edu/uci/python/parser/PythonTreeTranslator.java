@@ -50,6 +50,7 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
@@ -123,64 +124,97 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
 
-        ParametersNode parameters = visitArgs(node.getInternalArgs());
+        /**
+         * Parameters
+         */
+        Arity arity = createArity(name, node.getInternalArgs());
+        BlockNode argumentLoads = visitArgs(node.getInternalArgs());
+
+        /**
+         * Funciton body
+         */
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
-        PNode funcDef;
+        body = factory.createBlock(new StatementNode[]{argumentLoads, body});
+        body = new ReturnTargetNode(body, factory.createReadLocalVariable(environment.getReturnSlot()));
 
+        /**
+         * Definition
+         */
+        PNode funcDef;
         if (environment.isInGeneratorScope()) {
-            funcDef = createGeneratorFunctionDefinition(name, parameters, body);
+            funcDef = createGeneratorFunctionDefinition(name, arity, body);
         } else {
-            funcDef = createFunctionDefinitnion(name, parameters, body);
+            funcDef = createFunctionDefinitnion(name, arity, body);
         }
 
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
-    private PNode createFunctionDefinitnion(String name, ParametersNode parameters, StatementNode body) {
-        PNode wrappedBody = new ReturnTargetNode(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        FunctionRootNode funcRoot = factory.createFunctionRoot(name, wrappedBody);
+    private PNode createFunctionDefinitnion(String name, Arity arity, StatementNode body) {
+        FunctionRootNode funcRoot = factory.createFunctionRoot(name, body);
         result.addParsedFunction(name, funcRoot);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
 
         if (environment.hasDefaultArguments()) {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
-            ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
+            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
             StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-            return factory.createFunctionDef(name, parameters, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+            return new FunctionDefinitionNode(name, arity, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         } else {
-            return factory.createFunctionDef(name, parameters, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+            return new FunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         }
     }
 
-    private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {
-        PNode wrappedBody = new ReturnTargetNode(parameters, body, factory.createReadLocalVariable(environment.getReturnSlot()));
-        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, wrappedBody);
+    private PNode createGeneratorFunctionDefinition(String name, Arity arity, StatementNode body) {
+        GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, body);
         GeneratorTranslator.translate(funcRoot);
+        result.addParsedFunction(name, funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
-        return factory.createGeneratorDef(name, parameters, Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+
+        if (environment.hasDefaultArguments()) {
+            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
+            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
+            StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
+            return new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+        } else {
+            return new GeneratorFunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, fd, environment.needsDeclarationFrame());
+        }
     }
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
-        PNode wrappedBody = new ReturnTargetNode(ParametersNode.EMPTY_PARAMS, body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        PNode wrappedBody = new ReturnTargetNode(body, factory.createReadLocalVariable(environment.getReturnSlot()));
         GeneratorRootNode funcRoot = factory.createGeneratorRoot("generator_exp", wrappedBody);
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
         return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
     }
 
-    public ParametersNode visitArgs(arguments node) throws Exception {
+    public Arity createArity(String functionName, arguments node) {
+        int numOfArguments = node.getInternalArgs().size();
+        int numOfDefaultArguments = node.getInternalDefaults().size();
+        List<String> parameterIds = new ArrayList<>();
+
+        for (expr arg : node.getInternalArgs()) {
+            parameterIds.add(((Name) arg).getInternalId());
+        }
+
+        return new Arity(functionName, numOfArguments - numOfDefaultArguments, numOfArguments, parameterIds);
+    }
+
+    public BlockNode visitArgs(arguments node) throws Exception {
         // parse arguments
         new ArgListCompiler().visitArgs(node);
-        List<PNode> args = new ArrayList<>();
+        List<PNode> argumentReads = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
 
         for (int i = 0; i < node.getInternalArgs().size(); i++) {
             expr arg = node.getInternalArgs().get(i);
 
             if (arg instanceof Name) {
-                args.add((PNode) visit(arg));
+                argumentReads.add((PNode) visit(arg));
                 paramNames.add(((Name) arg).getInternalId());
             } else {
                 throw notCovered("Unexpected parameter type " + arg.getClass().getSimpleName());
@@ -188,10 +222,36 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         if (node.getInternalDefaults().size() == 0) {
-            return factory.createParameters(args, paramNames);
+            return factory.createBlock(argumentReads);
         }
 
-        return factory.createParametersWithDefaults(args, environment.getDefaultArgumentNodes(), paramNames);
+        /**
+         * default reads.
+         */
+        int paramsSize = node.getInternalArgs().size();
+        int defaultsSize = environment.getDefaultArgumentNodes().size();
+        ReadDefaultArgumentNode[] defaultReads = new ReadDefaultArgumentNode[defaultsSize];
+        for (int i = 0; i < defaultsSize; i++) {
+            defaultReads[i] = new ReadDefaultArgumentNode();
+        }
+        environment.setDefaultArgumentReads(defaultReads);
+
+        /**
+         * default writes. <br>
+         * The alignment between default argument and parameter relies on the restriction that
+         * default arguments are right aligned. The Vararg case is not covered yet.
+         */
+        PNode[] defaultWrites = new PNode[defaultsSize];
+        int offset = paramsSize - defaultsSize;
+        for (int i = 0; i < defaultsSize; i++) {
+            FrameSlotNode slotNode = (FrameSlotNode) argumentReads.get(i + offset);
+            FrameSlot slot = slotNode.getSlot();
+            defaultWrites[i] = factory.createWriteLocalVariable(defaultReads[i], slot);
+        }
+
+        BlockNode loadDefaults = factory.createBlock(defaultWrites);
+        BlockNode loadArguments = new ApplyArgumentsNode(argumentReads.toArray(new PNode[argumentReads.size()]));
+        return factory.createBlock(new StatementNode[]{loadDefaults, loadArguments});
     }
 
     List<PNode> walkExprList(List<expr> exprs) throws Exception {
@@ -274,7 +334,7 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) createFunctionDefinitnion(name, ParametersNode.EMPTY_PARAMS, body);
+        FunctionDefinitionNode funcDef = (FunctionDefinitionNode) createFunctionDefinitnion(name, new Arity(name, 0, 0, new ArrayList<String>()), body);
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.

@@ -24,9 +24,11 @@
  */
 package edu.uci.python.runtime.function;
 
+import java.util.*;
+
 import org.python.core.*;
 
-import com.oracle.truffle.api.CompilerDirectives.*;
+import com.oracle.truffle.api.*;
 
 public class Arity {
 
@@ -38,19 +40,39 @@ public class Arity {
     private final boolean takesFixedNumOfArgs;
     private final boolean takesVarArgs;
 
-    private final String[] keywordNames;
+    private final List<String> parameterIds;
 
-    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, String[] keywordNames) {
+    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, List<String> parameterIds) {
+        this.functionName = functionName;
+        this.minNumOfArgs = minNumOfArgs;
+        this.maxNumOfArgs = maxNumOfArgs;
+        this.takesKeywordArg = false;
+        this.takesFixedNumOfArgs = false;
+        this.takesVarArgs = false;
+        this.parameterIds = parameterIds;
+    }
+
+    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, List<String> parameterIds) {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
         this.takesKeywordArg = takesKeywordArg;
         this.takesFixedNumOfArgs = takesFixedNumOfArgs;
         this.takesVarArgs = takesVarArgs;
-        this.keywordNames = keywordNames;
+        this.parameterIds = parameterIds;
+    }
+
+    public List<String> getParameterIds() {
+        return parameterIds;
+    }
+
+    public int parametersSize() {
+        return parameterIds.size();
     }
 
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        CompilerAsserts.neverPartOfCompilation();
+
         if (numOfKeywords == 0) {
             arityCheck(numOfArgs);
         } else if (!takesKeywordArg && numOfKeywords > 0) {
@@ -66,11 +88,13 @@ public class Arity {
     /**
      * See {@link org.python.core.PyBuiltinCallable.DefaultInfo}.
      */
-    @SlowPath
     private void arityCheck(int numOfArgs) {
+        CompilerAsserts.neverPartOfCompilation();
+
         String argMessage;
         if (takesFixedNumOfArgs) {
             assert (minNumOfArgs == maxNumOfArgs);
+
             if (numOfArgs != minNumOfArgs) {
                 if (minNumOfArgs == 0) {
                     argMessage = "no arguments";
@@ -97,12 +121,8 @@ public class Arity {
     }
 
     private void checkKeyword(String keyword) {
-        for (int i = 0; i < keywordNames.length; i++) {
-            if (keywordNames[i].equals(keyword)) {
-                return;
-            }
+        if (!parameterIds.contains(keyword)) {
+            throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword + "'");
         }
-
-        throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword + "'");
     }
 }

@@ -32,24 +32,28 @@ import edu.uci.python.runtime.exception.*;
 
 public class ReturnTargetNode extends StatementNode {
 
-    @Child protected ParametersNode parameters;
     @Child protected PNode body;
     @Child protected PNode returnValue;
 
-    public ReturnTargetNode(ParametersNode parameters, PNode body, PNode returnValue) {
-        this.parameters = adoptChild(parameters);
+    public ReturnTargetNode(PNode body, PNode returnValue) {
         this.body = adoptChild(body);
         this.returnValue = adoptChild(returnValue);
     }
 
     protected ReturnTargetNode(ReturnTargetNode prev) {
-        this(prev.parameters, prev.body, prev.returnValue);
+        this(prev.body, prev.returnValue);
+    }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public PNode getReturn() {
+        return returnValue;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        parameters.executeVoid(frame);
-
         try {
             return body.execute(frame);
         } catch (ImplicitReturnException ire) {

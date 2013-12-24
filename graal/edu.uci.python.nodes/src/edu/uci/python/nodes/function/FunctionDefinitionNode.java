@@ -33,45 +33,27 @@ import edu.uci.python.runtime.function.*;
 
 public class FunctionDefinitionNode extends PNode {
 
-    private final String name;
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
-
-    // It's parked here, but not adopted.
-    @Child protected ParametersNode parameters;
+    protected final String name;
+    protected final CallTarget callTarget;
+    protected final FrameDescriptor frameDescriptor;
+    protected final boolean needsDeclarationFrame;
+    protected final Arity arity;
     @Child protected StatementNode defaults;
 
-    public FunctionDefinitionNode(String name, ParametersNode parameters, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
-        this.parameters = parameters;
+        this.arity = arity;
         this.defaults = adoptChild(defaults);
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    protected CallTarget getCallTarget() {
-        return callTarget;
-    }
-
-    protected FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
-    }
-
-    protected boolean needsDeclarationFrame() {
-        return needsDeclarationFrame;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor, declarationFrame);
+        return new PFunction(name, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override

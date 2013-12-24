@@ -48,7 +48,6 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
@@ -78,16 +77,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, StatementNode defaultParams, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        return new FunctionDefinitionNode(name, parameters, defaultParams, callTarget, frameDescriptor, needsDeclarationFrame);
-    }
-
     public FunctionRootNode createFunctionRoot(String functionName, PNode body) {
         return new FunctionRootNode(functionName, body);
-    }
-
-    public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        return new GeneratorFunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -96,55 +87,6 @@ public class NodeFactory {
 
     public PNode createReadClassAttribute(String attributeId) {
         return new AddClassAttributeNode.ReadClassAttributeNode(attributeId);
-    }
-
-    public ParametersNode createParameters(List<PNode> args, List<String> paramNames) {
-        if (args.size() == 1) {
-            return createParametersOfSizeOne(args.get(0), paramNames);
-        } else if (args.size() == 2) {
-            return createParametersOfSizeTwo(args.get(0), args.get(1), paramNames);
-        } else {
-            return createParametersWithNoDefaults(args, paramNames);
-        }
-    }
-
-    public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
-        return new ParametersOfSizeOneNode(paramNames, parameter);
-    }
-
-    public ParametersNode createParametersOfSizeTwo(PNode parameter0, PNode parameter1, List<String> paramNames) {
-        return new ParametersOfSizeTwoNode(paramNames, parameter0, parameter1);
-    }
-
-    public ParametersNode createParametersWithDefaults(List<PNode> parameters, List<PNode> defaults, List<String> paramNames) {
-        ReadDefaultArgumentNode[] defaultReads = new ReadDefaultArgumentNode[defaults.size()];
-        int index = 0;
-
-        for (PNode right : defaults) {
-            defaultReads[index] = new ReadDefaultArgumentNode(right);
-            index++;
-        }
-
-        /**
-         * The alignment between default argument and parameter relies on the restriction that
-         * default arguments are right aligned. The Vararg case is not covered yet.
-         */
-        PNode[] defaultWrites = new PNode[defaults.size()];
-        index = 0;
-        int offset = parameters.size() - defaults.size();
-
-        for (ReadDefaultArgumentNode read : defaultReads) {
-            FrameSlotNode slotNode = (FrameSlotNode) parameters.get(index + offset);
-            FrameSlot slot = slotNode.getSlot();
-            defaultWrites[index] = createWriteLocalVariable(read, slot);
-            index++;
-        }
-
-        return new ParametersWithDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames, defaultReads, defaultWrites);
-    }
-
-    public ParametersNode createParametersWithNoDefaults(List<PNode> parameters, List<String> paramNames) {
-        return new ParametersWithNoDefaultsNode(parameters.toArray(new PNode[parameters.size()]), paramNames);
     }
 
     public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
@@ -158,6 +100,10 @@ public class NodeFactory {
     public BlockNode createBlock(List<PNode> statements) {
         PNode[] array = statements.toArray(new PNode[statements.size()]);
         return new BlockNode(array);
+    }
+
+    public BlockNode createBlock(PNode[] statments) {
+        return new BlockNode(statments);
     }
 
     public PNode createImport(PythonContext context, String fromModuleName, String importee) {

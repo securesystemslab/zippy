@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.function;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -33,8 +31,8 @@ import edu.uci.python.runtime.datatype.*;
 
 public final class PGeneratorFunction extends PFunction {
 
-    public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
-        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
+    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+        super(name, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override

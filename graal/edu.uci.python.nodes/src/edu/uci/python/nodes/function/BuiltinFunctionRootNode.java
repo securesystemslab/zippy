@@ -58,4 +58,5 @@ public class BuiltinFunctionRootNode extends RootNode {
     public String toString() {
         return "<builtin function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
     }
+
 }

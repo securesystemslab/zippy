@@ -219,4 +219,5 @@ public class BuiltinsTests {
                         "print(free)";
         assertPrints("frozenset({0, 1, 2, 3, 4})\n", source);
     }
+
 }

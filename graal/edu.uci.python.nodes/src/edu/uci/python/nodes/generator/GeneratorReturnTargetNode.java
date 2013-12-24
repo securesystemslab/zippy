@@ -32,14 +32,13 @@ import edu.uci.python.runtime.exception.*;
 
 public class GeneratorReturnTargetNode extends ReturnTargetNode {
 
+    @Child protected PNode parameters;
+
     private boolean firstEntry = true;
 
-    public GeneratorReturnTargetNode(ParametersNode parameters, PNode body, PNode returnValue) {
-        super(parameters, body, returnValue);
-    }
-
-    public GeneratorReturnTargetNode(ReturnTargetNode prev) {
-        super(prev);
+    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue) {
+        super(body, returnValue);
+        this.parameters = adoptChild(parameters);
     }
 
     @Override
