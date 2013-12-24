@@ -26,6 +26,7 @@ package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
@@ -40,13 +41,15 @@ public class FunctionDefinitionNode extends PNode {
 
     // It's parked here, but not adopted.
     @Child protected ParametersNode parameters;
+    @Children final PNode[] functionDefaults;
 
-    public FunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, ParametersNode parameters, PNode[] functionDefaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
-        this.parameters = parameters;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
+        this.parameters = parameters;
+        this.functionDefaults = (functionDefaults == null || functionDefaults.length == 0) ? null : adoptChildren(functionDefaults);
     }
 
     public String getName() {
@@ -68,8 +71,25 @@ public class FunctionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
+        Object[] defaults = executeDefaults(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PFunction(name, parameters.getParameterNames(), callTarget, frameDescriptor, declarationFrame);
+        return new PFunction(name, parameters.getParameterNames(), defaults, callTarget, frameDescriptor, declarationFrame);
+    }
+
+    @ExplodeLoop
+    private Object[] executeDefaults(VirtualFrame frame) {
+        if (functionDefaults == null) {
+            return null;
+        }
+
+        assert functionDefaults.length > 0;
+        Object[] defaults = new Object[functionDefaults.length];
+
+        for (int i = 0; i < functionDefaults.length; i++) {
+            defaults[i] = functionDefaults[i].execute(frame);
+        }
+
+        return defaults;
     }
 
     @Override

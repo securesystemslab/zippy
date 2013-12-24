@@ -78,8 +78,9 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        return new FunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
+    public PNode createFunctionDef(String name, ParametersNode parameters, List<PNode> functionDefaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+        return new FunctionDefinitionNode(name, parameters, functionDefaults == null ? null : functionDefaults.toArray(new PNode[functionDefaults.size()]), callTarget, frameDescriptor,
+                        needsDeclarationFrame);
     }
 
     public FunctionRootNode createFunctionRoot(String functionName, PNode body) {

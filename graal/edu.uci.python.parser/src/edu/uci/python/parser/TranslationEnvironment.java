@@ -240,7 +240,6 @@ public class TranslationEnvironment {
 
     protected List<PNode> getDefaultArgumentNodes() {
         List<PNode> defaultArgs = currentScope.getDefaultArgumentNodes();
-        assert defaultArgs != null;
         return defaultArgs;
     }
 

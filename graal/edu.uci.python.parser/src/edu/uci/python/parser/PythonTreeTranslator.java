@@ -142,7 +142,7 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot(name, wrappedBody);
         result.addParsedFunction(name, funcRoot);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
-        return factory.createFunctionDef(name, parameters, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+        return factory.createFunctionDef(name, parameters, environment.getDefaultArgumentNodes(), ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
     }
 
     private PNode createGeneratorFunctionDefinition(String name, ParametersNode parameters, StatementNode body) {

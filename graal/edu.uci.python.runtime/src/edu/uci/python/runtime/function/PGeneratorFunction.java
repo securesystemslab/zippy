@@ -34,7 +34,7 @@ import edu.uci.python.runtime.datatype.*;
 public final class PGeneratorFunction extends PFunction {
 
     public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
-        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
+        super(name, parameters, null, callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override

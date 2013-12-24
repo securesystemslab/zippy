@@ -33,7 +33,7 @@ import edu.uci.python.runtime.function.*;
 public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
     public GeneratorFunctionDefinitionNode(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        super(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
+        super(name, parameters, null, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     @Override
