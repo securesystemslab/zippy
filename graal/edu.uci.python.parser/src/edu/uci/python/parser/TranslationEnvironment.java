@@ -247,6 +247,14 @@ public class TranslationEnvironment {
         return currentScope.getDefaultArgumentNodes() != null && currentScope.getDefaultArgumentNodes().size() > 0;
     }
 
+    protected void setDefaultArgumentReads(ReadDefaultArgumentNode[] defaultReads) {
+        currentScope.setDefaultArgumentReads(defaultReads);
+    }
+
+    protected ReadDefaultArgumentNode[] getDefaultArgumentReads() {
+        return currentScope.getDefaultArgumentReads();
+    }
+
     public boolean needsDeclarationFrame() {
         return currentScope.needsDeclaringScope();
     }

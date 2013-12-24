@@ -44,7 +44,16 @@ public class GeneratorTranslator {
         List<ReturnTargetNode> returnTargets = NodeUtil.findAllNodeInstances(root, ReturnTargetNode.class);
         assert returnTargets.size() == 1;
         ReturnTargetNode returnTarget = returnTargets.get(0);
-        returnTarget.replace(new GeneratorReturnTargetNode(returnTarget));
+
+        if (returnTarget.getBody() instanceof BlockNode) {
+            BlockNode body = (BlockNode) returnTarget.getBody();
+            assert body.getStatements().length == 2;
+            BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
+            body = (BlockNode) body.getStatements()[1];
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
+        } else {
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
+        }
 
         /**
          * Redirect local variable accesses to materialized persistent frame.

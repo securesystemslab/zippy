@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.argument.*;
 
 public class ScopeInfo {
 
@@ -57,7 +58,7 @@ public class ScopeInfo {
      * function has default arguments.
      */
     private List<PNode> defaultArgumentNodes;
-    private List<PNode> defaultArgumentReads;
+    private ReadDefaultArgumentNode[] defaultArgumentReads;
 
     public ScopeInfo(String scopeId, ScopeKind kind, FrameDescriptor frameDescriptor, ScopeInfo parent) {
         this.scopeId = scopeId;
@@ -116,11 +117,11 @@ public class ScopeInfo {
         return defaultArgumentNodes;
     }
 
-    public void setDefaultArgumentReads(List<PNode> defaultArgumentReads) {
+    public void setDefaultArgumentReads(ReadDefaultArgumentNode[] defaultArgumentReads) {
         this.defaultArgumentReads = defaultArgumentReads;
     }
 
-    public List<PNode> getDefaultArgumentReads() {
+    public ReadDefaultArgumentNode[] getDefaultArgumentReads() {
         return this.defaultArgumentReads;
     }
 

@@ -25,42 +25,28 @@
 package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 
 public class ReadDefaultArgumentNode extends PNode {
 
-    @Child protected PNode right;
-
     private final Object value;
 
-    public ReadDefaultArgumentNode(PNode right) {
-        this.right = adoptChild(right);
+    public ReadDefaultArgumentNode() {
         value = null;
     }
 
-    protected ReadDefaultArgumentNode(ReadDefaultArgumentNode prev, Object value) {
-        this.right = prev.right;
+    protected ReadDefaultArgumentNode(Object value) {
         this.value = value;
     }
 
     public void setValue(Object value) {
-        replace(new ReadDefaultArgumentNode(this, value));
-    }
-
-    public final void evaluateDefault(VirtualFrame frame) {
-        replace(new ReadDefaultArgumentNode(this, right.execute(frame)));
+        replace(new ReadDefaultArgumentNode(value));
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         return value;
-    }
-
-    @Override
-    public Node copy() {
-        return new ReadDefaultArgumentNode(this, value);
     }
 
 }

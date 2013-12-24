@@ -24,34 +24,29 @@
  */
 package edu.uci.python.nodes.statement;
 
-import java.util.*;
-
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 
-public class ParametersNode extends PNode {
+public class ApplyArgumentsNode extends BlockNode {
 
-    public static final ParametersNode EMPTY_PARAMS = new ParametersNode(new ArrayList<String>());
-
-    protected List<String> parameterNames;
-
-    public ParametersNode(List<String> paramNames) {
-        this.parameterNames = paramNames;
+    public ApplyArgumentsNode(PNode[] argumentLoads) {
+        super(argumentLoads);
     }
 
-    public List<String> getParameterNames() {
-        return parameterNames;
-    }
-
-    public int size() {
-        return parameterNames.size();
-    }
-
+    @ExplodeLoop
     @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
-    }
+    public void executeVoid(VirtualFrame frame) {
+        Object[] values = frame.getArguments(PArguments.class).getArgumentsArray();
 
+        for (int i = 0; i < getStatements().length; i++) {
+            if (i >= values.length) {
+                break;
+            }
+
+            getStatements()[i].executeVoid(frame);
+        }
+    }
 }
