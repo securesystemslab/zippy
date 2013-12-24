@@ -26,15 +26,20 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class DefaultArgTests {
+
     @Test
     public void simple() {
-        Path script = Paths.get("defaultarg_test.py");
-        assertPrints("1\n4\n", script);
+        String source = "foo = 1\n" + //
+                        "def bar(f=foo):\n" + //
+                        "    print(f)\n" + //
+                        "bar()\n" + //
+                        "foo = 2\n" + //
+                        "bar(4)\n";
+
+        assertPrints("1\n4\n", source);
     }
 
 }

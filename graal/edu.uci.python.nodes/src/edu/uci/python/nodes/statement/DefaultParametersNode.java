@@ -22,29 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.function;
+package edu.uci.python.nodes.statement;
 
-import java.util.*;
-
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.datatype.*;
 
-public final class PGeneratorFunction extends PFunction {
+/**
+ * Evaluates default arguments in the declaration scope and feeds the evaluated values to the
+ * {@link ReadDefaultArgumentNode}s.
+ */
+public class DefaultParametersNode extends StatementNode {
 
-    public PGeneratorFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
-        super(name, parameters, callTarget, frameDescriptor, declarationFrame);
+    @Children final PNode[] functionDefaults;
+    @Children final ReadDefaultArgumentNode[] defaultReads; // It's parked here, but not adopted.
+
+    public DefaultParametersNode(PNode[] functionDefaults, ReadDefaultArgumentNode[] defaultReads) {
+        assert functionDefaults != null & functionDefaults.length > 0;
+        assert defaultReads != null & defaultReads.length > 0;
+        this.functionDefaults = adoptChildren(functionDefaults);
+        this.defaultReads = defaultReads;
     }
 
+    @ExplodeLoop
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args);
-    }
+    public Object execute(VirtualFrame frame) {
+        for (int i = 0; i < functionDefaults.length; i++) {
+            Object defaultVal = functionDefaults[i].execute(frame);
+            defaultReads[i].setValue(defaultVal);
+        }
 
-    @Override
-    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        throw new UnsupportedOperationException();
+        return PNone.NONE;
     }
 
 }

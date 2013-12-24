@@ -243,6 +243,10 @@ public class TranslationEnvironment {
         return defaultArgs;
     }
 
+    protected boolean hasDefaultArguments() {
+        return currentScope.getDefaultArgumentNodes() != null && currentScope.getDefaultArgumentNodes().size() > 0;
+    }
+
     public boolean needsDeclarationFrame() {
         return currentScope.needsDeclaringScope();
     }

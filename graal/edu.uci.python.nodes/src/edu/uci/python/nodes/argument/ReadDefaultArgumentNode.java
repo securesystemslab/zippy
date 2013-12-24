@@ -45,6 +45,10 @@ public class ReadDefaultArgumentNode extends PNode {
         this.value = value;
     }
 
+    public void setValue(Object value) {
+        replace(new ReadDefaultArgumentNode(this, value));
+    }
+
     public final void evaluateDefault(VirtualFrame frame) {
         replace(new ReadDefaultArgumentNode(this, right.execute(frame)));
     }

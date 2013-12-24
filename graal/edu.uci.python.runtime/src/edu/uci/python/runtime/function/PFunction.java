@@ -38,28 +38,21 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
     private final List<String> parameters;
-    private final Object[] defaults;
 
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
 
-    public PFunction(String name, List<String> parameters, Object[] defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
         this.parameters = parameters;
-        this.defaults = defaults;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.declarationFrame = declarationFrame;
     }
 
     public static PFunction duplicate(PFunction function, CallTarget newCallTarget) {
-        return new PFunction(function.name, function.parameters, function.defaults, newCallTarget, function.frameDescriptor, function.declarationFrame);
-    }
-
-    public final Object getDefaultArgument(int index) {
-        assert defaults != null && index < defaults.length;
-        return defaults[index];
+        return new PFunction(function.name, function.parameters, newCallTarget, function.frameDescriptor, function.declarationFrame);
     }
 
     public CallTarget getCallTarget() {
