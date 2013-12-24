@@ -78,16 +78,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public PNode createFunctionDef(String name, ParametersNode parameters, StatementNode defaultParams, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        return new FunctionDefinitionNode(name, parameters, defaultParams, callTarget, frameDescriptor, needsDeclarationFrame);
-    }
-
     public FunctionRootNode createFunctionRoot(String functionName, PNode body) {
         return new FunctionRootNode(functionName, body);
-    }
-
-    public PNode createGeneratorDef(String name, ParametersNode parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
-        return new GeneratorFunctionDefinitionNode(name, parameters, callTarget, frameDescriptor, needsDeclarationFrame);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {

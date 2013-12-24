@@ -33,7 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 
 public class ParametersNode extends PNode {
 
-    public static final ParametersNode EMPTY_PARAMS = new ParametersNode(null);
+    public static final ParametersNode EMPTY_PARAMS = new ParametersNode(new ArrayList<String>());
 
     protected List<String> parameterNames;
 

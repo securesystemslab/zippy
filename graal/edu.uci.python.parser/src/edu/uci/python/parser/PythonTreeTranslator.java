@@ -50,6 +50,7 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
@@ -148,9 +149,11 @@ public class PythonTreeTranslator extends Visitor {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
             ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
             StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-            return factory.createFunctionDef(name, parameters, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+            Arity arity = new Arity(name, parameters.size() - environment.getDefaultArgumentNodes().size(), parameters.size(), parameters.getParameterNames());
+            return new FunctionDefinitionNode(name, arity, defaults, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         } else {
-            return factory.createFunctionDef(name, parameters, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
+            Arity arity = new Arity(name, parameters.size(), parameters.size(), parameters.getParameterNames());
+            return new FunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(), environment.needsDeclarationFrame());
         }
     }
 
@@ -159,7 +162,18 @@ public class PythonTreeTranslator extends Visitor {
         GeneratorRootNode funcRoot = factory.createGeneratorRoot(name, wrappedBody);
         GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
-        return factory.createGeneratorDef(name, parameters, Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+
+        if (environment.hasDefaultArguments()) {
+            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
+            ReadDefaultArgumentNode[] defaultReads = (ReadDefaultArgumentNode[]) ((ParametersWithDefaultsNode) parameters).getDefaultReads();
+            StatementNode defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
+            Arity arity = new Arity(name, parameters.size() - environment.getDefaultArgumentNodes().size(), parameters.size(), parameters.getParameterNames());
+            return new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+        } else {
+            Arity arity = new Arity(name, parameters.size(), parameters.size(), parameters.getParameterNames());
+            return new GeneratorFunctionDefinitionNode(name, arity, BlockNode.EMPTYBLOCK, ct, fd, environment.needsDeclarationFrame());
+        }
     }
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {

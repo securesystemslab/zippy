@@ -37,22 +37,21 @@ import edu.uci.python.runtime.standardtype.*;
 public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
-    private final List<String> parameters;
-
+    private final Arity arity;
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
 
-    public PFunction(String name, List<String> parameters, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
-        this.parameters = parameters;
+        this.arity = arity;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.declarationFrame = declarationFrame;
     }
 
     public static PFunction duplicate(PFunction function, CallTarget newCallTarget) {
-        return new PFunction(function.name, function.parameters, newCallTarget, function.frameDescriptor, function.declarationFrame);
+        return new PFunction(function.name, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
     }
 
     public CallTarget getCallTarget() {
@@ -61,10 +60,6 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
-    }
-
-    public List<String> getParameters() {
-        return parameters;
     }
 
     public MaterializedFrame getDeclarationFrame() {
@@ -87,15 +82,17 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        Object[] combined = applyKeywordArgs(parameters, arguments, keywords);
+        Object[] combined = applyKeywordArgs(arguments, keywords);
         return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
     }
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
-    protected static Object[] applyKeywordArgs(List<String> parameters, Object[] arguments, Object[] keywords) {
+    protected Object[] applyKeywordArgs(Object[] arguments, Object[] keywords) {
+        List<String> parameters = arity.getParameterIds();
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
@@ -120,4 +117,5 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     public String toString() {
         return "<function " + name + " at " + hashCode() + ">";
     }
+
 }
