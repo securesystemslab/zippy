@@ -362,13 +362,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @SuppressWarnings("unused")
             @Specialization(guards = "hasOneArgument")
-            public Object maxString(String arg1, Object[] args, Object keywordArg) {
-                PString pstring = new PString(arg1);
-                return pstring.getMax();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
@@ -388,9 +381,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             @Specialization
             public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
-                    if (arg1 instanceof Iterable) {
-                        throw new RuntimeException("Multiple iterables are not supported");
-                    } else if (args.length == 1) {
+                    if (args.length == 1) {
                         return getMax(arg1, args[0]);
                     } else {
                         Object[] argsArray = new Object[args.length + 1];
@@ -402,7 +393,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 } else {
                     throw new RuntimeException("Optional keyword-only key argument is not supported");
                 }
-
             }
 
             private static Object getMax(Object arg1, Object arg2) {
