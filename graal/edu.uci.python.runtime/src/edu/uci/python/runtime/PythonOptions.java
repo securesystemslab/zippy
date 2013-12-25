@@ -53,6 +53,8 @@ public class PythonOptions {
 
     public static final boolean UnboxSequenceStorage = true;
 
+    public static final boolean useNewImportMechanism = false;
+
     private PrintStream standardOut = System.out;
 
     private PrintStream standardErr = System.err;
