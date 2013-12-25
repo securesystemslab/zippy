@@ -91,7 +91,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final boolean isIntegerKind() {
-        return isKind(FrameSlotKind.Int) || booleanToInt();
+        return isKind(FrameSlotKind.Int) || booleanToInt() || objectToInt();
     }
 
     protected final boolean isDoubleKind() {
@@ -125,6 +125,15 @@ public abstract class FrameSlotNode extends PNode {
         if (frameSlot.getKind() == FrameSlotKind.Illegal) {
             CompilerDirectives.transferToInterpreter();
             frameSlot.setKind(kind);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean objectToInt() {
+        if (frameSlot.getKind() == FrameSlotKind.Object) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Int);
             return true;
         }
         return false;

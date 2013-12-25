@@ -121,4 +121,17 @@ public class LocalFrameTests {
 
         assertError("UnboundLocalError: local variable 'x' referenced before assignment\n", source);
     }
+
+    @Test
+    public void initToNone() {
+        String source = "def foo():\n" + //
+                        "    hi = None\n" + //
+                        "    hi = 2\n" + //
+                        "    list1 = [1,2,3]\n" + //
+                        "    print(list1[hi])\n" + //
+                        "\n" + //
+                        "foo()\n";
+
+        assertPrints("3\n", source);
+    }
 }
