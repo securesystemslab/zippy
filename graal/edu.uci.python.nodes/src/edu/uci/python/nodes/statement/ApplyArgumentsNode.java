@@ -30,6 +30,9 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
 
+/**
+ * Applies arguments to local frame when optinal arguments are presented.
+ */
 public class ApplyArgumentsNode extends BlockNode {
 
     public ApplyArgumentsNode(PNode[] argumentLoads) {
@@ -39,14 +42,15 @@ public class ApplyArgumentsNode extends BlockNode {
     @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
-        Object[] values = frame.getArguments(PArguments.class).getArgumentsArray();
+        final Object[] arguments = frame.getArguments(PArguments.class).getArgumentsArray();
 
         for (int i = 0; i < getStatements().length; i++) {
-            if (i >= values.length) {
+            if (i >= arguments.length) {
                 break;
             }
 
             getStatements()[i].executeVoid(frame);
         }
     }
+
 }

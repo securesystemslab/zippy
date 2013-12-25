@@ -30,6 +30,7 @@ import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subproc
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
+import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
@@ -77,7 +78,7 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.JavaVersion('1.7.0_04')
+_minVersion = mx.VersionSpec('1.7.0_04')
 
 def _get_vm():
     """
@@ -970,8 +971,8 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
-        t = Task('BootstrapWithAOTConfiguration:product')
-        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
+        t = Task('BootstrapWithImmutableCode:product')
+        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
@@ -981,7 +982,7 @@ def _basic_gate_body(args, tasks):
 
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.JavaVersion('1.8'):
+            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
                 # DaCapo eclipse doesn't not run under JDK8
                 continue
 
@@ -1136,18 +1137,24 @@ def gv(args):
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
-    env = os.environ.copy()
-    if mx.java().version >= mx.JavaVersion('1.8'):
-        jdk7 = mx.get_env('JAVA7_HOME', None)
-        if jdk7:
-            env['JAVA_HOME'] = jdk7
-        else:
-            mx.abort('IGV does not yet work with JDK 8. Use --java-home to specify a JDK 7 when launching the IGV')
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
-        if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
-            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
+        nbplatform = join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')
+
+        # Remove NetBeans platform if it is earlier than the current supported version
+        if exists(nbplatform):
+            dom = xml.dom.minidom.parse(join(nbplatform, 'platform', 'update_tracking', 'org-netbeans-core.xml'))
+            currentVersion = mx.VersionSpec(dom.getElementsByTagName('module_version')[0].getAttribute('specification_version'))
+            supportedVersion = mx.VersionSpec('3.43.1')
+            if currentVersion < supportedVersion:
+                mx.log('Replacing NetBeans platform version ' + str(currentVersion) + ' with version ' + str(supportedVersion))
+                shutil.rmtree(nbplatform)
+            elif supportedVersion < currentVersion:
+                mx.log('Supported NetBeans version in igv command should be updated to ' + str(currentVersion))
+
+        if not exists(nbplatform):
+            mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def bench(args):
     """run benchmarks and parse their output for results
@@ -1394,14 +1401,14 @@ def sl(args):
 
 def trufflejar(args=None):
     """make truffle.jar"""
-    
+
     # Test with the built classes
     _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
-    
+
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
     packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
-    
+
     # Test with the JAR
     _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
 
@@ -1516,7 +1523,7 @@ def mx_post_parse_cmd_line(opts):  #
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
 
 def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
-    prefix = '' if mx.get_os() != 'windows' else '\\??\\' # long file name hack
+    prefix = '' if mx.get_os() != 'windows' else '\\??\\'  # long file name hack
     print "creating", outputFile
     filecount, totalsize = 0, 0
     with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -1538,7 +1545,7 @@ def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, 
                 for root, _, files in os.walk(cp):
                     for f in files:
                         fullname = os.path.join(root, f)
-                        arcname = fullname[len(cp)+1:].replace('\\', '/')
+                        arcname = fullname[len(cp) + 1:].replace('\\', '/')
                         if f.endswith(".class"):
                             zf.write(prefix + fullname, arcname)
 

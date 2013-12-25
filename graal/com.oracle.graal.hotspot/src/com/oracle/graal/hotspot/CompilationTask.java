@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot;
 
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
+import static com.oracle.graal.hotspot.bridge.VMToCompilerImpl.*;
 import static com.oracle.graal.nodes.StructuredGraph.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.phases.common.InliningUtil.*;
@@ -41,13 +42,17 @@ import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.phases.*;
+import com.oracle.graal.java.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.PhasePlan.*;
 import com.oracle.graal.phases.tiers.*;
+import com.oracle.graal.phases.util.*;
 
-public final class CompilationTask implements Runnable {
+public class CompilationTask implements Runnable {
 
     public static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
 
@@ -62,9 +67,6 @@ public final class CompilationTask implements Runnable {
     }
 
     private final HotSpotBackend backend;
-    private final PhasePlan plan;
-    private final OptimisticOptimizations optimisticOpts;
-    private final ProfilingInfo profilingInfo;
     private final HotSpotResolvedJavaMethod method;
     private final int entryBCI;
     private final int id;
@@ -72,18 +74,10 @@ public final class CompilationTask implements Runnable {
 
     private StructuredGraph graph;
 
-    public static CompilationTask create(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI,
-                    int id) {
-        return new CompilationTask(backend, plan, optimisticOpts, profilingInfo, method, entryBCI, id);
-    }
-
-    private CompilationTask(HotSpotBackend backend, PhasePlan plan, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
+    public CompilationTask(HotSpotBackend backend, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
         assert id >= 0;
         this.backend = backend;
-        this.plan = plan;
         this.method = method;
-        this.optimisticOpts = optimisticOpts;
-        this.profilingInfo = profilingInfo;
         this.entryBCI = entryBCI;
         this.id = id;
         this.status = new AtomicReference<>(CompilationStatus.Queued);
@@ -104,7 +98,7 @@ public final class CompilationTask implements Runnable {
     public void run() {
         withinEnqueue.set(Boolean.FALSE);
         try {
-            runCompilation();
+            runCompilation(true);
         } finally {
             if (method.currentTask() == this) {
                 method.setCurrentTask(null);
@@ -120,7 +114,32 @@ public final class CompilationTask implements Runnable {
 
     public static final DebugTimer CodeInstallationTime = Debug.timer("CodeInstallation");
 
-    public void runCompilation() {
+    protected Suites getSuites(HotSpotProviders providers) {
+        return providers.getSuites().getDefaultSuites();
+    }
+
+    protected PhasePlan getPhasePlan(Providers providers, OptimisticOptimizations optimisticOpts) {
+        boolean osrCompilation = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
+        PhasePlan phasePlan = new PhasePlan();
+        MetaAccessProvider metaAccess = providers.getMetaAccess();
+        ForeignCallsProvider foreignCalls = providers.getForeignCalls();
+        phasePlan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(metaAccess, foreignCalls, GraphBuilderConfiguration.getDefault(), optimisticOpts));
+        if (osrCompilation) {
+            phasePlan.addPhase(PhasePosition.AFTER_PARSING, new OnStackReplacementPhase());
+        }
+        return phasePlan;
+    }
+
+    protected OptimisticOptimizations getOptimisticOpts(ProfilingInfo profilingInfo) {
+        return new OptimisticOptimizations(profilingInfo);
+    }
+
+    protected ProfilingInfo getProfilingInfo() {
+        boolean osrCompilation = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
+        return method.getCompilationProfilingInfo(osrCompilation);
+    }
+
+    public void runCompilation(boolean clearFromCompilationQueue) {
         /*
          * no code must be outside this try/finally because it could happen otherwise that
          * clearQueuedForCompilation() is not executed
@@ -164,8 +183,11 @@ public final class CompilationTask implements Runnable {
                 }
                 InlinedBytecodes.add(method.getCodeSize());
                 CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
-                Suites suites = providers.getSuites().getDefaultSuites();
-                result = compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, plan, optimisticOpts, profilingInfo, method.getSpeculationLog(), suites, true,
+                Suites suites = getSuites(providers);
+                ProfilingInfo profilingInfo = getProfilingInfo();
+                OptimisticOptimizations optimisticOpts = getOptimisticOpts(profilingInfo);
+                PhasePlan phasePlan = getPhasePlan(providers, optimisticOpts);
+                result = compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, phasePlan, optimisticOpts, profilingInfo, method.getSpeculationLog(), suites, true,
                                 new CompilationResult(), CompilationResultBuilderFactory.Default);
 
             } catch (Throwable e) {
@@ -202,7 +224,7 @@ public final class CompilationTask implements Runnable {
                 System.exit(-1);
             }
         } finally {
-            if ((config.ciTime || config.ciTimeEach) && installedCode != null) {
+            if ((config.ciTime || config.ciTimeEach || PrintCompRate.getValue() != 0) && installedCode != null) {
                 long processedBytes = InlinedBytecodes.getCurrentValue() - previousInlinedBytecodes;
                 long time = CompilationTime.getCurrentValue() - previousCompilationTime;
                 TimeUnit timeUnit = CompilationTime.getTimeUnit();
@@ -211,8 +233,10 @@ public final class CompilationTask implements Runnable {
                 c2vm.notifyCompilationStatistics(id, method, entryBCI != INVOCATION_ENTRY_BCI, (int) processedBytes, time, timeUnitsPerSecond, installedCode);
             }
 
-            assert method.isQueuedForCompilation();
-            method.clearQueuedForCompilation();
+            if (clearFromCompilationQueue) {
+                assert method.isQueuedForCompilation();
+                method.clearQueuedForCompilation();
+            }
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,17 +24,20 @@ package com.oracle.truffle.sl.runtime;
 
 import java.io.*;
 
+import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.sl.builtins.*;
 
 public final class SLContext {
 
     private final PrintStream printOutput;
     private final SLFunctionRegistry functionRegistry;
+    private final SourceManager sourceManager;
 
     public SLContext(PrintStream print) {
         this.printOutput = print;
         this.functionRegistry = new SLFunctionRegistry();
         DefaultBuiltins.install(this);
+        this.sourceManager = new SourceManager();
     }
 
     public PrintStream getPrintOutput() {
@@ -43,6 +46,10 @@ public final class SLContext {
 
     public SLFunctionRegistry getFunctionRegistry() {
         return functionRegistry;
+    }
+
+    public SourceManager getSourceManager() {
+        return sourceManager;
     }
 
 }

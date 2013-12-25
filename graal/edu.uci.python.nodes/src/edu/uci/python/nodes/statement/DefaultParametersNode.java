@@ -51,7 +51,7 @@ public class DefaultParametersNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < functionDefaults.length; i++) {
-            Object defaultVal = functionDefaults[i].execute(frame);
+            final Object defaultVal = functionDefaults[i].execute(frame);
             defaultReads[i].setValue(defaultVal);
         }
 

@@ -84,6 +84,7 @@
 
 // Shared stub locations
 RuntimeStub*        SharedRuntime::_wrong_method_blob;
+RuntimeStub*        SharedRuntime::_wrong_method_abstract_blob;
 RuntimeStub*        SharedRuntime::_ic_miss_blob;
 RuntimeStub*        SharedRuntime::_resolve_opt_virtual_call_blob;
 RuntimeStub*        SharedRuntime::_resolve_virtual_call_blob;
@@ -101,11 +102,12 @@ UncommonTrapBlob*   SharedRuntime::_uncommon_trap_blob;
 
 //----------------------------generate_stubs-----------------------------------
 void SharedRuntime::generate_stubs() {
-  _wrong_method_blob                   = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method),         "wrong_method_stub");
-  _ic_miss_blob                        = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_ic_miss), "ic_miss_stub");
-  _resolve_opt_virtual_call_blob       = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_opt_virtual_call_C),  "resolve_opt_virtual_call");
-  _resolve_virtual_call_blob           = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_virtual_call_C),      "resolve_virtual_call");
-  _resolve_static_call_blob            = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_static_call_C),       "resolve_static_call");
+  _wrong_method_blob                   = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method),          "wrong_method_stub");
+  _wrong_method_abstract_blob          = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_abstract), "wrong_method_abstract_stub");
+  _ic_miss_blob                        = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_ic_miss),  "ic_miss_stub");
+  _resolve_opt_virtual_call_blob       = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_opt_virtual_call_C),   "resolve_opt_virtual_call");
+  _resolve_virtual_call_blob           = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_virtual_call_C),       "resolve_virtual_call");
+  _resolve_static_call_blob            = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_static_call_C),        "resolve_static_call");
 
 #ifdef COMPILER2
   // Vectors are generated only by C2.
@@ -1238,11 +1240,11 @@ methodHandle SharedRuntime::resolve_sub_helper(JavaThread *thread,
   CodeBlob* caller_cb = caller_frame.cb();
   guarantee(caller_cb != NULL && caller_cb->is_nmethod(), "must be called from nmethod");
   nmethod* caller_nm = caller_cb->as_nmethod_or_null();
+
   // make sure caller is not getting deoptimized
   // and removed before we are done with it.
   // CLEANUP - with lazy deopt shouldn't need this lock
   nmethodLocker caller_lock(caller_nm);
-
 
   // determine call info & receiver
   // note: a) receiver is NULL for static calls
@@ -1257,6 +1259,11 @@ methodHandle SharedRuntime::resolve_sub_helper(JavaThread *thread,
          (!is_virtual && invoke_code == Bytecodes::_invokehandle ) ||
          (!is_virtual && invoke_code == Bytecodes::_invokedynamic) ||
          ( is_virtual && invoke_code != Bytecodes::_invokestatic ), "inconsistent bytecode");
+
+  // We do not patch the call site if the caller nmethod has been made non-entrant.
+  if (!caller_nm->is_in_use()) {
+    return callee_method;
+  }
 
 #ifndef PRODUCT
   // tracing/debugging/statistics
@@ -1297,6 +1304,10 @@ methodHandle SharedRuntime::resolve_sub_helper(JavaThread *thread,
   // Make sure the callee nmethod does not get deoptimized and removed before
   // we are done patching the code.
   nmethod* callee_nm = callee_method->code();
+  if (callee_nm != NULL && !callee_nm->is_in_use()) {
+    // Patch call site to C2I adapter if callee nmethod is deoptimized or unloaded.
+    callee_nm = NULL;
+  }
   nmethodLocker nl_callee(callee_nm);
 #ifdef ASSERT
   address dest_entry_point = callee_nm == NULL ? 0 : callee_nm->entry_point(); // used below
@@ -1318,15 +1329,24 @@ methodHandle SharedRuntime::resolve_sub_helper(JavaThread *thread,
   {
     MutexLocker ml_patch(CompiledIC_lock);
 
+    // Lock blocks for safepoint during which both nmethods can change state.
+
     // Now that we are ready to patch if the Method* was redefined then
     // don't update call site and let the caller retry.
-
-    if (!callee_method->is_old()) {
+    // Don't update call site if caller nmethod has been made non-entrant
+    // as it is a waste of time.
+    // Don't update call site if callee nmethod was unloaded or deoptimized.
+    // Don't update call site if callee nmethod was replaced by an other nmethod
+    // which may happen when multiply alive nmethod (tiered compilation)
+    // will be supported.
+    if (!callee_method->is_old() && caller_nm->is_in_use() &&
+        (callee_nm == NULL || callee_nm->is_in_use() && (callee_method->code() == callee_nm))) {
 #ifdef ASSERT
       // We must not try to patch to jump to an already unloaded method.
       if (dest_entry_point != 0) {
-        assert(CodeCache::find_blob(dest_entry_point) != NULL,
-               "should not unload nmethod while locked");
+        CodeBlob* cb = CodeCache::find_blob(dest_entry_point);
+        assert((cb != NULL) && cb->is_nmethod() && (((nmethod*)cb) == callee_nm),
+               "should not call unloaded nmethod");
       }
 #endif
       if (is_virtual) {
@@ -1405,6 +1425,11 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))
   // return compiled code entry point after potential safepoints
   assert(callee_method->verified_code_entry() != NULL, " Jump to zero!");
   return callee_method->verified_code_entry();
+JRT_END
+
+// Handle abstract method call
+JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method_abstract(JavaThread* thread))
+  return StubRoutines::throw_AbstractMethodError_entry();
 JRT_END
 
 
@@ -2403,12 +2428,13 @@ void AdapterHandlerLibrary::initialize() {
 
   // Create a special handler for abstract methods.  Abstract methods
   // are never compiled so an i2c entry is somewhat meaningless, but
-  // fill it in with something appropriate just in case.  Pass handle
-  // wrong method for the c2i transitions.
-  address wrong_method = SharedRuntime::get_handle_wrong_method_stub();
+  // throw AbstractMethodError just in case.
+  // Pass wrong_method_abstract for the c2i transitions to return
+  // AbstractMethodError for invalid invocations.
+  address wrong_method_abstract = SharedRuntime::get_handle_wrong_method_abstract_stub();
   _abstract_method_handler = AdapterHandlerLibrary::new_entry(new AdapterFingerPrint(0, NULL),
                                                               StubRoutines::throw_AbstractMethodError_entry(),
-                                                              wrong_method, wrong_method);
+                                                              wrong_method_abstract, wrong_method_abstract);
 }
 
 AdapterHandlerEntry* AdapterHandlerLibrary::new_entry(AdapterFingerPrint* fingerprint,

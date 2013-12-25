@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,9 +19,34 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
+package com.oracle.graal.jtt.bytecode;
 
-public interface I {
-    default public int m() { return 1; }
+import com.oracle.graal.jtt.*;
+import org.junit.*;
+
+public class BC_getfield_z extends JTTTest {
+
+    static class FieldHolder {
+        FieldHolder(boolean field) {
+            this.field = field;
+        }
+
+        private boolean field;
+    }
+
+    public static boolean test(FieldHolder object) {
+        return object.field;
+    }
+
+    @Test
+    public void run0() throws Throwable {
+        runTest("test", new FieldHolder(true));
+    }
+
+    @Test
+    public void run1() throws Throwable {
+        runTest("test", new FieldHolder(false));
+    }
+
 }

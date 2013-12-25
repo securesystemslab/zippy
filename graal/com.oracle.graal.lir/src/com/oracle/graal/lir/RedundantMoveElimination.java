@@ -103,16 +103,26 @@ public final class RedundantMoveElimination {
 
             initBlockData(lir);
 
-            solveDataFlow(lir);
+            if (!solveDataFlow(lir)) {
+                return;
+            }
 
             eliminateMoves(lir);
         }
     }
 
+    /**
+     * The maximum number of locations * blocks. This is a complexity limit for the inner loop in
+     * {@link #mergeState} (assuming a small number of iterations in {@link #solveDataFlow}.
+     */
+    private static final int COMPLEXITY_LIMIT = 30000;
+
     private void initBlockData(LIR lir) {
 
         List<Block> blocks = lir.linearScanOrder();
         numRegs = 0;
+
+        int maxStackLocations = COMPLEXITY_LIMIT / blocks.size();
 
         /*
          * Search for relevant locations which can be optimized. These are register or stack slots
@@ -130,7 +140,7 @@ public final class RedundantMoveElimination {
                         }
                     } else if (isStackSlot(dest)) {
                         StackSlot stackSlot = (StackSlot) dest;
-                        if (!stackIndices.containsKey(stackSlot)) {
+                        if (!stackIndices.containsKey(stackSlot) && stackIndices.size() < maxStackLocations) {
                             stackIndices.put(stackSlot, stackIndices.size());
                         }
                     }
@@ -151,12 +161,16 @@ public final class RedundantMoveElimination {
 
     /**
      * Calculates the entry and exit states for all basic blocks.
+     * 
+     * @return Returns true on success and false if the the control flow is too complex.
      */
-    private void solveDataFlow(LIR lir) {
+    private boolean solveDataFlow(LIR lir) {
 
         Indent indent = Debug.logAndIndent("solve data flow");
 
         List<Block> blocks = lir.linearScanOrder();
+
+        int numIter = 0;
 
         /*
          * Iterate until there are no more changes.
@@ -229,10 +243,20 @@ public final class RedundantMoveElimination {
             }
             firstRound = false;
             indent2.outdent();
+            numIter++;
+
+            if (numIter > 5) {
+                /*
+                 * This is _very_ seldom.
+                 */
+                return false;
+            }
 
         } while (changed);
 
         indent.outdent();
+
+        return true;
     }
 
     /**
@@ -297,6 +321,7 @@ public final class RedundantMoveElimination {
                 int sourceIdx = getStateIdx(moveOp.getInput());
                 int destIdx = getStateIdx(moveOp.getResult());
                 if (sourceIdx >= 0 && destIdx >= 0) {
+                    assert isObjectValue(state[sourceIdx]) || (moveOp.getInput().getKind() != Kind.Object) : "move op moves object but input is not defined as object";
                     state[destIdx] = state[sourceIdx];
                     indent.log("move value %d from %d to %d", state[sourceIdx], sourceIdx, destIdx);
                     return initValueNum;
@@ -342,8 +367,13 @@ public final class RedundantMoveElimination {
             }
 
             OutputValueProc outputValueProc = new OutputValueProc(valueNum);
-            op.forEachOutput(outputValueProc);
+
             op.forEachTemp(outputValueProc);
+            /*
+             * Semantically the output values are written _after_ the temp values
+             */
+            op.forEachOutput(outputValueProc);
+
             valueNum = outputValueProc.opValueNum;
 
             if (op.hasState()) {
@@ -351,6 +381,9 @@ public final class RedundantMoveElimination {
                  * All instructions with framestates (mostly method calls), may do garbage
                  * collection. GC will rewrite all object references which are live at this point.
                  * So we can't rely on their values.
+                 * 
+                 * It would be sufficient to just kill all values which are referenced in the state
+                 * (or all values which are not), but for simplicity we kill all values.
                  */
                 indent.log("kill all object values");
                 clearValuesOfKindObject(state, valueNum);
@@ -369,12 +402,15 @@ public final class RedundantMoveElimination {
         boolean changed = false;
         for (int idx = 0; idx < source.length; idx++) {
             int phiNum = defNum + idx;
-            if (dest[idx] != source[idx] && source[idx] != INIT_VALUE && dest[idx] != encodeValueNum(phiNum, isObjectValue(dest[idx]))) {
-                if (dest[idx] != INIT_VALUE) {
-                    dest[idx] = encodeValueNum(phiNum, isObjectValue(dest[idx]) || isObjectValue(source[idx]));
+            int dst = dest[idx];
+            int src = source[idx];
+            if (dst != src && src != INIT_VALUE && dst != encodeValueNum(phiNum, isObjectValue(dst))) {
+                if (dst != INIT_VALUE) {
+                    dst = encodeValueNum(phiNum, isObjectValue(dst) || isObjectValue(src));
                 } else {
-                    dest[idx] = source[idx];
+                    dst = src;
                 }
+                dest[idx] = dst;
                 changed = true;
             }
         }

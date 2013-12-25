@@ -80,11 +80,6 @@ public class FunctionRootNode extends RootNode {
         private final String functionName;
         @Child protected PNode body;
 
-        public InlinedFunctionRootNode(String functionName, PNode body) {
-            this.functionName = functionName;
-            this.body = adoptChild(body);
-        }
-
         protected InlinedFunctionRootNode(FunctionRootNode node) {
             this.functionName = node.functionName;
             this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));

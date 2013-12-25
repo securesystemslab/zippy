@@ -273,7 +273,6 @@
   template(java_lang_invoke_Stable_signature,         "Ljava/lang/invoke/Stable;")                \
   template(java_lang_invoke_LambdaForm_Compiled_signature, "Ljava/lang/invoke/LambdaForm$Compiled;") \
   template(java_lang_invoke_LambdaForm_Hidden_signature, "Ljava/lang/invoke/LambdaForm$Hidden;")  \
-  template(java_lang_invoke_MagicLambdaImpl,          "java/lang/invoke/MagicLambdaImpl")         \
   /* internal up-calls made only by the JVM, via class sun.invoke.MethodHandleNatives: */         \
   template(findMethodHandleType_name,                 "findMethodHandleType")                     \
   template(findMethodHandleType_signature,       "(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;") \
@@ -369,7 +368,7 @@
   template(createUnresolvedJavaType_name,         "createUnresolvedJavaType")                                                         \
   template(createUnresolvedJavaType_signature,    "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")                         \
   template(createResolvedJavaType_name,           "createResolvedJavaType")                                                           \
-  template(createResolvedJavaType_signature,      "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/Class;I)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
+  template(createResolvedJavaType_signature,      "(Ljava/lang/Class;)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
   template(createPrimitiveJavaType_name,          "createPrimitiveJavaType")                                                          \
   template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
@@ -425,6 +424,7 @@
   template(findNative_name,                           "findNative")                               \
   template(deadChild_name,                            "deadChild")                                \
   template(addClass_name,                             "addClass")                                 \
+  template(throwIllegalAccessError_name,              "throwIllegalAccessError")                  \
   template(getFromClass_name,                         "getFromClass")                             \
   template(dispatch_name,                             "dispatch")                                 \
   template(getSystemClassLoader_name,                 "getSystemClassLoader")                     \
