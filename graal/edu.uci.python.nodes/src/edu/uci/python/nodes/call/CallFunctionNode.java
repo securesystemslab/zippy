@@ -95,7 +95,7 @@ public abstract class CallFunctionNode extends PNode {
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(pyargs));
         } else {
-            throw Py.SystemError("Unexpected callable type " + callee + " " + callee.getClass());
+            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
         }
     }
 

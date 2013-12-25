@@ -194,6 +194,8 @@ public class PythonTypesUtil {
             return "set";
         } else if (object instanceof PDict) {
             return "dict";
+        } else if (object instanceof PNone) {
+            return "None";
         }
 
         throw new RuntimeException("Unsupported type name " + object.getClass());

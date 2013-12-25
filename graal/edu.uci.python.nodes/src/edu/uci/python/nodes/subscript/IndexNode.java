@@ -24,11 +24,14 @@
  */
 package edu.uci.python.nodes.subscript;
 
+import java.math.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.truffle.*;
 
 public abstract class IndexNode extends UnaryOpNode {
 
@@ -43,9 +46,21 @@ public abstract class IndexNode extends UnaryOpNode {
         throw Py.TypeError("list indices must be integers, not float");
     }
 
+    /**
+     * TODO added temporarily to test bisect module.
+     */
+    @Specialization
+    public int doBigInteger(BigInteger index) {
+        return index.intValue();
+    }
+
     @Specialization
     public String doString(String key) {
         return key;
     }
 
+    @Specialization
+    public Object doObject(Object index) {
+        throw Py.TypeError("list indices must be integers, not " + PythonTypesUtil.getPythonTypeName(index));
+    }
 }
