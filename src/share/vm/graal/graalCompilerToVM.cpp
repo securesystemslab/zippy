@@ -181,17 +181,9 @@ C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace
   return (jlong) (address) ucm;
 C2V_END
 
-C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
-  InstanceKlass* klass = (InstanceKlass*) java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(interface_type));
-  assert(klass->is_interface(), "must be");
-  if (klass->nof_implementors() == 1) {
-    InstanceKlass* implementor = (InstanceKlass*) klass->implementor();
-    if (!implementor->is_abstract() && !implementor->is_interface() && implementor->is_leaf_class()) {
-      Handle type = GraalCompiler::createHotSpotResolvedObjectType(implementor, CHECK_NULL);
-      return JNIHandles::make_local(THREAD, type());
-    }
-  }
-  return NULL;
+C2V_VMENTRY(jlong, getKlassImplementor, (JNIEnv *, jobject, jlong metaspace_klass))
+  InstanceKlass* klass = (InstanceKlass*) asKlass(metaspace_klass);
+  return (jlong) (address) klass->implementor();
 C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
@@ -839,17 +831,9 @@ C2V_END
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
-#define RESOLVED_TYPE         "Lcom/oracle/graal/api/meta/ResolvedJavaType;"
 #define TYPE                  "Lcom/oracle/graal/api/meta/JavaType;"
 #define METHOD                "Lcom/oracle/graal/api/meta/JavaMethod;"
 #define FIELD                 "Lcom/oracle/graal/api/meta/JavaField;"
-#define SIGNATURE             "Lcom/oracle/graal/api/meta/Signature;"
-#define CONSTANT_POOL         "Lcom/oracle/graal/api/meta/ConstantPool;"
-#define CONSTANT              "Lcom/oracle/graal/api/meta/Constant;"
-#define KIND                  "Lcom/oracle/graal/api/meta/Kind;"
-#define RUNTIME_CALL          "Lcom/oracle/graal/api/code/RuntimeCall;"
-#define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
-#define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
 #define STRING                "Ljava/lang/String;"
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
@@ -859,8 +843,8 @@ C2V_END
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
-#define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
+#define METASPACE_KLASS       "J"
 #define METASPACE_METHOD      "J"
 #define METASPACE_CONSTANT_POOL "J"
 
@@ -869,7 +853,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"exceptionTableStart",           CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"findUniqueConcreteMethod",      CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
-  {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
+  {CC"getKlassImplementor",           CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
