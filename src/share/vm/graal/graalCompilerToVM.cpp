@@ -206,41 +206,29 @@ C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_meth
   return code == NULL ? 0 : code->insts_size();
 C2V_END
 
-C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
+C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean eagerResolve))
   ResourceMark rm;
-
   Handle name = JNIHandles::resolve(jname);
-  Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
-  assert(nameSymbol != NULL, "name to symbol creation failed");
-  assert(nameSymbol->size() > 1, "primitive types should be handled in Java code");
+  Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
+  assert(class_name != NULL, "name to symbol creation failed");
+  assert(class_name->size() > 1, "primitive types should be handled in Java code");
 
-  oop result = NULL;
-  Klass* resolved_type = NULL;
-  Handle classloader;
-  Handle protectionDomain;
-  if (JNIHandles::resolve(accessingClass) != NULL) {
-    classloader = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->class_loader();
-    protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(accessingClass))->protection_domain();
+  Klass* resolved_klass = NULL;
+  Handle class_loader;
+  Handle protection_domain;
+  if (JNIHandles::resolve(accessing_class) != NULL) {
+    Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
+    class_loader = accessing_klass->class_loader();
+    protection_domain = accessing_klass->protection_domain();
   }
 
   if (eagerResolve) {
-    resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
+    resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);
   } else {
-    resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+    resolved_klass = SystemDictionary::resolve_or_null(class_name, class_loader, protection_domain, THREAD);
   }
 
-  if (!HAS_PENDING_EXCEPTION) {
-    if (resolved_type == NULL) {
-      assert(!eagerResolve, "failed eager resolution should have caused an exception");
-      Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
-      result = type();
-    } else {
-      Handle type = VMToCompiler::createResolvedJavaType(resolved_type->java_mirror(), CHECK_NULL);
-      result = type();
-    }
-  }
-
-  return JNIHandles::make_local(THREAD, result);
+  return (jlong) (address) resolved_klass;
 C2V_END
 
 C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
@@ -859,7 +847,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
-  {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
+  {CC"lookupType",                    CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
   {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"IB)"OBJECT,                          FN_PTR(lookupAppendixInPool)},
   {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB)"METHOD,                          FN_PTR(lookupMethodInPool)},
