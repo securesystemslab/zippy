@@ -1832,7 +1832,7 @@ def build(args, parser=None):
 
     javaCompliance = java().javaCompliance
 
-    defaultEcjPath = join(_primary_suite.mxDir, 'ecj.jar')
+    defaultEcjPath = get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
 
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
@@ -1855,7 +1855,7 @@ def build(args, parser=None):
     if args.jdt is not None:
         if args.jdt.endswith('.jar'):
             jdtJar = args.jdt
-            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath):
+            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
                 # Silently ignore JDT if default location is used but not ecj.jar exists there
                 jdtJar = None
 
