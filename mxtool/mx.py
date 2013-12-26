@@ -3215,7 +3215,7 @@ def generate_eclipse_workingsets():
     wsdir = join(wsroot, wsloc)
     if not exists(wsdir):
         wsdir = wsroot
-        log('Could not find Eclipse metadata directory. Please place ' + wsfilename + ' in ' + wsloc + ' manually.')
+        logv('Could not find Eclipse metadata directory. Please place ' + wsfilename + ' in ' + wsloc + ' manually.')
     wspath = join(wsdir, wsfilename)
 
     # gather working set info from project data
