@@ -235,7 +235,7 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
       Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
       result = type();
     } else {
-      Handle type = GraalCompiler::createHotSpotResolvedObjectType(resolved_type, CHECK_NULL);
+      Handle type = VMToCompiler::createResolvedJavaType(resolved_type->java_mirror(), CHECK_NULL);
       result = type();
     }
   }
@@ -280,7 +280,7 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_
 
   methodHandle method = GraalEnv::get_method_by_index(cp, cp_index, bc, pool_holder);
   if (!method.is_null()) {
-    Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method->method_holder(), CHECK_NULL);
+    Handle holder = VMToCompiler::createResolvedJavaType(method->method_holder()->java_mirror(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
@@ -355,7 +355,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
       flags = result.access_flags();
       holder_klass = result.field_holder();
       basic_type = result.field_type();
-      holder = GraalCompiler::createHotSpotResolvedObjectType(holder_klass, CHECK_NULL);
+      holder = VMToCompiler::createResolvedJavaType(holder_klass->java_mirror(), CHECK_NULL);
     }
   }
 
