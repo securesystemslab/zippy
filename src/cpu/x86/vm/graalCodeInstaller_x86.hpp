@@ -219,26 +219,25 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 }
 
+static void relocate_poll_near(address pc) {
+  NativeInstruction* ni = nativeInstruction_at(pc);
+  int32_t* disp = (int32_t*) Assembler::locate_operand(pc, Assembler::disp32_operand);
+  int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
+  intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
+  *disp = (int32_t)new_disp;
+}
+
+
 inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
     case MARK_POLL_NEAR: {
-      NativeInstruction* ni = nativeInstruction_at(pc);
-      int32_t* disp = (int32_t*) Assembler::locate_operand(pc, Assembler::disp32_operand);
-      // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-      int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
-      intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
-      *disp = (int32_t)new_disp;
+      relocate_poll_near(pc);
     }
     case MARK_POLL_FAR:
       _instructions->relocate(pc, relocInfo::poll_type);
       break;
     case MARK_POLL_RETURN_NEAR: {
-      NativeInstruction* ni = nativeInstruction_at(pc);
-      int32_t* disp = (int32_t*) Assembler::locate_operand(pc, Assembler::disp32_operand);
-      // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-      int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
-      intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
-      *disp = (int32_t)new_disp;
+      relocate_poll_near(pc);
     }
     case MARK_POLL_RETURN_FAR:
       _instructions->relocate(pc, relocInfo::poll_return_type);
