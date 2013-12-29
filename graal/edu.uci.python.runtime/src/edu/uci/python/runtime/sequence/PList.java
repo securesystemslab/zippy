@@ -75,6 +75,15 @@ public class PList extends PSequence {
     }
 
     @Override
+    public PIterator __iter__() {
+        if (store instanceof IntSequenceStorage) {
+            return new PIntegerSequenceIterator((IntSequenceStorage) store);
+        }
+
+        return new PSequenceIterator(this);
+    }
+
+    @Override
     public SequenceStorage getStorage() {
         return store;
     }
