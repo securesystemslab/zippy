@@ -76,7 +76,7 @@ public class PList extends PSequence {
 
     @Override
     public PIterator __iter__() {
-        if (store instanceof IntSequenceStorage) {
+        if (PythonOptions.UnboxSequenceIteration && store instanceof IntSequenceStorage) {
             return new PIntegerSequenceIterator((IntSequenceStorage) store);
         }
 
