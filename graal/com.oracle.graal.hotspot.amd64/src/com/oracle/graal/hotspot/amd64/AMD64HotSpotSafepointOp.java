@@ -23,11 +23,11 @@
 package com.oracle.graal.hotspot.amd64;
 
 import static com.oracle.graal.amd64.AMD64.*;
+import static com.oracle.graal.asm.NumUtil.*;
 import static com.oracle.graal.hotspot.bridge.Marks.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.lir.*;
@@ -68,21 +68,21 @@ public class AMD64HotSpotSafepointOp extends AMD64LIRInstruction {
      */
     private static boolean isPollingPageFar(HotSpotVMConfig config) {
         final long pollingPageAddress = config.safepointPollingAddress;
-        // TODO return ForceUnreachable ||
-        return !NumUtil.isInt(pollingPageAddress - config.codeCacheLowBoundary()) || !NumUtil.isInt(pollingPageAddress - config.codeCacheHighBoundary());
+        return config.forceUnreachable || !isInt(pollingPageAddress - config.codeCacheLowBoundary()) || !isInt(pollingPageAddress - config.codeCacheHighBoundary());
     }
 
     public static void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler asm, HotSpotVMConfig config, boolean atReturn, LIRFrameState state, Register scratch) {
-        final int pos = asm.codeBuffer.position();
         if (isPollingPageFar(config)) {
             asm.movq(scratch, config.safepointPollingAddress);
             crb.recordMark(atReturn ? MARK_POLL_RETURN_FAR : MARK_POLL_FAR);
+            final int pos = asm.codeBuffer.position();
             if (state != null) {
                 crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
             }
             asm.testl(rax, new AMD64Address(scratch));
         } else {
             crb.recordMark(atReturn ? MARK_POLL_RETURN_NEAR : MARK_POLL_NEAR);
+            final int pos = asm.codeBuffer.position();
             if (state != null) {
                 crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
             }

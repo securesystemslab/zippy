@@ -1,7 +1,9 @@
 ^mx/env
 ^mx/checkstyle-timestamps
-^mx/eclipseinit.timestamp
-^mx/netbeansinit.timestamp
+^mx/eclipse-config.zip
+^mx/eclipse-config-libs.zip
+^mx/netbeans-config.zip
+^mx/netbeans-config-libs.zip
 ^mx/eclipse-launches
 ^mx/currentAnnotationProcessors
 ^mx/ecj.jar

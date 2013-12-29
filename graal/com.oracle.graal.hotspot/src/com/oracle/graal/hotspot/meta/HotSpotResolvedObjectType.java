@@ -85,40 +85,17 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     }
 
     /**
-     * Gets the Graal mirror from a {@link Class} object.
-     * 
-     * @return the {@link HotSpotResolvedObjectType} corresponding to {@code javaClass}
-     */
-    public static ResolvedJavaType fromClass(Class javaClass) {
-        assert javaClass != null;
-        HotSpotGraalRuntime runtime = runtime();
-        ResolvedJavaType type = (ResolvedJavaType) unsafe.getObject(javaClass, (long) runtime.getConfig().graalMirrorInClassOffset);
-        if (type == null) {
-            assert !javaClass.isPrimitive() : "primitive type " + javaClass + " should have its mirror initialized";
-            type = new HotSpotResolvedObjectType(javaClass);
-
-            // Install the Graal mirror in the Class object.
-            final long offset = runtime().getConfig().graalMirrorInClassOffset;
-            if (!unsafe.compareAndSwapObject(javaClass, offset, null, type)) {
-                // lost the race - return the existing value instead
-                type = (HotSpotResolvedObjectType) unsafe.getObject(javaClass, offset);
-            }
-
-            assert type != null;
-        }
-        return type;
-    }
-
-    /**
      * Creates the Graal mirror for a {@link Class} object.
      * 
      * <p>
-     * <b>NOTE</b>: Creating a Graal mirror does not install the mirror in the {@link Class} object.
+     * <b>NOTE</b>: Creating an instance of this class does not install the mirror for the
+     * {@link Class} type. Use {@link #fromClass(Class)}, {@link #fromMetaspaceKlass(Constant)} or
+     * {@link #fromMetaspaceKlass(long)} instead.
      * </p>
      * 
      * @param javaClass the Class to create the mirror for
      */
-    private HotSpotResolvedObjectType(Class<?> javaClass) {
+    public HotSpotResolvedObjectType(Class<?> javaClass) {
         super(getSignatureName(javaClass));
         this.javaClass = javaClass;
         assert getName().charAt(0) != '[' || isArray() : getName();
@@ -171,21 +148,58 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         if (isArray()) {
             return isFinal(getElementalType(this).getModifiers()) ? this : null;
         } else if (isInterface()) {
-            return runtime().getCompilerToVM().getUniqueImplementor(this);
+            final long implementorMetaspaceKlass = runtime().getCompilerToVM().getKlassImplementor(metaspaceKlass());
+
+            // No implementor.
+            if (implementorMetaspaceKlass == 0) {
+                return null;
+            }
+
+            HotSpotResolvedObjectType type = (HotSpotResolvedObjectType) fromMetaspaceKlass(implementorMetaspaceKlass);
+
+            /*
+             * If the implementor field contains itself that indicates that the interface has more
+             * than one implementors (see: InstanceKlass::add_implementor). The isInterface check
+             * takes care of this fact since this class is an interface.
+             */
+            if (isAbstract(type.getModifiers()) || type.isInterface() || !type.isLeafClass()) {
+                return null;
+            }
+            return type;
         } else {
             HotSpotResolvedObjectType type = this;
             while (isAbstract(type.getModifiers())) {
-                long subklass = unsafeReadWord(type.metaspaceKlass() + config.subklassOffset);
+                long subklass = type.getSubklass();
                 if (subklass == 0 || unsafeReadWord(subklass + config.nextSiblingOffset) != 0) {
                     return null;
                 }
                 type = (HotSpotResolvedObjectType) fromMetaspaceKlass(subklass);
             }
-            if (isAbstract(type.getModifiers()) || type.isInterface() || unsafeReadWord(type.metaspaceKlass() + config.subklassOffset) != 0) {
+            if (isAbstract(type.getModifiers()) || type.isInterface() || !type.isLeafClass()) {
                 return null;
             }
             return type;
         }
+    }
+
+    /**
+     * Returns if type {@code type} is a leaf class. This is the case if the
+     * {@code Klass::_subklass} field of the underlying class is zero.
+     * 
+     * @return true if the type is a leaf class
+     */
+    private boolean isLeafClass() {
+        return getSubklass() == 0;
+    }
+
+    /**
+     * Returns the {@code Klass::_subklass} field of the underlying metaspace klass for the given
+     * type {@code type}.
+     * 
+     * @return value of the subklass field as metaspace klass pointer
+     */
+    private long getSubklass() {
+        return unsafeReadWord(metaspaceKlass() + runtime().getConfig().subklassOffset);
     }
 
     @Override

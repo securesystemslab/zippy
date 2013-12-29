@@ -65,8 +65,6 @@ void graal_compute_offsets();
   start_class(HotSpotJavaType)                                                                                                                                 \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \
-  start_class(HotSpotResolvedJavaField)                                                                                                                        \
-  end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
     int_field(HotSpotInstalledCode, size)                                                                                                                      \
@@ -97,13 +95,6 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(HotSpotForeignCallLinkage)                                                                                                                       \
     long_field(HotSpotForeignCallLinkage, address)                                                                                                             \
-  end_class                                                                                                                                                    \
-  start_class(ExceptionHandler)                                                                                                                                \
-    int_field(ExceptionHandler, startBCI)                                                                                                                      \
-    int_field(ExceptionHandler, endBCI)                                                                                                                        \
-    int_field(ExceptionHandler, handlerBCI)                                                                                                                    \
-    int_field(ExceptionHandler, catchTypeCPI)                                                                                                                  \
-    oop_field(ExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")                                                                             \
   end_class                                                                                                                                                    \
   start_class(ExternalCompilationResult)                                                                                                                       \
     long_field(ExternalCompilationResult, entryPoint)                                                                                                              \
@@ -210,8 +201,6 @@ void graal_compute_offsets();
     static_oop_field(Kind, Short, "Lcom/oracle/graal/api/meta/Kind;");                                                                                         \
     static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                                                                                           \
     static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                                                                                          \
-  end_class                                                                                                                                                    \
-  start_class(JavaMethod)                                                                                                                                      \
   end_class                                                                                                                                                    \
   start_class(Value)                                                                                                                                           \
     oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                                 \
