@@ -87,3 +87,4 @@ agent/build/*
 agent/make/filelist
 agent/make/sa17.tar.gz
 graal/edu.uci.python.test/cachedir
+*.timestamp
