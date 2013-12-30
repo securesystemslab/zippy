@@ -1832,7 +1832,7 @@ def build(args, parser=None):
 
     javaCompliance = java().javaCompliance
 
-    defaultEcjPath = join(_primary_suite.mxDir, 'ecj.jar')
+    defaultEcjPath = get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
 
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
@@ -1855,7 +1855,7 @@ def build(args, parser=None):
     if args.jdt is not None:
         if args.jdt.endswith('.jar'):
             jdtJar = args.jdt
-            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath):
+            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
                 # Silently ignore JDT if default location is used but not ecj.jar exists there
                 jdtJar = None
 
@@ -2195,11 +2195,11 @@ def _processorjars_suite(s):
             projs.add(p)
 
     if len(projs) <= 0:
-        return
+        return []
 
     pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
-    archive(pnames)
+    return archive(pnames)
 
 def pylint(args):
     """run pylint (if available) over Python source files (found by 'hg locate' or by tree walk with -walk)"""
@@ -2275,6 +2275,7 @@ def archive(args):
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
 
+    archives = []
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
@@ -2341,6 +2342,7 @@ def archive(args):
                 shutil.rmtree(services)
                 # Atomic on Unix
                 shutil.move(tmp, d.path)
+                archives.append(d.path)
                 # print time.time(), 'move:', tmp, '->', d.path
                 d.notify_updated()
             finally:
@@ -2363,10 +2365,13 @@ def archive(args):
                 zf.close()
                 os.close(fd)
                 # Atomic on Unix
-                shutil.move(tmp, join(p.dir, p.name + '.jar'))
+                jarFile = join(p.dir, p.name + '.jar')
+                shutil.move(tmp, jarFile)
+                archives.append(jarFile)
             finally:
                 if exists(tmp):
                     os.remove(tmp)
+    return archives
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -2620,6 +2625,11 @@ def clean(args, parser=None):
                     log('Removing {0}...'.format(outputDir))
                     shutil.rmtree(outputDir)
 
+            for configName in ['netbeans-config.zip', 'eclipse-config.zip']:
+                config = TimeStampFile(join(p.suite.mxDir, configName))
+                if config.exists():
+                    os.unlink(config.path)
+
     if suppliedParser:
         return args
 
@@ -2771,7 +2781,8 @@ def make_eclipse_attach(suite, hostname, port, name=None, deps=None):
     eclipseLaunches = join(suite.mxDir, 'eclipse-launches')
     if not exists(eclipseLaunches):
         os.makedirs(eclipseLaunches)
-    return update_file(join(eclipseLaunches, name + '.launch'), launch)
+    launchFile = join(eclipseLaunches, name + '.launch')
+    return update_file(launchFile, launch), launchFile
 
 def make_eclipse_launch(javaArgs, jre, name=None, deps=None):
     """
@@ -2867,16 +2878,19 @@ def _check_ide_timestamp(suite, timestamp):
     return True
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
-    timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
-    if refreshOnly and not timestamp.exists():
+    configZip = TimeStampFile(join(suite.mxDir, 'eclipse-config.zip'))
+    configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
+    if refreshOnly and not configZip.exists():
         return
 
-    if _check_ide_timestamp(suite, timestamp):
+    if _check_ide_timestamp(suite, configZip):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
+    files = []
+    libFiles = []
     if buildProcessorJars:
-        _processorjars_suite(suite)
+        files += _processorjars_suite(suite)
 
     projToDist = dict()
     for dist in _dists.values():
@@ -2905,6 +2919,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             if not exists(genDir):
                 os.mkdir(genDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
+            files.append(genDir)
 
         # Every Java program depends on the JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
@@ -2939,12 +2954,15 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     if sourcePath is not None:
                         attributes['sourcepath'] = sourcePath
                     out.element('classpathentry', attributes)
+                    libFiles.append(path)
             else:
                 out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
         out.element('classpathentry', {'kind' : 'output', 'path' : getattr(p, 'eclipse.output', 'bin')})
         out.close('classpath')
-        update_file(join(p.dir, '.classpath'), out.xml(indent='\t', newl='\n'))
+        classpathFile = join(p.dir, '.classpath')
+        update_file(classpathFile, out.xml(indent='\t', newl='\n'))
+        files.append(classpathFile)
 
         csConfig = join(project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
         if exists(csConfig):
@@ -2977,6 +2995,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
             out.close('fileset-config')
             update_file(dotCheckstyle, out.xml(indent='  ', newl='\n'))
+            files.append(dotCheckstyle)
 
         out = XMLDoc()
         out.open('projectDescription')
@@ -3022,7 +3041,9 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             out.element('nature', data='org.eclipse.pde.PluginNature')
         out.close('natures')
         out.close('projectDescription')
-        update_file(join(p.dir, '.project'), out.xml(indent='\t', newl='\n'))
+        projectFile = join(p.dir, '.project')
+        update_file(projectFile, out.xml(indent='\t', newl='\n'))
+        files.append(projectFile)
 
         settingsDir = join(p.dir, ".settings")
         if not exists(settingsDir):
@@ -3041,6 +3062,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     if len(p.annotation_processors()) > 0:
                         content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
                     update_file(join(settingsDir, name), content)
+                    files.append(join(settingsDir, name))
 
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
@@ -3059,13 +3081,34 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                                         # safest to simply use absolute paths.
                                         path = join(p.suite.dir, path)
                                     out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                                    files.append(path)
                     else:
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
+            files.append(join(p.dir, '.factorypath'))
 
-    make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
-    timestamp.touch()
+    _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
+    files.append(launchFile)
+
+    _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
+
+def _zip_files(files, baseDir, zipPath):
+    fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)
+    try:
+        zf = zipfile.ZipFile(tmp, 'w')
+        for f in sorted(set(files)):
+            relpath = os.path.relpath(f, baseDir)
+            arcname = relpath.replace(os.sep, '/')
+            zf.write(f, arcname)
+        zf.close()
+        os.close(fd)
+        # Atomic on Unix
+        shutil.move(tmp, zipPath)
+    finally:
+        if exists(tmp):
+            os.remove(tmp)
 
 def _isAnnotationProcessorDependency(p):
     """
@@ -3172,7 +3215,7 @@ def generate_eclipse_workingsets():
     wsdir = join(wsroot, wsloc)
     if not exists(wsdir):
         wsdir = wsroot
-        log('Could not find Eclipse metadata directory. Please place ' + wsfilename + ' in ' + wsloc + ' manually.')
+        logv('Could not find Eclipse metadata directory. Please place ' + wsfilename + ' in ' + wsloc + ' manually.')
     wspath = join(wsdir, wsfilename)
 
     # gather working set info from project data
@@ -3295,15 +3338,18 @@ def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
         _netbeansinit_suite(args, suite, refreshOnly, buildProcessorJars)
 
 def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
-    timestamp = TimeStampFile(join(suite.mxDir, 'netbeansinit.timestamp'))
-    if refreshOnly and not timestamp.exists():
+    configZip = TimeStampFile(join(suite.mxDir, 'netbeans-config.zip'))
+    configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
+    if refreshOnly and not configZip.exists():
         return
 
-    if _check_ide_timestamp(suite, timestamp):
+    if _check_ide_timestamp(suite, configZip):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
     updated = False
+    files = []
+    libFiles = []
     for p in suite.projects:
         if p.native:
             continue
@@ -3328,6 +3374,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.close('target')
         out.close('project')
         updated = update_file(join(p.dir, 'build.xml'), out.xml(indent='\t', newl='\n')) or updated
+        files.append(join(p.dir, 'build.xml'))
 
         out = XMLDoc()
         out.open('project', {'xmlns' : 'http://www.netbeans.org/ns/project/1'})
@@ -3371,6 +3418,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.close('configuration')
         out.close('project')
         updated = update_file(join(p.dir, 'nbproject', 'project.xml'), out.xml(indent='    ', newl='\n')) or updated
+        files.append(join(p.dir, 'nbproject', 'project.xml'))
 
         out = StringIO.StringIO()
         jdkPlatform = 'JDK_' + str(java().version)
@@ -3492,6 +3540,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                         path = path.replace('\\', '\\\\')
                     ref = 'file.reference.' + dep.name + '-bin'
                     print >> out, ref + '=' + path
+                    libFiles.append(path)
 
             else:
                 n = dep.name.replace('.', '_')
@@ -3512,13 +3561,15 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
         updated = update_file(join(p.dir, 'nbproject', 'project.properties'), out.getvalue()) or updated
         out.close()
+        files.append(join(p.dir, 'nbproject', 'project.properties'))
 
     if updated:
         log('If using NetBeans:')
         log('  1. Ensure that a platform named "JDK_' + str(java().version) + '" is defined (Tools -> Java Platforms)')
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
-    timestamp.touch()
+    _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
 
 def ideclean(args):
     """remove all Eclipse and NetBeans project configurations"""
@@ -3527,8 +3578,8 @@ def ideclean(args):
             os.remove(path)
 
     for s in suites():
-        rm(join(s.mxDir, 'eclipseinit.timestamp'))
-        rm(join(s.mxDir, 'netbeansinit.timestamp'))
+        rm(join(s.mxDir, 'eclipse-config.zip'))
+        rm(join(s.mxDir, 'netbeans-config.zip'))
 
     for p in projects():
         if p.native:

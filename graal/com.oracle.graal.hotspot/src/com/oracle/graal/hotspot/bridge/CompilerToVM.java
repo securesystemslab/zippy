@@ -79,13 +79,12 @@ public interface CompilerToVM {
     long findUniqueConcreteMethod(long metaspaceMethod);
 
     /**
-     * Used to determine if an interface has exactly one implementor.
+     * Returns the implementor for the given interface class.
      * 
-     * @param interfaceType interface for which the implementor should be returned
-     * @return the unique implementor of the interface or null if the interface has 0 or more than 1
-     *         implementor
+     * @param metaspaceKlass the metaspace klass to get the implementor for
+     * @return the implementor as metaspace klass pointer or null if there is no implementor
      */
-    ResolvedJavaType getUniqueImplementor(HotSpotResolvedObjectType interfaceType);
+    long getKlassImplementor(long metaspaceKlass);
 
     /**
      * Initializes a {@link HotSpotResolvedJavaMethod} object from a metaspace Method object.
@@ -96,17 +95,16 @@ public interface CompilerToVM {
     void initializeMethod(long metaspaceMethod, HotSpotResolvedJavaMethod method);
 
     /**
-     * Converts a name to a Java type.
+     * Converts a name to a metaspace klass.
      * 
      * @param name a well formed Java type in {@linkplain JavaType#getName() internal} format
      * @param accessingClass the context of resolution (may be null)
      * @param eagerResolve force resolution to a {@link ResolvedJavaType}. If true, this method will
      *            either return a {@link ResolvedJavaType} or throw an exception
-     * @return a Java type for {@code name} which is guaranteed to be of type
-     *         {@link ResolvedJavaType} if {@code eagerResolve == true}
+     * @return a metaspace klass for {@code name}
      * @throws LinkageError if {@code eagerResolve == true} and the resolution failed
      */
-    JavaType lookupType(String name, HotSpotResolvedObjectType accessingClass, boolean eagerResolve);
+    long lookupType(String name, Class<?> accessingClass, boolean eagerResolve);
 
     Object lookupConstantInPool(long metaspaceConstantPool, int cpi);
 

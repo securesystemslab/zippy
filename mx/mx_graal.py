@@ -983,7 +983,7 @@ def _basic_gate_body(args, tasks):
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
-                # DaCapo eclipse doesn't not run under JDK8
+                # DaCapo eclipse doesn't run under JDK8
                 continue
 
             t = Task(str(test) + ':' + vmbuild)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,28 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.meta;
+package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.replacements.nodes.*;
 
-public abstract class HotSpotResolvedJavaType extends HotSpotJavaType implements ResolvedJavaType {
+public class SystemIdentityHashCodeNode extends PureFunctionMacroNode {
 
-    private static final long serialVersionUID = -6410840212023428347L;
-
-    /**
-     * Gets the Graal mirror for a {@link Class} object.
-     * 
-     * @return the {@link HotSpotResolvedJavaType} corresponding to {@code javaClass}
-     */
-    public static ResolvedJavaType fromClass(Class<?> javaClass) {
-        return runtime().fromClass(javaClass);
+    public SystemIdentityHashCodeNode(Invoke invoke) {
+        super(invoke);
     }
 
-    public HotSpotResolvedJavaType(String name) {
-        super(name);
+    @Override
+    protected Constant evaluate(Constant param, MetaAccessProvider metaAccess) {
+        return ImmutableCode.getValue() || param.isNull() ? null : Constant.forInt(System.identityHashCode(param.asObject()));
     }
-
-    public abstract Class<?> mirror();
 }

@@ -667,6 +667,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "PrintCompilation") @Stable public boolean printCompilation;
     @HotSpotVMFlag(name = "PrintInlining") @Stable public boolean printInlining;
     @HotSpotVMFlag(name = "GraalUseFastLocking") @Stable public boolean useFastLocking;
+    @HotSpotVMFlag(name = "ForceUnreachable") @Stable public boolean forceUnreachable;
 
     @HotSpotVMFlag(name = "UseTLAB") @Stable public boolean useTLAB;
     @HotSpotVMFlag(name = "UseBiasedLocking") @Stable public boolean useBiasedLocking;
@@ -1040,7 +1041,6 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMField(name = "java_lang_Class::_klass_offset", type = "int", get = HotSpotVMField.Type.VALUE) @Stable public int klassOffset;
     @HotSpotVMField(name = "java_lang_Class::_array_klass_offset", type = "int", get = HotSpotVMField.Type.VALUE) @Stable public int arrayKlassOffset;
-    @HotSpotVMField(name = "java_lang_Class::_graal_mirror_offset", type = "int", get = HotSpotVMField.Type.VALUE) @Stable public int graalMirrorInClassOffset;
 
     @HotSpotVMField(name = "Method::_method_data", type = "MethodData*", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataOffset;
     @HotSpotVMField(name = "Method::_from_compiled_entry", type = "address", get = HotSpotVMField.Type.OFFSET) @Stable public int methodCompiledEntryOffset;
