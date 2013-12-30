@@ -22,55 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.runtime.iterator;
 
-import com.oracle.truffle.api.dsl.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
+public class PDoubleSequenceIterator implements PDoubleIterator {
 
-public abstract class GetIteratorNode extends UnaryOpNode {
+    private final DoubleSequenceStorage sequence;
+    private int index;
 
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
+    public PDoubleSequenceIterator(DoubleSequenceStorage sequence) {
+        this.sequence = sequence;
     }
 
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
+    @Override
+    public Object __next__() {
+        return __nextDouble__();
     }
 
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
-    }
+    @Override
+    public double __nextDouble__() {
+        if (index < sequence.length()) {
+            return sequence.getDoubleItemInBound(index++);
+        }
 
-    @Specialization
-    public Object doPDictionary(PDict value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
-        return value;
-    }
-
-    @Specialization
-    public PIterator doPIterator(PIterator value) {
-        return value;
+        throw StopIterationException.INSTANCE;
     }
 
 }
