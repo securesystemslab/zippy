@@ -58,31 +58,6 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     public abstract PNode getIterator();
 
-    @Specialization(order = 0)
-    public Object doPRange(VirtualFrame frame, PRangeIterator range) {
-        final int start = range.getStart();
-        final int stop = range.getStop();
-        final int step = range.getStep();
-        int count = 0;
-
-        try {
-            for (int i = start; i < stop; i += step) {
-                target.executeWrite(frame, i);
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
-    }
-
     @Specialization(order = 1)
     public Object doPIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
         int count = 0;
