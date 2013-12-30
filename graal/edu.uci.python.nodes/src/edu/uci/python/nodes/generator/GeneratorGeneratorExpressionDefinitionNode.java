@@ -22,42 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 
-public class GeneratorExpressionDefinitionNode extends PNode {
+/**
+ * Generator expression definition in a generator context.
+ */
+public class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
 
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final boolean needsDeclarationFrame;
-
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        this.callTarget = callTarget;
-        this.frameDescriptor = descriptor;
-        this.needsDeclarationFrame = needsDeclarationFrame;
-    }
-
-    public CallTarget getCallTarget() {
-        return callTarget;
-    }
-
-    public FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
-    }
-
-    public boolean needsDeclarationFrame() {
-        return needsDeclarationFrame;
+    public GeneratorGeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode prev) {
+        super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame());
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null);
+        MaterializedFrame declarationFrame = needsDeclarationFrame() ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : null;
+        return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), declarationFrame, null);
     }
 
 }

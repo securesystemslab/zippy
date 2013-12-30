@@ -897,6 +897,11 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
+            public PList listIterator(PIterator iterator) {
+                return new PList(iterator);
+            }
+
+            @Specialization
             public PList listSet(PBaseSet baseSet) {
                 return new PList(baseSet.__iter__());
             }
