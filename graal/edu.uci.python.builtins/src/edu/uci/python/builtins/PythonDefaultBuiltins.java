@@ -887,13 +887,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public PList listRange(PRange range) {
-                return new PList(range.__iter__());
+            public PList listRange(PSequence sequence) {
+                return new PList(sequence.__iter__());
             }
 
             @Specialization
-            public PList listSequence(PSequence sequence) {
-                return new PList(sequence.getStorage().copy());
+            public PList listSequence(PList list) {
+                return new PList(list.getStorage().copy());
             }
 
             @Specialization
@@ -902,18 +902,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization
-            public PList listSet(PBaseSet baseSet) {
-                return new PList(baseSet.__iter__());
-            }
-
-            @Specialization
-            public PList listEnumerate(PEnumerate enumerate) {
-                return new PList(enumerate.__iter__());
-            }
-
-            @Specialization
-            public PList listZip(PZip zip) {
-                return new PList(zip.__iter__());
+            public PList listIterable(PIterable iterable) {
+                return new PList(iterable.__iter__());
             }
 
             @Specialization

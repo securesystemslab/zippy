@@ -44,7 +44,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 PyObject.class, PString.class, PythonClass.class, PDict.class, PList.class, PTuple.class, PRange.class, PIntArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSequence.class,
                 PSet.class, PFrozenSet.class, PBaseSet.class, PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PDoubleIterator.class, PIntegerIterator.class, PIterator.class,
-                PythonModule.class, PNone.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, Object[].class})
+                PIterable.class, PythonModule.class, PNone.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, Object[].class})
 public class PythonTypes {
 
     /**
