@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.iterator;
 
-public interface PIntegerIterator extends PIterator {
+public interface PIntegerIterator {
 
     int __nextInt__();
 

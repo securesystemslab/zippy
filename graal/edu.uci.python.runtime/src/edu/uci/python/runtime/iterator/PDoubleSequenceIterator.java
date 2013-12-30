@@ -27,7 +27,7 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public class PDoubleSequenceIterator implements PDoubleIterator {
+public class PDoubleSequenceIterator implements PIterator, PDoubleIterator {
 
     private final DoubleSequenceStorage sequence;
     private int index;
@@ -37,17 +37,16 @@ public class PDoubleSequenceIterator implements PDoubleIterator {
     }
 
     @Override
-    public Object __next__() {
-        return __nextDouble__();
-    }
-
-    @Override
     public double __nextDouble__() {
         if (index < sequence.length()) {
             return sequence.getDoubleItemInBound(index++);
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    public Object __next__() {
+        return __nextDouble__();
     }
 
 }

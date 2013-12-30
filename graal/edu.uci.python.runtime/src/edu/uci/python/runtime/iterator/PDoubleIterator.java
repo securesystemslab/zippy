@@ -24,7 +24,7 @@
  */
 package edu.uci.python.runtime.iterator;
 
-public interface PDoubleIterator extends PIterator {
+public interface PDoubleIterator {
 
     double __nextDouble__();
 

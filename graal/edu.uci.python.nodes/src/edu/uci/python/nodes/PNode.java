@@ -162,6 +162,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPSlice(execute(frame));
     }
 
+    public PDoubleIterator executePDoubleIterator(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPDoubleIterator(execute(frame));
+    }
+
     public PIntegerIterator executePIntegerIterator(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPIntegerIterator(execute(frame));
     }
