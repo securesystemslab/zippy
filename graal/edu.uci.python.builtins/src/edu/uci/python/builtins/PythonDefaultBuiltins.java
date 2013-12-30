@@ -28,10 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -87,34 +85,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public abstract static class PythonAllNode extends PythonBuiltinNode {
 
             @Specialization
-            public boolean all(PSequence sequence) {
-                if (sequence.len() == 0) {
+            public boolean all(PIterable iterable) {
+                if (iterable.len() == 0) {
                     return false;
                 }
 
-                PIterator iterator = sequence.__iter__();
-
-                try {
-                    while (true) {
-                        Object element = iterator.__next__();
-                        if (!JavaTypeConversions.toBoolean(element)) {
-                            return false;
-                        }
-                    }
-                } catch (StopIterationException e) {
-                    // fall through
-                }
-
-                return true;
-            }
-
-            @Specialization
-            public boolean all(PBaseSet baseset) {
-                if (baseset.len() == 0) {
-                    return false;
-                }
-
-                PIterator iterator = baseset.__iter__();
+                PIterator iterator = iterable.__iter__();
 
                 try {
                     while (true) {
@@ -132,13 +108,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean all(Object object) {
-                if (!(object instanceof Iterable<?>)) {
-                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
-                } else {
-                    throw new RuntimeException("all does not support iterable object " + object);
-                }
+                throw new RuntimeException("all does not support iterable object " + object);
             }
-
         }
 
         // any(iterable)
@@ -146,34 +117,12 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public abstract static class PythonAnyNode extends PythonBuiltinNode {
 
             @Specialization
-            public boolean any(PSequence sequence) {
-                if (sequence.len() == 0) {
+            public boolean any(PIterable iterable) {
+                if (iterable.len() == 0) {
                     return false;
                 }
 
-                PIterator iterator = sequence.__iter__();
-
-                try {
-                    while (true) {
-                        Object element = iterator.__next__();
-                        if (JavaTypeConversions.toBoolean(element)) {
-                            return true;
-                        }
-                    }
-                } catch (StopIterationException e) {
-                    // fall through
-                }
-
-                return false;
-            }
-
-            @Specialization
-            public boolean any(PBaseSet baseset) {
-                if (baseset.len() == 0) {
-                    return false;
-                }
-
-                PIterator iterator = baseset.__iter__();
+                PIterator iterator = iterable.__iter__();
 
                 try {
                     while (true) {
@@ -191,13 +140,8 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public boolean any(Object object) {
-                if (!(object instanceof Iterable<?>)) {
-                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(object) + "' object is not iterable");
-                } else {
-                    throw new RuntimeException("any does not support iterable object " + object);
-                }
+                throw new RuntimeException("any does not support iterable object " + object);
             }
-
         }
 
         // callable(object)
@@ -205,18 +149,14 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public abstract static class PythonCallableNode extends PythonBuiltinNode {
 
             @SuppressWarnings("unused")
-            @Specialization
+            @Specialization(order = 1)
             public boolean callable(PythonCallable callable) {
                 return true;
             }
 
             @Specialization
             public boolean callable(Object object) {
-                if (object instanceof PythonCallable) {
-                    return true;
-                }
-
-                return false;
+                return object instanceof PythonCallable;
             }
         }
 
@@ -245,7 +185,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
 
             @Specialization
             public Object isinstance(PythonObject object, PythonClass clazz) {
-
                 if (object.getPythonClass().equals(clazz)) {
                     return true;
                 }
@@ -274,38 +213,21 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public abstract static class PythonIterNode extends PythonBuiltinNode {
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "noSentinel")
-            public Object iter(String str, Object sentinel) {
+            @Specialization(order = 1)
+            public Object iter(String str, PNone sentinel) {
                 return new PStringIterator(str);
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "noSentinel")
-            public Object iter(PSequence sequence, Object sentinel) {
-                return sequence.__iter__();
+            @Specialization(order = 2)
+            public Object iter(PIterable iterable, PNone sentinel) {
+                return iterable.__iter__();
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "noSentinel")
-            public Object iter(PBaseSet set, Object sentinel) {
-                return set.__iter__();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "noSentinel")
-            public Object iter(PDict dictionary, Object sentinel) {
-                return dictionary.__iter__();
-            }
-
-            @SuppressWarnings("unused")
-            @Specialization(guards = "noSentinel")
+            @Specialization()
             public Object iter(Object object, Object sentinel) {
                 throw new RuntimeException("Not supported sentinel case");
-            }
-
-            @SuppressWarnings("unused")
-            public static boolean noSentinel(Object object, Object sentinel) {
-                return (sentinel instanceof PNone);
             }
         }
 
@@ -319,39 +241,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             @Specialization(order = 1)
-            public int len(PList list) {
-                return list.len();
-            }
-
-            @Specialization(order = 2)
-            public int len(PTuple tuple) {
-                return tuple.len();
-            }
-
-            @Specialization(order = 3)
-            public int len(PRange range) {
-                return range.len();
-            }
-
-            @Specialization(order = 4)
-            public int len(PArray array) {
-                return array.len();
-            }
-
-            @Specialization(order = 5)
-            public int len(PBaseSet arg) {
-                return arg.len();
-            }
-
-            @Specialization(order = 6)
-            public int len(PDict arg) {
-                return arg.len();
+            public int len(PIterable iterable) {
+                return iterable.len();
             }
 
             @Generic
             public int len(Object arg) {
-                Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
-                return 0;
+                throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
             }
         }
 
@@ -646,7 +542,7 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isClass = true)
         public abstract static class PythonComplexNode extends PythonBuiltinNode {
 
-            @Specialization(guards = "hasRealAndImaginary")
+            @Specialization
             public PComplex complexFromDoubleDouble(double real, double imaginary) {
                 return new PComplex(real, imaginary);
             }
@@ -675,10 +571,6 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
                 }
 
                 throw Py.TypeError("can't convert real " + real + " imag " + imaginary);
-            }
-
-            public static boolean hasRealAndImaginary(Object real, Object imaginary) {
-                return !(real instanceof PNone) && !(imaginary instanceof PNode);
             }
         }
 
@@ -1065,33 +957,19 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
         public abstract static class PythonTupleNode extends PythonBuiltinNode {
 
-            @Specialization
+            @Specialization(order = 1)
             public PTuple tuple(String arg) {
                 return new PTuple(new PStringIterator(arg));
             }
 
             @Specialization(order = 2)
-            public PTuple tuple(PRange range) {
-                return new PTuple(range.__iter__());
-            }
-
-            @Specialization(order = 3)
-            public PTuple tuple(PSequence sequence) {
-                return new PTuple(sequence.__iter__());
-            }
-
-            @Specialization
-            public PTuple tuple(PBaseSet baseSet) {
-                return new PTuple(baseSet.__iter__());
+            public PTuple tuple(PIterable iterable) {
+                return new PTuple(iterable.__iter__());
             }
 
             @Specialization
             public PTuple tuple(Object arg) {
-                if (!(arg instanceof Iterable<?>)) {
-                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
-                } else {
-                    throw new RuntimeException("tuple does not support iterable object " + arg);
-                }
+                throw new RuntimeException("tuple does not support iterable object " + arg);
             }
         }
 
@@ -1111,24 +989,13 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
             }
 
             private static PIterable getIterable(Object arg) {
-                if (arg instanceof String) {
-                    String str = (String) arg;
-                    PString pstr = new PString(str);
-                    return pstr;
-                } else if (arg instanceof PSequence) {
-                    PSequence sequence = (PSequence) arg;
-                    return sequence;
-                } else if (arg instanceof PBaseSet) {
-                    PBaseSet baseSet = (PBaseSet) arg;
-                    return baseSet;
+                if (arg instanceof PIterable) {
+                    return (PIterable) arg;
+                } else if (arg instanceof String) {
+                    return new PString((String) arg);
                 }
 
-                if (!(arg instanceof Iterable<?>)) {
-                    throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
-                } else {
-                    throw new RuntimeException("zip does not support iterable object " + arg.getClass());
-                }
-
+                throw new RuntimeException("zip does not support iterable object " + arg.getClass());
             }
         }
     }
