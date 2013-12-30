@@ -27,7 +27,7 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
-public final class PRangeIterator implements PIterator {
+public final class PRangeIterator implements PIterator, PIntegerIterator {
 
     private int index;
     private final int stop;
@@ -53,6 +53,11 @@ public final class PRangeIterator implements PIterator {
 
     @Override
     public Object __next__() {
+        return __nextInt__();
+    }
+
+    @Override
+    public int __nextInt__() {
         if (index < stop) {
             int value = index;
             index += step;
@@ -61,4 +66,5 @@ public final class PRangeIterator implements PIterator {
 
         throw StopIterationException.INSTANCE;
     }
+
 }
