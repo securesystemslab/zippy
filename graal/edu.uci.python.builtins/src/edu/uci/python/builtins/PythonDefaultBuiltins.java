@@ -361,24 +361,43 @@ public final class PythonDefaultBuiltins extends PythonBuiltins {
         public abstract static class PythonMaxNode extends PythonBuiltinNode {
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
+            @Specialization(order = 1, guards = "hasOneArgument")
             public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
+            @Specialization(order = 2, guards = "hasOneArgument")
             public Object maxBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
             @SuppressWarnings("unused")
-            @Specialization(guards = "hasOneArgument")
+            @Specialization(order = 3, guards = "hasOneArgument")
             public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
                 return arg1.getMax();
             }
 
-            @Specialization
+            /**
+             * Incomplete. Only deals with ints now.
+             */
+            @SuppressWarnings("unused")
+            @Specialization(order = 4)
+            public Object maxPIterator(PIterator arg1, Object[] args, PNone keywordArg) {
+                int max = Integer.MIN_VALUE;
+
+                try {
+                    while (true) {
+                        int item = (int) arg1.__next__();
+                        max = Math.max(max, item);
+                    }
+                } catch (StopIterationException e) {
+                }
+
+                return max;
+            }
+
+            @Specialization(order = 5)
             public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
                 if (keywordArg instanceof PNone) {
                     if (args.length == 1) {

@@ -41,8 +41,7 @@ def solve():
                 for seq in seqs(nums, row, col):
                     yield seq
 
-    l = [product(seq) for seq in list_seqs(nums)]
-    return max(l)
+    return max(product(seq) for seq in list_seqs(nums))
 
 if __name__ == "__main__":
     print(solve())
