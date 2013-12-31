@@ -83,55 +83,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
     }
 
     @Specialization(order = 1)
-    public Object doPIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
-        int count = 0;
-
-        try {
-            while (true) {
-                target.executeWithIterator(frame, iterator);
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } catch (StopIterationException e) {
-
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
-    }
-
-    @Specialization(order = 2)
-    public Object doPDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
-        int count = 0;
-
-        try {
-            while (true) {
-                target.executeWithIterator(frame, iterator);
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } catch (StopIterationException e) {
-
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
-    }
-
-    @Specialization(order = 3)
-    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+    public Object doIterator(VirtualFrame frame, Object iterator) {
         int count = 0;
 
         try {
