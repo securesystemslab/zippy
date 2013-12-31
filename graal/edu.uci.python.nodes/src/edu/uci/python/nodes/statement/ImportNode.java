@@ -97,7 +97,6 @@ public class ImportNode extends PNode {
                 SourceManager sourceManager = new SourceManager(path, filename, inputStream);
                 moduleContext = new PythonContext(context, sourceManager);
                 importedModule = result = context.getParser().parse(moduleContext, CompileMode.exec, CompilerFlags.getCompilerFlags());
-
                 inputStream.close();
             } catch (IOException e) {
                 // do nothing and jython's importer will fix it.
@@ -118,6 +117,9 @@ public class ImportNode extends PNode {
                     PythonParseResult parsedModule = findModule(name, name);
                     if (parsedModule != null) {
                         importedModule = createModule(parsedModule, frame);
+                        if (PythonOptions.PrintAST) {
+                            parsedModule.printAST();
+                        }
                         return importedModule;
                     }
                 }
@@ -180,8 +182,10 @@ public class ImportNode extends PNode {
             sourceFile = new File(dirName, sourceName);
             URL url = createURL(displayDirName, sourceName);
             try {
+                // System.out.println("MODULE NAME " + modName);
                 InputStream inputStream = url.openStream();
                 if (inputStream != null) {
+                    // System.out.println("Will parse module " + modName);
                     PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
                     inputStream.close();
                     return parsedModule;

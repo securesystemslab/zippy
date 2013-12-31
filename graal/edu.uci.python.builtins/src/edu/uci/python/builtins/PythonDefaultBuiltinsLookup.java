@@ -57,7 +57,9 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("__main__", mainModule);
 
         addModule("array", createModule("array", new ArrayModuleBuiltins(), context));
-        addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
+        if (!PythonOptions.useNewImportMechanism) {
+            addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
+        }
         addModule("time", createModule("time", new TimeModuleBuiltins(), context));
 
         addType(PList.class, createType("list", new ListBuiltins(), context));
