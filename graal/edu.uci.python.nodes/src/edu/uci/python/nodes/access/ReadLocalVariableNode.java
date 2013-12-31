@@ -32,6 +32,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class ReadLocalVariableNode extends FrameSlotNode implements ReadNode {
 
@@ -46,6 +47,12 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     @Override
     public PNode makeWriteNode(PNode rhs) {
         return WriteLocalVariableNodeFactory.create(frameSlot, rhs);
+    }
+
+    @SuppressWarnings("unused")
+    @Specialization(order = 0, guards = "isNone", rewriteOn = {FrameSlotTypeException.class})
+    public PNone doNone(VirtualFrame frame) throws FrameSlotTypeException {
+        return PNone.NONE;
     }
 
     @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})

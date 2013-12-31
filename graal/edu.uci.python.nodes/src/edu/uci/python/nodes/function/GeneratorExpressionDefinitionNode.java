@@ -42,6 +42,18 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         this.needsDeclarationFrame = needsDeclarationFrame;
     }
 
+    public CallTarget getCallTarget() {
+        return callTarget;
+    }
+
+    public FrameDescriptor getFrameDescriptor() {
+        return frameDescriptor;
+    }
+
+    public boolean needsDeclarationFrame() {
+        return needsDeclarationFrame;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;

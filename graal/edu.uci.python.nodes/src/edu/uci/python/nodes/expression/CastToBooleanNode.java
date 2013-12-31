@@ -35,6 +35,8 @@ import edu.uci.python.runtime.sequence.*;
 
 public abstract class CastToBooleanNode extends UnaryOpNode {
 
+    public abstract boolean executeBoolean(Object value);
+
     @Override
     public abstract boolean executeBoolean(VirtualFrame frame);
 

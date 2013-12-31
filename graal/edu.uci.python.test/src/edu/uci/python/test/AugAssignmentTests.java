@@ -26,15 +26,24 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class AugAssignmentTests {
 
     @Test
-    public void simple() {
-        Path script = Paths.get("augassign_test.py");
-        assertPrints("2 2\n", script);
+    public void add() {
+        String source = "a = 1\n" + //
+                        "a += 1\n" + //
+                        "print(a)";
+        assertPrints("2\n", source);
     }
+
+    @Test
+    public void sub() {
+        String source = "a = 3\n" + //
+                        "a -= 1\n" + //
+                        "print(a)";
+        assertPrints("2\n", source);
+    }
+
 }

@@ -25,52 +25,49 @@
 package edu.uci.python.nodes.loop;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
 
-public abstract class GetIteratorNode extends UnaryOpNode {
+@NodeChild(value = "getIterator", type = GetIteratorNode.class)
+public abstract class AdvanceIteratorNode extends PNode {
 
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
+    @Child protected FrameSlotNode target;
+
+    public AdvanceIteratorNode(FrameSlotNode target) {
+        this.target = adoptChild(target);
     }
 
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
+    protected AdvanceIteratorNode(AdvanceIteratorNode prev) {
+        this(prev.target);
     }
 
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
+    public abstract void executeWithIterator(VirtualFrame frame, Object iterator);
+
+    public FrameSlotNode getTarget() {
+        return target;
     }
 
-    @Specialization
-    public Object doPDictionary(PDict value) {
-        return value.__iter__();
+    @Specialization(order = 0)
+    public Object doInt(VirtualFrame frame, int value) {
+        return target.executeWrite(frame, value);
     }
 
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
+    @Specialization(order = 1)
+    public Object doPIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
+        return target.executeWrite(frame, iterator.__nextInt__());
     }
 
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
+    @Specialization(order = 2)
+    public Object doPDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
+        return target.executeWrite(frame, iterator.__nextDouble__());
     }
 
-    @Specialization
-    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
-        return value;
-    }
-
-    @Specialization
-    public PIterator doPIterator(PIterator value) {
-        return value;
+    @Specialization(order = 3)
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+        return target.executeWrite(frame, iterator.__next__());
     }
 
 }

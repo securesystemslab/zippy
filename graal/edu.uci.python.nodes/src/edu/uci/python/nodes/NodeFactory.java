@@ -126,10 +126,6 @@ public class NodeFactory {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public LoopNode createForWithLocalTarget(WriteLocalVariableNode target, GetIteratorNode iterator, PNode body) {
-        return ForWithLocalTargetNodeFactory.create(target, body, iterator);
-    }
-
     public StatementNode createElse(StatementNode then, BlockNode orelse) {
         return new ElseNode(then, orelse);
     }

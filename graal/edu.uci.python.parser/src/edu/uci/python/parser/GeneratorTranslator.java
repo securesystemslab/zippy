@@ -65,6 +65,10 @@ public class GeneratorTranslator {
                 replaceControls(current, depth++);
             }
         }
+
+        for (GeneratorExpressionDefinitionNode def : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
+            def.replace(new GeneratorGeneratorExpressionDefinitionNode(def));
+        }
     }
 
     private static void splitArgumentLoads(ReturnTargetNode returnTarget) {
@@ -89,7 +93,8 @@ public class GeneratorTranslator {
 
         if (node instanceof ForWithLocalTargetNode) {
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
-            WriteMaterializedFrameVariableNode target = (WriteMaterializedFrameVariableNode) forNode.getTarget();
+            AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
+            WriteMaterializedFrameVariableNode target = (WriteMaterializedFrameVariableNode) next.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
 
             if (depth == 0) {

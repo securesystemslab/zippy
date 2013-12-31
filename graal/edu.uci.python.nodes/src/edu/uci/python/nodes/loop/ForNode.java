@@ -49,8 +49,7 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization(order = 0)
     public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
+        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
         final int start = iterator.getStart();
         final int stop = iterator.getStop();
         final int step = iterator.getStep();
@@ -66,7 +65,7 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         try {
             while (true) {
@@ -80,4 +79,5 @@ public abstract class ForNode extends LoopNode {
 
         return PNone.NONE;
     }
+
 }

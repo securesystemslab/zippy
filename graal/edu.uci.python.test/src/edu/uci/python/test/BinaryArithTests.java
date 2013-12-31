@@ -34,8 +34,13 @@ public class BinaryArithTests {
 
     @Test
     public void binaryOps() {
-        Path script = Paths.get("basic_binary_ops_test.py");
-        assertPrints("3 2 12 3.5 3\n", script);
+        String source = "a = 1 + 2\n" + //
+                        "b = 4 - 2\n" + //
+                        "c = 6 * 2\n" + //
+                        "d = 7 / 2\n" + //
+                        "e = 7 // 2\n" + //
+                        "print(a,b,c,d,e)\n";
+        assertPrints("3 2 12 3.5 3\n", source);
     }
 
     @Test
@@ -76,8 +81,13 @@ public class BinaryArithTests {
 
     @Test
     public void complexBinaryArith2() {
-        Path script = Paths.get("complex_binary_arith_test2.py");
-        assertPrints("1.07343919141098672E17 1.07343919141098675E18 -8.21361754992E11 16 15.625\n", script);
+        String source = "a = 46372573068954628579 / 432\n" + //
+                        "b = 46372573068954628579 / 43.2\n" + //
+                        "c = (3.56 - 5278948673290672067) // 6427069\n" + //
+                        "d = 2 ** 4\n" + //
+                        "e = 2.5 ** 3.0\n" + //
+                        "print(a,b,c,d,e)\n";
+        assertPrints("1.07343919141098672E17 1.07343919141098675E18 -8.21361754992E11 16 15.625\n", source);
     }
 
     @Test

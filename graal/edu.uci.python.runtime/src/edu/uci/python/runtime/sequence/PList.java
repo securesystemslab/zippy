@@ -75,6 +75,19 @@ public class PList extends PSequence {
     }
 
     @Override
+    public PIterator __iter__() {
+        if (PythonOptions.UnboxSequenceIteration) {
+            if (store instanceof IntSequenceStorage) {
+                return new PIntegerSequenceIterator((IntSequenceStorage) store);
+            } else if (store instanceof DoubleSequenceStorage) {
+                return new PDoubleSequenceIterator((DoubleSequenceStorage) store);
+            }
+        }
+
+        return new PSequenceIterator(this);
+    }
+
+    @Override
     public SequenceStorage getStorage() {
         return store;
     }

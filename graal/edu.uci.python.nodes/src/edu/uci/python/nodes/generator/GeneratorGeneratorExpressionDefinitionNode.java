@@ -22,55 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.function.*;
 
-public abstract class GetIteratorNode extends UnaryOpNode {
+/**
+ * Generator expression definition in a generator context.
+ */
+public class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
 
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
+    public GeneratorGeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode prev) {
+        super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame());
     }
 
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
-    }
-
-    @Specialization
-    public Object doPDictionary(PDict value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
-        return value;
-    }
-
-    @Specialization
-    public PIterator doPIterator(PIterator value) {
-        return value;
+    @Override
+    public Object execute(VirtualFrame frame) {
+        MaterializedFrame declarationFrame = needsDeclarationFrame() ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : null;
+        return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), declarationFrame, null);
     }
 
 }

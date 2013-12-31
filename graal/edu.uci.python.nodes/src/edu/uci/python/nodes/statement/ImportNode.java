@@ -156,6 +156,7 @@ public class ImportNode extends PNode {
     /**
      * TODO Taken from Jython, needs to cleaned up.
      */
+    @SuppressWarnings("unused")
     private PythonParseResult loadFromSource(PySystemState sys, String name, String modName, String entry) {
         String dirName = sys.getPath(entry);
         String sourceName = "__init__.py";

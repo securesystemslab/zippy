@@ -172,8 +172,9 @@ public class PythonTypesUtil {
     /**
      * TODO This method should be extended to support the remaining types.
      */
-    @SlowPath
     public static String getPythonTypeName(Object object) {
+        CompilerAsserts.neverPartOfCompilation();
+
         if (object instanceof Integer || object instanceof BigInteger) {
             return "int";
         } else if (object instanceof Double) {

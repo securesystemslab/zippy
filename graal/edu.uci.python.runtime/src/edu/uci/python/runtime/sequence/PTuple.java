@@ -31,7 +31,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public class PTuple extends PImmutableSequence {
+public final class PTuple extends PImmutableSequence {
 
     private final Object[] array;
 
@@ -202,7 +202,7 @@ public class PTuple extends PImmutableSequence {
         return new PTuple(newArray);
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public PTuple __mul__(int value) {
         throw new UnsupportedOperationException();
     }

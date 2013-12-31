@@ -22,55 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.runtime.iterator;
 
-import com.oracle.truffle.api.dsl.*;
+public interface PDoubleIterator {
 
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
-
-public abstract class GetIteratorNode extends UnaryOpNode {
-
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
-    }
-
-    @Specialization
-    public Object doPDictionary(PDict value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
-        return value;
-    }
-
-    @Specialization
-    public PIterator doPIterator(PIterator value) {
-        return value;
-    }
+    double __nextDouble__();
 
 }
