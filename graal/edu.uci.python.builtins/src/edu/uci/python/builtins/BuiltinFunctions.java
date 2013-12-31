@@ -238,6 +238,11 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 1)
+        public int len(PTuple tuple) {
+            return tuple.len();
+        }
+
+        @Specialization(order = 5)
         public int len(PIterable iterable) {
             return iterable.len();
         }
