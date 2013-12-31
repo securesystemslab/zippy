@@ -48,17 +48,17 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     public void addBuiltins(PythonContext context) {
-        PythonModule builtinsModule = createModule("__builtins__", new PythonDefaultBuiltins(), context);
+        PythonModule builtinsModule = createModule("__builtins__", context, new BuiltinFunctions(), new BuiltinConstructors());
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("__builtins__", builtinsModule);
 
-        PythonModule mainModule = createModule("__main__", null, context);
+        PythonModule mainModule = new PythonModule("__main__", context);
         mainModule.setAttribute("__builtins__", builtinsModule);
         addModule("__main__", mainModule);
 
-        addModule("array", createModule("array", new ArrayModuleBuiltins(), context));
-        addModule("bisect", createModule("bisect", new BisectModuleBuiltins(), context));
-        addModule("time", createModule("time", new TimeModuleBuiltins(), context));
+        addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
+        addModule("bisect", createModule("bisect", context, new BisectModuleBuiltins()));
+        addModule("time", createModule("time", context, new TimeModuleBuiltins()));
 
         addType(PList.class, createType("list", new ListBuiltins(), context));
         addType(PString.class, createType("str", new StringBuiltins(), context));
@@ -73,9 +73,11 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinTypes.put(clazz, type);
     }
 
-    private static PythonModule createModule(String name, PythonBuiltins builtins, PythonContext context) {
+    private static PythonModule createModule(String name, PythonContext context, PythonBuiltins... builtins) {
         PythonModule module = new PythonModule(name, context);
-        addBuiltinsToModule(module, builtins, context);
+        for (PythonBuiltins builtin : builtins) {
+            addBuiltinsToModule(module, builtin, context);
+        }
         return module;
     }
 
