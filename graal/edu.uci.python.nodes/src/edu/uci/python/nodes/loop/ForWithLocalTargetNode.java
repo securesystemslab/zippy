@@ -29,7 +29,6 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -37,9 +36,9 @@ import edu.uci.python.runtime.iterator.*;
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected FrameSlotNode target;
+    @Child protected AdvanceIteratorNode target;
 
-    public ForWithLocalTargetNode(FrameSlotNode target, PNode body) {
+    public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body) {
         super(body);
         this.target = adoptChild(target);
     }
@@ -67,7 +66,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             for (int i = start; i < stop; i += step) {
-                target.executeWrite(frame, i);
+                target.executeWithIterator(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -89,7 +88,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             while (true) {
-                target.executeWrite(frame, iterator.__nextInt__());
+                target.executeWithIterator(frame, iterator);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -113,7 +112,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             while (true) {
-                target.executeWrite(frame, iterator.__nextDouble__());
+                target.executeWithIterator(frame, iterator);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -137,7 +136,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             while (true) {
-                target.executeWrite(frame, iterator.__next__());
+                target.executeWithIterator(frame, iterator);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {

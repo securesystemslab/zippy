@@ -535,7 +535,8 @@ public class PythonTreeTranslator extends Visitor {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
         if (environment.isInFunctionScope()) {
-            return factory.createForWithLocalTarget((WriteLocalVariableNode) target, getIterator, body);
+            AdvanceIteratorNode next = AdvanceIteratorNodeFactory.create((WriteLocalVariableNode) target, getIterator);
+            return ForWithLocalTargetNodeFactory.create(next, body, getIterator);
         } else {
             return factory.createFor(target, getIterator, body);
         }
