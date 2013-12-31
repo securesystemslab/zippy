@@ -28,6 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
+import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatype.*;
@@ -38,6 +40,7 @@ import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
@@ -81,6 +84,16 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "all", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class PythonAllNode extends PythonBuiltinNode {
 
+        @Child protected CastToBooleanNode toBoolean;
+
+        private boolean toBoolean(Object value) {
+            if (toBoolean == null) {
+                CompilerDirectives.transferToInterpreter();
+                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
+            }
+            return toBoolean.executeBoolean(value);
+        }
+
         @Specialization
         public boolean all(PIterable iterable) {
             if (iterable.len() == 0) {
@@ -91,8 +104,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             try {
                 while (true) {
-                    Object element = iterator.__next__();
-                    if (!JavaTypeConversions.toBoolean(element)) {
+                    if (!toBoolean(iterator.__next__())) {
                         return false;
                     }
                 }
@@ -113,6 +125,16 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "any", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class PythonAnyNode extends PythonBuiltinNode {
 
+        @Child protected CastToBooleanNode toBoolean;
+
+        private boolean toBoolean(Object value) {
+            if (toBoolean == null) {
+                CompilerDirectives.transferToInterpreter();
+                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
+            }
+            return toBoolean.executeBoolean(value);
+        }
+
         @Specialization
         public boolean any(PIterable iterable) {
             if (iterable.len() == 0) {
@@ -123,8 +145,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             try {
                 while (true) {
-                    Object element = iterator.__next__();
-                    if (JavaTypeConversions.toBoolean(element)) {
+                    if (toBoolean(iterator.__next__())) {
                         return true;
                     }
                 }
