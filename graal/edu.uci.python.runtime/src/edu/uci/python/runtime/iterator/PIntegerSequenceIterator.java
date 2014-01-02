@@ -45,7 +45,7 @@ public class PIntegerSequenceIterator implements PIterator, PIntegerIterator {
         throw StopIterationException.INSTANCE;
     }
 
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         return __nextInt__();
     }
 

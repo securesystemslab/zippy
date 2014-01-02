@@ -49,8 +49,13 @@ public class GeneratorForNode extends LoopNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        executeIterator(frame);
         int count = 0;
+        try {
+            executeIterator(frame);
+        } catch (StopIterationException e) {
+            iterator = null;
+            return PNone.NONE;
+        }
 
         try {
             while (true) {
@@ -62,26 +67,27 @@ public class GeneratorForNode extends LoopNode {
                 }
             }
         } catch (StopIterationException e) {
-            iterator = null;
             if (CompilerDirectives.inInterpreter()) {
                 reportLoopCount(count);
             }
         }
 
+        iterator = null;
         return PNone.NONE;
     }
 
-    protected void executeIterator(VirtualFrame frame) {
+    protected void executeIterator(VirtualFrame frame) throws StopIterationException {
         if (iterator != null) {
             return;
         }
 
         try {
             iterator = getIterator.executePIterator(frame);
-            target.executeWith(frame, iterator.__next__());
         } catch (UnexpectedResultException e) {
             throw new RuntimeException();
         }
+
+        target.executeWith(frame, iterator.__next__());
     }
 
     public static final class InnerGeneratorForNode extends GeneratorForNode {
@@ -105,12 +111,12 @@ public class GeneratorForNode extends LoopNode {
                     }
                 }
             } catch (StopIterationException e) {
-                iterator = null;
                 if (CompilerDirectives.inInterpreter()) {
                     reportLoopCount(count);
                 }
             }
 
+            iterator = null;
             return PNone.NONE;
         }
 

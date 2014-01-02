@@ -37,7 +37,7 @@ public class PDictIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         if (keyIterator.hasNext()) {
             return keyIterator.next();
         }

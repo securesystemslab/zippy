@@ -37,7 +37,7 @@ public class PBaseSetIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         if (setIterator.hasNext()) {
             return setIterator.next();
         }

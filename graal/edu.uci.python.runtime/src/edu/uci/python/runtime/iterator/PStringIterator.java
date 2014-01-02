@@ -36,7 +36,7 @@ public class PStringIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         if (index < value.length()) {
             return value.charAt(index++);
         }

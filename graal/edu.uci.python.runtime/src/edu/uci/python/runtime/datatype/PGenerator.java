@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
@@ -54,7 +55,7 @@ public class PGenerator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         return callTarget.call(null, arguments);
     }
 
