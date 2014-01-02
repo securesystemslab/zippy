@@ -33,7 +33,6 @@ def seqs(nums, row, col):
     if row + 4 <= len(nums) and col >= 3:                   yield list(nums[row+i][col-i] for i in range(0,4))
 
 def product(seq):
-    print('seq ', seq)
     n = 1
     for x in seq: n = n * x
     return n
@@ -41,15 +40,11 @@ def product(seq):
 def list_seqs(nums):
     for row in range(0, len(nums)):
         for col in range(0, len(nums[row])):
-            for seq in seqs(nums, row, col):
-                print('list_seqs ', seq)       
+            for seq in seqs(nums, row, col):       
                 yield seq
 
 def solve():
     return max(product(seq) for seq in list_seqs(NUMS))
-
-# if __name__ == "__main__":
-#     print(solve())
 
 def main(iteration):
     for i in range(iteration):
@@ -66,7 +61,7 @@ def measure():
     print("euler11: " + duration)
 
 # warm up
-for i in range(1):
-    main(1)
+for i in range(100):
+    main(20)
 
 measure()

@@ -40,6 +40,7 @@ public class GeneratorForNode extends LoopNode {
     @Child protected GetIteratorNode getIterator;
 
     protected PIterator iterator;
+    protected int count;
 
     public GeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
         super(body);
@@ -47,13 +48,23 @@ public class GeneratorForNode extends LoopNode {
         this.getIterator = adoptChild(getIterator);
     }
 
+    protected void reset() {
+        iterator = null;
+        count = 0;
+    }
+
+    protected void incrementCounter() {
+        if (CompilerDirectives.inInterpreter()) {
+            count++;
+        }
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
         try {
             executeIterator(frame);
         } catch (StopIterationException e) {
-            iterator = null;
+            reset();
             return PNone.NONE;
         }
 
@@ -61,10 +72,7 @@ public class GeneratorForNode extends LoopNode {
             while (true) {
                 body.executeVoid(frame);
                 target.executeWith(frame, iterator.__next__());
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
+                incrementCounter();
             }
         } catch (StopIterationException e) {
             if (CompilerDirectives.inInterpreter()) {
@@ -72,7 +80,7 @@ public class GeneratorForNode extends LoopNode {
             }
         }
 
-        iterator = null;
+        reset();
         return PNone.NONE;
     }
 
@@ -88,6 +96,7 @@ public class GeneratorForNode extends LoopNode {
         }
 
         target.executeWith(frame, iterator.__next__());
+        incrementCounter();
     }
 
     public static final class InnerGeneratorForNode extends GeneratorForNode {
@@ -99,16 +108,12 @@ public class GeneratorForNode extends LoopNode {
         @Override
         public Object execute(VirtualFrame frame) {
             executeIterator(frame);
-            int count = 0;
 
             try {
                 while (true) {
                     target.executeWith(frame, iterator.__next__());
                     body.executeVoid(frame);
-
-                    if (CompilerDirectives.inInterpreter()) {
-                        count++;
-                    }
+                    incrementCounter();
                 }
             } catch (StopIterationException e) {
                 if (CompilerDirectives.inInterpreter()) {
@@ -116,7 +121,7 @@ public class GeneratorForNode extends LoopNode {
                 }
             }
 
-            iterator = null;
+            reset();
             return PNone.NONE;
         }
 
@@ -125,7 +130,6 @@ public class GeneratorForNode extends LoopNode {
             if (iterator != null) {
                 return;
             }
-
             try {
                 iterator = getIterator.executePIterator(frame);
             } catch (UnexpectedResultException e) {
@@ -133,4 +137,5 @@ public class GeneratorForNode extends LoopNode {
             }
         }
     }
+
 }
