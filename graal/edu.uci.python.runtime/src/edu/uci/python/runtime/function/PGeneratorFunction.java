@@ -32,15 +32,18 @@ import edu.uci.python.runtime.datatype.*;
 public final class PGeneratorFunction extends PFunction {
 
     private final int numOfGeneratorBlockNode;
+    private final int numOfGeneratorForNode;
 
-    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode) {
+    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
+                    int numOfGeneratorForNode) {
         super(name, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
+        this.numOfGeneratorForNode = numOfGeneratorForNode;
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode);
+        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     @Override

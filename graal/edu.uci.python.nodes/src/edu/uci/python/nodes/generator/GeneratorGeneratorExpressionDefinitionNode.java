@@ -36,13 +36,13 @@ import edu.uci.python.runtime.function.*;
 public class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
 
     public GeneratorGeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode prev) {
-        super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame(), prev.getNumOfGeneratorBlockNode());
+        super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame(), prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame() ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : null;
-        return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), declarationFrame, null, getNumOfGeneratorBlockNode());
+        return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), declarationFrame, null, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
     }
 
 }

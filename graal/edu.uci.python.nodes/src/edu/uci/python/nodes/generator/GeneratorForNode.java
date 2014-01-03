@@ -32,6 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
 public class GeneratorForNode extends LoopNode {
@@ -39,17 +40,26 @@ public class GeneratorForNode extends LoopNode {
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
 
-    protected PIterator iterator;
+    protected int iteratorSlot;
     protected int count;
 
-    public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
+    public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
         super(body);
         this.target = adoptChild(target);
         this.getIterator = adoptChild(getIterator);
+        this.iteratorSlot = iteratorSlot;
     }
 
-    protected void reset() {
-        iterator = null;
+    protected PIterator getIterator(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).getIteratorAt(iteratorSlot);
+    }
+
+    protected void setIterator(VirtualFrame frame, PIterator value) {
+        PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, value);
+    }
+
+    protected void reset(VirtualFrame frame) {
+        setIterator(frame, null);
         count = 0;
     }
 
@@ -64,14 +74,14 @@ public class GeneratorForNode extends LoopNode {
         try {
             executeIterator(frame);
         } catch (StopIterationException e) {
-            reset();
+            reset(frame);
             return PNone.NONE;
         }
 
         try {
             while (true) {
                 body.executeVoid(frame);
-                target.executeWith(frame, iterator.__next__());
+                target.executeWith(frame, getIterator(frame).__next__());
                 incrementCounter();
             }
         } catch (StopIterationException e) {
@@ -80,29 +90,29 @@ public class GeneratorForNode extends LoopNode {
             }
         }
 
-        reset();
+        reset(frame);
         return PNone.NONE;
     }
 
     protected void executeIterator(VirtualFrame frame) throws StopIterationException {
-        if (iterator != null) {
+        if (getIterator(frame) != null) {
             return;
         }
 
         try {
-            iterator = getIterator.executePIterator(frame);
+            setIterator(frame, getIterator.executePIterator(frame));
         } catch (UnexpectedResultException e) {
             throw new RuntimeException();
         }
 
-        target.executeWith(frame, iterator.__next__());
+        target.executeWith(frame, getIterator(frame).__next__());
         incrementCounter();
     }
 
     public static final class InnerGeneratorForNode extends GeneratorForNode {
 
-        public InnerGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
-            super(target, getIterator, body);
+        public InnerGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
+            super(target, getIterator, body, iteratorSlot);
         }
 
         @Override
@@ -111,7 +121,7 @@ public class GeneratorForNode extends LoopNode {
 
             try {
                 while (true) {
-                    target.executeWith(frame, iterator.__next__());
+                    target.executeWith(frame, getIterator(frame).__next__());
                     body.executeVoid(frame);
                     incrementCounter();
                 }
@@ -121,17 +131,17 @@ public class GeneratorForNode extends LoopNode {
                 }
             }
 
-            reset();
+            reset(frame);
             return PNone.NONE;
         }
 
         @Override
         protected void executeIterator(VirtualFrame frame) {
-            if (iterator != null) {
+            if (getIterator(frame) != null) {
                 return;
             }
             try {
-                iterator = getIterator.executePIterator(frame);
+                setIterator(frame, getIterator.executePIterator(frame));
             } catch (UnexpectedResultException e) {
                 throw new RuntimeException();
             }

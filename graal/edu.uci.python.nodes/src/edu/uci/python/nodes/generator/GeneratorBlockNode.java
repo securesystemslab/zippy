@@ -43,11 +43,11 @@ public class GeneratorBlockNode extends BlockNode {
     }
 
     protected final int getIndex(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getBlockIndexOf(indexSlot);
+        return PArguments.getGeneratorArguments(frame).getBlockIndexAt(indexSlot);
     }
 
     protected final void setIndex(VirtualFrame frame, int value) {
-        PArguments.getGeneratorArguments(frame).setBlockIndexOf(indexSlot, value);
+        PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, value);
     }
 
     @ExplodeLoop

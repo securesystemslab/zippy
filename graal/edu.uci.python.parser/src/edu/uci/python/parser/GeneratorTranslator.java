@@ -37,7 +37,8 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    private int numOfGeneratorBlockNode = 0;
+    private int numOfGeneratorBlockNode;
+    private int numOfGeneratorForNode;
 
     public void translate(FunctionRootNode root) {
         /**
@@ -99,11 +100,12 @@ public class GeneratorTranslator {
             AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) next.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
+            int iteratorSlot = nextGeneratorForNodeSlot();
 
             if (depth == 0) {
-                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody()));
+                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
             } else {
-                node.replace(new GeneratorForNode(target, getIter, forNode.getBody()));
+                node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
             }
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
@@ -127,6 +129,14 @@ public class GeneratorTranslator {
 
     public int getNumOfGeneratorBlockNode() {
         return numOfGeneratorBlockNode;
+    }
+
+    private int nextGeneratorForNodeSlot() {
+        return numOfGeneratorForNode++;
+    }
+
+    public int getNumOfGeneratorForNode() {
+        return numOfGeneratorForNode;
     }
 
 }

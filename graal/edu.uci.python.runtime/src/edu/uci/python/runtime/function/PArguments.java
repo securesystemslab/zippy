@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.iterator.*;
 
 public class PArguments extends Arguments {
 
@@ -112,13 +113,15 @@ public class PArguments extends Arguments {
     public static class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
-        private boolean firstEntry = true; // See {@link GeneratorReturnTargetNode}
-        private final int[] generatorBlockNodeIndices;
+        private boolean firstEntry = true;                   // See {@link GeneratorReturnTargetNode}
+        private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
+        private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
-        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNodes) {
+        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.generatorFrame = generatorFrame;
-            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNodes];
+            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
+            this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
         }
 
         public MaterializedFrame getGeneratorFrame() {
@@ -133,12 +136,20 @@ public class PArguments extends Arguments {
             firstEntry = value;
         }
 
-        public int getBlockIndexOf(int slot) {
+        public int getBlockIndexAt(int slot) {
             return generatorBlockNodeIndices[slot];
         }
 
-        public void setBlockIndexOf(int slot, int value) {
+        public void setBlockIndexAt(int slot, int value) {
             generatorBlockNodeIndices[slot] = value;
+        }
+
+        public PIterator getIteratorAt(int slot) {
+            return generatorForNodeIterators[slot];
+        }
+
+        public void setIteratorAt(int slot, PIterator value) {
+            generatorForNodeIterators[slot] = value;
         }
     }
 
