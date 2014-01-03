@@ -1383,12 +1383,53 @@ def site(args):
                     '--title', 'Graal OpenJDK Project Documentation',
                     '--dot-output-base', 'projects'] + args)
 
+def generateZshCompletion(args):
+    """generate zsh completion for mx"""
+    try:
+        from genzshcomp import CompletionGenerator
+    except ImportError:
+        mx.abort("install genzshcomp (pip install genzshcomp)")
+
+    # need to fake module for the custom mx arg parser, otherwise a check in genzshcomp fails
+    originalModule = mx._argParser.__module__
+    mx._argParser.__module__ = "argparse"
+    generator = CompletionGenerator("mx", mx._argParser)
+    mx._argParser.__module__ = originalModule
+
+    # strip last line and define local variable "ret"
+    complt = "\n".join(generator.get().split('\n')[0:-1]).replace('context state line', 'context state line ret=1')
+
+    # add array of possible subcommands (as they are not part of the argument parser)
+    complt += '\n  ": :->command" \\\n'
+    complt += '  "*::args:_files" && ret=0\n'
+    complt += '\n'
+    complt += 'case $state in\n'
+    complt += '  (command)\n'
+    complt += '    local -a main_commands\n'
+    complt += '    main_commands=(\n'
+    for cmd in sorted(mx._commands.iterkeys()):
+        c, _ = mx._commands[cmd][:2]
+        doc = c.__doc__
+        complt += '      "{0}'.format(cmd)
+        if doc:
+            complt += ':{0}'.format(doc.split('\n', 1)[0].replace('\"', '').replace("\'", ""))
+        complt += '"\n'
+    complt += '    )\n'
+    complt += '    _describe -t main_commands command main_commands && ret=0\n'
+    complt += '    ;;\n'
+    complt += 'esac\n'
+    complt += '\n'
+    complt += 'return $ret'
+    print complt
+
+
 def mx_init(suite):
     commands = {
         'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
+        'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
