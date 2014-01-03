@@ -24,6 +24,7 @@
  */
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -204,6 +205,11 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public PTuple doInt(int a, int b) {
             return new PTuple(new Object[]{a / b, a % b});
+        }
+
+        @Specialization
+        public PTuple doBigInteger(BigInteger a, BigInteger b) {
+            return new PTuple(a.divideAndRemainder(b));
         }
 
         @Specialization
