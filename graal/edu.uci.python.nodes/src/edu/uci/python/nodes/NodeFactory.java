@@ -223,8 +223,8 @@ public class NodeFactory {
         return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
+    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode) {
+        return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame, numOfGeneratorBlockNode);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

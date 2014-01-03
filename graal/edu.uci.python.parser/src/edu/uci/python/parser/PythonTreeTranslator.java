@@ -163,8 +163,9 @@ public class PythonTreeTranslator extends Visitor {
          */
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
-            new GeneratorTranslator().translate(funcRoot);
-            funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            GeneratorTranslator gtran = new GeneratorTranslator();
+            gtran.translate(funcRoot);
+            funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode());
         } else {
             funcDef = new FunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
@@ -177,8 +178,9 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot("generator_exp", body);
         result.addParsedFunction("generator_exp", funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
-        new GeneratorTranslator().translate(funcRoot);
-        return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
+        GeneratorTranslator gtran = new GeneratorTranslator();
+        gtran.translate(funcRoot);
+        return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode());
     }
 
     public Arity createArity(String functionName, arguments node) {

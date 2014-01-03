@@ -31,13 +31,16 @@ import edu.uci.python.runtime.datatype.*;
 
 public final class PGeneratorFunction extends PFunction {
 
-    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    private final int numOfGeneratorBlockNode;
+
+    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode) {
         super(name, arity, callTarget, frameDescriptor, declarationFrame);
+        this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args);
+        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode);
     }
 
     @Override

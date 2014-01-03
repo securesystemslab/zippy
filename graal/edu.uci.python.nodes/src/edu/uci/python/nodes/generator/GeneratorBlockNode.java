@@ -30,50 +30,61 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 
 public class GeneratorBlockNode extends BlockNode {
 
     protected int index;
+    protected final int indexSlot;
 
-    public GeneratorBlockNode(PNode[] statements) {
+    public GeneratorBlockNode(PNode[] statements, int indexSlot) {
         super(statements);
+        this.indexSlot = indexSlot;
+    }
+
+    protected final int getIndex(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).getBlockIndexOf(indexSlot);
+    }
+
+    protected final void setIndex(VirtualFrame frame, int value) {
+        PArguments.getGeneratorArguments(frame).setBlockIndexOf(indexSlot, value);
     }
 
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < statements.length; i++) {
-            if (i < index) {
+            if (i < getIndex(frame)) {
                 continue;
             }
 
             statements[i].executeVoid(frame);
-            index++;
+            setIndex(frame, getIndex(frame) + 1);
         }
 
-        index = 0;
+        setIndex(frame, 0);
         return PNone.NONE;
     }
 
     public static final class InnerGeneratorBlockNode extends GeneratorBlockNode {
 
-        public InnerGeneratorBlockNode(PNode[] statements) {
-            super(statements);
+        public InnerGeneratorBlockNode(PNode[] statements, int indexSlot) {
+            super(statements, indexSlot);
         }
 
         @ExplodeLoop
         @Override
         public Object execute(VirtualFrame frame) {
             for (int i = 0; i < statements.length; i++) {
-                if (i < index) {
+                if (i < getIndex(frame)) {
                     continue;
                 }
 
-                index++;
+                setIndex(frame, getIndex(frame) + 1);
                 statements[i].executeVoid(frame);
             }
 
-            index = 0;
+            setIndex(frame, 0);
             return PNone.NONE;
         }
     }

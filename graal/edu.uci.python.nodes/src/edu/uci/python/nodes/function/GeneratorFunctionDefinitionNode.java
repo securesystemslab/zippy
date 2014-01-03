@@ -32,15 +32,19 @@ import edu.uci.python.runtime.function.*;
 
 public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
-    public GeneratorFunctionDefinitionNode(String name, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    int numOfGeneratorBlockNode;
+
+    public GeneratorFunctionDefinitionNode(String name, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame,
+                    int numOfGeneratorBlockNode) {
         super(name, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
+        this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PGeneratorFunction(name, arity, callTarget, frameDescriptor, declarationFrame);
+        return new PGeneratorFunction(name, arity, callTarget, frameDescriptor, declarationFrame, numOfGeneratorBlockNode);
     }
 
 }

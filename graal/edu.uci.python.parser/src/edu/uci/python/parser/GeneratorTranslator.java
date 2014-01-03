@@ -37,8 +37,7 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    public GeneratorTranslator() {
-    }
+    private int numOfGeneratorBlockNode = 0;
 
     public void translate(FunctionRootNode root) {
         /**
@@ -87,7 +86,7 @@ public class GeneratorTranslator {
         }
     }
 
-    private static void replaceControls(PNode node, int depth) {
+    private void replaceControls(PNode node, int depth) {
         /**
          * Has it been replace already?
          */
@@ -108,17 +107,26 @@ public class GeneratorTranslator {
             }
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
+            int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
 
             if (depth == 0) {
-                node.replace(new GeneratorBlockNode.InnerGeneratorBlockNode(block.getStatements()));
+                node.replace(new GeneratorBlockNode.InnerGeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
             } else {
-                node.replace(new GeneratorBlockNode(block.getStatements()));
+                node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
             }
         } else if (node instanceof IfNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();
         }
+    }
+
+    private int nextGeneratorBlockIndexSlot() {
+        return numOfGeneratorBlockNode++;
+    }
+
+    public int getNumOfGeneratorBlockNode() {
+        return numOfGeneratorBlockNode;
     }
 
 }

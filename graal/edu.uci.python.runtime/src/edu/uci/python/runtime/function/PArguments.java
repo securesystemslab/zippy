@@ -113,10 +113,12 @@ public class PArguments extends Arguments {
 
         private final MaterializedFrame generatorFrame;
         private boolean firstEntry = true; // See {@link GeneratorReturnTargetNode}
+        private final int[] generatorBlockNodeIndices;
 
-        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
+        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNodes) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.generatorFrame = generatorFrame;
+            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNodes];
         }
 
         public MaterializedFrame getGeneratorFrame() {
@@ -131,6 +133,13 @@ public class PArguments extends Arguments {
             firstEntry = value;
         }
 
+        public int getBlockIndexOf(int slot) {
+            return generatorBlockNodeIndices[slot];
+        }
+
+        public void setBlockIndexOf(int slot, int value) {
+            generatorBlockNodeIndices[slot] = value;
+        }
     }
 
     /**
