@@ -61,6 +61,10 @@ public class GeneratorReturnTargetNode extends ReturnTargetNode {
             throw StopIterationException.INSTANCE;
         } catch (ExplicitYieldException eye) {
             return eye.getValue();
+        } catch (ImplicitReturnException ire) {
+            throw StopIterationException.INSTANCE;
+        } catch (ExplicitReturnException ere) {
+            throw new UnsupportedOperationException();
         }
     }
 

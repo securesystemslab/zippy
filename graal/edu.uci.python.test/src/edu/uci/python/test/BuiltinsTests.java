@@ -220,4 +220,10 @@ public class BuiltinsTests {
         assertPrints("frozenset({0, 1, 2, 3, 4})\n", source);
     }
 
+    @Test
+    public void sum() {
+        String source = "print(sum(x for x in range(10)))";
+        assertPrints("45\n", source);
+    }
+
 }

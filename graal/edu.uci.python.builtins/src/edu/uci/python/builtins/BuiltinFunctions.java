@@ -537,7 +537,9 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public int doPIterator(PIterator iterator) {
             int sum = 0;
             try {
-                sum += (int) iterator.__next__();
+                while (true) {
+                    sum += (int) iterator.__next__();
+                }
             } catch (StopIterationException e) {
             }
 
