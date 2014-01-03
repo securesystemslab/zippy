@@ -26,7 +26,6 @@ package edu.uci.python.parser;
 
 import java.util.*;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -38,12 +37,7 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    public static final String ROOT_NODE_FIRST_ENTRY_SLOT_ID = "<_fist_entry_>";
-
-    private final FrameDescriptor frameDescriptor;
-
-    public GeneratorTranslator(FrameDescriptor frameDescriptor) {
-        this.frameDescriptor = frameDescriptor;
+    public GeneratorTranslator() {
     }
 
     public void translate(FunctionRootNode root) {
@@ -80,17 +74,16 @@ public class GeneratorTranslator {
         }
     }
 
+    @SuppressWarnings("static-method")
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
-        FrameSlot firstEntry = frameDescriptor.findOrAddFrameSlot(ROOT_NODE_FIRST_ENTRY_SLOT_ID);
-
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn(), firstEntry));
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn(), firstEntry));
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 

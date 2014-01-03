@@ -25,36 +25,27 @@
 package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
 public class GeneratorReturnTargetNode extends ReturnTargetNode {
 
     @Child protected PNode parameters;
-    @Child protected FrameSlotNode readFirstEntry;
-    @Child protected FrameSlotNode writeFirstEntry;
 
-    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue, FrameSlot firstEntrySlot) {
+    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue) {
         super(body, returnValue);
         this.parameters = adoptChild(parameters);
-        this.readFirstEntry = adoptChild(ReadGeneratorFrameFlagNodeFactory.create(firstEntrySlot));
-        this.writeFirstEntry = adoptChild(WriteGeneratorFrameVariableNodeFactory.create(firstEntrySlot, PNode.EMPTYNODE));
     }
 
-    private boolean getFirstEntry(VirtualFrame frame) {
-        try {
-            return readFirstEntry.executeBoolean(frame);
-        } catch (UnexpectedResultException e) {
-            throw new RuntimeException();
-        }
+    private static boolean getFirstEntry(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).isFirstEntry();
     }
 
-    private void setFirstEntry(VirtualFrame frame, boolean value) {
-        writeFirstEntry.executeWrite(frame, value);
+    private static void setFirstEntry(VirtualFrame frame, boolean value) {
+        PArguments.getGeneratorArguments(frame).setFirstEntry(value);
     }
 
     @Override

@@ -112,6 +112,7 @@ public class PArguments extends Arguments {
     public static class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
+        private boolean firstEntry = true; // See {@link GeneratorReturnTargetNode}
 
         public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
@@ -120,6 +121,14 @@ public class PArguments extends Arguments {
 
         public MaterializedFrame getGeneratorFrame() {
             return generatorFrame;
+        }
+
+        public boolean isFirstEntry() {
+            return firstEntry;
+        }
+
+        public void setFirstEntry(boolean value) {
+            firstEntry = value;
         }
 
     }
