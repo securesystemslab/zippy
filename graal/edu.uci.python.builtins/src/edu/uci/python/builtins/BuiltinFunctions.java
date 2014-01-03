@@ -197,6 +197,22 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // divmod(a, b)
+    @Builtin(name = "divmod", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    public abstract static class DivModNode extends PythonBuiltinNode {
+
+        @Specialization
+        public PTuple doInt(int a, int b) {
+            return new PTuple(new Object[]{a / b, a % b});
+        }
+
+        @Specialization
+        public PTuple doDouble(double a, double b) {
+            double q = Math.floor(a / b);
+            return new PTuple(new Object[]{q, a % b});
+        }
+    }
+
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
     public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {

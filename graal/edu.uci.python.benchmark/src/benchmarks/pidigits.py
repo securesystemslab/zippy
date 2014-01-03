@@ -1,24 +1,40 @@
-# The Computer Language Benchmarks Game
-# http://shootout.alioth.debian.org/
-#
-# contributed by Dani Nanz (2007-09-21)
+import sys, time
 
-import sys
-import gmpy
+PIDIGITS_LEN = 15000
+
+def pidigits(length):
+    i = k = ns = 0
+    k1 = 1
+    n,a,d,t,u = 1,0,1,0,0
+    while(True):
+        k += 1
+        t = n<<1
+        n *= k
+        a += t
+        k1 += 2
+        a *= k1
+        d *= k1
+        if a >= n:
+            t,u = divmod(n*3 + a,d)
+            u += n
+            if d > u:
+                ns = ns*10 + t
+                i += 1
+                if i % 10 == 0:
+                    ns = 0
+                if i >= length:
+                    break
+                a -= d*t
+                a *= 10
+                n *= 10
 
 def main(n):
+    l = []
+    for i in range(n):
+        t0 = time.time()
+        pidigits(PIDIGITS_LEN)
+        l.append(time.time() - t0)
+    return l
 
-    pi = str(gmpy.pi(int(3.35 * n)))
-    pi_tmp = ''.join([pi[0], pi[2:]])
-    pistr = pi_tmp[0 : n]
-    w = 10
-    out = []
-    for i in xrange(0, n - w + 1, w):
-        out.extend([pistr[i : i + w] , i + w])
-    print ('%s\t:%d\n' * (len(out) / 2)) % tuple(out),
-    if n % w > 0:
-        print "%s\t:%d" % ((pistr[-(n % w):]).ljust(w), n)
-
-
-main(int(sys.argv[1]))
-
+if __name__ == '__main__':
+    main(int(sys.argv[1]))

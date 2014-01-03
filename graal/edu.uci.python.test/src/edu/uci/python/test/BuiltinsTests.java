@@ -226,4 +226,16 @@ public class BuiltinsTests {
         assertPrints("45\n", source);
     }
 
+    @Test
+    public void divmodInt() {
+        String source = "print(divmod(42, 3))";
+        assertPrints("(14, 0)\n", source);
+    }
+
+    @Test
+    public void divmodDouble() {
+        String source = "print(divmod(4.2, 3.1))";
+        assertPrints("(1.0, 1.1)\n", source);
+    }
+
 }
