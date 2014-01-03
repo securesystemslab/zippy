@@ -57,6 +57,12 @@ public class GeneratorTests {
     }
 
     @Test
+    public void euler11() {
+        Path script = Paths.get("euler11-test.py");
+        assertPrints("9507960\n9507960\n", script);
+    }
+
+    @Test
     public void inline() {
         Path script = Paths.get("generator-inline-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);

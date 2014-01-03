@@ -52,7 +52,7 @@ public final class PRangeIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         if (index < stop) {
             int value = index;
             index += step;

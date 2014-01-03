@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,10 +24,6 @@
  */
 package edu.uci.python.nodes.generator;
 
-import java.math.*;
-
-import org.python.core.*;
-
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -35,56 +31,53 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.function.*;
 
-public abstract class ReadMaterializedFrameVariableNode extends FrameSlotNode implements ReadNode {
+/**
+ * Reads from a generator frame slot that stores a generator node flag, like FirstEntry. <br>
+ */
+public abstract class ReadGeneratorFrameFlagNode extends FrameSlotNode implements ReadNode {
 
-    public ReadMaterializedFrameVariableNode(FrameSlot slot) {
+    public ReadGeneratorFrameFlagNode(FrameSlot slot) {
         super(slot);
     }
 
-    public ReadMaterializedFrameVariableNode(ReadMaterializedFrameVariableNode specialized) {
+    public ReadGeneratorFrameFlagNode(ReadGeneratorFrameFlagNode specialized) {
         this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return WriteMaterializedFrameVariableNodeFactory.create(frameSlot, rhs);
+        return WriteGeneratorFrameVariableNodeFactory.create(frameSlot, rhs);
     }
 
-    @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getInteger(mframe);
-    }
-
-    @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getBigInteger(mframe);
-    }
-
-    @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getDouble(mframe);
-    }
-
-    @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
+    /**
+     * A generator node boolean flag by default initialize to true.
+     */
+    @SuppressWarnings("unused")
+    @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
         MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getBoolean(mframe);
-    }
-
-    @Specialization(guards = "isNotIllegal")
-    public Object doObject(VirtualFrame frame) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getObject(mframe);
+        try {
+            return getBoolean(mframe);
+        } catch (FrameSlotTypeException e) {
+            return true;
+        }
     }
 
     @SuppressWarnings("unused")
-    @Generic
-    public Object doGeneric(VirtualFrame frame) {
-        assert !isNotIllegal();
-        throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+    @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
+    public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        try {
+            return getInteger(mframe);
+        } catch (FrameSlotTypeException e) {
+            return 0;
+        }
+    }
+
+    @Specialization
+    public Object doObject(VirtualFrame frame) {
+        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        return getObject(mframe);
     }
 
 }

@@ -45,7 +45,7 @@ public class PDoubleSequenceIterator implements PIterator, PDoubleIterator {
         throw StopIterationException.INSTANCE;
     }
 
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         return __nextDouble__();
     }
 

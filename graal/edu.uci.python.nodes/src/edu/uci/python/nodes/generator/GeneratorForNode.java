@@ -36,81 +36,92 @@ import edu.uci.python.runtime.iterator.*;
 
 public class GeneratorForNode extends LoopNode {
 
-    @Child protected WriteMaterializedFrameVariableNode target;
+    @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
 
     protected PIterator iterator;
+    protected int count;
 
-    public GeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
+    public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
         super(body);
         this.target = adoptChild(target);
         this.getIterator = adoptChild(getIterator);
     }
 
+    protected void reset() {
+        iterator = null;
+        count = 0;
+    }
+
+    protected void incrementCounter() {
+        if (CompilerDirectives.inInterpreter()) {
+            count++;
+        }
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
-        executeIterator(frame);
-        int count = 0;
+        try {
+            executeIterator(frame);
+        } catch (StopIterationException e) {
+            reset();
+            return PNone.NONE;
+        }
 
         try {
             while (true) {
                 body.executeVoid(frame);
                 target.executeWith(frame, iterator.__next__());
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
+                incrementCounter();
             }
         } catch (StopIterationException e) {
-            iterator = null;
             if (CompilerDirectives.inInterpreter()) {
                 reportLoopCount(count);
             }
         }
 
+        reset();
         return PNone.NONE;
     }
 
-    protected void executeIterator(VirtualFrame frame) {
+    protected void executeIterator(VirtualFrame frame) throws StopIterationException {
         if (iterator != null) {
             return;
         }
 
         try {
             iterator = getIterator.executePIterator(frame);
-            target.executeWith(frame, iterator.__next__());
         } catch (UnexpectedResultException e) {
             throw new RuntimeException();
         }
+
+        target.executeWith(frame, iterator.__next__());
+        incrementCounter();
     }
 
     public static final class InnerGeneratorForNode extends GeneratorForNode {
 
-        public InnerGeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
+        public InnerGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
             super(target, getIterator, body);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             executeIterator(frame);
-            int count = 0;
 
             try {
                 while (true) {
                     target.executeWith(frame, iterator.__next__());
                     body.executeVoid(frame);
-
-                    if (CompilerDirectives.inInterpreter()) {
-                        count++;
-                    }
+                    incrementCounter();
                 }
             } catch (StopIterationException e) {
-                iterator = null;
                 if (CompilerDirectives.inInterpreter()) {
                     reportLoopCount(count);
                 }
             }
 
+            reset();
             return PNone.NONE;
         }
 
@@ -119,7 +130,6 @@ public class GeneratorForNode extends LoopNode {
             if (iterator != null) {
                 return;
             }
-
             try {
                 iterator = getIterator.executePIterator(frame);
             } catch (UnexpectedResultException e) {
@@ -127,4 +137,5 @@ public class GeneratorForNode extends LoopNode {
             }
         }
     }
+
 }

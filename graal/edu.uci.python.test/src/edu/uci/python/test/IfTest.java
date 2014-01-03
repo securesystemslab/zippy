@@ -31,10 +31,25 @@ import java.nio.file.*;
 import org.junit.*;
 
 public class IfTest {
+
     @Test
-    public void simple() {
-        Path script = Paths.get("if_test.py");
-        assertPrints("a < b\na is true\nnot a > b\n", script);
+    public void basic() {
+        String source = "a = 1\n" + //
+                        "b = 2\n" + //
+                        "if a < b:\n" + //
+                        "    print('a < b')\n" + //
+                        "if a:\n" + //
+                        "    print('a is true')\n" + //
+                        "if not b:\n" + //
+                        "    print('b is false')\n" + //
+                        "if not a > b:\n" + //
+                        "    print('not a > b')\n";
+        assertPrints("a < b\na is true\nnot a > b\n", source);
     }
 
+    @Test
+    public void elif() {
+        Path script = Paths.get("if-test.py");
+        assertPrints("31\n", script);
+    }
 }

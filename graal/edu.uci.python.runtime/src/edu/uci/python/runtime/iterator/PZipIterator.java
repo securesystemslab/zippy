@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.iterator;
 
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
@@ -39,7 +40,7 @@ public class PZipIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         /**
          * StopIterationException is not explicitly thrown, but it can be implicitly thrown and
          * stops the iteration when the __next__() method is called on one of the iterated objects.

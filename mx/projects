@@ -31,10 +31,10 @@ library@JLINE@path=lib/jline-2.10.jar
 library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.10/jline-2.10.jar
 
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
-library@JLINE09@urls=http://search.maven.org/remotecontent?filepath=jline/jline/0.9.94/jline-0.9.94.jar
+library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
 
 library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
-library@JYTHON@urls=http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
+library@JYTHON@urls=http://mirrors.ibiblio.org/maven2/org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
 
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=\

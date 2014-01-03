@@ -37,7 +37,7 @@ public class PSequenceIterator implements PIterator {
     }
 
     @Override
-    public Object __next__() {
+    public Object __next__() throws StopIterationException {
         if (index < sequence.len()) {
             return sequence.getItem(index++);
         }

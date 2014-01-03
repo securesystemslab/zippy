@@ -26,6 +26,7 @@ package edu.uci.python.parser;
 
 import java.util.*;
 
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -37,7 +38,15 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    public static void translate(FunctionRootNode root) {
+    public static final String ROOT_NODE_FIRST_ENTRY_SLOT_ID = "<_fist_entry_>";
+
+    private final FrameDescriptor frameDescriptor;
+
+    public GeneratorTranslator(FrameDescriptor frameDescriptor) {
+        this.frameDescriptor = frameDescriptor;
+    }
+
+    public void translate(FunctionRootNode root) {
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -49,11 +58,11 @@ public class GeneratorTranslator {
          * Redirect local variable accesses to materialized persistent frame.
          */
         for (WriteLocalVariableNode write : NodeUtil.findAllNodeInstances(root, WriteLocalVariableNode.class)) {
-            write.replace(WriteMaterializedFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
+            write.replace(WriteGeneratorFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
         }
 
         for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
-            read.replace(ReadMaterializedFrameVariableNodeFactory.create(read.getSlot()));
+            read.replace(ReadGeneratorFrameVariableNodeFactory.create(read.getSlot()));
         }
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
@@ -71,15 +80,17 @@ public class GeneratorTranslator {
         }
     }
 
-    private static void splitArgumentLoads(ReturnTargetNode returnTarget) {
+    private void splitArgumentLoads(ReturnTargetNode returnTarget) {
+        FrameSlot firstEntry = frameDescriptor.findOrAddFrameSlot(ROOT_NODE_FIRST_ENTRY_SLOT_ID);
+
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn(), firstEntry));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn(), firstEntry));
         }
     }
 
@@ -94,7 +105,7 @@ public class GeneratorTranslator {
         if (node instanceof ForWithLocalTargetNode) {
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
             AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
-            WriteMaterializedFrameVariableNode target = (WriteMaterializedFrameVariableNode) next.getTarget();
+            WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) next.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
 
             if (depth == 0) {

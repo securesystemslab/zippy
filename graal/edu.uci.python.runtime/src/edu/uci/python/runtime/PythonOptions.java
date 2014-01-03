@@ -33,6 +33,8 @@ public class PythonOptions {
 
     public static boolean VisualizedAST = false;
 
+    public static boolean TraceJythonRuntime = true;
+
     // Translation flags
     public static final boolean ReturnValueInFrame = true;
 

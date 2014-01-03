@@ -520,6 +520,31 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // sum(iterable[, start])
+    @Builtin(name = "sum", minNumOfArguments = 1, takesKeywordArguments = true, maxNumOfArguments = 2, keywordNames = {"start"})
+    public abstract static class PythonSumNode extends PythonBuiltinNode {
+        /**
+         * Incomplete. Only support ints.
+         */
+
+        @Specialization
+        public int doPIterable(PIterable iterable) {
+            PIterator iter = iterable.__iter__();
+            return doPIterator(iter);
+        }
+
+        @Specialization
+        public int doPIterator(PIterator iterator) {
+            int sum = 0;
+            try {
+                sum += (int) iterator.__next__();
+            } catch (StopIterationException e) {
+            }
+
+            return sum;
+        }
+    }
+
     @SlowPath
     private static void typeError(String message) {
         throw Py.TypeError(message);

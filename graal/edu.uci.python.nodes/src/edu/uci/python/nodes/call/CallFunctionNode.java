@@ -91,6 +91,12 @@ public abstract class CallFunctionNode extends PNode {
             replace(specialized);
             return specialized.callConstructor(frame, (PythonClass) callee, args);
         } else if (callee instanceof PyObject) {
+            if (PythonOptions.TraceJythonRuntime) {
+                // CheckStyle: stop system..print check
+                System.out.println("[ZipPy]: calling jython runtime function " + callee);
+                // CheckStyle: resume system..print check
+            }
+
             PyObject[] pyargs = adaptToPyObjects(args);
             PyObject pyCallable = (PyObject) callee;
             return unboxPyObject(pyCallable.__call__(pyargs));

@@ -24,8 +24,10 @@
  */
 package edu.uci.python.runtime.iterator;
 
+import edu.uci.python.runtime.exception.*;
+
 public interface PIterator {
 
-    Object __next__();
+    Object __next__() throws StopIterationException;
 
 }
