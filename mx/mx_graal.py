@@ -1413,35 +1413,21 @@ def generateZshCompletion(args):
         doc = c.__doc__
         complt += '\t\t\t"{0}'.format(cmd)
         if doc:
-            complt += ':{0}'.format(doc.split('\n', 1)[0].replace('\"', '').replace("\'", ""))
+            complt += ':{0}'.format(_fixQuotes(doc.split('\n', 1)[0]))
         complt += '"\n'
     complt += '\t\t)\n'
     complt += '\t\t_describe -t main_commands command main_commands && ret=0\n'
     complt += '\t\t;;\n'
 
     complt += '\t(args)\n'
+    # TODO: improve matcher: if mx args are given, this doesn't work
     complt += '\t\tcase $line[1] in\n'
     complt += '\t\t\t(vm)\n'
     complt += '\t\t\t\tnoglob \\\n'
     complt += '\t\t\t\t\t_arguments -s -S \\\n'
-    for vmap in _parseVMOptions():
-        complt += '\t\t\t\t\t'
-        if vmap['optType'] == 'Boolean':
-            complt += '{-,+}'
-        else:
-            complt += '-'
-        complt += '"G\:' + vmap['optName']
-        if vmap['optType'] != 'Boolean':
-            complt += '='
-        if vmap['optDefault'] or vmap['optDoc']:
-            complt += "["
-        if vmap['optDefault']:
-            complt += "(default\: " + vmap['optDefault'] + ")"
-        if vmap['optDoc']:
-            complt += vmap['optDoc']
-        if vmap['optDefault'] or vmap['optDoc']:
-            complt += "]"
-        complt += '" \\\n'
+    complt += _appendOptions("graal", r"G\:")
+    # TODO: fix -XX:{-,+}Use* flags
+    complt += _appendOptions("hotspot", r"XX\:")
     complt += '\t\t\t\t\t"-version" && ret=0 \n'
     complt += '\t\t\t\t;;\n'
     complt += '\t\tesac\n'
@@ -1451,17 +1437,48 @@ def generateZshCompletion(args):
     complt += 'return $ret'
     print complt
 
-def _parseVMOptions():
+def _fixQuotes(arg):
+    return arg.replace('\"', '').replace('\'', '').replace('`', '').replace('{', '\\{').replace('}', '\\}').replace('[', '\\[').replace(']', '\\]')
+
+def _appendOptions(optionType, optionPrefix):
+    def isBoolean(vmap, field):
+        return vmap[field] == "Boolean" or vmap[field] == "bool"
+
+    def hasDescription(vmap):
+        return vmap['optDefault'] or vmap['optDoc']
+
+    complt = ""
+    for vmap in _parseVMOptions(optionType):
+        complt += '\t\t\t\t\t-"'
+        complt += optionPrefix
+        if isBoolean(vmap, 'optType'):
+            complt += '"{-,+}"'
+        complt += vmap['optName']
+        if not isBoolean(vmap, 'optType'):
+            complt += '='
+        if hasDescription(vmap):
+            complt += "["
+        if vmap['optDefault']:
+            complt += r"(default\: " + vmap['optDefault'] + ")"
+        if vmap['optDoc']:
+            complt += _fixQuotes(vmap['optDoc'])
+        if hasDescription(vmap):
+            complt += "]"
+        complt += '" \\\n'
+    return complt
+
+def _parseVMOptions(optionType):
     parser = OutputParser()
     # TODO: the optDoc part can wrapped accross multiple lines, currently only the first line will be captured
+    # TODO: fix matching for float literals
     jvmOptions = re.compile(
         r"^[ \t]*"
-        "(?P<optType>(Boolean|Integer|Float|Double|String|ccstr|uintx)) "
-        "(?P<optName>[a-zA-Z0-9]+)"
-        "[ \t]+=[ \t]*"
-        "(?P<optDefault>([\-0-9]+(\.[0-9]+(\.[0-9]+\.[0-9]+))?|false|true|null|Name|sun\.boot\.class\.path))?"
-        "[ \t]*"
-        "(?P<optDoc>.+)?",
+        r"(?P<optType>(Boolean|Integer|Float|Double|String|bool|intx|uintx|ccstr|double)) "
+        r"(?P<optName>[a-zA-Z0-9]+)"
+        r"[ \t]+=[ \t]*"
+        r"(?P<optDefault>([\-0-9]+(\.[0-9]+(\.[0-9]+\.[0-9]+))?|false|true|null|Name|sun\.boot\.class\.path))?"
+        r"[ \t]*"
+        r"(?P<optDoc>.+)?",
         re.MULTILINE)
     parser.addMatcher(ValuesMatcher(jvmOptions, {
         'optType' : '<optType>',
@@ -1472,7 +1489,7 @@ def _parseVMOptions():
 
     # gather graal options
     output = StringIO.StringIO()
-    vm(['-XX:-BootstrapGraal', '-G:+PrintFlags'],
+    vm(['-XX:-BootstrapGraal', '-G:+PrintFlags' if optionType == "graal" else '-XX:+PrintFlagsWithComments'],
        vm = "graal",
        vmbuild = "optimized",
        nonZeroIsFatal = False,
@@ -1481,8 +1498,6 @@ def _parseVMOptions():
 
     valueMap = parser.parse(output.getvalue())
     return valueMap
-    # TODO: hotspot -XX: options
-    # vm(['-XX:-BootstrapGraal', '-XX:+PrintFlagsWithComments'], vm="graal", vmbuild="optimized")
 
 
 def mx_init(suite):
