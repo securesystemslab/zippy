@@ -26,9 +26,10 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
+from outputparser import OutputParser, ValuesMatcher
 import mx
 import xml.dom.minidom
 import sanitycheck
@@ -1401,26 +1402,87 @@ def generateZshCompletion(args):
 
     # add array of possible subcommands (as they are not part of the argument parser)
     complt += '\n  ": :->command" \\\n'
-    complt += '  "*::args:_files" && ret=0\n'
+    complt += '  "*::args:->args" && ret=0\n'
     complt += '\n'
     complt += 'case $state in\n'
-    complt += '  (command)\n'
-    complt += '    local -a main_commands\n'
-    complt += '    main_commands=(\n'
+    complt += '\t(command)\n'
+    complt += '\t\tlocal -a main_commands\n'
+    complt += '\t\tmain_commands=(\n'
     for cmd in sorted(mx._commands.iterkeys()):
         c, _ = mx._commands[cmd][:2]
         doc = c.__doc__
-        complt += '      "{0}'.format(cmd)
+        complt += '\t\t\t"{0}'.format(cmd)
         if doc:
             complt += ':{0}'.format(doc.split('\n', 1)[0].replace('\"', '').replace("\'", ""))
         complt += '"\n'
-    complt += '    )\n'
-    complt += '    _describe -t main_commands command main_commands && ret=0\n'
-    complt += '    ;;\n'
+    complt += '\t\t)\n'
+    complt += '\t\t_describe -t main_commands command main_commands && ret=0\n'
+    complt += '\t\t;;\n'
+
+    complt += '\t(args)\n'
+    complt += '\t\tcase $line[1] in\n'
+    complt += '\t\t\t(vm)\n'
+    complt += '\t\t\t\tnoglob \\\n'
+    complt += '\t\t\t\t\t_arguments -s -S \\\n'
+    for vmap in _parseVMOptions():
+        complt += '\t\t\t\t\t'
+        if vmap['optType'] == 'Boolean':
+            complt += '{-,+}'
+        else:
+            complt += '-'
+        complt += '"G\:' + vmap['optName']
+        if vmap['optType'] != 'Boolean':
+            complt += '='
+        if vmap['optDefault'] or vmap['optDoc']:
+            complt += "["
+        if vmap['optDefault']:
+            complt += "(default\: " + vmap['optDefault'] + ")"
+        if vmap['optDoc']:
+            complt += vmap['optDoc']
+        if vmap['optDefault'] or vmap['optDoc']:
+            complt += "]"
+        complt += '" \\\n'
+    complt += '\t\t\t\t\t"-version" && ret=0 \n'
+    complt += '\t\t\t\t;;\n'
+    complt += '\t\tesac\n'
+    complt += '\t\t;;\n'
     complt += 'esac\n'
     complt += '\n'
     complt += 'return $ret'
     print complt
+
+def _parseVMOptions():
+    parser = OutputParser()
+    # TODO: the optDoc part can wrapped accross multiple lines, currently only the first line will be captured
+    jvmOptions = re.compile(
+        r"^[ \t]*"
+        "(?P<optType>(Boolean|Integer|Float|Double|String|ccstr|uintx)) "
+        "(?P<optName>[a-zA-Z0-9]+)"
+        "[ \t]+=[ \t]*"
+        "(?P<optDefault>([\-0-9]+(\.[0-9]+(\.[0-9]+\.[0-9]+))?|false|true|null|Name|sun\.boot\.class\.path))?"
+        "[ \t]*"
+        "(?P<optDoc>.+)?",
+        re.MULTILINE)
+    parser.addMatcher(ValuesMatcher(jvmOptions, {
+        'optType' : '<optType>',
+        'optName' : '<optName>',
+        'optDefault' : '<optDefault>',
+        'optDoc' : '<optDoc>',
+        }))
+
+    # gather graal options
+    output = StringIO.StringIO()
+    vm(['-XX:-BootstrapGraal', '-G:+PrintFlags'],
+       vm = "graal",
+       vmbuild = "optimized",
+       nonZeroIsFatal = False,
+       out = output.write,
+       err = subprocess.STDOUT)
+
+    valueMap = parser.parse(output.getvalue())
+    return valueMap
+    # TODO: hotspot -XX: options
+    # vm(['-XX:-BootstrapGraal', '-XX:+PrintFlagsWithComments'], vm="graal", vmbuild="optimized")
 
 
 def mx_init(suite):
