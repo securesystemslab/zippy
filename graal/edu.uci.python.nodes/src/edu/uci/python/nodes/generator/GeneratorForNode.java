@@ -36,13 +36,13 @@ import edu.uci.python.runtime.iterator.*;
 
 public class GeneratorForNode extends LoopNode {
 
-    @Child protected WriteMaterializedFrameVariableNode target;
+    @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
 
     protected PIterator iterator;
     protected int count;
 
-    public GeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
+    public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
         super(body);
         this.target = adoptChild(target);
         this.getIterator = adoptChild(getIterator);
@@ -101,7 +101,7 @@ public class GeneratorForNode extends LoopNode {
 
     public static final class InnerGeneratorForNode extends GeneratorForNode {
 
-        public InnerGeneratorForNode(WriteMaterializedFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
+        public InnerGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body) {
             super(target, getIterator, body);
         }
 

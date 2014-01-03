@@ -163,7 +163,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
-            GeneratorTranslator.translate(funcRoot);
+            new GeneratorTranslator(fd).translate(funcRoot);
             funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         } else {
             funcDef = new FunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
@@ -176,8 +176,8 @@ public class PythonTreeTranslator extends Visitor {
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
         FunctionRootNode funcRoot = factory.createFunctionRoot("generator_exp", body);
         result.addParsedFunction("generator_exp", funcRoot);
-        GeneratorTranslator.translate(funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
+        new GeneratorTranslator(fd).translate(funcRoot);
         return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame());
     }
 

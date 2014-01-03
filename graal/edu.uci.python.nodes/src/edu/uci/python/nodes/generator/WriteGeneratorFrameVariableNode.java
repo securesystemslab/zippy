@@ -35,22 +35,22 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 @NodeChild(value = "rightNode", type = PNode.class)
-public abstract class WriteMaterializedFrameVariableNode extends FrameSlotNode implements WriteNode {
+public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode implements WriteNode {
 
-    public abstract PNode getRightNode();
-
-    public WriteMaterializedFrameVariableNode(FrameSlot slot) {
+    public WriteGeneratorFrameVariableNode(FrameSlot slot) {
         super(slot);
     }
 
-    protected WriteMaterializedFrameVariableNode(WriteMaterializedFrameVariableNode specialized) {
+    protected WriteGeneratorFrameVariableNode(WriteGeneratorFrameVariableNode specialized) {
         this(specialized.frameSlot);
     }
 
     @Override
     public PNode makeReadNode() {
-        return null;
+        return ReadGeneratorFrameVariableNodeFactory.create(frameSlot);
     }
+
+    public abstract PNode getRightNode();
 
     @Override
     public PNode getRhs() {
