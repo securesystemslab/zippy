@@ -1128,14 +1128,6 @@ def longtests(args):
 
     dacapo(['100', 'eclipse', '-esa'])
 
-def gv(args):
-    """run the Graal Visualizer"""
-    with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
-        mx.logv('[Graal Visualizer log is in ' + fp.name + ']')
-        if not exists(join(_graal_home, 'visualizer', 'build.xml')):
-            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
-
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
@@ -1517,7 +1509,6 @@ def mx_init(suite):
         'specjbb2013': [specjbb2013, '[VM options] [-- [SPECjbb2013 options]]'],
         'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
-        'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
