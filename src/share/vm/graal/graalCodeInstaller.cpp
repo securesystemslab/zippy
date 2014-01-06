@@ -159,7 +159,7 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
   }
 }
 
-static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
+ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
   second = NULL;
   if (value == Value::ILLEGAL()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
@@ -265,7 +265,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
       oop object = ((objArrayOop) (values))->obj_at(i);
-      ScopeValue* value = get_hotspot_value(object, total_frame_size, objects, cur_second, oop_recorder);
+      ScopeValue* value = get_scope_value(object, total_frame_size, objects, cur_second, oop_recorder);
 
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
@@ -292,14 +292,14 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   return NULL;
 }
 
-static MonitorValue* get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, OopRecorder* oop_recorder) {
+MonitorValue* CodeInstaller::get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, OopRecorder* oop_recorder) {
   guarantee(value->is_a(HotSpotMonitorValue::klass()), "Monitors must be of type MonitorValue");
 
   ScopeValue* second = NULL;
-  ScopeValue* owner_value = get_hotspot_value(HotSpotMonitorValue::owner(value), total_frame_size, objects, second, oop_recorder);
+  ScopeValue* owner_value = get_scope_value(HotSpotMonitorValue::owner(value), total_frame_size, objects, second, oop_recorder);
   assert(second == NULL, "monitor cannot occupy two stack slots");
 
-  ScopeValue* lock_data_value = get_hotspot_value(HotSpotMonitorValue::slot(value), total_frame_size, objects, second, oop_recorder);
+  ScopeValue* lock_data_value = get_scope_value(HotSpotMonitorValue::slot(value), total_frame_size, objects, second, oop_recorder);
   assert(second == lock_data_value, "monitor is LONG value that occupies two stack slots");
   assert(lock_data_value->is_location(), "invalid monitor location");
   Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
@@ -360,11 +360,10 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
+GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
   BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
   if (buffer_blob == NULL) {
-    result = GraalEnv::cache_full;
-    return;
+    return GraalEnv::cache_full;
   }
 
   CodeBuffer buffer(buffer_blob);
@@ -379,8 +378,7 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
     No_Safepoint_Verifier no_safepoint;
     initialize_fields(JNIHandles::resolve(compiled_code_obj));
     if (!initialize_buffer(buffer)) {
-      result = GraalEnv::code_too_large;
-      return;
+      return GraalEnv::code_too_large;
     }
     process_exception_handlers();
   }
@@ -388,6 +386,7 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(compiled_code);
 
+  GraalEnv::CodeInstallResult result;
   if (compiled_code->is_a(HotSpotCompiledRuntimeStub::klass())) {
     oop stubName = HotSpotCompiledRuntimeStub::stubName(compiled_code);
     char* name = strdup(java_lang_String::as_utf8_string(stubName));
@@ -411,6 +410,7 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
     // Make sure the pre-calculated constants section size was correct.
     guarantee((cb->code_begin() - cb->content_begin()) == _constants_size, err_msg("%d != %d", cb->code_begin() - cb->content_begin(), _constants_size));
   }
+  return result;
 }
 
 void CodeInstaller::initialize_fields(oop compiled_code) {
@@ -666,13 +666,13 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     ScopeValue* second = NULL;
     oop value=((objArrayOop) (values))->obj_at(i);
     if (i < local_count) {
-      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
+      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
         locals->append(second);
       }
       locals->append(first);
     } else if (i < local_count + expression_count) {
-      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
+      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
         expressions->append(second);
       }

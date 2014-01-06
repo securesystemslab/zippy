@@ -33,7 +33,7 @@ import edu.uci.python.runtime.function.*;
 /**
  * Generator expression definition in a generator context.
  */
-public class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
+public final class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
 
     public GeneratorGeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode prev) {
         super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame(), prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
