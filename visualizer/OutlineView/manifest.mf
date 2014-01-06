@@ -1,6 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module: com.oracle.graal.visualizer.outline
-OpenIDE-Module-Layer: com/oracle/graal/visualizer/outline/layer.xml
-OpenIDE-Module-Localizing-Bundle: com/oracle/graal/visualizer/outline/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.0
-

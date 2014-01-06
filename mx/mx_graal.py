@@ -26,9 +26,10 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
+from outputparser import OutputParser, ValuesMatcher
 import mx
 import xml.dom.minidom
 import sanitycheck
@@ -1127,14 +1128,6 @@ def longtests(args):
 
     dacapo(['100', 'eclipse', '-esa'])
 
-def gv(args):
-    """run the Graal Visualizer"""
-    with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
-        mx.logv('[Graal Visualizer log is in ' + fp.name + ']')
-        if not exists(join(_graal_home, 'visualizer', 'build.xml')):
-            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
-
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
@@ -1370,6 +1363,17 @@ def trufflejar(args=None):
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
+def rubyShellCp():
+    return mx.classpath("com.oracle.truffle.ruby.shell")
+
+def rubyShellClass():
+    return "com.oracle.truffle.ruby.shell.Shell"
+
+def ruby(args):
+    """run a Ruby program or shell"""
+    vmArgs, rubyArgs = _extract_VM_args(args, useDoubleDash=True)
+    vm(vmArgs + ['-cp', rubyShellCp(), rubyShellClass()] + rubyArgs)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1383,12 +1387,129 @@ def site(args):
                     '--title', 'Graal OpenJDK Project Documentation',
                     '--dot-output-base', 'projects'] + args)
 
+def generateZshCompletion(args):
+    """generate zsh completion for mx"""
+    try:
+        from genzshcomp import CompletionGenerator
+    except ImportError:
+        mx.abort("install genzshcomp (pip install genzshcomp)")
+
+    # need to fake module for the custom mx arg parser, otherwise a check in genzshcomp fails
+    originalModule = mx._argParser.__module__
+    mx._argParser.__module__ = "argparse"
+    generator = CompletionGenerator("mx", mx._argParser)
+    mx._argParser.__module__ = originalModule
+
+    # strip last line and define local variable "ret"
+    complt = "\n".join(generator.get().split('\n')[0:-1]).replace('context state line', 'context state line ret=1')
+
+    # add array of possible subcommands (as they are not part of the argument parser)
+    complt += '\n  ": :->command" \\\n'
+    complt += '  "*::args:->args" && ret=0\n'
+    complt += '\n'
+    complt += 'case $state in\n'
+    complt += '\t(command)\n'
+    complt += '\t\tlocal -a main_commands\n'
+    complt += '\t\tmain_commands=(\n'
+    for cmd in sorted(mx._commands.iterkeys()):
+        c, _ = mx._commands[cmd][:2]
+        doc = c.__doc__
+        complt += '\t\t\t"{0}'.format(cmd)
+        if doc:
+            complt += ':{0}'.format(_fixQuotes(doc.split('\n', 1)[0]))
+        complt += '"\n'
+    complt += '\t\t)\n'
+    complt += '\t\t_describe -t main_commands command main_commands && ret=0\n'
+    complt += '\t\t;;\n'
+
+    complt += '\t(args)\n'
+    # TODO: improve matcher: if mx args are given, this doesn't work
+    complt += '\t\tcase $line[1] in\n'
+    complt += '\t\t\t(vm)\n'
+    complt += '\t\t\t\tnoglob \\\n'
+    complt += '\t\t\t\t\t_arguments -s -S \\\n'
+    complt += _appendOptions("graal", r"G\:")
+    # TODO: fix -XX:{-,+}Use* flags
+    complt += _appendOptions("hotspot", r"XX\:")
+    complt += '\t\t\t\t\t"-version" && ret=0 \n'
+    complt += '\t\t\t\t;;\n'
+    complt += '\t\tesac\n'
+    complt += '\t\t;;\n'
+    complt += 'esac\n'
+    complt += '\n'
+    complt += 'return $ret'
+    print complt
+
+def _fixQuotes(arg):
+    return arg.replace('\"', '').replace('\'', '').replace('`', '').replace('{', '\\{').replace('}', '\\}').replace('[', '\\[').replace(']', '\\]')
+
+def _appendOptions(optionType, optionPrefix):
+    def isBoolean(vmap, field):
+        return vmap[field] == "Boolean" or vmap[field] == "bool"
+
+    def hasDescription(vmap):
+        return vmap['optDefault'] or vmap['optDoc']
+
+    complt = ""
+    for vmap in _parseVMOptions(optionType):
+        complt += '\t\t\t\t\t-"'
+        complt += optionPrefix
+        if isBoolean(vmap, 'optType'):
+            complt += '"{-,+}"'
+        complt += vmap['optName']
+        if not isBoolean(vmap, 'optType'):
+            complt += '='
+        if hasDescription(vmap):
+            complt += "["
+        if vmap['optDefault']:
+            complt += r"(default\: " + vmap['optDefault'] + ")"
+        if vmap['optDoc']:
+            complt += _fixQuotes(vmap['optDoc'])
+        if hasDescription(vmap):
+            complt += "]"
+        complt += '" \\\n'
+    return complt
+
+def _parseVMOptions(optionType):
+    parser = OutputParser()
+    # TODO: the optDoc part can wrapped accross multiple lines, currently only the first line will be captured
+    # TODO: fix matching for float literals
+    jvmOptions = re.compile(
+        r"^[ \t]*"
+        r"(?P<optType>(Boolean|Integer|Float|Double|String|bool|intx|uintx|ccstr|double)) "
+        r"(?P<optName>[a-zA-Z0-9]+)"
+        r"[ \t]+=[ \t]*"
+        r"(?P<optDefault>([\-0-9]+(\.[0-9]+(\.[0-9]+\.[0-9]+))?|false|true|null|Name|sun\.boot\.class\.path))?"
+        r"[ \t]*"
+        r"(?P<optDoc>.+)?",
+        re.MULTILINE)
+    parser.addMatcher(ValuesMatcher(jvmOptions, {
+        'optType' : '<optType>',
+        'optName' : '<optName>',
+        'optDefault' : '<optDefault>',
+        'optDoc' : '<optDoc>',
+        }))
+
+    # gather graal options
+    output = StringIO.StringIO()
+    vm(['-XX:-BootstrapGraal', '-G:+PrintFlags' if optionType == "graal" else '-XX:+PrintFlagsWithComments'],
+       vm = "graal",
+       vmbuild = "optimized",
+       nonZeroIsFatal = False,
+       out = output.write,
+       err = subprocess.STDOUT)
+
+    valueMap = parser.parse(output.getvalue())
+    return valueMap
+
+
 def mx_init(suite):
     commands = {
         'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
+        'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
@@ -1399,7 +1520,6 @@ def mx_init(suite):
         'specjbb2013': [specjbb2013, '[VM options] [-- [SPECjbb2013 options]]'],
         'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
-        'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
@@ -1413,6 +1533,7 @@ def mx_init(suite):
         'longtests' : [longtests, ''],
         'sl' : [sl, '[SL args|@VM options]'],
         'trufflejar' : [trufflejar, ''],
+        'ruby' : [ruby, '[Ruby args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

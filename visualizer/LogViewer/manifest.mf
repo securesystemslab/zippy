@@ -1,6 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module: com.oracle.graal.visualizer.logviewer
-OpenIDE-Module-Layer: com/oracle/graal/visualizer/logviewer/layer.xml
-OpenIDE-Module-Localizing-Bundle: com/oracle/graal/visualizer/logviewer/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.0
-

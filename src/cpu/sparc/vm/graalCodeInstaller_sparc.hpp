@@ -188,13 +188,13 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       fatal("unimplemented");
     }
     case MARK_POLL_FAR:
-      _instructions->relocate(pc, relocInfo::poll_type);
+      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::absolute));
       break;
     case MARK_POLL_RETURN_NEAR: {
       fatal("unimplemented");
     }
     case MARK_POLL_RETURN_FAR:
-      _instructions->relocate(pc, relocInfo::poll_return_type);
+      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::absolute));
       break;
     default:
       fatal("invalid mark value");
