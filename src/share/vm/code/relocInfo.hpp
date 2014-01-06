@@ -214,7 +214,7 @@ class NativeMovConstReg;
 //   Value:  none
 //   Instruction types: memory load or test
 //   Data:  []       the associated set-oops are adjacent to the call
-//          [n]      n is a poll_Relocation::pollingPageDistance value
+//          [n]      n is a poll_Relocation::pollingForm value
 //
 // For example:
 //
@@ -1279,27 +1279,27 @@ class section_word_Relocation : public internal_word_Relocation {
 
 class poll_Relocation : public Relocation {
  public:
-  enum pollingPageDistance {
-    near,
-    far
+  enum pollingForm {
+    pc_relative,
+    absolute
   };
   relocInfo::relocType type() { return relocInfo::poll_type; }
   bool          is_data()                      { return true; }
   void     fix_relocation_after_move(const CodeBuffer* src, CodeBuffer* dest);
  private:
-  pollingPageDistance     _distance;
+  pollingForm     _form;
  public:
 
-  static RelocationHolder spec(poll_Relocation::pollingPageDistance distance) {
+  static RelocationHolder spec(poll_Relocation::pollingForm form) {
     RelocationHolder rh = newHolder();
-    new(rh) poll_Relocation(distance);
+    new(rh) poll_Relocation(form);
     return rh;
   }
 
-  poll_Relocation(poll_Relocation::pollingPageDistance distance) {
-    _distance = distance;
+  poll_Relocation(poll_Relocation::pollingForm form) {
+    _form = form;
   }
-  poll_Relocation::pollingPageDistance distance() { return _distance; }
+  poll_Relocation::pollingForm form() { return _form; }
 
   void pack_data_to(CodeSection* dest);
   void unpack_data();
@@ -1313,13 +1313,13 @@ class poll_return_Relocation : public poll_Relocation {
  public:
   relocInfo::relocType type() { return relocInfo::poll_return_type; }
 
-  static RelocationHolder spec(poll_Relocation::pollingPageDistance distance) {
+  static RelocationHolder spec(poll_Relocation::pollingForm distance) {
     RelocationHolder rh = newHolder();
     new(rh) poll_return_Relocation(distance);
     return rh;
   }
 
-  poll_return_Relocation(poll_Relocation::pollingPageDistance distance) : poll_Relocation(distance) { }
+  poll_return_Relocation(poll_Relocation::pollingForm distance) : poll_Relocation(distance) { }
 
  private:
   friend class RelocIterator;

@@ -232,19 +232,19 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
     case MARK_POLL_NEAR: {
       relocate_poll_near(pc);
-      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::near));
+      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::pc_relative));
       break;
     }
     case MARK_POLL_FAR:
-      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::far));
+      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::absolute));
       break;
     case MARK_POLL_RETURN_NEAR: {
       relocate_poll_near(pc);
-      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::near));
+      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::pc_relative));
       break;
     }
     case MARK_POLL_RETURN_FAR:
-      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::far));
+      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::absolute));
       break;
     default:
       fatal("invalid mark value");

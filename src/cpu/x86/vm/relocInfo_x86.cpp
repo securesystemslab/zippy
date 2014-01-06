@@ -179,7 +179,7 @@ address Relocation::pd_get_address_from_code() {
 
 void poll_Relocation::fix_relocation_after_move(const CodeBuffer* src, CodeBuffer* dest) {
 #ifdef _LP64
-  if (_distance == near) {
+  if (_form == pc_relative) {
     typedef Assembler::WhichOperand WhichOperand;
     WhichOperand which = (WhichOperand) format();
     // This format is imm but it is really disp32

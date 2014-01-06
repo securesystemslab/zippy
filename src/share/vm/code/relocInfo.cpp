@@ -681,12 +681,12 @@ void section_word_Relocation::unpack_data() {
 
 void poll_Relocation::pack_data_to(CodeSection* dest) {
   short* p = (short*) dest->locs_end();
-  p = pack_1_int_to(p, _distance);
+  p = pack_1_int_to(p, _form);
   dest->set_locs_end((relocInfo*) p);
 }
 
 void poll_Relocation::unpack_data() {
-  _distance = (poll_Relocation::pollingPageDistance) unpack_1_int();
+  _form = (poll_Relocation::pollingForm) unpack_1_int();
 }
 
 //// miscellaneous methods
@@ -989,16 +989,16 @@ void RelocIterator::print_current() {
   case relocInfo::poll_return_type:
     {
       poll_Relocation* r = (poll_Relocation*) reloc();
-      const char *distanceName = "unknown";
-      switch (r->distance()) {
-        case poll_Relocation::near:
-          distanceName = "near";
+      const char *formName = "unknown";
+      switch (r->form()) {
+        case poll_Relocation::pc_relative:
+          formName = "pc_relative";
           break;
-        case poll_Relocation::far:
-          distanceName = "far";
+        case poll_Relocation::absolute:
+          formName = "absolute";
           break;
       }
-      tty->print(" | [distance=%d(%s)]", r->distance(), distanceName);
+      tty->print(" | [form=%d(%s)]", r->form(), formName);
       break;
     }
   }
