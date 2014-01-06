@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,27 +22,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
+import java.nio.file.*;
 
-/**
- * Generator expression definition in a generator context.
- */
-public class GeneratorGeneratorExpressionDefinitionNode extends GeneratorExpressionDefinitionNode {
+import org.junit.*;
 
-    public GeneratorGeneratorExpressionDefinitionNode(GeneratorExpressionDefinitionNode prev) {
-        super(prev.getCallTarget(), prev.getFrameDescriptor(), prev.needsDeclarationFrame(), prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
-    }
+public class BenchmarkTests {
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame() ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : null;
-        return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), declarationFrame, null, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
+    @Test
+    public void euler31() {
+        Path script = Paths.get("euler31-test.py");
+        assertPrints("41\n", script);
     }
 
 }

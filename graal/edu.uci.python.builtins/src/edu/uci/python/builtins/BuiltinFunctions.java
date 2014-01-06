@@ -24,6 +24,7 @@
  */
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -194,6 +195,27 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             throw Py.TypeError("an integer is required");
+        }
+    }
+
+    // divmod(a, b)
+    @Builtin(name = "divmod", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    public abstract static class DivModNode extends PythonBuiltinNode {
+
+        @Specialization
+        public PTuple doInt(int a, int b) {
+            return new PTuple(new Object[]{a / b, a % b});
+        }
+
+        @Specialization
+        public PTuple doBigInteger(BigInteger a, BigInteger b) {
+            return new PTuple(a.divideAndRemainder(b));
+        }
+
+        @Specialization
+        public PTuple doDouble(double a, double b) {
+            double q = Math.floor(a / b);
+            return new PTuple(new Object[]{q, a % b});
         }
     }
 
@@ -537,7 +559,9 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public int doPIterator(PIterator iterator) {
             int sum = 0;
             try {
-                sum += (int) iterator.__next__();
+                while (true) {
+                    sum += (int) iterator.__next__();
+                }
             } catch (StopIterationException e) {
             }
 

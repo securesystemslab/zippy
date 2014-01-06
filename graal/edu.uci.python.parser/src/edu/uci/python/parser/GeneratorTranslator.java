@@ -26,7 +26,6 @@ package edu.uci.python.parser;
 
 import java.util.*;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -38,13 +37,8 @@ import edu.uci.python.nodes.statement.*;
 
 public class GeneratorTranslator {
 
-    public static final String ROOT_NODE_FIRST_ENTRY_SLOT_ID = "<_fist_entry_>";
-
-    private final FrameDescriptor frameDescriptor;
-
-    public GeneratorTranslator(FrameDescriptor frameDescriptor) {
-        this.frameDescriptor = frameDescriptor;
-    }
+    private int numOfGeneratorBlockNode;
+    private int numOfGeneratorForNode;
 
     public void translate(FunctionRootNode root) {
         /**
@@ -80,21 +74,20 @@ public class GeneratorTranslator {
         }
     }
 
+    @SuppressWarnings("static-method")
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
-        FrameSlot firstEntry = frameDescriptor.findOrAddFrameSlot(ROOT_NODE_FIRST_ENTRY_SLOT_ID);
-
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn(), firstEntry));
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn(), firstEntry));
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 
-    private static void replaceControls(PNode node, int depth) {
+    private void replaceControls(PNode node, int depth) {
         /**
          * Has it been replace already?
          */
@@ -107,25 +100,43 @@ public class GeneratorTranslator {
             AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) next.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
+            int iteratorSlot = nextGeneratorForNodeSlot();
 
             if (depth == 0) {
-                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody()));
+                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
             } else {
-                node.replace(new GeneratorForNode(target, getIter, forNode.getBody()));
+                node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
             }
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
+            int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
 
             if (depth == 0) {
-                node.replace(new GeneratorBlockNode.InnerGeneratorBlockNode(block.getStatements()));
+                node.replace(new GeneratorBlockNode.InnerGeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
             } else {
-                node.replace(new GeneratorBlockNode(block.getStatements()));
+                node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
             }
         } else if (node instanceof IfNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();
         }
+    }
+
+    private int nextGeneratorBlockIndexSlot() {
+        return numOfGeneratorBlockNode++;
+    }
+
+    public int getNumOfGeneratorBlockNode() {
+        return numOfGeneratorBlockNode;
+    }
+
+    private int nextGeneratorForNodeSlot() {
+        return numOfGeneratorForNode++;
+    }
+
+    public int getNumOfGeneratorForNode() {
+        return numOfGeneratorForNode;
     }
 
 }

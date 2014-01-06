@@ -140,6 +140,7 @@ pythonBenchmarks = {
     'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',
+    'pidigits-timed'  : '0',
 }
 
 python2Benchmarks = {
@@ -149,7 +150,8 @@ python2Benchmarks = {
     'mandelbrot2t'    : '4000',
     'meteor3t'        : '2098',
     'nbody2t'         : '5000000',
-    'spectralnorm2t'  : '5500',   
+    'spectralnorm2t'  : '5500',
+    'pidigits-timed'  : '0',
 }
 
 specjvm2008Names = [

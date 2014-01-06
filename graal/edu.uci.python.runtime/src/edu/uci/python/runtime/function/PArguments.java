@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.iterator.*;
 
 public class PArguments extends Arguments {
 
@@ -112,16 +113,44 @@ public class PArguments extends Arguments {
     public static class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
+        private boolean firstEntry = true;                   // See {@link GeneratorReturnTargetNode}
+        private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
+        private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
-        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments) {
+        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.generatorFrame = generatorFrame;
+            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
+            this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
         }
 
         public MaterializedFrame getGeneratorFrame() {
             return generatorFrame;
         }
 
+        public boolean isFirstEntry() {
+            return firstEntry;
+        }
+
+        public void setFirstEntry(boolean value) {
+            firstEntry = value;
+        }
+
+        public int getBlockIndexAt(int slot) {
+            return generatorBlockNodeIndices[slot];
+        }
+
+        public void setBlockIndexAt(int slot, int value) {
+            generatorBlockNodeIndices[slot] = value;
+        }
+
+        public PIterator getIteratorAt(int slot) {
+            return generatorForNodeIterators[slot];
+        }
+
+        public void setIteratorAt(int slot, PIterator value) {
+            generatorForNodeIterators[slot] = value;
+        }
     }
 
     /**

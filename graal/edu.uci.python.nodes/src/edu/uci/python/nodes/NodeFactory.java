@@ -215,16 +215,16 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
-        return new GeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
+        return new GeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
     }
 
-    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body) {
-        return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body);
+    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
+        return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
     }
 
-    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame) {
-        return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame);
+    public PNode createGeneratorExpression(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+        return new GeneratorExpressionDefinitionNode(callTarget, descriptor, needsDeclarationFrame, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

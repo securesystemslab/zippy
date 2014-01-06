@@ -27,7 +27,19 @@ def pidigits(length):
                 a -= d*t
                 a *= 10
                 n *= 10
-                    
 
-if __name__ == '__main__':
+def measure():
+    print("Start timing...")
+    start = time.time()
     pidigits(PIDIGITS_LEN)
+    duration = "%.3f\n" % (time.time() - start)
+    print("pidigits: " + duration)    
+
+# if __name__ == '__main__':
+#     pidigits(PIDIGITS_LEN)
+
+# warm up
+for i in range(2000):
+    pidigits(150)
+
+measure()

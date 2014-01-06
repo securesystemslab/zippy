@@ -220,4 +220,22 @@ public class BuiltinsTests {
         assertPrints("frozenset({0, 1, 2, 3, 4})\n", source);
     }
 
+    @Test
+    public void sum() {
+        String source = "print(sum(x for x in range(10)))";
+        assertPrints("45\n", source);
+    }
+
+    @Test
+    public void divmodInt() {
+        String source = "print(divmod(42, 3))";
+        assertPrints("(14, 0)\n", source);
+    }
+
+    @Test
+    public void divmodDouble() {
+        String source = "print(divmod(4.2, 3.1))";
+        assertPrints("(1.0, 1.1)\n", source);
+    }
+
 }
