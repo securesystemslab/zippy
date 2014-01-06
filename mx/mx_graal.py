@@ -1363,6 +1363,17 @@ def trufflejar(args=None):
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
+def rubyShellCp():
+    return mx.classpath("com.oracle.truffle.ruby.shell")
+
+def rubyShellClass():
+    return "com.oracle.truffle.ruby.shell.Shell"
+
+def ruby(args):
+    """run a Ruby program or shell"""
+    vmArgs, rubyArgs = _extract_VM_args(args, useDoubleDash=True)
+    vm(vmArgs + ['-cp', rubyShellCp(), rubyShellClass()] + rubyArgs)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1522,6 +1533,7 @@ def mx_init(suite):
         'longtests' : [longtests, ''],
         'sl' : [sl, '[SL args|@VM options]'],
         'trufflejar' : [trufflejar, ''],
+        'ruby' : [ruby, '[Ruby args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

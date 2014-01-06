@@ -26,6 +26,47 @@ library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/be
 
 library@OKRA@path=lib/okra-1.2.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.2.jar
+library@JRUBYPARSER@path=lib/jrubyparser-0.5.0.jar
+library@JRUBYPARSER@urls=http://repo1.maven.org/maven2/org/jruby/jrubyparser/0.5.0/jrubyparser-0.5.0.jar
+
+library@JLINE@path=lib/jline-2.10.jar
+library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.10/jline-2.10.jar
+
+library@JRUBYSTDLIB@path=lib/jruby-stdlib-1.7.4.jar
+library@JRUBYSTDLIB@urls=http://repo1.maven.org/maven2/org/jruby/jruby-stdlib/1.7.4/jruby-stdlib-1.7.4.jar
+
+library@JNR_POSIX@path=lib/jnr-posix-3.0.0.jar
+library@JNR_POSIX@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-posix/3.0.0/jnr-posix-3.0.0.jar
+
+library@JNR_CONSTANTS@path=lib/jnr-constants-0.8.4.jar
+library@JNR_CONSTANTS@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.8.4/jnr-constants-0.8.4.jar
+
+library@JNR_FFI@path=lib/jnr-ffi-1.0.4.jar
+library@JNR_FFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/1.0.4/jnr-ffi-1.0.4.jar
+
+library@JFFI@path=lib/jffi-1.2.1.jar
+library@JFFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.1/jffi-1.2.1.jar
+
+library@JFFI_NATIVE@path=lib/jffi-1.2.1-native.jar
+library@JFFI_NATIVE@urls=http://search.maven.org/remotecontent?filepath=com/github/jnr/jffi/1.2.1/jffi-1.2.1-native.jar
+
+library@JNR_X86ASM@path=lib/jnr-x86asm-1.0.2.jar
+library@JNR_X86ASM@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar
+
+library@ASM@path=lib/asm-4.0.jar
+library@ASM@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm/4.0/asm-4.0.jar
+
+library@ASM_ANALYSIS@path=lib/asm-analysis-4.0.jar
+library@ASM_ANALYSIS@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/4.0/asm-analysis-4.0.jar
+
+library@ASM_COMMONS@path=lib/asm-commons-4.0.jar
+library@ASM_COMMONS@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-commons/4.0/asm-commons-4.0.jar
+
+library@ASM_TREE@path=lib/asm-tree-4.0.jar
+library@ASM_TREE@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-tree/4.0/asm-tree-4.0.jar
+
+library@ASM_UTIL@path=lib/asm-util-4.0.jar
+library@ASM_UTIL@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-util/4.0/asm-util-4.0.jar
 
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=\
@@ -691,3 +732,43 @@ project@com.oracle.graal.truffle.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.hotspot.amd64@javaCompliance=1.7
 project@com.oracle.graal.truffle.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
+
+# truffle.ruby.runtime
+project@com.oracle.truffle.ruby.runtime@subDir=graal
+project@com.oracle.truffle.ruby.runtime@sourceDirs=src
+project@com.oracle.truffle.ruby.runtime@dependencies=JRUBYSTDLIB,JNR_POSIX,JNR_CONSTANTS,JNR_FFI,JFFI,JFFI_NATIVE,JNR_X86ASM,ASM,ASM_ANALYSIS,ASM_COMMONS,ASM_TREE,ASM_UTIL,com.oracle.truffle.api
+project@com.oracle.truffle.ruby.runtime@javaCompliance=1.7
+project@com.oracle.truffle.ruby.runtime@workingSets=Truffle,Ruby
+
+# truffle.ruby.nodes
+project@com.oracle.truffle.ruby.nodes@subDir=graal
+project@com.oracle.truffle.ruby.nodes@sourceDirs=src
+project@com.oracle.truffle.ruby.nodes@dependencies=com.oracle.truffle.ruby.runtime,com.oracle.truffle.api.dsl
+project@com.oracle.truffle.ruby.nodes@checkstyle=com.oracle.truffle.ruby.runtime
+project@com.oracle.truffle.ruby.nodes@javaCompliance=1.7
+project@com.oracle.truffle.ruby.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
+project@com.oracle.truffle.ruby.nodes@workingSets=Truffle,Ruby
+
+# truffle.ruby.parser
+project@com.oracle.truffle.ruby.parser@subDir=graal
+project@com.oracle.truffle.ruby.parser@sourceDirs=src
+project@com.oracle.truffle.ruby.parser@dependencies=JRUBYPARSER,com.oracle.truffle.ruby.nodes
+project@com.oracle.truffle.ruby.parser@checkstyle=com.oracle.truffle.ruby.runtime
+project@com.oracle.truffle.ruby.parser@javaCompliance=1.7
+project@com.oracle.truffle.ruby.parser@workingSets=Truffle,Ruby
+
+# truffle.ruby.shell
+project@com.oracle.truffle.ruby.shell@subDir=graal
+project@com.oracle.truffle.ruby.shell@sourceDirs=src
+project@com.oracle.truffle.ruby.shell@dependencies=JLINE,com.oracle.truffle.ruby.parser
+project@com.oracle.truffle.ruby.shell@checkstyle=com.oracle.truffle.ruby.runtime
+project@com.oracle.truffle.ruby.shell@javaCompliance=1.7
+project@com.oracle.truffle.ruby.shell@workingSets=Truffle,Ruby
+
+# truffle.ruby.test
+project@com.oracle.truffle.ruby.test@subDir=graal
+project@com.oracle.truffle.ruby.test@sourceDirs=src
+project@com.oracle.truffle.ruby.test@dependencies=com.oracle.truffle.ruby.parser,JUNIT
+project@com.oracle.truffle.ruby.test@checkstyle=com.oracle.truffle.ruby.runtime
+project@com.oracle.truffle.ruby.test@javaCompliance=1.7
+project@com.oracle.truffle.ruby.test@workingSets=Truffle,Ruby,Test
