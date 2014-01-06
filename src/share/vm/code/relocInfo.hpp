@@ -210,6 +210,12 @@ class NativeMovConstReg;
 //   See [About Offsets] below.
 //   //%note reloc_2
 //
+// relocInfo::poll_[return_]type -- a safepoint poll
+//   Value:  none
+//   Instruction types: memory load or test
+//   Data:  []       the associated set-oops are adjacent to the call
+//          [n]      n is a poll_Relocation::pollingPageDistance value
+//
 // For example:
 //
 //   INSTRUCTIONS                        RELOC: TYPE    PREFIX DATA
@@ -1271,17 +1277,53 @@ class section_word_Relocation : public internal_word_Relocation {
   section_word_Relocation() { }
 };
 
-
 class poll_Relocation : public Relocation {
-  bool          is_data()                      { return true; }
+ public:
+  enum pollingPageDistance {
+    near,
+    far
+  };
   relocInfo::relocType type() { return relocInfo::poll_type; }
+  bool          is_data()                      { return true; }
   void     fix_relocation_after_move(const CodeBuffer* src, CodeBuffer* dest);
+ private:
+  pollingPageDistance     _distance;
+ public:
+
+  static RelocationHolder spec(poll_Relocation::pollingPageDistance distance) {
+    RelocationHolder rh = newHolder();
+    new(rh) poll_Relocation(distance);
+    return rh;
+  }
+
+  poll_Relocation(poll_Relocation::pollingPageDistance distance) {
+    _distance = distance;
+  }
+  poll_Relocation::pollingPageDistance distance() { return _distance; }
+
+  void pack_data_to(CodeSection* dest);
+  void unpack_data();
+
+ protected:
+  friend class RelocIterator;
+  poll_Relocation() { }
 };
 
-class poll_return_Relocation : public Relocation {
-  bool          is_data()                      { return true; }
+class poll_return_Relocation : public poll_Relocation {
+ public:
   relocInfo::relocType type() { return relocInfo::poll_return_type; }
-  void     fix_relocation_after_move(const CodeBuffer* src, CodeBuffer* dest);
+
+  static RelocationHolder spec(poll_Relocation::pollingPageDistance distance) {
+    RelocationHolder rh = newHolder();
+    new(rh) poll_return_Relocation(distance);
+    return rh;
+  }
+
+  poll_return_Relocation(poll_Relocation::pollingPageDistance distance) : poll_Relocation(distance) { }
+
+ private:
+  friend class RelocIterator;
+  poll_return_Relocation() { }
 };
 
 // We know all the xxx_Relocation classes, so now we can define these:
