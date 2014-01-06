@@ -569,9 +569,9 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
   CodeBlob* cb = NULL;
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   Handle triggered_deoptimizations_handle = JNIHandles::resolve(triggered_deoptimizations);
-  GraalEnv::CodeInstallResult result;
 
-  CodeInstaller installer(compiled_code_handle, result, cb, installed_code_handle, triggered_deoptimizations_handle);
+  CodeInstaller installer;
+  GraalEnv::CodeInstallResult result = installer.install(compiled_code_handle, cb, installed_code_handle, triggered_deoptimizations_handle);
 
   if (PrintCodeCacheOnCompilation) {
     stringStream s;

@@ -88,3 +88,5 @@ agent/make/filelist
 agent/make/sa17.tar.gz
 graal/edu.uci.python.test/cachedir
 *.timestamp
+graal/com.oracle.truffle.ruby.test/specs/mspec
+graal/com.oracle.truffle.ruby.test/specs/rubyspec

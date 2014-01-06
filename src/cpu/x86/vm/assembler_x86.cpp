@@ -81,8 +81,10 @@ AddressLiteral::AddressLiteral(address target, relocInfo::relocType rtype) {
     _rspec = runtime_call_Relocation::spec();
     break;
   case relocInfo::poll_type:
+    _rspec = poll_Relocation::spec(Assembler::is_polling_page_far() ? poll_Relocation::far : poll_Relocation::near);
+    break;
   case relocInfo::poll_return_type:
-    _rspec = Relocation::spec_simple(rtype);
+    _rspec = poll_return_Relocation::spec(Assembler::is_polling_page_far() ? poll_Relocation::far : poll_Relocation::near);
     break;
   case relocInfo::none:
     break;
