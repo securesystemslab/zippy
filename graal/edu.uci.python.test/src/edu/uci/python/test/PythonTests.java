@@ -80,47 +80,28 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        Path scriptFile = findTestPath(scriptName);
-        InputStream scriptStream = loadTestScript(scriptFile);
-
-        SourceManager sourceManager = new SourceManager(scriptFile.toString(), scriptName.toString(), scriptStream);
-        RunScript.runScript(new String[0], getContext(sourceManager, printStream, System.err));
-        String result = byteArray.toString().replaceAll("\r\n", "\n");
-        assertEquals(expected, result);
-    }
-
-    public static String parseTest(Path scriptName) {
-        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-        final PrintStream printStream = new PrintStream(byteArray);
-
-        Path scriptFile = findTestPath(scriptName);
-        InputStream scriptStream = loadTestScript(scriptFile);
-
-        SourceManager sourceManager = new SourceManager(scriptFile.toString(), scriptName.toString(), scriptStream);
-        new CustomConsole().parseFile(getContext(sourceManager, printStream, System.err));
-        return byteArray.toString().replaceAll("\r\n", "\n");
-    }
-
-    private static InputStream loadTestScript(Path scriptFile) {
-        try {
-            return Files.newInputStream(scriptFile);
-        } catch (IOException e) {
-            throw new RuntimeException();
-        }
-    }
-
-    private static Path findTestPath(Path scriptName) {
-        String path;
-
+        Path scriptFile;
+        String path = null;
         if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
             path = "graal/edu.uci.python.test/src/tests";
+            scriptFile = Paths.get(path).resolve(scriptName.toString());
         } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
             path = "../../graal/edu.uci.python.test/src/tests";
+            scriptFile = Paths.get(path).resolve(scriptName.toString());
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
         }
 
-        return Paths.get(path).resolve(scriptName.toString());
+        InputStream scriptStream;
+        try {
+            scriptStream = Files.newInputStream(scriptFile);
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
+        SourceManager sourceManager = new SourceManager(path, scriptName.toString(), scriptStream);
+        RunScript.runScript(new String[0], getContext(sourceManager, printStream, System.err));
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertEquals(expected, result);
     }
 
     public static PythonContext getContext() {
