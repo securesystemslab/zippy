@@ -119,6 +119,11 @@ final class MoveResolver {
         usedRegs.clear();
         for (i = 0; i < mappingTo.size(); i++) {
             Interval interval = mappingTo.get(i);
+            if (isIllegal(interval.location())) {
+                // After insertion the location may become illegal, so don't check it since multiple
+                // intervals might be illegal.
+                continue;
+            }
             boolean unique = usedRegs.add(interval.location());
             assert unique : "cannot write to same register twice";
         }

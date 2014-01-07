@@ -82,7 +82,7 @@ public abstract class AbstractFixedGuardNode extends DeoptimizingFixedWithNextNo
         }
     }
 
-    public void lowerToIf() {
+    public DeoptimizeNode lowerToIf() {
         FixedNode next = next();
         setNext(null);
         DeoptimizeNode deopt = graph().add(new DeoptimizeNode(action, reason));
@@ -99,6 +99,8 @@ public abstract class AbstractFixedGuardNode extends DeoptimizingFixedWithNextNo
         ((FixedWithNextNode) predecessor()).setNext(ifNode);
         this.replaceAtUsages(noDeoptSuccessor);
         GraphUtil.killWithUnusedFloatingInputs(this);
+
+        return deopt;
     }
 
     @Override

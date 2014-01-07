@@ -679,6 +679,16 @@ void section_word_Relocation::unpack_data() {
   _target  = address_from_scaled_offset(offset, base);
 }
 
+void poll_Relocation::pack_data_to(CodeSection* dest) {
+  short* p = (short*) dest->locs_end();
+  p = pack_1_int_to(p, _form);
+  dest->set_locs_end((relocInfo*) p);
+}
+
+void poll_Relocation::unpack_data() {
+  _form = (poll_Relocation::pollingForm) unpack_1_int();
+}
+
 //// miscellaneous methods
 oop* oop_Relocation::oop_addr() {
   int n = _oop_index;
@@ -973,6 +983,22 @@ void RelocIterator::print_current() {
     {
       static_stub_Relocation* r = (static_stub_Relocation*) reloc();
       tty->print(" | [static_call=" INTPTR_FORMAT "]", r->static_call());
+      break;
+    }
+  case relocInfo::poll_type:
+  case relocInfo::poll_return_type:
+    {
+      poll_Relocation* r = (poll_Relocation*) reloc();
+      const char *formName = "unknown";
+      switch (r->form()) {
+        case poll_Relocation::pc_relative:
+          formName = "pc_relative";
+          break;
+        case poll_Relocation::absolute:
+          formName = "absolute";
+          break;
+      }
+      tty->print(" | [form=%d(%s)]", r->form(), formName);
       break;
     }
   }
