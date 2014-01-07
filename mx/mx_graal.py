@@ -347,7 +347,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                                 sourceLine = line[0:-2] # remove last char
                                 hgcfg = mx.HgConfig()
                                 hgcfg.check()
-                                revision = hgcfg.tip('.')[0:11] # take first 12 chars
+                                revision = hgcfg.tip('.')[:12] # take first 12 chars
                                 fp.write(sourceLine + ' graal:' + revision + '\"\n')
                             except:
                                 fp.write(line)
