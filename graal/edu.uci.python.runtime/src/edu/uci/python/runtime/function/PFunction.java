@@ -54,10 +54,12 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         return new PFunction(function.name, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
     }
 
+    @Override
     public CallTarget getCallTarget() {
         return callTarget;
     }
 
+    @Override
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
     }

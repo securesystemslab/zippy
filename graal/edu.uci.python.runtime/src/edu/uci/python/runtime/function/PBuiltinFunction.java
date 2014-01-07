@@ -76,8 +76,14 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
+    @Override
     public CallTarget getCallTarget() {
         return callTarget;
+    }
+
+    @Override
+    public FrameDescriptor getFrameDescriptor() {
+        throw new UnsupportedOperationException();
     }
 
     public String getName() {

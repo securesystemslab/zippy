@@ -26,6 +26,7 @@ package edu.uci.python.runtime.builtin;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -71,6 +72,16 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         // arity.arityCheck(numOfArgs, numOfKeywords, keywords);
+    }
+
+    @Override
+    public CallTarget getCallTarget() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public FrameDescriptor getFrameDescriptor() {
+        throw new UnsupportedOperationException();
     }
 
 }

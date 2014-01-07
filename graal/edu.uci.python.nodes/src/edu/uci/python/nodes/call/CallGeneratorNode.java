@@ -27,6 +27,7 @@ package edu.uci.python.nodes.call;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -45,6 +46,11 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     public CallGeneratorNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, Assumption globalScopeUnchanged) {
         super(callee, arguments, generator, globalScopeUnchanged);
         this.generatorRoot = (FunctionRootNode) generator.getFunctionRootNode();
+    }
+
+    public CallGeneratorNode(PNode callee, PNode[] arguments, PythonCallable cachedCallee, FunctionRootNode rootNode) {
+        super(callee, arguments, cachedCallee, AlwaysValidAssumption.INSTANCE);
+        this.generatorRoot = rootNode;
     }
 
     public int getCallCount() {
@@ -89,7 +95,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
     }
 
     private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
-        CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, (PGeneratorFunction) cached, generatorRoot, globalScopeUnchanged, factory);
+        CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
         PNode body = loop.getBody();

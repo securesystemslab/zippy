@@ -51,7 +51,7 @@ public class PythonOptions {
 
     public static final boolean InlineGeneratorCalls = true;
 
-    public static boolean transformGeneratorExpressions = false;
+    public static boolean optimizeGeneratorExpressions = false;
 
     public static final boolean CacheAttributeLoads = true;
 

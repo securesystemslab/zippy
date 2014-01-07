@@ -26,9 +26,12 @@ package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 
 public class GeneratorExpressionDefinitionNode extends PNode {
 
@@ -66,10 +69,42 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         return numOfGeneratorForNode;
     }
 
+    public RootNode getFunctionRootNode() {
+        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
+        return defaultTarget.getRootNode();
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
         return new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
+    }
+
+    public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
+
+        public CallableGeneratorExpressionDefinition(GeneratorExpressionDefinitionNode prev) {
+            super(prev.callTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return this;
+        }
+
+        @Override
+        public Object call(PackedFrame caller, Object[] args) {
+            return new PGenerator("generator expr", getCallTarget(), getFrameDescriptor(), null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
+        }
+
+        @Override
+        public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        }
+
     }
 
 }

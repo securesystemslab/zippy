@@ -34,10 +34,11 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsIterator() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
-                        "    for i in (x for x in range(5)):\n" + //
+                        "    n = 5\n" + //
+                        "    for i in (x for x in range(n)):\n" + //
                         "        item = i\n";
 
         String result = parseTest(source);
@@ -46,10 +47,11 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsArgumentToConstructor() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
-                        "    return list(x for x in range(5))\n";
+                        "    n = 5\n" + //
+                        "    return list(x for x in range(n))\n";
 
         String result = parseTest(source);
         assertTrue(result.contains("does not escape"));
@@ -57,10 +59,11 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void assignedToLocalVar() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
-                        "    ll = (x for x in range(5))\n" + //
+                        "    n = 5\n" + //
+                        "    ll = (x for x in range(n))\n" + //
                         "    return list(ll)\n";
 
         String result = parseTest(source);
@@ -69,10 +72,11 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByReturn() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
-                        "    ll = (x for x in range(5))\n" + //
+                        "    n = 5\n" + //
+                        "    ll = (x for x in range(n))\n" + //
                         "    return ll\n";
 
         String result = parseTest(source);
@@ -81,11 +85,12 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByStore() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
-                        "    ll = (x for x in range(5))\n" + //
+                        "    n = 5\n" + //
+                        "    ll = (x for x in range(n))\n" + //
                         "    LIST[0] = ll\n";
 
         String result = parseTest(source);
@@ -94,11 +99,12 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByCall() {
-        PythonOptions.transformGeneratorExpressions = true;
+        PythonOptions.optimizeGeneratorExpressions = true;
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
-                        "    ll = (x for x in range(5))\n" + //
+                        "    n = 5\n" + //
+                        "    ll = (x for x in range(n))\n" + //
                         "    LIST.append(ll)\n";
 
         String result = parseTest(source);

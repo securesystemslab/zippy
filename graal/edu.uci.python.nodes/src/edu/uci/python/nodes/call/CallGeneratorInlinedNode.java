@@ -30,17 +30,19 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.function.GeneratorExpressionDefinitionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorInlinedNode extends InlinedCallNode {
 
-    private final PGeneratorFunction generator;
+    private final PythonCallable generator;
     private final Assumption globalScopeUnchanged;
     @Child protected PNode generatorRoot;
 
-    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PGeneratorFunction generator, FunctionRootNode generatorRoot, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
+    public CallGeneratorInlinedNode(PNode callee, PNode[] arguments, PythonCallable generator, FunctionRootNode generatorRoot, Assumption globalScopeUnchanged, FrameFactory frameFactory) {
         super(callee, arguments, generator.getFrameDescriptor().copy(), frameFactory);
+        assert generator instanceof PGeneratorFunction || generator instanceof CallableGeneratorExpressionDefinition;
         this.generator = generator;
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.generatorRoot = adoptChild(prepareBody(generatorRoot.getInlinedRootNode()));

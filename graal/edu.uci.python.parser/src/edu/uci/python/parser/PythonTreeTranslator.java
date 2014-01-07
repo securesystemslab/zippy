@@ -147,7 +147,7 @@ public class PythonTreeTranslator extends Visitor {
             ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
             defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
         } else {
-            defaults = BlockNode.EMPTYBLOCK;
+            defaults = BlockNode.getEmptyBlock();
         }
 
         /**
@@ -329,7 +329,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(name, body);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.EMPTYBLOCK, ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.getEmptyBlock(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 

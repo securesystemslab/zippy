@@ -60,8 +60,8 @@ public class PythonParserImpl implements PythonParser {
         PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
         PythonParseResult result = ptt.translate(node);
 
-        if (PythonOptions.transformGeneratorExpressions) {
-            new GeneratorExpressionTranslator(result).translate();
+        if (PythonOptions.optimizeGeneratorExpressions) {
+            new GeneratorExpressionOptimizer(result).optimize();
         }
 
         return result;
