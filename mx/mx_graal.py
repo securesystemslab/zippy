@@ -295,20 +295,29 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     jdk = join(_jdksDir(), build)
     if create:
         srcJdk = mx.java().jdk
-        jdkContents = ['bin', 'include', 'jre', 'lib']
+        jdkContentsDirectories = ['bin', 'include', 'jre', 'lib']
+        jdkContentsFiles = ['COPYRIGHT', 'LICENSE', 'README.html', 'release', 'src.zip', 'THIRDPARTYLICENSEREADME-JAVAFX.txt', 'THIRDPARTYLICENSEREADME.txt']
         if exists(join(srcJdk, 'db')):
-            jdkContents.append('db')
+            jdkContentsDirectories.append('db')
         if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
-            jdkContents.append('man')
+            jdkContentsDirectories.append('man')
+        if exists(join(srcJdk, 'javafx-src.zip')):
+            jdkContentsFiles.append('javafx-src.zip')
         if not exists(jdk):
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
             os.makedirs(jdk)
-            for d in jdkContents:
+            for d in jdkContentsDirectories:
                 src = join(srcJdk, d)
                 dst = join(jdk, d)
                 if not exists(src):
                     mx.abort('Host JDK directory is missing: ' + src)
                 shutil.copytree(src, dst)
+            for f in jdkContentsFiles:
+                src = join(srcJdk, f)
+                dst = join(jdk, f)
+                if not exists(src):
+                    mx.abort('Host JDK file is missing: ' + src)
+                shutil.copyfile(src, dst)
 
             # Make a copy of the default VM so that this JDK can be
             # reliably used as the bootstrap for a HotSpot build.
