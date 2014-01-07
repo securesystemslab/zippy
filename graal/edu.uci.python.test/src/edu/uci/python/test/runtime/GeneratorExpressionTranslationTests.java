@@ -22,12 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.test.runtime;
 
-import org.python.core.*;
+import org.junit.*;
 
-public interface IPythonParser {
+import edu.uci.python.runtime.*;
+import static edu.uci.python.test.PythonTests.*;
+import static org.junit.Assert.*;
 
-    PythonParseResult parse(PythonContext context, CompileMode kind, CompilerFlags cflags);
+public class GeneratorExpressionTranslationTests {
 
+    @Test
+    public void generatorExpressionAsIterator() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "def foo():\n" + //
+                        "    for i in (x for x in range(5)):\n" + //
+                        "        item = i\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("does not escape"));
+    }
 }

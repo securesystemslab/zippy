@@ -38,7 +38,7 @@ public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
-        IPythonParser parser = new PythonParserImpl();
+        PythonParser parser = new PythonParserImpl();
 
         String path = ".";
         String fileName = new StringBuilder(name).reverse().toString();
@@ -85,6 +85,15 @@ public class CustomConsole extends JLineConsole {
         }
 
         Py.flushLine();
+    }
+
+    public void parseFile(PythonContext context) {
+        PythonParseResult result = context.getParser().parse(context, CompileMode.exec, cflags);
+
+        if (PythonOptions.PrintAST) {
+            printBanner("After Parsing");
+            result.printAST();
+        }
     }
 
     public static void printBanner(String phase) {

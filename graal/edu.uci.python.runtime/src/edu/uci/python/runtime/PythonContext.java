@@ -43,11 +43,11 @@ public class PythonContext {
     private final PythonBuiltinClass moduleClass;
 
     private final SourceManager sourceManager;
-    private final IPythonParser parser;
+    private final PythonParser parser;
 
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, IPythonParser parser, SourceManager sourceManager) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser, SourceManager sourceManager) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
@@ -112,7 +112,7 @@ public class PythonContext {
         throw new UnexpectedResultException(obj);
     }
 
-    public IPythonParser getParser() {
+    public PythonParser getParser() {
         return parser;
     }
 

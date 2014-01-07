@@ -22,45 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.shell;
+package edu.uci.python.runtime;
 
-import edu.uci.python.runtime.*;
+import org.python.core.*;
 
-public class CommandLineParser {
+public interface PythonParser {
 
-    public static void parse(String[] args) {
-        int index = 0;
-
-        while (index < args.length) {
-            String arg = args[index];
-
-            if (!args[index].startsWith("-")) {
-                index++;
-                continue;
-            }
-
-            if (arg.equals("-print-ast")) {
-                PythonOptions.PrintAST = true;
-            }
-
-            if (arg.equals("-visualize-ast")) {
-                PythonOptions.VisualizedAST = true;
-            }
-
-            if (arg.equals("-print-function")) {
-                PythonOptions.PrintFunction = true;
-            }
-
-            if (arg.equals("-NoInlineBuiltinFunctionCalls")) {
-                PythonOptions.InlineBuiltinFunctionCalls = false;
-            }
-
-            if (arg.equals("-transformGeneratorExpressions")) {
-                PythonOptions.transformGeneratorExpressions = true;
-            }
-
-            index++;
-        }
-    }
+    PythonParseResult parse(PythonContext context, CompileMode kind, CompilerFlags cflags);
 
 }

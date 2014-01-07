@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.iterator.*;
 
-@NodeChild(value = "getIterator", type = GetIteratorNode.class)
+@NodeChild(value = "getIterator", type = PNode.class)
 public abstract class AdvanceIteratorNode extends PNode {
 
     @Child protected FrameSlotNode target;

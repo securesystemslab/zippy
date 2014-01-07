@@ -31,9 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 public class PythonParseResult {
 
     private RootNode module;
-
     private PythonContext context;
-
     private final Map<String, RootNode> functions = new HashMap<>();
 
     public RootNode getModuleRoot() {
@@ -54,6 +52,10 @@ public class PythonParseResult {
 
     public void addParsedFunction(String name, RootNode function) {
         functions.put(name, function);
+    }
+
+    public Collection<RootNode> getFunctionRoots() {
+        return functions.values();
     }
 
     public void printAST() {
