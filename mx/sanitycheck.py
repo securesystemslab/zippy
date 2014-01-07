@@ -118,18 +118,20 @@ python2MicroBenchmarks = {
     #'builtin-len'  : '0',
     #'builtin-len-tuple' : '0',
     'generator'     : '0',
+    'generator-expression'  : '-optimizeGeneratorExpressions',
 }
 
 pythonMicroBenchmarks = {
-    'arith-binop'       : '0',
-    'for-range'         : '0',
-    'function-call'     : '0',
-    'list-comp'         : '0',
-    'list-indexing'     : '-NoInlineBuiltinFunctionCalls',
-    'list-iterating'    : '0',
-    'builtin-len'       : '0',
-    'builtin-len-tuple' : '0',
-    'generator'         : '0',
+    'arith-binop'           : '0',
+    'for-range'             : '0',
+    'function-call'         : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '-NoInlineBuiltinFunctionCalls',
+    'list-iterating'        : '0',
+    'builtin-len'           : '0',
+    'builtin-len-tuple'     : '0',
+    'generator'             : '0',
+    'generator-expression'  : '-optimizeGeneratorExpressions',
 }
 
 pythonBenchmarks = {
