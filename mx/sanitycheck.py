@@ -109,16 +109,16 @@ pythonTestBenchmarks = {
 }
 
 python2MicroBenchmarks = {
-    'arith-binop'   : '0',
-    'for-range2'    : '0',
-    'function-call2': '0',
-    'list-comp'     : '0',
-    'list-indexing' : '0',
-    'list-iterating': '0',
-    #'builtin-len'  : '0',
-    #'builtin-len-tuple' : '0',
-    'generator'     : '0',
-    'generator-expression'  : '-optimizeGeneratorExpressions',
+    'arith-binop'           : '0',
+    'for-range2'            : '0',
+    'function-call2'        : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '0',
+    'list-iterating'        : '0',
+    #'builtin-len'          : '0',
+    #'builtin-len-tuple'    : '0',
+    'generator'             : '0',
+    'generator-expression'  : '0',
 }
 
 pythonMicroBenchmarks = {
