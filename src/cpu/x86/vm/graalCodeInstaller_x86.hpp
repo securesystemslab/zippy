@@ -80,9 +80,20 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
     case 'b':
     case 's':
     case 'c':
-    case 'i':
       fatal("int-sized values not expected in DataPatch");
       break;
+
+    case 'i': {
+      address operand = Assembler::locate_operand(pc, Assembler::narrow_oop_operand);
+      Handle obj = Constant::object(constant);
+
+      jobject value = JNIHandles::make_local(obj());
+      int oop_index = _oop_recorder->find_index(value);
+      _instructions->relocate(pc, oop_Relocation::spec(oop_index), Assembler::narrow_oop_operand);
+      TRACE_graal_3("relocating (narrow oop constant) at %p/%p", pc, operand);
+      break;
+    }
+
     case 'f':
     case 'j':
     case 'd':
