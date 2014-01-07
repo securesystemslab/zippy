@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,6 @@ import edu.uci.python.runtime.*;
 public class GeneratorExpressionOptimizer {
 
     private final PythonParseResult parseResult;
-    private RootNode currentRoot;
 
     public GeneratorExpressionOptimizer(PythonParseResult parseResult) {
         this.parseResult = parseResult;
@@ -56,81 +55,19 @@ public class GeneratorExpressionOptimizer {
     }
 
     private void doRoot(RootNode root) {
-        currentRoot = root;
-
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
             if (!genExp.needsDeclarationFrame()) {
                 continue; // No need to optimize
             }
 
-            if (escapesCurrentFrame(genExp)) {
+            EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(root, genExp);
+            if (escapeAnalyzer.escapes()) {
                 parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
                 parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp);
             }
         }
-    }
-
-    private boolean escapesCurrentFrame(Node target) {
-        Node current = target;
-
-        while (!isStatementNode(current)) {
-            current = current.getParent();
-
-            if (current instanceof WriteLocalVariableNode) {
-                FrameSlot slot = ((WriteLocalVariableNode) current).getSlot();
-                return escapesCurrentFrame(slot);
-            } else if (current instanceof WriteNode) {
-                return true; // Other write nodes
-            } else if (current instanceof CallFunctionNode) {
-                PNode calleeNode = ((CallFunctionNode) current).getCallee();
-
-                if (calleeNode instanceof ReadGlobalScopeNode) {
-                    return isBuiltinConstructor(((ReadGlobalScopeNode) calleeNode).getAttributeId()) ? false : true;
-                }
-
-                return true;
-            } else if (current instanceof ReturnNode) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Only local reads are effectively analyzed.<br>
-     * Since any local write is a statement by it self, and the recursive call always return false.
-     */
-    private boolean escapesCurrentFrame(FrameSlot slot) {
-        if (slot.getIdentifier().equals(TranslationEnvironment.RETURN_SLOT_ID)) {
-            return true;
-        }
-
-        for (FrameSlotNode slotNode : NodeUtil.findAllNodeInstances(currentRoot, FrameSlotNode.class)) {
-            if (!slotNode.getSlot().equals(slot)) {
-                continue;
-            }
-
-            boolean escapse = escapesCurrentFrame(slotNode);
-            if (escapse) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean isStatementNode(Node node) {
-        return node instanceof StatementNode || node instanceof WriteNode;
-    }
-
-    /**
-     * A trivial way to identify if a call constructs a collection (allocates memory).
-     */
-    private static boolean isBuiltinConstructor(String name) {
-        return name.equals("frozenset") || name.equals("set") || name.equals("list") || name.equals("dict");
     }
 
     private static void transform(GeneratorExpressionDefinitionNode genExp) {
@@ -145,13 +82,13 @@ public class GeneratorExpressionOptimizer {
             List<FrameSlot> arguments = addParameterSlots(root, fd);
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
+            PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            PNode[] argReads = getArguments(arguments, genExp);
             genExp.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
         }
     }
 
-    private static PNode[] getArguments(List<FrameSlot> params, PNode genExp) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> params, PNode genExp) {
         String[] argumentIds = new String[params.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {
