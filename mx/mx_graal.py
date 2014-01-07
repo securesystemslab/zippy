@@ -352,6 +352,28 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 for line in jvmCfgLines:
                     fp.write(line)
 
+            # patch 'release' file (append graalvm revision)
+            releaseFile = join(jdk, 'release')
+            if exists(releaseFile):
+                releaseFileLines = []
+                with open(releaseFile) as f:
+                    for line in f:
+                        releaseFileLines.append(line)
+
+                with open(releaseFile, 'w') as fp:
+                    for line in releaseFileLines:
+                        if line.startswith("SOURCE="):
+                            try:
+                                sourceLine = line[0:-2] # remove last char
+                                hgcfg = mx.HgConfig()
+                                hgcfg.check()
+                                revision = hgcfg.tip('.')[0:11] # take first 12 chars
+                                fp.write(sourceLine + ' graal:' + revision + '\"\n')
+                            except:
+                                fp.write(line)
+                        else:
+                            fp.write(line)
+
             # Install a copy of the disassembler library
             try:
                 hsdis([], copyToDir=_vmLibDirInJdk(jdk))
