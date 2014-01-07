@@ -48,7 +48,7 @@ public class TranslationEnvironment {
     private ScopeInfo globalScope;
     private int scopeLevel;
 
-    private static final String RETURN_SLOT_ID = "<return_val>";
+    public static final String RETURN_SLOT_ID = "<return_val>";
     private static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
     private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;

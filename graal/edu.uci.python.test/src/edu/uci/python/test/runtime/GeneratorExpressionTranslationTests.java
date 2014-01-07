@@ -43,4 +43,66 @@ public class GeneratorExpressionTranslationTests {
         String result = parseTest(source);
         assertTrue(result.contains("does not escape"));
     }
+
+    @Test
+    public void generatorExpressionAsArgumentToConstructor() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "def foo():\n" + //
+                        "    return list(x for x in range(5))\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("does not escape"));
+    }
+
+    @Test
+    public void assignedToLocalVar() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "def foo():\n" + //
+                        "    ll = (x for x in range(5))\n" + //
+                        "    return list(ll)\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("does not escape"));
+    }
+
+    @Test
+    public void escapeByReturn() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "def foo():\n" + //
+                        "    ll = (x for x in range(5))\n" + //
+                        "    return ll\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("escapes"));
+    }
+
+    @Test
+    public void escapeByStore() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "LIST = []\n" + //
+                        "def foo():\n" + //
+                        "    ll = (x for x in range(5))\n" + //
+                        "    LIST[0] = ll\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("escapes"));
+    }
+
+    @Test
+    public void escapeByCall() {
+        PythonOptions.transformGeneratorExpressions = true;
+
+        String source = "LIST = []\n" + //
+                        "def foo():\n" + //
+                        "    ll = (x for x in range(5))\n" + //
+                        "    LIST.append(ll)\n";
+
+        String result = parseTest(source);
+        assertTrue(result.contains("escapes"));
+    }
+
 }

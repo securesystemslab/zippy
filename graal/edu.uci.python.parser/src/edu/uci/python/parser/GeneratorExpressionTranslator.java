@@ -27,6 +27,7 @@ package edu.uci.python.parser;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.function.*;
@@ -73,23 +74,42 @@ public class GeneratorExpressionTranslator {
 
             if (current instanceof WriteLocalVariableNode) {
                 FrameSlot slot = ((WriteLocalVariableNode) current).getSlot();
-                escapesCurrentFrame(slot);
+                return escapesCurrentFrame(slot);
             } else if (current instanceof WriteNode) {
                 // Other write nodes
                 return true;
             } else if (current instanceof CallFunctionNode) {
-                String callee = ((CallFunctionNode) current).getCallee().toString();
-                return isBuiltinConstructor(callee) ? false : true;
+                PNode calleeNode = ((CallFunctionNode) current).getCallee();
+
+                if (calleeNode instanceof ReadGlobalScopeNode) {
+                    return isBuiltinConstructor(((ReadGlobalScopeNode) calleeNode).getAttributeId()) ? false : true;
+                }
+
+                return true;
+            } else if (current instanceof ReturnNode) {
+                return true;
             }
         }
 
         return false;
     }
 
+    /**
+     * Only local reads are effectively analyzed.<br>
+     * Since any local write is a statement by it self, and the recursive call always return false.
+     */
     private boolean escapesCurrentFrame(FrameSlot slot) {
+        if (slot.getIdentifier().equals(TranslationEnvironment.RETURN_SLOT_ID)) {
+            return true;
+        }
+
         for (FrameSlotNode slotNode : NodeUtil.findAllNodeInstances(currentRoot, FrameSlotNode.class)) {
             if (slotNode.getSlot().equals(slot)) {
-                return escapesCurrentFrame(slotNode);
+                boolean escapse = escapesCurrentFrame(slotNode);
+
+                if (escapse) {
+                    return true;
+                }
             }
         }
 
