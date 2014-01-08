@@ -30,6 +30,8 @@ import java.nio.file.*;
 
 import org.junit.*;
 
+import edu.uci.python.runtime.*;
+
 public class GeneratorTests {
 
     @Test
@@ -58,6 +60,7 @@ public class GeneratorTests {
 
     @Test
     public void euler11() {
+        PythonOptions.optimizeGeneratorExpressions = false;
         Path script = Paths.get("euler11-test.py");
         assertPrints("9507960\n9507960\n", script);
     }
