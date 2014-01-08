@@ -44,7 +44,7 @@ import edu.uci.python.runtime.*;
 public class GeneratorExpressionOptimizer {
 
     private final PythonParseResult parseResult;
-    private RootNode currentRoot;
+    private FunctionRootNode currentRoot;
 
     public GeneratorExpressionOptimizer(PythonParseResult parseResult) {
         this.parseResult = parseResult;
@@ -52,7 +52,7 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         for (RootNode functionRoot : parseResult.getFunctionRoots()) {
-            currentRoot = functionRoot;
+            currentRoot = (FunctionRootNode) functionRoot;
             doRoot(functionRoot);
         }
     }
@@ -111,6 +111,7 @@ public class GeneratorExpressionOptimizer {
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+            currentRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }
@@ -129,6 +130,7 @@ public class GeneratorExpressionOptimizer {
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
+            currentRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }

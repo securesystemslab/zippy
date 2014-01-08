@@ -145,6 +145,7 @@ pythonBenchmarks = {
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',
     'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
 }
 
 python2Benchmarks = {
@@ -156,6 +157,7 @@ python2Benchmarks = {
     'nbody2t'         : '5000000',
     'spectralnorm2t'  : '5500',
     'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
 }
 
 specjvm2008Names = [

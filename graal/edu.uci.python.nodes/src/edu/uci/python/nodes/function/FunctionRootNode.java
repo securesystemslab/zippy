@@ -28,19 +28,17 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
  * 
  * @author zwei
  */
-public class FunctionRootNode extends RootNode {
+public final class FunctionRootNode extends RootNode {
 
     private final String functionName;
-
     @Child protected PNode body;
-    private final PNode uninitializedBody;
+    private PNode uninitializedBody;
 
     public FunctionRootNode(String functionName, PNode body) {
         this.functionName = functionName;
@@ -48,8 +46,8 @@ public class FunctionRootNode extends RootNode {
         this.uninitializedBody = NodeUtil.cloneNode(body);
     }
 
-    public void setBody(StatementNode body) {
-        this.body = adoptChild(body);
+    public void updateUninitializedBody() {
+        this.uninitializedBody = NodeUtil.cloneNode(body);
     }
 
     public InlinedFunctionRootNode getInlinedRootNode() {
