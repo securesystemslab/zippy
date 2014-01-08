@@ -1610,10 +1610,9 @@ void LIR_Assembler::return_op(LIR_Opr result) {
 
 int LIR_Assembler::safepoint_poll(LIR_Opr tmp, CodeEmitInfo* info) {
   __ set((intptr_t)os::get_polling_page(), tmp->as_register());
+  __ relocate(relocInfo::poll_type);
   if (info != NULL) {
     add_debug_info_for_branch(info);
-  } else {
-    __ relocate(relocInfo::poll_type);
   }
 
   int offset = __ offset();
