@@ -29,7 +29,7 @@ def measure():
 	print("Last item ", last_item)
 
 	duration = "%.3f\n" % (time.time() - start)
-	print("generator-expression: " + duration)
+	print("genexp-builtin-call: " + duration)
 
 #warm up
 for run in range(1000):
