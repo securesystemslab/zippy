@@ -527,9 +527,6 @@ class Assembler : public AbstractAssembler  {
   enum WhichOperand {
     // input to locate_operand, and format code for relocations
     imm_operand  = 0,            // embedded 32-bit|64-bit immediate operand
-#ifdef GRAAL
-    no_operand   = imm_operand,  // format value for relocations at instructions with no operand
-#endif
     disp32_operand = 1,          // embedded 32-bit displacement or address
     call32_operand = 2,          // embedded 32-bit self-relative displacement
 #ifndef _LP64
