@@ -243,19 +243,21 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
     case MARK_POLL_NEAR: {
       relocate_poll_near(pc);
-      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::pc_relative));
+      _instructions->relocate(pc, relocInfo::poll_type, Assembler::disp32_operand);
       break;
     }
     case MARK_POLL_FAR:
-      _instructions->relocate(pc, poll_Relocation::spec(poll_Relocation::absolute));
+      // This is a load from a register so there is no relocatable operand
+      _instructions->relocate(pc, relocInfo::poll_type, Assembler::no_operand);
       break;
     case MARK_POLL_RETURN_NEAR: {
       relocate_poll_near(pc);
-      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::pc_relative));
+      _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::disp32_operand);
       break;
     }
     case MARK_POLL_RETURN_FAR:
-      _instructions->relocate(pc, poll_return_Relocation::spec(poll_Relocation::absolute));
+      // This is a load from a register so there is no relocatable operand
+      _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::no_operand);
       break;
     default:
       fatal("invalid mark value");
