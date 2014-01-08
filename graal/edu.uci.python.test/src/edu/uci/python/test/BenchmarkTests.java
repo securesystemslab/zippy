@@ -36,7 +36,7 @@ public class BenchmarkTests {
 
     @Test
     public void euler31() {
-        PythonOptions.optimizeGeneratorExpressions = false;
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
     }

@@ -60,7 +60,7 @@ public class GeneratorTests {
 
     @Test
     public void euler11() {
-        PythonOptions.optimizeGeneratorExpressions = false;
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("euler11-test.py");
         assertPrints("9507960\n9507960\n", script);
     }

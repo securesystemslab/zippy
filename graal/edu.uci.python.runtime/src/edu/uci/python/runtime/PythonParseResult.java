@@ -63,10 +63,16 @@ public class PythonParseResult {
     }
 
     public void printAST() {
-        printSeparationLine("module");
-        NodeUtil.printCompactTree(System.out, module);
+        if (PythonOptions.PrintASTFilter == null || "module".contains(PythonOptions.PrintASTFilter)) {
+            printSeparationLine("module");
+            NodeUtil.printCompactTree(System.out, module);
+        }
 
         for (String functionName : functions.keySet()) {
+            if (PythonOptions.PrintASTFilter != null && !functionName.contains(PythonOptions.PrintASTFilter)) {
+                continue;
+            }
+
             printSeparationLine(functionName);
             RootNode root = functions.get(functionName);
             NodeUtil.printCompactTree(System.out, root);

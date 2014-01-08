@@ -34,7 +34,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsIterator() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -47,7 +47,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsArgumentToConstructor() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -59,7 +59,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void assignedToLocalVar() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -72,7 +72,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByReturn() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -85,7 +85,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByStore() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
@@ -99,7 +99,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByCall() {
-        PythonOptions.optimizeGeneratorExpressions = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //

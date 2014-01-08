@@ -56,7 +56,7 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-optimizeGeneratorExpressions")) {
-                PythonOptions.optimizeGeneratorExpressions = true;
+                PythonOptions.OptimizeGeneratorExpressions = true;
             }
 
             index++;

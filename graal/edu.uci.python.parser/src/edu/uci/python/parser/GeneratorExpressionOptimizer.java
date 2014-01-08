@@ -106,8 +106,8 @@ public class GeneratorExpressionOptimizer {
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root, true);
-            replaceReadLevels(arguments, root, true);
+            replaceParameters(arguments, root);
+            replaceReadLevels(arguments, root);
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
@@ -124,8 +124,8 @@ public class GeneratorExpressionOptimizer {
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root, false);
-            replaceReadLevels(arguments, root, false);
+            replaceParameters(arguments, root);
+            replaceReadLevels(arguments, root);
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
@@ -195,9 +195,9 @@ public class GeneratorExpressionOptimizer {
     /**
      * Replace with empty parameter load in generator expression with real ones.
      */
-    private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root, boolean writeToLocalFrame) {
+    private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root) {
         GeneratorReturnTargetNode body = NodeUtil.findFirstNodeInstance(root, GeneratorReturnTargetNode.class);
-        body.getParameters().replace(assembleParameterWrites(slots, writeToLocalFrame));
+        body.getParameters().replace(assembleParameterWrites(slots, false));
 
         // Uninitialized body.
         ReturnTargetNode unitializedbody = (ReturnTargetNode) root.getUninitializedBody();
@@ -222,9 +222,9 @@ public class GeneratorExpressionOptimizer {
      * Need to replace all read level in uninitialized body too. Make sure that after possible
      * inlining, read levels are still redirected to localized parameters.
      */
-    private static void replaceReadLevels(List<FrameSlot> localizedSlots, FunctionRootNode root, boolean replaceWithReadLocals) {
+    private static void replaceReadLevels(List<FrameSlot> localizedSlots, FunctionRootNode root) {
         for (FrameSlot slot : localizedSlots) {
-            replaceReadLevelsWith(slot, root, replaceWithReadLocals);
+            replaceReadLevelsWith(slot, root, false);
             replaceReadLevelsWith(slot, root.getUninitializedBody(), true);
         }
     }
