@@ -106,8 +106,8 @@ public class GeneratorExpressionOptimizer {
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root);
-            replaceReadLevels(arguments, root);
+            replaceParameters(arguments, root, true);
+            replaceReadLevels(arguments, root, true);
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
@@ -124,8 +124,8 @@ public class GeneratorExpressionOptimizer {
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root);
-            replaceReadLevels(arguments, root);
+            replaceParameters(arguments, root, false);
+            replaceReadLevels(arguments, root, false);
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
@@ -195,23 +195,23 @@ public class GeneratorExpressionOptimizer {
     /**
      * Replace with empty parameter load in generator expression with real ones.
      */
-    private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root) {
+    private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root, boolean writeToLocalFrame) {
         GeneratorReturnTargetNode body = NodeUtil.findFirstNodeInstance(root, GeneratorReturnTargetNode.class);
-        body.getParameters().replace(assembleParameterWrites(slots));
+        body.getParameters().replace(assembleParameterWrites(slots, writeToLocalFrame));
 
         // Uninitialized body.
         ReturnTargetNode unitializedbody = (ReturnTargetNode) root.getUninitializedBody();
         PNode innerBody = unitializedbody.getBody();
-        innerBody.replace(new BlockNode(new PNode[]{assembleParameterWrites(slots), (PNode) innerBody.copy()}));
+        innerBody.replace(new BlockNode(new PNode[]{assembleParameterWrites(slots, true), (PNode) innerBody.copy()}));
     }
 
-    private static BlockNode assembleParameterWrites(List<FrameSlot> argumentSlots) {
+    private static BlockNode assembleParameterWrites(List<FrameSlot> argumentSlots, boolean writeToLocalFrame) {
         PNode[] writes = new PNode[argumentSlots.size()];
 
         for (int i = 0; i < argumentSlots.size(); i++) {
             FrameSlot slot = argumentSlots.get(i);
             ReadArgumentNode read = new ReadArgumentNode(i);
-            writes[i] = WriteLocalVariableNodeFactory.create(slot, read);
+            writes[i] = writeToLocalFrame ? WriteLocalVariableNodeFactory.create(slot, read) : WriteGeneratorFrameVariableNodeFactory.create(slot, read);
         }
 
         return new BlockNode(writes);
@@ -222,19 +222,25 @@ public class GeneratorExpressionOptimizer {
      * Need to replace all read level in uninitialized body too. Make sure that after possible
      * inlining, read levels are still redirected to localized parameters.
      */
-    private static void replaceReadLevels(List<FrameSlot> localizedSlots, FunctionRootNode root) {
+    private static void replaceReadLevels(List<FrameSlot> localizedSlots, FunctionRootNode root, boolean replaceWithReadLocals) {
         for (FrameSlot slot : localizedSlots) {
-            replaceReadLevelsWith(slot, root);
-            replaceReadLevelsWith(slot, root.getUninitializedBody());
+            replaceReadLevelsWith(slot, root, replaceWithReadLocals);
+            replaceReadLevelsWith(slot, root.getUninitializedBody(), true);
         }
     }
 
-    private static void replaceReadLevelsWith(FrameSlot targetSlot, Node root) {
+    private static void replaceReadLevelsWith(FrameSlot targetSlot, Node root, boolean replaceWithReadLocals) {
         for (ReadLevelVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLevelVariableNode.class)) {
             String id = (String) read.getSlot().getIdentifier();
 
-            if (id.equals(targetSlot.getIdentifier())) {
+            if (!id.equals(targetSlot.getIdentifier())) {
+                continue;
+            }
+
+            if (replaceWithReadLocals) {
                 read.replace(ReadLocalVariableNodeFactory.create(targetSlot));
+            } else {
+                read.replace(ReadGeneratorFrameVariableNodeFactory.create(targetSlot));
             }
         }
     }
