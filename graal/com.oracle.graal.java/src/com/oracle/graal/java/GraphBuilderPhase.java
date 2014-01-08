@@ -217,7 +217,7 @@ public class GraphBuilderPhase extends Phase {
             TTY.println(MetaUtil.indent(MetaUtil.profileToString(profilingInfo, method, CodeUtil.NEW_LINE), "  "));
         }
 
-        Indent indent = Debug.logAndIndent(false, "build graph for %s", method);
+        Indent indent = Debug.logAndIndent("build graph for %s", method);
 
         // compute the block map, setup exception handlers and get the entrypoint(s)
         BciBlockMapping blockMap = createBlockMap();
@@ -1247,17 +1247,19 @@ public class GraphBuilderPhase extends Phase {
     }
 
     private MonitorEnterNode genMonitorEnter(ValueNode x) {
-        MonitorEnterNode monitorEnter = append(new MonitorEnterNode(x, frameState.lockDepth()));
-        frameState.pushLock(x);
+        MonitorIdNode monitorId = currentGraph.add(new MonitorIdNode(frameState.lockDepth()));
+        MonitorEnterNode monitorEnter = append(new MonitorEnterNode(x, monitorId));
+        frameState.pushLock(x, monitorId);
         return monitorEnter;
     }
 
     private MonitorExitNode genMonitorExit(ValueNode x, ValueNode returnValue) {
+        MonitorIdNode monitorId = frameState.peekMonitorId();
         ValueNode lockedObject = frameState.popLock();
         if (GraphUtil.originalValue(lockedObject) != GraphUtil.originalValue(x)) {
             throw new BailoutException("unbalanced monitors: mismatch at monitorexit, %s != %s", GraphUtil.originalValue(x), GraphUtil.originalValue(lockedObject));
         }
-        MonitorExitNode monitorExit = append(new MonitorExitNode(x, returnValue, frameState.lockDepth()));
+        MonitorExitNode monitorExit = append(new MonitorExitNode(x, monitorId, returnValue));
         return monitorExit;
     }
 
