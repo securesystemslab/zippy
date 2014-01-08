@@ -42,11 +42,8 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 @NodeChild(value = "callee", type = PNode.class)
 public abstract class CallFunctionNode extends PNode {
 
-    public abstract PNode getCallee();
-
     @Children protected final PNode[] arguments;
     @Children protected final KeywordLiteralNode[] keywords;
-
     private final PythonContext context;
 
     public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
@@ -59,6 +56,8 @@ public abstract class CallFunctionNode extends PNode {
     protected CallFunctionNode(CallFunctionNode node) {
         this(node.arguments, node.keywords, node.context);
     }
+
+    public abstract PNode getCallee();
 
     public PNode[] getArguments() {
         return arguments;

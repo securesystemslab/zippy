@@ -118,13 +118,11 @@ public class EscapeAnalyzer {
     }
 
     /**
-     * A trivial way to identify if a call constructs a collection (allocates memory) right away. <br>
-     * If so, arguments to this call are not considered as escaping the current frame. For the case
-     * of generator expression, declaration frame materalization can be void by passing the
-     * referenced variables are arguments.
+     * A trivial way to identify if the callee is a builtin function. If so, the generator
+     * expression argument to this call is not considered as escaping.
      */
     private static boolean isBuiltinConstructor(String name) {
-        return name.equals("frozenset") || name.equals("set") || name.equals("list") || name.equals("dict");
+        return name.equals("frozenset") || name.equals("set") || name.equals("list") || name.equals("dict") || name.equals("sum");
     }
 
 }

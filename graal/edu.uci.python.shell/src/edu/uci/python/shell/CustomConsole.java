@@ -73,7 +73,7 @@ public class CustomConsole extends JLineConsole {
             result.visualizeToNetwork();
         }
 
-        ASTInterpreter.interpret(result, false);
+        ASTInterpreter.interpret(result);
 
         if (PythonOptions.PrintAST) {
             printBanner("After Specialization");

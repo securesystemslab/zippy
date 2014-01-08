@@ -28,6 +28,7 @@ import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -79,7 +80,9 @@ public class GeneratorExpressionOptimizer {
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableCall(genExp, (GetIteratorNode) genExp.getParent());
+                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent());
+            } else if (genExp.getParent() instanceof CallFunctionNode) {
+                transformToGeneratorCall(genExp, genExp);
             }
 
             return;
@@ -92,12 +95,12 @@ public class GeneratorExpressionOptimizer {
             }
 
             if (read.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableCall(genExp, (GetIteratorNode) read.getParent());
+                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent());
             }
         }
     }
 
-    private static void transformGetIterToInlineableCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator) {
+    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
         List<FrameSlot> arguments = addParameterSlots(root, fd);
@@ -106,6 +109,19 @@ public class GeneratorExpressionOptimizer {
         PNode[] argReads = assembleArgumentReads(arguments, genExp);
         CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
         getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
+    }
+
+    private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
+        FrameDescriptor fd = genExp.getFrameDescriptor();
+        FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+        List<FrameSlot> arguments = addParameterSlots(root, fd);
+        replaceParameters(arguments, root);
+        replaceReadLevels(arguments, root);
+        PNode[] argReads = assembleArgumentReads(arguments, genExp);
+        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+        loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
+        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
     }
 
     /**

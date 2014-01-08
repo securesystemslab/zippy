@@ -51,7 +51,11 @@ public class PythonParseResult {
     }
 
     public void addParsedFunction(String name, RootNode function) {
-        functions.put(name, function);
+        if (functions.containsKey(name)) {
+            functions.put(name + function.hashCode(), function);
+        } else {
+            functions.put(name, function);
+        }
     }
 
     public Collection<RootNode> getFunctionRoots() {

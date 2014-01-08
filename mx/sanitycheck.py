@@ -119,6 +119,7 @@ python2MicroBenchmarks = {
     #'builtin-len-tuple'    : '0',
     'generator'             : '0',
     'generator-expression'  : '0',
+    'genexp-builtin-call'   : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -132,6 +133,7 @@ pythonMicroBenchmarks = {
     'builtin-len-tuple'     : '0',
     'generator'             : '0',
     'generator-expression'  : '-optimizeGeneratorExpressions',
+    'genexp-builtin-call'   : '-optimizeGeneratorExpressions',
 }
 
 pythonBenchmarks = {
