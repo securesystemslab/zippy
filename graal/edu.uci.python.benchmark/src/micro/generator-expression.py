@@ -11,6 +11,15 @@ def call_generator(num, iteration):
 
 	return item
 
+def call_generator_localvar(num, iteration):
+	item = 0
+	for t in range(iteration):
+		num += t % 5
+		ge = (x * 2 for x in range(num))
+		for i in ge:
+			item = i + item % 5
+
+	return item
 
 def measure():
 	print("Start timing...")

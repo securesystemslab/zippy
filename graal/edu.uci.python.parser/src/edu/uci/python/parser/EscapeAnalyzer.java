@@ -35,15 +35,30 @@ import edu.uci.python.nodes.statement.*;
 public class EscapeAnalyzer {
 
     private final RootNode root;
-    private final Node target;
+    private final Node targetExpression;
 
-    public EscapeAnalyzer(RootNode root, Node target) {
+    private FrameSlot localSlot; // FrameSlot that stores the value of the target expression.
+
+    public EscapeAnalyzer(RootNode root, Node targetExpression) {
         this.root = root;
-        this.target = target;
+        this.targetExpression = targetExpression;
     }
 
     public boolean escapes() {
-        return escapesCurrentFrame(target);
+        return escapesCurrentFrame(targetExpression);
+    }
+
+    public boolean isBoundToLocalFrame() {
+        return localSlot != null;
+    }
+
+    public FrameSlot getTargetExpressionSlot() {
+        assert localSlot != null;
+        return localSlot;
+    }
+
+    private void updateTargetExpressionSlot(FrameSlot newSlot) {
+        localSlot = localSlot == null ? newSlot : localSlot;
     }
 
     private boolean escapesCurrentFrame(Node currentTarget) {
@@ -54,6 +69,7 @@ public class EscapeAnalyzer {
 
             if (current instanceof WriteLocalVariableNode) {
                 FrameSlot slot = ((WriteLocalVariableNode) current).getSlot();
+                updateTargetExpressionSlot(slot);
                 return escapesCurrentFrame(slot);
             } else if (current instanceof WriteNode) {
                 return true; // Other write nodes
@@ -75,7 +91,8 @@ public class EscapeAnalyzer {
 
     /**
      * Only local reads are effectively analyzed.<br>
-     * Since any local write is a statement by it self, and the recursive call always return false.
+     * Since any local write is a statement by it self, and the recursive call to
+     * escapesCurrentFrame() always return false.
      */
     private boolean escapesCurrentFrame(FrameSlot slot) {
         if (slot.getIdentifier().equals(TranslationEnvironment.RETURN_SLOT_ID)) {

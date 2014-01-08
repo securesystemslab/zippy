@@ -43,6 +43,7 @@ import edu.uci.python.runtime.*;
 public class GeneratorExpressionOptimizer {
 
     private final PythonParseResult parseResult;
+    private RootNode currentRoot;
 
     public GeneratorExpressionOptimizer(PythonParseResult parseResult) {
         this.parseResult = parseResult;
@@ -50,6 +51,7 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         for (RootNode functionRoot : parseResult.getFunctionRoots()) {
+            currentRoot = functionRoot;
             doRoot(functionRoot);
         }
     }
@@ -65,27 +67,45 @@ public class GeneratorExpressionOptimizer {
                 parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
                 parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
-                transform(genExp);
+                transform(genExp, escapeAnalyzer);
             }
         }
     }
 
-    private static void transform(GeneratorExpressionDefinitionNode genExp) {
-        PNode parent = (PNode) genExp.getParent();
+    private void transform(GeneratorExpressionDefinitionNode genExp, EscapeAnalyzer escapeAnalyzer) {
 
-        /**
-         * The simplest case in micro bench: generator-expression.
-         */
-        if (parent instanceof GetIteratorNode) {
-            FrameDescriptor fd = genExp.getFrameDescriptor();
-            FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
-            List<FrameSlot> arguments = addParameterSlots(root, fd);
-            replaceParameters(arguments, root);
-            replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp);
-            CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            genExp.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+        if (!escapeAnalyzer.isBoundToLocalFrame()) {
+            /**
+             * The simplest case in micro bench: generator-expression.
+             */
+            if (genExp.getParent() instanceof GetIteratorNode) {
+                transformGetIterToInlineableCall(genExp, (GetIteratorNode) genExp.getParent());
+            }
+
+            return;
         }
+
+        FrameSlot genExpSlot = escapeAnalyzer.getTargetExpressionSlot();
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(currentRoot, ReadLocalVariableNode.class)) {
+            if (!read.getSlot().equals(genExpSlot)) {
+                continue;
+            }
+
+            if (read.getParent() instanceof GetIteratorNode) {
+                transformGetIterToInlineableCall(genExp, (GetIteratorNode) read.getParent());
+            }
+        }
+    }
+
+    private static void transformGetIterToInlineableCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator) {
+        FrameDescriptor fd = genExp.getFrameDescriptor();
+        FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+        List<FrameSlot> arguments = addParameterSlots(root, fd);
+        replaceParameters(arguments, root);
+        replaceReadLevels(arguments, root);
+        PNode[] argReads = assembleArgumentReads(arguments, genExp);
+        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+        getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
     }
 
     /**
