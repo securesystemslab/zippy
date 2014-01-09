@@ -97,7 +97,7 @@ public abstract class FrameSlotNode extends PNode {
 
     protected final boolean isNoneValue(VirtualFrame frame) {
         Object value = frame.getValue(frameSlot);
-        if (value.equals(PNone.NONE)) {
+        if (value != null && value.equals(PNone.NONE)) {
             return true;
         }
 

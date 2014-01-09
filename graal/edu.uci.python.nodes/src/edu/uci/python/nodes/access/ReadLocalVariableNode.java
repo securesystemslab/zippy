@@ -26,6 +26,8 @@ package edu.uci.python.nodes.access;
 
 import java.math.BigInteger;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -54,34 +56,40 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 1, guards = "isNoneValue")
+    @Specialization(order = 1, guards = {"isNoneValue", "isNotIllegal"})
     public PNone doNone(VirtualFrame frame) {
         return PNone.NONE;
     }
 
-    @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
         return getInteger(frame);
     }
 
-    @Specialization(order = 3, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
         return getBigInteger(frame);
     }
 
-    @Specialization(order = 4, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
         return getDouble(frame);
     }
 
-    @Specialization(order = 5, rewriteOn = {FrameSlotTypeException.class})
+    @Specialization(order = 5, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
         return getBoolean(frame);
     }
 
-    @Specialization(order = 6)
+    @Specialization(order = 6, guards = "isNotIllegal")
     public Object doObject(VirtualFrame frame) {
         return getObject(frame);
     }
 
+    @SuppressWarnings("unused")
+    @Generic
+    public Object doGeneric(VirtualFrame frame) {
+        assert !isNotIllegal();
+        throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+    }
 }
