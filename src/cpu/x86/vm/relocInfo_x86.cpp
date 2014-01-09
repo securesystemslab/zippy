@@ -181,6 +181,9 @@ void poll_Relocation::fix_relocation_after_move(const CodeBuffer* src, CodeBuffe
 #ifdef _LP64
   typedef Assembler::WhichOperand WhichOperand;
   WhichOperand which = (WhichOperand) format();
+#ifndef GRAAL
+  assert((which == Assembler::disp32_operand) == !Assembler::is_polling_page_far(), "format not set correctly");
+#endif
   if (which == Assembler::disp32_operand) {
     address orig_addr = old_addr_for(addr(), src, dest);
     NativeInstruction* oni = nativeInstruction_at(orig_addr);
