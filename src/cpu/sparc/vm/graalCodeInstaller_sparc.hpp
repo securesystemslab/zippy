@@ -42,52 +42,32 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
 }
 
 inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
-  oop constant = CompilationResult_DataPatch::constant(site);
-  int alignment = CompilationResult_DataPatch::alignment(site);
-  bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
-
-  oop kind = Constant::kind(constant);
-  char typeChar = Kind::typeChar(kind);
-
+  oop inlineData = CompilationResult_DataPatch::inlineData(site);
   address pc = _instructions->start() + pc_offset;
 
-  switch (typeChar) {
-    case 'z':
-    case 'b':
-    case 's':
-    case 'c':
-    case 'i':
-      fatal("int-sized values not expected in DataPatch");
-      break;
-    case 'f':
-    case 'j':
-    case 'd': {
-      if (inlined) {
-        NativeMovConstReg* move = nativeMovConstReg_at(pc);
-        uint64_t value = Constant::primitive(constant);
-        move->set_data(value);
-      } else {
-        int size = _constants->size();
-        if (alignment > 0) {
-          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-          size = align_size_up(size, alignment);
-        }
-        // we don't care if this is a long/double/etc., the primitive field contains the right bits
-        address dest = _constants->start() + size;
-        _constants->set_end(dest);
-        uint64_t value = Constant::primitive(constant);
-        _constants->emit_int64(value);
+  if (inlineData != NULL) {
+    oop kind = Constant::kind(inlineData);
+    char typeChar = Kind::typeChar(kind);
 
-        NativeMovRegMem* load = nativeMovRegMem_at(pc);
-        int disp = _constants_size + pc_offset - size - BytesPerInstWord;
-        load->set_offset(-disp);
-      }
-      break;
-    }
-    case 'a': {
-      if (inlined) {
+    switch (typeChar) {
+      case 'z':
+      case 'b':
+      case 's':
+      case 'c':
+      case 'i':
+        fatal("int-sized values not expected in DataPatch");
+        break;
+      case 'f':
+      case 'j':
+      case 'd': {
         NativeMovConstReg* move = nativeMovConstReg_at(pc);
-        Handle obj = Constant::object(constant);
+        uint64_t value = Constant::primitive(inlineData);
+        move->set_data(value);
+        break;
+      }
+      case 'a': {
+        NativeMovConstReg* move = nativeMovConstReg_at(pc);
+        Handle obj = Constant::object(inlineData);
         jobject value = JNIHandles::make_local(obj());
         move->set_data((intptr_t) value);
 
@@ -96,30 +76,19 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
         RelocationHolder rspec = oop_Relocation::spec(oop_index);
         _instructions->relocate(pc + NativeMovConstReg::sethi_offset, rspec);
         _instructions->relocate(pc + NativeMovConstReg::add_offset, rspec);
-      } else {
-        int size = _constants->size();
-        if (alignment > 0) {
-          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-          size = align_size_up(size, alignment);
-        }
-        address dest = _constants->start() + size;
-        _constants->set_end(dest);
-        Handle obj = Constant::object(constant);
-        jobject value = JNIHandles::make_local(obj());
-        _constants->emit_address((address) value);
-
-        NativeMovRegMem* load = nativeMovRegMem_at(pc);
-        int disp = _constants_size + pc_offset - size - BytesPerInstWord;
-        load->set_offset(-disp);
-
-        int oop_index = _oop_recorder->find_index(value);
-        _constants->relocate(dest, oop_Relocation::spec(oop_index));
+        break;
       }
-      break;
+      default:
+        fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
+        break;
     }
-    default:
-      fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
-      break;
+  } else {
+    oop dataRef = CompilationResult_DataPatch::externalData(site);
+    jint offset = HotSpotCompiledCode_HotSpotData::offset(dataRef);
+
+    NativeMovRegMem* load = nativeMovRegMem_at(pc);
+    int disp = _constants_size + pc_offset - offset - BytesPerInstWord;
+    load->set_offset(-disp);
   }
 }
 

@@ -435,7 +435,13 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
-  _constants_size = calculate_constants_size();
+  _dataSection = HotSpotCompiledCode::dataSection(compiled_code);
+  guarantee(HotSpotCompiledCode_DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  _constants_size = data->length();
+  if (_constants_size > 0) {
+    _constants_size = align_size_up(_constants_size, _constants->alignment());
+  }
 
 #ifndef PRODUCT
   _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
@@ -464,6 +470,35 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   }
   memcpy(_instructions->start(), _code->base(T_BYTE), _code_size);
   _instructions->set_end(end_pc);
+
+  // copy the constant data into the newly created CodeBuffer
+  address end_data = _constants->start() + _constants_size;
+  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  memcpy(_constants->start(), data->base(T_BYTE), data->length());
+  _constants->set_end(end_data);
+
+  objArrayOop patches = (objArrayOop) HotSpotCompiledCode_DataSection::patches(_dataSection);
+  for (int i = 0; i < patches->length(); i++) {
+    oop patch = patches->obj_at(i);
+    oop constant = HotSpotCompiledCode_HotSpotData::constant(patch);
+    oop kind = Constant::kind(constant);
+    char typeChar = Kind::typeChar(kind);
+    switch (typeChar) {
+      case 'f':
+      case 'j':
+      case 'd':
+        record_metadata_in_constant(constant, _oop_recorder);
+        break;
+      case 'a':
+        Handle obj = Constant::object(constant);
+        jobject value = JNIHandles::make_local(obj());
+        int oop_index = _oop_recorder->find_index(value);
+
+        address dest = _constants->start() + HotSpotCompiledCode_HotSpotData::offset(patch);
+        _constants->relocate(dest, oop_Relocation::spec(oop_index));
+        break;
+    }
+  }
 
   for (int i = 0; i < _sites->length(); i++) {
     oop site = ((objArrayOop) (_sites))->obj_at(i);
@@ -506,39 +541,6 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   }
 #endif
   return true;
-}
-
-/**
- * Calculate the constants section size by iterating over all DataPatches.
- * Knowing the size of the constants section before patching instructions
- * is necessary for PC-relative addressing.
- */
-int CodeInstaller::calculate_constants_size() {
-  int size = 0;
-
-  for (int i = 0; i < _sites->length(); i++) {
-    oop site = ((objArrayOop) (_sites))->obj_at(i);
-    jint pc_offset = CompilationResult_Site::pcOffset(site);
-
-    if (site->is_a(CompilationResult_DataPatch::klass())) {
-      int alignment = CompilationResult_DataPatch::alignment(site);
-      bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
-
-      if (!inlined) {
-        if (alignment > 0) {
-          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-          size = align_size_up(size, alignment);
-        }
-        if (CompilationResult_DataPatch::constant(site) != NULL) {
-          size = size + sizeof(int64_t);
-        } else {
-          arrayOop rawConstant = arrayOop(CompilationResult_DataPatch::rawConstant(site));
-          size = size + rawConstant->length();
-        }
-      }
-    }
-  }
-  return size == 0 ? 0 : align_size_up(size, _constants->alignment());
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
@@ -766,15 +768,15 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 }
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop constant = CompilationResult_DataPatch::constant(site);
-  if (constant != NULL) {
-    oop kind = Constant::kind(constant);
+  oop inlineData = CompilationResult_DataPatch::inlineData(site);
+  if (inlineData != NULL) {
+    oop kind = Constant::kind(inlineData);
     char typeChar = Kind::typeChar(kind);
     switch (typeChar) {
       case 'f':
       case 'j':
       case 'd':
-        record_metadata_in_constant(constant, _oop_recorder);
+        record_metadata_in_constant(inlineData, _oop_recorder);
         break;
     }
   }

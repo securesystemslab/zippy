@@ -50,6 +50,7 @@ private:
 
   Arena         _arena;
 
+  oop           _dataSection;
   arrayOop      _sites;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
@@ -101,8 +102,6 @@ private:
 
   // perform data and call relocation on the CodeBuffer
   bool initialize_buffer(CodeBuffer& buffer);
-
-  int calculate_constants_size();
 
   void assumption_MethodContents(Handle assumption);
   void assumption_NoFinalizableSubclass(Handle assumption);
