@@ -15,7 +15,7 @@ def _sum(iterable):
     return sum
 
 def balance(pattern): 
-    return _sum(COINS[x]*pattern[x] for x in range(0, len(pattern)))
+    return sum(COINS[x]*pattern[x] for x in range(0, len(pattern)))
 
 def gen(pattern, coinnum, num):
     coin = COINS[coinnum]
@@ -41,7 +41,7 @@ def solve(total):
     1 P1 + 1 50p + 2 20p + 1 5p + 1 2p + 3 1p
     How many different ways can P2 be made using any number of coins?
     '''
-    return _sum(1 for pat in gen((), 0, total))
+    return sum(1 for pat in gen((), 0, total))
 
 def measure():
     print("Start timing...")
