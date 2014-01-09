@@ -24,7 +24,8 @@
  */
 package edu.uci.python.nodes.call;
 
-import com.oracle.truffle.api.*;
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -49,7 +50,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        CompilerAsserts.neverPartOfCompilation();
+        transferToInterpreterAndInvalidate();
         Object calleeObj = callee.execute(frame);
 
         if (calleeObj instanceof PythonCallable) {
