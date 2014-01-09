@@ -28,15 +28,12 @@ import java.io.*;
 import java.net.*;
 
 import org.python.core.*;
-import org.python.core.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.source.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ImportNode extends PNode {
@@ -89,16 +86,15 @@ public class ImportNode extends PNode {
         PythonContext moduleContext = null;
         if (importedModule == null) {
 
-            FileInputStream inputStream;
             try {
                 String filename = name + ".py";
-                String path = context.getSourceManager().getPath();
-                inputStream = new FileInputStream(new RelativeFile(path + File.separatorChar + filename));
-                SourceManager sourceManager = new SourceManager(path, filename, inputStream);
-                moduleContext = new PythonContext(context, sourceManager);
-                importedModule = result = context.getParser().parse(moduleContext, CompileMode.exec, CompilerFlags.getCompilerFlags());
-                inputStream.close();
-            } catch (IOException e) {
+                String path = getImporterPath();
+                String fullPath = path + File.separatorChar + filename;
+                Source source = context.getSourceManager().get(fullPath);
+                moduleContext = new PythonContext(context);
+                importedModule = result = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+
+            } catch (RuntimeException e) {
                 // do nothing and jython's importer will fix it.
             }
 
@@ -183,16 +179,13 @@ public class ImportNode extends PNode {
             sourceFile = new File(dirName, sourceName);
             URL url = createURL(displayDirName, sourceName);
             try {
-                InputStream inputStream = url.openStream();
-                if (inputStream != null) {
-                    // CheckStyle: stop system..print check
-                    System.out.println("[ZipPy] parsing module " + modName);
-                    // CheckStyle: resume system..print check
-                    PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
-                    inputStream.close();
-                    return parsedModule;
-                }
-            } catch (IOException e) {
+// CheckStyle: stop system..print check
+                System.out.println("[ZipPy] parsing module " + modName);
+// CheckStyle: resume system..print check
+
+                PythonParseResult parsedModule = parseModule(displayDirName, sourceName);
+                return parsedModule;
+            } catch (RuntimeException e) {
                 // TODO Auto-generated catch block
                 // e.printStackTrace();
             }
@@ -205,10 +198,10 @@ public class ImportNode extends PNode {
         return null;
     }
 
-    private PythonParseResult parseModule(String dirName, String sourceName, InputStream inputStream) {
-        SourceManager sourceManager = new SourceManager(dirName, sourceName, inputStream);
-        PythonContext moduleContext = new PythonContext(context, sourceManager);
-        PythonParseResult parseResult = context.getParser().parse(moduleContext, CompileMode.exec, CompilerFlags.getCompilerFlags());
+    private PythonParseResult parseModule(String dirName, String sourceName) {
+        Source source = context.getSourceManager().get(dirName + sourceName);
+        PythonContext moduleContext = new PythonContext(context);
+        PythonParseResult parseResult = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
         return parseResult;
     }
 
@@ -239,7 +232,7 @@ public class ImportNode extends PNode {
             }
         } else {
             try {
-                String urlString = "file:" + path + "/" + fileName;
+                String urlString = "file:" + path + File.separatorChar + fileName;
                 url = new URL(urlString);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -249,4 +242,22 @@ public class ImportNode extends PNode {
         return url;
     }
 
+    private String getImporterPath() {
+        String path = ".";
+        String name = context.getParser().getSource().getPath(); // this.getSourceSection().getSource().getPath();
+        String fileName = new StringBuilder(name).reverse().toString();
+        int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
+        int filenameln = name.length() - separtorLoc;
+        fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc, name.length());
+        final File file = new File(name);
+        if (file.exists()) {
+            try {
+                path = file.getCanonicalPath();
+                path = path.substring(0, path.length() - filenameln);
+            } catch (IOException e) {
+            }
+        }
+
+        return path;
+    }
 }

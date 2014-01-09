@@ -28,19 +28,26 @@ import java.io.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 public class PythonParserImpl implements PythonParser {
+
+    Source source = null;
 
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
 
     @Override
-    public PythonParseResult parse(PythonContext context, CompileMode kind, CompilerFlags cflags) {
+    public PythonParseResult parse(PythonContext context, Source source, CompileMode kind, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
-        InputStream istream = context.getSourceManager().getInputStream();
-        String filename = context.getSourceManager().getFilename();
+        this.source = source;
+// InputStream istream = context.getSourceManager().getInputStream();
+        InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
+// String filename = context.getSourceManager().getFilename();
+        String filename = source.getPath();
 
         if (!PythonOptions.PrintFunction) {
             // enable printing flag for python's builtin function (v3.x) in parser.
@@ -65,5 +72,10 @@ public class PythonParserImpl implements PythonParser {
         }
 
         return result;
+    }
+
+    @Override
+    public Source getSource() {
+        return source;
     }
 }

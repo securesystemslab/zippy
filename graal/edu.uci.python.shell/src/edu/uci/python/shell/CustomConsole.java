@@ -29,6 +29,8 @@ import java.io.*;
 import org.python.core.*;
 import org.python.util.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
@@ -54,16 +56,18 @@ public class CustomConsole extends JLineConsole {
             }
         }
 
-        SourceManager sourceManager = new SourceManager(path, fileName, s);
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, sourceManager);
-        execfile(context);
+// SourceManager sourceManager = new SourceManager(path, fileName, s);
+
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
+        Source source = context.getSourceManager().get(name);
+        execfile(context, source);
     }
 
-    public void execfile(PythonContext context) {
+    public void execfile(PythonContext context, Source source) {
         setSystemState();
 
         ASTInterpreter.init(false);
-        PythonParseResult result = context.getParser().parse(context, CompileMode.exec, cflags);
+        PythonParseResult result = context.getParser().parse(context, source, CompileMode.exec, cflags);
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();
@@ -87,8 +91,8 @@ public class CustomConsole extends JLineConsole {
         Py.flushLine();
     }
 
-    public void parseFile(PythonContext context) {
-        PythonParseResult result = context.getParser().parse(context, CompileMode.exec, cflags);
+    public void parseFile(PythonContext context, Source source) {
+        PythonParseResult result = context.getParser().parse(context, source, CompileMode.exec, cflags);
 
         if (PythonOptions.PrintAST) {
             printBanner("After Parsing");

@@ -27,10 +27,10 @@ package edu.uci.python.runtime;
 import java.io.*;
 
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.source.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
@@ -47,7 +47,7 @@ public class PythonContext {
 
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser, SourceManager sourceManager) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
@@ -55,14 +55,14 @@ public class PythonContext {
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
         currentContext = this;
-        this.sourceManager = sourceManager;
+        this.sourceManager = new SourceManager();
         this.parser = parser;
 
         this.lookup.addBuiltins(this);
     }
 
-    public PythonContext(PythonContext context, SourceManager sourceManager) {
-        this(context.options, context.lookup, context.parser, sourceManager);
+    public PythonContext(PythonContext context) {
+        this(context.options, context.lookup, context.parser);
     }
 
     public PythonOptions getPythonOptions() {
