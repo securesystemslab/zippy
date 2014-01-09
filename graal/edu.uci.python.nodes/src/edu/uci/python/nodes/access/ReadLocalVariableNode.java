@@ -92,4 +92,5 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
         assert !isNotIllegal();
         throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
     }
+
 }

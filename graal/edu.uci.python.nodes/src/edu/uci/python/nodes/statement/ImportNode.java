@@ -183,10 +183,11 @@ public class ImportNode extends PNode {
             sourceFile = new File(dirName, sourceName);
             URL url = createURL(displayDirName, sourceName);
             try {
-                // System.out.println("MODULE NAME " + modName);
                 InputStream inputStream = url.openStream();
                 if (inputStream != null) {
+                    // CheckStyle: stop system..print check
                     System.out.println("[ZipPy] parsing module " + modName);
+                    // CheckStyle: resume system..print check
                     PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
                     inputStream.close();
                     return parsedModule;

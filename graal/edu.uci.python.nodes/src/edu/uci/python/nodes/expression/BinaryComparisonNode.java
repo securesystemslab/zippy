@@ -238,11 +238,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @SuppressWarnings("unused")
         @Specialization(order = 0)
         boolean doPNone(Object left, PNone right) {
-            if (left instanceof PNone) {
-                return true;
-            }
-
-            return false;
+            return left.equals(PNone.NONE) ? true : false;
         }
 
         @Specialization(order = 3)
