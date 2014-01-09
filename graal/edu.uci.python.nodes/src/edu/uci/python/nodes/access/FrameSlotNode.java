@@ -82,6 +82,10 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
+    protected final boolean isIllegal() {
+        return frameSlot.getKind() == FrameSlotKind.Illegal;
+    }
+
     protected final boolean isNotIllegal() {
         return frameSlot.getKind() != FrameSlotKind.Illegal;
     }
