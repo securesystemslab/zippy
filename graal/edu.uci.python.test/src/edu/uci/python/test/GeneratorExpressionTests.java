@@ -88,8 +88,9 @@ public class GeneratorExpressionTests {
                         "        sum += i\n" + //
                         "    return sum\n" + //
                         "\n" + //
+                        "print(_sum(genexp))\n" + //
                         "print(_sum(genexp))\n";
 
-        assertPrints("20\n", source);
+        assertPrints("20\n20\n", source);
     }
 }
