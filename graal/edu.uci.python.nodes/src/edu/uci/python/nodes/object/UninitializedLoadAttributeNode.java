@@ -24,7 +24,8 @@
  */
 package edu.uci.python.nodes.object;
 
-import com.oracle.truffle.api.*;
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
@@ -40,7 +41,7 @@ public class UninitializedLoadAttributeNode extends LoadAttributeNode {
     @SlowPath
     @Override
     public Object execute(VirtualFrame frame) {
-        CompilerAsserts.neverPartOfCompilation();
+        transferToInterpreterAndInvalidate();
         Object primaryObj = primary.execute(frame);
         replace(specialize(primaryObj));
 

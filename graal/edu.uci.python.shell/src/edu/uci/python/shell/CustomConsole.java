@@ -34,7 +34,6 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.source.*;
 
 public class CustomConsole extends JLineConsole {
 

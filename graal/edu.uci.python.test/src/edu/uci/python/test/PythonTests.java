@@ -33,7 +33,6 @@ import static org.junit.Assert.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.source.*;
 import edu.uci.python.shell.*;
 
 public class PythonTests {

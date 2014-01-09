@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.literal;
 
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -42,7 +44,7 @@ public abstract class ListLiteralNode extends LiteralNode {
 
     @ExplodeLoop
     protected PList doGeneric(VirtualFrame frame, Object[] evaluated) {
-        CompilerAsserts.neverPartOfCompilation();
+        transferToInterpreterAndInvalidate();
         Object[] elements = new Object[values.length];
 
         for (int i = 0; i < values.length; i++) {
@@ -71,7 +73,7 @@ public abstract class ListLiteralNode extends LiteralNode {
         @ExplodeLoop
         @Override
         public Object execute(VirtualFrame frame) {
-            CompilerAsserts.neverPartOfCompilation();
+            transferToInterpreterAndInvalidate();
             final Object[] elements = new Object[values.length];
 
             for (int i = 0; i < values.length; i++) {

@@ -24,9 +24,10 @@
  */
 package edu.uci.python.nodes.object;
 
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
 import org.python.core.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -41,14 +42,14 @@ public class UninitializedStoreAttributeNode extends StoreAttributeNode {
 
     @Override
     public Object executeWith(VirtualFrame frame, Object value) {
-        CompilerAsserts.neverPartOfCompilation();
+        transferToInterpreterAndInvalidate();
         final Object primaryObj = primary.execute(frame);
         return doGeneric(primaryObj, value);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        CompilerAsserts.neverPartOfCompilation();
+        transferToInterpreterAndInvalidate();
         final Object primaryObj = primary.execute(frame);
         final Object value = rhs.execute(frame);
         return doGeneric(primaryObj, value);
