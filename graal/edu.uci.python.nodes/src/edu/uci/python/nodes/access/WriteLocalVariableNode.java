@@ -63,16 +63,16 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @SuppressWarnings("unused")
     @Specialization(order = 0, guards = "isIllegal")
-    public PNone writeIllegalToNone(VirtualFrame frame, PNone right) {
+    public PNone writeNoneInitial(VirtualFrame frame, PNone right) {
         frameSlot.setKind(FrameSlotKind.None);
+        frame.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
-    @SuppressWarnings("unused")
-    @Specialization(order = 1, guards = "isNone")
-    public PNone write(VirtualFrame frame, PNone right) {
+    @Specialization(order = 1, guards = "isNotIllegal")
+    public PNone writeNone(VirtualFrame frame, PNone right) {
+        frame.setObject(frameSlot, PNone.NONE);
         return right;
     }
 

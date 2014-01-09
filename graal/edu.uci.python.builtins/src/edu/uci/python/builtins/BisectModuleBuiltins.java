@@ -68,11 +68,6 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
             }
         }
 
-        @SuppressWarnings("unused")
-        public int bisect(Object arg) {
-            throw new RuntimeException("wrong number of arguments for bisect() ");
-        }
-
         public int getIndexRight(PSequence seq, Object key) {
             if (key instanceof String) {
                 return binarySearchRightStr(seq, 0, seq.len() - 1, (String) key);
