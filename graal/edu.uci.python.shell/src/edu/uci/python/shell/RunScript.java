@@ -34,6 +34,8 @@ import org.python.modules.posix.*;
 import org.python.modules.thread.*;
 import org.python.util.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 public class RunScript {
@@ -105,7 +107,7 @@ public class RunScript {
         }
     }
 
-    public static void runTrowableScript(String[] args, PythonContext context) {
+    public static void runTrowableScript(String[] args, Source source, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -114,14 +116,13 @@ public class RunScript {
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
-        String script = context.getSourceManager().getFilename();
-        if (script != null) {
+        if (source != null) {
             Py.getSystemState().path.insert(0, new PyString(System.getProperty("user.dir")));
-            interp.execfile(context);
+            interp.execfile(context, source);
         }
     }
 
-    public static void runScript(String[] args, PythonContext context) {
+    public static void runScript(String[] args, Source source, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -130,13 +131,13 @@ public class RunScript {
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
-        InputStream script = context.getSourceManager().getInputStream();
-        if (script != null) {
+// InputStream script = context.getSourceManager().getInputStream();
+        if (source != null) {
             try {
                 PyString path = new PyString(System.getProperty("user.dir"));
                 Py.getSystemState().path.insert(0, path);
 
-                interp.execfile(context);
+                interp.execfile(context, source);
             } catch (Throwable t) {
                 if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
                     // Shutdown this instance...
