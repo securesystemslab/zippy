@@ -186,7 +186,7 @@ public class ImportNode extends PNode {
                 // System.out.println("MODULE NAME " + modName);
                 InputStream inputStream = url.openStream();
                 if (inputStream != null) {
-                    // System.out.println("Will parse module " + modName);
+                    System.out.println("[ZipPy] parsing module " + modName);
                     PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
                     inputStream.close();
                     return parsedModule;

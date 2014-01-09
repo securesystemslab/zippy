@@ -30,6 +30,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class FrameSlotNode extends PNode {
 
@@ -90,8 +91,17 @@ public abstract class FrameSlotNode extends PNode {
         return frameSlot.getKind() == FrameSlotKind.Illegal;
     }
 
-    protected final boolean isNone() {
+    protected final boolean isNoneKind() {
         return frameSlot.getKind() == FrameSlotKind.None;
+    }
+
+    protected final boolean isNoneValue(VirtualFrame frame) {
+        Object value = frame.getValue(frameSlot);
+        if (value.equals(PNone.NONE)) {
+            return true;
+        }
+
+        return false;
     }
 
     protected final boolean isBooleanKind() {

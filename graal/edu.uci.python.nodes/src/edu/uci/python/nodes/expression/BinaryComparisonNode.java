@@ -235,17 +235,27 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class IsNode extends BinaryComparisonNode {
 
-        @Specialization
+        @SuppressWarnings("unused")
+        @Specialization(order = 0)
+        boolean doPNone(Object left, PNone right) {
+            if (left instanceof PNone) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Specialization(order = 3)
         boolean doInteger(int left, int right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 4)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) == 0;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doDouble(double left, double right) {
             return left == right;
         }
@@ -254,7 +264,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         public boolean doGeneric(Object left, Object right) {
             return left.equals(right);
         }
-
     }
 
     public abstract static class IsNotNode extends BinaryComparisonNode {

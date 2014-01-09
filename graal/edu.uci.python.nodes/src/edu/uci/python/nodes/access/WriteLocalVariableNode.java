@@ -63,17 +63,16 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @SuppressWarnings("unused")
     @Specialization(order = 0, guards = "isIllegal")
     public PNone writeNoneInitial(VirtualFrame frame, PNone right) {
-// frame.setObject(frameSlot, PNone.NONE);
         frameSlot.setKind(FrameSlotKind.None);
+        frame.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
-    @SuppressWarnings("unused")
     @Specialization(order = 1, guards = "isNotIllegal")
     public PNone writeNone(VirtualFrame frame, PNone right) {
+        frame.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
@@ -83,25 +82,25 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
         return right;
     }
 
-    @Specialization(guards = "isIntegerKind")
+    @Specialization(order = 3, guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
         frame.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(guards = "isIntOrObjectKind")
+    @Specialization(order = 4, guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         setObject(frame, value);
         return value;
     }
 
-    @Specialization(guards = "isDoubleKind")
+    @Specialization(order = 5, guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
         frame.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(guards = "isObjectKind")
+    @Specialization(order = 6, guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;
