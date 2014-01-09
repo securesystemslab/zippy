@@ -34,6 +34,7 @@ class GraalRuntime: public AllStatic {
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
   static void dynamic_new_array(JavaThread* thread, oopDesc* element_mirror, jint length);
+  static void dynamic_new_instance(JavaThread* thread, oopDesc* type_mirror);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupted);
   static void vm_message(jboolean vmError, jlong format, jlong v1, jlong v2, jlong v3);
   static jint identity_hash_code(JavaThread* thread, oopDesc* obj);
