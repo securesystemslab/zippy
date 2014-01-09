@@ -131,6 +131,7 @@ pythonMicroBenchmarks = {
     'list-iterating'        : '0',
     'builtin-len'           : '0',
     'builtin-len-tuple'     : '0',
+    'math-sqrt'             : '0',
     'generator'             : '0',
     'generator-expression'  : '-optimizeGeneratorExpressions',
     'genexp-builtin-call'   : '-optimizeGeneratorExpressions',
