@@ -94,6 +94,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.__add__(right);
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(order = 10)
+        int doNoneInt(PNone left, int right) {
+            return right;
+        }
+
         // TODO: type info for operands in type error message.
         @SuppressWarnings("unused")
         @Generic

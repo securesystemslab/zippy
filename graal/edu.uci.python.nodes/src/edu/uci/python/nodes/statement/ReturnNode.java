@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
 public class ReturnNode extends StatementNode {
@@ -35,13 +34,8 @@ public class ReturnNode extends StatementNode {
     private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
+        throw IMPLICIT_RETURN;
     }
 
     public static class ExplicitReturnNode extends ReturnNode {
@@ -53,13 +47,13 @@ public class ReturnNode extends StatementNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             Object returnValue = right.execute(frame);
             throw new ExplicitReturnException(returnValue);
         }
     }
 
-    public static class FrameReturnNode extends ExplicitReturnNode {
+    public static final class FrameReturnNode extends ExplicitReturnNode {
 
         private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
 
@@ -68,7 +62,7 @@ public class ReturnNode extends StatementNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             right.execute(frame);
             throw RETURN_EXCEPTION;
         }

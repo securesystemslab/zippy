@@ -26,7 +26,7 @@ package edu.uci.python.runtime;
 
 import org.python.core.*;
 
-public interface IPythonParser {
+public interface PythonParser {
 
     PythonParseResult parse(PythonContext context, CompileMode kind, CompilerFlags cflags);
 

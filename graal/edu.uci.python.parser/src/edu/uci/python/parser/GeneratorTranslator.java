@@ -83,7 +83,7 @@ public class GeneratorTranslator {
             body = (BlockNode) body.getStatements()[1];
             returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.EMPTYBLOCK, returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.getEmptyBlock(), returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 

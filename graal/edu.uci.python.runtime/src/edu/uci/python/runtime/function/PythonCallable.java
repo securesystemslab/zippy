@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.function;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 public interface PythonCallable {
@@ -33,5 +34,9 @@ public interface PythonCallable {
     Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
 
     void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords);
+
+    CallTarget getCallTarget();
+
+    FrameDescriptor getFrameDescriptor();
 
 }

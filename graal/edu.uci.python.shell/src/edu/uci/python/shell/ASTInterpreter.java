@@ -39,21 +39,11 @@ public class ASTInterpreter {
         ASTInterpreter.debug = debug;
     }
 
-    public static void interpret(PythonParseResult result, boolean log) {
-
+    public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         CallTarget module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
-
         Arguments arguments = new PArguments(null);
-
-        long start = System.nanoTime();
         module.call(null, arguments);
-        long end = System.nanoTime();
-
-        if (log) {
-            // CheckStyle: stop system..print check
-            System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
-            // CheckStyle: resume system..print check
-        }
     }
+
 }

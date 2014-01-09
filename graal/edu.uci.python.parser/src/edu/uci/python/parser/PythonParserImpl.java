@@ -30,7 +30,7 @@ import org.python.core.*;
 
 import edu.uci.python.runtime.*;
 
-public class PythonParserImpl implements IPythonParser {
+public class PythonParserImpl implements PythonParser {
 
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
@@ -38,9 +38,10 @@ public class PythonParserImpl implements IPythonParser {
 
     @Override
     public PythonParseResult parse(PythonContext context, CompileMode kind, CompilerFlags cflags) {
-        org.python.antlr.base.mod node = null;
+        org.python.antlr.base.mod node;
         InputStream istream = context.getSourceManager().getInputStream();
         String filename = context.getSourceManager().getFilename();
+
         if (!PythonOptions.PrintFunction) {
             // enable printing flag for python's builtin function (v3.x) in parser.
             String print = "from __future__ import print_function \n";
@@ -51,12 +52,18 @@ public class PythonParserImpl implements IPythonParser {
         } else {
             node = ParserFacade.parse(istream, kind, filename, cflags);
         }
+
         TranslationEnvironment environment = new TranslationEnvironment(node, context);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
         PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
         PythonParseResult result = ptt.translate(node);
+
+        if (PythonOptions.OptimizeGeneratorExpressions) {
+            new GeneratorExpressionOptimizer(result).optimize();
+        }
+
         return result;
     }
 }

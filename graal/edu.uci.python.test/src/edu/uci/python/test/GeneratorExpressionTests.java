@@ -78,4 +78,18 @@ public class GeneratorExpressionTests {
         Path script = Paths.get("generatorexp_test.py");
         assertPrints("[(0, 0), (0, 1), (0, 2), (0, 3), (1, 0), (1, 1), (1, 2), (1, 3), (2, 0), (2, 1), (2, 2), (2, 3)]\n", script);
     }
+
+    @Test
+    public void sumGenExp() {
+        String source = "genexp = (x*2 for x in range(5))\n" + //
+                        "def _sum(iterable):\n" + //
+                        "    sum = None\n" + //
+                        "    for i in iterable:\n" + //
+                        "        sum += i\n" + //
+                        "    return sum\n" + //
+                        "\n" + //
+                        "print(_sum(genexp))\n";
+
+        assertPrints("20\n", source);
+    }
 }

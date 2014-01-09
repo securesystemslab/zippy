@@ -48,6 +48,17 @@ public class PythonTests {
         assertEquals(expected, result);
     }
 
+    public static String parseTest(String source) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        String path = "../../graal/edu.uci.python.test/src/tests";
+        InputStream stream = new ByteArrayInputStream(source.getBytes());
+        SourceManager sourceManager = new SourceManager(path, "(test)", stream);
+        new CustomConsole().parseFile(getContext(sourceManager, printStream, System.err));
+        return byteArray.toString().replaceAll("\r\n", "\n");
+    }
+
     public static void assertError(String expected, String source) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);

@@ -30,12 +30,14 @@ import java.nio.file.*;
 
 import org.junit.*;
 
+import edu.uci.python.runtime.*;
+
 public class BenchmarkTests {
 
     @Test
     public void euler31() {
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
     }
-
 }

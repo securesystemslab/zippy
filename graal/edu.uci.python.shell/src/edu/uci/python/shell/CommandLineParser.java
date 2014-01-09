@@ -55,6 +55,10 @@ public class CommandLineParser {
                 PythonOptions.InlineBuiltinFunctionCalls = false;
             }
 
+            if (arg.equals("-OptimizeGeneratorExpressions")) {
+                PythonOptions.OptimizeGeneratorExpressions = true;
+            }
+
             index++;
         }
     }

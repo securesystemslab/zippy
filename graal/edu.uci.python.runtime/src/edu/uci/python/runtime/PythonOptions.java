@@ -33,6 +33,8 @@ public class PythonOptions {
 
     public static boolean VisualizedAST = false;
 
+    public static String PrintASTFilter = null;
+
     public static boolean TraceJythonRuntime = true;
 
     // Translation flags
@@ -50,6 +52,8 @@ public class PythonOptions {
     public static boolean InlineBuiltinFunctionCalls = true;
 
     public static final boolean InlineGeneratorCalls = true;
+
+    public static boolean OptimizeGeneratorExpressions = true;
 
     public static final boolean CacheAttributeLoads = true;
 

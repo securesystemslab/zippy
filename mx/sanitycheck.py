@@ -109,27 +109,31 @@ pythonTestBenchmarks = {
 }
 
 python2MicroBenchmarks = {
-    'arith-binop'   : '0',
-    'for-range2'    : '0',
-    'function-call2': '0',
-    'list-comp'     : '0',
-    'list-indexing' : '0',
-    'list-iterating': '0',
-    #'builtin-len'  : '0',
-    #'builtin-len-tuple' : '0',
-    'generator'     : '0',
+    'arith-binop'           : '0',
+    'for-range2'            : '0',
+    'function-call2'        : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '0',
+    'list-iterating'        : '0',
+    #'builtin-len'          : '0',
+    #'builtin-len-tuple'    : '0',
+    'generator'             : '0',
+    'generator-expression'  : '0',
+    'genexp-builtin-call'   : '0',
 }
 
 pythonMicroBenchmarks = {
-    'arith-binop'       : '0',
-    'for-range'         : '0',
-    'function-call'     : '0',
-    'list-comp'         : '0',
-    'list-indexing'     : '-NoInlineBuiltinFunctionCalls',
-    'list-iterating'    : '0',
-    'builtin-len'       : '0',
-    'builtin-len-tuple' : '0',
-    'generator'         : '0',
+    'arith-binop'           : '0',
+    'for-range'             : '0',
+    'function-call'         : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '-NoInlineBuiltinFunctionCalls',
+    'list-iterating'        : '0',
+    'builtin-len'           : '0',
+    'builtin-len-tuple'     : '0',
+    'generator'             : '0',
+    'generator-expression'  : '-optimizeGeneratorExpressions',
+    'genexp-builtin-call'   : '-optimizeGeneratorExpressions',
 }
 
 pythonBenchmarks = {
@@ -141,6 +145,7 @@ pythonBenchmarks = {
     'nbody3t'         : '5000000',
     'spectralnorm3t'  : '5500',
     'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
 }
 
 python2Benchmarks = {
@@ -152,6 +157,7 @@ python2Benchmarks = {
     'nbody2t'         : '5000000',
     'spectralnorm2t'  : '5500',
     'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
 }
 
 specjvm2008Names = [

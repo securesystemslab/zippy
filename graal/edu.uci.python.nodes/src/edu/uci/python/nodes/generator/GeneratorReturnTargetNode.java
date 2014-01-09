@@ -40,6 +40,10 @@ public class GeneratorReturnTargetNode extends ReturnTargetNode {
         this.parameters = adoptChild(parameters);
     }
 
+    public PNode getParameters() {
+        return parameters;
+    }
+
     private static boolean getFirstEntry(VirtualFrame frame) {
         return PArguments.getGeneratorArguments(frame).isFirstEntry();
     }

@@ -149,7 +149,6 @@ public class RunScript {
                 } else {
                     Py.printException(t);
                     interp.cleanup();
-                    System.exit(-1);
                 }
             }
         }

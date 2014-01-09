@@ -31,9 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 public class PythonParseResult {
 
     private RootNode module;
-
     private PythonContext context;
-
     private final Map<String, RootNode> functions = new HashMap<>();
 
     public RootNode getModuleRoot() {
@@ -53,14 +51,28 @@ public class PythonParseResult {
     }
 
     public void addParsedFunction(String name, RootNode function) {
-        functions.put(name, function);
+        if (functions.containsKey(name)) {
+            functions.put(name + function.hashCode(), function);
+        } else {
+            functions.put(name, function);
+        }
+    }
+
+    public Collection<RootNode> getFunctionRoots() {
+        return functions.values();
     }
 
     public void printAST() {
-        printSeparationLine("module");
-        NodeUtil.printCompactTree(System.out, module);
+        if (PythonOptions.PrintASTFilter == null || "module".contains(PythonOptions.PrintASTFilter)) {
+            printSeparationLine("module");
+            NodeUtil.printCompactTree(System.out, module);
+        }
 
         for (String functionName : functions.keySet()) {
+            if (PythonOptions.PrintASTFilter != null && !functionName.contains(PythonOptions.PrintASTFilter)) {
+                continue;
+            }
+
             printSeparationLine(functionName);
             RootNode root = functions.get(functionName);
             NodeUtil.printCompactTree(System.out, root);

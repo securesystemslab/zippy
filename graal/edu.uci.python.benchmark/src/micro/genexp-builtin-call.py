@@ -1,13 +1,12 @@
-# zwei 01/03/14
-# subscribe simple generator
+# zwei 01/07/14
+# generator expression as argument to a built-in call
 import time
 
 def call_generator(num, iteration):
-	item = 0
+	item = 42
 	for t in range(iteration):
 		num += t % 5
-		for i in (x * 2 for x in range(num)):
-			item = i + item % 5
+		item = sum(x % 5 for x in range(num))
 
 	return item
 
@@ -15,9 +14,8 @@ def call_generator_localvar(num, iteration):
 	item = 0
 	for t in range(iteration):
 		num += t % 5
-		ge = (x * 2 for x in range(num))
-		for i in ge:
-			item = i + item % 5
+		ge = (x % 5 for x in range(num))
+		item = sum(ge)
 
 	return item
 
@@ -31,7 +29,7 @@ def measure():
 	print("Last item ", last_item)
 
 	duration = "%.3f\n" % (time.time() - start)
-	print("generator-expression: " + duration)
+	print("genexp-builtin-call: " + duration)
 
 #warm up
 for run in range(1000):
