@@ -34,7 +34,7 @@ import edu.uci.python.runtime.*;
 
 public class PythonParserImpl implements PythonParser {
 
-    Source source = null;
+    Source scriptSource = null;
 
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
@@ -43,7 +43,7 @@ public class PythonParserImpl implements PythonParser {
     @Override
     public PythonParseResult parse(PythonContext context, Source source, CompileMode kind, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
-        this.source = source;
+        this.scriptSource = source;
 // InputStream istream = context.getSourceManager().getInputStream();
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
 // String filename = context.getSourceManager().getFilename();
@@ -76,6 +76,6 @@ public class PythonParserImpl implements PythonParser {
 
     @Override
     public Source getSource() {
-        return source;
+        return scriptSource;
     }
 }
