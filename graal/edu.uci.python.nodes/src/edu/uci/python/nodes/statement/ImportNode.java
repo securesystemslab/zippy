@@ -244,7 +244,10 @@ public class ImportNode extends PNode {
 
     private String getImporterPath() {
         String path = ".";
-        String name = context.getParser().getSource().getPath(); // this.getSourceSection().getSource().getPath();
+
+        // TODO: After adding support to SourceSection, this what we should use:
+        // String name = this.getSourceSection().getSource().getPath();
+        String name = context.getParser().getSource().getPath();
         String fileName = new StringBuilder(name).reverse().toString();
         int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
         int filenameln = name.length() - separtorLoc;
