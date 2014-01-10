@@ -39,7 +39,6 @@ import edu.uci.python.runtime.function.*;
 public class CallFunctionNoKeywordNode extends PNode {
 
     @Child protected PNode callee;
-
     @Children protected final PNode[] arguments;
 
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {

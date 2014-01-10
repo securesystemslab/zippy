@@ -41,7 +41,6 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-// String path = "../../graal/edu.uci.python.test/src/tests";
         PythonContext context = getContext(printStream, System.err);
         Source source = context.getSourceManager().get("(test)", code);
         RunScript.runScript(new String[0], source, context);
@@ -53,7 +52,6 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-// String path = "../../graal/edu.uci.python.test/src/tests";
         PythonContext context = getContext(printStream, System.err);
         Source source = context.getSourceManager().get("(test)", code);
         new CustomConsole().parseFile(context, source);
@@ -66,7 +64,6 @@ public class PythonTests {
         String error = "no error!";
 
         try {
-// String path = "../../graal/edu.uci.python.test/src/tests";
             PythonContext context = getContext(System.out, printStream);
             Source source = context.getSourceManager().get("(test)", code);
             RunScript.runTrowableScript(new String[0], source, context);

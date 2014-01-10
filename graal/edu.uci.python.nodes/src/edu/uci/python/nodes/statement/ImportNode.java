@@ -135,6 +135,7 @@ public class ImportNode extends PNode {
 
         PythonParseResult parsedModule = null;
         for (int i = 0; i < path.__len__(); i++) {
+
             PyObject p = path.__getitem__(i);
             if (!(p instanceof PyUnicode)) {
                 p = p.__str__();
@@ -179,12 +180,16 @@ public class ImportNode extends PNode {
             sourceFile = new File(dirName, sourceName);
             URL url = createURL(displayDirName, sourceName);
             try {
-// CheckStyle: stop system..print check
-                System.out.println("[ZipPy] parsing module " + modName);
-// CheckStyle: resume system..print check
-
-                PythonParseResult parsedModule = parseModule(displayDirName, sourceName);
-                return parsedModule;
+                InputStream inputStream = url.openStream();
+                if (inputStream != null) {
+                    // CheckStyle: stop system..print check
+                    System.out.println("[ZipPy] parsing module " + modName);
+                    // CheckStyle: resume system..print check
+                    PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
+                    inputStream.close();
+                    return parsedModule;
+                }
+            } catch (IOException e) {
             } catch (RuntimeException e) {
                 // TODO Auto-generated catch block
                 // e.printStackTrace();
@@ -198,8 +203,17 @@ public class ImportNode extends PNode {
         return null;
     }
 
-    private PythonParseResult parseModule(String dirName, String sourceName) {
-        Source source = context.getSourceManager().get(dirName + sourceName);
+    private PythonParseResult parseModule(String dirName, String sourceName, InputStream inputStream) {
+        // Source source = context.getSourceManager().get(dirName + sourceName);
+        Source source = null;
+        try {
+            source = context.getSourceManager().get(dirName, inputStream);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            // e.printStackTrace();
+
+        }
+
         PythonContext moduleContext = new PythonContext(context);
         PythonParseResult parseResult = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
         return parseResult;
@@ -244,7 +258,10 @@ public class ImportNode extends PNode {
 
     private String getImporterPath() {
         String path = ".";
-        String name = context.getParser().getSource().getPath(); // this.getSourceSection().getSource().getPath();
+
+        // TODO: After adding support to SourceSection, this what we should use:
+        // String name = this.getSourceSection().getSource().getPath();
+        String name = context.getParser().getSource().getPath();
         String fileName = new StringBuilder(name).reverse().toString();
         int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
         int filenameln = name.length() - separtorLoc;

@@ -9,6 +9,7 @@
 
 import sys, bisect, array
 import time
+bb = bisect.bisect
 
 alu = (
    'GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG'
@@ -49,7 +50,7 @@ def makeRandomLUT():
     randomLUT = [(s * ia + ic) % IM for s in range(IM)]
 
 def makeLookupTable(table):
-    bb = bisect.bisect
+    # bb = bisect.bisect
     probs, chars = makeCumulative(table)
     imf = float(IM)
     return [chars[bb(probs, i / imf)] for i in range(IM)]
@@ -118,7 +119,7 @@ def reset():
 
 # warm up
 num = int(sys.argv[1])
-for run in range(600):
+for run in range(1000):
     main(500)
 
 # reset

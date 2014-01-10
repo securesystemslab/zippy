@@ -44,9 +44,7 @@ public class PythonParserImpl implements PythonParser {
     public PythonParseResult parse(PythonContext context, Source source, CompileMode kind, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
         this.scriptSource = source;
-// InputStream istream = context.getSourceManager().getInputStream();
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
-// String filename = context.getSourceManager().getFilename();
         String filename = source.getPath();
 
         if (!PythonOptions.PrintFunction) {

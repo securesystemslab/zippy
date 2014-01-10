@@ -24,8 +24,6 @@
  */
 package edu.uci.python.shell;
 
-import java.io.*;
-
 import org.python.core.*;
 import org.python.util.*;
 
@@ -40,23 +38,6 @@ public class CustomConsole extends JLineConsole {
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
-
-        String path = ".";
-        String fileName = new StringBuilder(name).reverse().toString();
-        int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
-        int filenameln = name.length() - separtorLoc;
-        fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc, name.length());
-        final File file = new File(name);
-        if (file.exists()) {
-            try {
-                path = file.getCanonicalPath();
-                path = path.substring(0, path.length() - filenameln);
-            } catch (IOException e) {
-            }
-        }
-
-// SourceManager sourceManager = new SourceManager(path, fileName, s);
-
         PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
         Source source = context.getSourceManager().get(name);
         execfile(context, source);

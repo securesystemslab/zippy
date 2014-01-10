@@ -131,7 +131,6 @@ public class RunScript {
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
-// InputStream script = context.getSourceManager().getInputStream();
         if (source != null) {
             try {
                 PyString path = new PyString(System.getProperty("user.dir"));
