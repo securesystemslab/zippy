@@ -40,6 +40,7 @@ public class CallBuiltinInlinedNode extends InlinedCallNode {
     private final Assumption globalScopeUnchanged;
     private final Assumption builtinModuleUnchanged;
 
+    // Dummy, does not need {@link PythonFrameTypeConversion}
     private static final FrameDescriptor FrameDescriptor = new FrameDescriptor();
 
     public CallBuiltinInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged,
