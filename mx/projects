@@ -25,7 +25,9 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 
 library@OKRA@path=lib/okra-1.2.jar
+library@OKRA@sourcePath=lib/okra-1.2.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.2.jar
+
 library@JRUBYPARSER@path=lib/jrubyparser-0.5.0.jar
 library@JRUBYPARSER@urls=http://repo1.maven.org/maven2/org/jruby/jrubyparser/0.5.0/jrubyparser-0.5.0.jar
 
