@@ -114,9 +114,6 @@ public class LocalFrameTests {
 
     @Test
     public void unboundLocalError() {
-        if (PythonOptions.UsePolymorphicReadLocal) {
-            return;
-        }
         String source = "def foo(y):\n" + //
                         "    if y > .5: x = 'big'\n" + //
                         "    else: pass\n" + //

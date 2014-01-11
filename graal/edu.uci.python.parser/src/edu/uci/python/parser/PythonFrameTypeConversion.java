@@ -24,11 +24,11 @@
  */
 package edu.uci.python.parser;
 
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.datatype.*;
 
-public final class PythonFrameTypeConversion implements FrameTypeConversion {
+public final class PythonFrameTypeConversion extends DefaultFrameTypeConversion {
 
     private static final PythonFrameTypeConversion INSTANCE = new PythonFrameTypeConversion();
 
@@ -39,20 +39,9 @@ public final class PythonFrameTypeConversion implements FrameTypeConversion {
         return INSTANCE;
     }
 
+    @Override
     public Object getDefaultValue() {
         return PNone.NONE;
-    }
-
-    public void updateFrameSlot(Frame frame, FrameSlot slot, Object value) {
-        if (slot.getKind() == FrameSlotKind.None) {
-            return;
-        }
-
-        if (slot.getKind() != FrameSlotKind.Object) {
-            slot.setKind(FrameSlotKind.Object);
-        }
-
-        frame.setObject(slot, value);
     }
 
 }
