@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.statement;
 
 import java.io.*;
-import java.net.*;
 
 import org.python.core.*;
 import com.oracle.truffle.api.*;
@@ -34,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.importer.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ImportNode extends PNode {
@@ -110,7 +110,10 @@ public class ImportNode extends PNode {
                  */
 
                 if (PythonOptions.useNewImportMechanism) {
-                    PythonParseResult parsedModule = findModule(name, name);
+                    // PythonParseResult parsedModule = findModule(name, name);
+                    PythonModuleImporter importer = new PythonModuleImporter(context);
+                    PythonParseResult parsedModule = importer.findModule(name, name);
+
                     if (parsedModule != null) {
                         importedModule = createModule(parsedModule, frame);
                         if (PythonOptions.PrintAST) {
@@ -129,96 +132,6 @@ public class ImportNode extends PNode {
         return importedModule;
     }
 
-    private PythonParseResult findModule(String name, String moduleName) {
-        PySystemState sys = Py.getSystemState();
-        PyList path = sys.path;
-
-        PythonParseResult parsedModule = null;
-        for (int i = 0; i < path.__len__(); i++) {
-
-            PyObject p = path.__getitem__(i);
-            if (!(p instanceof PyUnicode)) {
-                p = p.__str__();
-            }
-
-            parsedModule = loadFromSource(sys, name, moduleName, p.toString());
-            if (parsedModule != null) {
-                return parsedModule;
-            }
-        }
-
-        return parsedModule;
-    }
-
-    /**
-     * TODO Taken from Jython, needs to cleaned up.
-     */
-    @SuppressWarnings("unused")
-    private PythonParseResult loadFromSource(PySystemState sys, String name, String modName, String entry) {
-        String dirName = sys.getPath(entry);
-        String sourceName = "__init__.py";
-        // display names are for identification purposes (e.g. __file__): when entry is
-        // null it forces java.io.File to be a relative path (e.g. foo/bar.py instead of
-        // /tmp/foo/bar.py)
-        String displayDirName = entry.equals("") ? null : entry.toString();
-        String displaySourceName = new File(new File(displayDirName, name), sourceName).getPath();
-
-        // First check for packages
-        File dir = new File(dirName, name);
-        File sourceFile = new File(dir, sourceName);
-
-        boolean isPackage = false;
-        try {
-            isPackage = dir.isDirectory() && sourceFile.isFile();
-        } catch (SecurityException e) {
-            // ok
-        }
-
-        if (!isPackage) {
-            sourceName = name + ".py";
-            displaySourceName = new File(displayDirName, sourceName).getPath();
-            sourceFile = new File(dirName, sourceName);
-            URL url = createURL(displayDirName, sourceName);
-            try {
-                InputStream inputStream = url.openStream();
-                if (inputStream != null) {
-                    // CheckStyle: stop system..print check
-                    System.out.println("[ZipPy] parsing module " + modName);
-                    // CheckStyle: resume system..print check
-                    PythonParseResult parsedModule = parseModule(displayDirName, sourceName, inputStream);
-                    inputStream.close();
-                    return parsedModule;
-                }
-            } catch (IOException e) {
-            } catch (RuntimeException e) {
-                // TODO Auto-generated catch block
-                // e.printStackTrace();
-            }
-        } else {
-            // PyModule m = addModule(modName);
-            // PyObject filename = new PyString(new File(displayDirName, name).getPath());
-            // m.__dict__.__setitem__("__path__", new PyList(new PyObject[]{filename}));
-        }
-
-        return null;
-    }
-
-    private PythonParseResult parseModule(String dirName, String sourceName, InputStream inputStream) {
-        // Source source = context.getSourceManager().get(dirName + sourceName);
-        Source source = null;
-        try {
-            source = context.getSourceManager().get(dirName, inputStream);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            // e.printStackTrace();
-
-        }
-
-        PythonContext moduleContext = new PythonContext(context);
-        PythonParseResult parseResult = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
-        return parseResult;
-    }
-
     private PythonModule createModule(PythonParseResult parseResult, Frame frame) {
         PythonModule importedModule = null;
         if (parseResult != null) {
@@ -230,30 +143,6 @@ public class ImportNode extends PNode {
         }
 
         return importedModule;
-    }
-
-    private static URL createURL(String path, String fileName) {
-        URL url = null;
-        if (path.contains(".jar")) {
-            int indexOfJar = path.indexOf(".jar");
-            String pathOfJar = path.substring(0, indexOfJar + 4);
-            String pathAfterJar = path.substring(indexOfJar + 4, path.length());
-            String urlString = "jar:file:" + pathOfJar + "!" + pathAfterJar + "/" + fileName;
-            try {
-                url = new URL(urlString);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-        } else {
-            try {
-                String urlString = "file:" + path + File.separatorChar + fileName;
-                url = new URL(urlString);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return url;
     }
 
     private String getImporterPath() {
