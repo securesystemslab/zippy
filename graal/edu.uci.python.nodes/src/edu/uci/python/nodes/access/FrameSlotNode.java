@@ -83,25 +83,17 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
-    protected final boolean isIllegal() {
-        return frameSlot.getKind() == FrameSlotKind.Illegal;
-    }
-
     protected final boolean isNotIllegal() {
         return frameSlot.getKind() != FrameSlotKind.Illegal;
     }
 
     protected final boolean isNoneKind() {
-        return frameSlot.getKind() == FrameSlotKind.None;
+        return isKind(FrameSlotKind.None);
     }
 
     protected final boolean isNoneValue(VirtualFrame frame) {
         Object value = frame.getValue(frameSlot);
-        if (value != null && value.equals(PNone.NONE)) {
-            return true;
-        }
-
-        return false;
+        return value.equals(PNone.NONE) ? true : false;
     }
 
     protected final boolean isBooleanKind() {

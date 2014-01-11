@@ -50,13 +50,7 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 0, guards = "isNoneKind")
-    public PNone doNoneInitial(VirtualFrame frame) {
-        return PNone.NONE;
-    }
-
-    @SuppressWarnings("unused")
-    @Specialization(order = 1, guards = {"isNoneValue", "isNotIllegal"})
+    @Specialization(order = 1, guards = {"isNotIllegal", "isNoneValue"})
     public PNone doNone(VirtualFrame frame) {
         return PNone.NONE;
     }

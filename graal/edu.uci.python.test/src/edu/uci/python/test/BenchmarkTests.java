@@ -40,4 +40,10 @@ public class BenchmarkTests {
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
     }
+
+    @Test
+    public void bisectRgiht() {
+        Path script = Paths.get("bisect-right-test.py");
+        assertPrints("3\n3\n3\n", script);
+    }
 }
