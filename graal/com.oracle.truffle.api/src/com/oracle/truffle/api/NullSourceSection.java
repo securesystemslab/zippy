@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,15 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.nodes.instrument;
-
-import com.oracle.truffle.api.nodes.instrument.InstrumentationProbeNode.DefaultProbeNode;
+package com.oracle.truffle.api;
 
 /**
- * An "probe" that does nothing, used for testing. It relies on the
- * {@link InstrumentationProbeNode.DefaultProbeNode} implementation to override every event with an
- * empty method.
+ * Marker for a special flavor of {@link SourceSection} that has no content and can be ignored.
  */
-public class EmptyProbe extends DefaultProbeNode {
+public interface NullSourceSection extends SourceSection {
 
 }

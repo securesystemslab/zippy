@@ -574,10 +574,6 @@ inline bool NativeInstruction::is_safepoint_poll() {
       return false;
     }
   } else {
-#ifdef GRAAL
-    // Graal may allocate an arbitrary register for storing the polling address.
-    return true;
-#else
     if (ubyte_at(0) == NativeTstRegMem::instruction_code_memXregl &&
         ubyte_at(1) == 0x05) { // 00 rax 101
       address fault = addr_at(6) + int_at(2);
@@ -585,7 +581,6 @@ inline bool NativeInstruction::is_safepoint_poll() {
     } else {
       return false;
     }
-#endif
   }
 #else
   return ( ubyte_at(0) == NativeMovRegMem::instruction_code_mem2reg ||

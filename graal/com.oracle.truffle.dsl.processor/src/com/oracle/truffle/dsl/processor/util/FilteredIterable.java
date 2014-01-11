@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,23 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.dsl;
+package com.oracle.truffle.dsl.processor.util;
 
-import java.lang.annotation.*;
+import java.util.*;
 
-import com.oracle.truffle.api.nodes.*;
+public class FilteredIterable<E> implements Iterable<E> {
 
-/**
- * A node container can be used to enable Truffle-DSL in classes which do not extend {@link Node}.
- * Compared to normal {@link Node} implementation the nodes are not identified by a class but by
- * their method name. There are cases were method signatures are matching exactly but should be in
- * the same {@link Node}. In this case use {@link NodeId} to disambiguate such cases.
- */
-@Retention(RetentionPolicy.CLASS)
-@Target({ElementType.TYPE})
-public @interface NodeContainer {
+    private final Iterable<E> delegate;
+    private final Predicate<E> containedPredicate;
 
-    /** The node class to use as base class for {@link Node} definitions grouped by method names. */
-    Class<? extends Node> value();
+    public FilteredIterable(Iterable<E> delegate, Predicate<E> containedPredicate) {
+        this.delegate = delegate;
+        this.containedPredicate = containedPredicate;
+    }
+
+    public Iterator<E> iterator() {
+        return new Filterator<>(delegate.iterator(), containedPredicate);
+    }
 
 }

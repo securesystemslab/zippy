@@ -46,17 +46,23 @@ public class CreateCastParser extends NodeMethodParser<CreateCastData> {
     @Override
     public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
         List<String> childNames = Utils.getAnnotationValueList(String.class, mirror, "value");
-        TypeMirror baseType = getContext().getTruffleTypes().getNode();
+        NodeChildData foundChild = null;
         for (String childName : childNames) {
-            NodeChildData child = getNode().findChild(childName);
-            if (child != null) {
-                baseType = child.getOriginalType();
+            foundChild = getNode().findChild(childName);
+            if (foundChild != null) {
                 break;
             }
         }
+        TypeMirror baseType = getContext().getTruffleTypes().getNode();
+        if (foundChild != null) {
+            baseType = foundChild.getOriginalType();
+        }
+
         MethodSpec spec = new MethodSpec(new InheritsParameterSpec(getContext(), "child", baseType));
         addDefaultFieldMethodSpec(spec);
-        spec.addRequired(new ParameterSpec("castedChild", baseType)).setSignature(true);
+        ParameterSpec childSpec = new ParameterSpec("castedChild", baseType);
+        childSpec.setSignature(true);
+        spec.addRequired(childSpec);
         return spec;
     }
 

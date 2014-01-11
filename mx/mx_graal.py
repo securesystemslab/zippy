@@ -295,20 +295,9 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     jdk = join(_jdksDir(), build)
     if create:
         srcJdk = mx.java().jdk
-        jdkContents = ['bin', 'include', 'jre', 'lib']
-        if exists(join(srcJdk, 'db')):
-            jdkContents.append('db')
-        if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
-            jdkContents.append('man')
         if not exists(jdk):
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
-            os.makedirs(jdk)
-            for d in jdkContents:
-                src = join(srcJdk, d)
-                dst = join(jdk, d)
-                if not exists(src):
-                    mx.abort('Host JDK directory is missing: ' + src)
-                shutil.copytree(src, dst)
+            shutil.copytree(srcJdk, jdk)
 
             # Make a copy of the default VM so that this JDK can be
             # reliably used as the bootstrap for a HotSpot build.
@@ -342,6 +331,28 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
             with open(jvmCfg, 'w') as fp:
                 for line in jvmCfgLines:
                     fp.write(line)
+
+            # patch 'release' file (append graalvm revision)
+            releaseFile = join(jdk, 'release')
+            if exists(releaseFile):
+                releaseFileLines = []
+                with open(releaseFile) as f:
+                    for line in f:
+                        releaseFileLines.append(line)
+
+                with open(releaseFile, 'w') as fp:
+                    for line in releaseFileLines:
+                        if line.startswith("SOURCE="):
+                            try:
+                                sourceLine = line[0:-2] # remove last char
+                                hgcfg = mx.HgConfig()
+                                hgcfg.check()
+                                revision = hgcfg.tip('.')[:12] # take first 12 chars
+                                fp.write(sourceLine + ' graal:' + revision + '\"\n')
+                            except:
+                                fp.write(line)
+                        else:
+                            fp.write(line)
 
             # Install a copy of the disassembler library
             try:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,8 @@ package com.oracle.truffle.api;
 
 /**
  * Information about the runtime context of a Truffle program.
+ * <p>
+ * <strong>Disclaimer:</strong> this interface is under development and will change.
  */
 public interface ExecutionContext {
 
@@ -39,5 +41,10 @@ public interface ExecutionContext {
      * Gets access to debugging services, {@code null} if not enabled in this context.
      */
     DebugManager getDebugManager();
+
+    /**
+     * Gets access to utilities for printing different aspects of a Truffle AST.
+     */
+    ASTPrinter getASTPrinter();
 
 }

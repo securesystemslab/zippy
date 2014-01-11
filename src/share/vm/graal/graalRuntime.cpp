@@ -136,6 +136,24 @@ JRT_ENTRY(void, GraalRuntime::dynamic_new_array(JavaThread* thread, oopDesc* ele
   thread->set_vm_result(obj);
 JRT_END
 
+JRT_ENTRY(void, GraalRuntime::dynamic_new_instance(JavaThread* thread, oopDesc* type_mirror))
+  instanceKlassHandle klass(THREAD, java_lang_Class::as_Klass(type_mirror));
+
+  if (klass == NULL) {
+    ResourceMark rm(THREAD);
+    THROW(vmSymbols::java_lang_InstantiationException());
+  }
+
+  // Create new instance (the receiver)
+  klass->check_valid_for_instantiation(false, CHECK);
+
+  // Make sure klass gets initialized
+  klass->initialize(CHECK);
+
+  oop obj = klass->allocate_instance(CHECK);
+  thread->set_vm_result(obj);
+JRT_END
+
 extern void vm_exit(int code);
 
 // Enter this method from compiled code handler below. This is where we transition

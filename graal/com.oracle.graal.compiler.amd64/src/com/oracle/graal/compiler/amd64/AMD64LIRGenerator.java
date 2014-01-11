@@ -91,14 +91,20 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public boolean canStoreConstant(Constant c) {
+    public boolean canStoreConstant(Constant c, boolean isCompressed) {
         // there is no immediate move of 64-bit constants on Intel
         switch (c.getKind()) {
             case Long:
+                if (isCompressed) {
+                    return true;
+                }
                 return Util.isInt(c.asLong()) && !getCodeCache().needsDataPatch(c);
             case Double:
                 return false;
             case Object:
+                if (isCompressed) {
+                    return true;
+                }
                 return c.isNull();
             default:
                 return true;
@@ -141,7 +147,6 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
 
     @Override
     public AMD64AddressValue emitAddress(Value base, long displacement, Value index, int scale) {
-        assert (scale >= 1 && scale <= 8) || index.equals(Value.ILLEGAL) : "invalid scale";
         AllocatableValue baseRegister;
         long finalDisp = displacement;
         if (isConstant(base)) {
@@ -972,6 +977,11 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     @Override
     public void emitByteSwap(Variable result, Value input) {
         append(new AMD64ByteSwapOp(result, input));
+    }
+
+    @Override
+    public void emitCharArrayEquals(Variable result, Value array1, Value array2, Value length) {
+        append(new AMD64CharArrayEqualsOp(this, result, array1, array2, asAllocatable(length)));
     }
 
     @Override

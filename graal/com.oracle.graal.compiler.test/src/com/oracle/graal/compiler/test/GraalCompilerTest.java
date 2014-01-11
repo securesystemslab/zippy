@@ -51,7 +51,6 @@ import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.PhasePlan.PhasePosition;
 import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
@@ -124,7 +123,9 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     @After
     public void afterTest() {
-        debugScope.close();
+        if (debugScope != null) {
+            debugScope.close();
+        }
         debugScope = null;
     }
 
@@ -237,10 +238,6 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     protected ConstantReflectionProvider getConstantReflection() {
         return getProviders().getConstantReflection();
-    }
-
-    protected ForeignCallsProvider getForeignCalls() {
-        return getProviders().getForeignCalls();
     }
 
     protected MetaAccessProvider getMetaAccess() {
@@ -501,8 +498,8 @@ public abstract class GraalCompilerTest extends GraalTest {
     protected void assertEquals(Result expect, Result actual) {
         if (expect.exception != null) {
             Assert.assertTrue("expected " + expect.exception, actual.exception != null);
-            Assert.assertEquals(expect.exception.getClass(), actual.exception.getClass());
-            Assert.assertEquals(expect.exception.getMessage(), actual.exception.getMessage());
+            Assert.assertEquals("Exception class", expect.exception.getClass(), actual.exception.getClass());
+            Assert.assertEquals("Exception message", expect.exception.getMessage(), actual.exception.getMessage());
         } else {
             if (actual.exception != null) {
                 actual.exception.printStackTrace();
@@ -551,12 +548,9 @@ public abstract class GraalCompilerTest extends GraalTest {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s ...", id, method.getDeclaringClass().getName(), method.getName(), method.getSignature()));
             }
             long start = System.currentTimeMillis();
-            PhasePlan phasePlan = new PhasePlan();
-            GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(getMetaAccess(), getForeignCalls(), GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
-            phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
             CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-            final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, phasePlan, OptimisticOptimizations.ALL,
-                            getProfilingInfo(graph), new SpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+            final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(),
+                            OptimisticOptimizations.ALL, getProfilingInfo(graph), new SpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
             if (printCompilation) {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
             }
@@ -619,20 +613,24 @@ public abstract class GraalCompilerTest extends GraalTest {
         assert m.getAnnotation(Test.class) == null : "shouldn't parse method with @Test annotation: " + m;
         ResolvedJavaMethod javaMethod = getMetaAccess().lookupJavaMethod(m);
         StructuredGraph graph = new StructuredGraph(javaMethod);
-        new GraphBuilderPhase(getMetaAccess(), getForeignCalls(), conf, OptimisticOptimizations.ALL).apply(graph);
+        new GraphBuilderPhase.Instance(getMetaAccess(), conf, OptimisticOptimizations.ALL).apply(graph);
         return graph;
     }
 
-    protected PhasePlan getDefaultPhasePlan() {
-        return getDefaultPhasePlan(false);
+    protected PhaseSuite<HighTierContext> getDefaultGraphBuilderSuite() {
+        // defensive copying
+        return backend.getSuites().getDefaultGraphBuilderSuite().copy();
     }
 
-    protected PhasePlan getDefaultPhasePlan(boolean eagerInfopointMode) {
-        PhasePlan plan = new PhasePlan();
+    protected PhaseSuite<HighTierContext> getEagerGraphBuilderSuite() {
         GraphBuilderConfiguration gbConf = GraphBuilderConfiguration.getEagerDefault();
-        gbConf.setEagerInfopointMode(eagerInfopointMode);
-        plan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(getMetaAccess(), getForeignCalls(), gbConf, OptimisticOptimizations.ALL));
-        return plan;
+        gbConf.setEagerInfopointMode(true);
+
+        PhaseSuite<HighTierContext> suite = getDefaultGraphBuilderSuite().copy();
+        ListIterator<BasePhase<? super HighTierContext>> iterator = suite.findPhase(GraphBuilderPhase.class);
+        iterator.remove();
+        iterator.add(new GraphBuilderPhase(gbConf));
+        return suite;
     }
 
     protected Replacements getReplacements() {

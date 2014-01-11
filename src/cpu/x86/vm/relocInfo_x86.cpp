@@ -179,17 +179,17 @@ address Relocation::pd_get_address_from_code() {
 
 void poll_Relocation::fix_relocation_after_move(const CodeBuffer* src, CodeBuffer* dest) {
 #ifdef _LP64
-  if (_distance == near) {
-    typedef Assembler::WhichOperand WhichOperand;
-    WhichOperand which = (WhichOperand) format();
-    // This format is imm but it is really disp32
-    which = Assembler::disp32_operand;
+  typedef Assembler::WhichOperand WhichOperand;
+  WhichOperand which = (WhichOperand) format();
+#ifndef GRAAL
+  assert((which == Assembler::disp32_operand) == !Assembler::is_polling_page_far(), "format not set correctly");
+#endif
+  if (which == Assembler::disp32_operand) {
     address orig_addr = old_addr_for(addr(), src, dest);
     NativeInstruction* oni = nativeInstruction_at(orig_addr);
     int32_t* orig_disp = (int32_t*) Assembler::locate_operand(orig_addr, which);
     // This poll_addr is incorrect by the size of the instruction it is irrelevant
     intptr_t poll_addr = (intptr_t)oni + *orig_disp;
-
     NativeInstruction* ni = nativeInstruction_at(addr());
     intptr_t new_disp = poll_addr - (intptr_t) ni;
 

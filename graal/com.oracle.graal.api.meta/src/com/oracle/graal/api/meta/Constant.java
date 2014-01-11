@@ -110,6 +110,11 @@ public final class Constant extends Value {
         return object == null && primitive == 0;
     }
 
+    public long getPrimitive() {
+        assert getKind().isPrimitive();
+        return primitive;
+    }
+
     @Override
     public String toString() {
         if (getKind() == Kind.Illegal) {

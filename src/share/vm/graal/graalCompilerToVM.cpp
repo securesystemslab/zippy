@@ -331,7 +331,6 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
   Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
   int offset = -1;
   AccessFlags flags;
-  BasicType basic_type;
   if (holder->klass() == SystemDictionary::HotSpotResolvedObjectType_klass()) {
     fieldDescriptor result;
     LinkResolver::resolve_field_access(result, cp, cp_index, Bytecodes::java_code(code), true, false, Thread::current());
@@ -342,7 +341,6 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
       offset = result.offset();
       flags = result.access_flags();
       holder_klass = result.field_holder();
-      basic_type = result.field_type();
       holder = VMToCompiler::createResolvedJavaType(holder_klass->java_mirror(), CHECK_NULL);
     }
   }
@@ -534,6 +532,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("newArrayAddress", GraalRuntime::new_array);
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
   set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
+  set_address("dynamicNewInstanceAddress", GraalRuntime::dynamic_new_instance);
   set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
   set_address("vmMessageAddress", GraalRuntime::vm_message);
   set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);

@@ -27,42 +27,51 @@ import java.util.*;
 import javax.lang.model.type.*;
 
 import com.oracle.truffle.dsl.processor.*;
-import com.oracle.truffle.dsl.processor.node.NodeChildData.*;
-import com.oracle.truffle.dsl.processor.template.MethodSpec.*;
+import com.oracle.truffle.dsl.processor.node.*;
+import com.oracle.truffle.dsl.processor.template.MethodSpec.TypeDef;
 
 public class ParameterSpec {
 
     private final String name;
     private final List<TypeMirror> allowedTypes;
 
-    /** Cardinality one or multiple. */
-    private Cardinality cardinality = Cardinality.ONE;
-    /** Type is part of the method signature. Relevant for comparisons. */
-    private boolean signature;
-    /** Type must be indexed when parsing. */
-    private boolean indexed;
     /** Type is bound to local final variable. */
     private boolean local;
+    private boolean signature;
 
+    /** Optional bound execution of node. */
+    private NodeExecutionData execution;
     private TypeDef typeDefinition;
-
-    public ParameterSpec(String name, TypeMirror... allowedTypes) {
-        this(name, Arrays.asList(allowedTypes));
-    }
 
     public ParameterSpec(String name, List<TypeMirror> allowedTypes) {
         this.name = name;
         this.allowedTypes = allowedTypes;
     }
 
+    public ParameterSpec(String name, TypeMirror type) {
+        this(name, Arrays.asList(type));
+    }
+
     public ParameterSpec(ParameterSpec o, List<TypeMirror> allowedTypes) {
         this.name = o.name;
-        this.cardinality = o.cardinality;
-        this.signature = o.signature;
-        this.indexed = o.indexed;
         this.local = o.local;
         this.typeDefinition = o.typeDefinition;
+        this.execution = o.execution;
+        this.signature = o.signature;
         this.allowedTypes = allowedTypes;
+    }
+
+    public NodeExecutionData getExecution() {
+        return execution;
+    }
+
+    public void setExecution(NodeExecutionData executionData) {
+        this.execution = executionData;
+        this.signature = execution != null;
+    }
+
+    public void setSignature(boolean signature) {
+        this.signature = signature;
     }
 
     void setTypeDefinition(TypeDef typeDefinition) {
@@ -71,10 +80,6 @@ public class ParameterSpec {
 
     TypeDef getTypeDefinition() {
         return typeDefinition;
-    }
-
-    public void setSignature(boolean signature) {
-        this.signature = signature;
     }
 
     public void setLocal(boolean local) {
@@ -89,24 +94,8 @@ public class ParameterSpec {
         return local;
     }
 
-    public boolean isIndexed() {
-        return indexed;
-    }
-
-    public void setIndexed(boolean indexed) {
-        this.indexed = indexed;
-    }
-
-    public void setCardinality(Cardinality cardinality) {
-        this.cardinality = cardinality;
-    }
-
     public String getName() {
         return name;
-    }
-
-    public Cardinality getCardinality() {
-        return cardinality;
     }
 
     public List<TypeMirror> getAllowedTypes() {

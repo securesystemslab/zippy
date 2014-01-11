@@ -200,7 +200,7 @@ public class ControlFlowGraph {
     // Connect blocks (including loop backward edges), but ignoring dead code (blocks with id < 0).
     private void connectBlocks() {
         for (Block block : reversePostOrder) {
-            List<Block> predecessors = new ArrayList<>();
+            List<Block> predecessors = new ArrayList<>(4);
             for (Node predNode : block.getBeginNode().cfgPredecessors()) {
                 Block predBlock = nodeToBlock.get(predNode);
                 if (predBlock.id >= 0) {
@@ -217,7 +217,7 @@ public class ControlFlowGraph {
             }
             block.predecessors = predecessors;
 
-            List<Block> successors = new ArrayList<>();
+            List<Block> successors = new ArrayList<>(4);
             for (Node suxNode : block.getEndNode().cfgSuccessors()) {
                 Block suxBlock = nodeToBlock.get(suxNode);
                 assert suxBlock.id >= 0;

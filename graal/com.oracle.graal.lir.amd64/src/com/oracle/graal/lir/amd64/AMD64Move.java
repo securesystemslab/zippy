@@ -107,14 +107,14 @@ public class AMD64Move {
             this.state = state;
         }
 
-        protected abstract void emitMemAccess(AMD64MacroAssembler masm);
+        protected abstract void emitMemAccess(CompilationResultBuilder crb, AMD64MacroAssembler masm);
 
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             if (state != null) {
                 crb.recordImplicitException(masm.codeBuffer.position(), state);
             }
-            emitMemAccess(masm);
+            emitMemAccess(crb, masm);
         }
 
         public boolean makeNullCheckFor(Value value, LIRFrameState nullCheckState, int implicitNullCheckLimit) {
@@ -136,14 +136,14 @@ public class AMD64Move {
         }
 
         @Override
-        public void emitMemAccess(AMD64MacroAssembler masm) {
+        public void emitMemAccess(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             switch (kind) {
                 case Boolean:
                 case Byte:
-                    masm.movsxb(asRegister(result), address.toAddress());
+                    masm.movsbl(asRegister(result), address.toAddress());
                     break;
                 case Char:
-                    masm.movzxl(asRegister(result), address.toAddress());
+                    masm.movzwl(asRegister(result), address.toAddress());
                     break;
                 case Short:
                     masm.movswl(asRegister(result), address.toAddress());
@@ -179,7 +179,7 @@ public class AMD64Move {
         }
 
         @Override
-        public void emitMemAccess(AMD64MacroAssembler masm) {
+        public void emitMemAccess(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             assert isRegister(input);
             switch (kind) {
                 case Boolean:
@@ -221,7 +221,7 @@ public class AMD64Move {
         }
 
         @Override
-        public void emitMemAccess(AMD64MacroAssembler masm) {
+        public void emitMemAccess(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             switch (kind) {
                 case Boolean:
                 case Byte:
@@ -460,7 +460,7 @@ public class AMD64Move {
         switch (input.getKind().getStackKind()) {
             case Int:
                 if (crb.codeCache.needsDataPatch(input)) {
-                    crb.recordDataReferenceInCode(input, 0, true);
+                    crb.recordInlineDataInCode(input);
                 }
                 // Do not optimize with an XOR as this instruction may be between
                 // a CMP and a Jcc in which case the XOR will modify the condition
@@ -469,13 +469,27 @@ public class AMD64Move {
 
                 break;
             case Long:
+                boolean patch = false;
                 if (crb.codeCache.needsDataPatch(input)) {
-                    crb.recordDataReferenceInCode(input, 0, true);
+                    patch = true;
+                    crb.recordInlineDataInCode(input);
                 }
                 // Do not optimize with an XOR as this instruction may be between
                 // a CMP and a Jcc in which case the XOR will modify the condition
                 // flags and interfere with the Jcc.
-                masm.movq(asRegister(result), input.asLong());
+                if (patch) {
+                    masm.movq(asRegister(result), input.asLong());
+                } else {
+                    if (input.asLong() == (int) input.asLong()) {
+                        // Sign extended to long
+                        masm.movslq(asRegister(result), (int) input.asLong());
+                    } else if ((input.asLong() & 0xFFFFFFFFL) == input.asLong()) {
+                        // Zero extended to long
+                        masm.movl(asRegister(result), (int) input.asLong());
+                    } else {
+                        masm.movq(asRegister(result), input.asLong());
+                    }
+                }
                 break;
             case Float:
                 // This is *not* the same as 'constant == 0.0f' in the case where constant is -0.0f
@@ -502,10 +516,10 @@ public class AMD64Move {
                 if (input.isNull()) {
                     masm.movq(asRegister(result), 0x0L);
                 } else if (crb.target.inlineObjects) {
-                    crb.recordDataReferenceInCode(input, 0, true);
+                    crb.recordInlineDataInCode(input);
                     masm.movq(asRegister(result), 0xDEADDEADDEADDEADL);
                 } else {
-                    masm.movq(asRegister(result), (AMD64Address) crb.recordDataReferenceInCode(input, 0, false));
+                    masm.movq(asRegister(result), (AMD64Address) crb.recordDataReferenceInCode(input, 0));
                 }
                 break;
             default:

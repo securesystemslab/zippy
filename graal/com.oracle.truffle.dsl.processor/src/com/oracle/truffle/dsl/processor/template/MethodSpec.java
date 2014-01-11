@@ -27,42 +27,37 @@ import java.util.*;
 import javax.lang.model.type.*;
 
 import com.oracle.truffle.dsl.processor.*;
-import com.oracle.truffle.dsl.processor.node.NodeChildData.*;
 
 public class MethodSpec {
-
-    private final List<TypeMirror> implicitRequiredTypes = new ArrayList<>();
 
     private final ParameterSpec returnType;
     private final List<ParameterSpec> optional = new ArrayList<>();
     private final List<ParameterSpec> required = new ArrayList<>();
 
-    private int minimumRequiredArguments;
-    private boolean variableRequiredArguments;
+    private boolean ignoreAdditionalParameters;
+    private boolean ignoreAdditionalSpecifications;
+    private boolean variableRequiredParameters;
+
     private List<TypeDef> typeDefinitions;
 
     public MethodSpec(ParameterSpec returnType) {
         this.returnType = returnType;
     }
 
-    public void setMinimumRequiredArguments(int minimumRequiredArguments) {
-        this.minimumRequiredArguments = minimumRequiredArguments;
+    public void setVariableRequiredParameters(boolean variableRequiredParameters) {
+        this.variableRequiredParameters = variableRequiredParameters;
     }
 
-    public int getMinimumRequiredArguments() {
-        return minimumRequiredArguments;
+    public boolean isVariableRequiredParameters() {
+        return variableRequiredParameters;
     }
 
-    public void setVariableRequiredArguments(boolean variableArguments) {
-        this.variableRequiredArguments = variableArguments;
+    public void setIgnoreAdditionalParameters(boolean ignoreAdditionalParameter) {
+        this.ignoreAdditionalParameters = ignoreAdditionalParameter;
     }
 
-    public boolean isVariableRequiredArguments() {
-        return variableRequiredArguments;
-    }
-
-    public void addImplicitRequiredType(TypeMirror type) {
-        this.implicitRequiredTypes.add(type);
+    public boolean isIgnoreAdditionalParameters() {
+        return ignoreAdditionalParameters;
     }
 
     public void addOptional(ParameterSpec spec) {
@@ -72,10 +67,6 @@ public class MethodSpec {
     public ParameterSpec addRequired(ParameterSpec spec) {
         required.add(spec);
         return spec;
-    }
-
-    public List<TypeMirror> getImplicitRequiredTypes() {
-        return implicitRequiredTypes;
     }
 
     public ParameterSpec getReturnType() {
@@ -158,15 +149,18 @@ public class MethodSpec {
             sep = ", ";
         }
 
-        for (ParameterSpec requiredSpec : getRequired()) {
+        for (int i = 0; i < getRequired().size(); i++) {
+            ParameterSpec requiredSpec = getRequired().get(i);
             b.append(sep);
-            if (requiredSpec.getCardinality() == Cardinality.MANY) {
-                b.append("{");
+
+            if (isVariableRequiredParameters() && i == getRequired().size() - 1) {
+                b.append(("{"));
             }
             b.append(createTypeSignature(requiredSpec, false));
-            if (requiredSpec.getCardinality() == Cardinality.MANY) {
-                b.append("}");
+            if (isVariableRequiredParameters() && i == getRequired().size() - 1) {
+                b.append(("}"));
             }
+
             sep = ", ";
         }
 
@@ -232,6 +226,14 @@ public class MethodSpec {
         public String getName() {
             return name;
         }
+    }
+
+    public void setIgnoreAdditionalSpecifications(boolean ignoreAdditoinalSpecifications) {
+        this.ignoreAdditionalSpecifications = ignoreAdditoinalSpecifications;
+    }
+
+    public boolean isIgnoreAdditionalSpecifications() {
+        return ignoreAdditionalSpecifications;
     }
 
 }

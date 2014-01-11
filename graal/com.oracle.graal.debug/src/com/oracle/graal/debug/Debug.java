@@ -169,7 +169,7 @@ public class Debug {
      */
     public static Scope scope(String name, Object... context) {
         if (ENABLED) {
-            return DebugScope.getInstance().scope(name, false, null, context);
+            return DebugScope.getInstance().scope(name, null, context);
         } else {
             return null;
         }
@@ -198,7 +198,7 @@ public class Debug {
     public static Scope sandbox(String name, DebugConfig config, Object... context) {
         if (ENABLED) {
             DebugConfig sandboxConfig = config == null ? silentConfig() : config;
-            return DebugScope.getInstance().scope(name, true, sandboxConfig, context);
+            return DebugScope.getInstance().scope(name, sandboxConfig, context);
         } else {
             return null;
         }
@@ -263,10 +263,6 @@ public class Debug {
         }
 
         @Override
-        public void setEnabled(boolean enabled) {
-        }
-
-        @Override
         public Indent indent() {
             return this;
         }
@@ -304,22 +300,6 @@ public class Debug {
     }
 
     /**
-     * Creates a new indentation level based on the last used Indent of the current DebugScope and
-     * turns on/off logging.
-     * 
-     * @param enabled If true, logging is enabled, otherwise disabled
-     * @return The new indentation level
-     */
-    public static Indent indent(boolean enabled) {
-        if (ENABLED) {
-            Indent logger = DebugScope.getInstance().pushIndentLogger();
-            logger.setEnabled(enabled);
-            return logger;
-        }
-        return noLoggerInstance;
-    }
-
-    /**
      * A convenience function which combines {@link #log} and {@link #indent()}.
      * 
      * @param msg The format string of the log message
@@ -332,28 +312,6 @@ public class Debug {
             DebugScope scope = DebugScope.getInstance();
             scope.log(msg, args);
             return scope.pushIndentLogger();
-        }
-        return noLoggerInstance;
-    }
-
-    /**
-     * A convenience function which combines {@link #log} and {@link #indent(boolean)}.
-     * 
-     * @param enabled If true, logging is enabled, otherwise disabled
-     * @param msg The format string of the log message
-     * @param args The arguments referenced by the log message string
-     * @return The new indentation level
-     */
-    public static Indent logAndIndent(boolean enabled, String msg, Object... args) {
-        if (ENABLED) {
-            DebugScope scope = DebugScope.getInstance();
-            boolean saveLogEnabled = scope.isLogEnabled();
-            scope.setLogEnabled(enabled);
-            scope.log(msg, args);
-            scope.setLogEnabled(saveLogEnabled);
-            Indent indent = scope.pushIndentLogger();
-            indent.setEnabled(enabled);
-            return indent;
         }
         return noLoggerInstance;
     }

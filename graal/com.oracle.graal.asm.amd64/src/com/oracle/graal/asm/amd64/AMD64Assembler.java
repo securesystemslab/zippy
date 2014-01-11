@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -787,7 +787,6 @@ public class AMD64Assembler extends AbstractAssembler {
             emitByte(0x70 | cc.getValue());
             emitByte((int) ((disp - shortSize) & 0xFF));
         } else {
-
             l.addPatchAt(codeBuffer.position());
             emitByte(0x70 | cc.getValue());
             emitByte(0);
@@ -1021,14 +1020,14 @@ public class AMD64Assembler extends AbstractAssembler {
         }
     }
 
-    public final void movsxb(Register dst, AMD64Address src) {
+    public final void movsbl(Register dst, AMD64Address src) {
         prefix(src, dst);
         emitByte(0x0F);
         emitByte(0xBE);
         emitOperandHelper(dst, src);
     }
 
-    public final void movsxb(Register dst, Register src) {
+    public final void movsbl(Register dst, Register src) {
         int encode = prefixAndEncode(dst.encoding, src.encoding, true);
         emitByte(0x0F);
         emitByte(0xBE);
@@ -1098,18 +1097,11 @@ public class AMD64Assembler extends AbstractAssembler {
         emitOperandHelper(dst, src);
     }
 
-    public final void movsxw(Register dst, Register src) {
+    public final void movswl(Register dst, Register src) {
         int encode = prefixAndEncode(dst.encoding, src.encoding);
         emitByte(0x0F);
         emitByte(0xBF);
         emitByte(0xC0 | encode);
-    }
-
-    public final void movsxw(Register dst, AMD64Address src) {
-        prefix(src, dst);
-        emitByte(0x0F);
-        emitByte(0xBF);
-        emitOperandHelper(dst, src);
     }
 
     public final void movw(AMD64Address dst, int imm16) {
@@ -1127,7 +1119,14 @@ public class AMD64Assembler extends AbstractAssembler {
         emitOperandHelper(src, dst);
     }
 
-    public final void movzxl(Register dst, AMD64Address src) {
+    public final void movzbl(Register dst, AMD64Address src) {
+        prefix(src, dst);
+        emitByte(0x0F);
+        emitByte(0xB6);
+        emitOperandHelper(dst, src);
+    }
+
+    public final void movzwl(Register dst, AMD64Address src) {
         prefix(src, dst);
         emitByte(0x0F);
         emitByte(0xB7);
@@ -1453,6 +1452,20 @@ public class AMD64Assembler extends AbstractAssembler {
         emitByte(0x58 | encode);
     }
 
+    public void popfq() {
+        emitByte(0x9D);
+    }
+
+    public final void ptest(Register dst, Register src) {
+        assert supports(CPUFeature.SSE4_1);
+        emitByte(0x66);
+        int encode = prefixAndEncode(dst.encoding, src.encoding);
+        emitByte(0x0F);
+        emitByte(0x38);
+        emitByte(0x17);
+        emitByte(0xC0 | encode);
+    }
+
     public final void push(Register src) {
         int encode = prefixAndEncode(src.encoding);
         emitByte(0x50 | encode);
@@ -1462,8 +1475,12 @@ public class AMD64Assembler extends AbstractAssembler {
         emitByte(0x9c);
     }
 
-    public void popfq() {
-        emitByte(0x9D);
+    public final void pxor(Register dst, Register src) {
+        emitByte(0x66);
+        int encode = prefixAndEncode(dst.encoding, src.encoding);
+        emitByte(0x0F);
+        emitByte(0xEF);
+        emitByte(0xC0 | encode);
     }
 
     public final void ret(int imm16) {
@@ -2178,6 +2195,13 @@ public class AMD64Assembler extends AbstractAssembler {
         emitLong(imm64);
     }
 
+    public final void movslq(Register dst, int imm32) {
+        int encode = prefixqAndEncode(dst.encoding);
+        emitByte(0xC7);
+        emitByte(0xC0 | encode);
+        emitInt(imm32);
+    }
+
     public final void movdq(Register dst, Register src) {
 
         // table D-1 says MMX/SSE2
@@ -2198,6 +2222,14 @@ public class AMD64Assembler extends AbstractAssembler {
         } else {
             throw new InternalError("should not reach here");
         }
+    }
+
+    public final void movdqu(Register dst, AMD64Address src) {
+        emitByte(0xF3);
+        prefix(src, dst);
+        emitByte(0x0F);
+        emitByte(0x6F);
+        emitOperandHelper(dst, src);
     }
 
     public final void movslq(AMD64Address dst, int imm32) {
@@ -2404,7 +2436,14 @@ public class AMD64Assembler extends AbstractAssembler {
         } else if (op == 0xEB || (op & 0xF0) == 0x70) {
 
             // short offset operators (jmp and jcc)
-            int imm8 = branchTarget - (branch + 2);
+            final int imm8 = branchTarget - (branch + 2);
+            /*
+             * Since a wrongly patched short branch can potentially lead to working but really bad
+             * behaving code we should always fail with an exception instead of having an assert.
+             */
+            if (!NumUtil.isByte(imm8)) {
+                throw new InternalError("branch displacement out of range: " + imm8);
+            }
             codeBuffer.emitByte(imm8, branch + 1);
 
         } else {

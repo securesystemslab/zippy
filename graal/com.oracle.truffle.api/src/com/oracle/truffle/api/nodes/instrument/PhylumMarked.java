@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,11 +22,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.dsl;
+package com.oracle.truffle.api.nodes.instrument;
 
-import java.lang.annotation.*;
+import java.util.*;
 
-@Retention(RetentionPolicy.CLASS)
-@Target({ElementType.METHOD})
-public @interface SpecializationListener {
+import com.oracle.truffle.api.nodes.*;
+
+/**
+ * A kind of {@link Node} that can be marked as belong to 0 or more {@linkplain NodePhylum phyla}.
+ */
+public interface PhylumMarked {
+
+    /**
+     * Is this proxy tagged as belonging to a particular category of language constructs?
+     */
+    boolean isMarkedAs(NodePhylum phylum);
+
+    /**
+     * In which categories is this node tagged (<em>empty set</em> if none).
+     */
+    Set<NodePhylum> getPhylumMarks();
+
 }

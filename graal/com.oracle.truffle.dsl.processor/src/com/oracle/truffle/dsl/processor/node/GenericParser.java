@@ -30,6 +30,7 @@ import javax.lang.model.type.*;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.dsl.processor.*;
+import com.oracle.truffle.dsl.processor.node.SpecializationData.SpecializationKind;
 import com.oracle.truffle.dsl.processor.template.*;
 
 public class GenericParser extends NodeMethodParser<SpecializationData> {
@@ -44,26 +45,20 @@ public class GenericParser extends NodeMethodParser<SpecializationData> {
     }
 
     @Override
-    protected ParameterSpec createValueParameterSpec(String valueName, NodeData nodeData, int evaluatedCount) {
-        List<ExecutableTypeData> execTypes = nodeData.findGenericExecutableTypes(getContext(), evaluatedCount);
+    protected ParameterSpec createValueParameterSpec(NodeExecutionData execution) {
+        List<ExecutableTypeData> execTypes = execution.getChild().findGenericExecutableTypes(getContext());
         List<TypeMirror> types = new ArrayList<>();
         for (ExecutableTypeData type : execTypes) {
             types.add(type.getType().getPrimitiveType());
         }
-        ParameterSpec spec = new ParameterSpec(valueName, types);
-        spec.setSignature(true);
+        ParameterSpec spec = new ParameterSpec(execution.getName(), types);
+        spec.setExecution(execution);
         return spec;
     }
 
     @Override
-    protected ParameterSpec createReturnParameterSpec() {
-        return super.createValueParameterSpec("returnValue", getNode(), 0);
-    }
-
-    @Override
     public SpecializationData create(TemplateMethod method, boolean invalid) {
-        SpecializationData data = new SpecializationData(method, true, false, false);
-        return data;
+        return new SpecializationData(getNode(), method, SpecializationKind.GENERIC);
     }
 
     @Override

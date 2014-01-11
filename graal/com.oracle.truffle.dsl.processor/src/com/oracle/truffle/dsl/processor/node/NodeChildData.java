@@ -45,29 +45,20 @@ public class NodeChildData extends MessageContainer {
         }
     }
 
-    public enum ExecutionKind {
-        DEFAULT, SHORT_CIRCUIT
-    }
-
-    private final NodeData parent;
+    private NodeData parentNode;
     private final Element sourceElement;
     private final AnnotationMirror sourceAnnotationMirror;
-
     private final String name;
     private final TypeMirror type;
     private final TypeMirror originalType;
     private final Element accessElement;
-
     private final Cardinality cardinality;
-    private final ExecutionKind executionKind;
 
     private List<NodeChildData> executeWith = Collections.emptyList();
 
-    private NodeData nodeData;
+    private NodeData childNode;
 
-    public NodeChildData(NodeData parent, Element sourceElement, AnnotationMirror sourceMirror, String name, TypeMirror nodeType, TypeMirror originalNodeType, Element accessElement,
-                    Cardinality cardinality, ExecutionKind executionKind) {
-        this.parent = parent;
+    public NodeChildData(Element sourceElement, AnnotationMirror sourceMirror, String name, TypeMirror nodeType, TypeMirror originalNodeType, Element accessElement, Cardinality cardinality) {
         this.sourceElement = sourceElement;
         this.sourceAnnotationMirror = sourceMirror;
         this.name = name;
@@ -75,7 +66,10 @@ public class NodeChildData extends MessageContainer {
         this.originalType = originalNodeType;
         this.accessElement = accessElement;
         this.cardinality = cardinality;
-        this.executionKind = executionKind;
+    }
+
+    void setParentNode(NodeData parentNode) {
+        this.parentNode = parentNode;
     }
 
     public List<NodeChildData> getExecuteWith() {
@@ -87,23 +81,17 @@ public class NodeChildData extends MessageContainer {
     }
 
     public boolean needsImplicitCast(ProcessorContext context) {
-        if (!parent.needsRewrites(context)) {
+        if (!parentNode.needsRewrites(context)) {
             return false;
         }
 
         boolean used = false;
-        SpecializationData generic = parent.getGenericSpecialization();
-        for (ActualParameter param : generic.getParameters()) {
-            if (!param.getSpecification().isSignature()) {
-                continue;
-            }
-            NodeChildData child = parent.findChild(param.getSpecification().getName());
-            if (child == this) {
+        for (NodeExecutionData execution : parentNode.getChildExecutions()) {
+            if (execution.getChild() == this) {
                 used = true;
                 break;
             }
         }
-
         if (!used) {
             return false;
         }
@@ -112,7 +100,7 @@ public class NodeChildData extends MessageContainer {
     }
 
     public ExecutableTypeData findExecutableType(ProcessorContext context, TypeData targetType) {
-        ExecutableTypeData executableType = nodeData.findExecutableType(targetType, getExecuteWith().size());
+        ExecutableTypeData executableType = childNode.findExecutableType(targetType, getExecuteWith().size());
         if (executableType == null) {
             executableType = findAnyGenericExecutableType(context);
         }
@@ -120,15 +108,15 @@ public class NodeChildData extends MessageContainer {
     }
 
     public List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context) {
-        return nodeData.findGenericExecutableTypes(context, getExecuteWith().size());
+        return childNode.findGenericExecutableTypes(context, getExecuteWith().size());
     }
 
     public ExecutableTypeData findAnyGenericExecutableType(ProcessorContext context) {
-        return nodeData.findAnyGenericExecutableType(context, getExecuteWith().size());
+        return childNode.findAnyGenericExecutableType(context, getExecuteWith().size());
     }
 
     public List<ExecutableTypeData> findExecutableTypes() {
-        return nodeData.getExecutableTypes(getExecuteWith().size());
+        return childNode.getExecutableTypes(getExecuteWith().size());
     }
 
     public TypeMirror getOriginalType() {
@@ -145,12 +133,8 @@ public class NodeChildData extends MessageContainer {
         return sourceAnnotationMirror;
     }
 
-    public boolean isShortCircuit() {
-        return executionKind == ExecutionKind.SHORT_CIRCUIT;
-    }
-
     void setNode(NodeData nodeData) {
-        this.nodeData = nodeData;
+        this.childNode = nodeData;
         if (nodeData != null) {
             getMessages().addAll(nodeData.collectMessages());
         }
@@ -168,12 +152,8 @@ public class NodeChildData extends MessageContainer {
         return cardinality;
     }
 
-    public ExecutionKind getExecutionKind() {
-        return executionKind;
-    }
-
     public NodeData getNodeData() {
-        return nodeData;
+        return childNode;
     }
 
     public String getName() {
@@ -182,7 +162,7 @@ public class NodeChildData extends MessageContainer {
 
     @Override
     public String toString() {
-        return "NodeFieldData[name=" + getName() + ", kind=" + cardinality + ", execution=" + executionKind + ", node=" + getNodeData() + "]";
+        return "NodeFieldData[name=" + getName() + ", kind=" + cardinality + ", node=" + getNodeData() + "]";
     }
 
 }
