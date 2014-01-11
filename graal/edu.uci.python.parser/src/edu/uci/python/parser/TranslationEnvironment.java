@@ -30,7 +30,6 @@ import org.python.antlr.*;
 import org.python.antlr.base.*;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
