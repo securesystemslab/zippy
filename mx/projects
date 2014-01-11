@@ -352,6 +352,7 @@ project@com.oracle.graal.replacements.amd64@sourceDirs=src
 project@com.oracle.graal.replacements.amd64@dependencies=com.oracle.graal.replacements
 project@com.oracle.graal.replacements.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.amd64@javaCompliance=1.7
+project@com.oracle.graal.replacements.amd64@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.replacements.amd64@workingSets=Graal,Replacements,AMD64
 
 # graal.replacements.hsail
