@@ -48,7 +48,7 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
 
     @Override
     public PNode makeReadNode() {
-        return ReadLocalVariableNodeFactory.create(frameSlot);
+        return NodeFactory.getInstance().createReadLocal(frameSlot);
     }
 
     @Override

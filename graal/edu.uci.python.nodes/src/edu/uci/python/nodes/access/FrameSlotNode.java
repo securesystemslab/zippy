@@ -48,15 +48,15 @@ public abstract class FrameSlotNode extends PNode {
         frame.setObject(frameSlot, value);
     }
 
-    protected final int getInteger(Frame frame) throws FrameSlotTypeException {
+    protected int getInteger(Frame frame) throws FrameSlotTypeException {
         return frame.getInt(frameSlot);
     }
 
-    protected final boolean getBoolean(Frame frame) throws FrameSlotTypeException {
+    protected boolean getBoolean(Frame frame) throws FrameSlotTypeException {
         return frame.getBoolean(frameSlot);
     }
 
-    protected final double getDouble(Frame frame) throws FrameSlotTypeException {
+    protected double getDouble(Frame frame) throws FrameSlotTypeException {
         return frame.getDouble(frameSlot);
     }
 
@@ -65,7 +65,7 @@ public abstract class FrameSlotNode extends PNode {
      * lattice. So if a variable's type changes from BigInteger to another reference type, node
      * rewrite should occur.
      */
-    protected final BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
+    protected BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
         Object object = frame.getObject(frameSlot);
 
         if (object instanceof BigInteger) {
@@ -75,7 +75,7 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
-    protected final Object getObject(Frame frame) {
+    protected Object getObject(Frame frame) {
         try {
             return frame.getObject(frameSlot);
         } catch (FrameSlotTypeException e) {

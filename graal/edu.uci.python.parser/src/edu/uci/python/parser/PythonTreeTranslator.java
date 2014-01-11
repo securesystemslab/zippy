@@ -135,7 +135,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
         body = factory.createBlock(new StatementNode[]{argumentLoads, body});
-        body = new ReturnTargetNode(body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
 
         /**
          * Defaults
@@ -549,7 +549,7 @@ public class PythonTreeTranslator extends Visitor {
         environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()));
         body = visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
-        body = new ReturnTargetNode(body, factory.createReadLocalVariable(environment.getReturnSlot()));
+        body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
         PNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
         environment.endScope(node);
         return genExprDef;

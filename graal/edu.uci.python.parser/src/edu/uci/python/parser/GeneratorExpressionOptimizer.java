@@ -89,7 +89,8 @@ public class GeneratorExpressionOptimizer {
         }
 
         FrameSlot genExpSlot = escapeAnalyzer.getTargetExpressionSlot();
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(currentRoot, ReadLocalVariableNode.class)) {
+        Class<? extends FrameSlotNode> readLocalClass = PythonOptions.UsePolymorphicReadLocal ? PolymorphicReadLocalVariableNode.class : ReadLocalVariableNode.class;
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(currentRoot, readLocalClass)) {
             if (!read.getSlot().equals(genExpSlot)) {
                 continue;
             }
@@ -153,7 +154,7 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            reads[i] = ReadLocalVariableNodeFactory.create(argSlot);
+            reads[i] = NodeFactory.getInstance().createReadLocal(argSlot);
         }
 
         return reads;
@@ -240,7 +241,7 @@ public class GeneratorExpressionOptimizer {
             }
 
             if (replaceWithReadLocals) {
-                read.replace(ReadLocalVariableNodeFactory.create(targetSlot));
+                read.replace(NodeFactory.getInstance().createReadLocal(targetSlot));
             } else {
                 read.replace(ReadGeneratorFrameVariableNodeFactory.create(targetSlot));
             }

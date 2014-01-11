@@ -384,8 +384,11 @@ public class NodeFactory {
         return SubscriptStoreIndexNodeFactory.create(primary, slice, value);
     }
 
-    public PNode createReadLocalVariable(FrameSlot slot) {
+    public PNode createReadLocal(FrameSlot slot) {
         assert slot != null;
+        if (PythonOptions.UsePolymorphicReadLocal) {
+            return PolymorphicReadLocalVariableNode.create(slot);
+        }
         return ReadLocalVariableNodeFactory.create(slot);
     }
 

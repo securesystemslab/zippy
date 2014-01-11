@@ -152,7 +152,7 @@ public class TranslationEnvironment {
             case ListComp:
             case Function:
                 if (slot != null) {
-                    return (ReadNode) factory.createReadLocalVariable(slot);
+                    return (ReadNode) factory.createReadLocal(slot);
                 }
 
                 ReadNode readLevel = findVariableInEnclosingScopes(name);
@@ -172,7 +172,7 @@ public class TranslationEnvironment {
     public ReadNode makeTempLocalVariable() {
         String tempName = TEMP_LOCAL_PREFIX + currentScope.getFrameDescriptor().getSize();
         FrameSlot tempSlot = createLocal(tempName);
-        return (ReadNode) factory.createReadLocalVariable(tempSlot);
+        return (ReadNode) factory.createReadLocal(tempSlot);
     }
 
     public List<PNode> makeTempLocalVariables(List<PNode> rights) {

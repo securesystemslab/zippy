@@ -42,6 +42,8 @@ public class PythonOptions {
 
     public static final boolean OptimizeNode = true;
 
+    public static final boolean UsePolymorphicReadLocal = true;
+
     public static boolean PrintFunction = false;
 
     // Runtime flags
