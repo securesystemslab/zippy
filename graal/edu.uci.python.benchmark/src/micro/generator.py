@@ -30,6 +30,6 @@ def measure():
 
 #warm up
 for run in range(1000):
-	call_generator(10, 100)
+	call_generator(100, 100)
 
 measure()
