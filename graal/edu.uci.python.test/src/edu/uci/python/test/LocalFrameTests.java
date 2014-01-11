@@ -28,8 +28,6 @@ import static edu.uci.python.test.PythonTests.*;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.*;
-
 public class LocalFrameTests {
 
     @Test
