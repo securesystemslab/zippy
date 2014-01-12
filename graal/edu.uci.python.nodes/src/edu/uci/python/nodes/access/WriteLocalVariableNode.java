@@ -90,6 +90,7 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
     @Specialization(order = 4, guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         setObject(frame, value);
+        frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 

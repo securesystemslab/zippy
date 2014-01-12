@@ -42,7 +42,7 @@ public class BenchmarkTests {
     }
 
     @Test
-    public void bisectRgiht() {
+    public void bisectRight() {
         Path script = Paths.get("bisect-right-test.py");
         assertPrints("3\n3\n3\n", script);
     }
