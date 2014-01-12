@@ -48,15 +48,15 @@ public abstract class FrameSlotNode extends PNode {
         frame.setObject(frameSlot, value);
     }
 
-    protected final int getInteger(Frame frame) throws FrameSlotTypeException {
+    protected int getInteger(Frame frame) throws FrameSlotTypeException {
         return frame.getInt(frameSlot);
     }
 
-    protected final boolean getBoolean(Frame frame) throws FrameSlotTypeException {
+    protected boolean getBoolean(Frame frame) throws FrameSlotTypeException {
         return frame.getBoolean(frameSlot);
     }
 
-    protected final double getDouble(Frame frame) throws FrameSlotTypeException {
+    protected double getDouble(Frame frame) throws FrameSlotTypeException {
         return frame.getDouble(frameSlot);
     }
 

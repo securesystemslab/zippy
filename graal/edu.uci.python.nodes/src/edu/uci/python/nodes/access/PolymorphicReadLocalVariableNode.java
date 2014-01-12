@@ -56,6 +56,42 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
     }
 
     @Override
+    protected final Object getObject(Frame frame) {
+        try {
+            return frame.getObject(frameSlot);
+        } catch (FrameSlotTypeException e) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
+    public final boolean getBoolean(Frame frame) {
+        try {
+            return frame.getBoolean(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
+    public final int getInteger(Frame frame) {
+        try {
+            return frame.getInt(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
+    public final double getDouble(Frame frame) {
+        try {
+            return frame.getDouble(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Override
     public final Object executeWrite(VirtualFrame frame, Object value) {
         throw new UnsupportedOperationException();
     }
@@ -110,18 +146,18 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
 
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-            try {
-                return frame.getBoolean(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+                return getBoolean(frame);
+            } else {
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(executeNext(frame));
             }
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            try {
-                return frame.getBoolean(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+                return getBoolean(frame);
+            } else {
                 return executeNext(frame);
             }
         }
@@ -136,18 +172,18 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
 
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-            try {
-                return frame.getInt(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(frame);
+            } else {
                 return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
             }
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            try {
-                return frame.getInt(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(frame);
+            } else {
                 return executeNext(frame);
             }
         }
@@ -162,18 +198,18 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
 
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-            try {
-                return frame.getDouble(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Double) {
+                return getDouble(frame);
+            } else {
                 return PythonTypesGen.PYTHONTYPES.expectDouble(executeNext(frame));
             }
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            try {
-                return frame.getDouble(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frameSlot.getKind() == FrameSlotKind.Double) {
+                return getDouble(frame);
+            } else {
                 return executeNext(frame);
             }
         }
@@ -188,9 +224,9 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
 
         @Override
         public Object execute(VirtualFrame frame) {
-            try {
-                return frame.getObject(frameSlot);
-            } catch (FrameSlotTypeException ex) {
+            if (frame.isObject(frameSlot)) {
+                return getObject(frame);
+            } else {
                 return executeNext(frame);
             }
         }

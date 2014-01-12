@@ -34,28 +34,33 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     public abstract static class AndNode extends BinaryBooleanNode {
 
-        @Specialization
+        @Specialization(order = 0)
+        boolean doBoolean(boolean left, boolean right) {
+            return left && right;
+        }
+
+        @Specialization(order = 1)
         int doInteger(int left, int right) {
             return isZero(left) ? left : right;
         }
 
-        @Specialization
+        @Specialization(order = 2)
         BigInteger doBitInteger(BigInteger left, BigInteger right) {
             return isZero(left) ? left : right;
         }
 
-        @Specialization
+        @Specialization(order = 3)
         double doDouble(double left, double right) {
             return isZero(left) ? left : right;
-        }
-
-        @Specialization
-        boolean doBoolean(boolean left, boolean right) {
-            return left && right;
         }
     }
 
     public abstract static class OrNode extends BinaryBooleanNode {
+
+        @Specialization(order = 0)
+        boolean doBoolean(boolean left, boolean right) {
+            return left || right;
+        }
 
         @Specialization(order = 1)
         int doInteger(int left, int right) {
@@ -70,11 +75,6 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         @Specialization(order = 3)
         double doDouble(double left, double right) {
             return isNotZero(left) ? left : right;
-        }
-
-        @Specialization(order = 4)
-        boolean doBoolean(boolean left, boolean right) {
-            return left || right;
         }
     }
 

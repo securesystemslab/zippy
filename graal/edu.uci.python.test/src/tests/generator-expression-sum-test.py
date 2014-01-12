@@ -11,3 +11,12 @@ def _sum(iterable):
 
 print(_sum(genexp))
 print(_sum(genexp))
+
+# test
+def call_sum(num):
+	for i in range(num):
+		total = _sum(genexp)
+
+	return total
+
+#call_sum(1000000)
