@@ -175,6 +175,13 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   }
 C2V_END
 
+C2V_VMENTRY(jlong, getLaunchKernelAddress, (JNIEnv *env, jobject))
+  if (gpu::get_target_il_type() == gpu::PTX) {
+    return (jlong) gpu::Ptx::execute_kernel_from_vm;
+  }
+  return 0L;
+C2V_END
+
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
     if (TraceGPUInteraction) {
@@ -247,6 +254,7 @@ JNINativeMethod CompilerToGPU_methods[] = {
   {CC"availableProcessors",           CC"()I",                                    FN_PTR(availableProcessors)},
   {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,    FN_PTR(executeExternalMethodVarargs)},
   {CC"executeParallelMethodVarargs",  CC"(III["OBJECT HS_INSTALLED_CODE")"OBJECT, FN_PTR(executeParallelMethodVarargs)},
+  {CC"getLaunchKernelAddress",        CC"()J",                                    FN_PTR(getLaunchKernelAddress)},
 };
 
 int CompilerToGPU_methods_count() {

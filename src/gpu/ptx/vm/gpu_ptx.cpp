@@ -29,6 +29,7 @@
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
+#include "runtime/interfaceSupport.hpp"
 #include "ptxKernelArguments.hpp"
 
 void * gpu::Ptx::_device_context;
@@ -335,6 +336,144 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
 
   return cu_function;
 }
+
+JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jlong parametersAndReturnValueBuffer, jint parametersAndReturnValueBufferSize, int encodedReturnTypeSize))
+  tty->print_cr("*** gpu::Ptx::execute_kernel_from_vm(kernel=%p, parametersAndReturnValueBuffer=%p, parametersAndReturnValueBufferSize=%d, encodedReturnTypeSize=%d)",
+      kernel, parametersAndReturnValueBuffer, parametersAndReturnValueBufferSize, encodedReturnTypeSize);
+  tty->print("  buffer as bytes: ");
+  for (int i = 0; i < parametersAndReturnValueBufferSize; i++) {
+    tty->print(" 0x%02x", ((jbyte*) (address) parametersAndReturnValueBuffer)[i] & 0xFF);
+  }
+  tty->cr();
+  tty->print("  buffer as ints: ");
+  for (int i = 0; i < (parametersAndReturnValueBufferSize / 4); i++) {
+    tty->print(" %d", ((jint*) (address) parametersAndReturnValueBuffer)[i]);
+  }
+  tty->cr();
+  tty->print("  buffer as words: ");
+  for (unsigned i = 0; i < (parametersAndReturnValueBufferSize / sizeof(void*)); i++) {
+    tty->print(" "INTPTR_FORMAT, ((void**) (address) parametersAndReturnValueBuffer)[i]);
+  }
+  tty->cr();
+  if (kernel == 0L) {
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
+    return 0L;
+  }
+
+
+  // grid dimensionality
+  unsigned int gridX = 1;
+  unsigned int gridY = 1;
+  unsigned int gridZ = 1;
+
+  // thread dimensionality
+  unsigned int blockX = 1;
+  unsigned int blockY = 1;
+  unsigned int blockZ = 1;
+
+  struct CUfunc_st* cu_function = (struct CUfunc_st*) (address) kernel;
+
+  void * config[5] = {
+    GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER, (char*) (address) parametersAndReturnValueBuffer,
+    GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &parametersAndReturnValueBufferSize,
+    GRAAL_CU_LAUNCH_PARAM_END
+  };
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] launching kernel");
+  }
+
+  bool isObjectReturn = encodedReturnTypeSize < 0;
+  int returnTypeSize = encodedReturnTypeSize < 0 ? -encodedReturnTypeSize : encodedReturnTypeSize;
+  gpu::Ptx::CUdeviceptr device_return_value;
+  int status;
+  if (returnTypeSize != 0) {
+    status = _cuda_cu_memalloc(&device_return_value, returnTypeSize);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
+      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to allocate memory for return value pointer on device");
+      return 0L;
+    }
+    // Push device_return_value to kernelParams
+    gpu::Ptx::CUdeviceptr* returnValuePtr = (gpu::Ptx::CUdeviceptr*) (address) parametersAndReturnValueBuffer + parametersAndReturnValueBufferSize - sizeof(device_return_value);
+    *returnValuePtr = device_return_value;
+  }
+
+  status = _cuda_cu_launch_kernel(cu_function,
+                                      gridX, gridY, gridZ,
+                                      blockX, blockY, blockZ,
+                                      0, NULL, NULL, (void **) &config);
+
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to launch kernel");
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to launch kernel");
+    return 0L;
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", blockX, blockY, blockZ);
+  }
+
+  status = _cuda_cu_ctx_synchronize();
+
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to synchronize launched kernel (%d)", status);
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to synchronize launched kernel");
+    return 0L;
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: Synchronized launch kernel");
+  }
+
+  jlong primitiveReturnValue = 0L;
+  if (isObjectReturn) {
+    oop return_val;
+    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, device_return_value, T_OBJECT_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
+      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to copy value from device argument");
+      return 0L;
+    }
+    thread->set_vm_result(return_val);
+  } else if (returnTypeSize > 0) {
+    jlong result;
+    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&primitiveReturnValue, device_return_value, T_LONG_BYTE_SIZE);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
+      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to copy value from device argument");
+      return 0L;
+    }
+  }
+
+  // Free device memory allocated for result
+  if (returnTypeSize != 0) {
+    status = gpu::Ptx::_cuda_cu_memfree(device_return_value);
+    if (status != GRAAL_CUDA_SUCCESS) {
+      tty->print_cr("[CUDA] *** Error (%d) Failed to free device memory of return value", status);
+      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to free device memory of return value");
+      return 0L;
+    }
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: Freed device memory of return value");
+  }
+
+  // Destroy context
+  status = gpu::Ptx::_cuda_cu_ctx_destroy(_device_context);
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] *** Error (%d) Failed to destroy context", status);
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to destroy context");
+    return 0L;
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: Destroy context");
+  }
+
+  return primitiveReturnValue;
+JRT_END
 
 bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
     return gpu::Ptx::execute_warp(1, 1, 1, kernel, ptxka, ret);

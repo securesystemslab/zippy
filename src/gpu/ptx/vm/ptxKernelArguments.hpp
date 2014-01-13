@@ -34,6 +34,7 @@
 #define T_FLOAT_BYTE_SIZE  4
 #define T_DOUBLE_BYTE_SIZE 8
 #define T_LONG_BYTE_SIZE   8
+#define T_OBJECT_BYTE_SIZE 8
 #define T_ARRAY_BYTE_SIZE  8
 
 class PTXKernelArguments : public SignatureIterator {
