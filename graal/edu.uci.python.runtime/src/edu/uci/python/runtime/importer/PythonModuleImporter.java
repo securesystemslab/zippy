@@ -1,22 +1,124 @@
 package edu.uci.python.runtime.importer;
 
 import java.io.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class PythonModuleImporter {
 
     private PythonContext context;
+    private String importee;
+
+    public PythonModuleImporter(PythonContext context, String importee) {
+        this.context = context;
+        this.importee = importee;
+    }
 
     public PythonModuleImporter(PythonContext context) {
         this.context = context;
     }
 
+    public Object importModule(VirtualFrame frame, String name) {
+        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(name);
+        PythonParseResult result = null;
+        CallTarget callTarget = null;
+        PythonContext moduleContext = null;
+
+        if (importedModule == null) {
+            try {
+                String filename = name + ".py";
+                String path = getImporterPath();
+                String fullPath = path + File.separatorChar + filename;
+                Source source = context.getSourceManager().get(fullPath);
+                moduleContext = new PythonContext(context);
+                importedModule = result = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+
+            } catch (RuntimeException e) {
+                // do nothing and jython's importer will fix it.
+            }
+
+            if (importedModule != null) {
+                callTarget = Truffle.getRuntime().createCallTarget(result.getModuleRoot(), frame.getFrameDescriptor());
+                callTarget.call(null, new PArguments(null));
+                moduleContext = ((PythonParseResult) importedModule).getContext();
+                PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
+                importedModule = new PythonModule(importee, module);
+            } else {
+                /*
+                 * This should be removed the soon we can import any module
+                 */
+
+                if (PythonOptions.useNewImportMechanism) {
+                    // PythonParseResult parsedModule = findModule(name, name);
+                    // PythonModuleImporter importer = new PythonModuleImporter(context, importee);
+                    // PythonParseResult parsedModule = importer.findModule(name, name);
+                    PythonParseResult parsedModule = findModule(name, name);
+
+                    if (parsedModule != null) {
+                        importedModule = createModule(parsedModule, frame);
+                        // if (PythonOptions.PrintAST) {
+                        // parsedModule.printAST();
+                        // }
+
+                        return importedModule;
+                    }
+                }
+
+                if (importedModule == null) {
+                    importedModule = __builtin__.__import__(name);
+                }
+            }
+        }
+
+        return importedModule;
+    }
+
+    private PythonModule createModule(PythonParseResult parseResult, Frame frame) {
+        PythonModule importedModule = null;
+        if (parseResult != null) {
+            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parseResult.getModuleRoot(), frame.getFrameDescriptor());
+            callTarget.call(null, new PArguments(null));
+            PythonContext moduleContext = parseResult.getContext();
+            PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
+            importedModule = new PythonModule(importee, module);
+            System.out.println("CERATED MODULE " + importedModule + " " + importedModule.getClass());
+        }
+
+        return importedModule;
+    }
+
+    private String getImporterPath() {
+        String path = ".";
+
+        // TODO: After adding support to SourceSection, this what we should use:
+        // String name = this.getSourceSection().getSource().getPath();
+        String name = context.getParser().getSource().getPath();
+        String fileName = new StringBuilder(name).reverse().toString();
+        int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
+        int filenameln = name.length() - separtorLoc;
+        fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc, name.length());
+        final File file = new File(name);
+        if (file.exists()) {
+            try {
+                path = file.getCanonicalPath();
+                path = path.substring(0, path.length() - filenameln);
+            } catch (IOException e) {
+            }
+        }
+
+        return path;
+    }
+
     public PythonParseResult findModule(String name, String moduleName) {
         String workingDir = System.getProperty("user.dir");
-        String path = workingDir + "/" + "lib-python/3";
+        String path = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
         PythonParseResult parsedModule = null;
         parsedModule = loadFromSource(name, moduleName, path);
 

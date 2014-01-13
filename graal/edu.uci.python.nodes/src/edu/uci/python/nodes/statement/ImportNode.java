@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statement;
 import java.io.*;
 
 import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -39,44 +40,18 @@ import edu.uci.python.runtime.standardtype.*;
 public class ImportNode extends PNode {
 
     private final PythonContext context;
-
-    private final String fromModuleName;
-
     private final String importee;
 
-    public ImportNode(PythonContext context, String fromModule, String importee) {
+    public ImportNode(PythonContext context, String importee) {
         this.context = context;
-        this.fromModuleName = fromModule;
         this.importee = importee;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        Object importedModule = null;
-
-        if (fromModuleName != null) {
-            importedModule = importModule(frame, fromModuleName);
-        }
-
-        return doImport(frame, importedModule, importee);
-    }
-
-    private Object doImport(VirtualFrame frame, Object importedModule, String name) {
-        try {
-            if (importedModule != null && importedModule instanceof PythonModule) {
-                return ((PythonModule) importedModule).getAttribute(name);
-            } else if (importedModule != null) {
-                return ((PyObject) importedModule).__getattr__(name);
-            } else {
-                return importModule(frame, name);
-            }
-        } catch (PyException pye) {
-            if (pye.match(Py.AttributeError)) {
-                throw Py.ImportError(String.format("cannot import name %.230s", name));
-            } else {
-                throw pye;
-            }
-        }
+        // PythonModuleImporter importer = new PythonModuleImporter(context, importee);
+        // return importer.importModule(frame, importee);
+        return importModule(frame, importee);
     }
 
     private Object importModule(VirtualFrame frame, String name) {
@@ -84,8 +59,8 @@ public class ImportNode extends PNode {
         PythonParseResult result = null;
         CallTarget callTarget = null;
         PythonContext moduleContext = null;
-        if (importedModule == null) {
 
+        if (importedModule == null) {
             try {
                 String filename = name + ".py";
                 String path = getImporterPath();

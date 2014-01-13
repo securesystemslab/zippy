@@ -106,8 +106,16 @@ public class NodeFactory {
         return new BlockNode(statments);
     }
 
-    public PNode createImport(PythonContext context, String fromModuleName, String importee) {
-        return new ImportNode(context, fromModuleName, importee);
+// public PNode createImport(PythonContext context, String fromModuleName, String importee) {
+// return new ImportNode(context, fromModuleName, importee);
+// }
+
+    public PNode createImport(PythonContext context, String importee) {
+        return new ImportNode(context, importee);
+    }
+
+    public PNode createImportFrom(PythonContext context, String fromModuleName, String importee) {
+        return new ImportFromNode(context, fromModuleName, importee);
     }
 
     public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {
