@@ -24,24 +24,18 @@
  */
 package edu.uci.python.nodes.statement;
 
-import java.io.*;
-
 import org.python.core.*;
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.importer.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ImportFromNode extends PNode {
 
     private final PythonContext context;
-
     private final String fromModuleName;
-
     private final String importee;
 
     public ImportFromNode(PythonContext context, String fromModule, String importee) {
@@ -52,121 +46,25 @@ public class ImportFromNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonModuleImporter importer = new PythonModuleImporter(context, importee);
-
+        PythonModuleImporter importer = new PythonModuleImporter(context, fromModuleName);
         Object importedModule = importer.importModule(frame, fromModuleName);
-        // Object importedModule = importModule(frame, fromModuleName);
-        return doImportFrom(importedModule, importee);
-
-        // PythonModuleImporter importer = new PythonModuleImporter(context, importee);
-        // return importer.importModule(frame, importee);
+        return doImportFrom(importedModule);
     }
 
-    private static Object doImportFrom(Object importedModule, String name) {
+    private Object doImportFrom(Object importedModule) {
         try {
             if (importedModule instanceof PythonModule) {
-                return ((PythonModule) importedModule).getAttribute(name);
+                return ((PythonModule) importedModule).getAttribute(importee);
             } else {
-                return ((PyObject) importedModule).__getattr__(name);
+                return ((PyObject) importedModule).__getattr__(importee);
             }
         } catch (PyException pye) {
             if (pye.match(Py.AttributeError)) {
-                throw Py.ImportError(String.format("cannot import name %.230s", name));
+                throw Py.ImportError(String.format("cannot import name %.230s", importee));
             } else {
                 throw pye;
             }
         }
     }
 
-// private Object importModule(VirtualFrame frame, String name) {
-// Object importedModule = context.getPythonBuiltinsLookup().lookupModule(name);
-// PythonParseResult result = null;
-// CallTarget callTarget = null;
-// PythonContext moduleContext = null;
-//
-// if (importedModule == null) {
-// try {
-// String filename = name + ".py";
-// String path = getImporterPath();
-// String fullPath = path + File.separatorChar + filename;
-// Source source = context.getSourceManager().get(fullPath);
-// moduleContext = new PythonContext(context);
-// importedModule = result = context.getParser().parse(moduleContext, source, CompileMode.exec,
-// CompilerFlags.getCompilerFlags());
-//
-// } catch (RuntimeException e) {
-// // do nothing and jython's importer will fix it.
-// }
-//
-// if (importedModule != null) {
-// callTarget = Truffle.getRuntime().createCallTarget(result.getModuleRoot(),
-// frame.getFrameDescriptor());
-// callTarget.call(null, new PArguments(null));
-// moduleContext = ((PythonParseResult) importedModule).getContext();
-// PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-// importedModule = new PythonModule(importee, module);
-// } else {
-// /*
-// * This should be removed the soon we can import any module
-// */
-//
-// if (PythonOptions.useNewImportMechanism) {
-// // PythonParseResult parsedModule = findModule(name, name);
-// PythonModuleImporter importer = new PythonModuleImporter(context);
-// PythonParseResult parsedModule = importer.findModule(name, name);
-//
-// if (parsedModule != null) {
-// importedModule = createModule(parsedModule, frame);
-// if (PythonOptions.PrintAST) {
-// parsedModule.printAST();
-// }
-// return importedModule;
-// }
-// }
-//
-// if (importedModule == null) {
-// importedModule = __builtin__.__import__(name);
-// }
-// }
-// }
-//
-// return importedModule;
-// }
-//
-// private PythonModule createModule(PythonParseResult parseResult, Frame frame) {
-// PythonModule importedModule = null;
-// if (parseResult != null) {
-// CallTarget callTarget = Truffle.getRuntime().createCallTarget(parseResult.getModuleRoot(),
-// frame.getFrameDescriptor());
-// callTarget.call(null, new PArguments(null));
-// PythonContext moduleContext = parseResult.getContext();
-// PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-// importedModule = new PythonModule(importee, module);
-// }
-//
-// return importedModule;
-// }
-//
-// private String getImporterPath() {
-// String path = ".";
-//
-// // TODO: After adding support to SourceSection, this what we should use:
-// // String name = this.getSourceSection().getSource().getPath();
-// String name = context.getParser().getSource().getPath();
-// String fileName = new StringBuilder(name).reverse().toString();
-// int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
-// int filenameln = name.length() - separtorLoc;
-// fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc,
-// name.length());
-// final File file = new File(name);
-// if (file.exists()) {
-// try {
-// path = file.getCanonicalPath();
-// path = path.substring(0, path.length() - filenameln);
-// } catch (IOException e) {
-// }
-// }
-//
-// return path;
-// }
 }

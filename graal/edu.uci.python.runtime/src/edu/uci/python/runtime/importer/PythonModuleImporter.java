@@ -13,16 +13,12 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonModuleImporter {
 
-    private PythonContext context;
-    private String importee;
+    private final PythonContext context;
+    private final String moduleName;
 
-    public PythonModuleImporter(PythonContext context, String importee) {
+    public PythonModuleImporter(PythonContext context, String moduleName) {
         this.context = context;
-        this.importee = importee;
-    }
-
-    public PythonModuleImporter(PythonContext context) {
-        this.context = context;
+        this.moduleName = moduleName;
     }
 
     public Object importModule(VirtualFrame frame, String name) {
@@ -38,8 +34,11 @@ public class PythonModuleImporter {
                 String fullPath = path + File.separatorChar + filename;
                 Source source = context.getSourceManager().get(fullPath);
                 moduleContext = new PythonContext(context);
+                System.out.println("[ZipPy] parsing module " + name);
                 importedModule = result = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
-
+                if (PythonOptions.PrintAST) {
+                    ((PythonParseResult) importedModule).printAST();
+                }
             } catch (RuntimeException e) {
                 // do nothing and jython's importer will fix it.
             }
@@ -49,23 +48,20 @@ public class PythonModuleImporter {
                 callTarget.call(null, new PArguments(null));
                 moduleContext = ((PythonParseResult) importedModule).getContext();
                 PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-                importedModule = new PythonModule(importee, module);
+                importedModule = new PythonModule(moduleName, module);
             } else {
                 /*
                  * This should be removed the soon we can import any module
                  */
 
                 if (PythonOptions.useNewImportMechanism) {
-                    // PythonParseResult parsedModule = findModule(name, name);
-                    // PythonModuleImporter importer = new PythonModuleImporter(context, importee);
-                    // PythonParseResult parsedModule = importer.findModule(name, name);
                     PythonParseResult parsedModule = findModule(name, name);
 
                     if (parsedModule != null) {
                         importedModule = createModule(parsedModule, frame);
-                        // if (PythonOptions.PrintAST) {
-                        // parsedModule.printAST();
-                        // }
+                        if (PythonOptions.PrintAST) {
+                            parsedModule.printAST();
+                        }
 
                         return importedModule;
                     }
@@ -87,8 +83,7 @@ public class PythonModuleImporter {
             callTarget.call(null, new PArguments(null));
             PythonContext moduleContext = parseResult.getContext();
             PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-            importedModule = new PythonModule(importee, module);
-            System.out.println("CERATED MODULE " + importedModule + " " + importedModule.getClass());
+            importedModule = new PythonModule(moduleName, module);
         }
 
         return importedModule;
@@ -171,7 +166,7 @@ public class PythonModuleImporter {
     }
 
     private PythonParseResult parseModule(String dirName, String sourceName) {
-        Source source = context.getSourceManager().get(dirName + "/" + sourceName);
+        Source source = context.getSourceManager().get(dirName + File.separatorChar + sourceName);
         PythonContext moduleContext = new PythonContext(context);
         PythonParseResult parseResult = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
         return parseResult;
