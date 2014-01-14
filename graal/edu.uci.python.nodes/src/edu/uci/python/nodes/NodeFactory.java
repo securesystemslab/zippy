@@ -166,8 +166,8 @@ public class NodeFactory {
         return new BreakTargetNode(child);
     }
 
-    public StatementNode createYield(PNode right) {
-        return new YieldNode(right);
+    public StatementNode createYield(PNode right, FrameSlot returnSlot) {
+        return new YieldNode(this.createWriteLocalVariable(right, returnSlot));
     }
 
     public StatementNode createPrint(List<PNode> values, boolean nl, PythonContext context) {

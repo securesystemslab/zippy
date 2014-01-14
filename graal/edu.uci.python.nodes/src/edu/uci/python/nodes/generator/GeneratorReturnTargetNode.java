@@ -63,12 +63,11 @@ public class GeneratorReturnTargetNode extends ReturnTargetNode {
             body.execute(frame);
             setFirstEntry(frame, true);
             throw StopIterationException.INSTANCE;
-        } catch (ExplicitYieldException eye) {
-            return eye.getValue();
+        } catch (YieldException eye) {
+            return returnValue.execute(frame);
         } catch (ImplicitReturnException ire) {
+            // TODO: currently it doesn't return value properly from generators
             throw StopIterationException.INSTANCE;
-        } catch (ExplicitReturnException ere) {
-            throw new UnsupportedOperationException();
         }
     }
 

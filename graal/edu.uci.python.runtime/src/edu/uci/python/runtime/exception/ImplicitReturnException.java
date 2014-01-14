@@ -28,10 +28,7 @@ import com.oracle.truffle.api.nodes.ControlFlowException;
 
 public final class ImplicitReturnException extends ControlFlowException {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 4051910104624735388L;
 
     public static final ImplicitReturnException INSTANCE = new ImplicitReturnException();
 

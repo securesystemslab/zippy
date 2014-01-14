@@ -43,8 +43,8 @@ public class YieldNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        Object returnValue = right.execute(frame);
-        throw new ExplicitYieldException(returnValue);
+        right.execute(frame);
+        throw YieldException.INSTANCE;
     }
 
 }

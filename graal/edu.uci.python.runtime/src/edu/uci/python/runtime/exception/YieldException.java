@@ -26,18 +26,13 @@ package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.*;
 
-public class ExplicitYieldException extends ControlFlowException {
+public final class YieldException extends ControlFlowException {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = -2566596691449393014L;
 
-    private final Object value;
+    public static final YieldException INSTANCE = new YieldException();
 
-    public ExplicitYieldException(Object value) {
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
+    private YieldException() {
     }
 
 }
