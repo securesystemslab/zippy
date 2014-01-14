@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,41 +22,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.function;
+package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.PArguments.GeneratorArguments;
 
-public final class PGeneratorFunction extends PFunction {
+public class ForOnInlinedGeneratorNode extends LoopNode {
 
-    private final int numOfGeneratorBlockNode;
-    private final int numOfGeneratorForNode;
+    @Child protected FrameSlotNode target;
+    @Child protected GetGeneratorArgumentsNode getGenArg;
+    @Child protected AdvanceInlinedGeneratorNode next;
 
-    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
-        super(name, arity, callTarget, frameDescriptor, declarationFrame);
-        this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
-        this.numOfGeneratorForNode = numOfGeneratorForNode;
-    }
-
-    public int getNumOfGeneratorBlockNode() {
-        return numOfGeneratorBlockNode;
-    }
-
-    public int getNumOfGeneratorForNode() {
-        return numOfGeneratorForNode;
+    public ForOnInlinedGeneratorNode(PNode body, FrameSlotNode target, GetGeneratorArgumentsNode getGenArg, AdvanceInlinedGeneratorNode next) {
+        super(body);
+        this.target = adoptChild(target);
+        this.getGenArg = adoptChild(getGenArg);
+        this.next = adoptChild(next);
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
-    }
+    public Object execute(VirtualFrame frame) {
+        int count = 0;
+        GeneratorArguments genArgs = (GeneratorArguments) getGenArg.execute(frame);
 
-    @Override
-    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        throw new UnsupportedOperationException();
+        try {
+            while (true) {
+                target.executeWrite(frame, next.executeWith(frame, genArgs));
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
     }
 
 }
