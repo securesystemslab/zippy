@@ -142,10 +142,6 @@ public class NodeFactory {
         return new ReturnNode();
     }
 
-    public StatementNode createExplicitReturn(PNode value) {
-        return new ReturnNode.ExplicitReturnNode(value);
-    }
-
     public StatementNode createFrameReturn(PNode value) {
         return new ReturnNode.FrameReturnNode(value);
     }

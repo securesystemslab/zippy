@@ -26,21 +26,13 @@ package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-public class ExplicitReturnException extends ControlFlowException {
+public final class ReturnException extends ControlFlowException {
 
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 4051910104624735388L;
 
-    private final Object value;
+    public static final ReturnException INSTANCE = new ReturnException();
 
-    public ExplicitReturnException(Object value) {
-        this.value = value;
-    }
-
-    public Object getValue() {
-        return value;
+    private ReturnException() {
     }
 
 }

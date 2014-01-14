@@ -33,34 +33,21 @@ public class ReturnNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        throw ImplicitReturnException.INSTANCE;
+        throw ReturnException.INSTANCE;
     }
 
-    public static class ExplicitReturnNode extends ReturnNode {
+    public static final class FrameReturnNode extends ReturnNode {
 
         @Child protected PNode right;
 
-        public ExplicitReturnNode(PNode right) {
+        public FrameReturnNode(PNode right) {
             this.right = adoptChild(right);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object returnValue = right.execute(frame);
-            throw new ExplicitReturnException(returnValue);
-        }
-    }
-
-    public static final class FrameReturnNode extends ExplicitReturnNode {
-
-        public FrameReturnNode(PNode right) {
-            super(right);
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
             right.execute(frame);
-            throw ImplicitReturnException.INSTANCE;
+            throw ReturnException.INSTANCE;
         }
     }
 

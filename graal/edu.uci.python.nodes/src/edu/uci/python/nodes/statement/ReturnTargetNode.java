@@ -55,7 +55,7 @@ public class ReturnTargetNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         try {
             return body.execute(frame);
-        } catch (ImplicitReturnException ire) {
+        } catch (ReturnException ire) {
             return returnValue.execute(frame);
         }
     }
