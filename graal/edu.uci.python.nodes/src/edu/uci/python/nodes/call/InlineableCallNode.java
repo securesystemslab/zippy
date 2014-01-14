@@ -32,6 +32,7 @@ import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class InlineableCallNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
@@ -79,6 +80,16 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             if (functionRoot != null) {
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
                 replace(inlinedCallNode);
+
+                /**
+                 * Optimize generator expression if there's any.
+                 */
+                Node current = this;
+                while (!(current instanceof RootNode)) {
+                    current = current.getParent();
+                }
+                assert current instanceof FunctionRootNode && current != null;
+                new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
                 return true;
             }
 

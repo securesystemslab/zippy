@@ -6,7 +6,10 @@ import time
 def _sum(iterable):
     sum = None
     for i in iterable:
-        sum += i
+    	if sum is None:
+    		sum = i
+    	else:
+        	sum += i
 
     return sum
 
@@ -40,7 +43,7 @@ def measure():
 	print("genexp-builtin-call: " + duration)
 
 #warm up
-for run in range(1000):
+for run in range(10000):
 	call_generator(10, 100)
 
 measure()

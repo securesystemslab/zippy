@@ -73,6 +73,8 @@ public class EscapeAnalyzer {
                 return escapesCurrentFrame(slot);
             } else if (current instanceof WriteNode) {
                 return true; // Other write nodes
+            } else if (current instanceof InlinedCallNode) {
+                return false;
             } else if (current instanceof CallFunctionNode) {
                 PNode calleeNode = ((CallFunctionNode) current).getCallee();
 

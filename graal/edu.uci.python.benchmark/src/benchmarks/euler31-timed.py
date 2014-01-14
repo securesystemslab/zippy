@@ -10,12 +10,15 @@ COINS = [1, 2, 5, 10, 20, 50, 100, 200]
 def _sum(iterable):
     sum = None
     for i in iterable:
-        sum += i
+        if sum is None:
+            sum = i
+        else:
+            sum += i
 
     return sum
 
 def balance(pattern): 
-    return sum(COINS[x]*pattern[x] for x in range(0, len(pattern)))
+    return _sum(COINS[x]*pattern[x] for x in range(0, len(pattern)))
 
 def gen(pattern, coinnum, num):
     coin = COINS[coinnum]

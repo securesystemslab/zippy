@@ -59,7 +59,7 @@ public class CallFunctionInlinedNode extends InlinedCallNode {
         }
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments(PNone.NONE, null, args);
+        final PArguments pargs = new PArguments.VirtualFrameCargoArguments(PNone.NONE, null, frame, args);
         return functionRoot.execute(createInlinedFrame(frame, pargs));
     }
 
