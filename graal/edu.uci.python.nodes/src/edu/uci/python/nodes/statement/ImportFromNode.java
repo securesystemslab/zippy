@@ -47,7 +47,7 @@ public class ImportFromNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         PythonModuleImporter importer = new PythonModuleImporter(context, fromModuleName);
-        Object importedModule = importer.importModule(frame, fromModuleName);
+        Object importedModule = importer.importModule(frame);
         return doImportFrom(importedModule);
     }
 

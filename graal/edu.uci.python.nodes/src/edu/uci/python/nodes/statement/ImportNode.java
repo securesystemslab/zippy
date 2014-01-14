@@ -43,7 +43,7 @@ public class ImportNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         PythonModuleImporter importer = new PythonModuleImporter(context, importee);
-        return importer.importModule(frame, importee);
+        return importer.importModule(frame);
     }
 
 }

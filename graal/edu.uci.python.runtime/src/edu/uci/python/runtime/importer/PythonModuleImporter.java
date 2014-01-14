@@ -21,69 +21,60 @@ public class PythonModuleImporter {
         this.moduleName = moduleName;
     }
 
-    public Object importModule(VirtualFrame frame, String name) {
-        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(name);
-        PythonParseResult result = null;
-        CallTarget callTarget = null;
-        PythonContext moduleContext = null;
+    public Object importModule(VirtualFrame frame) {
+        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
-        if (importedModule == null) {
-            try {
-                String filename = name + ".py";
-                String path = getImporterPath();
-                String fullPath = path + File.separatorChar + filename;
-                Source source = context.getSourceManager().get(fullPath);
-                moduleContext = new PythonContext(context);
-                System.out.println("[ZipPy] parsing module " + name);
-                importedModule = result = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
-                if (PythonOptions.PrintAST) {
-                    ((PythonParseResult) importedModule).printAST();
-                }
-            } catch (RuntimeException e) {
-                // do nothing and jython's importer will fix it.
-            }
-
-            if (importedModule != null) {
-                callTarget = Truffle.getRuntime().createCallTarget(result.getModuleRoot(), frame.getFrameDescriptor());
-                callTarget.call(null, new PArguments(null));
-                moduleContext = ((PythonParseResult) importedModule).getContext();
-                PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-                importedModule = new PythonModule(moduleName, module);
+        if (importedModule != null) {
+            return importedModule;
+        } else {
+            String filename = moduleName + ".py";
+            String path = getImporterPath();
+            String fullPath = path + filename;
+            PythonParseResult parsedModule = parseModule(fullPath);
+            if (parsedModule != null) {
+                importedModule = createModule(parsedModule, frame);
             } else {
-                /*
-                 * This should be removed the soon we can import any module
-                 */
-
-                if (PythonOptions.useNewImportMechanism) {
-                    PythonParseResult parsedModule = findModule(name, name);
-
-                    if (parsedModule != null) {
-                        importedModule = createModule(parsedModule, frame);
-                        if (PythonOptions.PrintAST) {
-                            parsedModule.printAST();
-                        }
-
-                        return importedModule;
-                    }
-                }
-
-                if (importedModule == null) {
-                    importedModule = __builtin__.__import__(name);
+                parsedModule = findModule(moduleName, moduleName);
+                if (parsedModule != null) {
+                    importedModule = createModule(parsedModule, frame);
+                } else {
+                    importedModule = __builtin__.__import__(moduleName);
                 }
             }
         }
 
         return importedModule;
+
     }
 
-    private PythonModule createModule(PythonParseResult parseResult, Frame frame) {
+    private PythonParseResult parseModule(String path) {
+        File file = new File(path);
+
+        if (file.exists()) {
+            Source source = context.getSourceManager().get(path);
+            PythonContext moduleContext = new PythonContext(context, moduleName);
+            PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+            if (parsedModule != null) {
+                System.out.println("[ZipPy] parsing module " + moduleName);
+                if (PythonOptions.PrintAST) {
+                    parsedModule.printAST();
+                }
+            }
+
+            return parsedModule;
+        }
+
+        return null;
+    }
+
+    private PythonModule createModule(PythonParseResult parsedModule, Frame frame) {
         PythonModule importedModule = null;
-        if (parseResult != null) {
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parseResult.getModuleRoot(), frame.getFrameDescriptor());
+        if (parsedModule != null) {
+            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot(), frame.getFrameDescriptor());
             callTarget.call(null, new PArguments(null));
-            PythonContext moduleContext = parseResult.getContext();
-            PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule("__main__");
-            importedModule = new PythonModule(moduleName, module);
+            PythonContext moduleContext = parsedModule.getContext();
+            PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule(moduleName);
+            return module;
         }
 
         return importedModule;
@@ -150,8 +141,8 @@ public class PythonModuleImporter {
             displaySourceName = new File(displayDirName, sourceName).getPath();
             sourceFile = new File(dirName, sourceName);
             if (sourceFile.isFile()) {
-                System.out.println("[ZipPy] parsing module " + modName);
-                PythonParseResult parsedModule = parseModule(displayDirName, sourceName);
+                String fullPath = displayDirName + File.separatorChar + sourceName;
+                PythonParseResult parsedModule = parseModule(fullPath);
                 if (parsedModule != null) {
                     return parsedModule;
                 }
@@ -164,12 +155,4 @@ public class PythonModuleImporter {
 
         return null;
     }
-
-    private PythonParseResult parseModule(String dirName, String sourceName) {
-        Source source = context.getSourceManager().get(dirName + File.separatorChar + sourceName);
-        PythonContext moduleContext = new PythonContext(context);
-        PythonParseResult parseResult = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
-        return parseResult;
-    }
-
 }

@@ -38,7 +38,7 @@ public class CustomConsole extends JLineConsole {
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, "__main__");
         Source source = context.getSourceManager().get(name);
         execfile(context, source);
     }

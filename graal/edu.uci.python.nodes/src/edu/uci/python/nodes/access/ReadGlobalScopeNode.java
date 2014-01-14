@@ -122,7 +122,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     protected final void cacheBuiltin(Object builtin) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        Assumption globalScopeUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__main__").getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = this.context.getPythonBuiltinsLookup().lookupModule(context.moduleName).getUnmodifiedAssumption();
         Assumption builtinsModuleUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
         replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
     }
