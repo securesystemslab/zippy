@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
 public class ReturnTargetNode extends StatementNode {
@@ -57,8 +56,6 @@ public class ReturnTargetNode extends StatementNode {
         try {
             return body.execute(frame);
         } catch (ImplicitReturnException ire) {
-            return PNone.NONE;
-        } catch (ExplicitReturnException ere) {
             return returnValue.execute(frame);
         }
     }

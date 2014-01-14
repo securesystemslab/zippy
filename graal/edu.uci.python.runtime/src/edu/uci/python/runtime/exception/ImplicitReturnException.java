@@ -26,11 +26,16 @@ package edu.uci.python.runtime.exception;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
-public class ImplicitReturnException extends ControlFlowException {
+public final class ImplicitReturnException extends ControlFlowException {
 
     /**
      * 
      */
     private static final long serialVersionUID = 1L;
+
+    public static final ImplicitReturnException INSTANCE = new ImplicitReturnException();
+
+    private ImplicitReturnException() {
+    }
 
 }

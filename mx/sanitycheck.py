@@ -117,7 +117,7 @@ python2MicroBenchmarks = {
     'list-iterating'        : '0',
     #'builtin-len'          : '0',
     #'builtin-len-tuple'    : '0',
-    'math-sqrt'             : '0',
+    #'math-sqrt'            : '0',
     'generator'             : '0',
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',

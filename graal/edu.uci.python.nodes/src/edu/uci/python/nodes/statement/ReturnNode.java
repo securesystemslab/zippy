@@ -31,11 +31,9 @@ import edu.uci.python.runtime.exception.*;
 
 public class ReturnNode extends StatementNode {
 
-    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
-
     @Override
     public Object execute(VirtualFrame frame) {
-        throw IMPLICIT_RETURN;
+        throw ImplicitReturnException.INSTANCE;
     }
 
     public static class ExplicitReturnNode extends ReturnNode {
@@ -55,8 +53,6 @@ public class ReturnNode extends StatementNode {
 
     public static final class FrameReturnNode extends ExplicitReturnNode {
 
-        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
-
         public FrameReturnNode(PNode right) {
             super(right);
         }
@@ -64,7 +60,8 @@ public class ReturnNode extends StatementNode {
         @Override
         public Object execute(VirtualFrame frame) {
             right.execute(frame);
-            throw RETURN_EXCEPTION;
+            throw ImplicitReturnException.INSTANCE;
         }
     }
+
 }

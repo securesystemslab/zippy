@@ -117,7 +117,7 @@ public abstract class PolymorphicReadLocalVariableNode extends FrameSlotNode imp
             CompilerDirectives.transferToInterpreter();
             PolymorphicReadLocalVariableNode readNode;
 
-            if (!isNotIllegal()) {
+            if (!isNotIllegal() && !frameSlot.getIdentifier().equals("<return_val>")) {
                 throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
             }
 
