@@ -40,15 +40,11 @@ public abstract class LoopNode extends StatementNode {
 
     protected final void reportLoopCount(int count) {
         CompilerAsserts.neverPartOfCompilation();
-        Node current = LoopNode.this.getParent();
-        while (current != null && !(current instanceof RootNode)) {
-            current = current.getParent();
-        }
-        if (current != null) {
-            RootNode root = (RootNode) current;
-            if (root.getCallTarget() instanceof LoopCountReceiver) {
-                ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
-            }
+        RootNode root = getRootNode();
+        assert root != null;
+
+        if (root.getCallTarget() instanceof LoopCountReceiver) {
+            ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
         }
     }
 }

@@ -55,6 +55,12 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         callCount = 0;
     }
 
+    public void invokeGeneratorExpressionOptimizer() {
+        RootNode current = getRootNode();
+        assert current != null;
+        new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
+    }
+
     public static class CallFunctionInlinableNode extends InlineableCallNode {
 
         private final PFunction function;
@@ -80,16 +86,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             if (functionRoot != null) {
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
                 replace(inlinedCallNode);
-
-                /**
-                 * Optimize generator expression if there's any.
-                 */
-                Node current = this;
-                while (!(current instanceof RootNode)) {
-                    current = current.getParent();
-                }
-                assert current instanceof FunctionRootNode && current != null;
-                new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
+                invokeGeneratorExpressionOptimizer();
                 return true;
             }
 
