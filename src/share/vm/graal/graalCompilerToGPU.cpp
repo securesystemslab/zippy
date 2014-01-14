@@ -175,11 +175,16 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   }
 C2V_END
 
+JRT_ENTRY(jlong, invalidLaunchKernel(JavaThread* thread))
+  SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_LinkageError(), "invalid kernel launch function");
+  return 0L;
+JRT_END
+
 C2V_VMENTRY(jlong, getLaunchKernelAddress, (JNIEnv *env, jobject))
   if (gpu::get_target_il_type() == gpu::PTX) {
     return (jlong) gpu::Ptx::execute_kernel_from_vm;
   }
-  return 0L;
+  return (jlong) invalidLaunchKernel;
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
