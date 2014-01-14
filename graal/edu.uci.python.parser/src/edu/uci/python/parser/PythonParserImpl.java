@@ -29,7 +29,9 @@ import java.io.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.runtime.*;
 
@@ -67,7 +69,9 @@ public class PythonParserImpl implements PythonParser {
         PythonParseResult result = ptt.translate(node);
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
-            new GeneratorExpressionOptimizer(result).optimize();
+            for (RootNode functionRoot : result.getFunctionRoots()) {
+                new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
+            }
         }
 
         return result;

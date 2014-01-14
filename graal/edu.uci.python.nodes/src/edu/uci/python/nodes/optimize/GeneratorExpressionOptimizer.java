@@ -43,31 +43,25 @@ import edu.uci.python.runtime.*;
 
 public class GeneratorExpressionOptimizer {
 
-    private final PythonParseResult parseResult;
-    private FunctionRootNode currentRoot;
+    private final PythonContext context;
+    private final FunctionRootNode functionRoot;
 
-    public GeneratorExpressionOptimizer(PythonParseResult parseResult) {
-        this.parseResult = parseResult;
+    public GeneratorExpressionOptimizer(FunctionRootNode functionRoot) {
+        this.context = functionRoot.getContext();
+        this.functionRoot = functionRoot;
     }
 
     public void optimize() {
-        for (RootNode functionRoot : parseResult.getFunctionRoots()) {
-            currentRoot = (FunctionRootNode) functionRoot;
-            doRoot(functionRoot);
-        }
-    }
-
-    private void doRoot(RootNode root) {
-        for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
             if (!genExp.needsDeclarationFrame()) {
                 continue; // No need to optimize
             }
 
-            EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(root, genExp);
+            EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
             if (escapeAnalyzer.escapes()) {
-                parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
+                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
-                parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
+                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp, escapeAnalyzer);
             }
         }
@@ -90,7 +84,7 @@ public class GeneratorExpressionOptimizer {
 
         FrameSlot genExpSlot = escapeAnalyzer.getTargetExpressionSlot();
         Class<? extends FrameSlotNode> readLocalClass = PythonOptions.UsePolymorphicReadLocal ? PolymorphicReadLocalVariableNode.class : ReadLocalVariableNode.class;
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(currentRoot, readLocalClass)) {
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(functionRoot, readLocalClass)) {
             if (!read.getSlot().equals(genExpSlot)) {
                 continue;
             }
@@ -112,12 +106,12 @@ public class GeneratorExpressionOptimizer {
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
-            currentRoot.updateUninitializedBody();
+            functionRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }
 
-        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
     }
 
     private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
@@ -131,12 +125,12 @@ public class GeneratorExpressionOptimizer {
             PNode[] argReads = assembleArgumentReads(arguments, genExp);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-            currentRoot.updateUninitializedBody();
+            functionRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }
 
-        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
     }
 
     /**
@@ -247,4 +241,5 @@ public class GeneratorExpressionOptimizer {
             }
         }
     }
+
 }
