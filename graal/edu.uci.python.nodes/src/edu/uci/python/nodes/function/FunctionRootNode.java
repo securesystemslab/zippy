@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -36,11 +37,14 @@ import edu.uci.python.nodes.*;
  */
 public final class FunctionRootNode extends RootNode {
 
+    private final PythonContext context;
     private final String functionName;
+
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    public FunctionRootNode(String functionName, PNode body) {
+    public FunctionRootNode(PythonContext context, String functionName, PNode body) {
+        this.context = context;
         this.functionName = functionName;
         this.body = adoptChild(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
@@ -48,6 +52,10 @@ public final class FunctionRootNode extends RootNode {
 
     public void updateUninitializedBody() {
         this.uninitializedBody = NodeUtil.cloneNode(body);
+    }
+
+    public PythonContext getContext() {
+        return context;
     }
 
     public InlinedFunctionRootNode getInlinedRootNode() {
@@ -60,7 +68,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public FunctionRootNode copy() {
-        return new FunctionRootNode(this.functionName, this.uninitializedBody);
+        return new FunctionRootNode(this.context, this.functionName, this.uninitializedBody);
     }
 
     @Override

@@ -2,11 +2,19 @@
 # generator expression as argument to a built-in call
 import time
 
+# test
+def _sum(iterable):
+    sum = None
+    for i in iterable:
+        sum += i
+
+    return sum
+
 def call_generator(num, iteration):
 	item = 42
 	for t in range(iteration):
 		num += t % 5
-		item = sum(x % 5 for x in range(num))
+		item = _sum(x % 5 for x in range(num))
 
 	return item
 

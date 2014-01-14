@@ -30,6 +30,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.runtime.*;
 
 public class PythonParserImpl implements PythonParser {

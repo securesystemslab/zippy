@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.nodes.optimize;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -95,7 +95,7 @@ public class EscapeAnalyzer {
      * escapesCurrentFrame() always return false.
      */
     private boolean escapesCurrentFrame(FrameSlot slot) {
-        if (slot.getIdentifier().equals(TranslationEnvironment.RETURN_SLOT_ID)) {
+        if (slot.getIdentifier().equals("<return_val>")) {
             return true;
         }
 
