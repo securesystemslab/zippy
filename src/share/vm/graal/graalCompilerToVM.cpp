@@ -815,6 +815,15 @@ C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
 
+C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_method, int entry_bci))
+  HandleMark hm;
+  ResourceMark rm;
+  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  MutexLocker locker(MethodCompileQueue_lock, thread);
+  return CompileBroker::assign_compile_id(method, entry_bci);
+C2V_END
+
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -875,6 +884,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
   {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
+  {CC"allocateCompileId",             CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
 };
 
 int CompilerToVM_methods_count() {

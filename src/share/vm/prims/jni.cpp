@@ -5179,7 +5179,7 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     if (graal_compiler != NULL) {
       graal_compiler->initialize();
     } else {
-      assert(!UseCompiler, "why isn't there are compiler?");
+      assert(!UseCompiler, "why isn't there any compiler?");
     }
 #endif
 
