@@ -53,9 +53,12 @@ public class PythonOptions {
 
     public static boolean InlineBuiltinFunctionCalls = true;
 
+    // Generators
     public static final boolean InlineGeneratorCalls = true;
 
     public static boolean OptimizeGeneratorExpressions = true;
+
+    public static final boolean UseSimpleGeneratorInlining = false;
 
     public static final boolean CacheAttributeLoads = true;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,64 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.call;
+package edu.uci.python.nodes.generator;
 
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.function.PArguments.GeneratorArguments;
 
-public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implements InlinedCallSite {
+@NodeChild(value = "getIterator", type = PNode.class)
+public abstract class AdvanceInlinedGeneratorNode extends PNode {
 
     private final FrameFactory frameFactory;
     private final FrameDescriptor frameDescriptor;
+    @Child protected PNode generatorRoot;
 
-    public InlinedCallNode(PNode callee, PNode[] arguments, FrameDescriptor frameDescriptor, FrameFactory frameFactory) {
-        super(callee, arguments);
-        this.frameDescriptor = frameDescriptor;
+    public AdvanceInlinedGeneratorNode(FrameFactory frameFactory, FrameDescriptor frameDescriptor, PNode generatorRoot) {
         this.frameFactory = frameFactory;
+        this.frameDescriptor = frameDescriptor;
+        this.generatorRoot = adoptChild(generatorRoot);
     }
 
-    protected FrameFactory getFrameFactory() {
-        return frameFactory;
+    protected AdvanceInlinedGeneratorNode(AdvanceInlinedGeneratorNode prev) {
+        this(prev.frameFactory, prev.frameDescriptor, prev.generatorRoot);
     }
+
+    public abstract Object executeWith(VirtualFrame frame, Object value);
 
     protected VirtualFrame createInlinedFrame(VirtualFrame caller, PArguments argument) {
         return frameFactory.create(frameDescriptor, caller.pack(), argument);
     }
 
-    protected PNode prepareBody(PNode clonedBody) {
-        clonedBody.accept(new NodeVisitor() {
-
-            public boolean visit(Node node) {
-                prepareBodyNode(node);
-                assert !(node instanceof FunctionRootNode);
-                return true;
-            }
-
-        });
-
-        return clonedBody;
-    }
-
-    protected void prepareBodyNode(Node node) {
-        NodeFactory factory = NodeFactory.getInstance();
-
-        if (node instanceof FrameSlotNode) {
-            FrameSlotNode fsNode = (FrameSlotNode) node;
-            FrameSlot origSlot = fsNode.getSlot();
-            FrameSlot newSlot = frameDescriptor.findFrameSlot(origSlot.getIdentifier());
-            assert newSlot != null && !origSlot.equals(newSlot);
-
-            if (node instanceof ReadLocalVariableNode) {
-                node.replace(factory.createReadLocal(newSlot));
-            } else if (node instanceof WriteLocalVariableNode) {
-                node.replace(factory.createWriteLocalVariable(((WriteLocalVariableNode) node).getRhs(), newSlot));
-            }
-        }
+    @Specialization
+    public Object doGeneratorArguments(VirtualFrame frame, GeneratorArguments arguments) {
+        return generatorRoot.execute(createInlinedFrame(frame, arguments));
     }
 
 }
