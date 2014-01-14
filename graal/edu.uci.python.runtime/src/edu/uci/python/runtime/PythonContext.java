@@ -47,7 +47,9 @@ public class PythonContext {
 
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
+    public String moduleName;
+
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser, String moduleName) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
@@ -58,11 +60,12 @@ public class PythonContext {
         this.sourceManager = new SourceManager();
         this.parser = parser;
 
+        this.moduleName = moduleName;
         this.lookup.addBuiltins(this);
     }
 
-    public PythonContext(PythonContext context) {
-        this(context.options, context.lookup, context.parser);
+    public PythonContext(PythonContext context, String name) {
+        this(context.options, context.lookup, context.parser, name);
     }
 
     public PythonOptions getPythonOptions() {

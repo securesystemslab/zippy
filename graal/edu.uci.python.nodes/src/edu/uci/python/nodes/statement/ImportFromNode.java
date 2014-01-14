@@ -22,51 +22,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.object;
-
-import static com.oracle.truffle.api.CompilerDirectives.*;
+package edu.uci.python.nodes.statement;
 
 import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.importer.*;
+import edu.uci.python.runtime.standardtype.*;
 
-public class UninitializedStoreAttributeNode extends StoreAttributeNode {
+public class ImportFromNode extends PNode {
 
-    public UninitializedStoreAttributeNode(String name, PNode primary, PNode rhs) {
-        super(name, primary, rhs);
-    }
+    private final PythonContext context;
+    private final String fromModuleName;
+    private final String importee;
 
-    @Override
-    public Object executeWith(VirtualFrame frame, Object value) {
-        transferToInterpreterAndInvalidate();
-        final Object primaryObj = primary.execute(frame);
-        return doGeneric(primaryObj, value);
+    public ImportFromNode(PythonContext context, String fromModule, String importee) {
+        this.context = context;
+        this.fromModuleName = fromModule;
+        this.importee = importee;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        transferToInterpreterAndInvalidate();
-        final Object primaryObj = primary.execute(frame);
-        final Object value = rhs.execute(frame);
-        return doGeneric(primaryObj, value);
+        PythonModuleImporter importer = new PythonModuleImporter(context, fromModuleName);
+        Object importedModule = importer.importModule(frame);
+        return doImportFrom(importedModule);
     }
 
-    private Object doGeneric(Object primaryObj, Object value) {
-        assert value != null;
-
-        if (primaryObj instanceof PyObject) {
-            final PyObject pyObj = (PyObject) primaryObj;
-            pyObj.__setattr__(attributeId, (PyObject) value);
-        } else {
-            final PythonBasicObject pbObj = (PythonBasicObject) primaryObj;
-            pbObj.setAttribute(attributeId, value);
+    private Object doImportFrom(Object importedModule) {
+        try {
+            if (importedModule instanceof PythonModule) {
+                return ((PythonModule) importedModule).getAttribute(importee);
+            } else {
+                return ((PyObject) importedModule).__getattr__(importee);
+            }
+        } catch (PyException pye) {
+            if (pye.match(Py.AttributeError)) {
+                throw Py.ImportError(String.format("cannot import name %.230s", importee));
+            } else {
+                throw pye;
+            }
         }
-
-        replace(specialize(primaryObj));
-        return PNone.NONE;
     }
+
 }

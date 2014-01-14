@@ -266,10 +266,26 @@ public class PythonTreeTranslator extends Visitor {
         return targets;
     }
 
-    private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
+// private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
+// String importName = aliaz.getInternalName();
+// String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
+// PNode importNode = factory.createImport(context, fromModuleName, importName);
+// ReadNode read = environment.findVariable(target);
+// return read.makeWriteNode(importNode);
+// }
+
+    private PNode createSingleImportStatement(alias aliaz) {
         String importName = aliaz.getInternalName();
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        PNode importNode = factory.createImport(context, fromModuleName, importName);
+        PNode importNode = factory.createImport(context, importName);
+        ReadNode read = environment.findVariable(target);
+        return read.makeWriteNode(importNode);
+    }
+
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+        String importName = aliaz.getInternalName();
+        String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
+        PNode importNode = factory.createImportFrom(context, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
     }
@@ -280,13 +296,14 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0), null);
+            // return createSingleImportStatement(aliases.get(0), null);
+            return createSingleImportStatement(aliases.get(0));
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportStatement(aliases.get(i), null));
-
+            // imports.add(createSingleImportStatement(aliases.get(i), null));
+            imports.add(createSingleImportStatement(aliases.get(i)));
         }
 
         return factory.createBlock(imports);
@@ -301,13 +318,14 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0), node.getInternalModule());
+            // return createSingleImportStatement(aliases.get(0), node.getInternalModule());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule()));
-
+            // imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
         }
 
         return factory.createBlock(imports);

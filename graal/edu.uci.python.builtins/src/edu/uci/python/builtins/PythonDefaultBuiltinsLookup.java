@@ -52,9 +52,9 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("__builtins__", builtinsModule);
 
-        PythonModule mainModule = new PythonModule("__main__", context);
+        PythonModule mainModule = new PythonModule(context.moduleName, context);
         mainModule.setAttribute("__builtins__", builtinsModule);
-        addModule("__main__", mainModule);
+        addModule(context.moduleName, mainModule);
 
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         if (!PythonOptions.useNewImportMechanism) {
