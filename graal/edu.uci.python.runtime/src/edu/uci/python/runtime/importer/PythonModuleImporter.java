@@ -104,13 +104,11 @@ public class PythonModuleImporter {
     }
 
     private String getPathFromLibrary() {
-        String path = PYTHONLIBRARYPATH;
-
-        String dirName = path;
+        String dirPath = PYTHONLIBRARYPATH;
         String sourceName = "__init__.py";
 
         // First check for packages
-        File dir = new File(dirName, moduleName);
+        File dir = new File(dirPath, moduleName);
         File sourceFile = new File(dir, sourceName);
 
         boolean isPackage = false;
@@ -122,15 +120,19 @@ public class PythonModuleImporter {
 
         if (!isPackage) {
             sourceName = moduleName + ".py";
-            sourceFile = new File(dirName, sourceName);
+            sourceFile = new File(dirPath, sourceName);
+
             if (sourceFile.isFile()) {
-                String fullPath = dirName + File.separatorChar + sourceName;
-                return fullPath;
+                String path = sourceFile.getPath();
+                return path;
             }
         } else {
-            /**
-             * TODO Code is not implemented for modules that are in a package such as unittest
-             */
+            sourceFile = new File(dir, sourceName);
+
+            if (sourceFile.isFile()) {
+                String path = sourceFile.getPath();
+                return path;
+            }
         }
 
         return null;
@@ -152,6 +154,7 @@ public class PythonModuleImporter {
 
     private PythonParseResult parseModule(String path) {
         File file = new File(path);
+
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
             PythonContext moduleContext = new PythonContext(context, moduleName);
