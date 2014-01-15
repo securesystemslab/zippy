@@ -390,10 +390,7 @@ public class NodeFactory {
 
     public PNode createReadLocal(FrameSlot slot) {
         assert slot != null;
-        if (PythonOptions.UsePolymorphicReadLocal) {
-            return PolymorphicReadLocalVariableNode.create(slot);
-        }
-        return ReadLocalVariableNodeFactory.create(slot);
+        return ReadLocalVariableNode.create(slot);
     }
 
     public PNode createReadLevelVariable(FrameSlot slot, int level) {

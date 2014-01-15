@@ -91,6 +91,7 @@ public class PythonModuleImporter {
         return null;
     }
 
+    @SuppressWarnings({"unused", "static-method"})
     private String getPathFromLibrary(String name, String modName) {
         String workingDir = System.getProperty("user.dir");
         String path = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
@@ -152,7 +153,9 @@ public class PythonModuleImporter {
             PythonContext moduleContext = new PythonContext(context, moduleName);
             PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
             if (parsedModule != null) {
-                System.out.println("[ZipPy] parsing module " + moduleName);
+                PrintStream ps = System.out;
+                ps.println("[ZipPy] parsing module " + moduleName);
+
                 if (PythonOptions.PrintAST) {
                     parsedModule.printAST();
                 }
@@ -163,7 +166,6 @@ public class PythonModuleImporter {
 
         return null;
     }
-
     // private String getImporterPath() {
     // String path = ".";
     //

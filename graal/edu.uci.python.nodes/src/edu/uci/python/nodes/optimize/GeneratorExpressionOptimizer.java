@@ -86,8 +86,7 @@ public class GeneratorExpressionOptimizer {
         }
 
         FrameSlot genExpSlot = escapeAnalyzer.getTargetExpressionSlot();
-        Class<? extends FrameSlotNode> readLocalClass = PythonOptions.UsePolymorphicReadLocal ? PolymorphicReadLocalVariableNode.class : ReadLocalVariableNode.class;
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(functionRoot, readLocalClass)) {
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(functionRoot, ReadLocalVariableNode.class)) {
             if (!read.getSlot().equals(genExpSlot)) {
                 continue;
             }

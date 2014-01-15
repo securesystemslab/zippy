@@ -38,8 +38,6 @@ public class PythonOptions {
     public static boolean TraceJythonRuntime = true;
 
     // Translation flags
-    public static final boolean UsePolymorphicReadLocal = true;
-
     public static boolean PrintFunction = false;
 
     // Runtime flags

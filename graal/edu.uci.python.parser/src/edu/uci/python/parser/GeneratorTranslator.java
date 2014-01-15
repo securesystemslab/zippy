@@ -34,7 +34,6 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.*;
 
 public class GeneratorTranslator {
 
@@ -56,8 +55,7 @@ public class GeneratorTranslator {
             write.replace(WriteGeneratorFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
         }
 
-        Class<? extends FrameSlotNode> readLocalClass = PythonOptions.UsePolymorphicReadLocal ? PolymorphicReadLocalVariableNode.class : ReadLocalVariableNode.class;
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(root, readLocalClass)) {
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
             read.replace(ReadGeneratorFrameVariableNodeFactory.create(read.getSlot()));
         }
 
