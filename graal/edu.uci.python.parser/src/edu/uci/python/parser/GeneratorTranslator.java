@@ -118,7 +118,7 @@ public class GeneratorTranslator {
             } else {
                 node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
             }
-        } else if (node instanceof IfNode) {
+        } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof WhileNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();

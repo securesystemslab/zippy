@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 public class ElseNode extends StatementNode {
 
     @Child protected StatementNode then;
-
     @Child protected BlockNode orelse;
 
     public ElseNode(StatementNode then, BlockNode orelse) {

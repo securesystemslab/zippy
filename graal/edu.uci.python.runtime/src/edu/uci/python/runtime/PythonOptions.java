@@ -38,10 +38,6 @@ public class PythonOptions {
     public static boolean TraceJythonRuntime = true;
 
     // Translation flags
-    public static final boolean ReturnValueInFrame = true;
-
-    public static final boolean OptimizeNode = true;
-
     public static final boolean UsePolymorphicReadLocal = true;
 
     public static boolean PrintFunction = false;
