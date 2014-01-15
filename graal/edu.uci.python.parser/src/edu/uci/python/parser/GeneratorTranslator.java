@@ -69,8 +69,8 @@ public class GeneratorTranslator {
             }
         }
 
-        for (GeneratorExpressionDefinitionNode def : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
-            def.replace(new GeneratorGeneratorExpressionDefinitionNode(def));
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator();
         }
     }
 

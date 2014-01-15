@@ -38,6 +38,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final boolean needsDeclarationFrame;
+    private boolean isDeclarationFrameGenerator;
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
 
@@ -61,6 +62,10 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         return needsDeclarationFrame;
     }
 
+    public void setDeclarationFrameGenerator() {
+        isDeclarationFrameGenerator = true;
+    }
+
     public int getNumOfGeneratorBlockNode() {
         return numOfGeneratorBlockNode;
     }
@@ -76,7 +81,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? (isDeclarationFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
         return new PGenerator("generator expr", callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 

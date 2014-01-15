@@ -48,7 +48,7 @@ def n_queens(queen_count):
     """
     cols = range(queen_count)
     for vec in permutations(cols):
-        print('vec', vec)
+        print('vec', vec, ' cols', cols)
         if (queen_count == len(set(vec[i]+i for i in cols))
                         == len(set(vec[i]-i for i in cols))):
             yield vec

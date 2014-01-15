@@ -28,6 +28,7 @@ import java.util.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.*;
@@ -243,6 +244,7 @@ public final class PList extends PSequence {
         if (index != -1) {
             return index;
         } else {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             throw Py.ValueError(value + " is not in list");
         }
     }
