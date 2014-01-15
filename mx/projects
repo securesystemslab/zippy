@@ -202,14 +202,6 @@ project@com.oracle.graal.hotspot.ptx@annotationProcessors=com.oracle.graal.servi
 project@com.oracle.graal.hotspot.ptx@javaCompliance=1.7
 project@com.oracle.graal.hotspot.ptx@workingSets=Graal,HotSpot,PTX
 
-# graal.hotspot.ptx.test
-project@com.oracle.graal.hotspot.ptx.test@subDir=graal
-project@com.oracle.graal.hotspot.ptx.test@sourceDirs=src
-project@com.oracle.graal.hotspot.ptx.test@dependencies=com.oracle.graal.hotspot.ptx,com.oracle.graal.compiler.test
-project@com.oracle.graal.hotspot.ptx.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.hotspot.ptx.test@javaCompliance=1.7
-project@com.oracle.graal.hotspot.ptx.test@workingSets=Graal,HotSpot,PTX
-
 # graal.hotspot.hsail
 project@com.oracle.graal.hotspot.hsail@subDir=graal
 project@com.oracle.graal.hotspot.hsail@sourceDirs=src
