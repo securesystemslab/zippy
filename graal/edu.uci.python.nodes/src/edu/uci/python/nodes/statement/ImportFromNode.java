@@ -35,18 +35,18 @@ import edu.uci.python.runtime.standardtype.*;
 public class ImportFromNode extends PNode {
 
     private final PythonContext context;
-    private final String fromModuleName;
+    private final String moduleName;
     private final String importee;
 
-    public ImportFromNode(PythonContext context, String fromModule, String importee) {
+    public ImportFromNode(PythonContext context, String moduleName, String importee) {
         this.context = context;
-        this.fromModuleName = fromModule;
+        this.moduleName = moduleName;
         this.importee = importee;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonModuleImporter importer = new PythonModuleImporter(context, fromModuleName);
+        PythonModuleImporter importer = new PythonModuleImporter(context, moduleName);
         Object importedModule = importer.importModule(frame);
         return doImportFrom(importedModule);
     }

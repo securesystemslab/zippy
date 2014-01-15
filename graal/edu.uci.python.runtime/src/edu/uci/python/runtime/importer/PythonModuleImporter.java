@@ -51,16 +51,15 @@ public class PythonModuleImporter {
         if (importedModule != null) {
             return importedModule;
         } else {
-            String filename = moduleName + ".py";
-            String path = getImporterPath();
-            String fullPath = path + filename;
-            PythonParseResult parsedModule = parseModule(fullPath);
-            if (parsedModule != null) {
-                importedModule = createModule(parsedModule, frame);
+            String path = getPathFromImporterPath();
+
+            if (path != null) {
+                importedModule = createModule(path, frame);
             } else {
-                parsedModule = findModule(moduleName, moduleName);
-                if (parsedModule != null) {
-                    importedModule = createModule(parsedModule, frame);
+                path = getPathFromLibrary(moduleName, moduleName);
+
+                if (path != null) {
+                    importedModule = createModule(path, frame);
                 } else {
                     importedModule = __builtin__.__import__(moduleName);
                 }
@@ -68,80 +67,34 @@ public class PythonModuleImporter {
         }
 
         return importedModule;
-
     }
 
-    private PythonParseResult parseModule(String path) {
-        File file = new File(path);
+    private String getPathFromImporterPath() {
+        String importingModulePath = context.getParser().getSource().getPath();
+        String filename = moduleName + ".py";
+        String path = null;
 
-        if (file.exists()) {
-            Source source = context.getSourceManager().get(path);
-            PythonContext moduleContext = new PythonContext(context, moduleName);
-            PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
-            if (parsedModule != null) {
-                System.out.println("[ZipPy] parsing module " + moduleName);
-                if (PythonOptions.PrintAST) {
-                    parsedModule.printAST();
-                }
+        try {
+            path = new File(importingModulePath).getCanonicalFile().getParent();
+        } catch (IOException ioe) {
+            path = new File(importingModulePath).getAbsoluteFile().getParent();
+        }
+
+        if (path != null) {
+            String importedModulePath = path + File.separatorChar + filename;
+            File importingFile = new File(importedModulePath);
+            if (importingFile.exists()) {
+                return importedModulePath;
             }
-
-            return parsedModule;
         }
 
         return null;
     }
 
-    private PythonModule createModule(PythonParseResult parsedModule, Frame frame) {
-        PythonModule importedModule = null;
-        if (parsedModule != null) {
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot(), frame.getFrameDescriptor());
-            callTarget.call(null, new PArguments(null));
-            PythonContext moduleContext = parsedModule.getContext();
-            PythonModule module = moduleContext.getPythonBuiltinsLookup().lookupModule(moduleName);
-            return module;
-        }
-
-        return importedModule;
-    }
-
-    private String getImporterPath() {
-        String path = ".";
-
-        // TODO: After adding support to SourceSection, this what we should use:
-        // String name = this.getSourceSection().getSource().getPath();
-        String name = context.getParser().getSource().getPath();
-        String fileName = new StringBuilder(name).reverse().toString();
-        int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
-        int filenameln = name.length() - separtorLoc;
-        fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc, name.length());
-        final File file = new File(name);
-        if (file.exists()) {
-            try {
-                path = file.getCanonicalPath();
-                path = path.substring(0, path.length() - filenameln);
-            } catch (IOException e) {
-            }
-        }
-
-        return path;
-    }
-
-    @SuppressWarnings("hiding")
-    public PythonParseResult findModule(String name, String moduleName) {
+    private String getPathFromLibrary(String name, String modName) {
         String workingDir = System.getProperty("user.dir");
         String path = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
-        PythonParseResult parsedModule = null;
-        parsedModule = loadFromSource(name, moduleName, path);
 
-        if (parsedModule != null) {
-            return parsedModule;
-        }
-
-        return parsedModule;
-    }
-
-    @SuppressWarnings("unused")
-    private PythonParseResult loadFromSource(String name, String modName, String path) {
         String dirName = path;
         String sourceName = "__init__.py";
         // display names are for identification purposes (e.g. __file__): when entry is
@@ -167,10 +120,7 @@ public class PythonModuleImporter {
             sourceFile = new File(dirName, sourceName);
             if (sourceFile.isFile()) {
                 String fullPath = displayDirName + File.separatorChar + sourceName;
-                PythonParseResult parsedModule = parseModule(fullPath);
-                if (parsedModule != null) {
-                    return parsedModule;
-                }
+                return fullPath;
             }
         } else {
             /**
@@ -180,4 +130,61 @@ public class PythonModuleImporter {
 
         return null;
     }
+
+    private PythonModule createModule(String path, Frame frame) {
+        PythonParseResult parsedModule = parseModule(path);
+
+        if (parsedModule != null) {
+            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot(), frame.getFrameDescriptor());
+            callTarget.call(null, new PArguments(null));
+            PythonContext moduleContext = parsedModule.getContext();
+            PythonModule importedModule = moduleContext.getPythonBuiltinsLookup().lookupModule(moduleName);
+            return importedModule;
+        }
+
+        return null;
+    }
+
+    private PythonParseResult parseModule(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            Source source = context.getSourceManager().get(path);
+            PythonContext moduleContext = new PythonContext(context, moduleName);
+            PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+            if (parsedModule != null) {
+                System.out.println("[ZipPy] parsing module " + moduleName);
+                if (PythonOptions.PrintAST) {
+                    parsedModule.printAST();
+                }
+            }
+
+            return parsedModule;
+        }
+
+        return null;
+    }
+
+    // private String getImporterPath() {
+    // String path = ".";
+    //
+    // // TODO: After adding support to SourceSection, this what we should use:
+    // // String name = this.getSourceSection().getSource().getPath();
+    // String name = context.getParser().getSource().getPath();
+    // String fileName = new StringBuilder(name).reverse().toString();
+    // int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
+    // int filenameln = name.length() - separtorLoc;
+    // fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc,
+    // name.length());
+    // final File file = new File(name);
+    // if (file.exists()) {
+    // try {
+    // path = file.getCanonicalPath();
+    // path = path.substring(0, path.length() - filenameln);
+    // } catch (IOException e) {
+    // }
+    // }
+    //
+    // return path;
+    // }
+
 }
