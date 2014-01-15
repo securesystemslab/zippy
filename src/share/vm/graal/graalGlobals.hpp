@@ -76,6 +76,9 @@
   notproduct(bool, GraalPrintSimpleStubs, false,                            \
           "Print simple Graal stubs")                                       \
                                                                             \
+  develop(bool, TraceUncollectedSpeculations, false,                        \
+          "Print message when a failed speculation was not collected")      \
+                                                                            \
 
 
 // Read default values for Graal globals

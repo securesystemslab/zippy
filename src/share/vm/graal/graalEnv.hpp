@@ -146,7 +146,7 @@ public:
                        bool                      has_unsafe_access,
                        GrowableArray<jlong>*     leaf_graph_ids,
                        Handle                    installed_code,
-                       Handle                    triggered_deoptimizations);
+                       Handle                    speculation_log);
 
   // converts the Klass* representing the holder of a method into a
   // InstanceKlass*.  This is needed since the holder of a method in

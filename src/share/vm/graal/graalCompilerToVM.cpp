@@ -561,16 +561,16 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 C2V_END
 
-C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code, jobject installed_code, jobject triggered_deoptimizations))
+C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code, jobject installed_code, jobject speculation_log))
   ResourceMark rm;
   HandleMark hm;
   Handle compiled_code_handle = JNIHandles::resolve(compiled_code);
   CodeBlob* cb = NULL;
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
-  Handle triggered_deoptimizations_handle = JNIHandles::resolve(triggered_deoptimizations);
+  Handle speculation_log_handle = JNIHandles::resolve(speculation_log);
 
   CodeInstaller installer;
-  GraalEnv::CodeInstallResult result = installer.install(compiled_code_handle, cb, installed_code_handle, triggered_deoptimizations_handle);
+  GraalEnv::CodeInstallResult result = installer.install(compiled_code_handle, cb, installed_code_handle, speculation_log_handle);
 
   if (PrintCodeCacheOnCompilation) {
     stringStream s;
@@ -830,6 +830,7 @@ C2V_END
 #define TYPE                  "Lcom/oracle/graal/api/meta/JavaType;"
 #define METHOD                "Lcom/oracle/graal/api/meta/JavaMethod;"
 #define FIELD                 "Lcom/oracle/graal/api/meta/JavaField;"
+#define SPECULATION_LOG       "Lcom/oracle/graal/api/code/SpeculationLog;"
 #define STRING                "Ljava/lang/String;"
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
@@ -869,7 +870,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getMetaspaceMethod",            CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
+  {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE SPECULATION_LOG")I",      FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
   {CC"printCompilationStatistics",    CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
   {CC"resetCompilationStatistics",    CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
