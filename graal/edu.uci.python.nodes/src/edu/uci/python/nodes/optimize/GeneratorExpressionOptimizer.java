@@ -138,7 +138,7 @@ public class GeneratorExpressionOptimizer {
     /**
      * Assembles nodes that read the arguments to be passed to the transformed generator call.
      */
-    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, PNode genExp, boolean readFromCargoFrame) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame) {
         String[] argumentIds = new String[genExpParams.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {
@@ -150,7 +150,7 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            PNode read = NodeFactory.getInstance().createReadLocal(argSlot);
+            PNode read = genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot);
 
             if (readFromCargoFrame) {
                 read = new FrameSwappingNode(read);

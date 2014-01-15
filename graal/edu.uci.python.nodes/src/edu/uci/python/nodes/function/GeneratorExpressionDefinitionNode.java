@@ -62,6 +62,10 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         return needsDeclarationFrame;
     }
 
+    public boolean isDeclarationFrameGenerator() {
+        return isDeclarationFrameGenerator;
+    }
+
     public void setDeclarationFrameGenerator() {
         isDeclarationFrameGenerator = true;
     }

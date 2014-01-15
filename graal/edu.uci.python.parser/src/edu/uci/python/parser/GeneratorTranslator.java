@@ -55,8 +55,18 @@ public class GeneratorTranslator {
             write.replace(WriteGeneratorFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
         }
 
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
+        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
             read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
+        }
+
+        /**
+         * For some weird reason, some reads are not replaced. Have to go through all reads and make
+         * sure they are replaced.
+         */
+        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
+            if (!(read instanceof ReadGeneratorFrameVariableNode)) {
+                read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
+            }
         }
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
