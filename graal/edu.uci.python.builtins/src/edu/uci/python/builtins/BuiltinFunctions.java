@@ -542,6 +542,22 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // reversed(seq)
+    @Builtin(name = "reversed", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class PythonReversedNode extends PythonBuiltinNode {
+
+        @Specialization
+        public PIterator reversed(PRange range) {
+            return new PRangeIterator.PRangeReverseIterator(range);
+        }
+
+        @Specialization
+        public PIterator reversed(PSequence sequence) {
+            return new PSequenceIterator.PSequenceReverseIterator(sequence);
+        }
+
+    }
+
     // sum(iterable[, start])
     @Builtin(name = "sum", minNumOfArguments = 1, takesKeywordArguments = true, maxNumOfArguments = 2, keywordNames = {"start"})
     public abstract static class PythonSumNode extends PythonBuiltinNode {

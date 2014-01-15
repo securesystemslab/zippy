@@ -238,4 +238,18 @@ public class BuiltinsTests {
         assertPrints("(1.0, 1.1)\n", source);
     }
 
+    @Test
+    public void reverseRange() {
+        String source = "for i in reversed(range(3)):" + //
+                        "    print(i)";
+        assertPrints("2\n1\n0\n", source);
+    }
+
+    @Test
+    public void reverseSequence() {
+        String source = "for i in reversed([1,2,3]):" + //
+                        "    print(i)";
+        assertPrints("3\n2\n1\n", source);
+    }
+
 }

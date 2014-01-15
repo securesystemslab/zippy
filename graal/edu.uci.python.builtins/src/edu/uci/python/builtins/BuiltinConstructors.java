@@ -443,6 +443,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @Specialization
+        public PSet set(PIterator iterator) {
+            return new PSet(iterator);
+        }
+
+        @Specialization
         public PSet set(Object arg) {
             if (!(arg instanceof Iterable<?>)) {
                 throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
@@ -475,6 +480,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @Specialization(order = 2)
         public PTuple tuple(PIterable iterable) {
             return new PTuple(iterable.__iter__());
+        }
+
+        @Specialization(order = 3)
+        public PTuple tuple(PIterator iterator) {
+            return new PTuple(iterator);
         }
 
         @Specialization

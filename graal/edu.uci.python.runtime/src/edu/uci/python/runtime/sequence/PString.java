@@ -30,7 +30,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public class PString extends PImmutableSequence {
+public final class PString extends PImmutableSequence {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PString.class);
 

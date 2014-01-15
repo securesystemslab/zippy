@@ -32,7 +32,7 @@ import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public class PRange extends PImmutableSequence {
+public final class PRange extends PImmutableSequence {
 
     private final int start;
     private final int stop;
@@ -164,4 +164,18 @@ public class PRange extends PImmutableSequence {
     public int index(Object value) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * See {@link PyXRange}.
+     */
+    @Override
+    public String toString() {
+        if (step == 1) {
+            return String.format("range(%d, %d)", start, stop);
+        } else {
+            return String.format("range(%d, %d, %d)", start, stop, step);
+        }
+
+    }
+
 }

@@ -29,8 +29,8 @@ import edu.uci.python.runtime.sequence.*;
 
 public class PSequenceIterator implements PIterator {
 
-    private final PSequence sequence;
-    private int index;
+    protected final PSequence sequence;
+    protected int index;
 
     public PSequenceIterator(PSequence sequence) {
         this.sequence = sequence;
@@ -43,5 +43,23 @@ public class PSequenceIterator implements PIterator {
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    public static final class PSequenceReverseIterator extends PSequenceIterator {
+
+        public PSequenceReverseIterator(PSequence sequence) {
+            super(sequence);
+            this.index = sequence.len() - 1;
+        }
+
+        @Override
+        public Object __next__() throws StopIterationException {
+            if (index >= 0) {
+                return sequence.getItem(index--);
+            }
+
+            throw StopIterationException.INSTANCE;
+        }
+
     }
 }

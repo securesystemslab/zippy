@@ -62,4 +62,28 @@ public final class PRangeIterator implements PIterator {
         throw StopIterationException.INSTANCE;
     }
 
+    public static final class PRangeReverseIterator implements PIterator {
+
+        private int index;
+        private final int stop;
+        private final int step;
+
+        public PRangeReverseIterator(PRange range) {
+            this.index = range.getStop() - 1;
+            this.stop = range.getStart() - 1;
+            this.step = range.getStep();
+        }
+
+        @Override
+        public Object __next__() throws StopIterationException {
+            if (index > stop) {
+                int value = index;
+                index -= step;
+                return value;
+            }
+
+            throw StopIterationException.INSTANCE;
+        }
+    }
+
 }
