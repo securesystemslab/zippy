@@ -62,9 +62,8 @@ public class PrintNode extends StatementNode {
         if (nl) {
             sb.append(System.getProperty("line.separator"));
         }
-        // CheckStyle: stop system..print check
+
         context.getStandardOut().print(sb.toString());
-        // CheckStyle: resume system..print check
         return PNone.NONE;
     }
 

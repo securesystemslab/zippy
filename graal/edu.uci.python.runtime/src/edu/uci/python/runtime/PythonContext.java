@@ -35,7 +35,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 
-    private String moduleName;
+    private final String moduleName;
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
 
