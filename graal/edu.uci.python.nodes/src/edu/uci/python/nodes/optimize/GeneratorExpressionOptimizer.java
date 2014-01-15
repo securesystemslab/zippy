@@ -246,7 +246,7 @@ public class GeneratorExpressionOptimizer {
             if (replaceWithReadLocals) {
                 read.replace(NodeFactory.getInstance().createReadLocal(targetSlot));
             } else {
-                read.replace(ReadGeneratorFrameVariableNodeFactory.create(targetSlot));
+                read.replace(ReadGeneratorFrameVariableNode.create(targetSlot));
             }
         }
     }

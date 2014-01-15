@@ -47,7 +47,7 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
 
     @Override
     public PNode makeReadNode() {
-        return ReadGeneratorFrameVariableNodeFactory.create(frameSlot);
+        return ReadGeneratorFrameVariableNode.create(frameSlot);
     }
 
     public abstract PNode getRightNode();

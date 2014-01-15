@@ -75,7 +75,7 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
-    protected Object getObject(Frame frame) {
+    protected final Object getObject(Frame frame) {
         try {
             return frame.getObject(frameSlot);
         } catch (FrameSlotTypeException e) {

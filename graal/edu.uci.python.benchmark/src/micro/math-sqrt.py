@@ -15,7 +15,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	result = callSqrt(500000000)
+	result = callSqrt(10000000)
 
 	print("Sqrt", result)
 
@@ -23,7 +23,7 @@ def measure():
 	print("math-sqrt: " + duration)
 
 #warm up
-for run in range(10000):
+for run in range(3000):
 	callSqrt(run)
 
 measure()

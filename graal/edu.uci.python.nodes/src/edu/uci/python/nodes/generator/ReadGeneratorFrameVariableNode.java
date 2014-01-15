@@ -24,25 +24,30 @@
  */
 package edu.uci.python.nodes.generator;
 
-import java.math.*;
-
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.NodeInfo.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.function.*;
 
-public abstract class ReadGeneratorFrameVariableNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadGeneratorFrameVariableNode extends ReadLocalVariableNode {
 
     public ReadGeneratorFrameVariableNode(FrameSlot slot) {
         super(slot);
     }
 
-    public ReadGeneratorFrameVariableNode(ReadGeneratorFrameVariableNode specialized) {
+    protected ReadGeneratorFrameVariableNode(ReadGeneratorFrameVariableNode specialized) {
         this(specialized.frameSlot);
+    }
+
+    public static ReadGeneratorFrameVariableNode create(FrameSlot frameSlot) {
+        return new ReadGeneratorFrameVariableUninitializedNode(frameSlot);
     }
 
     @Override
@@ -50,41 +55,149 @@ public abstract class ReadGeneratorFrameVariableNode extends FrameSlotNode imple
         return WriteGeneratorFrameVariableNodeFactory.create(frameSlot, rhs);
     }
 
-    @Specialization(order = 1, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getInteger(mframe);
+    @Override
+    protected final Object executeNext(VirtualFrame frame) {
+        if (next == null) {
+            CompilerDirectives.transferToInterpreter();
+            next = adoptChild(new ReadGeneratorFrameVariableUninitializedNode(frameSlot));
+        }
+
+        return next.execute(frame);
     }
 
-    @Specialization(order = 2, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public BigInteger doBigInteger(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getBigInteger(mframe);
+    @NodeInfo(kind = Kind.UNINITIALIZED)
+    private static final class ReadGeneratorFrameVariableUninitializedNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableUninitializedNode(FrameSlot slot) {
+            super(slot);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            CompilerDirectives.transferToInterpreter();
+            ReadLocalVariableNode readNode;
+
+            if (!isNotIllegal() && !frameSlot.getIdentifier().equals("<return_val>")) {
+                throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+            }
+
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (mframe.isObject(frameSlot)) {
+                readNode = new ReadGeneratorFrameVariableObjectNode(this);
+            } else if (mframe.isInt(frameSlot)) {
+                readNode = new ReadGeneratorFrameVariableIntNode(this);
+            } else if (mframe.isDouble(frameSlot)) {
+                readNode = new ReadGeneratorFrameVariableDoubleNode(this);
+            } else if (mframe.isBoolean(frameSlot)) {
+                readNode = new ReadGeneratorFrameVariableBooleanNode(this);
+            } else {
+                throw new UnsupportedOperationException("frame slot kind?");
+            }
+
+            return replace(readNode).execute(frame);
+        }
     }
 
-    @Specialization(order = 3, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public double doDouble(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getDouble(mframe);
+    @NodeInfo(kind = Kind.SPECIALIZED)
+    private static final class ReadGeneratorFrameVariableBooleanNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableBooleanNode(ReadGeneratorFrameVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+                return getBoolean(mframe);
+            } else {
+                return PythonTypesGen.PYTHONTYPES.expectBoolean(executeNext(frame));
+            }
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+                return getBoolean(mframe);
+            } else {
+                return executeNext(frame);
+            }
+        }
     }
 
-    @Specialization(order = 4, guards = "isNotIllegal", rewriteOn = {FrameSlotTypeException.class})
-    public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getBoolean(mframe);
+    @NodeInfo(kind = Kind.SPECIALIZED)
+    private static final class ReadGeneratorFrameVariableIntNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableIntNode(ReadGeneratorFrameVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(mframe);
+            } else {
+                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+            }
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(mframe);
+            } else {
+                return executeNext(frame);
+            }
+        }
     }
 
-    @Specialization(guards = "isNotIllegal")
-    public Object doObject(VirtualFrame frame) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        return getObject(mframe);
+    @NodeInfo(kind = Kind.SPECIALIZED)
+    private static final class ReadGeneratorFrameVariableDoubleNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableDoubleNode(ReadGeneratorFrameVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Double) {
+                return getDouble(mframe);
+            } else {
+                return PythonTypesGen.PYTHONTYPES.expectDouble(executeNext(frame));
+            }
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frameSlot.getKind() == FrameSlotKind.Double) {
+                return getDouble(mframe);
+            } else {
+                return executeNext(frame);
+            }
+        }
     }
 
-    @SuppressWarnings("unused")
-    @Generic
-    public Object doGeneric(VirtualFrame frame) {
-        assert !isNotIllegal();
-        throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+    @NodeInfo(kind = Kind.SPECIALIZED)
+    private static final class ReadGeneratorFrameVariableObjectNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableObjectNode(ReadGeneratorFrameVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+            if (frame.isObject(frameSlot)) {
+                return getObject(mframe);
+            } else {
+                return executeNext(frame);
+            }
+        }
     }
 
 }

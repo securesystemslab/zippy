@@ -36,7 +36,7 @@ import edu.uci.python.nodes.truffle.*;
 
 public abstract class ReadLocalVariableNode extends FrameSlotNode implements ReadNode {
 
-    @Child ReadLocalVariableNode next;
+    @Child protected ReadLocalVariableNode next;
 
     public ReadLocalVariableNode(FrameSlot frameSlot) {
         super(frameSlot);
@@ -47,21 +47,12 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     public static ReadLocalVariableNode create(FrameSlot frameSlot) {
-        return new PolymorphicReadLocalVariableUninitializedNode(frameSlot);
+        return new ReadLocalVariableUninitializedNode(frameSlot);
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
         return WriteLocalVariableNodeFactory.create(frameSlot, rhs);
-    }
-
-    @Override
-    protected final Object getObject(Frame frame) {
-        try {
-            return frame.getObject(frameSlot);
-        } catch (FrameSlotTypeException e) {
-            throw new IllegalStateException();
-        }
     }
 
     @Override
@@ -96,19 +87,19 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
         throw new UnsupportedOperationException();
     }
 
-    protected final Object executeNext(VirtualFrame frame) {
+    protected Object executeNext(VirtualFrame frame) {
         if (next == null) {
             CompilerDirectives.transferToInterpreter();
-            next = adoptChild(new PolymorphicReadLocalVariableUninitializedNode(frameSlot));
+            next = adoptChild(new ReadLocalVariableUninitializedNode(frameSlot));
         }
 
         return next.execute(frame);
     }
 
     @NodeInfo(kind = Kind.UNINITIALIZED)
-    private static final class PolymorphicReadLocalVariableUninitializedNode extends ReadLocalVariableNode {
+    private static final class ReadLocalVariableUninitializedNode extends ReadLocalVariableNode {
 
-        PolymorphicReadLocalVariableUninitializedNode(FrameSlot slot) {
+        ReadLocalVariableUninitializedNode(FrameSlot slot) {
             super(slot);
         }
 
@@ -122,13 +113,13 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
             }
 
             if (frame.isObject(frameSlot)) {
-                readNode = new PolymorphicReadLocalVariableObjectNode(this);
+                readNode = new ReadLocalVariableObjectNode(this);
             } else if (frame.isInt(frameSlot)) {
-                readNode = new PolymorphicReadLocalVariableIntNode(this);
+                readNode = new ReadLocalVariableIntNode(this);
             } else if (frame.isDouble(frameSlot)) {
-                readNode = new PolymorphicReadLocalVariableDoubleNode(this);
+                readNode = new ReadLocalVariableDoubleNode(this);
             } else if (frame.isBoolean(frameSlot)) {
-                readNode = new PolymorphicReadLocalVariableBooleanNode(this);
+                readNode = new ReadLocalVariableBooleanNode(this);
             } else {
                 throw new UnsupportedOperationException("frame slot kind?");
             }
@@ -138,9 +129,9 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @NodeInfo(kind = Kind.SPECIALIZED)
-    private static final class PolymorphicReadLocalVariableBooleanNode extends ReadLocalVariableNode {
+    private static final class ReadLocalVariableBooleanNode extends ReadLocalVariableNode {
 
-        PolymorphicReadLocalVariableBooleanNode(ReadLocalVariableNode copy) {
+        ReadLocalVariableBooleanNode(ReadLocalVariableNode copy) {
             super(copy);
         }
 
@@ -164,9 +155,9 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @NodeInfo(kind = Kind.SPECIALIZED)
-    private static final class PolymorphicReadLocalVariableIntNode extends ReadLocalVariableNode {
+    private static final class ReadLocalVariableIntNode extends ReadLocalVariableNode {
 
-        PolymorphicReadLocalVariableIntNode(ReadLocalVariableNode copy) {
+        ReadLocalVariableIntNode(ReadLocalVariableNode copy) {
             super(copy);
         }
 
@@ -190,9 +181,9 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @NodeInfo(kind = Kind.SPECIALIZED)
-    private static final class PolymorphicReadLocalVariableDoubleNode extends ReadLocalVariableNode {
+    private static final class ReadLocalVariableDoubleNode extends ReadLocalVariableNode {
 
-        PolymorphicReadLocalVariableDoubleNode(ReadLocalVariableNode copy) {
+        ReadLocalVariableDoubleNode(ReadLocalVariableNode copy) {
             super(copy);
         }
 
@@ -216,9 +207,9 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @NodeInfo(kind = Kind.SPECIALIZED)
-    private static final class PolymorphicReadLocalVariableObjectNode extends ReadLocalVariableNode {
+    private static final class ReadLocalVariableObjectNode extends ReadLocalVariableNode {
 
-        PolymorphicReadLocalVariableObjectNode(ReadLocalVariableNode copy) {
+        ReadLocalVariableObjectNode(ReadLocalVariableNode copy) {
             super(copy);
         }
 
