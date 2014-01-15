@@ -337,39 +337,19 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   return cu_function;
 }
 
-JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jlong parametersAndReturnValueBuffer, jint parametersAndReturnValueBufferSize, int encodedReturnTypeSize))
-  tty->print_cr("*** gpu::Ptx::execute_kernel_from_vm(kernel=%p, parametersAndReturnValueBuffer=%p, parametersAndReturnValueBufferSize=%d, encodedReturnTypeSize=%d)",
-      kernel, parametersAndReturnValueBuffer, parametersAndReturnValueBufferSize, encodedReturnTypeSize);
-  tty->print("  buffer as bytes: ");
-  for (int i = 0; i < parametersAndReturnValueBufferSize; i++) {
-    tty->print(" 0x%02x", ((jbyte*) (address) parametersAndReturnValueBuffer)[i] & 0xFF);
-  }
-  tty->cr();
-  tty->print("  buffer as ints: ");
-  for (int i = 0; i < (parametersAndReturnValueBufferSize / 4); i++) {
-    tty->print(" %d", ((jint*) (address) parametersAndReturnValueBuffer)[i]);
-  }
-  tty->cr();
-  tty->print("  buffer as words: ");
-  for (unsigned i = 0; i < (parametersAndReturnValueBufferSize / sizeof(void*)); i++) {
-    tty->print(" "INTPTR_FORMAT, ((void**) (address) parametersAndReturnValueBuffer)[i]);
-  }
-  tty->cr();
+JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
+                                                  jlong parametersAndReturnValueBuffer,
+                                                  jint parametersAndReturnValueBufferSize,
+                                                  int encodedReturnTypeSize))
   if (kernel == 0L) {
     SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
     return 0L;
   }
 
-
   // grid dimensionality
   unsigned int gridX = 1;
   unsigned int gridY = 1;
   unsigned int gridZ = 1;
-
-  // thread dimensionality
-  unsigned int blockX = 1;
-  unsigned int blockY = 1;
-  unsigned int blockZ = 1;
 
   struct CUfunc_st* cu_function = (struct CUfunc_st*) (address) kernel;
 
@@ -391,7 +371,7 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
     status = _cuda_cu_memalloc(&device_return_value, returnTypeSize);
     if (status != GRAAL_CUDA_SUCCESS) {
       tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to allocate memory for return value pointer on device");
+      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to allocate memory for return value pointer on device");
       return 0L;
     }
     // Push device_return_value to kernelParams
@@ -401,24 +381,24 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
 
   status = _cuda_cu_launch_kernel(cu_function,
                                       gridX, gridY, gridZ,
-                                      blockX, blockY, blockZ,
+                                      dimX, dimY, dimZ,
                                       0, NULL, NULL, (void **) &config);
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to launch kernel");
-    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to launch kernel");
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to launch kernel");
     return 0L;
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", blockX, blockY, blockZ);
+    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", dimX, dimY, dimZ);
   }
 
   status = _cuda_cu_ctx_synchronize();
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to synchronize launched kernel (%d)", status);
-    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to synchronize launched kernel");
+    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to synchronize launched kernel");
     return 0L;
   }
 
