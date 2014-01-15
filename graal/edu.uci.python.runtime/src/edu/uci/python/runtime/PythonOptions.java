@@ -60,8 +60,6 @@ public class PythonOptions {
 
     public static final boolean UnboxSequenceIteration = true;
 
-    public static final boolean UseNewImportMechanism = false;
-
     private PrintStream standardOut = System.out;
 
     private PrintStream standardErr = System.err;
