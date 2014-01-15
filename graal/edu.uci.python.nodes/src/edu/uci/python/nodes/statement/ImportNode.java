@@ -33,16 +33,16 @@ import edu.uci.python.runtime.importer.*;
 public class ImportNode extends PNode {
 
     private final PythonContext context;
-    private final String importee;
+    private final String moduleName;
 
-    public ImportNode(PythonContext context, String importee) {
+    public ImportNode(PythonContext context, String moduleName) {
         this.context = context;
-        this.importee = importee;
+        this.moduleName = moduleName;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonModuleImporter importer = new PythonModuleImporter(context, importee);
+        PythonModuleImporter importer = new PythonModuleImporter(context, moduleName);
         return importer.importModule(frame);
     }
 
