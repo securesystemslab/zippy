@@ -147,7 +147,7 @@ public class TranslationEnvironment {
 
         switch (getScopeKind()) {
             case Module:
-                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.moduleName), name);
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.getModuleName()), name);
             case Generator:
             case ListComp:
             case Function:
@@ -161,7 +161,7 @@ public class TranslationEnvironment {
                 }
 
                 assert slot == null && readLevel == null;
-                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.moduleName), name);
+                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.getModuleName()), name);
             case Class:
                 return (ReadNode) factory.createReadClassAttribute(name);
             default:

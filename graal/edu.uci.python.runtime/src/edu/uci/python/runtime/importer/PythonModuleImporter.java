@@ -40,6 +40,14 @@ public class PythonModuleImporter {
     private final PythonContext context;
     private final String moduleName;
 
+    private static final String PYTHONLIBRARYPATH = getPythonLibraryPath();
+
+    private static String getPythonLibraryPath() {
+        String workingDir = System.getProperty("user.dir");
+        String librayPath = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
+        return librayPath;
+    }
+
     public PythonModuleImporter(PythonContext context, String moduleName) {
         this.context = context;
         this.moduleName = moduleName;
@@ -56,7 +64,7 @@ public class PythonModuleImporter {
             if (path != null) {
                 importedModule = createModule(path, frame);
             } else {
-                path = getPathFromLibrary(moduleName, moduleName);
+                path = getPathFromLibrary();
 
                 if (path != null) {
                     importedModule = createModule(path, frame);
@@ -91,20 +99,14 @@ public class PythonModuleImporter {
         return null;
     }
 
-    private String getPathFromLibrary(String name, String modName) {
-        String workingDir = System.getProperty("user.dir");
-        String path = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
+    private String getPathFromLibrary() {
+        String path = PYTHONLIBRARYPATH;
 
         String dirName = path;
         String sourceName = "__init__.py";
-        // display names are for identification purposes (e.g. __file__): when entry is
-        // null it forces java.io.File to be a relative path (e.g. foo/bar.py instead of
-        // /tmp/foo/bar.py)
-        String displayDirName = path.equals("") ? null : path.toString();
-        String displaySourceName = new File(new File(displayDirName, name), sourceName).getPath();
 
         // First check for packages
-        File dir = new File(dirName, name);
+        File dir = new File(dirName, moduleName);
         File sourceFile = new File(dir, sourceName);
 
         boolean isPackage = false;
@@ -115,11 +117,10 @@ public class PythonModuleImporter {
         }
 
         if (!isPackage) {
-            sourceName = name + ".py";
-            displaySourceName = new File(displayDirName, sourceName).getPath();
+            sourceName = moduleName + ".py";
             sourceFile = new File(dirName, sourceName);
             if (sourceFile.isFile()) {
-                String fullPath = displayDirName + File.separatorChar + sourceName;
+                String fullPath = dirName + File.separatorChar + sourceName;
                 return fullPath;
             }
         } else {
@@ -151,8 +152,11 @@ public class PythonModuleImporter {
             Source source = context.getSourceManager().get(path);
             PythonContext moduleContext = new PythonContext(context, moduleName);
             PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+
             if (parsedModule != null) {
+                // CheckStyle: stop system..print check
                 System.out.println("[ZipPy] parsing module " + moduleName);
+                // CheckStyle: resume system..print check
                 if (PythonOptions.PrintAST) {
                     parsedModule.printAST();
                 }
