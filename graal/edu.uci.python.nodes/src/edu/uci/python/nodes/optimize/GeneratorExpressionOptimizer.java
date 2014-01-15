@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.nodes.optimize;
 
 import java.util.*;
 
@@ -43,31 +43,25 @@ import edu.uci.python.runtime.*;
 
 public class GeneratorExpressionOptimizer {
 
-    private final PythonParseResult parseResult;
-    private FunctionRootNode currentRoot;
+    private final PythonContext context;
+    private final FunctionRootNode functionRoot;
 
-    public GeneratorExpressionOptimizer(PythonParseResult parseResult) {
-        this.parseResult = parseResult;
+    public GeneratorExpressionOptimizer(FunctionRootNode functionRoot) {
+        this.context = functionRoot.getContext();
+        this.functionRoot = functionRoot;
     }
 
     public void optimize() {
-        for (RootNode functionRoot : parseResult.getFunctionRoots()) {
-            currentRoot = (FunctionRootNode) functionRoot;
-            doRoot(functionRoot);
-        }
-    }
-
-    private void doRoot(RootNode root) {
-        for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
             if (!genExp.needsDeclarationFrame()) {
                 continue; // No need to optimize
             }
 
-            EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(root, genExp);
+            EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
             if (escapeAnalyzer.escapes()) {
-                parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
+                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
-                parseResult.getContext().getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
+                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp, escapeAnalyzer);
             }
         }
@@ -80,9 +74,12 @@ public class GeneratorExpressionOptimizer {
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent());
+                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
             } else if (genExp.getParent() instanceof CallFunctionNode) {
                 transformToGeneratorCall(genExp, genExp);
+            } else if (genExp.getParent() instanceof InlinedCallNode) {
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genExp.getParent(), GetIteratorNode.class);
+                transformGetIterToInlineableGeneratorCall(genExp, getIter, true);
             }
 
             return;
@@ -90,18 +87,18 @@ public class GeneratorExpressionOptimizer {
 
         FrameSlot genExpSlot = escapeAnalyzer.getTargetExpressionSlot();
         Class<? extends FrameSlotNode> readLocalClass = PythonOptions.UsePolymorphicReadLocal ? PolymorphicReadLocalVariableNode.class : ReadLocalVariableNode.class;
-        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(currentRoot, readLocalClass)) {
+        for (FrameSlotNode read : NodeUtil.findAllNodeInstances(functionRoot, readLocalClass)) {
             if (!read.getSlot().equals(genExpSlot)) {
                 continue;
             }
 
             if (read.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent());
+                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent(), false);
             }
         }
     }
 
-    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator) {
+    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
 
@@ -109,15 +106,15 @@ public class GeneratorExpressionOptimizer {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp);
+            PNode[] argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
-            currentRoot.updateUninitializedBody();
+            functionRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }
 
-        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
     }
 
     private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
@@ -128,21 +125,21 @@ public class GeneratorExpressionOptimizer {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp);
+            PNode[] argReads = assembleArgumentReads(arguments, genExp, false);
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-            currentRoot.updateUninitializedBody();
+            functionRoot.updateUninitializedBody();
         } catch (IllegalStateException e) {
             return;
         }
 
-        parseResult.getContext().getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
     }
 
     /**
      * Assembles nodes that read the arguments to be passed to the transformed generator call.
      */
-    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, PNode genExp) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, PNode genExp, boolean readFromCargoFrame) {
         String[] argumentIds = new String[genExpParams.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {
@@ -154,7 +151,14 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            reads[i] = NodeFactory.getInstance().createReadLocal(argSlot);
+            PNode read = NodeFactory.getInstance().createReadLocal(argSlot);
+
+            if (readFromCargoFrame) {
+                read = new FrameSwappingNode(read);
+            }
+
+            reads[i] = read;
+            assert reads[i] != null;
         }
 
         return reads;
@@ -247,4 +251,5 @@ public class GeneratorExpressionOptimizer {
             }
         }
     }
+
 }

@@ -110,7 +110,7 @@ public class PArguments extends Arguments {
         return arguments.length;
     }
 
-    public static class GeneratorArguments extends PArguments {
+    public static final class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
         private boolean firstEntry = true;                   // See {@link GeneratorReturnTargetNode}
@@ -157,7 +157,7 @@ public class PArguments extends Arguments {
      * Carry the {@link VirtualFrame} into a inlined Python function.<br>
      * Should only be used within a complete Truffle compilation unit and never escape it.
      */
-    public static class VirtualFrameCargoArguments extends PArguments {
+    public static final class VirtualFrameCargoArguments extends PArguments {
 
         private final VirtualFrame cargoFrame;
 
