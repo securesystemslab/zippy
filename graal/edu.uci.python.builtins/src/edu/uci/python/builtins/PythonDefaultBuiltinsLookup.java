@@ -64,6 +64,13 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addType(PDict.class, createType("dict", new DictionaryBuiltins(), context));
     }
 
+    public void addImportedModuleToLookup(PythonContext context, String moduleName) {
+        PythonModule builtinsModule = lookupModule("__builtins__");
+        PythonModule importedModule = new PythonModule(moduleName, context);
+        importedModule.setAttribute("__builtins__", builtinsModule);
+        addModule(moduleName, importedModule);
+    }
+
     private void addModule(String name, PythonModule module) {
         builtinModules.put(name, module);
     }

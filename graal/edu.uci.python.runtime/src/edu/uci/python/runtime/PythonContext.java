@@ -63,7 +63,15 @@ public class PythonContext {
     }
 
     public PythonContext(PythonContext context, String moduleName) {
-        this(context.options, context.lookup, context.parser, moduleName);
+        this.moduleName = moduleName;
+        this.options = context.options;
+        this.lookup = context.lookup;
+        this.typeClass = context.typeClass;
+        this.objectClass = context.objectClass;
+        this.moduleClass = context.moduleClass;
+        this.sourceManager = context.sourceManager;
+        this.parser = context.parser;
+        this.lookup.addImportedModuleToLookup(context, moduleName);
     }
 
     public String getModuleName() {

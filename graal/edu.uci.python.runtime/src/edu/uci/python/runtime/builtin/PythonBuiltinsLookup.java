@@ -37,6 +37,8 @@ public interface PythonBuiltinsLookup {
 
     void addBuiltins(PythonContext context);
 
+    void addImportedModuleToLookup(PythonContext context, String moduleName);
+
     PythonModule lookupModule(String name);
 
     PythonBuiltinClass lookupType(Class<? extends PythonBuiltinObject> clazz);

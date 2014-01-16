@@ -35,6 +35,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class TranslationEnvironment {
 
@@ -144,10 +145,12 @@ public class TranslationEnvironment {
     public ReadNode findVariable(String name) {
         assert name != null : "name is null!";
         FrameSlot slot = findSlot(name);
+        PythonModule currentModule = null;
 
         switch (getScopeKind()) {
             case Module:
-                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.getModuleName()), name);
+                currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
             case Generator:
             case ListComp:
             case Function:
@@ -161,7 +164,8 @@ public class TranslationEnvironment {
                 }
 
                 assert slot == null && readLevel == null;
-                return (ReadNode) factory.createReadGlobalScope(context, context.getPythonBuiltinsLookup().lookupModule(context.getModuleName()), name);
+                currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
             case Class:
                 return (ReadNode) factory.createReadClassAttribute(name);
             default:
