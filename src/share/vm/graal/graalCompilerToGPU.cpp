@@ -48,7 +48,9 @@
 
 C2V_ENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring name))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
-    tty->print_cr("generateKernel - not available / no linkage / not initialized");
+    if (TraceGPUInteraction) {
+      tty->print_cr("generateKernel - not available / no linkage / not initialized");
+    }
     return 0;
   }
   jboolean is_copy;
@@ -58,8 +60,7 @@ C2V_ENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring
   void *kernel = gpu::generate_kernel((unsigned char *)bytes, len, namestr);
   if (kernel == NULL) {
     tty->print_cr("[CUDA] *** Error: Failed to compile kernel");
-  }
-  else if (TraceGPUInteraction) {
+  } else if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Generated kernel");
   }
   env->ReleaseByteArrayElements(code, bytes, 0);
