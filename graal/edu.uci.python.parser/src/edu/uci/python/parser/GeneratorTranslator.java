@@ -64,9 +64,7 @@ public class GeneratorTranslator {
          * sure they are replaced.
          */
         for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
-            if (!(read instanceof ReadGeneratorFrameVariableNode)) {
-                read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
-            }
+            read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
         }
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {

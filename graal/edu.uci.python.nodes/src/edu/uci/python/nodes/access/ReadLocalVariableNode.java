@@ -24,19 +24,13 @@
  */
 package edu.uci.python.nodes.access;
 
-import org.python.core.*;
-
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeInfo.Kind;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
-public abstract class ReadLocalVariableNode extends FrameSlotNode implements ReadNode {
-
-    @Child protected ReadLocalVariableNode next;
+public abstract class ReadLocalVariableNode extends ReadVariableNode {
 
     public ReadLocalVariableNode(FrameSlot frameSlot) {
         super(frameSlot);
@@ -56,17 +50,28 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @Override
-    public final Object executeWrite(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
+    protected final ReadLocalVariableNode createUninitialized(FrameSlot slot, int level) {
+        return new ReadLocalVariableUninitializedNode(frameSlot);
     }
 
-    protected Object executeNext(VirtualFrame frame) {
-        if (next == null) {
-            CompilerDirectives.transferToInterpreter();
-            next = adoptChild(new ReadLocalVariableUninitializedNode(frameSlot));
-        }
+    @Override
+    protected final ReadVariableNode createReadBoolean(ReadVariableNode prev) {
+        return new ReadLocalVariableBooleanNode((ReadLocalVariableNode) prev);
+    }
 
-        return next.execute(frame);
+    @Override
+    protected final ReadVariableNode createReadInt(ReadVariableNode prev) {
+        return new ReadLocalVariableIntNode((ReadLocalVariableNode) prev);
+    }
+
+    @Override
+    protected final ReadVariableNode createReadDouble(ReadVariableNode prev) {
+        return new ReadLocalVariableDoubleNode((ReadLocalVariableNode) prev);
+    }
+
+    @Override
+    protected final ReadVariableNode createReadObject(ReadVariableNode prev) {
+        return new ReadLocalVariableObjectNode((ReadLocalVariableNode) prev);
     }
 
     @NodeInfo(kind = Kind.UNINITIALIZED)
@@ -78,26 +83,7 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public Object execute(VirtualFrame frame) {
-            CompilerDirectives.transferToInterpreter();
-            ReadLocalVariableNode readNode;
-
-            if (!isNotIllegal() && !frameSlot.getIdentifier().equals("<return_val>")) {
-                throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
-            }
-
-            if (frame.isObject(frameSlot)) {
-                readNode = new ReadLocalVariableObjectNode(this);
-            } else if (frame.isInt(frameSlot)) {
-                readNode = new ReadLocalVariableIntNode(this);
-            } else if (frame.isDouble(frameSlot)) {
-                readNode = new ReadLocalVariableDoubleNode(this);
-            } else if (frame.isBoolean(frameSlot)) {
-                readNode = new ReadLocalVariableBooleanNode(this);
-            } else {
-                throw new UnsupportedOperationException("frame slot kind?");
-            }
-
-            return replace(readNode).execute(frame);
+            return specialize(frame, frame);
         }
     }
 
@@ -110,20 +96,12 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
-                return getBoolean(frame);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(executeNext(frame));
-            }
+            return doBooleanUnboxed(frame, frame);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
-                return getBoolean(frame);
-            } else {
-                return executeNext(frame);
-            }
+            return doBooleanBoxed(frame, frame);
         }
     }
 
@@ -136,20 +114,12 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-            if (frameSlot.getKind() == FrameSlotKind.Int) {
-                return getInteger(frame);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
-            }
+            return doIntUnboxed(frame, frame);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (frameSlot.getKind() == FrameSlotKind.Int) {
-                return getInteger(frame);
-            } else {
-                return executeNext(frame);
-            }
+            return doIntBoxed(frame, frame);
         }
     }
 
@@ -162,20 +132,12 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-            if (frameSlot.getKind() == FrameSlotKind.Double) {
-                return getDouble(frame);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectDouble(executeNext(frame));
-            }
+            return doDoubleUnboxed(frame, frame);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (frameSlot.getKind() == FrameSlotKind.Double) {
-                return getDouble(frame);
-            } else {
-                return executeNext(frame);
-            }
+            return doDoubleBoxed(frame, frame);
         }
     }
 
@@ -188,11 +150,7 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (frame.isObject(frameSlot)) {
-                return getObject(frame);
-            } else {
-                return executeNext(frame);
-            }
+            return doObject(frame, frame);
         }
     }
 

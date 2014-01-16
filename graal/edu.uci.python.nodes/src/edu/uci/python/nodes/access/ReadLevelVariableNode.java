@@ -24,20 +24,15 @@
  */
 package edu.uci.python.nodes.access;
 
-import org.python.core.*;
-
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeInfo.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
-public abstract class ReadLevelVariableNode extends FrameSlotNode implements ReadNode {
+public abstract class ReadLevelVariableNode extends ReadVariableNode {
 
-    @Child protected ReadLevelVariableNode next;
-    final int level;
+    protected final int level;
 
     public ReadLevelVariableNode(FrameSlot slot, int level) {
         super(slot);
@@ -58,17 +53,28 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
     }
 
     @Override
-    public final Object executeWrite(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
+    protected final ReadLevelVariableNode createUninitialized(FrameSlot slot, int parentFrameLevel) {
+        return new ReadLevelVariableUninitializedNode(frameSlot, parentFrameLevel);
     }
 
-    protected Object executeNext(VirtualFrame frame) {
-        if (next == null) {
-            CompilerDirectives.transferToInterpreter();
-            next = adoptChild(new ReadLevelVariableUninitializedNode(frameSlot, level));
-        }
+    @Override
+    protected final ReadVariableNode createReadBoolean(ReadVariableNode prev) {
+        return new ReadLevelVariableBooleanNode((ReadLevelVariableNode) prev);
+    }
 
-        return next.execute(frame);
+    @Override
+    protected final ReadVariableNode createReadInt(ReadVariableNode prev) {
+        return new ReadLevelVariableIntNode((ReadLevelVariableNode) prev);
+    }
+
+    @Override
+    protected final ReadVariableNode createReadDouble(ReadVariableNode prev) {
+        return new ReadLevelVariableDoubleNode((ReadLevelVariableNode) prev);
+    }
+
+    @Override
+    protected final ReadVariableNode createReadObject(ReadVariableNode prev) {
+        return new ReadLevelVariableObjectNode((ReadLevelVariableNode) prev);
     }
 
     @NodeInfo(kind = Kind.UNINITIALIZED)
@@ -80,27 +86,8 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
 
         @Override
         public Object execute(VirtualFrame frame) {
-            CompilerDirectives.transferToInterpreter();
-            ReadLevelVariableNode readNode;
-
-            if (!isNotIllegal() && !frameSlot.getIdentifier().equals("<return_val>")) {
-                throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
-            }
-
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (parent.isObject(frameSlot)) {
-                readNode = new ReadLevelVariableObjectNode(this);
-            } else if (parent.isInt(frameSlot)) {
-                readNode = new ReadLevelVariableIntNode(this);
-            } else if (parent.isDouble(frameSlot)) {
-                readNode = new ReadLevelVariableDoubleNode(this);
-            } else if (parent.isBoolean(frameSlot)) {
-                readNode = new ReadLevelVariableBooleanNode(this);
-            } else {
-                throw new UnsupportedOperationException("frame slot kind?");
-            }
-
-            return replace(readNode).execute(frame);
+            return specialize(frame, parent);
         }
     }
 
@@ -114,21 +101,13 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
-                return getBoolean(parent);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(executeNext(frame));
-            }
+            return doBooleanUnboxed(frame, parent);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Boolean) {
-                return getBoolean(parent);
-            } else {
-                return executeNext(frame);
-            }
+            return doBooleanBoxed(frame, parent);
         }
     }
 
@@ -142,21 +121,13 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Int) {
-                return getInteger(parent);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
-            }
+            return doIntUnboxed(frame, parent);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Int) {
-                return getInteger(parent);
-            } else {
-                return executeNext(frame);
-            }
+            return doIntBoxed(frame, parent);
         }
     }
 
@@ -170,21 +141,13 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Double) {
-                return getDouble(parent);
-            } else {
-                return PythonTypesGen.PYTHONTYPES.expectDouble(executeNext(frame));
-            }
+            return doDoubleUnboxed(frame, parent);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (frameSlot.getKind() == FrameSlotKind.Double) {
-                return getDouble(parent);
-            } else {
-                return executeNext(frame);
-            }
+            return doDoubleBoxed(frame, parent);
         }
     }
 
@@ -198,11 +161,7 @@ public abstract class ReadLevelVariableNode extends FrameSlotNode implements Rea
         @Override
         public Object execute(VirtualFrame frame) {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
-            if (parent.isObject(frameSlot)) {
-                return getObject(parent);
-            } else {
-                return executeNext(frame);
-            }
+            return doObject(frame, parent);
         }
     }
 
