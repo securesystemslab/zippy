@@ -139,7 +139,7 @@ public class TranslationEnvironment {
     public PNode getWriteArgumentToLocal(String name) {
         FrameSlot slot = findSlot(name);
         ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
-        return factory.createWriteLocalVariable(right, slot);
+        return factory.createWriteLocal(right, slot);
     }
 
     public ReadNode findVariable(String name) {
@@ -214,7 +214,7 @@ public class TranslationEnvironment {
                 FrameSlot slot = current.getFrameDescriptor().findFrameSlot(name);
 
                 if (slot != null) {
-                    return (ReadNode) factory.createReadLevelVariable(slot, level);
+                    return (ReadNode) factory.createReadLevel(slot, level);
                 }
 
                 current = current.getParent();

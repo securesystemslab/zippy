@@ -32,7 +32,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * Reads from a generator frame slot that stores a generator node flag, like FirstEntry. <br>
+ * Reads from a generator frame that stores a generator node flag, like FirstEntry.
  */
 public abstract class ReadGeneratorFrameFlagNode extends FrameSlotNode implements ReadNode {
 

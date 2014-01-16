@@ -238,7 +238,7 @@ public class PythonTreeTranslator extends Visitor {
         int offset = sizeOfParams - sizeOfDefaults;
         for (int i = 0; i < sizeOfDefaults; i++) {
             FrameSlotNode slotNode = (FrameSlotNode) argumentReads.get(i + offset);
-            defaultWrites[i] = factory.createWriteLocalVariable(defaultReads[i], slotNode.getSlot());
+            defaultWrites[i] = factory.createWriteLocal(defaultReads[i], slotNode.getSlot());
         }
 
         BlockNode loadDefaults = factory.createBlock(defaultWrites);
@@ -585,7 +585,7 @@ public class PythonTreeTranslator extends Visitor {
         if (value == null) {
             returnNode = factory.createReturn();
         } else {
-            PNode write = factory.createWriteLocalVariable(value, environment.getReturnSlot());
+            PNode write = factory.createWriteLocal(value, environment.getReturnSlot());
             returnNode = factory.createFrameReturn(write);
         }
 

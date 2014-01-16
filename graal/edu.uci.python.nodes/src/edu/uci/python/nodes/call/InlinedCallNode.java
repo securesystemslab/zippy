@@ -77,7 +77,7 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
             if (node instanceof ReadLocalVariableNode) {
                 node.replace(factory.createReadLocal(newSlot));
             } else if (node instanceof WriteLocalVariableNode) {
-                node.replace(factory.createWriteLocalVariable(((WriteLocalVariableNode) node).getRhs(), newSlot));
+                node.replace(factory.createWriteLocal(((WriteLocalVariableNode) node).getRhs(), newSlot));
             }
         }
     }

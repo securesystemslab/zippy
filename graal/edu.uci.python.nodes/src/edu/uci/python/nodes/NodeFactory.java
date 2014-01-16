@@ -163,7 +163,7 @@ public class NodeFactory {
     }
 
     public StatementNode createYield(PNode right, FrameSlot returnSlot) {
-        return new YieldNode(this.createWriteLocalVariable(right, returnSlot));
+        return new YieldNode(this.createWriteLocal(right, returnSlot));
     }
 
     public StatementNode createPrint(List<PNode> values, boolean nl, PythonContext context) {
@@ -393,11 +393,11 @@ public class NodeFactory {
         return ReadLocalVariableNode.create(slot);
     }
 
-    public PNode createReadLevelVariable(FrameSlot slot, int level) {
-        return ReadLevelVariableNodeFactory.create(slot, level);
+    public PNode createReadLevel(FrameSlot slot, int level) {
+        return ReadLevelVariableNode.create(slot, level);
     }
 
-    public PNode createWriteLocalVariable(PNode right, FrameSlot slot) {
+    public PNode createWriteLocal(PNode right, FrameSlot slot) {
         return WriteLocalVariableNodeFactory.create(slot, right);
     }
 
