@@ -24,13 +24,10 @@
  */
 package edu.uci.python.nodes.access;
 
-import java.math.BigInteger;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
 
 public abstract class FrameSlotNode extends PNode {
 
@@ -48,30 +45,27 @@ public abstract class FrameSlotNode extends PNode {
         frame.setObject(frameSlot, value);
     }
 
-    protected int getInteger(Frame frame) throws FrameSlotTypeException {
-        return frame.getInt(frameSlot);
+    protected final int getInteger(Frame frame) {
+        try {
+            return frame.getInt(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
     }
 
-    protected boolean getBoolean(Frame frame) throws FrameSlotTypeException {
-        return frame.getBoolean(frameSlot);
+    protected final boolean getBoolean(Frame frame) {
+        try {
+            return frame.getBoolean(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
     }
 
-    protected double getDouble(Frame frame) throws FrameSlotTypeException {
-        return frame.getDouble(frameSlot);
-    }
-
-    /**
-     * This is needed because BigInteger sits between primitive types (int, double) in zippy's type
-     * lattice. So if a variable's type changes from BigInteger to another reference type, node
-     * rewrite should occur.
-     */
-    protected BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
-        Object object = frame.getObject(frameSlot);
-
-        if (object instanceof BigInteger) {
-            return (BigInteger) object;
-        } else {
-            throw new FrameSlotTypeException();
+    protected final double getDouble(Frame frame) {
+        try {
+            return frame.getDouble(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
         }
     }
 
@@ -89,11 +83,6 @@ public abstract class FrameSlotNode extends PNode {
 
     protected final boolean isNoneKind() {
         return isKind(FrameSlotKind.None);
-    }
-
-    protected final boolean isNoneValue(VirtualFrame frame) {
-        Object value = frame.getValue(frameSlot);
-        return value.equals(PNone.NONE) ? true : false;
     }
 
     protected final boolean isBooleanKind() {
@@ -173,7 +162,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     /**
-     * To be Overridden by {@link WriteNode}s, {@link ReadNode}s should throw Unsupported Error.
+     * To be Overridden by {@link WriteNode}s. {@link ReadNode}s should throw Unsupported Error.
      */
     public abstract Object executeWrite(VirtualFrame frame, Object value);
 

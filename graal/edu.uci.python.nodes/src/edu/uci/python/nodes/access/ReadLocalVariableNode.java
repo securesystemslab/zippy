@@ -56,33 +56,6 @@ public abstract class ReadLocalVariableNode extends FrameSlotNode implements Rea
     }
 
     @Override
-    public final boolean getBoolean(Frame frame) {
-        try {
-            return frame.getBoolean(frameSlot);
-        } catch (FrameSlotTypeException ex) {
-            throw new IllegalStateException();
-        }
-    }
-
-    @Override
-    public final int getInteger(Frame frame) {
-        try {
-            return frame.getInt(frameSlot);
-        } catch (FrameSlotTypeException ex) {
-            throw new IllegalStateException();
-        }
-    }
-
-    @Override
-    public final double getDouble(Frame frame) {
-        try {
-            return frame.getDouble(frameSlot);
-        } catch (FrameSlotTypeException ex) {
-            throw new IllegalStateException();
-        }
-    }
-
-    @Override
     public final Object executeWrite(VirtualFrame frame, Object value) {
         throw new UnsupportedOperationException();
     }

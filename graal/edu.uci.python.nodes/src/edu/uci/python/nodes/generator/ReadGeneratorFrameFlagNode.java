@@ -56,22 +56,14 @@ public abstract class ReadGeneratorFrameFlagNode extends FrameSlotNode implement
     @Specialization(order = 1, rewriteOn = {FrameSlotTypeException.class})
     public boolean doBoolean(VirtualFrame frame) throws FrameSlotTypeException {
         MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        try {
-            return getBoolean(mframe);
-        } catch (FrameSlotTypeException e) {
-            return true;
-        }
+        return getBoolean(mframe);
     }
 
     @SuppressWarnings("unused")
     @Specialization(order = 2, rewriteOn = {FrameSlotTypeException.class})
     public int doInteger(VirtualFrame frame) throws FrameSlotTypeException {
         MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-        try {
-            return getInteger(mframe);
-        } catch (FrameSlotTypeException e) {
-            return 0;
-        }
+        return getInteger(mframe);
     }
 
     @Specialization
