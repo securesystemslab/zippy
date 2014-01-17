@@ -321,7 +321,6 @@ class CompileBroker: AllStatic {
   static void init_compiler_threads(int c1_compiler_count, int c2_compiler_count);
   static bool compilation_is_complete  (methodHandle method, int osr_bci, int comp_level);
   static bool compilation_is_prohibited(methodHandle method, int osr_bci, int comp_level);
-  static uint assign_compile_id        (methodHandle method, int osr_bci);
   static bool is_compile_blocking      (methodHandle method, int osr_bci);
   static void preload_classes          (methodHandle method, TRAPS);
 
@@ -385,6 +384,8 @@ class CompileBroker: AllStatic {
                                  methodHandle hot_method,
                                  int hot_count,
                                  const char* comment, Thread* thread);
+
+  static uint assign_compile_id        (methodHandle method, int osr_bci);
 
   static void compiler_thread_loop();
   static uint get_compilation_id() { return _compilation_id; }

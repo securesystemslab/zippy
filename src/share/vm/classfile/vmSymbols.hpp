@@ -348,6 +348,7 @@
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
   template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
+  template(com_oracle_graal_api_code_SpeculationLog,                 "com/oracle/graal/api/code/SpeculationLog")                      \
   /* graal.truffle */                                                                                                                 \
   template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
   template(startCompiler_name,                    "startCompiler")                                                                    \

@@ -81,16 +81,11 @@ public class RubyContext implements ExecutionContext {
         // Must initialize threads before fibers
 
         threadManager = new ThreadManager(this);
-
-        if (configuration.getRubyVersion().is19OrLater()) {
-            fiberManager = new FiberManager(this);
-        } else {
-            fiberManager = null;
-        }
+        fiberManager = new FiberManager(this);
     }
 
     public String getLanguageShortName() {
-        return configuration.getRubyVersion().getShortName();
+        return "Ruby";
     }
 
     public RubyDebugManager getDebugManager() {
@@ -174,10 +169,6 @@ public class RubyContext implements ExecutionContext {
     }
 
     public Object execute(RubyContext context, Source source, RubyParser.ParserContext parserContext, Object self, MaterializedFrame parentFrame) {
-        if (configuration.getPrintExecutedFiles()) {
-            implementationMessage("executing: %s", source.getName());
-        }
-
         try {
             final RubyParserResult parseResult = parser.parse(context, source, parserContext, parentFrame);
             final RubyArguments arguments = new RubyArguments(parentFrame, self, null);
@@ -187,11 +178,7 @@ public class RubyContext implements ExecutionContext {
         } catch (RaiseException e) {
             throw e;
         } catch (ThrowException e) {
-            if (context.getConfiguration().getRubyVersion().is18OrEarlier()) {
-                throw new RaiseException(context.getCoreLibrary().nameErrorUncaughtThrow(e.getTag()));
-            } else {
-                throw new RaiseException(context.getCoreLibrary().argumentErrorUncaughtThrow(e.getTag()));
-            }
+            throw new RaiseException(context.getCoreLibrary().argumentErrorUncaughtThrow(e.getTag()));
         } catch (BreakShellException | QuitException e) {
             throw e;
         } catch (Throwable e) {

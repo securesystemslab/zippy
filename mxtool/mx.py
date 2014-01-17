@@ -701,7 +701,13 @@ class Suite:
 
         with open(projectsFile) as f:
             prefix = ''
+            lineNum = 0
+
+            def error(message):
+                abort(projectsFile + ':' + str(lineNum) + ': ' + message)
+
             for line in f:
+                lineNum = lineNum + 1
                 line = line.strip()
                 if line.endswith('\\'):
                     prefix = prefix + line[:-1]
@@ -710,6 +716,8 @@ class Suite:
                     line = prefix + line
                     prefix = ''
                 if len(line) != 0 and line[0] != '#':
+                    if '=' not in line:
+                        error('non-comment line does not contain an "=" character')
                     key, value = line.split('=', 1)
 
                     parts = key.split('@')
@@ -717,18 +725,18 @@ class Suite:
                     if len(parts) == 1:
                         if parts[0] == 'suite':
                             if self.name != value:
-                                abort('suite name in project file does not match ' + _suitename(self.mxDir))
+                                error('suite name in project file does not match ' + _suitename(self.mxDir))
                         elif parts[0] == 'mxversion':
                             try:
                                 self.requiredMxVersion = VersionSpec(value)
                             except AssertionError as ae:
-                                abort('Exception while parsing "mxversion" in project file: ' + str(ae))
+                                error('Exception while parsing "mxversion" in project file: ' + str(ae))
                         else:
-                            abort('Single part property must be "suite": ' + key)
+                            error('Single part property must be "suite": ' + key)
 
                         continue
                     if len(parts) != 3:
-                        abort('Property name does not have 3 parts separated by "@": ' + key)
+                        error('Property name does not have 3 parts separated by "@": ' + key)
                     kind, name, attr = parts
                     if kind == 'project':
                         m = projsMap
@@ -737,7 +745,7 @@ class Suite:
                     elif kind == 'distribution':
                         m = distsMap
                     else:
-                        abort('Property name does not start with "project@", "library@" or "distribution@": ' + key)
+                        error('Property name does not start with "project@", "library@" or "distribution@": ' + key)
 
                     attrs = m.get(name)
                     if attrs is None:
@@ -768,7 +776,7 @@ class Suite:
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
-                abort('javaCompliance property required for non-native project ' + name)
+                error('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
                 p._declaredAnnotationProcessors = ap
             p.__dict__.update(attrs)

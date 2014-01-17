@@ -360,7 +360,7 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
 }
 
 // constructor used to create a method
-GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
+GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log) {
   BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
   if (buffer_blob == NULL) {
     return GraalEnv::cache_full;
@@ -401,8 +401,9 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
     nmethod* nm = NULL;
     methodHandle method = getMethodFromHotSpotMethod(HotSpotCompiledNmethod::method(compiled_code));
     jint entry_bci = HotSpotCompiledNmethod::entryBCI(compiled_code);
+    jint id = HotSpotCompiledNmethod::id(compiled_code);
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, leaf_graph_ids, installed_code, speculation_log);
     cb = nm;
   }
 

@@ -119,7 +119,7 @@ class nmethod : public CodeBlob {
 #ifdef GRAAL
   // Needed to keep nmethods alive that are not the default nmethod for the associated Method.
   oop       _graal_installed_code;
-  typeArrayOop _triggered_deoptimizations;
+  oop       _speculation_log;
 #endif
 
   // To support simple linked-list chaining of nmethods:
@@ -280,7 +280,7 @@ class nmethod : public CodeBlob {
           GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
           , Handle installed_code,
-          Handle triggered_deoptimizations
+          Handle speculation_log
 #endif
           );
 
@@ -322,7 +322,7 @@ class nmethod : public CodeBlob {
                               GrowableArray<jlong>* leaf_graph_ids = NULL
 #ifdef GRAAL
                               , Handle installed_code = Handle(),
-                              Handle triggered_deoptimizations = Handle()
+                              Handle speculation_log = Handle()
 #endif
   );
 
@@ -592,6 +592,8 @@ public:
 #ifdef GRAAL
   oop graal_installed_code() { return _graal_installed_code ; }
   void set_graal_installed_code(oop installed_code) { _graal_installed_code = installed_code;  }
+  oop speculation_log() { return _speculation_log ; }
+  void set_speculation_log(oop speculation_log) { _speculation_log = speculation_log;  }
 #endif
 
   // GC support

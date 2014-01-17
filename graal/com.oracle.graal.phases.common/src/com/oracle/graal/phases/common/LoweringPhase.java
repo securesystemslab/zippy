@@ -32,7 +32,6 @@ import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
@@ -94,25 +93,6 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
         }
 
         @Override
-        public GuardingNode createNullCheckGuard(FixedNode before, GuardedNode guardedNode, ValueNode object) {
-            if (ObjectStamp.isObjectNonNull(object)) {
-                // Short cut creation of null check guard if the object is known to be non-null.
-                return null;
-            }
-            StructuredGraph graph = guardedNode.asNode().graph();
-            if (graph.getGuardsStage().ordinal() > GuardsStage.FLOATING_GUARDS.ordinal()) {
-                NullCheckNode nullCheck = graph.add(new NullCheckNode(object));
-                graph.addBeforeFixed(before, nullCheck);
-                return nullCheck;
-            } else {
-                GuardingNode guard = createGuard(before, graph.unique(new IsNullNode(object)), DeoptimizationReason.NullCheckException, DeoptimizationAction.InvalidateReprofile, true);
-                assert guardedNode.getGuard() == null;
-                guardedNode.setGuard(guard);
-                return guard;
-            }
-        }
-
-        @Override
         public GuardingNode createGuard(FixedNode before, LogicNode condition, DeoptimizationReason deoptReason, DeoptimizationAction action) {
             return createGuard(before, condition, deoptReason, action, false);
         }
@@ -163,7 +143,7 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
                 fixedGuard.lower(this);
                 return handle.getGuard();
             } else {
-                GuardNode newGuard = graph.unique(new GuardNode(condition, guardAnchor, deoptReason, action, negated));
+                GuardNode newGuard = graph.unique(new GuardNode(condition, guardAnchor, deoptReason, action, negated, Constant.NULL_OBJECT));
                 if (OptEliminateGuards.getValue()) {
                     activeGuards.grow();
                     activeGuards.mark(newGuard);

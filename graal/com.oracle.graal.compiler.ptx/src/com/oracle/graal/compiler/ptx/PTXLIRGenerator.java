@@ -29,7 +29,7 @@ import static com.oracle.graal.lir.ptx.PTXArithmetic.*;
 import static com.oracle.graal.lir.ptx.PTXBitManipulationOp.IntrinsicOpcode.*;
 import static com.oracle.graal.lir.ptx.PTXCompare.*;
 
-import java.lang.annotation.*;
+import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -153,22 +153,18 @@ public class PTXLIRGenerator extends LIRGenerator {
             append(new PTXParameterOp(params, true));
         }
 
-        for (LocalNode local : graph.getNodes(LocalNode.class)) {
-            Value param = params[local.index()];
-            Annotation[] annos = graph.method().getParameterAnnotations()[local.index()];
-            Warp warpAnnotation = null;
-
-            if (annos != null) {
-                for (int a = 0; a < annos.length; a++) {
-                    if (annos[a].annotationType().equals(Warp.class)) {
-                        warpAnnotation = (Warp) annos[a];
-                    }
-                }
+        for (ParameterNode param : graph.getNodes(ParameterNode.class)) {
+            int localIndex = param.index();
+            Value paramValue = params[param.index()];
+            int parameterIndex = localIndex;
+            if (!Modifier.isStatic(graph.method().getModifiers())) {
+                parameterIndex--;
             }
+            Warp warpAnnotation = parameterIndex >= 0 ? MetaUtil.getParameterAnnotation(Warp.class, parameterIndex, graph.method()) : null;
             if (warpAnnotation != null) {
-                setResult(local, emitWarpParam(param.getKind(), warpAnnotation));
+                setResult(param, emitWarpParam(paramValue.getKind(), warpAnnotation));
             } else {
-                setResult(local, emitLoadParam(param.getKind(), param, null));
+                setResult(param, emitLoadParam(paramValue.getKind(), paramValue, null));
             }
         }
     }
@@ -700,7 +696,7 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimize(Value actionAndReason, DeoptimizingNode deopting) {
+    public void emitDeoptimize(Value actionAndReason, Value speculation, DeoptimizingNode deopting) {
         append(new ReturnOp(Value.ILLEGAL));
     }
 

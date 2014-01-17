@@ -103,7 +103,12 @@ public:
   typedef unsigned int CUdeviceptr;
 #endif
 
-typedef int CUdevice;     /**< CUDA device */
+typedef int CUdevice;     /* CUDA device */
+
+  static jlong execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
+                                      jlong parametersAndReturnValueBuffer,
+                                      jint parametersAndReturnValueBufferSize,
+                                      int encodedReturnTypeSize);
 
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int);

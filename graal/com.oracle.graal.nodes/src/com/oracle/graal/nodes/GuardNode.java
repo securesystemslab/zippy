@@ -25,7 +25,6 @@ package com.oracle.graal.nodes;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -46,15 +45,17 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
 
     @Input private LogicNode condition;
     private final DeoptimizationReason reason;
+    private final Constant speculation;
     private DeoptimizationAction action;
     private boolean negated;
 
-    public GuardNode(LogicNode condition, GuardingNode anchor, DeoptimizationReason reason, DeoptimizationAction action, boolean negated) {
+    public GuardNode(LogicNode condition, GuardingNode anchor, DeoptimizationReason reason, DeoptimizationAction action, boolean negated, Constant speculation) {
         super(StampFactory.dependency(), anchor);
         this.condition = condition;
         this.reason = reason;
         this.action = action;
         this.negated = negated;
+        this.speculation = speculation;
     }
 
     /**
@@ -81,6 +82,10 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
         return action;
     }
 
+    public Constant getSpeculation() {
+        return speculation;
+    }
+
     @Override
     public String toString(Verbosity verbosity) {
         if (verbosity == Verbosity.Name && negated) {
@@ -94,7 +99,7 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
     public Node canonical(CanonicalizerTool tool) {
         if (condition() instanceof LogicNegationNode) {
             LogicNegationNode negation = (LogicNegationNode) condition();
-            return graph().unique(new GuardNode(negation.getInput(), getGuard(), reason, action, !negated));
+            return graph().unique(new GuardNode(negation.getInput(), getGuard(), reason, action, !negated, speculation));
         }
         if (condition() instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition();
@@ -106,16 +111,6 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
     }
 
     public FixedWithNextNode lowerGuard() {
-        if (negated() && condition() instanceof IsNullNode) {
-            IsNullNode isNull = (IsNullNode) condition();
-            NullCheckNode nullCheck = graph().add(new NullCheckNode(isNull.object()));
-            setCondition(null);
-            if (isNull.usages().isEmpty()) {
-                isNull.safeDelete();
-            }
-            return nullCheck;
-        }
-
         return null;
     }
 

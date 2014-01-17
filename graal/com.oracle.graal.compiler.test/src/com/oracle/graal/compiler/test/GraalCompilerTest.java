@@ -462,10 +462,14 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void test(String name, Object... args) {
-        Method method = getMethod(name);
-        Object receiver = Modifier.isStatic(method.getModifiers()) ? null : this;
-
-        test(method, receiver, args);
+        try {
+            Method method = getMethod(name);
+            Object receiver = Modifier.isStatic(method.getModifiers()) ? null : this;
+            test(method, receiver, args);
+        } catch (AssumptionViolatedException e) {
+            // Suppress so that subsequent calls to this method within the
+            // same Junit @Test annotated method can proceed.
+        }
     }
 
     protected void test(Method method, Object receiver, Object... args) {
@@ -548,9 +552,7 @@ public abstract class GraalCompilerTest extends GraalTest {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s ...", id, method.getDeclaringClass().getName(), method.getName(), method.getSignature()));
             }
             long start = System.currentTimeMillis();
-            CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-            final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(),
-                            OptimisticOptimizations.ALL, getProfilingInfo(graph), new SpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+            CompilationResult compResult = compile(method, graph);
             if (printCompilation) {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
             }
@@ -573,6 +575,12 @@ public abstract class GraalCompilerTest extends GraalTest {
         return installedCode;
     }
 
+    protected CompilationResult compile(ResolvedJavaMethod method, final StructuredGraph graph) {
+        CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
+        return compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.ALL, getProfilingInfo(graph),
+                        new SpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+    }
+
     protected InstalledCode addMethod(final ResolvedJavaMethod method, final CompilationResult compResult) {
         return getCodeCache().addMethod(method, compResult);
     }
@@ -590,30 +598,28 @@ public abstract class GraalCompilerTest extends GraalTest {
      * Parses a Java method to produce a graph.
      */
     protected StructuredGraph parse(Method m) {
-        return parse0(m, GraphBuilderConfiguration.getEagerDefault());
+        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerDefault()));
     }
 
     /**
      * Parses a Java method to produce a graph.
      */
     protected StructuredGraph parseProfiled(Method m) {
-        return parse0(m, GraphBuilderConfiguration.getDefault());
+        return parse0(m, getDefaultGraphBuilderSuite());
     }
 
     /**
      * Parses a Java method in debug mode to produce a graph with extra infopoints.
      */
     protected StructuredGraph parseDebug(Method m) {
-        GraphBuilderConfiguration gbConf = GraphBuilderConfiguration.getEagerDefault();
-        gbConf.setEagerInfopointMode(true);
-        return parse0(m, gbConf);
+        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerInfopointDefault()));
     }
 
-    private StructuredGraph parse0(Method m, GraphBuilderConfiguration conf) {
+    private StructuredGraph parse0(Method m, PhaseSuite<HighTierContext> graphBuilderSuite) {
         assert m.getAnnotation(Test.class) == null : "shouldn't parse method with @Test annotation: " + m;
         ResolvedJavaMethod javaMethod = getMetaAccess().lookupJavaMethod(m);
         StructuredGraph graph = new StructuredGraph(javaMethod);
-        new GraphBuilderPhase.Instance(getMetaAccess(), conf, OptimisticOptimizations.ALL).apply(graph);
+        graphBuilderSuite.apply(graph, new HighTierContext(providers, null, null, graphBuilderSuite, OptimisticOptimizations.ALL));
         return graph;
     }
 
@@ -622,10 +628,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         return backend.getSuites().getDefaultGraphBuilderSuite().copy();
     }
 
-    protected PhaseSuite<HighTierContext> getEagerGraphBuilderSuite() {
-        GraphBuilderConfiguration gbConf = GraphBuilderConfiguration.getEagerDefault();
-        gbConf.setEagerInfopointMode(true);
-
+    protected PhaseSuite<HighTierContext> getCustomGraphBuilderSuite(GraphBuilderConfiguration gbConf) {
         PhaseSuite<HighTierContext> suite = getDefaultGraphBuilderSuite().copy();
         ListIterator<BasePhase<? super HighTierContext>> iterator = suite.findPhase(GraphBuilderPhase.class);
         iterator.remove();
