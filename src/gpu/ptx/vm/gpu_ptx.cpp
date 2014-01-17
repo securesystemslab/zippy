@@ -331,7 +331,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Got function handle for %s", name);
+    tty->print_cr("[CUDA] Got function handle for %s kernel address %p", name, cu_function);
   }
 
   return cu_function;
@@ -375,7 +375,9 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
       return 0L;
     }
     // Push device_return_value to kernelParams
-    gpu::Ptx::CUdeviceptr* returnValuePtr = (gpu::Ptx::CUdeviceptr*) (address) parametersAndReturnValueBuffer + parametersAndReturnValueBufferSize - sizeof(device_return_value);
+    gpu::Ptx::CUdeviceptr* returnValuePtr = (gpu::Ptx::CUdeviceptr*)
+                                               ((address) parametersAndReturnValueBuffer +
+                                                parametersAndReturnValueBufferSize - sizeof(device_return_value));
     *returnValuePtr = device_return_value;
   }
 
@@ -417,7 +419,7 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
     }
     thread->set_vm_result(return_val);
   } else if (returnTypeSize > 0) {
-    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&primitiveReturnValue, device_return_value, T_LONG_BYTE_SIZE);
+    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&primitiveReturnValue, device_return_value, returnTypeSize);
     if (status != GRAAL_CUDA_SUCCESS) {
       tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
       SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to copy value from device argument");
