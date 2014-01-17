@@ -26,20 +26,18 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class ComparisonTests {
+public class BinaryComparisonTests {
 
     @Test
-    public void simple() {
-        Path script = Paths.get("comp_test.py");
-        assertPrints("False\n", script);
+    public void chainedComparisons() {
+        String source = "print(2 < 5 > 3)";
+        assertPrints("True\n", source);
     }
 
     @Test
-    public void chainedComparison() {
+    public void chainedEquals() {
         String source = "print(11 == 11 == 11 == 11)";
         assertPrints("True\n", source);
     }
