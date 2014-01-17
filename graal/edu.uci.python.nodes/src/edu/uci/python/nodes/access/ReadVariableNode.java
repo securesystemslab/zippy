@@ -55,7 +55,7 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
 
     protected abstract ReadVariableNode createReadObject(ReadVariableNode prev);
 
-    protected Object executeNext(VirtualFrame frame) {
+    protected final Object executeNext(VirtualFrame frame) {
         if (next == null) {
             CompilerDirectives.transferToInterpreter();
             next = adoptChild(createUninitialized(frameSlot, 0));

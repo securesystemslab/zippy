@@ -31,10 +31,16 @@ import java.nio.file.*;
 import org.junit.*;
 
 public class ComparisonTests {
+
     @Test
     public void simple() {
         Path script = Paths.get("comp_test.py");
         assertPrints("False\n", script);
     }
 
+    @Test
+    public void chainedComparison() {
+        String source = "print(11 == 11 == 11 == 11)";
+        assertPrints("True\n", source);
+    }
 }
