@@ -417,7 +417,6 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
     }
     thread->set_vm_result(return_val);
   } else if (returnTypeSize > 0) {
-    jlong result;
     status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&primitiveReturnValue, device_return_value, T_LONG_BYTE_SIZE);
     if (status != GRAAL_CUDA_SUCCESS) {
       tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
