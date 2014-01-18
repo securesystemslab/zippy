@@ -160,7 +160,11 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         @Override
         public Object execute(VirtualFrame frame) {
             MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-            return doObject(frame, mframe);
+            if (mframe.isObject(frameSlot)) {
+                return getObject(mframe);
+            } else {
+                return executeNext(frame);
+            }
         }
     }
 

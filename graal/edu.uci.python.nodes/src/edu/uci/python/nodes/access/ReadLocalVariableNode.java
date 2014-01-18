@@ -150,7 +150,11 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return doObject(frame, frame);
+            if (frame.isObject(frameSlot)) {
+                return getObject(frame);
+            } else {
+                return executeNext(frame);
+            }
         }
     }
 
