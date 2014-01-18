@@ -203,6 +203,12 @@ public class GeneratorExpressionOptimizer {
      */
     private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root) {
         GeneratorReturnTargetNode body = NodeUtil.findFirstNodeInstance(root, GeneratorReturnTargetNode.class);
+        BlockNode parameters = (BlockNode) body.getParameters();
+
+        if (!parameters.isEmpty()) {
+            throw new IllegalStateException();
+        }
+
         body.getParameters().replace(assembleParameterWrites(slots, false));
 
         // Uninitialized body.

@@ -99,13 +99,14 @@ dacapoScalaGateBuildLevels = {
 
 pythonTestBenchmarks = {
     'binarytrees3'  : '12',
-    'fannkuchredux3' : '9',
+    'fannkuchredux3': '9',
     'fasta3'        : '250000',
     'mandelbrot3'   : '600',
     'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
     'richards3'     : '5',
+    'bm-ai'         : '0',
 }
 
 python2MicroBenchmarks = {

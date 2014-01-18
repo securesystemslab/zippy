@@ -4,6 +4,7 @@
 
 __author__ = "collinwinter@google.com (Collin Winter)"
 
+import time
 
 # Pure-Python implementation of itertools.permutations().
 def permutations(iterable, r=None):
@@ -49,7 +50,14 @@ def n_queens(queen_count):
                         == len(set(vec[i]-i for i in cols))):
             yield vec
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    print(list(n_queens(8))[-1])
+    duration = "%.3f\n" % (time.time() - start)
+    print("bm-ai: " + duration)
 
 if __name__ == "__main__":
-    print(list(n_queens(8))[-1])
+    # print(list(n_queens(8))[-1])
+    measure()
         
