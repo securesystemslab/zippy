@@ -73,7 +73,7 @@ public class GeneratorTranslator {
 
             while (current.getParent() != root) {
                 current = (PNode) current.getParent();
-                replaceControls(current, depth++);
+                replaceControls(current, yield, depth++);
             }
         }
 
@@ -95,7 +95,7 @@ public class GeneratorTranslator {
         }
     }
 
-    private void replaceControls(PNode node, int depth) {
+    private void replaceControls(PNode node, YieldNode yield, int depth) {
         /**
          * Has it been replace already?
          */
@@ -119,11 +119,11 @@ public class GeneratorTranslator {
             BlockNode block = (BlockNode) node;
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
 
-            if (depth == 0) {
-                node.replace(new GeneratorBlockNode.InnerGeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-            } else {
-                node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
+            if (yield.getParent().equals(block)) {
+                yield.replace(new YieldNode.GeneratorYieldNode(yield.getRhs(), slotOfBlockIndex));
             }
+
+            node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
         } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof WhileNode) {
             // do nothing for now
         } else {

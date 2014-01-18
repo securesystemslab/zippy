@@ -53,6 +53,12 @@ public class GeneratorTests {
     }
 
     @Test
+    public void multipleYields() {
+        Path script = Paths.get("generator-multiple-yield-test.py");
+        assertPrints("1\n3\n2\n1\n", script);
+    }
+
+    @Test
     public void accumulator() {
         Path script = Paths.get("generator-accumulator-test.py");
         assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);

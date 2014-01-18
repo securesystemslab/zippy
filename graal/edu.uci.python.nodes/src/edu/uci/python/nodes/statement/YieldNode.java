@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.runtime.exception.*;
 
 public class YieldNode extends StatementNode {
@@ -45,6 +46,28 @@ public class YieldNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         right.execute(frame);
         throw YieldException.INSTANCE;
+    }
+
+    /**
+     * Of course yield is for generators. The point of this node is to properly advance the index
+     * flag of the parent block node (if the yield's parent is one).
+     */
+    public static final class GeneratorYieldNode extends YieldNode {
+
+        private final int parentBlockNodeIndexSlot;
+
+        public GeneratorYieldNode(PNode right, int indexSlot) {
+            super(right);
+            parentBlockNodeIndexSlot = indexSlot;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            right.execute(frame);
+            final int index = GeneratorBlockNode.getIndex(frame, parentBlockNodeIndexSlot);
+            GeneratorBlockNode.setIndex(frame, parentBlockNodeIndexSlot, index + 1);
+            throw YieldException.INSTANCE;
+        }
     }
 
 }

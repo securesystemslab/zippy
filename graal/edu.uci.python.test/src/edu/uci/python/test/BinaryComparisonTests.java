@@ -41,4 +41,5 @@ public class BinaryComparisonTests {
         String source = "print(11 == 11 == 11 == 11)";
         assertPrints("True\n", source);
     }
+
 }
