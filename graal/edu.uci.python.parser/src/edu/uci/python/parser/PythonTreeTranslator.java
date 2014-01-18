@@ -195,7 +195,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         expr body = node.getInternalBody();
         PNode bodyNode = (PNode) visit(body);
-        LambdaNode lambdaNode = new LambdaNode(argumentLoads, bodyNode);
+        bodyNode = new ElseNode(argumentLoads, bodyNode);
         /**
          * Defaults
          */
@@ -211,7 +211,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Lambda function root
          */
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, lambdaNode);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, bodyNode);
         FrameDescriptor fd = environment.getCurrentFrame();
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
         result.addParsedFunction(name, funcRoot);

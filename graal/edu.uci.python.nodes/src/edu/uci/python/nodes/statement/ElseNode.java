@@ -26,12 +26,14 @@ package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
+
 public class ElseNode extends StatementNode {
 
     @Child protected StatementNode then;
-    @Child protected BlockNode orelse;
+    @Child protected PNode orelse;
 
-    public ElseNode(StatementNode then, BlockNode orelse) {
+    public ElseNode(StatementNode then, PNode orelse) {
         this.then = adoptChild(then);
         this.orelse = adoptChild(orelse);
     }
