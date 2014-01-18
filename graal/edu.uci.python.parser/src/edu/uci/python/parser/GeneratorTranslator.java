@@ -26,6 +26,8 @@ package edu.uci.python.parser;
 
 import java.util.*;
 
+import org.python.google.common.primitives.*;
+
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -79,6 +81,25 @@ public class GeneratorTranslator {
 
         for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
             genexp.setDeclarationFrameGenerator();
+        }
+
+        for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
+            // look for it's breaking loop node
+            Node current = bnode.getParent();
+            List<Integer> indexSlots = new ArrayList<>();
+            while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
+                if (current instanceof GeneratorBlockNode) {
+                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                    indexSlots.add(indexSlot);
+                }
+                current = current.getParent();
+            }
+
+            if (current instanceof GeneratorForNode) {
+                int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
+                int[] indexSlotsArray = Ints.toArray(indexSlots);
+                bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray));
+            }
         }
     }
 

@@ -14,13 +14,9 @@ def permutations(iterable, r=None):
         r = n
     indices = list(range(n))
     cycles = list(range(n-r+1, n+1))[::-1]
-    print('indices', indices)
-    print('cycles', cycles)
     yield tuple(pool[i] for i in indices[:r])
     while n:
-        print('n', n)
         for i in reversed(range(r)):
-            print('i', i)
             cycles[i] -= 1
             if cycles[i] == 0:
                 indices[i:] = indices[i+1:] + indices[i:i+1]
@@ -49,12 +45,8 @@ def n_queens(queen_count):
     """
     cols = range(queen_count)
     for vec in permutations(cols):
-        print('vec', vec, ' cols', cols)
-        print('set1', set(vec[i]+i for i in cols))
-        print('set2', set(vec[i]-i for i in cols))
         if (queen_count == len(set(vec[i]+i for i in cols))
                         == len(set(vec[i]-i for i in cols))):
-            print('yielding ', vec)
             yield vec
 
 

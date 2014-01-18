@@ -30,7 +30,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
-public class BreakTargetNode extends StatementNode {
+public final class BreakTargetNode extends StatementNode {
 
     @Child protected StatementNode child;
 

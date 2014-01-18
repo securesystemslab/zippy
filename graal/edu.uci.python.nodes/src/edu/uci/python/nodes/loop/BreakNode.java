@@ -26,14 +26,38 @@ package edu.uci.python.nodes.loop;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class BreakNode extends StatementNode {
+public final class BreakNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
         throw BreakException.INSTANCE;
+    }
+
+    public static final class GeneratorBreakNode extends StatementNode {
+
+        private final int iteratorSlot;
+        private final int[] indexSlots;
+
+        public GeneratorBreakNode(int iteratorSlot, int[] indexSlots) {
+            this.iteratorSlot = iteratorSlot;
+            this.indexSlots = indexSlots;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, null);
+
+            for (int indexSlot : indexSlots) {
+                GeneratorBlockNode.setIndex(frame, indexSlot, 0);
+            }
+
+            throw BreakException.INSTANCE;
+        }
     }
 
 }

@@ -41,6 +41,10 @@ public final class GeneratorBlockNode extends BlockNode {
         this.indexSlot = indexSlot;
     }
 
+    public int getIndexSlot() {
+        return indexSlot;
+    }
+
     public static int getIndex(VirtualFrame frame, int blockIndexSlot) {
         return PArguments.getGeneratorArguments(frame).getBlockIndexAt(blockIndexSlot);
     }

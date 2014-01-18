@@ -40,7 +40,7 @@ public class GeneratorForNode extends LoopNode {
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
 
-    protected int iteratorSlot;
+    protected final int iteratorSlot;
     protected int count;
 
     public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
@@ -48,6 +48,10 @@ public class GeneratorForNode extends LoopNode {
         this.target = adoptChild(target);
         this.getIterator = adoptChild(getIterator);
         this.iteratorSlot = iteratorSlot;
+    }
+
+    public int getIteratorSlot() {
+        return iteratorSlot;
     }
 
     protected PIterator getIterator(VirtualFrame frame) {
