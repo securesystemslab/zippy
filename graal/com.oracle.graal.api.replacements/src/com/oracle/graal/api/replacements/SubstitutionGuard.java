@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,18 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
 
-import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.type.*;
+package com.oracle.graal.api.replacements;
 
 /**
- * The {@code Local} instruction is a placeholder for an incoming argument to a function call.
+ * Guards the installation of substitutions for {@link ClassSubstitution} and
+ * {@link MethodSubstitution}.
  */
-@NodeInfo(nameTemplate = "Local({p#index})")
-public final class LocalNode extends AbstractLocalNode implements IterableNodeType {
+public interface SubstitutionGuard {
 
-    public LocalNode(int index, Stamp stamp) {
-        super(index, stamp);
-    }
+    /**
+     * Return true if the substitution should be enabled.
+     */
+    boolean execute();
 }

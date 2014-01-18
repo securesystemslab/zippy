@@ -720,6 +720,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "UseAESIntrinsics") @Stable public boolean useAESIntrinsics;
     @HotSpotVMFlag(name = "UseCRC32Intrinsics") @Stable public boolean useCRC32Intrinsics;
     @HotSpotVMFlag(name = "UseG1GC") @Stable public boolean useG1GC;
+    @HotSpotVMFlag(name = "UseConcMarkSweepGC") @Stable public boolean useCMSGC;
 
     @HotSpotVMFlag(name = "AllocatePrefetchStyle") @Stable public int allocatePrefetchStyle;
     @HotSpotVMFlag(name = "AllocatePrefetchInstr") @Stable public int allocatePrefetchInstr;
@@ -914,6 +915,7 @@ public class HotSpotVMConfig extends CompilerObject {
      */
     @HotSpotVMField(name = "ThreadShadow::_pending_exception", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int pendingExceptionOffset;
     @HotSpotVMField(name = "ThreadShadow::_pending_deoptimization", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int pendingDeoptimizationOffset;
+    @HotSpotVMField(name = "ThreadShadow::_pending_failed_speculation", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int pendingFailedSpeculationOffset;
 
     /**
      * Mark word right shift to get identity hash code.
@@ -1100,11 +1102,6 @@ public class HotSpotVMConfig extends CompilerObject {
     public int layoutHelperElementTypePrimitiveInPlace() {
         return (layoutHelperArrayTagTypeValue & ~layoutHelperArrayTagObjectValue) << layoutHelperArrayTagShift;
     }
-
-    /**
-     * Bit pattern in the klass layout helper that can be used to identify arrays.
-     */
-    public final int arrayKlassLayoutHelperIdentifier = 0x80000000;
 
     @HotSpotVMField(name = "ArrayKlass::_component_mirror", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayKlassComponentMirrorOffset;
 
@@ -1295,10 +1292,10 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMConstant(name = "Deoptimization::_action_bits") @Stable public int deoptimizationActionBits;
     @HotSpotVMConstant(name = "Deoptimization::_reason_bits") @Stable public int deoptimizationReasonBits;
-    @HotSpotVMConstant(name = "Deoptimization::_speculation_id_bits") @Stable public int deoptimizationSpeculationIdBits;
+    @HotSpotVMConstant(name = "Deoptimization::_debug_id_bits") @Stable public int deoptimizationDebugIdBits;
     @HotSpotVMConstant(name = "Deoptimization::_action_shift") @Stable public int deoptimizationActionShift;
     @HotSpotVMConstant(name = "Deoptimization::_reason_shift") @Stable public int deoptimizationReasonShift;
-    @HotSpotVMConstant(name = "Deoptimization::_speculation_id_shift") @Stable public int deoptimizationSpeculationIdShift;
+    @HotSpotVMConstant(name = "Deoptimization::_debug_id_shift") @Stable public int deoptimizationDebugIdShift;
 
     @HotSpotVMConstant(name = "vmIntrinsics::_invokeBasic") @Stable public int vmIntrinsicInvokeBasic;
     @HotSpotVMConstant(name = "vmIntrinsics::_linkToVirtual") @Stable public int vmIntrinsicLinkToVirtual;
@@ -1320,7 +1317,8 @@ public class HotSpotVMConfig extends CompilerObject {
         }
 
         assert codeEntryAlignment > 0 : codeEntryAlignment;
-        assert (layoutHelperArrayTagObjectValue & layoutHelperArrayTagTypeValue & arrayKlassLayoutHelperIdentifier) != 0 : "object array and type array must have first bit set";
+        assert (layoutHelperArrayTagObjectValue & (1 << (Integer.SIZE - 1))) != 0 : "object array must have first bit set";
+        assert (layoutHelperArrayTagTypeValue & (1 << (Integer.SIZE - 1))) != 0 : "type array must have first bit set";
 
         return true;
     }

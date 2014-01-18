@@ -528,7 +528,7 @@ void nmethod::init_defaults() {
   _compiler                = NULL;
 #ifdef GRAAL
   _graal_installed_code   = NULL;
-  _triggered_deoptimizations = NULL;
+  _speculation_log        = NULL;
 #endif
 #ifdef HAVE_DTRACE_H
   _trap_offset             = 0;
@@ -627,7 +627,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
   , Handle installed_code,
-  Handle triggered_deoptimizations
+  Handle speculationLog
 #endif
 )
 {
@@ -656,7 +656,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
             leaf_graph_ids
 #ifdef GRAAL
             , installed_code,
-            triggered_deoptimizations
+            speculationLog
 #endif
             );
 
@@ -885,7 +885,7 @@ nmethod::nmethod(
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
   , Handle installed_code,
-  Handle triggered_deoptimizations
+  Handle speculation_log
 #endif
   )
   : CodeBlob("nmethod", code_buffer, sizeof(nmethod),
@@ -913,7 +913,7 @@ nmethod::nmethod(
 
 #ifdef GRAAL
     _graal_installed_code = installed_code();
-    _triggered_deoptimizations = (typeArrayOop)triggered_deoptimizations();
+    _speculation_log = (instanceOop)speculation_log();
 #endif
     if (compiler->is_graal()) {
       // Graal might not produce any stub sections
@@ -1762,6 +1762,12 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
       }
     }
   }
+
+  if (_speculation_log != NULL) {
+    if (!is_alive->do_object_b(_speculation_log)) {
+      _speculation_log = NULL;
+    }
+  }
 #endif
 
   // Exception cache
@@ -1990,8 +1996,8 @@ void nmethod::oops_do(OopClosure* f, bool allow_zombie) {
   if (_graal_installed_code != NULL) {
     f->do_oop((oop*) &_graal_installed_code);
   }
-  if (_triggered_deoptimizations != NULL) {
-    f->do_oop((oop*) &_triggered_deoptimizations);
+  if (_speculation_log != NULL) {
+    f->do_oop((oop*) &_speculation_log);
   }
 #endif
 

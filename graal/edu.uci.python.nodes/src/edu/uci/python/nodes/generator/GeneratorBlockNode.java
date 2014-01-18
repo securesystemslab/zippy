@@ -32,61 +32,38 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorBlockNode extends BlockNode {
+public final class GeneratorBlockNode extends BlockNode {
 
-    protected int index;
-    protected final int indexSlot;
+    private final int indexSlot;
 
     public GeneratorBlockNode(PNode[] statements, int indexSlot) {
         super(statements);
         this.indexSlot = indexSlot;
     }
 
-    protected final int getIndex(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getBlockIndexAt(indexSlot);
+    public static int getIndex(VirtualFrame frame, int blockIndexSlot) {
+        return PArguments.getGeneratorArguments(frame).getBlockIndexAt(blockIndexSlot);
     }
 
-    protected final void setIndex(VirtualFrame frame, int value) {
-        PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, value);
+    public static void setIndex(VirtualFrame frame, int blockIndexSlot, int value) {
+        PArguments.getGeneratorArguments(frame).setBlockIndexAt(blockIndexSlot, value);
     }
 
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < statements.length; i++) {
-            if (i < getIndex(frame)) {
+            final int currentIndex = getIndex(frame, indexSlot);
+            if (i < currentIndex) {
                 continue;
             }
 
             statements[i].executeVoid(frame);
-            setIndex(frame, getIndex(frame) + 1);
+            setIndex(frame, indexSlot, currentIndex + 1);
         }
 
-        setIndex(frame, 0);
+        setIndex(frame, indexSlot, 0);
         return PNone.NONE;
-    }
-
-    public static final class InnerGeneratorBlockNode extends GeneratorBlockNode {
-
-        public InnerGeneratorBlockNode(PNode[] statements, int indexSlot) {
-            super(statements, indexSlot);
-        }
-
-        @ExplodeLoop
-        @Override
-        public Object execute(VirtualFrame frame) {
-            for (int i = 0; i < statements.length; i++) {
-                if (i < getIndex(frame)) {
-                    continue;
-                }
-
-                setIndex(frame, getIndex(frame) + 1);
-                statements[i].executeVoid(frame);
-            }
-
-            setIndex(frame, 0);
-            return PNone.NONE;
-        }
     }
 
 }

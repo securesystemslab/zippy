@@ -29,6 +29,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.replacements.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.*;
 
@@ -47,30 +48,66 @@ public class HotSpotReplacementsImpl extends ReplacementsImpl {
 
     @Override
     protected ResolvedJavaMethod registerMethodSubstitution(Member originalMethod, Method substituteMethod) {
-        if (substituteMethod.getDeclaringClass().getDeclaringClass() == BoxingSubstitutions.class) {
+        final Class<?> substituteClass = substituteMethod.getDeclaringClass();
+        if (substituteClass.getDeclaringClass() == BoxingSubstitutions.class) {
             if (config.useHeapProfiler) {
                 return null;
             }
-        } else if (substituteMethod.getDeclaringClass() == IntegerSubstitutions.class || substituteMethod.getDeclaringClass() == LongSubstitutions.class) {
+        } else if (substituteClass == IntegerSubstitutions.class || substituteClass == LongSubstitutions.class) {
             if (substituteMethod.getName().equals("bitCount")) {
                 if (!config.usePopCountInstruction) {
                     return null;
                 }
             }
-        } else if (substituteMethod.getDeclaringClass() == AESCryptSubstitutions.class || substituteMethod.getDeclaringClass() == CipherBlockChainingSubstitutions.class) {
-            if (!config.useAESIntrinsics) {
+        } else if (substituteClass == CRC32Substitutions.class) {
+            if (!config.useCRC32Intrinsics) {
                 return null;
             }
-            assert config.aescryptEncryptBlockStub != 0L;
-            assert config.aescryptDecryptBlockStub != 0L;
-            assert config.cipherBlockChainingEncryptAESCryptStub != 0L;
-            assert config.cipherBlockChainingDecryptAESCryptStub != 0L;
-        } else if (substituteMethod.getDeclaringClass() == CRC32Substitutions.class) {
-            if (!config.useCRC32Intrinsics) {
+        } else if (substituteClass == StringSubstitutions.class) {
+            /*
+             * AMD64's String.equals substitution needs about 8 registers so we better disable the
+             * substitution if there is some register pressure.
+             */
+            if (GraalOptions.RegisterPressure.getValue() != null) {
                 return null;
             }
         }
         return super.registerMethodSubstitution(originalMethod, substituteMethod);
+    }
+
+    /**
+     * A producer of graphs for methods.
+     */
+    public interface GraphProducer {
+
+        /**
+         * @returns a graph for {@code method} or null
+         */
+        StructuredGraph getGraphFor(ResolvedJavaMethod method);
+    }
+
+    /**
+     * Registers the graph producers that will take precedence over the registered method
+     * substitutions when {@link #getMethodSubstitution(ResolvedJavaMethod)} is called.
+     */
+    public void registerGraphProducers(GraphProducer[] producers) {
+        assert this.graphProducers == UNINITIALIZED : "graph producers must be registered at most once";
+        this.graphProducers = producers.clone();
+    }
+
+    private static GraphProducer[] UNINITIALIZED = {};
+
+    private GraphProducer[] graphProducers = UNINITIALIZED;
+
+    @Override
+    public StructuredGraph getMethodSubstitution(ResolvedJavaMethod original) {
+        for (GraphProducer gp : graphProducers) {
+            StructuredGraph graph = gp.getGraphFor(original);
+            if (graph != null) {
+                return graph;
+            }
+        }
+        return super.getMethodSubstitution(original);
     }
 
     @Override

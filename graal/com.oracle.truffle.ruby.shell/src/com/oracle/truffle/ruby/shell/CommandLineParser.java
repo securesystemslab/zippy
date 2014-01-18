@@ -208,15 +208,6 @@ public abstract class CommandLineParser {
                             configurationBuilder.setStandardLibrary(normalizedArgs.get(n + 1));
                             n++;
                             break;
-                        case "--1.8":
-                            configurationBuilder.setRubyVersion(RubyVersion.RUBY_18);
-                            break;
-                        case "--1.9":
-                            configurationBuilder.setRubyVersion(RubyVersion.RUBY_19);
-                            break;
-                        case "--2.0":
-                            configurationBuilder.setRubyVersion(RubyVersion.RUBY_20);
-                            break;
                         case "--full-object-space":
                             configurationBuilder.setFullObjectSpace(true);
                             break;
@@ -226,20 +217,11 @@ public abstract class CommandLineParser {
                         case "--print-parse-tree":
                             configurationBuilder.setPrintParseTree(true);
                             break;
-                        case "--print-executed-files":
-                            configurationBuilder.setPrintExecutedFiles(true);
-                            break;
-                        case "--print-spilt-instance-variables":
-                            configurationBuilder.setPrintSpiltInstanceVariables(true);
-                            break;
                         case "--print-uninitialized-calls":
                             configurationBuilder.setPrintUninitializedCalls(true);
                             break;
                         case "--print-java-exceptions":
                             configurationBuilder.setPrintJavaExceptions(true);
-                            break;
-                        case "--print-ruby-exceptions":
-                            configurationBuilder.setPrintRubyExceptions(true);
                             break;
                         default:
                             throw new IllegalArgumentException("unknown flag " + arg);
@@ -337,9 +319,6 @@ public abstract class CommandLineParser {
         out.println("Extra rubytruffle switches:");
         out.println("  --home dir                        set the location of the Ruby Truffle installation (default . or $RUBY_TRUFFLE_HOME)");
         out.println("  --stdlib dir                      use a directory for the Ruby standard library");
-        out.println("  --1.8                             1.8 compatibility mode");
-        out.println("  --1.9                             1.9 compatibility mode (default)");
-        out.println("  --2.0                             2.0 compatibility mode");
         out.println("  --full-object-space               enable full ObjectSpace#each_object and similar");
         out.println("  --no-debug                        disable debugging");
         out.println("  --no-trace                        disable tracing");
@@ -349,12 +328,8 @@ public abstract class CommandLineParser {
         out.println("  --no-intrinsic-method-calls       don't turn method calls into intrinsic nodes");
         out.println("  --no-jline                        don't use JLine");
         out.println("  --print-parse-tree                print the result of parsing");
-        out.println("  --print-executed-files            print the name of files as they are executed");
-        out.println("  --print-missing-intrinsics        print method calls that don't have intrinsic nodes");
-        out.println("  --print-spilt-instance-variables  print each time a native-typed instance variable is spilt to the boxed array");
         out.println("  --print-uninitialized-calls       print each time a method call is uninitialized");
         out.println("  --print-java-exceptions           print Java exception back traces at the point of translating them to Ruby exceptions");
-        out.println("  --print-ruby-exceptions           print the Java exception back traces at the point of raising Ruby exceptions");
         out.println("Relevant environment variables:");
         out.println("  RUBYHOME                          location of the Ruby Truffle installation");
         out.println("  RUBYOPT                           extra command line arguments");

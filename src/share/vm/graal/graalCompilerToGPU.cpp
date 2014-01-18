@@ -48,7 +48,9 @@
 
 C2V_ENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring name))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
-    tty->print_cr("generateKernel - not available / no linkage / not initialized");
+    if (TraceGPUInteraction) {
+      tty->print_cr("generateKernel - not available / no linkage / not initialized");
+    }
     return 0;
   }
   jboolean is_copy;
@@ -58,8 +60,7 @@ C2V_ENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring
   void *kernel = gpu::generate_kernel((unsigned char *)bytes, len, namestr);
   if (kernel == NULL) {
     tty->print_cr("[CUDA] *** Error: Failed to compile kernel");
-  }
-  else if (TraceGPUInteraction) {
+  } else if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Generated kernel");
   }
   env->ReleaseByteArrayElements(code, bytes, 0);
@@ -175,6 +176,18 @@ C2V_VMENTRY(jobject, executeParallelMethodVarargs, (JNIEnv *env,
   }
 C2V_END
 
+JRT_ENTRY(jlong, invalidLaunchKernel(JavaThread* thread))
+  SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_LinkageError(), "invalid kernel launch function");
+  return 0L;
+JRT_END
+
+C2V_VMENTRY(jlong, getLaunchKernelAddress, (JNIEnv *env, jobject))
+  if (gpu::get_target_il_type() == gpu::PTX) {
+    return (jlong) gpu::Ptx::execute_kernel_from_vm;
+  }
+  return (jlong) invalidLaunchKernel;
+C2V_END
+
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false) {
     if (TraceGPUInteraction) {
@@ -247,6 +260,7 @@ JNINativeMethod CompilerToGPU_methods[] = {
   {CC"availableProcessors",           CC"()I",                                    FN_PTR(availableProcessors)},
   {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,    FN_PTR(executeExternalMethodVarargs)},
   {CC"executeParallelMethodVarargs",  CC"(III["OBJECT HS_INSTALLED_CODE")"OBJECT, FN_PTR(executeParallelMethodVarargs)},
+  {CC"getLaunchKernelAddress",        CC"()J",                                    FN_PTR(getLaunchKernelAddress)},
 };
 
 int CompilerToGPU_methods_count() {

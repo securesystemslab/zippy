@@ -25,9 +25,7 @@ public class ConfigurationBuilder {
 
     private String standardLibrary = JRUBY_STDLIB_JAR;
 
-    private RubyVersion rubyVersion = RubyVersion.RUBY_19;
-
-    private boolean debug = true;
+    private boolean debug = false;
     private boolean verbose = false;
     private int warningLevel = 0;
     private int taintCheckLevel = 0;
@@ -35,15 +33,12 @@ public class ConfigurationBuilder {
     private String defaultExternalEncoding = null;
     private String defaultInternalEncoding = null;
 
-    private boolean trace = true;
+    private boolean trace = false;
     private boolean fullObjectSpace = false;
 
     private boolean printParseTree = false;
-    private boolean printExecutedFiles = false;
-    private boolean printSpiltInstanceVariables = false;
     private boolean printUninitializedCalls = false;
     private boolean printJavaExceptions = false;
-    private boolean printRubyExceptions = false;
 
     private PrintStream standardOut = System.out;
 
@@ -67,8 +62,6 @@ public class ConfigurationBuilder {
 
         standardLibrary = configuration.getStandardLibrary();
 
-        rubyVersion = configuration.getRubyVersion();
-
         debug = configuration.getDebug();
         verbose = configuration.getVerbose();
         warningLevel = configuration.getWarningLevel();
@@ -81,11 +74,8 @@ public class ConfigurationBuilder {
         fullObjectSpace = configuration.getFullObjectSpace();
 
         printParseTree = configuration.getPrintParseTree();
-        printExecutedFiles = configuration.getPrintExecutedFiles();
-        printSpiltInstanceVariables = configuration.getPrintSpiltInstanceVariables();
         printUninitializedCalls = configuration.getPrintUninitializedCalls();
         printJavaExceptions = configuration.getPrintJavaExceptions();
-        printRubyExceptions = configuration.getPrintRubyExceptions();
 
         standardOut = configuration.getStandardOut();
     }
@@ -97,15 +87,6 @@ public class ConfigurationBuilder {
     public void setStandardLibrary(String standardLibrary) {
         assert standardLibrary != null;
         this.standardLibrary = standardLibrary;
-    }
-
-    public RubyVersion getRubyVersion() {
-        return rubyVersion;
-    }
-
-    public void setRubyVersion(RubyVersion rubyVersion) {
-        assert rubyVersion != null;
-        this.rubyVersion = rubyVersion;
     }
 
     public boolean getDebug() {
@@ -182,22 +163,6 @@ public class ConfigurationBuilder {
         this.printParseTree = printParseTree;
     }
 
-    public boolean getPrintExecutedFiles() {
-        return printExecutedFiles;
-    }
-
-    public void setPrintExecutedFiles(boolean printExecutedFiles) {
-        this.printExecutedFiles = printExecutedFiles;
-    }
-
-    public boolean getPrintSpiltInstanceVariables() {
-        return printSpiltInstanceVariables;
-    }
-
-    public void setPrintSpiltInstanceVariables(boolean printSpiltInstanceVariables) {
-        this.printSpiltInstanceVariables = printSpiltInstanceVariables;
-    }
-
     public boolean getPrintUninitializedCalls() {
         return printUninitializedCalls;
     }
@@ -212,14 +177,6 @@ public class ConfigurationBuilder {
 
     public void setPrintJavaExceptions(boolean printJavaExceptions) {
         this.printJavaExceptions = printJavaExceptions;
-    }
-
-    public boolean getPrintRubyExceptions() {
-        return printRubyExceptions;
-    }
-
-    public void setPrintRubyExceptions(boolean printRubyExceptions) {
-        this.printRubyExceptions = printRubyExceptions;
     }
 
     public PrintStream getStandardOut() {

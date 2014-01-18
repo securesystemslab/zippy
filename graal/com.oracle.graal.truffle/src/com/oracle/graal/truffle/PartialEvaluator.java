@@ -107,7 +107,7 @@ public class PartialEvaluator {
             new GraphBuilderPhase.Instance(providers.getMetaAccess(), config, TruffleCompilerImpl.Optimizations).apply(graph);
 
             // Replace thisNode with constant.
-            LocalNode thisNode = graph.getLocal(0);
+            ParameterNode thisNode = graph.getParameter(0);
             thisNode.replaceAndDelete(ConstantNode.forObject(callTarget, providers.getMetaAccess(), graph));
 
             // Canonicalize / constant propagate.
@@ -141,7 +141,6 @@ public class PartialEvaluator {
                 new DebugHistogramAsciiPrinter(TTY.out().out()).print(histogram);
             }
 
-            // Additional inlining.
             canonicalizer.apply(graph, baseContext);
             HighTierContext tierContext = new HighTierContext(providers, assumptions, cache, new PhaseSuite<HighTierContext>(), OptimisticOptimizations.NONE);
 
@@ -195,7 +194,7 @@ public class PartialEvaluator {
                     Replacements replacements = providers.getReplacements();
                     Class<? extends FixedWithNextNode> macroSubstitution = replacements.getMacroSubstitution(methodCallTargetNode.targetMethod());
                     if (macroSubstitution != null) {
-                        InliningUtil.inlineMacroNode(methodCallTargetNode.invoke(), methodCallTargetNode.targetMethod(), methodCallTargetNode.graph(), macroSubstitution);
+                        InliningUtil.inlineMacroNode(methodCallTargetNode.invoke(), methodCallTargetNode.targetMethod(), macroSubstitution);
                         changed = true;
                         continue;
                     }
@@ -248,16 +247,16 @@ public class PartialEvaluator {
             assert graph.hasLoops();
             final StructuredGraph graphCopy = graph.copy();
             final List<Node> modifiedNodes = new ArrayList<>();
-            for (LocalNode local : graphCopy.getNodes(LocalNode.class)) {
-                ValueNode arg = arguments.get(local.index());
+            for (ParameterNode param : graphCopy.getNodes(ParameterNode.class)) {
+                ValueNode arg = arguments.get(param.index());
                 if (arg.isConstant()) {
                     Constant constant = arg.asConstant();
-                    for (Node usage : local.usages()) {
+                    for (Node usage : param.usages()) {
                         if (usage instanceof Canonicalizable) {
                             modifiedNodes.add(usage);
                         }
                     }
-                    local.replaceAndDelete(ConstantNode.forConstant(constant, phaseContext.getMetaAccess(), graphCopy));
+                    param.replaceAndDelete(ConstantNode.forConstant(constant, phaseContext.getMetaAccess(), graphCopy));
                 }
             }
             try (Scope s = Debug.scope("TruffleUnrollLoop", targetMethod)) {

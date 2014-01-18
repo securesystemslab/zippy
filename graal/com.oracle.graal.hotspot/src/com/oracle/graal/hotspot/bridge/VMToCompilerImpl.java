@@ -32,8 +32,6 @@ import java.lang.reflect.*;
 import java.security.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.CompilerThreadFactory.DebugConfigAccess;
@@ -87,7 +85,6 @@ public class VMToCompilerImpl implements VMToCompiler {
     private final HotSpotGraalRuntime runtime;
 
     private ThreadPoolExecutor compileQueue;
-    private AtomicInteger compileTaskIds = new AtomicInteger();
 
     private volatile boolean bootstrapRunning;
 
@@ -99,8 +96,8 @@ public class VMToCompilerImpl implements VMToCompiler {
         this.runtime = runtime;
     }
 
-    public int allocateCompileTaskId() {
-        return compileTaskIds.incrementAndGet();
+    public int allocateCompileTaskId(HotSpotResolvedJavaMethod method, int entryBCI) {
+        return runtime.getCompilerToVM().allocateCompileId(method, entryBCI);
     }
 
     public void startCompiler(boolean bootstrapEnabled) throws Throwable {
@@ -522,12 +519,7 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     @Override
     public void compileMethod(long metaspaceMethod, final int entryBCI, final boolean blocking) {
-        HotSpotVMConfig config = runtime().getConfig();
-        final long metaspaceConstMethod = unsafe.getAddress(metaspaceMethod + config.methodConstMethodOffset);
-        final long metaspaceConstantPool = unsafe.getAddress(metaspaceConstMethod + config.constMethodConstantsOffset);
-        final long metaspaceKlass = unsafe.getAddress(metaspaceConstantPool + config.constantPoolHolderOffset);
-        final HotSpotResolvedObjectType holder = (HotSpotResolvedObjectType) HotSpotResolvedObjectType.fromMetaspaceKlass(metaspaceKlass);
-        final HotSpotResolvedJavaMethod method = holder.createMethod(metaspaceMethod);
+        final HotSpotResolvedJavaMethod method = HotSpotResolvedJavaMethod.fromMetaspace(metaspaceMethod);
         // We have to use a privileged action here because compilations are enqueued from user code
         // which very likely contains unprivileged frames.
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
@@ -562,7 +554,7 @@ public class VMToCompilerImpl implements VMToCompiler {
             if (method.tryToQueueForCompilation()) {
                 assert method.isQueuedForCompilation();
 
-                int id = allocateCompileTaskId();
+                int id = allocateCompileTaskId(method, entryBCI);
                 HotSpotBackend backend = runtime.getHostBackend();
                 CompilationTask task = new CompilationTask(backend, method, entryBCI, id);
 

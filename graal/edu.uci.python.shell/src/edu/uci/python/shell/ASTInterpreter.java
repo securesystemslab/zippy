@@ -32,13 +32,6 @@ import edu.uci.python.runtime.function.*;
 
 public class ASTInterpreter {
 
-    public static boolean debug;
-
-    @SuppressWarnings("hiding")
-    public static void init(boolean debug) {
-        ASTInterpreter.debug = debug;
-    }
-
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         CallTarget module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());

@@ -46,7 +46,6 @@ public class CustomConsole extends JLineConsole {
     public void execfile(PythonContext context, Source source) {
         setSystemState();
 
-        ASTInterpreter.init(false);
         PythonParseResult result = context.getParser().parse(context, source, CompileMode.exec, cflags);
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
