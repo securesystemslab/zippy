@@ -130,7 +130,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
-         * Funciton body
+         * Function body
          */
         List<PNode> statements = visitStatements(node.getInternalBody());
         StatementNode body = factory.createBlock(statements);
@@ -171,6 +171,66 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
+    }
+
+    @Override
+    public Object visitLambda(Lambda node) throws Exception {
+        /**
+         * translate default arguments in FunctionDef's declaring scope.
+         */
+        List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
+
+        String name = "anonymous";
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
+        environment.setDefaultArgumentNodes(defaultArgs);
+
+        /**
+         * Parameters
+         */
+        Arity arity = createArity(name, node.getInternalArgs());
+        BlockNode argumentLoads = visitArgs(node.getInternalArgs());
+
+        /**
+         * Lambda body
+         */
+        expr body = node.getInternalBody();
+        PNode bodyNode = (PNode) visit(body);
+        LambdaNode lambdaNode = new LambdaNode(argumentLoads, bodyNode);
+        /**
+         * Defaults
+         */
+        StatementNode defaults;
+        if (environment.hasDefaultArguments()) {
+            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
+            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
+            defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
+        } else {
+            defaults = BlockNode.getEmptyBlock();
+        }
+
+        /**
+         * Lambda function root
+         */
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, lambdaNode);
+        FrameDescriptor fd = environment.getCurrentFrame();
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+        result.addParsedFunction(name, funcRoot);
+
+        /**
+         * Definition
+         */
+        PNode funcDef;
+        if (environment.isInGeneratorScope()) {
+            GeneratorTranslator gtran = new GeneratorTranslator();
+            gtran.translate(funcRoot);
+            funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+        } else {
+            funcDef = new FunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+        }
+
+        environment.endScope(node);
+        return funcDef;
+        // return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
@@ -266,14 +326,6 @@ public class PythonTreeTranslator extends Visitor {
         return targets;
     }
 
-// private PNode createSingleImportStatement(alias aliaz, String fromModuleName) {
-// String importName = aliaz.getInternalName();
-// String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-// PNode importNode = factory.createImport(context, fromModuleName, importName);
-// ReadNode read = environment.findVariable(target);
-// return read.makeWriteNode(importNode);
-// }
-
     private PNode createSingleImportStatement(alias aliaz) {
         String importName = aliaz.getInternalName();
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
@@ -296,13 +348,11 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            // return createSingleImportStatement(aliases.get(0), null);
             return createSingleImportStatement(aliases.get(0));
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            // imports.add(createSingleImportStatement(aliases.get(i), null));
             imports.add(createSingleImportStatement(aliases.get(i)));
         }
 
@@ -318,13 +368,11 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            // return createSingleImportStatement(aliases.get(0), node.getInternalModule());
             return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            // imports.add(createSingleImportStatement(aliases.get(i), node.getInternalModule()));
             imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
         }
 

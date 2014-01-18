@@ -158,11 +158,14 @@ public class PythonModuleImporter {
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
             PythonContext moduleContext = new PythonContext(context, moduleName);
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] parsing module " + path);
+            // CheckStyle: resume system..print check
             PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
 
             if (parsedModule != null) {
                 // CheckStyle: stop system..print check
-                System.out.println("[ZipPy] parsing module " + moduleName);
+                System.out.println("[ZipPy] parsed module " + path);
                 // CheckStyle: resume system..print check
                 if (PythonOptions.PrintAST) {
                     parsedModule.printAST();

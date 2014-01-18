@@ -87,7 +87,11 @@ public class TranslationUtil {
         if (kind == ScopeInfo.ScopeKind.Module) {
             scopeId = scopeEntity.toString();
         } else if (kind == ScopeInfo.ScopeKind.Function) {
-            scopeId = "function " + ((FunctionDef) scopeEntity).getInternalName();
+            if (scopeEntity instanceof FunctionDef) {
+                scopeId = "function " + ((FunctionDef) scopeEntity).getInternalName();
+            } else if (scopeEntity instanceof Lambda) {
+                scopeId = "lambda";
+            }
         } else if (kind == ScopeInfo.ScopeKind.Class) {
             scopeId = "class " + ((ClassDef) scopeEntity).getInternalName();
         } else if (kind == ScopeInfo.ScopeKind.Generator) {

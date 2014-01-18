@@ -106,10 +106,6 @@ public class NodeFactory {
         return new BlockNode(statments);
     }
 
-// public PNode createImport(PythonContext context, String fromModuleName, String importee) {
-// return new ImportNode(context, fromModuleName, importee);
-// }
-
     public PNode createImport(PythonContext context, String importee) {
         return new ImportNode(context, importee);
     }
