@@ -179,9 +179,13 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
                     if (graph != null) {
                         Group g = graph.getGroup();
                         rootNode.update(graph, g.getMethod());
+                    } else {
+                        rootNode.update(null, null);
                     }
                 }
             });
+        } else {
+            rootNode.update(null, null);
         }
     }
 
