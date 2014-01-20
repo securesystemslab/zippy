@@ -408,6 +408,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     @Override
     public void componentClosed() {
+        rangeSliderModel.close();
     }
 
     @Override

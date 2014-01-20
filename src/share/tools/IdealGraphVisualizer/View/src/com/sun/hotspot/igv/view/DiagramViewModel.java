@@ -389,4 +389,9 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         }
         this.setSelectedNodes(newSelectedNodes);
     }
+
+    void close() {
+        filterChain.getChangedEvent().removeListener(filterChainChangedListener);
+        sequenceFilterChain.getChangedEvent().removeListener(filterChainChangedListener);
+}
 }
