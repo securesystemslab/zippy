@@ -580,4 +580,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         return scene.getUndoRedo();
     }
 
+    @Override
+    protected Object writeReplace() throws ObjectStreamException {
+        throw new NotSerializableException();
+}
 }
