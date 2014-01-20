@@ -2041,16 +2041,12 @@ bool Method::is_lambda() const {
       const char* lambdaPrefix = "lambda$main$";
       char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
       if (methodPrefix != 0) {
-        if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0) && 
-            is_synthetic()) {
-          //tty->print_cr("[Check] %s::%s", klass_name->as_C_string(), method_name->as_C_string());
+        if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0) && is_synthetic()) {
           return true;
-        } else {
-          return false;
         }
       }
     }
-    //}
   }
+  return false;
 }
 #endif
