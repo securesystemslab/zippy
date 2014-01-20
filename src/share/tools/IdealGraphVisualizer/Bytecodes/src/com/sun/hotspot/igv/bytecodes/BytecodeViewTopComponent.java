@@ -171,22 +171,21 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
     @Override
     public void resultChanged(LookupEvent lookupEvent) {
         final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
-        if (p != null) {
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
+                if (p != null) {
                     InputGraph graph = p.getGraph();
                     if (graph != null) {
                         Group g = graph.getGroup();
                         rootNode.update(graph, g.getMethod());
-                    } else {
-                        rootNode.update(null, null);
+                        return;
                     }
                 }
+                        rootNode.update(null, null);
+                    }
             });
-        } else {
-            rootNode.update(null, null);
-        }
+
     }
 
     final static class ResolvableHelper implements Serializable {
