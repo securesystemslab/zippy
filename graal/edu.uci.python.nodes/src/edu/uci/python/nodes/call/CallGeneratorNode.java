@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.call;
 
+import java.io.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -114,6 +116,9 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             BlockNode block = new BlockNode(new PNode[]{frameTransfer, frameSwapper});
             yield.replace(block);
         }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] transformed generator call to " + cached);
     }
 
     private boolean simpleGeneratorLoopTransformation(ForWithLocalTargetNode loop, FrameFactory factory) {
