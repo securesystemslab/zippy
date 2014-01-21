@@ -336,10 +336,19 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
         String importName = aliaz.getInternalName();
+        if (importName.equals("*")) {
+            return createSingleImportStarStatement(fromModuleName);
+        }
+
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
         PNode importNode = factory.createImportFrom(context, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
+    }
+
+    private PNode createSingleImportStarStatement(String fromModuleName) {
+        PNode importNode = factory.createImportStar(context, fromModuleName);
+        return importNode;
     }
 
     @Override
@@ -364,6 +373,7 @@ public class PythonTreeTranslator extends Visitor {
         if (node.getInternalModule().compareTo("__future__") == 0) {
             return null;
         }
+
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
@@ -858,4 +868,8 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createAssert(condition, msg);
     }
 
+    @Override
+    public Object visitDelete(Delete node) throws Exception {
+        return null;
+    }
 }
