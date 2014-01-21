@@ -54,6 +54,8 @@ public class PythonOptions {
 
     public static final boolean UseSimpleGeneratorInlining = false;
 
+    public static final boolean InlineGeneratorCallsInGenerator = false;
+
     public static final boolean CacheAttributeLoads = true;
 
     public static final boolean UnboxSequenceStorage = true;

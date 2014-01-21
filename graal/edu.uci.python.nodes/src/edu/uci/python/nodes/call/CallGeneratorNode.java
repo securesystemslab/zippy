@@ -93,35 +93,30 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             return simpleGeneratorLoopTransformation((ForWithLocalTargetNode) grandpa, factory);
         }
 
-        try {
-            if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
-                transformLoopGeneratorCall((LoopNode) grandpa, factory);
+        if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
+            transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
+            return true;
+        }
+
+        if (parent instanceof GetIteratorNode && grandpa instanceof GeneratorForNode) {
+            if (PythonOptions.InlineGeneratorCallsInGenerator) {
+                transformLoopGeneratorCallInGenerator((GeneratorForNode) grandpa, factory);
                 return true;
             }
-        } catch (IllegalStateException e) {
-            // fall through
         }
 
         return false;
     }
 
-    private void transformLoopGeneratorCall(LoopNode loop, FrameFactory factory) {
+    private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
         CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
         PNode body = loop.getBody();
-
         FrameSlot yieldToSlotInCallerFrame;
-        if (loop instanceof ForWithLocalTargetNode) {
-            AdvanceIteratorNode next = (AdvanceIteratorNode) ((ForWithLocalTargetNode) loop).getTarget();
-            PNode target = next.getTarget();
-            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
-        } else if (loop instanceof GeneratorForNode) {
-            PNode target = ((GeneratorForNode) loop).getTarget();
-            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
-        } else {
-            throw new IllegalStateException();
-        }
+        AdvanceIteratorNode next = (AdvanceIteratorNode) loop.getTarget();
+        PNode target = next.getTarget();
+        yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
             PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
@@ -131,7 +126,30 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         }
 
         PrintStream ps = System.out;
-        ps.println("[ZipPy] transformed generator call to " + cached);
+        ps.println("[ZipPy] transformed generator call to " + cached.getCallTarget() + " in " + getRootNode());
+    }
+
+    /**
+     * Not complete. Inlined callee body should be translated to its generator version. A Generator
+     * version of VirtualFrameCargoArgument is necessary too.
+     */
+    private void transformLoopGeneratorCallInGenerator(GeneratorForNode loop, FrameFactory factory) {
+        CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
+        loop.replace(inlinedNode);
+
+        PNode body = loop.getBody();
+        PNode target = loop.getTarget();
+        FrameSlot yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(body));
+            BlockNode block = new BlockNode(new PNode[]{frameTransfer, frameSwapper});
+            yield.replace(block);
+        }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] transformed generator call to " + cached.getCallTarget() + " in generator " + getRootNode());
     }
 
     private boolean simpleGeneratorLoopTransformation(ForWithLocalTargetNode loop, FrameFactory factory) {
