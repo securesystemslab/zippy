@@ -314,6 +314,8 @@ public class NodeFactory {
                 return IsNotNodeFactory.create(left, right);
             case In:
                 return InNodeFactory.create(left, right);
+            case NotIn:
+                return NotInNodeFactory.create(left, right);
             default:
                 throw new RuntimeException("unexpected operation: " + operator);
         }
