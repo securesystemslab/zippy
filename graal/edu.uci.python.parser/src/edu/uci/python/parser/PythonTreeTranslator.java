@@ -101,7 +101,9 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> statements = new ArrayList<>();
 
         for (int i = 0; i < stmts.size(); i++) {
-            PNode statement = (PNode) visit(stmts.get(i));
+            Object statementObject = visit(stmts.get(i));
+            PNode statement = (PNode) statementObject;
+            // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
             if (statement != null) {
@@ -855,7 +857,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitRaise(Raise node) throws Exception {
-        PNode type = (PNode) visit(node.getInternalType());
+        PNode type = (node.getInternalType() == null) ? null : (PNode) visit(node.getInternalType());
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
         return factory.createRaiseNode(type, inst);
     }
