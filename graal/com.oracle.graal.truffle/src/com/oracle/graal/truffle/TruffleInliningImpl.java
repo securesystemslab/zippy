@@ -28,6 +28,7 @@ import java.io.*;
 import java.util.*;
 
 import com.oracle.graal.debug.*;
+import com.oracle.graal.options.*;
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -76,6 +77,10 @@ class TruffleInliningImpl implements TruffleInlining {
             for (InlinableCallSiteInfo callSite : inlinableCallSites) {
                 callSite.getCallSite().resetCallCount();
             }
+            // zwei
+            if (TrufflePrintInlinedAST.getValue()) {
+                NodeUtil.printCompactTree(OUT, target.getRootNode());
+            }
         } else {
             if (TraceTruffleInliningDetails.getValue()) {
                 OUT.printf("[truffle] inlining stopped.%3d remaining call sites in %s:\n", inlinableCallSites.size(), target.getRootNode());
@@ -113,9 +118,24 @@ class TruffleInliningImpl implements TruffleInlining {
         }
 
         public boolean isWorthInlining(InlinableCallSiteInfo callSite) {
-            return callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue() && callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue() &&
-                            callSite.getCallCount() > 0 && callSite.getRecursiveDepth() < TruffleInliningMaxRecursiveDepth.getValue() &&
-                            (frequency(callSite) >= TruffleInliningMinFrequency.getValue() || callSite.getInlineNodeCount() <= TruffleInliningTrivialSize.getValue());
+            // zwei: debugging
+            boolean reason0 = callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue();
+            boolean reason1 = callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue();
+            boolean reason2 = callSite.getCallCount() > 0;
+            boolean reason3 = callSite.getRecursiveDepth() < TruffleInliningMaxRecursiveDepth.getValue();
+            boolean reason4 = frequency(callSite) >= TruffleInliningMinFrequency.getValue();
+            boolean reason5 = callSite.getInlineNodeCount() <= TruffleInliningTrivialSize.getValue();
+
+            boolean worth = reason0 && reason1 && reason2 && reason3;
+            worth = worth && (reason4 || reason5);
+            return worth;
+
+// return callSite.getInlineNodeCount() <= TruffleInliningMaxCalleeSize.getValue() &&
+// callSite.getInlineNodeCount() + callerNodeCount <= TruffleInliningMaxCallerSize.getValue() &&
+// callSite.getCallCount() > 0 && callSite.getRecursiveDepth() <
+// TruffleInliningMaxRecursiveDepth.getValue() &&
+// (frequency(callSite) >= TruffleInliningMinFrequency.getValue() || callSite.getInlineNodeCount()
+// <= TruffleInliningTrivialSize.getValue());
         }
 
         public double metric(InlinableCallSiteInfo callSite) {

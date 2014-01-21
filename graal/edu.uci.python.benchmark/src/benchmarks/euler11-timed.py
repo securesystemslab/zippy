@@ -48,17 +48,13 @@ def solve():
 
 # test
 def _max(iterator):
-    max = 0
+    max = None
     for i in iterator:
+        if max is None:
+            max = i
         if i > max:
             max = i
     return max
-
-def _list(iterator):
-    ll = []
-    for i in iterator:
-        ll.append(i)
-    return ll
 
 def main(iteration):
     for i in range(iteration):

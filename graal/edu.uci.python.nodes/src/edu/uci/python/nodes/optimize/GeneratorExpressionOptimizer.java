@@ -100,21 +100,26 @@ public class GeneratorExpressionOptimizer {
     private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+        PNode[] argReads;
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+        } catch (IllegalStateException e) {
+            return;
+        }
 
-            CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            PNode loadGenerator = getIterator.getOperand();
-            loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+        assert argReads != null;
+        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+        PNode loadGenerator = getIterator.getOperand();
+        loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
 
+        try {
             PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
             matched.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
         } catch (IllegalStateException e) {
-            return;
         }
 
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
@@ -123,16 +128,22 @@ public class GeneratorExpressionOptimizer {
     private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+        PNode[] argReads;
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp, false);
+            argReads = assembleArgumentReads(arguments, genExp, false);
+        } catch (IllegalStateException e) {
+            return;
+        }
 
-            CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
+        assert argReads != null;
+        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+        loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
 
+        try {
             /**
              * Apply the same replacement in uninitialized body too, since the gen exp itself is
              * already modified and will not work in its original form.
@@ -140,7 +151,6 @@ public class GeneratorExpressionOptimizer {
             PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
             matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
         } catch (IllegalStateException e) {
-            return;
         }
 
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
@@ -217,7 +227,7 @@ public class GeneratorExpressionOptimizer {
         BlockNode parameters = (BlockNode) body.getParameters();
 
         if (!parameters.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException(); // has been replaced earlier.
         }
 
         body.getParameters().replace(assembleParameterWrites(slots, false));
