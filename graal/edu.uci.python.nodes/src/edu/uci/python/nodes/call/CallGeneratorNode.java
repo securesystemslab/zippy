@@ -37,6 +37,7 @@ import edu.uci.python.nodes.call.CallFunctionNoKeywordNode.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -72,6 +73,12 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         return generatorRoot.getCallTarget();
     }
 
+    public void invokeGeneratorExpressionOptimizer() {
+        RootNode current = getRootNode();
+        assert current != null;
+        new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
@@ -95,6 +102,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
         if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
             transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
+            invokeGeneratorExpressionOptimizer();
             return true;
         }
 

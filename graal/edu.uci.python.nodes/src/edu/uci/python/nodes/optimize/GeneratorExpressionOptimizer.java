@@ -53,11 +53,8 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
-            if (!genExp.needsDeclarationFrame()) {
-                continue; // No need to optimize
-            }
-
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
+
             if (escapeAnalyzer.escapes()) {
                 context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
