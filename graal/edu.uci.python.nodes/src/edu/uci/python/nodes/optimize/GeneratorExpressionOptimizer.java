@@ -106,9 +106,13 @@ public class GeneratorExpressionOptimizer {
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
             PNode[] argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            getIterator.getOperand().replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
-            functionRoot.updateUninitializedBody();
+            PNode loadGenerator = getIterator.getOperand();
+            loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+
+            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
+            matched.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
         } catch (IllegalStateException e) {
             return;
         }
@@ -125,9 +129,16 @@ public class GeneratorExpressionOptimizer {
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
             PNode[] argReads = assembleArgumentReads(arguments, genExp, false);
+
             CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
             loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-            functionRoot.updateUninitializedBody();
+
+            /**
+             * Apply the same replacement in uninitialized body too, since the gen exp itself is
+             * already modified and will not work in its original form.
+             */
+            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
+            matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
         } catch (IllegalStateException e) {
             return;
         }

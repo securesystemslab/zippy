@@ -38,6 +38,10 @@ public abstract class LoopNode extends StatementNode {
         this.body = adoptChild(body);
     }
 
+    public PNode getBody() {
+        return body;
+    }
+
     protected final void reportLoopCount(int count) {
         CompilerAsserts.neverPartOfCompilation();
         RootNode root = getRootNode();

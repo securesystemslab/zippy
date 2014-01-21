@@ -81,6 +81,7 @@ public class GeneratorTranslator {
 
         for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
             genexp.setDeclarationFrameGenerator();
+            NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setDeclarationFrameGenerator();
         }
 
         for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {

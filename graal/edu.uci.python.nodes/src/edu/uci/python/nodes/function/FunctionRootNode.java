@@ -50,10 +50,6 @@ public final class FunctionRootNode extends RootNode {
         this.uninitializedBody = NodeUtil.cloneNode(body);
     }
 
-    public void updateUninitializedBody() {
-        this.uninitializedBody = NodeUtil.cloneNode(body);
-    }
-
     public PythonContext getContext() {
         return context;
     }
