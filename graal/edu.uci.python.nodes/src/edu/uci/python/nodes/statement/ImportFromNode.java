@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.statement;
 
 import org.python.core.*;
+
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -66,5 +67,4 @@ public class ImportFromNode extends PNode {
             }
         }
     }
-
 }

@@ -114,6 +114,10 @@ public class NodeFactory {
         return new ImportFromNode(context, fromModuleName, importee);
     }
 
+    public PNode createImportStar(PythonContext context, String fromModuleName) {
+        return new ImportStarNode(context, fromModuleName);
+    }
+
     public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {
         return new WhileNode(condition, body);
     }

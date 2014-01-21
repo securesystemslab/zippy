@@ -101,7 +101,9 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> statements = new ArrayList<>();
 
         for (int i = 0; i < stmts.size(); i++) {
-            PNode statement = (PNode) visit(stmts.get(i));
+            Object statementObject = visit(stmts.get(i));
+            PNode statement = (PNode) statementObject;
+            // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
             if (statement != null) {
@@ -336,10 +338,19 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
         String importName = aliaz.getInternalName();
+        if (importName.equals("*")) {
+            return createSingleImportStarStatement(fromModuleName);
+        }
+
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
         PNode importNode = factory.createImportFrom(context, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
+    }
+
+    private PNode createSingleImportStarStatement(String fromModuleName) {
+        PNode importNode = factory.createImportStar(context, fromModuleName);
+        return importNode;
     }
 
     @Override
@@ -364,6 +375,7 @@ public class PythonTreeTranslator extends Visitor {
         if (node.getInternalModule().compareTo("__future__") == 0) {
             return null;
         }
+
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
@@ -845,7 +857,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitRaise(Raise node) throws Exception {
-        PNode type = (PNode) visit(node.getInternalType());
+        PNode type = (node.getInternalType() == null) ? null : (PNode) visit(node.getInternalType());
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
         return factory.createRaiseNode(type, inst);
     }
@@ -858,4 +870,8 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createAssert(condition, msg);
     }
 
+    @Override
+    public Object visitDelete(Delete node) throws Exception {
+        return null;
+    }
 }

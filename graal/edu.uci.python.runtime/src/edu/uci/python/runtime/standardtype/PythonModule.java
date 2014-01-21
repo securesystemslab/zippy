@@ -139,7 +139,6 @@ public class PythonModule extends PythonBasicObject {
     @Override
     public String toString() {
         return "<module '" + this.getAttribute(__NAME__) + "'>";
-
     }
 
     /**
