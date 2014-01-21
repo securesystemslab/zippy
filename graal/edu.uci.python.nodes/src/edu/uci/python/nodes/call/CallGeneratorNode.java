@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.call;
 
+import java.io.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -91,22 +93,35 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             return simpleGeneratorLoopTransformation((ForWithLocalTargetNode) grandpa, factory);
         }
 
-        if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
-            transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
-            return true;
+        try {
+            if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
+                transformLoopGeneratorCall((LoopNode) grandpa, factory);
+                return true;
+            }
+        } catch (IllegalStateException e) {
+            // fall through
         }
 
         return false;
     }
 
-    private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
+    private void transformLoopGeneratorCall(LoopNode loop, FrameFactory factory) {
         CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
         PNode body = loop.getBody();
-        AdvanceIteratorNode next = (AdvanceIteratorNode) loop.getTarget();
-        PNode target = next.getTarget();
-        FrameSlot yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        FrameSlot yieldToSlotInCallerFrame;
+        if (loop instanceof ForWithLocalTargetNode) {
+            AdvanceIteratorNode next = (AdvanceIteratorNode) ((ForWithLocalTargetNode) loop).getTarget();
+            PNode target = next.getTarget();
+            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+        } else if (loop instanceof GeneratorForNode) {
+            PNode target = ((GeneratorForNode) loop).getTarget();
+            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+        } else {
+            throw new IllegalStateException();
+        }
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
             PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
@@ -114,12 +129,14 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             BlockNode block = new BlockNode(new PNode[]{frameTransfer, frameSwapper});
             yield.replace(block);
         }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] transformed generator call to " + cached);
     }
 
     private boolean simpleGeneratorLoopTransformation(ForWithLocalTargetNode loop, FrameFactory factory) {
         GetGeneratorArgumentsNode getGenArgs = new GetGeneratorArgumentsNode(callee, arguments, (PGeneratorFunction) cached, globalScopeUnchanged);
         FrameSlotNode target = ((AdvanceIteratorNode) loop.getTarget()).getTarget();
-        generatorRoot.updateUninitializedBody();
         AdvanceInlinedGeneratorNode next = AdvanceInlinedGeneratorNodeFactory.create(factory, cached.getFrameDescriptor(), generatorRoot.getInlinedRootNode(), EMPTYNODE);
         ForOnInlinedGeneratorNode newFor = new ForOnInlinedGeneratorNode(loop.getBody(), target, getGenArgs, next);
         loop.replace(newFor);

@@ -47,10 +47,6 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
         this(previous.target, previous.body);
     }
 
-    public PNode getBody() {
-        return body;
-    }
-
     public PNode getTarget() {
         return target;
     }

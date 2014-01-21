@@ -50,6 +50,10 @@ public class GeneratorForNode extends LoopNode {
         this.iteratorSlot = iteratorSlot;
     }
 
+    public PNode getTarget() {
+        return target;
+    }
+
     public int getIteratorSlot() {
         return iteratorSlot;
     }
