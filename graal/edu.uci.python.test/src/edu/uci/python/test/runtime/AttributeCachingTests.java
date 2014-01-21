@@ -63,7 +63,7 @@ public class AttributeCachingTests {
         PNode getattr = factory.createGetAttribute(context, plist, "append");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", body);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
 
         // 1st execute
         VirtualFrame frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
@@ -141,7 +141,7 @@ public class AttributeCachingTests {
         PNode getattr = factory.createGetAttribute(context, objNode, "foo");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", body);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
 
         // 1st execute
         VirtualFrame frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);

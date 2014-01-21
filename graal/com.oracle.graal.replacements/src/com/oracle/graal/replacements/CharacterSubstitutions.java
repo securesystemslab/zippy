@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.test.nodes;
+package com.oracle.graal.replacements;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.replacements.nodes.*;
 
-public class RootTestNode extends RootNode {
-
-    private final String name;
-    @Child AbstractTestNode node;
-
-    public RootTestNode(FrameDescriptor descriptor, String name, AbstractTestNode node) {
-        super(null, descriptor);
-        this.name = name;
-        this.node = node;
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return node.execute(frame);
-    }
-
-    @Override
-    public String toString() {
-        return name;
+@ClassSubstitution(Character.class)
+public class CharacterSubstitutions {
+    @MethodSubstitution
+    public static char reverseBytes(char i) {
+        return (char) (ReverseBytesNode.reverse(i) >> 16);
     }
 }

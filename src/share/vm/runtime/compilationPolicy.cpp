@@ -45,6 +45,9 @@
 #include "runtime/vm_operations.hpp"
 #include "utilities/events.hpp"
 #include "utilities/globalDefinitions.hpp"
+#ifdef GRAAL
+#include "runtime/gpu.hpp"
+#endif
 
 CompilationPolicy* CompilationPolicy::_policy;
 elapsedTimer       CompilationPolicy::_accumulated_time;
@@ -101,6 +104,32 @@ bool CompilationPolicy::must_be_compiled(methodHandle m, int comp_level) {
   if (ReplayCompiles) return false;
 
   if (m->has_compiled_code()) return false;       // already compiled
+
+#ifdef GRAAL
+  // Check if this is a Lambda method that can be compiled to a GPU.
+  if (m->is_lambda()) {
+    // If GPU is available and the necessary linkage is available
+    // rerurn true indicatin that this method must be compiled.
+    if (gpu::is_available() && gpu::has_gpu_linkage()) {
+      if (TraceGPUInteraction) {
+        tty->print("Compiling Lambda method");
+        m->print_short_name();
+        switch (gpu::get_target_il_type()) {
+        case gpu::PTX :
+          tty->print_cr(" to PTX");
+          break;
+        case gpu::HSAIL :
+          tty->print_cr(" to HSAIL");
+          break;
+        default :
+          tty->print_cr(" to Unknown GPU!!!");
+        }
+      }
+      return true;
+    }
+  }
+#endif
+
   if (!can_be_compiled(m, comp_level)) return false;
 
   return !UseInterpreter ||                                              // must compile all methods

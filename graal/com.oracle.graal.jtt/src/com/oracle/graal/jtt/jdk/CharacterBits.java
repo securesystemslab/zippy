@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.test.nodes;
+package com.oracle.graal.jtt.jdk;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.graal.jtt.*;
+import org.junit.*;
 
-public class RootTestNode extends RootNode {
+public class CharacterBits extends JTTTest {
+    @SuppressWarnings("unused") private static char init = Character.reverseBytes((char) 42);
+    private static char original = 0x1708;
 
-    private final String name;
-    @Child AbstractTestNode node;
-
-    public RootTestNode(FrameDescriptor descriptor, String name, AbstractTestNode node) {
-        super(null, descriptor);
-        this.name = name;
-        this.node = node;
+    public static char test(char o) {
+        return Character.reverseBytes(o);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return node.execute(frame);
+    @Test
+    public void run0() {
+        runTest("test", original);
     }
 
-    @Override
-    public String toString() {
-        return name;
+    @Test
+    public void run1() {
+        runTest("test", (char) 0x1708L);
+    }
+
+    @Test
+    public void run2() {
+        runTest("test", (char) 0);
+        runTest("test", (char) 1);
+        runTest("test", (char) -1);
+        runTest("test", (char) 0x00ff);
+        runTest("test", (char) 0xff00);
+        runTest("test", (char) 0xffff);
+        runTest("test", (char) 0x3fff);
     }
 }

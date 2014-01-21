@@ -1359,7 +1359,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     ScopeDesc*      trap_scope  = cvf->scope();
     
     if (TraceDeoptimization) {
-      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", speculation=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string()
+      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", debug_id=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string()
 #ifdef GRAAL
           , debug_id
 #endif
@@ -1370,17 +1370,34 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     int             trap_bci    = trap_scope->bci();
 #ifdef GRAAL
     oop speculation = thread->pending_failed_speculation();
+    if (nm->is_compiled_by_graal()) {
     if (speculation != NULL) {
       oop speculation_log = nm->speculation_log();
       if (speculation_log != NULL) {
-        if (TraceUncollectedSpeculations) {
+        if (TraceDeoptimization || TraceUncollectedSpeculations) {
           if (SpeculationLog::lastFailed(speculation_log) != NULL) {
             tty->print_cr("A speculation that was not collected by the compiler is being overwritten");
           }
         }
+        if (TraceDeoptimization) {
+          tty->print_cr("Saving speculation to speculation log");
+        }
         SpeculationLog::set_lastFailed(speculation_log, speculation);
+      } else {
+        if (TraceDeoptimization) {
+          tty->print_cr("Speculation present but no speculation log");
+        }
       }
       thread->set_pending_failed_speculation(NULL);
+    } else {
+      if (TraceDeoptimization) {
+        tty->print_cr("No speculation");
+      }
+    }
+    } else {
+#ifdef ASSERT
+      assert(speculation == NULL, "There should not be a speculation for method compiled by other compilers");
+#endif
     }
 
     if (trap_bci == SynchronizationEntryBCI) {
@@ -1490,7 +1507,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
           tty->print(" (Graal: no installed code) ");
         }
 #endif //GRAAL
-        tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d" GRAAL_ONLY(" speculation=%d"),
+        tty->print(" (@" INTPTR_FORMAT ") thread=" UINTX_FORMAT " reason=%s action=%s unloaded_class_index=%d" GRAAL_ONLY(" debug_id=%d"),
                    fr.pc(),
                    os::current_thread_id(),
                    trap_reason_name(reason),
@@ -2025,14 +2042,14 @@ const char* Deoptimization::format_trap_request(char* buf, size_t buflen,
 #endif
   size_t len;
   if (unloaded_class_index < 0) {
-    len = jio_snprintf(buf, buflen, "reason='%s' action='%s'" GRAAL_ONLY(" speculation='%d'"),
+    len = jio_snprintf(buf, buflen, "reason='%s' action='%s'" GRAAL_ONLY(" debug_id='%d'"),
                        reason, action
 #ifdef GRAAL
                        ,debug_id
 #endif
                        );
   } else {
-    len = jio_snprintf(buf, buflen, "reason='%s' action='%s' index='%d'" GRAAL_ONLY(" speculation='%d'"),
+    len = jio_snprintf(buf, buflen, "reason='%s' action='%s' index='%d'" GRAAL_ONLY(" debug_id='%d'"),
                        reason, action, unloaded_class_index
 #ifdef GRAAL
                        ,debug_id

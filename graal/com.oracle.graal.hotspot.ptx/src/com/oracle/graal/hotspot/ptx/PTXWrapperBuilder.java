@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot.ptx;
 
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.api.meta.LocationIdentity.*;
 import static com.oracle.graal.api.meta.MetaUtil.*;
@@ -53,9 +54,9 @@ import com.oracle.graal.replacements.nodes.*;
 import com.oracle.graal.word.*;
 
 /**
- * Utility for building a graph that "wraps" the PTX binary compiled for a method. Such a wrapper
- * handles the transition from the host CPU to the GPU and back. The graph created is something like
- * the following pseudo code with UPPER CASE denoting compile-time constants:
+ * Utility for building a graph that "wraps" a compiled PTX kernel. Such a wrapper handles the
+ * transition from the host CPU to the GPU and back. The graph created is something like the
+ * following pseudo code with UPPER CASE denoting compile-time constants:
  * 
  * <pre>
  *     T kernel(p0, p1, ..., pN) {
@@ -65,6 +66,10 @@ import com.oracle.graal.word.*;
  *         return convert(result);
  *     }
  * </pre>
+ * <p>
+ * The generated graph includes a reference to the {@link HotSpotNmethod} for the kernel. There must
+ * be another reference to the same {@link HotSpotNmethod} object to ensure that the nmethod is not
+ * unloaded by the next full GC.
  */
 public class PTXWrapperBuilder extends GraphKit {
 
@@ -97,9 +102,10 @@ public class PTXWrapperBuilder extends GraphKit {
      * Creates the graph implementing the CPU to GPU transition.
      * 
      * @param method a method that has been compiled to GPU binary code
-     * @param kernelAddress the entry point of the GPU binary for {@code kernelMethod}
+     * @param kernel the installed GPU binary for {@code method}
+     * @see PTXWrapperBuilder
      */
-    public PTXWrapperBuilder(ResolvedJavaMethod method, long kernelAddress, HotSpotProviders providers) {
+    public PTXWrapperBuilder(ResolvedJavaMethod method, HotSpotNmethod kernel, HotSpotProviders providers) {
         super(new StructuredGraph(method), providers);
         int wordSize = providers.getCodeCache().getTarget().wordSize;
         Kind wordKind = providers.getCodeCache().getTarget().wordKind;
@@ -132,11 +138,13 @@ public class PTXWrapperBuilder extends GraphKit {
             }
         }
 
+        InvokeNode kernelStart = createInvoke(getClass(), "getKernelStart", ConstantNode.forObject(kernel, providers.getMetaAccess(), getGraph()));
+
         AllocaNode buf = append(new AllocaNode(bufSize / wordSize, objects));
 
         Map<LaunchArg, ValueNode> args = new EnumMap<>(LaunchArg.class);
         args.put(Thread, append(new ReadRegisterNode(providers.getRegisters().getThreadRegister(), true, false)));
-        args.put(Kernel, ConstantNode.forLong(kernelAddress, getGraph()));
+        args.put(Kernel, kernelStart);
         args.put(DimX, forInt(1, getGraph()));
         args.put(DimY, forInt(1, getGraph()));
         args.put(DimZ, forInt(1, getGraph()));
@@ -249,6 +257,19 @@ public class PTXWrapperBuilder extends GraphKit {
                 }
             }
         }
+    }
+
+    /**
+     * Snippet invoked to get the {@linkplain HotSpotNmethod#getStart() entry point} of the kernel,
+     * deoptimizing if the kernel is invalid.
+     */
+    @Snippet
+    private static long getKernelStart(HotSpotNmethod ptxKernel) {
+        long start = ptxKernel.getStart();
+        if (start == 0L) {
+            DeoptimizeNode.deopt(InvalidateRecompile, RuntimeConstraint);
+        }
+        return start;
     }
 
     /**

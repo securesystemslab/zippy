@@ -43,7 +43,8 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    public FunctionRootNode(PythonContext context, String functionName, PNode body) {
+    public FunctionRootNode(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
+        super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
         this.body = adoptChild(body);
@@ -64,7 +65,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public FunctionRootNode copy() {
-        return new FunctionRootNode(this.context, this.functionName, this.uninitializedBody);
+        return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor(), this.uninitializedBody);
     }
 
     @Override

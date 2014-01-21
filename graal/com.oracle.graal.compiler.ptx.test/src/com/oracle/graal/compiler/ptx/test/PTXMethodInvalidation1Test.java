@@ -20,29 +20,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.test.nodes;
+package com.oracle.graal.compiler.ptx.test;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import org.junit.*;
 
-public class RootTestNode extends RootNode {
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.ptx.*;
 
-    private final String name;
-    @Child AbstractTestNode node;
+/**
+ * Tests that a {@linkplain PTXWrapperBuilder PTX kernel wrapper} deoptimizes if the kernel is
+ * invalid.
+ */
+public class PTXMethodInvalidation1Test extends PTXTest {
 
-    public RootTestNode(FrameDescriptor descriptor, String name, AbstractTestNode node) {
-        super(null, descriptor);
-        this.name = name;
-        this.node = node;
+    @Test
+    public void test() {
+        test("testSnippet", 100);
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        return node.execute(frame);
+    protected HotSpotNmethod installKernel(ResolvedJavaMethod method, ExternalCompilationResult ptxCode) {
+        HotSpotNmethod ptxKernel = super.installKernel(method, ptxCode);
+        ptxKernel.invalidate();
+        return ptxKernel;
     }
 
-    @Override
-    public String toString() {
-        return name;
+    int f = 42;
+
+    public int testSnippet(int delta) {
+        return f + delta;
     }
 }

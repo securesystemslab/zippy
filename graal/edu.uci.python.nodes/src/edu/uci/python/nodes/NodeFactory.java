@@ -77,8 +77,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, PNode body) {
-        return new FunctionRootNode(context, functionName, body);
+    public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
+        return new FunctionRootNode(context, functionName, frameDescriptor, body);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {

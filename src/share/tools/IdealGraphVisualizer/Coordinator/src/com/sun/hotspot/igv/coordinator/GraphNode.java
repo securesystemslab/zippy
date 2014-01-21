@@ -38,6 +38,9 @@ import javax.swing.Action;
 import org.openide.actions.OpenAction;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
+import org.openide.nodes.NodeAdapter;
+import org.openide.nodes.NodeEvent;
+import org.openide.nodes.NodeMemberEvent;
 import org.openide.nodes.Sheet;
 import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
@@ -49,7 +52,7 @@ import org.openide.util.lookup.InstanceContent;
  * @author Thomas Wuerthinger
  */
 public class GraphNode extends AbstractNode {
-    private final InputGraph graph;
+    private InputGraph graph;
 
     /** Creates a new instance of GraphNode */
     public GraphNode(InputGraph graph) {
@@ -77,6 +80,13 @@ public class GraphNode extends AbstractNode {
 
         // Action for cloning to the current graph
         content.add(new GraphCloneCookie(viewer, graph));
+        
+        this.addNodeListener(new NodeAdapter() {
+            @Override
+            public void childrenRemoved(NodeMemberEvent ev) {
+                GraphNode.this.graph = null;
+            }
+        });
     }
 
     @Override

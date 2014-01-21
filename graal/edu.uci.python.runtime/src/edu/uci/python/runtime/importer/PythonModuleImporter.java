@@ -138,11 +138,12 @@ public class PythonModuleImporter {
         return null;
     }
 
+    @SuppressWarnings("unused")
     private PythonModule createModule(String path, Frame frame) {
         PythonParseResult parsedModule = parseModule(path);
 
         if (parsedModule != null) {
-            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot(), frame.getFrameDescriptor());
+            CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot());
             callTarget.call(null, new PArguments(null));
             PythonContext moduleContext = parsedModule.getContext();
             PythonModule importedModule = moduleContext.getPythonBuiltinsLookup().lookupModule(moduleName);

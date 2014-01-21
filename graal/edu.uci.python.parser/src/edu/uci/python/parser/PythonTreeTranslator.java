@@ -154,9 +154,9 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Function root
          */
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, body);
         FrameDescriptor fd = environment.getCurrentFrame();
-        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, fd, body);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
         /**
@@ -213,9 +213,9 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Lambda function root
          */
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, bodyNode);
         FrameDescriptor fd = environment.getCurrentFrame();
-        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, fd, bodyNode);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
         /**
@@ -236,12 +236,12 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     private PNode createGeneratorExpressionDefinition(StatementNode body) {
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, "generator_exp", body);
-        result.addParsedFunction("generator_exp", funcRoot);
         FrameDescriptor fd = environment.getCurrentFrame();
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, "generator_exp", fd, body);
+        result.addParsedFunction("generator_exp", funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator();
         gtran.translate(funcRoot);
-        return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot, fd), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
+        return factory.createGeneratorExpression(Truffle.getRuntime().createCallTarget(funcRoot), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
                         gtran.getNumOfGeneratorForNode());
     }
 
@@ -404,8 +404,8 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, body);
-        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.getCurrentFrame(), body);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.getEmptyBlock(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
