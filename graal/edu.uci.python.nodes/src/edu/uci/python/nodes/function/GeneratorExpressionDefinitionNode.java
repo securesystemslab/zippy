@@ -42,6 +42,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
     @CompilationFinal private boolean isDeclarationFrameGenerator;
+    @CompilationFinal private boolean isOptimized;
 
     public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.callTarget = callTarget;
@@ -69,6 +70,14 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
     public void setDeclarationFrameGenerator() {
         isDeclarationFrameGenerator = true;
+    }
+
+    public boolean isOptimized() {
+        return isOptimized;
+    }
+
+    public void setAsOptimized() {
+        isOptimized = true;
     }
 
     public int getNumOfGeneratorBlockNode() {

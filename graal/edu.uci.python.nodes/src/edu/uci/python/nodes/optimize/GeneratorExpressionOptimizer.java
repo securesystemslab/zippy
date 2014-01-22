@@ -53,6 +53,10 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
+            if (genExp.isOptimized()) {
+                continue;
+            }
+
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
 
             if (escapeAnalyzer.escapes()) {
@@ -74,7 +78,13 @@ public class GeneratorExpressionOptimizer {
                 transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
             } else if (genExp.getParent() instanceof CallFunctionNode) {
                 transformToGeneratorCall(genExp, genExp);
-            } else if (genExp.getParent() instanceof InlinedCallNode) {
+            } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
+                /**
+                 * Function calls that were just inlined create new opportunities for genexp
+                 * transformation.<br>
+                 * Already transformed genexp, whose parent is of type
+                 * {@link CallGeneratorInlinedNode} should be ignore.
+                 */
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genExp.getParent(), GetIteratorNode.class);
                 transformGetIterToInlineableGeneratorCall(genExp, getIter, true);
             }
@@ -119,6 +129,7 @@ public class GeneratorExpressionOptimizer {
         } catch (IllegalStateException e) {
         }
 
+        genExp.setAsOptimized();
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
     }
 

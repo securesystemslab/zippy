@@ -50,6 +50,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
     @Specialization(order = 0, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         cargoFrame.setBoolean(frameSlot, right);
         return right;
     }
@@ -57,6 +58,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
     @Specialization(guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         cargoFrame.setInt(frameSlot, value);
         return value;
     }
@@ -64,6 +66,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
     @Specialization(guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         setObject(cargoFrame, value);
         return value;
     }
@@ -71,6 +74,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
     @Specialization(guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         cargoFrame.setDouble(frameSlot, right);
         return right;
     }
@@ -78,6 +82,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame).getCargoFrame();
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         setObject(cargoFrame, right);
         return right;
     }

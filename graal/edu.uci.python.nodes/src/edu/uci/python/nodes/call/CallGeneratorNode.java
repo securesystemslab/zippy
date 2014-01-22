@@ -102,7 +102,10 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
         if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
             transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
-            invokeGeneratorExpressionOptimizer();
+            /**
+             * TODO zwei: temporarily disabled for debugging purpose.
+             */
+            // invokeGeneratorExpressionOptimizer();
             return true;
         }
 

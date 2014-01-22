@@ -46,14 +46,6 @@ def list_seqs(nums):
 def solve():
     return _max(product(seq) for seq in list_seqs(NUMS))
 
-    # max = None
-    # for i in (product(seq) for seq in list_seqs(NUMS)):
-    #     if max is None:
-    #         max = i
-    #     if i > max:
-    #         max = i
-    # return max
-
 # test
 def _max(iterator):
     max = None
@@ -79,7 +71,7 @@ def measure():
     print("euler11: " + duration)
 
 # warm up
-for i in range(1000): # 100
-    main(5) # 20
+for i in range(100): # 100
+    main(20) # 20
 
 measure()

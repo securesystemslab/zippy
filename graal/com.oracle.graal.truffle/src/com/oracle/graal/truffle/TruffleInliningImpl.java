@@ -88,6 +88,7 @@ class TruffleInliningImpl implements TruffleInlining {
             }
             // zwei
             if (TrufflePrintInlinedAST.getValue()) {
+                OUT.println(" ------------- " + target + " ------------- ");
                 NodeUtil.printCompactTree(OUT, target.getRootNode());
             }
         } else {
