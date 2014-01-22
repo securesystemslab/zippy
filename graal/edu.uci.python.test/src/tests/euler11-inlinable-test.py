@@ -48,3 +48,5 @@ def _max(iterator):
 for i in range(5000):
     solve()
 
+print(solve())
+

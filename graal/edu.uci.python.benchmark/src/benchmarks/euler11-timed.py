@@ -72,6 +72,6 @@ def measure():
 
 # warm up
 for i in range(100): # 100
-    main(20) # 20
+    main(50) # 20
 
 measure()

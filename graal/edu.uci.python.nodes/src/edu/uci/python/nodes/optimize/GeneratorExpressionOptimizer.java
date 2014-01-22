@@ -113,7 +113,7 @@ public class GeneratorExpressionOptimizer {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame, false);
         } catch (IllegalStateException e) {
             return;
         }
@@ -137,12 +137,14 @@ public class GeneratorExpressionOptimizer {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
         PNode[] argReads;
+        PNode[] argReadsUninitialized;
 
         try {
             List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            argReads = assembleArgumentReads(arguments, genExp, false);
+            argReads = assembleArgumentReads(arguments, genExp, false, false);
+            argReadsUninitialized = assembleArgumentReads(arguments, genExp, false, true);
         } catch (IllegalStateException e) {
             return;
         }
@@ -157,7 +159,7 @@ public class GeneratorExpressionOptimizer {
              * already modified and will not work in its original form.
              */
             PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
-            matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
+            matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReadsUninitialized, callableGenExp, AlwaysValidAssumption.INSTANCE));
         } catch (IllegalStateException e) {
         }
 
@@ -167,7 +169,7 @@ public class GeneratorExpressionOptimizer {
     /**
      * Assembles nodes that read the arguments to be passed to the transformed generator call.
      */
-    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame, boolean readFromVirtualFrame) {
         String[] argumentIds = new String[genExpParams.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {
@@ -179,7 +181,8 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            PNode read = genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot);
+            PNode read = readFromVirtualFrame ? NodeFactory.getInstance().createReadLocal(argSlot) : //
+                            (genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot));
 
             if (readFromCargoFrame) {
                 read = new FrameSwappingNode(read);

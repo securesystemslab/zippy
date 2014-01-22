@@ -149,7 +149,7 @@ pythonBenchmarks = {
     'spectralnorm3t'  : '5500',
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
-    # 'euler11-timed'   : '10000',
+    'euler11-timed'   : '10000',
 }
 
 python2Benchmarks = {
@@ -162,7 +162,7 @@ python2Benchmarks = {
     'spectralnorm2t'  : '5500',
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
-    # 'euler11-timed'   : '10000',
+    'euler11-timed'   : '10000',
 }
 
 specjvm2008Names = [
