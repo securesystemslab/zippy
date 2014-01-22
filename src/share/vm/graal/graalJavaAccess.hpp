@@ -173,9 +173,12 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(DebugInfo)                                                                                                                                       \
     oop_field(DebugInfo, bytecodePosition, "Lcom/oracle/graal/api/code/BytecodePosition;")                                                                     \
-    oop_field(DebugInfo, registerRefMap, "Ljava/util/BitSet;")                                                                                                 \
-    oop_field(DebugInfo, frameRefMap, "Ljava/util/BitSet;")                                                                                                    \
+    oop_field(DebugInfo, referenceMap, "Lcom/oracle/graal/api/code/ReferenceMap;")                                                                             \
     oop_field(DebugInfo, calleeSaveInfo, "Lcom/oracle/graal/api/code/RegisterSaveLayout;")                                                                     \
+  end_class                                                                                                                                                    \
+  start_class(ReferenceMap)                                                                                                                                    \
+    oop_field(ReferenceMap, registerRefMap, "Ljava/util/BitSet;")                                                                                              \
+    oop_field(ReferenceMap, frameRefMap, "Ljava/util/BitSet;")                                                                                                 \
   end_class                                                                                                                                                    \
   start_class(RegisterSaveLayout)                                                                                                                              \
     oop_field(RegisterSaveLayout, registers, "[Lcom/oracle/graal/api/code/Register;")                                                                          \

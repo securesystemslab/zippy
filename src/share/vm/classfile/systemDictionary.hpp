@@ -212,6 +212,7 @@ class Ticks;
   do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
   do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
+  do_klass(ReferenceMap_klass,                    com_oracle_graal_api_code_ReferenceMap,                       Opt) \
   do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Opt) \
   do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
   do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \

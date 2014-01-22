@@ -84,8 +84,9 @@ static int bitset_size(oop bitset) {
 // creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
-  oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
-  oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
+  oop reference_map = DebugInfo::referenceMap(debug_info);
+  oop register_map = ReferenceMap::registerRefMap(reference_map);
+  oop frame_map = ReferenceMap::frameRefMap(reference_map);
   oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
