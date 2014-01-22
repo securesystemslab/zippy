@@ -827,6 +827,11 @@ C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_metho
 C2V_END
 
 
+C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_data))
+  MethodData* mdo = asMethodData(metaspace_method_data);
+  return mdo != NULL && mdo->is_mature();
+C2V_END
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -846,6 +851,7 @@ C2V_END
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
 #define METASPACE_KLASS       "J"
 #define METASPACE_METHOD      "J"
+#define METASPACE_METHOD_DATA "J"
 #define METASPACE_CONSTANT_POOL "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
@@ -889,6 +895,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
   {CC"allocateCompileId",             CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
+  {CC"isMature",                      CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
 };
 
 int CompilerToVM_methods_count() {
