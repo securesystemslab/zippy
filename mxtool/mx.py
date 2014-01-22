@@ -2751,6 +2751,9 @@ def _source_locator_memento(deps):
             if hasattr(dep, 'eclipse.container'):
                 memento = XMLDoc().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml(standalone='no')
                 slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
+            elif dep.get_source_path(resolve=True):
+                memento = XMLDoc().element('archive', {'detectRoot' : 'true', 'path' : dep.get_source_path(resolve=True)}).xml(standalone='no')
+                slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.debug.core.containerType.externalArchive'})
         else:
             memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
@@ -3097,7 +3100,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
             files.append(join(p.dir, '.factorypath'))
 
-    _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
+    _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=sorted_deps(projectNames=None, includeLibs=True))
     files.append(launchFile)
 
     _zip_files(files, suite.dir, configZip.path)
