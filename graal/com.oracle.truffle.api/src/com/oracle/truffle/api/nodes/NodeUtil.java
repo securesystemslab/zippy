@@ -338,7 +338,10 @@ public final class NodeUtil {
     }
 
     public static boolean matchNodes(Node toMatch, Node candidate) {
-        assert toMatch.getClass().equals(candidate.getClass());
+        if (!toMatch.getClass().equals(candidate.getClass())) {
+            return false; // not the same exact class
+        }
+
         NodeClass nodeClass = NodeClass.get(toMatch.getClass());
 
         /**
