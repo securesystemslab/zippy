@@ -154,23 +154,23 @@ public class TranslationEnvironment {
             case Generator:
             case ListComp:
             case Function:
-                if (slot != null) {
-                    return (ReadNode) factory.createReadLocal(slot);
-                }
-
-                ReadNode readLevel = findVariableInEnclosingScopes(name);
-                if (readLevel != null) {
-                    return readLevel;
-                }
-
-                assert slot == null && readLevel == null;
-                currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
-                return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                return (ReadNode) (slot != null ? factory.createReadLocal(slot) : findVariableInEnclosingOrGlobalScope(name));
             case Class:
-                return (ReadNode) factory.createReadClassAttribute(name);
+                return (ReadNode) (slot != null ? factory.createReadClassAttribute(name) : findVariableInEnclosingOrGlobalScope(name));
             default:
                 throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
         }
+    }
+
+    protected ReadNode findVariableInEnclosingOrGlobalScope(String name) {
+        ReadNode readLevel = findVariableInEnclosingScopes(name);
+        if (readLevel != null) {
+            return readLevel;
+        }
+
+        assert readLevel == null;
+        PythonModule currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+        return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
     }
 
     public ReadNode makeTempLocalVariable() {
