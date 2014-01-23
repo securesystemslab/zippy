@@ -3395,11 +3395,8 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   if (parse_result != JNI_OK) return parse_result;
 
 #ifdef GRAAL
-  if (GPUOffload) {
-    // Probe for existance of supported GPU and initialize it if one
-    // exists.
-    gpu::init();
-  }
+  // Probe for supported GPUs and initialize them.
+  gpu::init();
 #endif
 
   os::init_before_ergo();
