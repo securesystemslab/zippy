@@ -344,10 +344,10 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                     for line in releaseFileLines:
                         if line.startswith("SOURCE="):
                             try:
-                                sourceLine = line[0:-2] # remove last char
+                                sourceLine = line[0:-2]  # remove last char
                                 hgcfg = mx.HgConfig()
                                 hgcfg.check()
-                                revision = hgcfg.tip('.')[:12] # take first 12 chars
+                                revision = hgcfg.tip('.')[:12]  # take first 12 chars
                                 fp.write(sourceLine + ' graal:' + revision + '\"\n')
                             except:
                                 fp.write(line)
@@ -793,26 +793,29 @@ def _run_tests(args, harness, annotations, testfile):
         if t.startswith('-'):
             mx.abort('VM option ' + t + ' must precede ' + tests[0])
 
-    candidates = []
+    candidates = {}
     for p in mx.projects_opt_limit_to_suites():
         if mx.java().javaCompliance < p.javaCompliance:
             continue
-        candidates += _find_classes_with_annotations(p, None, annotations).keys()
+        for c in _find_classes_with_annotations(p, None, annotations).keys():
+            candidates[c] = p
 
     classes = []
     if len(tests) == 0:
-        classes = candidates
+        classes = candidates.keys()
+        projectscp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
     else:
+        projs = set()
         for t in tests:
             found = False
-            for c in candidates:
+            for c, p in candidates.iteritems():
                 if t in c:
                     found = True
                     classes.append(c)
+                    projs.add(p.name)
             if not found:
                 mx.log('warning: no tests matched by substring "' + t)
-
-    projectscp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
+        projectscp = mx.classpath(projs)
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -1504,11 +1507,11 @@ def _parseVMOptions(optionType):
     # gather graal options
     output = StringIO.StringIO()
     vm(['-XX:-BootstrapGraal', '-G:+PrintFlags' if optionType == "graal" else '-XX:+PrintFlagsWithComments'],
-       vm = "graal",
-       vmbuild = "optimized",
-       nonZeroIsFatal = False,
-       out = output.write,
-       err = subprocess.STDOUT)
+       vm="graal",
+       vmbuild="optimized",
+       nonZeroIsFatal=False,
+       out=output.write,
+       err=subprocess.STDOUT)
 
     valueMap = parser.parse(output.getvalue())
     return valueMap

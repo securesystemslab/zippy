@@ -343,24 +343,12 @@ public abstract class FrameMap {
         }
     }
 
-    /**
-     * Initializes a reference map that covers all registers of the target architecture.
-     */
-    public BitSet initRegisterRefMap() {
-        return new BitSet(target.arch.getRegisterReferenceMapBitCount());
-    }
-
-    /**
-     * Initializes a reference map. Initially, the size is large enough to cover all the slots in
-     * the frame. If the method has incoming reference arguments on the stack, the reference map
-     * might grow later when such a reference is set.
-     */
-    public BitSet initFrameRefMap() {
-        BitSet frameRefMap = new BitSet(frameSize() / target.wordSize);
+    public ReferenceMap initReferenceMap(boolean canHaveRegisters) {
+        ReferenceMap refMap = new ReferenceMap(canHaveRegisters ? target.arch.getRegisterReferenceMapBitCount() : 0, frameSize() / target.wordSize);
         for (StackSlot slot : objectStackSlots) {
-            setReference(slot, null, frameRefMap);
+            setReference(slot, refMap);
         }
-        return frameRefMap;
+        return refMap;
     }
 
     /**
@@ -369,16 +357,22 @@ public abstract class FrameMap {
      * {@link Constant} is automatically tracked.
      * 
      * @param location The location to be added to the reference map.
-     * @param registerRefMap A register reference map, as created by {@link #initRegisterRefMap()}.
-     * @param frameRefMap A frame reference map, as created by {@link #initFrameRefMap()}.
+     * @param refMap A reference map, as created by {@link #initReferenceMap(boolean)}.
      */
-    public void setReference(Value location, BitSet registerRefMap, BitSet frameRefMap) {
-        if (location.getKind() == Kind.Object) {
+    public void setReference(Value location, ReferenceMap refMap) {
+        Kind kind = location.getKind();
+        if (kind == Kind.Object || kind == Kind.NarrowOop) {
             if (isRegister(location)) {
-                registerRefMap.set(asRegister(location).number);
+                refMap.setRegister(asRegister(location).number, kind == Kind.NarrowOop);
             } else if (isStackSlot(location)) {
-                int index = indexForStackSlot(asStackSlot(location));
-                frameRefMap.set(index);
+                if (kind == Kind.NarrowOop) {
+                    int offset = offsetForStackSlot(asStackSlot(location));
+                    assert offset % target.wordSize == 0 || offset % target.wordSize == target.wordSize / 2;
+                    refMap.setStackSlot(offset / target.wordSize, offset % target.wordSize == 0, offset % target.wordSize != 0);
+                } else {
+                    int index = indexForStackSlot(asStackSlot(location));
+                    refMap.setStackSlot(index, false, false);
+                }
             } else {
                 assert isConstant(location);
             }

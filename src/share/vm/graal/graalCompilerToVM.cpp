@@ -688,6 +688,9 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   HandleMark hm;
 
   jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
+  if (nmethodValue == 0L) {
+    THROW_(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
+  }
   nmethod* nm = (nmethod*) (address) nmethodValue;
   methodHandle mh = nm->method();
   Symbol* signature = mh->signature();

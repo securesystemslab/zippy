@@ -3840,9 +3840,6 @@ class CommandLineFlags {
   product(bool , AllowNonVirtualCalls, false,                               \
           "Obey the ACC_SUPER flag and allow invokenonvirtual calls")       \
                                                                             \
-  product(bool, TraceGPUInteraction, false,                                 \
-          "Trace external GPU Interaction")                                 \
-                                                                            \
   product(bool, UseHSAILSimulator, false,                                   \
           "Run code on HSAIL Simulator")                                    \
                                                                             \

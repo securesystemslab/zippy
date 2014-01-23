@@ -1370,6 +1370,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     int             trap_bci    = trap_scope->bci();
 #ifdef GRAAL
     oop speculation = thread->pending_failed_speculation();
+    if (nm->is_compiled_by_graal()) {
     if (speculation != NULL) {
       oop speculation_log = nm->speculation_log();
       if (speculation_log != NULL) {
@@ -1392,6 +1393,11 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       if (TraceDeoptimization) {
         tty->print_cr("No speculation");
       }
+    }
+    } else {
+#ifdef ASSERT
+      assert(speculation == NULL, "There should not be a speculation for method compiled by other compilers");
+#endif
     }
 
     if (trap_bci == SynchronizationEntryBCI) {

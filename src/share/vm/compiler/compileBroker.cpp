@@ -1144,7 +1144,9 @@ void CompileBroker::compile_method_base(methodHandle method,
   }
 #ifdef GRAALVM
   if (!JavaThread::current()->is_graal_compiling()) {
-    GraalCompiler::instance()->compile_method(method, osr_bci, is_compile_blocking(method, osr_bci));
+    bool blockingCompilation = is_compile_blocking(method, osr_bci) ||
+      CompilationPolicy::can_be_offloaded_to_gpu(method);
+    GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
   } else {
     // Recursive compile request => ignore.
   }
