@@ -33,19 +33,24 @@ import com.oracle.truffle.api.utilities.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class InlineableCallNode extends CallFunctionNoKeywordNode implements InlinableCallSite {
 
+    protected final PythonContext context;
     protected final Assumption globalScopeUnchanged;
     protected final Assumption builtinModuleUnchanged;
     @CompilationFinal protected int callCount;
 
-    public InlineableCallNode(PNode callee, PNode[] arguments, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
+    public InlineableCallNode(PNode callee, PNode[] arguments, PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
         super(callee, arguments);
+        this.context = context;
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
     }
+
+    public abstract PythonCallable getCallee();
 
     public int getCallCount() {
         return callCount;
@@ -66,10 +71,15 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         private final PFunction function;
         private final FunctionRootNode functionRoot;
 
-        public CallFunctionInlinableNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged) {
-            super(callee, arguments, globalScopeUnchanged, AlwaysValidAssumption.INSTANCE);
+        public CallFunctionInlinableNode(PNode callee, PNode[] arguments, PFunction function, PythonContext context, Assumption globalScopeUnchanged) {
+            super(callee, arguments, context, globalScopeUnchanged, AlwaysValidAssumption.INSTANCE);
             this.function = function;
             functionRoot = (FunctionRootNode) function.getFunctionRootNode();
+        }
+
+        @Override
+        public PFunction getCallee() {
+            return function;
         }
 
         public Node getInlineTree() {
@@ -107,10 +117,15 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         private final PBuiltinFunction function;
         private final BuiltinFunctionRootNode functionRoot;
 
-        public CallBuiltinInlinableNode(PNode callee, PNode[] arguments, PBuiltinFunction function, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
-            super(callee, arguments, globalScopeUnchanged, builtinModuleUnchanged);
+        public CallBuiltinInlinableNode(PNode callee, PNode[] arguments, PBuiltinFunction function, PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
+            super(callee, arguments, context, globalScopeUnchanged, builtinModuleUnchanged);
             this.function = function;
             this.functionRoot = (BuiltinFunctionRootNode) function.getFunctionRootNode();
+        }
+
+        @Override
+        public PBuiltinFunction getCallee() {
+            return function;
         }
 
         public Node getInlineTree() {
@@ -125,9 +140,14 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             CompilerAsserts.neverPartOfCompilation();
 
             if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
+                CallBuiltinInlinedNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
                                 this.builtinModuleUnchanged, factory);
                 replace(inlinedCallNode);
+
+                /**
+                 * Test
+                 */
+                new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged, inlinedCallNode).intrinsify();
                 return true;
             }
 

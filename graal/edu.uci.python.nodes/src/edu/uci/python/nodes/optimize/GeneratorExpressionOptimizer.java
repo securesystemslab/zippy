@@ -195,10 +195,14 @@ public class GeneratorExpressionOptimizer {
         return reads;
     }
 
-    private static FrameDescriptor getEnclosingFrameDescriptor(PNode genExp) {
+    public static FrameDescriptor getEnclosingFrameDescriptor(PNode genExp) {
         Node current = genExp;
-        while (!(current instanceof RootNode)) {
+        while (true) {
             current = current.getParent();
+
+            if (current instanceof RootNode || current instanceof InlinedCallNode) {
+                break;
+            }
         }
 
         FrameSlotNode slotNode = NodeUtil.findFirstNodeInstance(current, FrameSlotNode.class);

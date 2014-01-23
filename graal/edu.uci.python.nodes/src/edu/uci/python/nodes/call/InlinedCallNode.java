@@ -43,6 +43,8 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
         this.frameFactory = frameFactory;
     }
 
+    public abstract PythonCallable getCallee();
+
     protected FrameFactory getFrameFactory() {
         return frameFactory;
     }

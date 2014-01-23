@@ -77,7 +77,7 @@ def measure():
     print("euler11: " + duration)
 
 # warm up
-for i in range(100): # 100
+for i in range(150): # 100
     main(50) # 20
 
 measure()

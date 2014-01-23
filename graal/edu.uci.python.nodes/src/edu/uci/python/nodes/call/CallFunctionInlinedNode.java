@@ -46,6 +46,11 @@ public class CallFunctionInlinedNode extends InlinedCallNode {
         this.functionRoot = adoptChild(prepareBody(functionRoot.getInlinedRootNode()));
     }
 
+    @Override
+    public PFunction getCallee() {
+        return function;
+    }
+
     public CallTarget getCallTarget() {
         return function.getCallTarget();
     }
