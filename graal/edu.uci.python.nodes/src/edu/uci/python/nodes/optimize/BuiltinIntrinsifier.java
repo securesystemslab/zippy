@@ -96,9 +96,26 @@ public class BuiltinIntrinsifier {
         return false;
     }
 
+    /**
+     * The caller of the built-in function could be inlined at this point.
+     */
+    private static FrameDescriptor findEnclosingFrameDescriptor(PNode genExp) {
+        Node current = genExp;
+        while (true) {
+            current = current.getParent();
+
+            if (current instanceof RootNode || current instanceof InlinedCallNode) {
+                break;
+            }
+        }
+
+        FrameSlotNode slotNode = NodeUtil.findFirstNodeInstance(current, FrameSlotNode.class);
+        return slotNode.getSlot().getFrameDescriptor();
+    }
+
     private void transformToListComp() {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
-        FrameDescriptor enclosingFrame = GeneratorExpressionOptimizer.getEnclosingFrameDescriptor(call);
+        FrameDescriptor enclosingFrame = findEnclosingFrameDescriptor(call);
         PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getUninitializedBody();
         uninitializedGenexpBody = (PNode) NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForWithLocalTargetNode.class).copy();
 

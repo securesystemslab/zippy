@@ -110,7 +110,7 @@ public class GeneratorExpressionOptimizer {
         PNode[] argReads;
 
         try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
+            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
             argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame, false);
@@ -140,7 +140,7 @@ public class GeneratorExpressionOptimizer {
         PNode[] argReadsUninitialized;
 
         try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
+            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
             argReads = assembleArgumentReads(arguments, genExp, false, false);
@@ -177,7 +177,7 @@ public class GeneratorExpressionOptimizer {
         }
 
         PNode[] reads = new PNode[argumentIds.length];
-        FrameDescriptor enclosingFrame = getEnclosingFrameDescriptor(genExp);
+        FrameDescriptor enclosingFrame = findEnclosingFrameDescriptor(genExp);
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
@@ -195,18 +195,21 @@ public class GeneratorExpressionOptimizer {
         return reads;
     }
 
-    public static FrameDescriptor getEnclosingFrameDescriptor(PNode genExp) {
+    /**
+     * Please note that the enclosing scope of the genexp could be inlined. So {@link RootNode}
+     * might not cover all the cases.
+     */
+    private static FrameDescriptor findEnclosingFrameDescriptor(PNode genExp) {
         Node current = genExp;
         while (true) {
             current = current.getParent();
 
-            if (current instanceof RootNode || current instanceof InlinedCallNode) {
+            if (current instanceof RootNode) {
                 break;
             }
         }
 
-        FrameSlotNode slotNode = NodeUtil.findFirstNodeInstance(current, FrameSlotNode.class);
-        return slotNode.getSlot().getFrameDescriptor();
+        return ((RootNode) current).getFrameDescriptor();
     }
 
     /**
