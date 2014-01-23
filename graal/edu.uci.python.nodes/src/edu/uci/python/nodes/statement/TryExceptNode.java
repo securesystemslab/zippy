@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class TryExceptNode extends StatementNode {
 
@@ -41,6 +42,8 @@ public abstract class TryExceptNode extends StatementNode {
     @Child protected PNode exceptName;
     @Child protected BlockNode exceptBody;
 
+    protected RuntimeException lastException;
+
     protected TryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
@@ -48,6 +51,8 @@ public abstract class TryExceptNode extends StatementNode {
         this.exceptName = adoptChild(exceptName);
         this.exceptType = adoptChild(exceptType);
         this.exceptBody = adoptChild(exceptBody);
+
+        this.lastException = null;
     }
 
     public static TryExceptNode create(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
@@ -101,7 +106,11 @@ class GenericTryExceptNode extends TryExceptNode {
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            body.execute(frame);
+            Object retVal = body.execute(frame);
+
+            if (retVal == PNone.NONE) {
+// do something!!!!!!!!!
+            }
         } catch (RuntimeException ex) {
             return executeExcept(frame, ex);
         }

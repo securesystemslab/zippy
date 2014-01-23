@@ -35,8 +35,6 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 
-    private String moduleName;
-
     private final PythonModule builtinsModule;
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
@@ -51,7 +49,6 @@ public class PythonContext {
     private static PythonContext currentContext;
 
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
-        this.moduleName = null;
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
@@ -62,14 +59,6 @@ public class PythonContext {
         this.sourceManager = new SourceManager();
         this.parser = parser;
         this.builtinsModule = this.lookup.addBuiltins(this);
-    }
-
-    public void setModuleName(String modulename) {
-        this.moduleName = modulename;
-    }
-
-    public String getModuleName() {
-        return moduleName;
     }
 
     public PythonModule getBuiltins() {
