@@ -26,7 +26,6 @@ package edu.uci.python.runtime.datatype;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -47,7 +46,7 @@ public class PGenerator implements PIterator {
         /**
          * Setting up persistent frame in {@link #arguments}.
          */
-        MaterializedFrame generatorFrame = new DefaultVirtualFrame(frameDescriptor, null, PArguments.EMPTY_ARGUMENT).materialize();
+        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENT, frameDescriptor);
         this.arguments = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
