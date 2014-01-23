@@ -28,10 +28,12 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.standardtype.*;
+
 public interface PythonParser {
 
     Source getSource();
 
-    PythonParseResult parse(PythonContext context, Source source, CompileMode kind, CompilerFlags cflags);
+    PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompileMode kind, CompilerFlags cflags);
 
 }

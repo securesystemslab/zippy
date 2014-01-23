@@ -158,11 +158,11 @@ public class PythonModuleImporter {
 
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
-            PythonContext moduleContext = new PythonContext(context, moduleName);
+            PythonModule importedModule = new PythonModule(moduleName, context, context.getBuiltins());
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] parsing module " + path);
             // CheckStyle: resume system..print check
-            PythonParseResult parsedModule = context.getParser().parse(moduleContext, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
 
             if (parsedModule != null) {
                 // CheckStyle: stop system..print check
@@ -178,28 +178,4 @@ public class PythonModuleImporter {
 
         return null;
     }
-
-    // private String getImporterPath() {
-    // String path = ".";
-    //
-    // // TODO: After adding support to SourceSection, this what we should use:
-    // // String name = this.getSourceSection().getSource().getPath();
-    // String name = context.getParser().getSource().getPath();
-    // String fileName = new StringBuilder(name).reverse().toString();
-    // int separtorLoc = name.length() - fileName.indexOf(File.separatorChar);
-    // int filenameln = name.length() - separtorLoc;
-    // fileName = new StringBuilder(fileName).reverse().toString().substring(separtorLoc,
-    // name.length());
-    // final File file = new File(name);
-    // if (file.exists()) {
-    // try {
-    // path = file.getCanonicalPath();
-    // path = path.substring(0, path.length() - filenameln);
-    // } catch (IOException e) {
-    // }
-    // }
-    //
-    // return path;
-    // }
-
 }

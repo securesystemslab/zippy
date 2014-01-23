@@ -41,6 +41,7 @@ public class PythonModule extends PythonBasicObject {
 
     public static final String __NAME__ = "__name__";
 
+    private final String name;
     private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
     private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
@@ -51,15 +52,31 @@ public class PythonModule extends PythonBasicObject {
     public PythonModule(String name, PythonContext context) {
         super(context.getModuleClass());
         this.context = context;
+        this.name = name;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
         setAttribute(__NAME__, name);
         addBuiltinMethodsAndConstants(PythonModule.class);
+    }
+
+    public PythonModule(String name, PythonContext context, PythonModule builtins) {
+        super(context.getModuleClass());
+        this.context = context;
+        this.name = name;
+        unmodifiedAssumption = new CyclicAssumption("unmodified");
+        setAttribute(__NAME__, name);
+
+        setAttribute("__builtins__", builtins);
+
+        context.getPythonBuiltinsLookup().addModule(name, this);
+
+// addBuiltinMethodsAndConstants(PythonModule.class);
     }
 
     public PythonModule(String name, PythonModule module) {
         super(module.context.getModuleClass(), module);
         unmodifiedAssumption = module.unmodifiedAssumption;
         this.context = module.context;
+        this.name = name;
         setAttribute(__NAME__, name);
         builtinMethods.addAll(module.builtinMethods);
         builtinConstants.addAll(module.builtinConstants);
@@ -127,6 +144,10 @@ public class PythonModule extends PythonBasicObject {
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public String getModuleName() {
+        return name;
     }
 
     @Override
