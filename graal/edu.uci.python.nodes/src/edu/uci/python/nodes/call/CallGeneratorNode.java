@@ -126,6 +126,15 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             yield.replace(block);
         }
 
+        /**
+         * Reset generator expressions in the ungeneratorized function as declared not in generator
+         * frame.
+         */
+        RootNode enclosingRoot = getRootNode();
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator(false);
+        }
+
         PrintStream ps = System.out;
         ps.println("[ZipPy] transformed generator call to " + cached.getCallTarget() + " in " + getRootNode());
     }

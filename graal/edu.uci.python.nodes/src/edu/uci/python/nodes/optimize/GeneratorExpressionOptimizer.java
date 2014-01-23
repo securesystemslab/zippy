@@ -28,7 +28,6 @@ import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -69,15 +68,12 @@ public class GeneratorExpressionOptimizer {
     }
 
     private void transform(GeneratorExpressionDefinitionNode genExp, EscapeAnalyzer escapeAnalyzer) {
-
         if (!escapeAnalyzer.isBoundToLocalFrame()) {
             /**
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
                 transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
-            } else if (genExp.getParent() instanceof CallFunctionNode) {
-                transformToGeneratorCall(genExp, genExp);
             } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
                 /**
                  * Function calls that were just inlined create new opportunities for genexp
@@ -113,7 +109,7 @@ public class GeneratorExpressionOptimizer {
             List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame, false);
+            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
         } catch (IllegalStateException e) {
             return;
         }
@@ -133,43 +129,10 @@ public class GeneratorExpressionOptimizer {
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
     }
 
-    private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
-        FrameDescriptor fd = genExp.getFrameDescriptor();
-        FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
-        PNode[] argReads;
-        PNode[] argReadsUninitialized;
-
-        try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root);
-            replaceReadLevels(arguments, root);
-            argReads = assembleArgumentReads(arguments, genExp, false, false);
-            argReadsUninitialized = assembleArgumentReads(arguments, genExp, false, true);
-        } catch (IllegalStateException e) {
-            return;
-        }
-
-        assert argReads != null;
-        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-        loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-
-        try {
-            /**
-             * Apply the same replacement in uninitialized body too, since the gen exp itself is
-             * already modified and will not work in its original form.
-             */
-            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
-            matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReadsUninitialized, callableGenExp, AlwaysValidAssumption.INSTANCE));
-        } catch (IllegalStateException e) {
-        }
-
-        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
-    }
-
     /**
      * Assembles nodes that read the arguments to be passed to the transformed generator call.
      */
-    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame, boolean readFromVirtualFrame) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame) {
         String[] argumentIds = new String[genExpParams.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {
@@ -181,8 +144,7 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            PNode read = readFromVirtualFrame ? NodeFactory.getInstance().createReadLocal(argSlot) : //
-                            (genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot));
+            PNode read = genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot);
 
             if (readFromCargoFrame) {
                 read = new FrameSwappingNode(read);
@@ -238,7 +200,7 @@ public class GeneratorExpressionOptimizer {
     }
 
     /**
-     * Replace with empty parameter load in generator expression with real ones.
+     * Replace empty parameter load in generator expression with real ones.
      */
     private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root) {
         GeneratorReturnTargetNode body = NodeUtil.findFirstNodeInstance(root, GeneratorReturnTargetNode.class);

@@ -31,9 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallFunctionNoKeywordNode.CallFunctionCachedNode;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.function.GeneratorExpressionDefinitionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
@@ -84,13 +82,10 @@ public class BuiltinIntrinsifier {
             return false;
         }
 
-        if (call.getArguments()[0] instanceof CallFunctionNoKeywordNode.CallFunctionCachedNode) {
-            CallFunctionNoKeywordNode.CallFunctionCachedNode callgenexp = (CallFunctionCachedNode) call.getArguments()[0];
-            PythonCallable calleeGenexp = callgenexp.getCallee();
-            if (calleeGenexp instanceof CallableGeneratorExpressionDefinition) {
-                this.genexp = (GeneratorExpressionDefinitionNode) calleeGenexp;
-                return true;
-            }
+        PNode arg = call.getArguments()[0];
+        if (arg instanceof GeneratorExpressionDefinitionNode) {
+            this.genexp = (GeneratorExpressionDefinitionNode) arg;
+            return true;
         }
 
         return false;

@@ -66,6 +66,10 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
     }
 
+    public void invokeBuiltinIntrinsifier(CallBuiltinInlinedNode inlinedCall) {
+        new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged, inlinedCall).intrinsify();
+    }
+
     public static class CallFunctionInlinableNode extends InlineableCallNode {
 
         private final PFunction function;
@@ -143,11 +147,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
                 CallBuiltinInlinedNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
                                 this.builtinModuleUnchanged, factory);
                 replace(inlinedCallNode);
-
-                /**
-                 * Test
-                 */
-                new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged, inlinedCallNode).intrinsify();
+                invokeBuiltinIntrinsifier(inlinedCallNode);
                 return true;
             }
 

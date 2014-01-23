@@ -68,8 +68,8 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         return isDeclarationFrameGenerator;
     }
 
-    public void setDeclarationFrameGenerator() {
-        isDeclarationFrameGenerator = true;
+    public void setDeclarationFrameGenerator(boolean value) {
+        isDeclarationFrameGenerator = value;
     }
 
     public boolean isOptimized() {

@@ -35,7 +35,6 @@ import edu.uci.python.runtime.datatype.*;
 public class RaiseNode extends StatementNode {
 
     @Child protected PNode type;
-
     @Child protected PNode inst;
 
     public RaiseNode(PNode type, PNode inst) {
@@ -47,7 +46,10 @@ public class RaiseNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         Object t = type.execute(frame);
         Object i = (inst == null) ? null : inst.execute(frame);
-// Object b = (tback == null) ? null : tback.execute(frame);
+        /**
+         * TODO: need to support trace back.
+         */
+        // Object b = (tback == null) ? null : tback.execute(frame);
 
         doRaise(t, i);
         return PNone.NONE;
