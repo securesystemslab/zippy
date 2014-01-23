@@ -44,7 +44,7 @@ public class PGenerator implements PIterator {
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         /**
-         * Setting up persistent frame in {@link #arguments}.
+         * Setting up the persistent frame in {@link #arguments}.
          */
         MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENT, frameDescriptor);
         this.arguments = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments, numOfGeneratorBlockNode, numOfGeneratorForNode);

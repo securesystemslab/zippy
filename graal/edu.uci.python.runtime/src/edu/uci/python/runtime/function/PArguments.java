@@ -169,7 +169,6 @@ public class PArguments extends Arguments {
         public VirtualFrame getCargoFrame() {
             return cargoFrame;
         }
-
     }
 
 }
