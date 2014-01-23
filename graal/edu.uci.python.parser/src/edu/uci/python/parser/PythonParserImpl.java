@@ -46,9 +46,6 @@ public class PythonParserImpl implements PythonParser {
 
     @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompileMode kind, CompilerFlags cflags) {
-        String currentModule = context.getModuleName();
-        context.setModuleName(module.getModuleName());
-
         org.python.antlr.base.mod node;
         this.scriptSource = source;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
@@ -65,7 +62,7 @@ public class PythonParserImpl implements PythonParser {
             node = ParserFacade.parse(istream, kind, filename, cflags);
         }
 
-        TranslationEnvironment environment = new TranslationEnvironment(node, context);
+        TranslationEnvironment environment = new TranslationEnvironment(node, context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
@@ -78,9 +75,6 @@ public class PythonParserImpl implements PythonParser {
             }
         }
 
-        if (currentModule != null) {
-            context.setModuleName(currentModule);
-        }
         return result;
     }
 

@@ -42,6 +42,7 @@ public class TranslationEnvironment {
     private final mod module;
     private final PythonContext context;
     private final NodeFactory factory;
+    private final PythonModule pythonModule;
 
     private Map<PythonTree, ScopeInfo> scopeInfos;
     private ScopeInfo currentScope;
@@ -53,9 +54,10 @@ public class TranslationEnvironment {
     private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;
 
-    public TranslationEnvironment(mod module, PythonContext context) {
+    public TranslationEnvironment(mod module, PythonContext context, PythonModule pythonModule) {
         this.module = module;
         this.context = context;
+        this.pythonModule = pythonModule;
         this.factory = NodeFactory.getInstance();
         scopeInfos = new HashMap<>();
     }
@@ -145,12 +147,10 @@ public class TranslationEnvironment {
     public ReadNode findVariable(String name) {
         assert name != null : "name is null!";
         FrameSlot slot = findSlot(name);
-        PythonModule currentModule = null;
 
         switch (getScopeKind()) {
             case Module:
-                currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
-                return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                return (ReadNode) factory.createReadGlobalScope(context, pythonModule, name);
             case Generator:
             case ListComp:
             case Function:
@@ -169,8 +169,7 @@ public class TranslationEnvironment {
         }
 
         assert readLevel == null;
-        PythonModule currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
-        return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+        return (ReadNode) factory.createReadGlobalScope(context, pythonModule, name);
     }
 
     public ReadNode makeTempLocalVariable() {

@@ -42,12 +42,14 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     private final String attributeId;
     private final PythonContext context;
+    private final PythonModule globalScope;
 
     @Child protected LoadAttributeNode load;
 
     public ReadGlobalScopeNode(PythonContext context, PythonModule globalScope, String attributeId) {
         this.attributeId = attributeId;
         this.context = context;
+        this.globalScope = globalScope;
         PNode primary = new ObjectLiteralNode(globalScope);
         this.load = adoptChild(new UninitializedLoadAttributeNode(attributeId, primary));
     }
@@ -55,6 +57,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
     protected ReadGlobalScopeNode(ReadGlobalScopeNode previous) {
         this.attributeId = previous.attributeId;
         this.context = previous.context;
+        this.globalScope = previous.globalScope;
         this.load = adoptChild(previous.load);
     }
 
@@ -122,7 +125,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
 
     protected final void cacheBuiltin(Object builtin) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        Assumption globalScopeUnchanged = this.context.getPythonBuiltinsLookup().lookupModule(context.getModuleName()).getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = this.globalScope.getUnmodifiedAssumption();
         Assumption builtinsModuleUnchanged = this.context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
         replace(new ReadBuiltinCachedNode(this, globalScopeUnchanged, builtinsModuleUnchanged, builtin));
     }
