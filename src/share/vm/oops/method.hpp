@@ -617,11 +617,6 @@ class Method : public Metadata {
   // simultaneously. Use with caution.
   bool has_compiled_code() const                 { return code() != NULL; }
 
-#ifdef GRAAL
-  // Return true if the name of the method indicates that this is a
-  // lambda method other than <init>.
-  bool is_lambda() const;
-#endif
   // sizing
   static int header_size()                       { return sizeof(Method)/HeapWordSize; }
   static int size(bool is_native);

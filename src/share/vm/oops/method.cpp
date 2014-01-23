@@ -2025,28 +2025,3 @@ void Method::verify_on(outputStream* st) {
   guarantee(md == NULL ||
       md->is_methodData(), "should be method data");
 }
-
-#ifdef GRAAL
-
-// Return true if the name of the method indicates that this is a
-// lambda method other than <init>. Lambda method is one with a name 
-// that starts with lambda$ and is synthetic.
-
-bool Method::is_lambda() const {
-  Symbol * klass_name = method_holder()->name();
-  Symbol * method_name = name();
-  ResourceMark rm;
-  if (klass_name != NULL) {
-    if (klass_name != NULL && method_name != NULL) {
-      const char* lambdaPrefix = "lambda$main$";
-      char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
-      if (methodPrefix != 0) {
-        if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0) && is_synthetic()) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-#endif
