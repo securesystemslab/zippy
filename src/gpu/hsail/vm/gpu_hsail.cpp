@@ -87,6 +87,12 @@ bool  gpu::Hsail::execute_kernel_void_1d(address kernel, int dimX, jobject args,
 
 void *gpu::Hsail::generate_kernel(unsigned char *code, int code_len, const char *name) {
 
+  if (_okra_create_kernel == NULL) {
+    // probe linkage and we really need it to work this time
+    bool success = probe_linkage_internal(true);
+    guarantee(success, "[HSAIL] loading okra library");
+  }
+
   gpu::Hsail::register_heap();
 
   // The kernel entrypoint is always run for the time being  
@@ -124,44 +130,66 @@ static char const okra_library_name[] = "";
   } \
 
 bool gpu::Hsail::probe_linkage() {
-  if (okra_library_name != NULL) {
-    char *buffer = (char*)malloc(STD_BUFFER_SIZE);
-    if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] library is %s", okra_library_name);
-    }
-    void *handle = os::dll_load(okra_library_name, buffer, STD_BUFFER_SIZE);
-    free(buffer);
-    if (handle != NULL) {
+  return probe_linkage_internal(false);
+}
 
-      LOOKUP_OKRA_FUNCTION(okra_create_context, okra_create_context);
-      LOOKUP_OKRA_FUNCTION(okra_create_kernel, okra_create_kernel);
-      LOOKUP_OKRA_FUNCTION(okra_push_object, okra_push_object);
-      LOOKUP_OKRA_FUNCTION(okra_push_boolean, okra_push_boolean);
-      LOOKUP_OKRA_FUNCTION(okra_push_byte, okra_push_byte);
-      LOOKUP_OKRA_FUNCTION(okra_push_double, okra_push_double);
-      LOOKUP_OKRA_FUNCTION(okra_push_float, okra_push_float);
-      LOOKUP_OKRA_FUNCTION(okra_push_int, okra_push_int);
-      LOOKUP_OKRA_FUNCTION(okra_push_long, okra_push_long);
-      LOOKUP_OKRA_FUNCTION(okra_execute_with_range, okra_execute_with_range);
-      LOOKUP_OKRA_FUNCTION(okra_clearargs, okra_clearargs);
-      LOOKUP_OKRA_FUNCTION(okra_register_heap, okra_register_heap);
 
-      return true;
-    } else {
-      // Unable to dlopen okra
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] library load failed.");
-      }
-      return false;
-    }
-  } else {
+bool gpu::Hsail::probe_linkage_internal(bool isRequired) {
+  if (okra_library_name == NULL) {
     if (TraceGPUInteraction) {
       tty->print_cr("Unsupported HSAIL platform");
     }
     return false;
   }
+
+  // here we know we have a valid okra_library_name to try to load
+  // the isRequired boolean specifies whether it is an error if the
+  // probe does not find the okra library
+  char *buffer = (char*)malloc(STD_BUFFER_SIZE);
   if (TraceGPUInteraction) {
-    tty->print_cr("Failed to find HSAIL linkage");
+      tty->print_cr("[HSAIL] library is %s", okra_library_name);
   }
-  return false;
+  void *handle = os::dll_load(okra_library_name, buffer, STD_BUFFER_SIZE);
+  // try alternate location if env variable set
+  char *okra_lib_name_from_env_var = getenv("_OKRA_SIM_LIB_PATH_");
+  if ((handle == NULL) && (okra_lib_name_from_env_var != NULL)) {
+    handle = os::dll_load(okra_lib_name_from_env_var, buffer, STD_BUFFER_SIZE);
+    if ((handle != NULL) && TraceGPUInteraction) {
+      tty->print_cr("[HSAIL] using _OKRA_SIM_LIB_PATH_=%s", getenv("_OKRA_SIM_LIB_PATH_"));
+    }
+  }
+  free(buffer);
+
+  if ((handle == NULL) && !isRequired) {
+    // return true for now but we will probe again later
+    if (TraceGPUInteraction) {
+      tty->print_cr("[HSAIL] library load not in PATH, waiting for Java to put in tmpdir.");
+    }
+    return true;
+  }
+
+  if ((handle == NULL) && isRequired) {
+    // Unable to dlopen okra
+    if (TraceGPUInteraction) {
+      tty->print_cr("[HSAIL] library load failed.");
+    }
+    return false;
+  }
+  
+  // at this point we know handle is valid and we can lookup the functions
+  LOOKUP_OKRA_FUNCTION(okra_create_context, okra_create_context);
+  LOOKUP_OKRA_FUNCTION(okra_create_kernel, okra_create_kernel);
+  LOOKUP_OKRA_FUNCTION(okra_push_object, okra_push_object);
+  LOOKUP_OKRA_FUNCTION(okra_push_boolean, okra_push_boolean);
+  LOOKUP_OKRA_FUNCTION(okra_push_byte, okra_push_byte);
+  LOOKUP_OKRA_FUNCTION(okra_push_double, okra_push_double);
+  LOOKUP_OKRA_FUNCTION(okra_push_float, okra_push_float);
+  LOOKUP_OKRA_FUNCTION(okra_push_int, okra_push_int);
+  LOOKUP_OKRA_FUNCTION(okra_push_long, okra_push_long);
+  LOOKUP_OKRA_FUNCTION(okra_execute_with_range, okra_execute_with_range);
+  LOOKUP_OKRA_FUNCTION(okra_clearargs, okra_clearargs);
+  LOOKUP_OKRA_FUNCTION(okra_register_heap, okra_register_heap);
+  
+  // if we made it this far, real success
+  return true;
 }
