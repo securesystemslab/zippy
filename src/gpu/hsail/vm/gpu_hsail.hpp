@@ -56,6 +56,8 @@ private:
   typedef bool (*okra_execute_with_range_func_t)(void*, jint);
   typedef bool (*okra_clearargs_func_t)(void*);
   typedef bool (*okra_register_heap_func_t)(void*, size_t);
+
+  static bool probe_linkage_internal(bool isRequired);
   
 public:
   static okra_create_context_func_t             _okra_create_context;
