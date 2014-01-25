@@ -42,29 +42,32 @@ public abstract class TryExceptNode extends StatementNode {
     @Child protected PNode exceptName;
     @Child protected BlockNode exceptBody;
 
-    protected TryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    protected final PythonContext context;
+
+    protected TryExceptNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
 
         this.exceptName = adoptChild(exceptName);
         this.exceptType = adoptChild(exceptType);
         this.exceptBody = adoptChild(exceptBody);
+
+        this.context = context;
     }
 
-    public static TryExceptNode create(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    public static TryExceptNode create(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         if (orelse == null) {
-            return new TryOnlyNode(body, orelse, exceptType, exceptName, exceptBody);
+            return new TryOnlyNode(context, body, orelse, exceptType, exceptName, exceptBody);
         }
-        return new TryElseNode(body, orelse, exceptType, exceptName, exceptBody);
-
+        return new TryElseNode(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
 }
 
 class TryOnlyNode extends TryExceptNode {
 
-    protected TryOnlyNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        super(body, orelse, exceptType, exceptName, exceptBody);
+    protected TryOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        super(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
     @Override
@@ -72,7 +75,7 @@ class TryOnlyNode extends TryExceptNode {
         try {
             return body.execute(frame);
         } catch (RuntimeException ex) {
-            this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
+            this.replace(new GenericTryExceptNode(this)).executeExcept(frame, ex);
             throw ex;
         }
     }
@@ -80,8 +83,8 @@ class TryOnlyNode extends TryExceptNode {
 
 class TryElseNode extends TryExceptNode {
 
-    protected TryElseNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        super(body, orelse, exceptType, exceptName, exceptBody);
+    protected TryElseNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+        super(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
     @Override
@@ -89,7 +92,7 @@ class TryElseNode extends TryExceptNode {
         try {
             body.execute(frame);
         } catch (RuntimeException ex) {
-            return this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
+            return this.replace(new GenericTryExceptNode(this)).executeExcept(frame, ex);
         }
         return orelse.execute(frame);
     }
@@ -97,8 +100,8 @@ class TryElseNode extends TryExceptNode {
 
 class GenericTryExceptNode extends TryExceptNode {
 
-    protected GenericTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        super(body, orelse, exceptType, exceptName, exceptBody);
+    protected GenericTryExceptNode(TryExceptNode prev) {
+        super(prev.context, prev.body, prev.orelse, prev.exceptType, prev.exceptName, prev.exceptBody);
     }
 
     @Override
@@ -119,14 +122,14 @@ class GenericTryExceptNode extends TryExceptNode {
         } else if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
             e = Py.ZeroDivisionError("divide by zero");
         } else {
-            if (PythonContext.getCurrentException() != null) {
-                e = (PyException) PythonContext.getCurrentException();
+            if (context.getCurrentException() != null) {
+                e = (PyException) context.getCurrentException();
             } else {
                 throw excep;
             }
         }
 
-        PythonContext.setCurrentException(e);
+        context.setCurrentException(e);
 
         if (exceptType != null) {
             PyObject type = (PyObject) exceptType.execute(frame);
@@ -145,12 +148,14 @@ class GenericTryExceptNode extends TryExceptNode {
                 Object retVal = exceptBody.execute(frame);
 
                 // clear the exception after executing the except body.
-                PythonContext.setCurrentException(null);
+                context.setCurrentException(null);
 
                 return retVal;
             }
 
         }
+
         throw excep;
     }
+
 }

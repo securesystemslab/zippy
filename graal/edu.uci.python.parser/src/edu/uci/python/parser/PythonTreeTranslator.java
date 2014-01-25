@@ -842,7 +842,7 @@ public class PythonTreeTranslator extends Visitor {
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
-            retVal = factory.createTryExceptNode(body, orelse, exceptType, exceptName, exceptBody);
+            retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
         }
 
         return retVal;
@@ -861,7 +861,7 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitRaise(Raise node) throws Exception {
         PNode type = (node.getInternalType() == null) ? null : (PNode) visit(node.getInternalType());
         PNode inst = (node.getInternalInst() == null) ? null : (PNode) visit(node.getInternalInst());
-        return factory.createRaiseNode(type, inst);
+        return new RaiseNode(context, type, inst);
     }
 
     @Override

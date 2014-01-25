@@ -460,14 +460,6 @@ public class NodeFactory {
         return new TryFinallyNode(body, finalbody);
     }
 
-    public StatementNode createTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        return TryExceptNode.create(body, orelse, exceptType, exceptName, exceptBody);
-    }
-
-    public PNode createRaiseNode(PNode type, PNode inst) {
-        return new RaiseNode(type, inst);
-    }
-
     public StatementNode createAssert(CastToBooleanNode condition, PNode message) {
         return new AssertNode(condition, message);
     }

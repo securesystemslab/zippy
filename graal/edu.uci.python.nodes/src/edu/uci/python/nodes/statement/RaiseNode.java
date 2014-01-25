@@ -37,8 +37,10 @@ public class RaiseNode extends StatementNode {
 
     @Child protected PNode type;
     @Child protected PNode inst;
+    private final PythonContext context;
 
-    public RaiseNode(PNode type, PNode inst) {
+    public RaiseNode(PythonContext context, PNode type, PNode inst) {
+        this.context = context;
         this.type = adoptChild(type);
         this.inst = adoptChild(inst);
     }
@@ -53,14 +55,13 @@ public class RaiseNode extends StatementNode {
         // Object b = (tback == null) ? null : tback.execute(frame);
 
         if (t == null) {
-            if (PythonContext.getCurrentException() == null) {
+            if (context.getCurrentException() == null) {
                 throw new RuntimeException("RuntimeError: No active exception to reraise");
             }
-            throw PythonContext.getCurrentException();
+            throw context.getCurrentException();
         }
 
         doRaise(t, i);
-
         return PNone.NONE;
     }
 
@@ -68,4 +69,5 @@ public class RaiseNode extends StatementNode {
     private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
+
 }
