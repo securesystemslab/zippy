@@ -27,6 +27,7 @@ package edu.uci.python.runtime.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 
 public final class PGeneratorFunction extends PFunction {
@@ -34,9 +35,9 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
 
-    public PGeneratorFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
+    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
                     int numOfGeneratorForNode) {
-        super(name, arity, callTarget, frameDescriptor, declarationFrame);
+        super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
     }
@@ -51,7 +52,11 @@ public final class PGeneratorFunction extends PFunction {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        if (PythonOptions.ParallelizeGeneratorCalls) {
+            return new PParallelGenerator(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        } else {
+            return new PGenerator(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        }
     }
 
     @Override

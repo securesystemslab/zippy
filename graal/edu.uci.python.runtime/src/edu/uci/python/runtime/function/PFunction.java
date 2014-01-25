@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -41,17 +42,19 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     private final CallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
+    protected final PythonContext context;
 
-    public PFunction(String name, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
         this.arity = arity;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.declarationFrame = declarationFrame;
+        this.context = context;
     }
 
     public static PFunction duplicate(PFunction function, CallTarget newCallTarget) {
-        return new PFunction(function.name, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
+        return new PFunction(function.name, function.context, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
     }
 
     @Override

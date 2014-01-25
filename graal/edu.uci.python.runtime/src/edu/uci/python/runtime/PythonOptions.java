@@ -60,6 +60,8 @@ public class PythonOptions {
 
     public static final boolean UseSimpleGeneratorInlining = false;
 
+    public static final boolean ParallelizeGeneratorCalls = false;
+
     private PrintStream standardOut = System.out;
 
     private PrintStream standardErr = System.err;

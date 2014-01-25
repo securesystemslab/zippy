@@ -166,9 +166,10 @@ public class PythonTreeTranslator extends Visitor {
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator();
             gtran.translate(funcRoot);
-            funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = new GeneratorFunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
+                            gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
 
         environment.endScope(node);
@@ -225,9 +226,10 @@ public class PythonTreeTranslator extends Visitor {
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator();
             gtran.translate(funcRoot);
-            funcDef = new GeneratorFunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = new GeneratorFunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
+                            gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
 
         environment.endScope(node);
@@ -406,7 +408,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.getCurrentFrame(), body);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.getEmptyBlock(), ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.getEmptyBlock(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 

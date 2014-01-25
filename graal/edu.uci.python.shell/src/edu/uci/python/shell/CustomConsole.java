@@ -40,8 +40,13 @@ public class CustomConsole extends JLineConsole {
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
         PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
-        Source source = context.getSourceManager().get(name);
-        execfile(context, source);
+
+        try {
+            Source source = context.getSourceManager().get(name);
+            execfile(context, source);
+        } finally {
+            context.shutdown();
+        }
     }
 
     public void execfile(PythonContext context, Source source) {
@@ -49,6 +54,7 @@ public class CustomConsole extends JLineConsole {
 
         PythonModule module = new PythonModule("__main__", context, context.getBuiltins());
         PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
+
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();

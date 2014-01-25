@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.util.concurrent.*;
 
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
@@ -46,6 +47,8 @@ public class PythonContext {
     private final SourceManager sourceManager;
     private final PythonParser parser;
 
+    private final ExecutorService executorService;
+
     private static PythonContext currentContext;
 
     private static RuntimeException currentException = null;
@@ -57,10 +60,14 @@ public class PythonContext {
         this.objectClass = new PythonObjectClass(this);
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
-        currentContext = this;
         this.sourceManager = new SourceManager();
         this.parser = parser;
+
+        // The order matters.
+        currentContext = this;
+
         this.builtinsModule = this.lookup.addBuiltins(this);
+        this.executorService = Executors.newFixedThreadPool(5);
     }
 
     public PythonModule getBuiltins() {
@@ -129,4 +136,13 @@ public class PythonContext {
     public static RuntimeException getCurrentException() {
         return currentException;
     }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public void shutdown() {
+        executorService.shutdown();
+    }
+
 }
