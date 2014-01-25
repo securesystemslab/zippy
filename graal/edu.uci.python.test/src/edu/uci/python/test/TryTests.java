@@ -73,6 +73,54 @@ public class TryTests {
     }
 
     @Test
+    public void tryZeroDivideInsideFunction() {
+        String source = "def foo():\n" + //
+                        "    result = 1 / 0\n" + //
+                        "\n" + //
+                        "try:\n" + //
+                        "    foo()\n" + //
+                        "except ZeroDivisionError:\n" + //
+                        "    print(\"division by zero!\")\n" + //
+                        "else:\n" + //
+                        "    print(\"result is \", result)\n" + //
+                        "finally:\n" + //
+                        "    print(\"executing finally clause\")\n";
+
+        assertPrints("division by zero!\n" + "executing finally clause\n", source);
+    }
+
+    @Test
+    public void raiseWithoutArg() {
+        String source = "def divide(x, y):\n" + //
+                        "    try:\n" + //
+                        "        result = x / y\n" + //
+                        "        raise KeyboardInterrupt\n" + //
+                        "    except KeyboardInterrupt as err:\n" + //
+                        "        try:\n" + //
+                        "            result = x / (y+1)\n" + //
+                        "            foo()\n" + //
+                        "        except KeyboardInterrupt as exp:\n" + //
+                        "            print(\"last KeyboardInterrupt!\",exp)\n" + //
+                        "        else:\n" + //
+                        "            print(\"exception result is \", result)\n" + //
+                        "        finally:\n" + //
+                        "            print(\"executing finally clause raised without argument\")\n" + //
+                        "    except ZeroDivisionError as z:\n" + //
+                        "        print(\"ZeroDivisionError!\", z)\n" + //
+                        "    else:\n" + //
+                        "        print(\"result is \", result)\n" + //
+                        "    finally:\n" + //
+                        "       print(\"executing finally clause\")\n" + //
+                        "\n" + //
+                        "def foo():\n" + //
+                        "    raise\n" + //
+                        "\n" + //
+                        "divide(1,1)\n";
+
+        assertPrints("last KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause raised without argument\n" + "executing finally clause\n", source);
+    }
+
+    @Test
     public void scriptTryTest() {
         Path script = Paths.get("raise_try_test.py");
         assertPrints("KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause\n", script);

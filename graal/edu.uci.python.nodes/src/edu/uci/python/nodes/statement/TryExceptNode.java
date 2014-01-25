@@ -30,7 +30,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.*;
 
 public abstract class TryExceptNode extends StatementNode {
 
@@ -42,8 +42,6 @@ public abstract class TryExceptNode extends StatementNode {
     @Child protected PNode exceptName;
     @Child protected BlockNode exceptBody;
 
-    protected RuntimeException lastException;
-
     protected TryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
@@ -51,8 +49,6 @@ public abstract class TryExceptNode extends StatementNode {
         this.exceptName = adoptChild(exceptName);
         this.exceptType = adoptChild(exceptType);
         this.exceptBody = adoptChild(exceptBody);
-
-        this.lastException = null;
     }
 
     public static TryExceptNode create(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
@@ -62,6 +58,7 @@ public abstract class TryExceptNode extends StatementNode {
         return new TryElseNode(body, orelse, exceptType, exceptName, exceptBody);
 
     }
+
 }
 
 class TryOnlyNode extends TryExceptNode {
@@ -75,7 +72,8 @@ class TryOnlyNode extends TryExceptNode {
         try {
             return body.execute(frame);
         } catch (RuntimeException ex) {
-            return this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
+            this.replace(new GenericTryExceptNode(body, orelse, exceptType, exceptName, exceptBody)).executeExcept(frame, ex);
+            throw ex;
         }
     }
 }
@@ -106,13 +104,10 @@ class GenericTryExceptNode extends TryExceptNode {
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            Object retVal = body.execute(frame);
-
-            if (retVal == PNone.NONE) {
-// do something!!!!!!!!!
-            }
+            body.execute(frame);
         } catch (RuntimeException ex) {
-            return executeExcept(frame, ex);
+            executeExcept(frame, ex);
+            throw ex;
         }
         return orelse.execute(frame);
     }
@@ -124,17 +119,37 @@ class GenericTryExceptNode extends TryExceptNode {
         } else if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
             e = Py.ZeroDivisionError("divide by zero");
         } else {
-            throw excep;
+            if (PythonContext.getCurrentException() != null) {
+                e = (PyException) PythonContext.getCurrentException();
+            } else {
+                throw excep;
+            }
         }
+
+        PythonContext.setCurrentException(e);
 
         if (exceptType != null) {
             PyObject type = (PyObject) exceptType.execute(frame);
+            /**
+             * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
+             * 'Exception'
+             * 
+             * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by
+             * zero'
+             */
             if (e.type == type) {
                 if (exceptName != null) {
-                    ((WriteLocalVariableNode) exceptName).executeWith(frame, excep);
+                    ((WriteLocalVariableNode) exceptName).executeWith(frame, e);
                 }
-                return exceptBody.execute(frame);
+
+                Object retVal = exceptBody.execute(frame);
+
+                // clear the exception after executing the except body.
+                PythonContext.setCurrentException(null);
+
+                return retVal;
             }
+
         }
         throw excep;
     }

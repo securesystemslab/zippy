@@ -30,6 +30,7 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 
 public class RaiseNode extends StatementNode {
@@ -44,14 +45,22 @@ public class RaiseNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        Object t = type.execute(frame);
+        Object t = (type == null) ? null : type.execute(frame);
         Object i = (inst == null) ? null : inst.execute(frame);
         /**
          * TODO: need to support trace back.
          */
         // Object b = (tback == null) ? null : tback.execute(frame);
 
+        if (t == null) {
+            if (PythonContext.getCurrentException() == null) {
+                throw new RuntimeException("RuntimeError: No active exception to reraise");
+            }
+            throw PythonContext.getCurrentException();
+        }
+
         doRaise(t, i);
+
         return PNone.NONE;
     }
 
@@ -59,5 +68,4 @@ public class RaiseNode extends StatementNode {
     private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
-
 }

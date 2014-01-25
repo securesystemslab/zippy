@@ -48,6 +48,8 @@ public class PythonContext {
 
     private static PythonContext currentContext;
 
+    private static RuntimeException currentException = null;
+
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
@@ -120,4 +122,11 @@ public class PythonContext {
         return sourceManager;
     }
 
+    public static void setCurrentException(RuntimeException e) {
+        currentException = e;
+    }
+
+    public static RuntimeException getCurrentException() {
+        return currentException;
+    }
 }
