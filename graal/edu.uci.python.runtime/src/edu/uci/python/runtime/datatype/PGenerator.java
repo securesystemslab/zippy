@@ -34,9 +34,9 @@ import edu.uci.python.runtime.iterator.*;
 public class PGenerator implements PIterator {
 
     private final String name;
-    private final CallTarget callTarget;
-    private final FrameDescriptor frameDescriptor;
-    private final PArguments arguments;
+    protected final CallTarget callTarget;
+    protected final FrameDescriptor frameDescriptor;
+    protected final PArguments arguments;
 
     public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfGeneratorBlockNode,
                     int numOfGeneratorForNode) {

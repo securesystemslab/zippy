@@ -109,7 +109,7 @@ class GenericTryExceptNode extends TryExceptNode {
             Object retVal = body.execute(frame);
 
             if (retVal == PNone.NONE) {
-// do something!!!!!!!!!
+                // do something!!!!!!!!!
             }
         } catch (RuntimeException ex) {
             return executeExcept(frame, ex);

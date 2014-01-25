@@ -69,7 +69,6 @@ public class RunScript {
                 try {
 
                     Py.getSystemState().path.insert(0, new PyString(path));
-
                     FileInputStream file;
 
                     try {
