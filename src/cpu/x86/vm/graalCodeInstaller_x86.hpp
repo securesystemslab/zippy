@@ -72,9 +72,10 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
       case 'b':
       case 's':
       case 'c':
+      case 'i':
         fatal("int-sized values not expected in DataPatch");
         break;
-      case 'i': {
+      case 'n': {
         address operand = Assembler::locate_operand(pc, Assembler::narrow_oop_operand);
         Handle obj = Constant::object(inlineData);
 

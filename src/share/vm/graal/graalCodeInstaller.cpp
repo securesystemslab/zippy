@@ -84,28 +84,45 @@ static int bitset_size(oop bitset) {
 // creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
-  oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
-  oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
+  oop reference_map = DebugInfo::referenceMap(debug_info);
+  oop register_map = ReferenceMap::registerRefMap(reference_map);
+  oop frame_map = ReferenceMap::frameRefMap(reference_map);
   oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
     for (jint i = 0; i < RegisterImpl::number_of_registers; i++) {
-      bool is_oop = is_bit_set(register_map, i);
+      bool is_oop = is_bit_set(register_map, 2 * i);
       VMReg hotspot_reg = get_hotspot_reg(i);
       if (is_oop) {
-        map->set_oop(hotspot_reg);
+        if (is_bit_set(register_map, 2 * i + 1)) {
+          map->set_narrowoop(hotspot_reg);
+        } else {
+          map->set_oop(hotspot_reg);
+        }
       } else {
         map->set_value(hotspot_reg);
       }
     }
   }
 
-  for (jint i = 0; i < bitset_size(frame_map); i++) {
-    bool is_oop = is_bit_set(frame_map, i);
+  for (jint i = 0; i < bitset_size(frame_map) / 3; i++) {
+    bool is_oop = is_bit_set(frame_map, i * 3);
     // HotSpot stack slots are 4 bytes
     VMReg reg = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word);
     if (is_oop) {
-      map->set_oop(reg);
+      bool narrow1 = is_bit_set(frame_map, i * 3 + 1);
+      bool narrow2 = is_bit_set(frame_map, i * 3 + 2);
+      if(narrow1 || narrow2) {
+        if(narrow1) {
+          map->set_narrowoop(reg);
+        }
+        if(narrow2) {
+          VMReg reg2 = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word + 1);
+          map->set_narrowoop(reg2);
+        }
+      } else {
+        map->set_oop(reg);
+      }
     } else {
       map->set_value(reg);
     }

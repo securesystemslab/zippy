@@ -104,8 +104,7 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
         if (condition() instanceof LogicNegationNode) {
             LogicNegationNode negation = (LogicNegationNode) condition();
             return graph().unique(new GuardNode(negation.getInput(), getGuard(), reason, action, !negated, speculation));
-        }
-        if (condition() instanceof LogicConstantNode) {
+        } else if (condition() instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition();
             if (c.getValue() != negated) {
                 return graph().start();
