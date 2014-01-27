@@ -28,6 +28,7 @@ import java.io.*;
 import java.nio.file.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import static org.junit.Assert.*;
 import edu.uci.python.builtins.*;
@@ -112,4 +113,9 @@ public class PythonTests {
         new PythonModule("__main__", context, context.getBuiltins());
         return context;
     }
+
+    public static VirtualFrame createVirtualFrame() {
+        return Truffle.getRuntime().createVirtualFrame(null, null, new FrameDescriptor());
+    }
+
 }
