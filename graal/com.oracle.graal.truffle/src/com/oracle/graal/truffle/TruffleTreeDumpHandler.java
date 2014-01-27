@@ -23,15 +23,15 @@
 package com.oracle.graal.truffle;
 
 import com.oracle.graal.debug.*;
-import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 public class TruffleTreeDumpHandler implements DebugDumpHandler {
 
     @Override
     public void dump(Object object, final String message) {
-        if (object instanceof DefaultCallTarget) {
-            DefaultCallTarget callTarget = (DefaultCallTarget) object;
+        if (object instanceof RootCallTarget) {
+            RootCallTarget callTarget = (RootCallTarget) object;
             if (callTarget.getRootNode() != null) {
                 new GraphPrintVisitor().beginGroup(callTarget.toString()).beginGraph(message).visit(callTarget.getRootNode()).printToNetwork();
             }
