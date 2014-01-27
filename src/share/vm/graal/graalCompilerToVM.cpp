@@ -669,6 +669,9 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
   } else {
     Disassembler::decode(cb, &st);
   }
+  if (st.size() <= 0) {
+    return NULL;
+  }
 
   Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
   return JNIHandles::make_local(result());
