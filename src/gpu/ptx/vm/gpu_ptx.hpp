@@ -84,16 +84,19 @@
  * Context creation flags
  */
 
-#define GRAAL_CU_CTX_MAP_HOST 0x08
+#define GRAAL_CU_CTX_MAP_HOST            0x08
+#define GRAAL_CU_CTX_SCHED_BLOCKING_SYNC 0x04
 
 class Ptx {
   friend class gpu;
+  friend class PtxCall;
 
  protected:
   static bool probe_linkage();
   static bool initialize_gpu();
   static unsigned int total_cores();
-  static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+  static void* get_context();
+  static void* generate_kernel(unsigned char *code, int code_len, const char *name);
   static bool execute_warp(int dimX, int dimY, int dimZ, address kernel, PTXKernelArguments & ka, JavaValue &ret);
   static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
 public:
@@ -106,8 +109,11 @@ public:
 typedef int CUdevice;     /* CUDA device */
 
   static jlong execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
-                                      jlong parametersAndReturnValueBuffer,
-                                      jint parametersAndReturnValueBufferSize,
+                                      jlong buffer,
+                                      jint bufferSize,
+                                      jint objectParametersCount,
+                                      jlong objectParametersOffsets,
+                                      jlong pinnedObjects,
                                       int encodedReturnTypeSize);
 
 private:
@@ -115,6 +121,7 @@ private:
   typedef int (*cuda_cu_ctx_create_func_t)(void*, unsigned int, CUdevice);
   typedef int (*cuda_cu_ctx_destroy_func_t)(void*);
   typedef int (*cuda_cu_ctx_synchronize_func_t)(void);
+  typedef int (*cuda_cu_ctx_get_current_func_t)(void*);
   typedef int (*cuda_cu_ctx_set_current_func_t)(void*);
   typedef int (*cuda_cu_device_get_count_func_t)(int*);
   typedef int (*cuda_cu_device_get_name_func_t)(char*, int, int);
@@ -152,6 +159,7 @@ public:
   static cuda_cu_memfree_func_t                   _cuda_cu_memfree;
   static cuda_cu_memcpy_htod_func_t               _cuda_cu_memcpy_htod;
   static cuda_cu_memcpy_dtoh_func_t               _cuda_cu_memcpy_dtoh;
+  static cuda_cu_ctx_get_current_func_t           _cuda_cu_ctx_get_current;
   static cuda_cu_ctx_set_current_func_t           _cuda_cu_ctx_set_current;
   static cuda_cu_mem_host_register_func_t         _cuda_cu_mem_host_register;
   static cuda_cu_mem_host_get_device_pointer_func_t _cuda_cu_mem_host_get_device_pointer;

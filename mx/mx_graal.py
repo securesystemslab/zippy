@@ -1358,7 +1358,7 @@ def jacocoreport(args):
 def sl(args):
     """run an SL program"""
     vmArgs, slArgs = _extract_VM_args(args)
-    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
+    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
 
 def trufflejar(args=None):
     """make truffle.jar"""
