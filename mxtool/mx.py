@@ -1564,7 +1564,7 @@ class JavaCompliance:
             other = JavaCompliance(other)
 
         return cmp(self.value, other.value)
-    
+
     def __hash__(self):
         return self.value.__hash__()
 
