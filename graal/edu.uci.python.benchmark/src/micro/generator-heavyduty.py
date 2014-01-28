@@ -1,13 +1,16 @@
 # zwei 12/17/13
 # More work in each generator iteration.
-# Hopefully it is easier for parallelization
+# Various parameters have been tuned to produce 
+# a better balanced workload between caller and the generator
+
 import time
 
+heavyness = 20000
+
 def do_each_yield(i):
-	i = i * 10
 	x = 0
-	for j in range(i):
-		x = x + (j % 5)
+	for j in range(heavyness):
+		x = x + (i % 5)
 
 	return x
 
@@ -20,7 +23,7 @@ def call_generator(num, iteration):
 	item = 0	
 	for i in generator(num):
 		item = i + item % 5
-		for t in range(i * 10):
+		for t in range(i * 2):
 			item += t % 5
 
 	return item
@@ -30,7 +33,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	num = 6000
+	num = 10000
 	last_item = call_generator(num, 10)
 
 	print("Last item ", last_item)
@@ -39,7 +42,7 @@ def measure():
 	print("generator: " + duration)
 
 #warm up
-for run in range(200): # 200
+for run in range(100): # 200
 	call_generator(200, 10)
 
 measure()

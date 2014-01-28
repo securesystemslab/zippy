@@ -29,44 +29,41 @@ import java.util.concurrent.atomic.*;
 
 import edu.uci.python.runtime.exception.*;
 
-public class SingleProducerCircularBuffer {
+public final class SingleProducerCircularBuffer {
 
-    private static final PrintStream OUT = System.out;
+    @SuppressWarnings("unused") private static final PrintStream OUT = System.out;
 
     private static final int INDEX_MASK = 0B1111;
     private final Object[] buffer;
-    private long readCursor;
-    private AtomicLong writeCursor;
+    private AtomicLong readCursor;
+    private long writeCursor;
     private boolean isTerminated;
 
     public SingleProducerCircularBuffer() {
         this.buffer = new Object[INDEX_MASK + 1];
-        this.writeCursor = new AtomicLong();
+        this.readCursor = new AtomicLong();
     }
 
     public void setAsTerminated() {
-        advanceWriteIndex();
+        advanceWriteCursor();
         isTerminated = true;
-
-// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write terminated at index " +
-// getIndex(writeCursor.get()));
     }
 
     public void put(Object value) {
-        buffer[getIndex(writeCursor.get())] = value;
-
-// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index "
-// + getIndex(writeCursor.get()));
-
-        advanceWriteIndex();
-    }
-
-    private void advanceWriteIndex() {
-        while ((writeCursor.get() - readCursor) > INDEX_MASK - 1) {
+        while ((writeCursor - readCursor.get()) > INDEX_MASK) {
             // Spin
         }
-        // writeCursor.getAndIncrement();
-        writeCursor.lazySet(writeCursor.get() + 1);
+
+        buffer[getIndex(writeCursor)] = value;
+
+// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index "
+// + getIndex(writeCursor));
+
+        advanceWriteCursor();
+    }
+
+    private void advanceWriteCursor() {
+        writeCursor++;
     }
 
     private int getIndex(long cursor) {
@@ -76,27 +73,25 @@ public class SingleProducerCircularBuffer {
     }
 
     public Object take() {
-        Object result;
-
-        while (readCursor >= writeCursor.get()) {
+        while (readCursor.get() >= writeCursor) {
             // Spin
         }
 
-        if (isTerminated && readCursor == writeCursor.get() - 1) {
+        if (isTerminated && readCursor.get() == writeCursor - 1) {
             throw StopIterationException.INSTANCE;
         }
 
-        result = buffer[getIndex(readCursor)];
+        Object result = buffer[getIndex(readCursor.get())];
 
 // OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + result + " at index "
 // + getIndex(readCursor));
 
-        advanceReadIndex();
+        advanceReadCursor();
         return result;
     }
 
-    private void advanceReadIndex() {
-        readCursor++;
+    private void advanceReadCursor() {
+        readCursor.lazySet(readCursor.get() + 1);
     }
 
 }

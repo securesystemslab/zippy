@@ -67,7 +67,7 @@ public class PythonContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.addBuiltins(this);
-        this.executorService = Executors.newFixedThreadPool(5);
+        this.executorService = Executors.newCachedThreadPool();
     }
 
     public PythonModule getBuiltins() {

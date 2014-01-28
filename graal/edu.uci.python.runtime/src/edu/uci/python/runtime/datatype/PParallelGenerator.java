@@ -36,7 +36,7 @@ public class PParallelGenerator extends PGenerator {
 
     private final PythonContext context;
     private ConcurrentLinkedQueue<Object> queue;
-    private LinkedBlockingQueue<Object> blockingQueue;
+    private BlockingQueue<Object> blockingQueue;
     private SingleProducerCircularBuffer buffer;
 
     public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
@@ -47,9 +47,15 @@ public class PParallelGenerator extends PGenerator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        return doWithCircularBuffer();
-// return doWithLinkedBlockingQueue();
+// return doWithCircularBuffer();
+        return doWithBlockingQueue();
 // return doWithConcurrentLinkedQueue();
+    }
+
+    private void createBlockingQueue() {
+// blockingQueue = new LinkedBlockingQueue<>();
+        blockingQueue = new ArrayBlockingQueue<>(16);
+// blockingQueue = new SynchronousQueue<>();
     }
 
     @SuppressWarnings("unused")
@@ -83,10 +89,9 @@ public class PParallelGenerator extends PGenerator {
         }
     }
 
-    @SuppressWarnings("unused")
-    private Object doWithLinkedBlockingQueue() {
+    private Object doWithBlockingQueue() {
         if (blockingQueue == null) {
-            blockingQueue = new LinkedBlockingQueue<>();
+            createBlockingQueue();
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
@@ -122,6 +127,7 @@ public class PParallelGenerator extends PGenerator {
         }
     }
 
+    @SuppressWarnings("unused")
     private Object doWithCircularBuffer() {
         if (buffer == null) {
             buffer = new SingleProducerCircularBuffer();
@@ -144,4 +150,5 @@ public class PParallelGenerator extends PGenerator {
         Object result = buffer.take();
         return result;
     }
+
 }
