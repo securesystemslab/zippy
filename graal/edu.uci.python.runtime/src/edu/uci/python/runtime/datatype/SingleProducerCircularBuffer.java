@@ -31,39 +31,37 @@ import edu.uci.python.runtime.exception.*;
 
 public final class SingleProducerCircularBuffer {
 
-    @SuppressWarnings("unused") private static final PrintStream OUT = System.out;
-
     private static final int INDEX_MASK = 0B1111;
     private final Object[] buffer;
     private AtomicLong readCursor;
-    private long writeCursor;
+    private AtomicLong writeCursor;
     private boolean isTerminated;
 
     public SingleProducerCircularBuffer() {
         this.buffer = new Object[INDEX_MASK + 1];
-        this.readCursor = new AtomicLong();
+        this.readCursor = new PaddedAtomicLong();
+        this.writeCursor = new PaddedAtomicLong();
     }
 
     public void setAsTerminated() {
-        advanceWriteCursor();
+        writeCursor.lazySet(writeCursor.get() + 1);
         isTerminated = true;
     }
 
+    /**
+     * Writes to buffer. Advances writeCursor.
+     */
     public void put(Object value) {
-        while ((writeCursor - readCursor.get()) > INDEX_MASK) {
+        final long currentWriteCursor = writeCursor.get();
+        while ((currentWriteCursor - readCursor.get()) > INDEX_MASK) {
             // Spin
         }
 
-        buffer[getIndex(writeCursor)] = value;
+        buffer[getIndex(currentWriteCursor)] = value;
 
-// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index "
-// + getIndex(writeCursor));
+// log(value, currentWriteCursor);
 
-        advanceWriteCursor();
-    }
-
-    private void advanceWriteCursor() {
-        writeCursor++;
+        writeCursor.lazySet(currentWriteCursor + 1);
     }
 
     private int getIndex(long cursor) {
@@ -72,26 +70,51 @@ public final class SingleProducerCircularBuffer {
         return index;
     }
 
+    /**
+     * Reads from buffer. Advances readCursor.
+     */
     public Object take() {
-        while (readCursor.get() >= writeCursor) {
+        final long currentReadCursor = readCursor.get();
+        while (currentReadCursor >= writeCursor.get()) {
             // Spin
         }
 
-        if (isTerminated && readCursor.get() == writeCursor - 1) {
+        /**
+         * Termination test.
+         */
+        if (isTerminated && currentReadCursor == writeCursor.get() - 1) {
             throw StopIterationException.INSTANCE;
         }
 
-        Object result = buffer[getIndex(readCursor.get())];
+        Object result = buffer[getIndex(currentReadCursor)];
 
-// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + result + " at index "
-// + getIndex(readCursor));
+// log(result, readCursor.get());
 
-        advanceReadCursor();
+        readCursor.lazySet(currentReadCursor + 1);
         return result;
     }
 
-    private void advanceReadCursor() {
-        readCursor.lazySet(readCursor.get() + 1);
+    protected void log(Object value, long cursor) {
+        PrintStream out = System.out;
+        long id = Thread.currentThread().getId();
+
+        if (id == 1) {
+            out.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + value + " at index " + getIndex(cursor));
+        } else {
+            out.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index " + getIndex(cursor));
+        }
+    }
+
+    public static final class PaddedAtomicLong extends AtomicLong {
+
+        private static final long serialVersionUID = 4254067538639965876L;
+
+        public PaddedAtomicLong() {
+        }
+
+        // Checkstyle: stop
+        public volatile long p1, p2, p3, p4, p5, p6 = 7;
+        // Checkstyle: resume
     }
 
 }
