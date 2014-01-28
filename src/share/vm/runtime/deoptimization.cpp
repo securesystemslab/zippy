@@ -1359,7 +1359,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     ScopeDesc*      trap_scope  = cvf->scope();
     
     if (TraceDeoptimization) {
-      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", debug_id=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string()
+      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", debug_id=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name_and_sig_as_C_string()
 #ifdef GRAAL
           , debug_id
 #endif
