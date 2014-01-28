@@ -39,6 +39,7 @@ gpu::Ptx::cuda_cu_init_func_t gpu::Ptx::_cuda_cu_init;
 gpu::Ptx::cuda_cu_ctx_create_func_t gpu::Ptx::_cuda_cu_ctx_create;
 gpu::Ptx::cuda_cu_ctx_destroy_func_t gpu::Ptx::_cuda_cu_ctx_destroy;
 gpu::Ptx::cuda_cu_ctx_synchronize_func_t gpu::Ptx::_cuda_cu_ctx_synchronize;
+gpu::Ptx::cuda_cu_ctx_get_current_func_t gpu::Ptx::_cuda_cu_ctx_get_current;
 gpu::Ptx::cuda_cu_ctx_set_current_func_t gpu::Ptx::_cuda_cu_ctx_set_current;
 gpu::Ptx::cuda_cu_device_get_count_func_t gpu::Ptx::_cuda_cu_device_get_count;
 gpu::Ptx::cuda_cu_device_get_name_func_t gpu::Ptx::_cuda_cu_device_get_name;
@@ -337,123 +338,189 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   return cu_function;
 }
 
+// A PtxCall is used to manage executing a GPU kernel. In addition to launching
+// the kernel, this class releases resources allocated for the execution.
+class PtxCall: StackObj {
+ private:
+  JavaThread*  _thread;        // the thread on which this call is made
+  address      _buffer;        // buffer containing parameters and _return_value
+  int          _buffer_size;   // size (in bytes) of _buffer
+  oop*         _pinned;        // objects that have been pinned with cuMemHostRegister
+  int          _pinned_length; // length of _pinned
+  gpu::Ptx::CUdeviceptr  _ret_value;     // pointer to slot in GPU memory holding the return value
+  int          _ret_type_size; // size of the return type value
+  bool         _ret_is_object; // specifies if the return type is Object
+
+  bool check(int status, const char *action) {
+    if (status != GRAAL_CUDA_SUCCESS) {
+      Thread* THREAD = _thread;
+      char* message = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, O_BUFLEN + 1);
+      jio_snprintf(message, O_BUFLEN, "[CUDA] *** Error (status=%d): %s", status, action);
+      if (TraceGPUInteraction || HAS_PENDING_EXCEPTION) {
+        tty->print_cr(message);
+      }
+      if (!HAS_PENDING_EXCEPTION) {
+        SharedRuntime::throw_and_post_jvmti_exception(_thread, vmSymbols::java_lang_RuntimeException(), message);
+      }
+      return false;
+    }
+    if (TraceGPUInteraction) {
+      tty->print_cr("[CUDA] Success: %s", action);
+    }
+    return true;
+  }
+
+ public:
+  PtxCall(JavaThread* thread, address buffer, int buffer_size, oop* pinned, int encodedReturnTypeSize) : _thread(thread),
+      _buffer(buffer), _buffer_size(buffer_size), _pinned(pinned), _pinned_length(0), _ret_value(0), _ret_is_object(encodedReturnTypeSize < 0) {
+    _ret_type_size = _ret_is_object ? -encodedReturnTypeSize : encodedReturnTypeSize;
+  }
+
+  bool is_object_return() { return _ret_is_object; }
+
+  void alloc_return_value() {
+    if (_ret_type_size != 0) {
+      if (check(gpu::Ptx::_cuda_cu_memalloc(&_ret_value, _ret_type_size), "Allocate device memory for return value")) {
+        gpu::Ptx::CUdeviceptr* retValuePtr = (gpu::Ptx::CUdeviceptr*) ((_buffer + _buffer_size) - sizeof(_ret_value));
+        *retValuePtr = _ret_value;
+      }
+    }
+  }
+
+  void pin_objects(int count, int* objectOffsets) {
+    if (count == 0) {
+      return;
+    }
+    for (int i = 0; i < count; i++) {
+      int offset = objectOffsets[i];
+      oop* argPtr = (oop*) (_buffer + offset);
+      oop obj = *argPtr;
+      if (obj != NULL) {
+        // Size (in bytes) of object
+        int objSize = obj->size() * HeapWordSize;
+        //tty->print_cr("Pinning object %d at offset %d: %p", i, offset, obj);
+        if (!check(gpu::Ptx::_cuda_cu_mem_host_register(obj, objSize, GRAAL_CU_MEMHOSTREGISTER_DEVICEMAP), "Pin object")) {
+          return;
+        }
+
+        // Record original oop so that its memory can be unpinned
+        _pinned[_pinned_length++] = obj;
+
+        // Replace host pointer to object with device pointer
+        // to object in kernel parameters buffer
+        if (!check(gpu::Ptx::_cuda_cu_mem_host_get_device_pointer((gpu::Ptx::CUdeviceptr*) argPtr, obj, 0), "Get device pointer for pinned object")) {
+          return;
+        }
+      }
+    }
+  }
+
+  void launch(address kernel, jint dimX, jint dimY, jint dimZ) {
+    // grid dimensionality
+    unsigned int gridX = 1;
+    unsigned int gridY = 1;
+    unsigned int gridZ = 1;
+    void * config[] = {
+      GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER, (char*) (address) _buffer,
+      GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &_buffer_size,
+      GRAAL_CU_LAUNCH_PARAM_END
+    };
+    if (check(gpu::Ptx::_cuda_cu_launch_kernel((struct CUfunc_st*) (address) kernel,
+                                      gridX, gridY, gridZ,
+                                      dimX, dimY, dimZ,
+                                      0, NULL, NULL, (void**) &config), "Launch kernel")) {
+    }
+  }
+
+  void synchronize() {
+    check(gpu::Ptx::_cuda_cu_ctx_synchronize(), "Synchronize kernel");
+  }
+
+  void unpin_objects() {
+    while (_pinned_length > 0) {
+      oop obj = _pinned[--_pinned_length];
+      assert(obj != NULL, "npe");
+      //tty->print_cr("Unpinning object %d: %p", _pinned_length, obj);
+      if (!check(gpu::Ptx::_cuda_cu_mem_host_unregister(obj), "Unpin object")) {
+        return;
+      }
+    }
+  }
+
+  oop get_object_return_value() {
+    oop return_val;
+    check(gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, T_OBJECT_BYTE_SIZE), "Copy return value from device");
+    return return_val;
+  }
+
+  jlong get_primitive_return_value() {
+    jlong return_val;
+    check(gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, _ret_type_size), "Copy return value from device");
+    return return_val;
+  }
+
+  void free_return_value() {
+    if (_ret_value != 0) {
+      check(gpu::Ptx::_cuda_cu_memfree(_ret_value), "Free device memory");
+      _ret_value = 0;
+    }
+  }
+
+  void destroy_context() {
+    if (gpu::Ptx::_device_context != NULL) {
+      check(gpu::Ptx::_cuda_cu_ctx_destroy(gpu::Ptx::_device_context), "Destroy context");
+      gpu::Ptx::_device_context = NULL;
+    }
+  }
+
+  ~PtxCall() {
+    unpin_objects();
+    free_return_value();
+    destroy_context();
+  }
+};
+
+
 JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
-                                                  jlong parametersAndReturnValueBuffer,
-                                                  jint parametersAndReturnValueBufferSize,
+                                                  jlong buffer,
+                                                  jint bufferSize,
+                                                  jint objectParametersCount,
+                                                  jlong objectParametersOffsets,
+                                                  jlong pinnedObjects,
                                                   int encodedReturnTypeSize))
   if (kernel == 0L) {
     SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
     return 0L;
   }
 
-  // grid dimensionality
-  unsigned int gridX = 1;
-  unsigned int gridY = 1;
-  unsigned int gridZ = 1;
+  PtxCall call(thread, (address) buffer, bufferSize, (oop*) (address) pinnedObjects, encodedReturnTypeSize);
 
-  struct CUfunc_st* cu_function = (struct CUfunc_st*) (address) kernel;
+#define TRY(action) do { \
+  action; \
+  if (HAS_PENDING_EXCEPTION) return 0L; \
+} while (0)
 
-  void * config[5] = {
-    GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER, (char*) (address) parametersAndReturnValueBuffer,
-    GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &parametersAndReturnValueBufferSize,
-    GRAAL_CU_LAUNCH_PARAM_END
-  };
+  TRY(call.alloc_return_value());
 
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] launching kernel");
-  }
+  TRY(call.pin_objects(objectParametersCount, (int*) (address) objectParametersOffsets));
 
-  bool isObjectReturn = encodedReturnTypeSize < 0;
-  int returnTypeSize = encodedReturnTypeSize < 0 ? -encodedReturnTypeSize : encodedReturnTypeSize;
-  gpu::Ptx::CUdeviceptr device_return_value;
-  int status;
-  if (returnTypeSize != 0) {
-    status = _cuda_cu_memalloc(&device_return_value, returnTypeSize);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to allocate memory for return value pointer on device", status);
-      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to allocate memory for return value pointer on device");
-      return 0L;
-    }
-    // Push device_return_value to kernelParams
-    gpu::Ptx::CUdeviceptr* returnValuePtr = (gpu::Ptx::CUdeviceptr*)
-                                               ((address) parametersAndReturnValueBuffer +
-                                                parametersAndReturnValueBufferSize - sizeof(device_return_value));
-    *returnValuePtr = device_return_value;
-  }
+  TRY(call.launch((address) kernel, dimX, dimY, dimZ));
 
-  status = _cuda_cu_launch_kernel(cu_function,
-                                      gridX, gridY, gridZ,
-                                      dimX, dimY, dimZ,
-                                      0, NULL, NULL, (void **) &config);
+  TRY(call.synchronize());
 
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to launch kernel");
-    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to launch kernel");
-    return 0L;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", dimX, dimY, dimZ);
-  }
-
-  status = _cuda_cu_ctx_synchronize();
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to synchronize launched kernel (%d)", status);
-    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_RuntimeException(), "[CUDA] Failed to synchronize launched kernel");
-    return 0L;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Synchronized launch kernel");
-  }
-
-  jlong primitiveReturnValue = 0L;
-  if (isObjectReturn) {
+  if (call.is_object_return()) {
     oop return_val;
-    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, device_return_value, T_OBJECT_BYTE_SIZE);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
-      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to copy value from device argument");
-      return 0L;
-    }
+    TRY(return_val = call.get_object_return_value());
     thread->set_vm_result(return_val);
-  } else if (returnTypeSize > 0) {
-    status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&primitiveReturnValue, device_return_value, returnTypeSize);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to copy value from device argument", status);
-      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to copy value from device argument");
-      return 0L;
-    }
-  }
-
-  // Free device memory allocated for result
-  if (returnTypeSize != 0) {
-    status = gpu::Ptx::_cuda_cu_memfree(device_return_value);
-    if (status != GRAAL_CUDA_SUCCESS) {
-      tty->print_cr("[CUDA] *** Error (%d) Failed to free device memory of return value", status);
-      SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to free device memory of return value");
-      return 0L;
-    }
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Freed device memory of return value");
-  }
-
-  // Destroy context
-  status = gpu::Ptx::_cuda_cu_ctx_destroy(_device_context);
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] *** Error (%d) Failed to destroy context", status);
-    SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_Exception(), "[CUDA] Failed to destroy context");
     return 0L;
   }
 
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Destroy context");
-  }
+  jlong return_val;
+  TRY(return_val = call.get_primitive_return_value());
+  return return_val;
 
-  return primitiveReturnValue;
+#undef TRY
+
 JRT_END
 
 bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
@@ -620,6 +687,7 @@ bool gpu::Ptx::probe_linkage() {
     if (handle != NULL) {
       LOOKUP_CUDA_FUNCTION(cuInit, cuda_cu_init);
       LOOKUP_CUDA_FUNCTION(cuCtxSynchronize, cuda_cu_ctx_synchronize);
+      LOOKUP_CUDA_FUNCTION(cuCtxGetCurrent, cuda_cu_ctx_get_current);
       LOOKUP_CUDA_FUNCTION(cuCtxSetCurrent, cuda_cu_ctx_set_current);
       LOOKUP_CUDA_FUNCTION(cuDeviceGetCount, cuda_cu_device_get_count);
       LOOKUP_CUDA_FUNCTION(cuDeviceGetName, cuda_cu_device_get_name);
