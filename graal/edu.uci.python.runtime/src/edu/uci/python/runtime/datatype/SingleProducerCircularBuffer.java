@@ -24,60 +24,79 @@
  */
 package edu.uci.python.runtime.datatype;
 
+import java.io.*;
 import java.util.concurrent.atomic.*;
+
+import edu.uci.python.runtime.exception.*;
 
 public class SingleProducerCircularBuffer {
 
+    private static final PrintStream OUT = System.out;
+
+    private static final int INDEX_MASK = 0B1111;
     private final Object[] buffer;
-    private int readIndex;
-    private AtomicInteger writeIndex;
-    private AtomicBoolean isWriteBehindRead;
+    private long readCursor;
+    private AtomicLong writeCursor;
+    private boolean isTerminated;
 
     public SingleProducerCircularBuffer() {
-        this.buffer = new Object[10];
-        this.writeIndex = new AtomicInteger();
-        this.isWriteBehindRead = new AtomicBoolean();
+        this.buffer = new Object[INDEX_MASK + 1];
+        this.writeCursor = new AtomicLong();
+    }
+
+    public void setAsTerminated() {
+        advanceWriteIndex();
+        isTerminated = true;
+
+// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write terminated at index " +
+// getIndex(writeCursor.get()));
     }
 
     public void put(Object value) {
-        int localWriteIndex = writeIndex.get();
-        buffer[localWriteIndex] = value;
-        advanceWriteIndex(localWriteIndex);
+        buffer[getIndex(writeCursor.get())] = value;
+
+// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index "
+// + getIndex(writeCursor.get()));
+
+        advanceWriteIndex();
     }
 
-    private void advanceWriteIndex(int currentWriteIndex) {
-        if (currentWriteIndex == buffer.length - 1) {
-            writeIndex.set(0);
-            isWriteBehindRead.set(true);
-        } else {
-            writeIndex.incrementAndGet();
+    private void advanceWriteIndex() {
+        while ((writeCursor.get() - readCursor) > INDEX_MASK - 1) {
+            // Spin
         }
+        // writeCursor.getAndIncrement();
+        writeCursor.lazySet(writeCursor.get() + 1);
+    }
+
+    private int getIndex(long cursor) {
+        int index = (int) (cursor & INDEX_MASK);
+        assert index < buffer.length;
+        return index;
     }
 
     public Object take() {
         Object result;
 
-        if (!isWriteBehindRead.get()) {
-            while (readIndex >= writeIndex.get()) {
-                // Wait
-            }
-
-            result = buffer[readIndex];
-        } else {
-            result = buffer[readIndex];
+        while (readCursor >= writeCursor.get()) {
+            // Spin
         }
+
+        if (isTerminated && readCursor == writeCursor.get() - 1) {
+            throw StopIterationException.INSTANCE;
+        }
+
+        result = buffer[getIndex(readCursor)];
+
+// OUT.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + result + " at index "
+// + getIndex(readCursor));
 
         advanceReadIndex();
         return result;
     }
 
     private void advanceReadIndex() {
-        if (readIndex == buffer.length - 1) {
-            readIndex = 0;
-            isWriteBehindRead.set(false);
-        } else {
-            readIndex++;
-        }
+        readCursor++;
     }
 
 }

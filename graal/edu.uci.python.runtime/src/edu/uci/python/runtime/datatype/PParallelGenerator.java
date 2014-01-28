@@ -38,8 +38,6 @@ public class PParallelGenerator extends PGenerator {
     private ConcurrentLinkedQueue<Object> queue;
     private LinkedBlockingQueue<Object> blockingQueue;
     private SingleProducerCircularBuffer buffer;
-    private static final boolean useCircularBuffer = true;
-    @SuppressWarnings("unused") private static final boolean useBlockingQueue = true;
 
     public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
@@ -49,16 +47,12 @@ public class PParallelGenerator extends PGenerator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        if (useCircularBuffer) {
-            return doWithCircularBuffer();
-            // } else if (useBlockingQueue) {
-            // return doWithLinkedBlockingQueue();
-        } else {
-            return doWithConcurrentLinkedQueue();
-            // return doWithConcurrentLinkedQueueNewThread();
-        }
+        return doWithCircularBuffer();
+// return doWithLinkedBlockingQueue();
+// return doWithConcurrentLinkedQueue();
     }
 
+    @SuppressWarnings("unused")
     private Object doWithConcurrentLinkedQueue() {
         if (queue == null) {
             queue = new ConcurrentLinkedQueue<>();
@@ -75,37 +69,6 @@ public class PParallelGenerator extends PGenerator {
                 }
 
             });
-        }
-
-        Object result = null;
-        while (result == null) {
-            result = queue.poll();
-        }
-
-        if (result == StopIterationException.INSTANCE) {
-            throw StopIterationException.INSTANCE;
-        } else {
-            return result;
-        }
-    }
-
-    @SuppressWarnings("unused")
-    private Object doWithConcurrentLinkedQueueNewThread() {
-        if (queue == null) {
-            queue = new ConcurrentLinkedQueue<>();
-            new Thread(new Runnable() {
-
-                public void run() {
-                    try {
-                        while (true) {
-                            queue.offer(callTarget.call(null, arguments));
-                        }
-                    } catch (StopIterationException e) {
-                        queue.offer(StopIterationException.INSTANCE);
-                    }
-                }
-
-            }).start();
         }
 
         Object result = null;
@@ -167,26 +130,18 @@ public class PParallelGenerator extends PGenerator {
                 public void run() {
                     try {
                         while (true) {
-                            buffer.put(callTarget.call(null, arguments));
+                            Object value = callTarget.call(null, arguments);
+                            buffer.put(value);
                         }
                     } catch (StopIterationException e) {
-                        buffer.put(StopIterationException.INSTANCE);
+                        buffer.setAsTerminated();
                     }
                 }
 
             });
         }
 
-        Object result = null;
-        while (result == null) {
-            result = buffer.take();
-        }
-
-        if (result == StopIterationException.INSTANCE) {
-            throw StopIterationException.INSTANCE;
-        } else {
-            return result;
-        }
+        Object result = buffer.take();
+        return result;
     }
-
 }

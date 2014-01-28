@@ -30,8 +30,8 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	num = 10000
-	last_item = call_generator(num, 10) #1000000
+	num = 6000
+	last_item = call_generator(num, 10)
 
 	print("Last item ", last_item)
 
@@ -39,7 +39,7 @@ def measure():
 	print("generator: " + duration)
 
 #warm up
-for run in range(200):
+for run in range(200): # 200
 	call_generator(200, 10)
 
 measure()
