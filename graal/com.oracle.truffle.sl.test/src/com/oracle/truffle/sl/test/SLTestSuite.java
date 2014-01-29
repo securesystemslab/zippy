@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,31 +20,18 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.test.deopt;
+package com.oracle.truffle.sl.test;
 
-import org.junit.*;
+import java.lang.annotation.*;
 
-import com.oracle.graal.compiler.test.*;
-import com.oracle.graal.compiler.test.ea.EATestBase.TestClassObject;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface SLTestSuite {
 
-/**
- * In the following tests, we try to deoptimize out of synchronized methods.
- */
-public class SynchronizedMethodDeoptimizationTest extends GraalCompilerTest {
+    /**
+     * Defines the base path of the test suite. Multiple base pathes can be specified. However only
+     * the first base that exists is used to lookup the test cases.
+     */
+    String[] value();
 
-    public static final TestClassObject testObject = null;
-
-    public static synchronized Object testMethodSynchronized(Object o) {
-        if (o == null) {
-            // this branch will always deoptimize
-            return testObject.x;
-        }
-        return o;
-    }
-
-    @Test
-    public void test1() {
-        test("testMethodSynchronized", "test");
-        test("testMethodSynchronized", (Object) null);
-    }
 }
