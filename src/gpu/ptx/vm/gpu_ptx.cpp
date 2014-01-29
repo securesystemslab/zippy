@@ -30,7 +30,33 @@
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
 #include "runtime/interfaceSupport.hpp"
+#include "graal/graalEnv.hpp"
+#include "graal/graalCompiler.hpp"
 #include "ptxKernelArguments.hpp"
+
+// Entry to GPU native method implementation that transitions current thread to '_thread_in_vm'.
+#define GPU_VMENTRY(result_type, name, signature) \
+  JNIEXPORT result_type JNICALL name signature { \
+  GRAAL_VM_ENTRY_MARK; \
+
+// Entry to GPU native method implementation that calls a JNI function
+// and hence cannot transition current thread to '_thread_in_vm'.
+#define GPU_ENTRY(result_type, name, signature) \
+  JNIEXPORT result_type JNICALL name signature { \
+
+#define GPU_END }
+
+#define CC (char*)  /*cast a literal from (const char*)*/
+#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(f))
+
+#define STRING                "Ljava/lang/String;"
+
+JNINativeMethod gpu::Ptx::PTX_methods[] = {
+  {CC"initialize",              CC"()Z",               FN_PTR(gpu::Ptx::initialize)},
+  {CC"generateKernel",          CC"([B" STRING ")J",   FN_PTR(gpu::Ptx::generate_kernel)},
+  {CC"getLaunchKernelAddress",  CC"()J",               FN_PTR(gpu::Ptx::get_execute_kernel_from_vm_address)},
+  {CC"getAvailableProcessors0", CC"()I",               FN_PTR(gpu::Ptx::get_total_cores)},
+};
 
 void * gpu::Ptx::_device_context;
 int    gpu::Ptx::_cu_device = 0;
@@ -62,7 +88,7 @@ gpu::Ptx::cuda_cu_mem_host_unregister_func_t gpu::Ptx::_cuda_cu_mem_host_unregis
     CAST_TO_FN_PTR(alias##_func_t, os::dll_lookup(handle, STRINGIFY(name))); \
   if (_##alias == NULL) {      \
   tty->print_cr("[CUDA] ***** Error: Failed to lookup %s", STRINGIFY(name)); \
-        return 0; \
+        return false; \
   } \
 
 #define LOOKUP_CUDA_V2_FUNCTION(name, alias)  LOOKUP_CUDA_FUNCTION(name##_v2, alias)
@@ -70,7 +96,7 @@ gpu::Ptx::cuda_cu_mem_host_unregister_func_t gpu::Ptx::_cuda_cu_mem_host_unregis
 /*
  * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
  */
-int ncores(int major, int minor) {
+int gpu::Ptx::ncores(int major, int minor) {
     int device_type = (major << 4) + minor;
 
     switch (device_type) {
@@ -88,12 +114,36 @@ int ncores(int major, int minor) {
     }
 }
 
-bool gpu::Ptx::initialize_gpu() {
+bool gpu::Ptx::register_natives(JNIEnv* env) {
+  jclass klass = env->FindClass("com/oracle/graal/hotspot/ptx/PTXHotSpotBackend");
+  if (klass == NULL) {
+    if (TraceGPUInteraction) {
+      tty->print_cr("PTXHotSpotBackend class not found");
+    }
+    return false;
+  }
+  jint status = env->RegisterNatives(klass, PTX_methods, sizeof(PTX_methods) / sizeof(JNINativeMethod));
+  if (status != JNI_OK) {
+    if (TraceGPUInteraction) {
+      tty->print_cr("Error registering natives for PTXHotSpotBackend: %d", status);
+    }
+    return false;
+  }
+  return true;
+}
+
+GPU_ENTRY(jboolean, gpu::Ptx::initialize, (JNIEnv *env, jclass))
+
+  if (!link()) {
+    return false;
+  }
 
   /* Initialize CUDA driver API */
   int status = _cuda_cu_init(0);
   if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("Failed to initialize CUDA device");
+    if (TraceGPUInteraction) {
+      tty->print_cr("Failed to initialize CUDA device: %d", status);
+    }
     return false;
   }
 
@@ -160,11 +210,12 @@ bool gpu::Ptx::initialize_gpu() {
     tty->print_cr("[CUDA] Using %s", device_name);
   }
 
+  gpu::initialized_gpu(device_name);
 
   return true;
-}
+GPU_END
 
-unsigned int gpu::Ptx::total_cores() {
+GPU_ENTRY(jint, gpu::Ptx::get_total_cores, (JNIEnv *env, jobject))
 
     int minor, major, nmp;
     int status = _cuda_cu_device_get_attribute(&minor,
@@ -190,7 +241,7 @@ unsigned int gpu::Ptx::total_cores() {
                                            _cu_device);
 
     if (status != GRAAL_CUDA_SUCCESS) {
-        tty->print_cr("[CUDA] Failed to get numberof MPs on device: %d", _cu_device);
+        tty->print_cr("[CUDA] Failed to get number of MPs on device: %d", _cu_device);
         return 0;
     }
 
@@ -249,17 +300,28 @@ unsigned int gpu::Ptx::total_cores() {
                       total, async_engines, can_map_host_memory, concurrent_kernels);
         tty->print_cr("[CUDA] Max threads per block: %d warp size: %d", max_threads_per_block, warp_size);
     }
-    return (total);
+    return total;
+GPU_END
 
-}
+GPU_ENTRY(jlong, gpu::Ptx::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle))
+  ResourceMark rm;
+  jsize name_len = env->GetStringLength(name_handle);
+  jsize code_len = env->GetArrayLength(code_handle);
 
-void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
+  char* name = NEW_RESOURCE_ARRAY(char, name_len + 1);
+  unsigned char *code = NEW_RESOURCE_ARRAY(unsigned char, code_len + 1);
+
+  code[code_len] = 0;
+  name[name_len] = 0;
+
+  env->GetByteArrayRegion(code_handle, 0, code_len, (jbyte*) code);
+  env->GetStringUTFRegion(name_handle, 0, name_len, name);
 
   struct CUmod_st * cu_module;
   // Use three JIT compiler options
   const unsigned int jit_num_options = 3;
-  int *jit_options = NEW_C_HEAP_ARRAY(int, jit_num_options, mtCompiler);
-  void **jit_option_values = NEW_C_HEAP_ARRAY(void *, jit_num_options, mtCompiler);
+  int *jit_options = NEW_RESOURCE_ARRAY(int, jit_num_options);
+  void **jit_option_values = NEW_RESOURCE_ARRAY(void *, jit_num_options);
 
   // Set up PTX JIT compiler options
   // 1. set size of compilation log buffer
@@ -268,23 +330,22 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   jit_option_values[0] = (void *)(size_t)jit_log_buffer_size;
 
   // 2. set pointer to compilation log buffer
-  char *jit_log_buffer = NEW_C_HEAP_ARRAY(char, jit_log_buffer_size, mtCompiler);
+  char *jit_log_buffer = NEW_RESOURCE_ARRAY(char, jit_log_buffer_size);
   jit_options[1] = GRAAL_CU_JIT_INFO_LOG_BUFFER;
   jit_option_values[1] = jit_log_buffer;
 
-  // 3. set pointer to set the Maximum # of registers (32) for the kernel
+  // 3. set pointer to set the maximum number of registers (32) for the kernel
   int jit_register_count = 32;
   jit_options[2] = GRAAL_CU_JIT_MAX_REGISTERS;
   jit_option_values[2] = (void *)(size_t)jit_register_count;
 
-  /* Create CUDA context to compile and execute the kernel */
+  // Create CUDA context to compile and execute the kernel
   int status = _cuda_cu_ctx_create(&_device_context, GRAAL_CU_CTX_MAP_HOST, _cu_device);
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
-    return NULL;
+    return 0L;
   }
-
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Success: Created context for device: %d", _cu_device);
   }
@@ -293,50 +354,43 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to set current context for device: %d", _cu_device);
-    return NULL;
+    return 0L;
   }
-
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Success: Set current context for device: %d", _cu_device);
-  }
-
-  if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] PTX Kernel\n%s", code);
     tty->print_cr("[CUDA] Function name : %s", name);
-
   }
 
   /* Load module's data with compiler options */
   status = _cuda_cu_module_load_data_ex(&cu_module, (void*) code, jit_num_options,
-                                            jit_options, (void **)jit_option_values);
+                                        jit_options, (void **)jit_option_values);
   if (status != GRAAL_CUDA_SUCCESS) {
     if (status == GRAAL_CUDA_ERROR_NO_BINARY_FOR_GPU) {
       tty->print_cr("[CUDA] Check for malformed PTX kernel or incorrect PTX compilation options");
     }
     tty->print_cr("[CUDA] *** Error (%d) Failed to load module data with online compiler options for method %s",
                   status, name);
-    return NULL;
+    return 0L;
   }
 
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Loaded data for PTX Kernel");
   }
 
-  struct CUfunc_st * cu_function;
-
+  struct CUfunc_st* cu_function;
   status = _cuda_cu_module_get_function(&cu_function, cu_module, name);
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] *** Error: Failed to get function %s", name);
-    return NULL;
+    return 0L;
   }
 
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Got function handle for %s kernel address %p", name, cu_function);
   }
-
-  return cu_function;
-}
+  return (jlong) cu_function;
+GPU_END
 
 // A PtxCall is used to manage executing a GPU kernel. In addition to launching
 // the kernel, this class releases resources allocated for the execution.
@@ -480,6 +534,9 @@ class PtxCall: StackObj {
   }
 };
 
+GPU_VMENTRY(jlong, gpu::Ptx::get_execute_kernel_from_vm_address, (JNIEnv *env, jclass))
+  return (jlong) gpu::Ptx::execute_kernel_from_vm;
+GPU_END
 
 JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
                                                   jlong buffer,
@@ -492,6 +549,10 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
     SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
     return 0L;
   }
+
+#if 0
+  Universe::heap()->collect(GCCause::_jvmti_force_gc);
+#endif
 
   PtxCall call(thread, (address) buffer, bufferSize, (oop*) (address) pinnedObjects, encodedReturnTypeSize);
 
@@ -523,152 +584,6 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
 
 JRT_END
 
-bool gpu::Ptx::execute_kernel(address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
-    return gpu::Ptx::execute_warp(1, 1, 1, kernel, ptxka, ret);
-}
-
-bool gpu::Ptx::execute_warp(int dimX, int dimY, int dimZ,
-                            address kernel, PTXKernelArguments &ptxka, JavaValue &ret) {
-  // grid dimensionality
-  unsigned int gridX = 1;
-  unsigned int gridY = 1;
-  unsigned int gridZ = 1;
-
-  // thread dimensionality
-  unsigned int blockX = dimX;
-  unsigned int blockY = dimY;
-  unsigned int blockZ = dimZ;
-
-  struct CUfunc_st* cu_function = (struct CUfunc_st*) kernel;
-
-  void * config[5] = {
-    GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER, ptxka._kernelArgBuffer,
-    GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &(ptxka._bufferOffset),
-    GRAAL_CU_LAUNCH_PARAM_END
-  };
-
-  if (kernel == NULL) {
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] launching kernel");
-  }
-
-  int status = _cuda_cu_launch_kernel(cu_function,
-                                      gridX, gridY, gridZ,
-                                      blockX, blockY, blockZ,
-                                      0, NULL, NULL, (void **) &config);
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to launch kernel");
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Kernel Launch: X: %d Y: %d Z: %d", blockX, blockY, blockZ);
-  }
-
-  status = _cuda_cu_ctx_synchronize();
-
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to synchronize launched kernel (%d)", status);
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Synchronized launch kernel");
-  }
-
-
-  // Get the result. TODO: Move this code to get_return_oop()
-  BasicType return_type = ptxka.get_ret_type();
-  switch (return_type) {
-     case T_INT:
-       {
-         int return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_INT_BYTE_SIZE);
-         if (status != GRAAL_CUDA_SUCCESS) {
-           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
-           return false;
-         }
-         ret.set_jint(return_val);
-       }
-       break;
-     case T_BOOLEAN:
-       {
-         int return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_INT_BYTE_SIZE);
-         if (status != GRAAL_CUDA_SUCCESS) {
-           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
-           return false;
-         }
-         ret.set_jint(return_val);
-       }
-       break;
-     case T_FLOAT:
-       {
-         float return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_FLOAT_BYTE_SIZE);
-         if (status != GRAAL_CUDA_SUCCESS) {
-           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
-           return false;
-         }
-         ret.set_jfloat(return_val);
-       }
-       break;
-     case T_DOUBLE:
-       {
-         double return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_DOUBLE_BYTE_SIZE);
-         if (status != GRAAL_CUDA_SUCCESS) {
-           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
-           return false;
-         }
-         ret.set_jdouble(return_val);
-       }
-       break;
-     case T_LONG:
-       {
-         long return_val;
-         status = gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, ptxka._dev_return_value, T_LONG_BYTE_SIZE);
-         if (status != GRAAL_CUDA_SUCCESS) {
-           tty->print_cr("[CUDA] *** Error (%d) Failed to copy value to device argument", status);
-           return false;
-         }
-         ret.set_jlong(return_val);
-       }
-       break;
-     case T_VOID:
-       break;
-     default:
-       tty->print_cr("[CUDA] TODO *** Unhandled return type: %d", return_type);
-  }
-
-  // Free device memory allocated for result
-  status = gpu::Ptx::_cuda_cu_memfree(ptxka._dev_return_value);
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] *** Error (%d) Failed to free device memory of return value", status);
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Freed device memory of return value");
-  }
-
-  // Destroy context
-  status = gpu::Ptx::_cuda_cu_ctx_destroy(_device_context);
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] *** Error (%d) Failed to destroy context", status);
-    return false;
-  }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Destroy context");
-  }
-
-  return (status == GRAAL_CUDA_SUCCESS);
-}
-
 #if defined(LINUX)
 static const char cuda_library_name[] = "libcuda.so";
 #elif defined(__APPLE__)
@@ -677,58 +592,56 @@ static char const cuda_library_name[] = "/usr/local/cuda/lib/libcuda.dylib";
 static char const cuda_library_name[] = "";
 #endif
 
-#define STD_BUFFER_SIZE 1024
-
-bool gpu::Ptx::probe_linkage() {
-  if (cuda_library_name != NULL) {
-    char *buffer = (char*)malloc(STD_BUFFER_SIZE);
-    void *handle = os::dll_load(cuda_library_name, buffer, STD_BUFFER_SIZE);
-        free(buffer);
-    if (handle != NULL) {
-      LOOKUP_CUDA_FUNCTION(cuInit, cuda_cu_init);
-      LOOKUP_CUDA_FUNCTION(cuCtxSynchronize, cuda_cu_ctx_synchronize);
-      LOOKUP_CUDA_FUNCTION(cuCtxGetCurrent, cuda_cu_ctx_get_current);
-      LOOKUP_CUDA_FUNCTION(cuCtxSetCurrent, cuda_cu_ctx_set_current);
-      LOOKUP_CUDA_FUNCTION(cuDeviceGetCount, cuda_cu_device_get_count);
-      LOOKUP_CUDA_FUNCTION(cuDeviceGetName, cuda_cu_device_get_name);
-      LOOKUP_CUDA_FUNCTION(cuDeviceGet, cuda_cu_device_get);
-      LOOKUP_CUDA_FUNCTION(cuDeviceComputeCapability, cuda_cu_device_compute_capability);
-      LOOKUP_CUDA_FUNCTION(cuDeviceGetAttribute, cuda_cu_device_get_attribute);
-      LOOKUP_CUDA_FUNCTION(cuModuleGetFunction, cuda_cu_module_get_function);
-      LOOKUP_CUDA_FUNCTION(cuModuleLoadDataEx, cuda_cu_module_load_data_ex);
-      LOOKUP_CUDA_FUNCTION(cuLaunchKernel, cuda_cu_launch_kernel);
-      LOOKUP_CUDA_FUNCTION(cuMemHostRegister, cuda_cu_mem_host_register);
-      LOOKUP_CUDA_FUNCTION(cuMemHostUnregister, cuda_cu_mem_host_unregister);
-#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
-      LOOKUP_CUDA_V2_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
-      LOOKUP_CUDA_V2_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
-      LOOKUP_CUDA_V2_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
-      LOOKUP_CUDA_V2_FUNCTION(cuMemFree, cuda_cu_memfree);
-      LOOKUP_CUDA_V2_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
-      LOOKUP_CUDA_V2_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
-      LOOKUP_CUDA_V2_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
-#else
-      LOOKUP_CUDA_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
-      LOOKUP_CUDA_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
-      LOOKUP_CUDA_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
-      LOOKUP_CUDA_FUNCTION(cuMemFree, cuda_cu_memfree);
-      LOOKUP_CUDA_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
-      LOOKUP_CUDA_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
-      LOOKUP_CUDA_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
-#endif
-
-      if (TraceGPUInteraction) {
-        tty->print_cr("[CUDA] Success: library linkage");
-      }
-      return true;
-    } else {
-      // Unable to dlopen libcuda
-      return false;
+bool gpu::Ptx::link() {
+  if (cuda_library_name == NULL) {
+    if (TraceGPUInteraction) {
+      tty->print_cr("Failed to find CUDA linkage");
     }
-  } else {
-    tty->print_cr("Unsupported CUDA platform");
     return false;
   }
-  tty->print_cr("Failed to find CUDA linkage");
-  return false;
+  char ebuf[O_BUFLEN];
+  void *handle = os::dll_load(cuda_library_name, ebuf, O_BUFLEN);
+  if (handle == NULL) {
+    if (TraceGPUInteraction) {
+      tty->print_cr("Unsupported CUDA platform: %s", ebuf);
+    }
+    return false;
+  }
+
+  LOOKUP_CUDA_FUNCTION(cuInit, cuda_cu_init);
+  LOOKUP_CUDA_FUNCTION(cuCtxSynchronize, cuda_cu_ctx_synchronize);
+  LOOKUP_CUDA_FUNCTION(cuCtxGetCurrent, cuda_cu_ctx_get_current);
+  LOOKUP_CUDA_FUNCTION(cuCtxSetCurrent, cuda_cu_ctx_set_current);
+  LOOKUP_CUDA_FUNCTION(cuDeviceGetCount, cuda_cu_device_get_count);
+  LOOKUP_CUDA_FUNCTION(cuDeviceGetName, cuda_cu_device_get_name);
+  LOOKUP_CUDA_FUNCTION(cuDeviceGet, cuda_cu_device_get);
+  LOOKUP_CUDA_FUNCTION(cuDeviceComputeCapability, cuda_cu_device_compute_capability);
+  LOOKUP_CUDA_FUNCTION(cuDeviceGetAttribute, cuda_cu_device_get_attribute);
+  LOOKUP_CUDA_FUNCTION(cuModuleGetFunction, cuda_cu_module_get_function);
+  LOOKUP_CUDA_FUNCTION(cuModuleLoadDataEx, cuda_cu_module_load_data_ex);
+  LOOKUP_CUDA_FUNCTION(cuLaunchKernel, cuda_cu_launch_kernel);
+  LOOKUP_CUDA_FUNCTION(cuMemHostRegister, cuda_cu_mem_host_register);
+  LOOKUP_CUDA_FUNCTION(cuMemHostUnregister, cuda_cu_mem_host_unregister);
+#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+  LOOKUP_CUDA_V2_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
+  LOOKUP_CUDA_V2_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
+  LOOKUP_CUDA_V2_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
+  LOOKUP_CUDA_V2_FUNCTION(cuMemFree, cuda_cu_memfree);
+  LOOKUP_CUDA_V2_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
+  LOOKUP_CUDA_V2_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
+  LOOKUP_CUDA_V2_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
+#else
+  LOOKUP_CUDA_FUNCTION(cuCtxCreate, cuda_cu_ctx_create);
+  LOOKUP_CUDA_FUNCTION(cuCtxDestroy, cuda_cu_ctx_destroy);
+  LOOKUP_CUDA_FUNCTION(cuMemAlloc, cuda_cu_memalloc);
+  LOOKUP_CUDA_FUNCTION(cuMemFree, cuda_cu_memfree);
+  LOOKUP_CUDA_FUNCTION(cuMemcpyHtoD, cuda_cu_memcpy_htod);
+  LOOKUP_CUDA_FUNCTION(cuMemcpyDtoH, cuda_cu_memcpy_dtoh);
+  LOOKUP_CUDA_FUNCTION(cuMemHostGetDevicePointer, cuda_cu_mem_host_get_device_pointer);
+#endif
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: library linkage");
+  }
+  return true;
 }

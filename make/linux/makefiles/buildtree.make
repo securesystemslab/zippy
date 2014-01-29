@@ -235,8 +235,6 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,cpu/$(SRCARCH)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os_cpu/$(OS_FAMILY)_$(SRCARCH)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os_cpu/$(OS_FAMILY)_$(SRCARCH)/vm) \\"; \
-	echo "$(call gamma-path,altsrc,os_gpu/$(OS_FAMILY)_ptx/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os_gpu/$(OS_FAMILY)_ptx/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
@@ -257,8 +255,6 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,cpu/$(SRCARCH)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os_cpu/$(OS_FAMILY)_$(SRCARCH)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os_cpu/$(OS_FAMILY)_$(SRCARCH)/vm) \\"; \
-	echo "$(call gamma-path,altsrc,os_gpu/$(OS_FAMILY)_ptx/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os_gpu/$(OS_FAMILY)_ptx/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \

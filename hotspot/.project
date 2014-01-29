@@ -86,41 +86,6 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>ptx</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/ptx</locationURI>
-		</link>
-		<link>
-			<name>x86</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/cpu/x86/vm</locationURI>
-		</link>
-		<link>
-			<name>ptx</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/ptx/vm</locationURI>
-		</link>
-		<link>
-			<name>hsail</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/hsail/vm</locationURI>
-		</link>
-		<link>
-			<name>sparc</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/cpu/sparc/vm</locationURI>
-		</link>
-		<link>
-			<name>generated</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_graal/generated</locationURI>
-		</link>
-		<link>
-			<name>make</name>
-			<type>2</type>
-			<locationURI>WORKSPACE_LOC/make</locationURI>
-		</link>
-		<link>
 			<name>bsd</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/os/bsd/vm</locationURI>
@@ -131,9 +96,49 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/bsd_x86/vm</locationURI>
 		</link>
 		<link>
-			<name>bsd_ptx</name>
+			<name>generated</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os_gpu/bsd_ptx/vm</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_graal/generated</locationURI>
+		</link>
+		<link>
+			<name>hsail</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/hsail/vm</locationURI>
+		</link>
+		<link>
+			<name>linux</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/os/linux/vm</locationURI>
+		</link>
+		<link>
+			<name>linux_sparc</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/linux_sparc/vm</locationURI>
+		</link>
+		<link>
+			<name>linux_x86</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/linux_x86/vm</locationURI>
+		</link>
+		<link>
+			<name>make</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/make</locationURI>
+		</link>
+		<link>
+			<name>ptx</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/ptx/vm</locationURI>
+		</link>
+		<link>
+			<name>sparc</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/cpu/sparc/vm</locationURI>
+		</link>
+		<link>
+			<name>vm</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/share/vm</locationURI>
 		</link>
 		<link>
 			<name>windows</name>
@@ -146,34 +151,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/windows_x86/vm</locationURI>
 		</link>
 		<link>
-			<name>linux</name>
+			<name>x86</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os/linux/vm</locationURI>
-		</link>
-		<link>
-			<name>linux_x86</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/linux_x86/vm</locationURI>
-		</link>
-		<link>
-			<name>windows_hsail</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os_gpu/windows_hsail/vm</locationURI>
-		</link>
-		<link>
-			<name>linux_ptx</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os_gpu/linux_ptx/vm</locationURI>
-		</link>
-		<link>
-			<name>linux_sparc</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/linux_sparc/vm</locationURI>
-		</link>
-		<link>
-			<name>vm</name>
-			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/src/share/vm</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/src/cpu/x86/vm</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

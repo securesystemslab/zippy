@@ -22,15 +22,26 @@
  *
  */
 
-#ifndef OS_BSD_VM_GPU_LINUX_HPP
-#define OS_BSD_VM_GPU_LINUX_HPP
+#include "runtime/gpu.hpp"
+#include "utilities/ostream.hpp"
 
+jobject gpu::probe_gpus(JNIEnv* env) {
+#ifdef __APPLE__
+  /*
+   * Let the CUDA driver initialization be the gate to GPU for now, pending
+   * a better detection solution for NVIDA PTX and AMD HSAIL.
+   */
+  if (gpu::Ptx::register_natives(env)) {
+    if (TraceGPUInteraction) {
+      tty->print_cr("Assuming NVidia/PTX support (APPLE)");
+    }
+    return env->NewStringUTF("PTX");
+  }
+#else
+  if (TraceGPUInteraction) {
+    tty->print_cr("Assuming no GPU (not APPLE)");
+  }
+#endif
+  return env->NewStringUTF("");
+}
 
-class Linux {
-  friend class gpu;
-
- protected:
-  static bool probe_gpu();
-};
-
-#endif // OS_BSD_VM_GPU_LINUX_HPP

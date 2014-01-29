@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,15 +19,17 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
-#ifndef SHARE_VM_GRAAL_GRAAL_COMPILER_TO_GPU_HPP
-#define SHARE_VM_GRAAL_GRAAL_COMPILER_TO_GPU_HPP
+#include "precompiled.hpp"
+#include "runtime/gpu.hpp"
+#include "utilities/ostream.hpp"
 
-#include "prims/jni.h"
-
-extern JNINativeMethod CompilerToGPU_methods[];
-int CompilerToGPU_methods_count();
-
-
-#endif // SHARE_VM_GRAAL_GRAAL_COMPILER_TO_GPU_HPP
+jobject gpu::probe_gpus(JNIEnv* env) {
+  // TODO: add detection of PTX/NVidia
+  if (UseHSAILSimulator && gpu::Hsail::register_natives(env)) {
+    return env->NewStringUTF("HSAIL");
+  }
+  return env->NewStringUTF("");
+}
