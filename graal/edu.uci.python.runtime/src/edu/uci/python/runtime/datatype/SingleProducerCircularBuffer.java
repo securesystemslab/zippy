@@ -53,13 +53,19 @@ public final class SingleProducerCircularBuffer {
      */
     public void put(Object value) {
         final long currentWriteCursor = writeCursor.get();
+        int count = 0;
         while ((currentWriteCursor - readCursor.get()) > INDEX_MASK) {
-            // Spin
+            // spin
+            count++;
+            if (count == 1000) {
+                count = 0;
+                Thread.yield();
+            }
         }
 
         buffer[getIndex(currentWriteCursor)] = value;
 
-// log(value, currentWriteCursor);
+        // log(value, currentWriteCursor);
 
         writeCursor.lazySet(currentWriteCursor + 1);
     }
@@ -75,8 +81,14 @@ public final class SingleProducerCircularBuffer {
      */
     public Object take() {
         final long currentReadCursor = readCursor.get();
+        int count = 0;
         while (currentReadCursor >= writeCursor.get()) {
-            // Spin
+            // spin
+            count++;
+            if (count == 1000) {
+                count = 0;
+                Thread.yield();
+            }
         }
 
         /**
@@ -88,20 +100,20 @@ public final class SingleProducerCircularBuffer {
 
         Object result = buffer[getIndex(currentReadCursor)];
 
-// log(result, readCursor.get());
+        // log(result, readCursor.get());
 
         readCursor.lazySet(currentReadCursor + 1);
         return result;
     }
 
-    protected void log(Object value, long cursor) {
+    public static void log(Object value, long cursor) {
         PrintStream out = System.out;
         long id = Thread.currentThread().getId();
 
         if (id == 1) {
-            out.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + value + " at index " + getIndex(cursor));
+            out.println("BUFFER Thread " + Thread.currentThread().getId() + " read " + value + " at index " + cursor);
         } else {
-            out.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index " + getIndex(cursor));
+            out.println("BUFFER Thread " + Thread.currentThread().getId() + " write " + value + " at index " + cursor);
         }
     }
 

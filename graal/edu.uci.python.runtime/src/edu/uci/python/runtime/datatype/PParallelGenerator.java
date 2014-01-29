@@ -26,6 +26,8 @@ package edu.uci.python.runtime.datatype;
 
 import java.util.concurrent.*;
 
+import com.lmax.disruptor.*;
+import com.lmax.disruptor.TimeoutException;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -39,6 +41,14 @@ public class PParallelGenerator extends PGenerator {
     private BlockingQueue<Object> blockingQueue;
     private SingleProducerCircularBuffer buffer;
 
+    // Disruptor
+    private RingBuffer<ObjectEvent> ringBuffer;
+    private SequenceBarrier sequenceBarrier;
+    private Sequence sequence;
+
+    private static final int QUEUE_CHOICE = 0;
+    private static final int BLOCKING_QUEUE_CHOICE = 1;
+
     public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, callTarget, frameDescriptor, declarationFrame, arguments, numOfGeneratorBlockNode, numOfGeneratorForNode);
@@ -47,18 +57,34 @@ public class PParallelGenerator extends PGenerator {
 
     @Override
     public Object __next__() throws StopIterationException {
-// return doWithCircularBuffer();
-        return doWithBlockingQueue();
-// return doWithConcurrentLinkedQueue();
+        switch (QUEUE_CHOICE) {
+            case 0:
+                return doWithCircularBuffer();
+            case 1:
+                return doWithBlockingQueue();
+            case 2:
+                return doWithConcurrentLinkedQueue();
+            case 3:
+                return doWithDisruptor();
+            default:
+                throw new RuntimeException();
+        }
     }
 
     private void createBlockingQueue() {
-// blockingQueue = new LinkedBlockingQueue<>();
-        blockingQueue = new ArrayBlockingQueue<>(16);
-// blockingQueue = new SynchronousQueue<>();
+        switch (BLOCKING_QUEUE_CHOICE) {
+            case 0:
+                blockingQueue = new LinkedBlockingQueue<>();
+                break;
+            case 1:
+                blockingQueue = new ArrayBlockingQueue<>(16);
+                break;
+            case 2:
+                blockingQueue = new SynchronousQueue<>();
+                break;
+        }
     }
 
-    @SuppressWarnings("unused")
     private Object doWithConcurrentLinkedQueue() {
         if (queue == null) {
             queue = new ConcurrentLinkedQueue<>();
@@ -127,7 +153,6 @@ public class PParallelGenerator extends PGenerator {
         }
     }
 
-    @SuppressWarnings("unused")
     private Object doWithCircularBuffer() {
         if (buffer == null) {
             buffer = new SingleProducerCircularBuffer();
@@ -149,6 +174,81 @@ public class PParallelGenerator extends PGenerator {
 
         Object result = buffer.take();
         return result;
+    }
+
+    private Object doWithDisruptor() {
+        if (ringBuffer == null) {
+            ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, 32);
+            sequenceBarrier = ringBuffer.newBarrier();
+            sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
+            ringBuffer.addGatingSequences(sequence);
+
+            context.getExecutorService().execute(new Runnable() {
+
+                public void run() {
+                    final RingBuffer<ObjectEvent> rb = ringBuffer;
+
+                    Object value;
+
+                    try {
+                        while (true) {
+                            value = callTarget.call(null, arguments);
+                            long next = rb.next();
+                            rb.get(next).setValue(value);
+                            rb.publish(next);
+                        }
+                    } catch (StopIterationException e) {
+                        long next = rb.next();
+                        rb.get(next).setValue(StopIterationException.INSTANCE);
+                        rb.publish(next);
+                    }
+                }
+
+            });
+        }
+
+        sequenceBarrier.clearAlert();
+        long nextSequence = sequence.get() + 1L;
+
+        try {
+            sequenceBarrier.waitFor(nextSequence);
+        } catch (AlertException | InterruptedException | TimeoutException e) {
+            CompilerDirectives.transferToInterpreter();
+            throw new RuntimeException();
+        }
+
+        Object result = ringBuffer.get(nextSequence).getValue();
+        sequence.set(nextSequence);
+
+        if (result == StopIterationException.INSTANCE) {
+            throw StopIterationException.INSTANCE;
+        } else {
+            return result;
+        }
+    }
+
+    public static class ObjectEvent {
+
+        private Object value;
+
+        public Object getValue() {
+            return value;
+        }
+
+        public void setValue(Object value) {
+            this.value = value;
+        }
+
+    }
+
+    public static final EventFactory<ObjectEvent> EMPTY_EVENTS = new NoOpEventFactory();
+
+    public static class NoOpEventFactory implements EventFactory<ObjectEvent> {
+
+        public ObjectEvent newInstance() {
+            return new ObjectEvent();
+        }
+
     }
 
 }
