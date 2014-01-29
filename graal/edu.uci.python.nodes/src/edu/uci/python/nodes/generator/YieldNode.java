@@ -22,14 +22,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.module.annotation;
+package edu.uci.python.nodes.generator;
 
-import java.lang.annotation.*;
+import com.oracle.truffle.api.frame.*;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface ModuleMethod {
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.exception.*;
 
-    String value() default "";
+public class YieldNode extends StatementNode {
+
+    @Child protected PNode right;
+
+    public YieldNode(PNode right) {
+        this.right = adoptChild(right);
+    }
+
+    public PNode getRhs() {
+        return right;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        right.execute(frame);
+        throw YieldException.INSTANCE;
+    }
+
+    /**
+     * Of course yield is for generators. The point of this node is to properly advance the index
+     * flag of the parent block node (if the yield's parent is one).
+     */
+    public static final class GeneratorYieldNode extends YieldNode {
+
+        private final int parentBlockNodeIndexSlot;
+
+        public GeneratorYieldNode(PNode right, int indexSlot) {
+            super(right);
+            parentBlockNodeIndexSlot = indexSlot;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            right.execute(frame);
+            final int index = GeneratorBlockNode.getIndex(frame, parentBlockNodeIndexSlot);
+            GeneratorBlockNode.setIndex(frame, parentBlockNodeIndexSlot, index + 1);
+            throw YieldException.INSTANCE;
+        }
+    }
 
 }

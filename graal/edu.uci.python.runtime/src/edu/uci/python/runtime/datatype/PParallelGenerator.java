@@ -33,12 +33,14 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
 public class PParallelGenerator extends PGenerator {
 
+    private boolean isFirstEntry = true;
     private final PythonContext context;
     private ConcurrentLinkedQueue<Object> queue;
-    private BlockingQueue<Object> blockingQueue;
+    private final BlockingQueue<Object> blockingQueue;
     private SingleProducerCircularBuffer buffer;
 
     // Disruptor
@@ -46,17 +48,39 @@ public class PParallelGenerator extends PGenerator {
     private SequenceBarrier sequenceBarrier;
     private Sequence sequence;
 
-    private static final int QUEUE_CHOICE = 0;
+    private static final int QUEUE_CHOICE = 1;
     private static final int BLOCKING_QUEUE_CHOICE = 1;
 
-    public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
-                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        super(name, callTarget, frameDescriptor, declarationFrame, arguments, numOfGeneratorBlockNode, numOfGeneratorForNode);
+    public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
+        BlockingQueue<Object> blockingQueue = createBlockingQueue();
+        PArguments parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
+        return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+    }
+
+    public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
+        super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
+        this.blockingQueue = blockingQueue;
+    }
+
+    public final void generates() {
+        context.getExecutorService().execute(new Runnable() {
+
+            public void run() {
+                try {
+                    callTarget.call(null, arguments);
+                    blockingQueue.put(StopIterationException.INSTANCE);
+                } catch (InterruptedException e) {
+                    CompilerDirectives.transferToInterpreterAndInvalidate();
+                    e.printStackTrace();
+                }
+            }
+
+        });
     }
 
     @Override
-    public Object __next__() throws StopIterationException {
+    public final Object __next__() throws StopIterationException {
         switch (QUEUE_CHOICE) {
             case 0:
                 return doWithCircularBuffer();
@@ -71,17 +95,16 @@ public class PParallelGenerator extends PGenerator {
         }
     }
 
-    private void createBlockingQueue() {
+    private static BlockingQueue<Object> createBlockingQueue() {
         switch (BLOCKING_QUEUE_CHOICE) {
             case 0:
-                blockingQueue = new LinkedBlockingQueue<>();
-                break;
+                return new LinkedBlockingQueue<>();
             case 1:
-                blockingQueue = new ArrayBlockingQueue<>(16);
-                break;
+                return new ArrayBlockingQueue<>(32);
             case 2:
-                blockingQueue = new SynchronousQueue<>();
-                break;
+                return new SynchronousQueue<>();
+            default:
+                throw new RuntimeException();
         }
     }
 
@@ -116,19 +139,14 @@ public class PParallelGenerator extends PGenerator {
     }
 
     private Object doWithBlockingQueue() {
-        if (blockingQueue == null) {
-            createBlockingQueue();
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
                     try {
-                        try {
-                            while (true) {
-                                blockingQueue.put(callTarget.call(null, arguments));
-                            }
-                        } catch (StopIterationException e) {
-                            blockingQueue.put(StopIterationException.INSTANCE);
-                        }
+                        callTarget.call(null, arguments);
+                        blockingQueue.put(StopIterationException.INSTANCE);
                     } catch (InterruptedException e) {
                         CompilerDirectives.transferToInterpreterAndInvalidate();
                         e.printStackTrace();
@@ -241,9 +259,9 @@ public class PParallelGenerator extends PGenerator {
 
     }
 
-    public static final EventFactory<ObjectEvent> EMPTY_EVENTS = new NoOpEventFactory();
+    public static final EventFactory<ObjectEvent> EMPTY_EVENTS = new ObjectEventFactory();
 
-    public static class NoOpEventFactory implements EventFactory<ObjectEvent> {
+    public static class ObjectEventFactory implements EventFactory<ObjectEvent> {
 
         public ObjectEvent newInstance() {
             return new ObjectEvent();

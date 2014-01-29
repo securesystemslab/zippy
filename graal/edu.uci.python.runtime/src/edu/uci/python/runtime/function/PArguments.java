@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.function;
 
+import java.util.concurrent.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -69,6 +71,10 @@ public class PArguments extends Arguments {
 
     public static GeneratorArguments getGeneratorArguments(Frame frame) {
         return frame.getArguments(PArguments.GeneratorArguments.class);
+    }
+
+    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
+        return frame.getArguments(PArguments.ParallelGeneratorArguments.class);
     }
 
     public Object getSelf() {
@@ -168,6 +174,20 @@ public class PArguments extends Arguments {
 
         public VirtualFrame getCargoFrame() {
             return cargoFrame;
+        }
+    }
+
+    public static final class ParallelGeneratorArguments extends PArguments {
+
+        private final BlockingQueue<Object> queue;
+
+        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
+            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.queue = queue;
+        }
+
+        public BlockingQueue<Object> getQueue() {
+            return queue;
         }
     }
 
