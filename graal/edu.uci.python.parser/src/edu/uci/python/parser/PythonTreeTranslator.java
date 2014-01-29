@@ -101,8 +101,8 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> statements = new ArrayList<>();
 
         for (int i = 0; i < stmts.size(); i++) {
-            Object statementObject = visit(stmts.get(i));
-            PNode statement = (PNode) statementObject;
+            stmt statementObject = stmts.get(i);
+            PNode statement = (PNode) visit(statementObject);
             // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
@@ -838,7 +838,8 @@ public class PythonTreeTranslator extends Visitor {
             }
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
-            PNode exceptType = (PNode) visit(except.getInternalType());
+            // PNode exceptType = (PNode) visit(except.getInternalType());
+            PNode exceptType = (except.getInternalType() == null) ? null : (PNode) visit(except.getInternalType());
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
@@ -874,6 +875,17 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitDelete(Delete node) throws Exception {
+        /**
+         * TODO Delete node has not been implemented
+         */
+        return null;
+    }
+
+    @Override
+    public Object visitWith(With node) throws Exception {
+        /**
+         * TODO With node has not been implemented
+         */
         return null;
     }
 }

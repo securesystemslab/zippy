@@ -70,6 +70,8 @@ public class CallFunctionNoKeywordNode extends PNode {
             return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PFunction) {
             return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
+        } else if (callable instanceof PMethod) {
+            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         } else if (callable instanceof PBuiltinFunction) {
             return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
         } else {

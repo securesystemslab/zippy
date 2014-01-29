@@ -39,6 +39,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public final class BuiltinConstructors extends PythonBuiltins {
 
@@ -344,15 +345,15 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class PythonMapNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization
-        public Object mapString(PythonCallable arg0, String arg1, Object[] iterators) {
-            return doMap(arg0, new PString(arg1).__iter__());
+        @Specialization(order = 1)
+        public Object mapString(PythonCallable function, String str, Object[] iterators) {
+            return doMap(function, new PString(str).__iter__());
         }
 
         @SuppressWarnings("unused")
-        @Specialization
-        public Object mapSequence(PythonCallable arg0, PSequence arg1, Object[] iterators) {
-            return doMap(arg0, arg1.__iter__());
+        @Specialization(order = 2)
+        public Object mapFunctionIterable(PythonCallable function, PIterable iterable, Object[] iterators) {
+            return doMap(function, iterable.__iter__());
         }
 
         private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
@@ -367,6 +368,41 @@ public final class BuiltinConstructors extends PythonBuiltins {
             }
 
             return list;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 3)
+        public Object mapClassIterable(PythonClass clazz, PIterable iterable, Object[] iterators) {
+            PIterator iter = iterable.__iter__();
+            PList list = new PList();
+
+            try {
+                while (true) {
+                    Object item = iter.__next__();
+                    PythonObject obj = new PythonObject(clazz);
+                    Object[] selfWithArgs = new Object[2];
+
+                    selfWithArgs[0] = obj;
+                    selfWithArgs[1] = item;
+
+                    PythonCallable initMethod = clazz.lookUpMethod("__init__");
+                    if (initMethod != null) {
+                        initMethod.call(null, selfWithArgs);
+                        list.append(obj);
+                    }
+
+                }
+            } catch (StopIterationException e) {
+
+            }
+
+            return list;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object mapSequence(Object function, Object iterable, Object[] iterators) {
+            throw new RuntimeException("map is not supported for " + function + " " + function.getClass() + " iterable " + iterable + " " + iterable.getClass());
         }
     }
 

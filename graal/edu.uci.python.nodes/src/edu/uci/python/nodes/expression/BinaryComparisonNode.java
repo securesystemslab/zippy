@@ -317,4 +317,35 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     }
 
+    public abstract static class NotInNode extends BinaryComparisonNode {
+
+        @Specialization
+        public boolean doPSequence(Object left, PSequence right) {
+            boolean has = true;
+            PIterator iter = right.__iter__();
+
+            try {
+                while (true) {
+                    Object item = iter.__next__();
+                    boolean equals = ArithmeticUtil.is(left, item);
+                    if (equals) {
+                        has = false;
+                        break;
+                    }
+
+                }
+            } catch (StopIterationException e) {
+                // fall through
+            }
+
+            return has;
+        }
+
+        @Specialization
+        public boolean doPDictionary(Object left, PDict right) {
+            return !right.hasKey(new Object[]{left});
+        }
+
+    }
+
 }

@@ -212,10 +212,30 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.__mul__(right);
         }
 
+        @Specialization(order = 12)
+        String doIntString(int left, String right) {
+            String str = right;
+            for (int i = 0; i < left - 1; i++) {
+                str = str + right;
+            }
+
+            return str;
+        }
+
+        @Specialization(order = 13)
+        String doStringInt(String left, int right) {
+            String str = left;
+            for (int i = 0; i < right - 1; i++) {
+                str = str + left;
+            }
+
+            return str;
+        }
+
         // TODO: better type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
-            throw Py.TypeError("can't multiply " + left + " by " + right);
+            throw Py.TypeError("can't multiply " + left + left.getClass() + " by " + right);
         }
     }
 

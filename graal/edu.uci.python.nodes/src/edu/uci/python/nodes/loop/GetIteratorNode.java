@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.loop;
 
+import java.util.*;
+
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.expression.*;
@@ -73,4 +75,12 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         return value;
     }
 
+    @Specialization
+    public Object doJavaList(Object value) {
+        if (value instanceof List) {
+            return ((List) value).iterator();
+        }
+
+        return null;
+    }
 }
