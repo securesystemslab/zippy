@@ -28,9 +28,6 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -42,7 +39,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule("testModule", context);
+        PythonModule module = new PythonModule("testModule", context, context.getBuiltins());
 
         assertEquals("testModule", module.getAttribute("__name__").toString());
         assertEquals("", module.getAttribute("__doc__").toString());
@@ -54,8 +51,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
-        FrameDescriptor fd = new FrameDescriptor();
-        Object returnValue = min.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{4, 2, 1});
+        Object returnValue = min.call(PythonTests.createVirtualFrame().pack(), new Object[]{4, 2, 1});
         assertEquals(1, returnValue);
     }
 
@@ -64,8 +60,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
         PythonBuiltinClass intClass = (PythonBuiltinClass) builtins.getAttribute("int");
-        FrameDescriptor fd = new FrameDescriptor();
-        Object returnValue = intClass.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{"42"});
+        Object returnValue = intClass.call(PythonTests.createVirtualFrame().pack(), new Object[]{"42"});
         assertEquals(42, returnValue);
     }
 
@@ -75,8 +70,7 @@ public class PythonModuleTests {
         PythonModule main = context.getPythonBuiltinsLookup().lookupModule("__main__");
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
-        FrameDescriptor fd = new FrameDescriptor();
-        Object returned = abs.call(new DefaultVirtualFrame(fd, null, null).pack(), new Object[]{-42});
+        Object returned = abs.call(PythonTests.createVirtualFrame().pack(), new Object[]{-42});
         assertEquals(42, returned);
     }
 }

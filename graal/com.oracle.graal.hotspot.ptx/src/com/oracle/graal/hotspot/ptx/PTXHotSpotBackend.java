@@ -58,6 +58,7 @@ import com.oracle.graal.lir.ptx.PTXMemOp.LoadReturnAddrOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.word.*;
 
@@ -67,7 +68,7 @@ import com.oracle.graal.word.*;
 public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
-     * Descriptor for the PTX runtime method for launching a kernel. The C++ signature is:
+     * Descriptor for the PTX runtime method for calling a kernel. The C++ signature is:
      * 
      * <pre>
      *     jlong (JavaThread* thread,
@@ -77,11 +78,14 @@ public class PTXHotSpotBackend extends HotSpotBackend {
      *            jint dimZ,
      *            jlong parametersAndReturnValueBuffer,
      *            jint parametersAndReturnValueBufferSize,
+     *            jint objectParametersCount,
+     *            jlong objectParametersOffsets,
+     *            jlong pinnedObjects,
      *            jint encodedReturnTypeSize)
      * </pre>
      */
     // @formatter:off
-    public static final ForeignCallDescriptor LAUNCH_KERNEL = new ForeignCallDescriptor("execute_kernel_from_vm", long.class,
+    public static final ForeignCallDescriptor CALL_KERNEL = new ForeignCallDescriptor("execute_kernel_from_vm", long.class,
                     Word.class, // thread
                     long.class, // kernel
                     int.class,  // dimX
@@ -89,11 +93,16 @@ public class PTXHotSpotBackend extends HotSpotBackend {
                     int.class,  // dimZ
                     long.class, // parametersAndReturnValueBuffer
                     int.class,  // parametersAndReturnValueBufferSize
+                    int.class,  // objectParameterCount
+                    long.class, // objectParameterOffsets
+                    long.class, // pinnedObjects
                     int.class); // encodedReturnTypeSize
     // @formatter:on
 
     public PTXHotSpotBackend(HotSpotGraalRuntime runtime, HotSpotProviders providers) {
         super(runtime, providers);
+        CompilerToGPU compilerToGPU = getRuntime().getCompilerToGPU();
+        deviceInitialized = OmitDeviceInit || compilerToGPU.deviceInit();
     }
 
     @Override
@@ -110,10 +119,9 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     public void completeInitialization() {
         HotSpotHostForeignCallsProvider hostForeignCalls = (HotSpotHostForeignCallsProvider) getRuntime().getHostProviders().getForeignCalls();
         CompilerToGPU compilerToGPU = getRuntime().getCompilerToGPU();
-        deviceInitialized = OmitDeviceInit || compilerToGPU.deviceInit();
         if (deviceInitialized) {
             long launchKernel = compilerToGPU.getLaunchKernelAddress();
-            hostForeignCalls.registerForeignCall(LAUNCH_KERNEL, launchKernel, NativeCall, DESTROYS_REGISTERS, NOT_LEAF, NOT_REEXECUTABLE, ANY_LOCATION);
+            hostForeignCalls.registerForeignCall(CALL_KERNEL, launchKernel, NativeCall, DESTROYS_REGISTERS, NOT_LEAF, NOT_REEXECUTABLE, ANY_LOCATION);
         }
         super.completeInitialization();
     }
@@ -140,14 +148,14 @@ public class PTXHotSpotBackend extends HotSpotBackend {
             public StructuredGraph getGraphFor(ResolvedJavaMethod method) {
                 if (canOffloadToGPU(method)) {
                     ExternalCompilationResult ptxCode = PTXHotSpotBackend.this.compileKernel(method, true);
-                    InstalledCode installedPTXCode = PTXHotSpotBackend.this.installKernel(method, ptxCode);
-                    return new PTXWrapperBuilder(method, installedPTXCode.getStart(), getRuntime().getHostBackend().getProviders()).getGraph();
+                    HotSpotNmethod installedPTXCode = PTXHotSpotBackend.this.installKernel(method, ptxCode);
+                    return new PTXWrapperBuilder(method, installedPTXCode, getRuntime().getHostBackend().getProviders()).getGraph();
                 }
                 return null;
             }
 
             private boolean canOffloadToGPU(ResolvedJavaMethod method) {
-                return method.getName().contains("lambda$main$") & method.isSynthetic();
+                return method.getName().contains("lambda$") & method.isSynthetic();
             }
         };
     }
@@ -165,11 +173,13 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         HotSpotProviders providers = getProviders();
         CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, method, false);
         PhaseSuite<HighTierContext> graphBuilderSuite = providers.getSuites().getDefaultGraphBuilderSuite();
+        graphBuilderSuite.appendPhase(new NonNullParametersPhase());
         Suites suites = providers.getSuites().getDefaultSuites();
         ExternalCompilationResult ptxCode = compileGraph(graph, cc, method, providers, this, this.getTarget(), null, graphBuilderSuite, OptimisticOptimizations.NONE, getProfilingInfo(graph),
                         new SpeculationLog(), suites, true, new ExternalCompilationResult(), CompilationResultBuilderFactory.Default);
         if (makeBinary) {
             try (Scope ds = Debug.scope("GeneratingKernelBinary")) {
+                assert ptxCode.getTargetCode() != null;
                 long kernel = getRuntime().getCompilerToGPU().generateKernel(ptxCode.getTargetCode(), method.getName());
                 ptxCode.setEntryPoint(kernel);
             } catch (Throwable e) {
@@ -180,9 +190,27 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     }
 
-    public InstalledCode installKernel(ResolvedJavaMethod method, ExternalCompilationResult ptxCode) {
-        assert ptxCode.getEntryPoint() != 0L;
-        return getProviders().getCodeCache().addExternalMethod(method, ptxCode);
+    /**
+     * A list of the {@linkplain #installKernel(ResolvedJavaMethod, ExternalCompilationResult)
+     * installed} kernels. This is required so that there is a strong reference to each installed
+     * kernel as long as it is {@linkplain HotSpotNmethod#isValid() valid}. The list is pruned of
+     * invalid kernels every time a new kernel is installed.
+     */
+    private List<HotSpotNmethod> installedKernels = new LinkedList<>();
+
+    public final HotSpotNmethod installKernel(ResolvedJavaMethod method, ExternalCompilationResult ptxCode) {
+        assert OmitDeviceInit || ptxCode.getEntryPoint() != 0L;
+        HotSpotNmethod kernel = getProviders().getCodeCache().addExternalMethod(method, ptxCode);
+        synchronized (installedKernels) {
+            for (Iterator<HotSpotNmethod> i = installedKernels.iterator(); i.hasNext();) {
+                HotSpotNmethod entry = i.next();
+                if (!entry.isValid()) {
+                    i.remove();
+                }
+            }
+            installedKernels.add(kernel);
+        }
+        return kernel;
     }
 
     static final class RegisterAnalysis extends ValueProcedure {

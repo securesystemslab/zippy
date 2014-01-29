@@ -28,7 +28,6 @@ import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -53,11 +52,12 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
-            if (!genExp.needsDeclarationFrame()) {
-                continue; // No need to optimize
+            if (genExp.isOptimized()) {
+                continue;
             }
 
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
+
             if (escapeAnalyzer.escapes()) {
                 context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
             } else {
@@ -68,16 +68,19 @@ public class GeneratorExpressionOptimizer {
     }
 
     private void transform(GeneratorExpressionDefinitionNode genExp, EscapeAnalyzer escapeAnalyzer) {
-
         if (!escapeAnalyzer.isBoundToLocalFrame()) {
             /**
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
                 transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
-            } else if (genExp.getParent() instanceof CallFunctionNode) {
-                transformToGeneratorCall(genExp, genExp);
-            } else if (genExp.getParent() instanceof InlinedCallNode) {
+            } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
+                /**
+                 * Function calls that were just inlined create new opportunities for genexp
+                 * transformation.<br>
+                 * Already transformed genexp, whose parent is of type
+                 * {@link CallGeneratorInlinedNode} should be ignore.
+                 */
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genExp.getParent(), GetIteratorNode.class);
                 transformGetIterToInlineableGeneratorCall(genExp, getIter, true);
             }
@@ -100,50 +103,30 @@ public class GeneratorExpressionOptimizer {
     private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+        PNode[] argReads;
 
         try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
+            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+        } catch (IllegalStateException e) {
+            return;
+        }
 
-            CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            PNode loadGenerator = getIterator.getOperand();
-            loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+        assert argReads != null;
+        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+        PNode loadGenerator = getIterator.getOperand();
+        loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
 
+        try {
             PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
             matched.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
         } catch (IllegalStateException e) {
-            return;
         }
 
+        genExp.setAsOptimized();
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
-    }
-
-    private void transformToGeneratorCall(GeneratorExpressionDefinitionNode genExp, PNode loadGenerator) {
-        FrameDescriptor fd = genExp.getFrameDescriptor();
-        FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
-
-        try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, getEnclosingFrameDescriptor(genExp));
-            replaceParameters(arguments, root);
-            replaceReadLevels(arguments, root);
-            PNode[] argReads = assembleArgumentReads(arguments, genExp, false);
-
-            CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
-            loadGenerator.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-
-            /**
-             * Apply the same replacement in uninitialized body too, since the gen exp itself is
-             * already modified and will not work in its original form.
-             */
-            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
-            matched.replace(new CallFunctionNoKeywordNode.CallFunctionCachedNode(callableGenExp, argReads, callableGenExp, AlwaysValidAssumption.INSTANCE));
-        } catch (IllegalStateException e) {
-            return;
-        }
-
-        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to regular generator call");
     }
 
     /**
@@ -157,7 +140,7 @@ public class GeneratorExpressionOptimizer {
         }
 
         PNode[] reads = new PNode[argumentIds.length];
-        FrameDescriptor enclosingFrame = getEnclosingFrameDescriptor(genExp);
+        FrameDescriptor enclosingFrame = findEnclosingFrameDescriptor(genExp);
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
@@ -174,14 +157,21 @@ public class GeneratorExpressionOptimizer {
         return reads;
     }
 
-    private static FrameDescriptor getEnclosingFrameDescriptor(PNode genExp) {
+    /**
+     * Please note that the enclosing scope of the genexp could be inlined. So {@link RootNode}
+     * might not cover all the cases.
+     */
+    private static FrameDescriptor findEnclosingFrameDescriptor(PNode genExp) {
         Node current = genExp;
-        while (!(current instanceof RootNode)) {
+        while (true) {
             current = current.getParent();
+
+            if (current instanceof RootNode) {
+                break;
+            }
         }
 
-        FrameSlotNode slotNode = NodeUtil.findFirstNodeInstance(current, FrameSlotNode.class);
-        return slotNode.getSlot().getFrameDescriptor();
+        return ((RootNode) current).getFrameDescriptor();
     }
 
     /**
@@ -210,14 +200,14 @@ public class GeneratorExpressionOptimizer {
     }
 
     /**
-     * Replace with empty parameter load in generator expression with real ones.
+     * Replace empty parameter load in generator expression with real ones.
      */
     private static void replaceParameters(List<FrameSlot> slots, FunctionRootNode root) {
         GeneratorReturnTargetNode body = NodeUtil.findFirstNodeInstance(root, GeneratorReturnTargetNode.class);
         BlockNode parameters = (BlockNode) body.getParameters();
 
         if (!parameters.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException(); // has been replaced earlier.
         }
 
         body.getParameters().replace(assembleParameterWrites(slots, false));

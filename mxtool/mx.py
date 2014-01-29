@@ -2750,6 +2750,9 @@ def _source_locator_memento(deps):
             if hasattr(dep, 'eclipse.container'):
                 memento = XMLDoc().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml(standalone='no')
                 slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
+            elif dep.get_source_path(resolve=True):
+                memento = XMLDoc().element('archive', {'detectRoot' : 'true', 'path' : dep.get_source_path(resolve=True)}).xml(standalone='no')
+                slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.debug.core.containerType.externalArchive'})
         else:
             memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
@@ -2865,23 +2868,24 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
     generate_eclipse_workingsets()
 
-def _check_ide_timestamp(suite, timestamp):
-    """return True if and only if the projects file, imports file, eclipse-settings files, and mx itself are all older than timestamp"""
+def _check_ide_timestamp(suite, configZip, ide):
+    """return True if and only if the projects file, imports file, eclipse-settings files, and mx itself are all older than configZip"""
     projectsFile = join(suite.mxDir, 'projects')
-    if timestamp.isOlderThan(projectsFile):
+    if configZip.isOlderThan(projectsFile):
         return False
-    if timestamp.isOlderThan(suite.import_timestamp()):
+    if configZip.isOlderThan(suite.import_timestamp()):
         return False
     # Assume that any mx change might imply changes to the generated IDE files
-    if timestamp.isOlderThan(__file__):
+    if configZip.isOlderThan(__file__):
         return False
 
-    eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
-    if exists(eclipseSettingsDir):
-        for name in os.listdir(eclipseSettingsDir):
-            path = join(eclipseSettingsDir, name)
-            if timestamp.isOlderThan(path):
-                return False
+    if ide == 'eclipse':
+        eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
+        if exists(eclipseSettingsDir):
+            for name in os.listdir(eclipseSettingsDir):
+                path = join(eclipseSettingsDir, name)
+                if configZip.isOlderThan(path):
+                    return False
     return True
 
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
@@ -2890,7 +2894,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     if refreshOnly and not configZip.exists():
         return
 
-    if _check_ide_timestamp(suite, configZip):
+    if _check_ide_timestamp(suite, configZip, 'eclipse'):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
@@ -3095,7 +3099,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
             files.append(join(p.dir, '.factorypath'))
 
-    _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
+    _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=sorted_deps(projectNames=None, includeLibs=True))
     files.append(launchFile)
 
     _zip_files(files, suite.dir, configZip.path)
@@ -3350,7 +3354,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
     if refreshOnly and not configZip.exists():
         return
 
-    if _check_ide_timestamp(suite, configZip):
+    if _check_ide_timestamp(suite, configZip, 'netbeans'):
         logv('[NetBeans configurations are up to date - skipping]')
         return
 
@@ -3560,11 +3564,10 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 javacClasspath.append('${' + ref + '}')
             else:
                 annotationProcessorReferences.append('${' + ref + '}')
-                annotationProcessorReferences += ":\\\n    ${" + ref + "}"
 
         print >> out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath)
-        print >> out, 'javac.test.processorpath=${javac.test.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
-        print >> out, 'javac.processorpath=${javac.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
+        print >> out, 'javac.processorpath=' + (os.pathsep + '\\\n    ').join(['${javac.classpath}'] + annotationProcessorReferences)
+        print >> out, 'javac.test.processorpath=' + (os.pathsep + '\\\n    ').join(['${javac.test.classpath}'] + annotationProcessorReferences)
 
         updated = update_file(join(p.dir, 'nbproject', 'project.properties'), out.getvalue()) or updated
         out.close()

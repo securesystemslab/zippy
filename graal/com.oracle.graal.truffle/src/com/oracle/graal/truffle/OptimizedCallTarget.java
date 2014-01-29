@@ -51,12 +51,11 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
     private boolean compilationEnabled;
     private int callCount;
 
-    protected OptimizedCallTarget(RootNode rootNode, FrameDescriptor descriptor, TruffleCompiler compiler, int invokeCounter, int compilationThreshold) {
-        super(rootNode, descriptor);
+    protected OptimizedCallTarget(RootNode rootNode, TruffleCompiler compiler, int invokeCounter, int compilationThreshold) {
+        super(rootNode);
         this.compiler = compiler;
         this.compilationProfile = new CompilationProfile(compilationThreshold, invokeCounter, rootNode.toString());
-        this.inlining = new TruffleInliningImpl();
-        this.rootNode.setCallTarget(this);
+        this.getRootNode().setCallTarget(this);
 
         if (TruffleUseTimeForCompilationDecision.getValue()) {
             compilationPolicy = new TimedCompilationPolicy();
@@ -68,8 +67,11 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
         if (TruffleCallTargetProfiling.getValue()) {
             registerCallTarget(this);
         }
+        this.inlining = new TruffleInliningImpl();
+
     }
 
+    @CompilerDirectives.SlowPath
     @Override
     public Object call(PackedFrame caller, Arguments args) {
         return callHelper(caller, args);
@@ -115,7 +117,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             installedCode = null;
             compilationProfile.reportInvalidated();
             if (TraceTruffleCompilation.getValue()) {
-                OUT.printf("[truffle] invalidated %-48s |Inv# %d                                     |Replace# %d\n", rootNode, compilationProfile.getInvalidationCount(),
+                OUT.printf("[truffle] invalidated %-48s |Inv# %d                                     |Replace# %d\n", getRootNode(), compilationProfile.getInvalidationCount(),
                                 compilationProfile.getNodeReplaceCount());
             }
         }
@@ -139,7 +141,8 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             if (!inlined) {
                 // zwei
                 if (TrufflePrintCompilingAST.getValue()) {
-                    NodeUtil.printCompactTree(OUT, rootNode);
+                    OUT.println(" ------------- " + getRootNode() + " ------------- ");
+                    NodeUtil.printCompactTree(OUT, getRootNode());
                 }
                 compile();
             }
@@ -185,7 +188,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             return installedCodeTask.get();
         } catch (InterruptedException | ExecutionException e) {
             compilationEnabled = false;
-            OUT.printf("[truffle] opt failed %-48s  %s\n", rootNode, e.getMessage());
+            OUT.printf("[truffle] opt failed %-48s  %s\n", getRootNode(), e.getMessage());
             if (e.getCause() instanceof BailoutException) {
                 // Bailout => move on.
             } else {
@@ -208,14 +211,14 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
     public boolean inline() {
         boolean result = inlining.performInlining(this);
         if (result) {
-            compilationProfile.reportInliningPerformed();
+            compilationProfile.reportInliningPerformed(inlining);
         }
         return result;
     }
 
     public Object executeHelper(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = createFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
+        VirtualFrame frame = createFrame(getRootNode().getFrameDescriptor(), caller, args);
+        return getRootNode().execute(frame);
     }
 
     protected static FrameWithoutBoxing createFrame(FrameDescriptor descriptor, PackedFrame caller, Arguments args) {
@@ -262,8 +265,8 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
             }
 
             int notInlinedCallSiteCount = TruffleInliningImpl.getInlinableCallSites(callTarget).size();
-            int nodeCount = NodeUtil.countNodes(callTarget.rootNode);
-            int inlinedCallSiteCount = NodeUtil.countNodes(callTarget.rootNode, InlinedCallSite.class);
+            int nodeCount = NodeUtil.countNodes(callTarget.getRootNode());
+            int inlinedCallSiteCount = NodeUtil.countNodes(callTarget.getRootNode(), InlinedCallSite.class);
             String comment = callTarget.installedCode == null ? " int" : "";
             comment += callTarget.compilationEnabled ? "" : " fail";
             OUT.printf("%-50s | %10d | %15d | %15d | %10d | %3d%s\n", callTarget.getRootNode(), callTarget.callCount, inlinedCallSiteCount, notInlinedCallSiteCount, nodeCount,

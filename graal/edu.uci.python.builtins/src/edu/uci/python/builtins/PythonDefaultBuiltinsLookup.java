@@ -47,14 +47,10 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinTypes = new HashMap<>();
     }
 
-    public void addBuiltins(PythonContext context) {
+    public PythonModule addBuiltins(PythonContext context) {
         PythonModule builtinsModule = createModule("__builtins__", context, new BuiltinFunctions(), new BuiltinConstructors());
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("__builtins__", builtinsModule);
-
-        PythonModule mainModule = new PythonModule(context.getModuleName(), context);
-        mainModule.setAttribute("__builtins__", builtinsModule);
-        addModule(context.getModuleName(), mainModule);
 
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
@@ -62,16 +58,19 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addType(PList.class, createType("list", new ListBuiltins(), context));
         addType(PString.class, createType("str", new StringBuiltins(), context));
         addType(PDict.class, createType("dict", new DictionaryBuiltins(), context));
+
+        return builtinsModule;
     }
 
-    public void addImportedModuleToLookup(PythonContext context, String moduleName) {
-        PythonModule builtinsModule = lookupModule("__builtins__");
-        PythonModule importedModule = new PythonModule(moduleName, context);
-        importedModule.setAttribute("__builtins__", builtinsModule);
-        addModule(moduleName, importedModule);
-    }
+//
+// public void addImportedModuleToLookup(PythonContext context, String moduleName) {
+// PythonModule builtinsModule = lookupModule("__builtins__");
+// PythonModule importedModule = new PythonModule(moduleName, context);
+// importedModule.setAttribute("__builtins__", builtinsModule);
+// addModule(moduleName, importedModule);
+// }
 
-    private void addModule(String name, PythonModule module) {
+    public void addModule(String name, PythonModule module) {
         builtinModules.put(name, module);
     }
 

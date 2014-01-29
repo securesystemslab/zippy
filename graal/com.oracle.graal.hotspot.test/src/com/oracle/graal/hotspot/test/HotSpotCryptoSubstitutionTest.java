@@ -49,7 +49,7 @@ public class HotSpotCryptoSubstitutionTest extends GraalCompilerTest {
     protected InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult) {
         HotSpotResolvedJavaMethod hsMethod = (HotSpotResolvedJavaMethod) method;
         HotSpotNmethod installedCode = new HotSpotNmethod(hsMethod, compResult.getName(), true);
-        HotSpotCompiledNmethod compiledNmethod = new HotSpotCompiledNmethod(hsMethod, compResult);
+        HotSpotCompiledNmethod compiledNmethod = new HotSpotCompiledNmethod(runtime().getTarget().arch, hsMethod, compResult);
         CodeInstallResult result = runtime().getCompilerToVM().installCode(compiledNmethod, installedCode, null);
         Assert.assertEquals("Error installing method " + method + ": " + result, result, CodeInstallResult.OK);
 
@@ -115,6 +115,7 @@ public class HotSpotCryptoSubstitutionTest extends GraalCompilerTest {
                 ResolvedJavaMethod installedCodeOwner = getMetaAccess().lookupJavaMethod(method);
                 StructuredGraph graph = getReplacements().getMethodSubstitution(installedCodeOwner);
                 if (graph != null) {
+                    graph = graph.copy();
                     Assert.assertNotNull(getCode(installedCodeOwner, graph, true));
                     atLeastOneCompiled = true;
                 } else {

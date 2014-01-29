@@ -48,8 +48,10 @@ def solve():
 
 # test
 def _max(iterator):
-    max = 0
+    max = None
     for i in iterator:
+        if max is None:
+            max = i
         if i > max:
             max = i
     return max
@@ -75,7 +77,7 @@ def measure():
     print("euler11: " + duration)
 
 # warm up
-for i in range(100):
-    main(20)
+for i in range(150): # 100
+    main(50) # 20
 
 measure()

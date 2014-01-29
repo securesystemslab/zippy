@@ -125,7 +125,7 @@ public class PArguments extends Arguments {
         }
 
         public MaterializedFrame getGeneratorFrame() {
-            return generatorFrame;
+            return CompilerDirectives.unsafeFrameCast(generatorFrame);
         }
 
         public boolean isFirstEntry() {
@@ -169,7 +169,6 @@ public class PArguments extends Arguments {
         public VirtualFrame getCargoFrame() {
             return cargoFrame;
         }
-
     }
 
 }

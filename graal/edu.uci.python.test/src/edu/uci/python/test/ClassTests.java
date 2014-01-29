@@ -73,7 +73,7 @@ public class ClassTests {
     }
 
     @Test
-    public void classAttributes() {
+    public void classAttribute1() {
         String source = "class Foo:\n" + //
                         "    class_attr = 2\n" + //
                         "    def __init__(self, num):\n" + //
@@ -85,6 +85,15 @@ public class ClassTests {
                         "print(foo.class_attr)\n";
 
         assertPrints("42\n2\n2\n", source);
+    }
+
+    @Test
+    public void classAttribute2() {
+        String source = "class Foo:\n" + //
+                        "    class_attr = AssertionError\n" + //
+                        "\n" + //
+                        "print(Foo.class_attr)\n";
+        assertPrints("<type 'exceptions.AssertionError'>\n", source);
     }
 
     @Test

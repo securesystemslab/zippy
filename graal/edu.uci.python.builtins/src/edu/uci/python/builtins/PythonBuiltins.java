@@ -56,7 +56,7 @@ public abstract class PythonBuiltins {
 
         for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
-            CallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context);
+            RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context);
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isClass()) {
@@ -69,7 +69,7 @@ public abstract class PythonBuiltins {
         }
     }
 
-    private static CallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context) {
+    private static RootCallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context) {
         PythonBuiltinNode builtinNode = factory.createNode(argsKeywords, context);
         BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(name, builtinNode);
         return Truffle.getRuntime().createCallTarget(rootNode);

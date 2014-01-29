@@ -52,6 +52,11 @@ public class CallBuiltinInlinedNode extends InlinedCallNode {
         this.builtinModuleUnchanged = builtinModuleUnchanged;
     }
 
+    @Override
+    public PBuiltinFunction getCallee() {
+        return function;
+    }
+
     public CallTarget getCallTarget() {
         return function.getCallTarget();
     }

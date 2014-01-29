@@ -29,19 +29,22 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 public class FunctionDefinitionNode extends PNode {
 
     protected final String name;
+    protected final PythonContext context;
     protected final CallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final boolean needsDeclarationFrame;
     protected final Arity arity;
     @Child protected StatementNode defaults;
 
-    public FunctionDefinitionNode(String name, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
+        this.context = context;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
@@ -53,7 +56,7 @@ public class FunctionDefinitionNode extends PNode {
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PFunction(name, arity, callTarget, frameDescriptor, declarationFrame);
+        return new PFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
     @Override

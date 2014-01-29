@@ -26,7 +26,6 @@ package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -55,8 +54,7 @@ public class GetGeneratorArgumentsNode extends CallFunctionCachedNode implements
 
         PGeneratorFunction genFunction = (PGeneratorFunction) cached;
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-        MaterializedFrame generatorFrame = new DefaultVirtualFrame(cached.getFrameDescriptor(), null, PArguments.EMPTY_ARGUMENT).materialize();
+        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENT, cached.getFrameDescriptor());
         return new PArguments.GeneratorArguments(genFunction.getDeclarationFrame(), generatorFrame, args, genFunction.getNumOfGeneratorBlockNode(), genFunction.getNumOfGeneratorForNode());
     }
-
 }

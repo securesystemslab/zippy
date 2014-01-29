@@ -37,6 +37,7 @@ import edu.uci.python.nodes.call.CallFunctionNoKeywordNode.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -72,6 +73,12 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         return generatorRoot.getCallTarget();
     }
 
+    public void invokeGeneratorExpressionOptimizer() {
+        RootNode current = getRootNode();
+        assert current != null;
+        new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
@@ -93,35 +100,24 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             return simpleGeneratorLoopTransformation((ForWithLocalTargetNode) grandpa, factory);
         }
 
-        try {
-            if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
-                transformLoopGeneratorCall((LoopNode) grandpa, factory);
-                return true;
-            }
-        } catch (IllegalStateException e) {
-            // fall through
+        if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
+            transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
+            invokeGeneratorExpressionOptimizer();
+            return true;
         }
 
         return false;
     }
 
-    private void transformLoopGeneratorCall(LoopNode loop, FrameFactory factory) {
+    private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
         CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
         PNode body = loop.getBody();
-
         FrameSlot yieldToSlotInCallerFrame;
-        if (loop instanceof ForWithLocalTargetNode) {
-            AdvanceIteratorNode next = (AdvanceIteratorNode) ((ForWithLocalTargetNode) loop).getTarget();
-            PNode target = next.getTarget();
-            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
-        } else if (loop instanceof GeneratorForNode) {
-            PNode target = ((GeneratorForNode) loop).getTarget();
-            yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
-        } else {
-            throw new IllegalStateException();
-        }
+        AdvanceIteratorNode next = (AdvanceIteratorNode) loop.getTarget();
+        PNode target = next.getTarget();
+        yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
             PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
@@ -130,8 +126,17 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
             yield.replace(block);
         }
 
+        /**
+         * Reset generator expressions in the ungeneratorized function as declared not in generator
+         * frame.
+         */
+        RootNode enclosingRoot = getRootNode();
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator(false);
+        }
+
         PrintStream ps = System.out;
-        ps.println("[ZipPy] transformed generator call to " + cached);
+        ps.println("[ZipPy] transformed generator call to " + cached.getCallTarget() + " in " + getRootNode());
     }
 
     private boolean simpleGeneratorLoopTransformation(ForWithLocalTargetNode loop, FrameFactory factory) {

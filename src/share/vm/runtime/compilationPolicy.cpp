@@ -45,6 +45,9 @@
 #include "runtime/vm_operations.hpp"
 #include "utilities/events.hpp"
 #include "utilities/globalDefinitions.hpp"
+#ifdef GRAAL
+#include "runtime/gpu.hpp"
+#endif
 
 CompilationPolicy* CompilationPolicy::_policy;
 elapsedTimer       CompilationPolicy::_accumulated_time;
@@ -101,6 +104,9 @@ bool CompilationPolicy::must_be_compiled(methodHandle m, int comp_level) {
   if (ReplayCompiles) return false;
 
   if (m->has_compiled_code()) return false;       // already compiled
+
+  if (CompilationPolicy::can_be_offloaded_to_gpu(m)) return true;
+
   if (!can_be_compiled(m, comp_level)) return false;
 
   return !UseInterpreter ||                                              // must compile all methods
@@ -153,6 +159,58 @@ bool CompilationPolicy::can_be_osr_compiled(methodHandle m, int comp_level) {
     result = !m->is_not_osr_compilable(comp_level);
   }
   return (result && can_be_compiled(m, comp_level));
+}
+
+bool CompilationPolicy::can_be_offloaded_to_gpu(methodHandle m) {
+#ifdef GRAAL
+  if (GPUOffload) {
+    // Check if this method can be offloaded to GPU.
+    // 1. Offload it to GPU if it is a Lambda method
+    if (m->is_synthetic()) {
+      // A lambda method is a syntheric method.
+      Symbol * klass_name = m->method_holder()->name();
+      Symbol * method_name = m->name();
+      bool offloadToGPU = false;
+      {
+        ResourceMark rm;
+        if (klass_name != NULL) {
+          if (klass_name != NULL && method_name != NULL) {
+            const char* lambdaPrefix = "lambda$";
+            char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
+            if (methodPrefix != 0) {
+              if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0)) {
+                offloadToGPU = true;
+              }
+            }
+          }
+        }
+      }
+      if (offloadToGPU) {
+        // If GPU is available and the necessary linkage is available
+        // return true indicatin that this method must be compiled.
+        if (gpu::is_available() && gpu::has_gpu_linkage()) {
+          if (TraceGPUInteraction) {
+            tty->print("Compiling Lambda method ");
+            m->print_short_name();
+            switch (gpu::get_target_il_type()) {
+            case gpu::PTX :
+              tty->print_cr("to PTX");
+              break;
+            case gpu::HSAIL :
+              tty->print_cr("to HSAIL");
+              break;
+            default :
+              tty->print_cr("to Unknown GPU!!!");
+            }
+          }
+          return true;
+        }
+      }
+    }
+  }
+#endif
+
+  return false;
 }
 
 bool CompilationPolicy::is_compilation_enabled() {

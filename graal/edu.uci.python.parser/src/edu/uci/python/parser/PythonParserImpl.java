@@ -34,6 +34,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class PythonParserImpl implements PythonParser {
 
@@ -44,7 +45,7 @@ public class PythonParserImpl implements PythonParser {
      */
 
     @Override
-    public PythonParseResult parse(PythonContext context, Source source, CompileMode kind, CompilerFlags cflags) {
+    public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompileMode kind, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
         this.scriptSource = source;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
@@ -61,7 +62,7 @@ public class PythonParserImpl implements PythonParser {
             node = ParserFacade.parse(istream, kind, filename, cflags);
         }
 
-        TranslationEnvironment environment = new TranslationEnvironment(node, context);
+        TranslationEnvironment environment = new TranslationEnvironment(node, context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 

@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.util.concurrent.*;
 
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
@@ -35,7 +36,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 
-    private final String moduleName;
+    private final PythonModule builtinsModule;
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
 
@@ -46,36 +47,31 @@ public class PythonContext {
     private final SourceManager sourceManager;
     private final PythonParser parser;
 
+    private final ExecutorService executorService;
+
     private static PythonContext currentContext;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser, String moduleName) {
-        this.moduleName = moduleName;
+    private RuntimeException currentException;
+
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, null, "type");
         this.objectClass = new PythonObjectClass(this);
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
-        currentContext = this;
         this.sourceManager = new SourceManager();
         this.parser = parser;
-        this.lookup.addBuiltins(this);
+
+        // The order matters.
+        currentContext = this;
+
+        this.builtinsModule = this.lookup.addBuiltins(this);
+        this.executorService = Executors.newCachedThreadPool();
     }
 
-    public PythonContext(PythonContext context, String moduleName) {
-        this.moduleName = moduleName;
-        this.options = context.options;
-        this.lookup = context.lookup;
-        this.typeClass = context.typeClass;
-        this.objectClass = context.objectClass;
-        this.moduleClass = context.moduleClass;
-        this.sourceManager = context.sourceManager;
-        this.parser = context.parser;
-        this.lookup.addImportedModuleToLookup(context, moduleName);
-    }
-
-    public String getModuleName() {
-        return moduleName;
+    public PythonModule getBuiltins() {
+        return builtinsModule;
     }
 
     public PythonOptions getPythonOptions() {
@@ -131,6 +127,23 @@ public class PythonContext {
 
     public SourceManager getSourceManager() {
         return sourceManager;
+    }
+
+    public void setCurrentException(RuntimeException e) {
+        currentException = e;
+    }
+
+    public RuntimeException getCurrentException() {
+        assert currentException != null;
+        return currentException;
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public void shutdown() {
+        executorService.shutdown();
     }
 
 }

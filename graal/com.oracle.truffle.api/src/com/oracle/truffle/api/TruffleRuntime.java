@@ -48,18 +48,7 @@ public interface TruffleRuntime {
      *            represents the entry point
      * @return the new call target object
      */
-    CallTarget createCallTarget(RootNode rootNode);
-
-    /**
-     * Creates a new call target for a given root node and a given frame descriptor.
-     * 
-     * @param rootNode the root node whose
-     *            {@link RootNode#execute(com.oracle.truffle.api.frame.VirtualFrame)} method
-     *            represents the entry point
-     * @param frameDescriptor the descriptor used for creating a new frame at each invocation
-     * @return the new call target object
-     */
-    CallTarget createCallTarget(RootNode rootNode, FrameDescriptor frameDescriptor);
+    RootCallTarget createCallTarget(RootNode rootNode);
 
     /**
      * Creates a new assumption object that can be checked and invalidated.

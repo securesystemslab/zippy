@@ -35,9 +35,11 @@ import edu.uci.python.runtime.standardtype.*;
  */
 public interface PythonBuiltinsLookup {
 
-    void addBuiltins(PythonContext context);
+    PythonModule addBuiltins(PythonContext context);
 
-    void addImportedModuleToLookup(PythonContext context, String moduleName);
+// void addImportedModuleToLookup(PythonContext context, String moduleName);
+
+    void addModule(String moduleName, PythonModule module);
 
     PythonModule lookupModule(String name);
 

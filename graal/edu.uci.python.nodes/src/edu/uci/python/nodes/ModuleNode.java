@@ -33,15 +33,9 @@ public class ModuleNode extends RootNode {
 
     @Child BlockNode body;
 
-    private final FrameDescriptor descriptor;
-
     public ModuleNode(BlockNode body, FrameDescriptor descriptor) {
+        super(null, descriptor);
         this.body = adoptChild(body);
-        this.descriptor = descriptor;
-    }
-
-    public FrameDescriptor getFrameDescriptor() {
-        return descriptor;
     }
 
     @Override

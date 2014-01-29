@@ -47,7 +47,6 @@ public abstract class CallFunctionNode extends PNode {
     private final PythonContext context;
 
     public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
-
         this.arguments = adoptChildren(arguments);
         this.keywords = adoptChildren(keywords);
         this.context = context;

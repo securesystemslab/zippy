@@ -32,7 +32,6 @@ import org.junit.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -63,10 +62,10 @@ public class AttributeCachingTests {
         PNode getattr = factory.createGetAttribute(context, plist, "append");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", body);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
 
         // 1st execute
-        VirtualFrame frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        VirtualFrame frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
@@ -74,7 +73,7 @@ public class AttributeCachingTests {
         assertTrue(getAttr instanceof UnboxedGetMethodNode);
 
         // 2nd execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
@@ -83,7 +82,7 @@ public class AttributeCachingTests {
         assertTrue(cache instanceof UnboxedAttributeCacheNode.CachedObjectAttributeNode);
 
         // 3rd execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
@@ -98,7 +97,7 @@ public class AttributeCachingTests {
         NodeUtil.findFirstNodeInstance(getMethod, ListLiteralNode.class).replace(pstr);
 
         // 4th execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         try {
             root.execute(frame);
         } catch (PyException pe) {
@@ -117,7 +116,7 @@ public class AttributeCachingTests {
         NodeUtil.findFirstNodeInstance(getMethod, StringLiteralNode.class).replace(objNode);
 
         // 5th execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // check rewrite of UnboxedGetAttributeNode to BoxedGetAttributeNode
@@ -141,10 +140,10 @@ public class AttributeCachingTests {
         PNode getattr = factory.createGetAttribute(context, objNode, "foo");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", body);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
 
         // 1st execute
-        VirtualFrame frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        VirtualFrame frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
@@ -152,7 +151,7 @@ public class AttributeCachingTests {
         assertTrue(getAttr instanceof BoxedGetAttributeNode);
 
         // 2nd execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
@@ -160,7 +159,7 @@ public class AttributeCachingTests {
         assertTrue(cache instanceof BoxedAttributeCacheNode.CachedIntAttributeNode);
 
         // 3rd execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
@@ -174,7 +173,7 @@ public class AttributeCachingTests {
         pbObj.deleteAttribute("foo");
 
         // 4th execute
-        frame = new DefaultVirtualFrame(new FrameDescriptor(), null, null);
+        frame = PythonTests.createVirtualFrame();
         try {
             root.execute(frame);
         } catch (PyException pe) {

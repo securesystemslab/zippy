@@ -45,7 +45,7 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
 
     @Input private LogicNode condition;
     private final DeoptimizationReason reason;
-    private final Constant speculation;
+    private Constant speculation;
     private DeoptimizationAction action;
     private boolean negated;
 
@@ -86,6 +86,10 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
         return speculation;
     }
 
+    public void setSpeculation(Constant speculation) {
+        this.speculation = speculation;
+    }
+
     @Override
     public String toString(Verbosity verbosity) {
         if (verbosity == Verbosity.Name && negated) {
@@ -100,8 +104,7 @@ public class GuardNode extends FloatingGuardedNode implements Canonicalizable, I
         if (condition() instanceof LogicNegationNode) {
             LogicNegationNode negation = (LogicNegationNode) condition();
             return graph().unique(new GuardNode(negation.getInput(), getGuard(), reason, action, !negated, speculation));
-        }
-        if (condition() instanceof LogicConstantNode) {
+        } else if (condition() instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition();
             if (c.getValue() != negated) {
                 return graph().start();

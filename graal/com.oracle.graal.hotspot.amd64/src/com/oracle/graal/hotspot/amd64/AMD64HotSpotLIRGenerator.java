@@ -394,14 +394,8 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     private void moveValueToThread(Value v, int offset) {
         Kind wordKind = getProviders().getCodeCache().getTarget().wordKind;
         RegisterValue thread = getProviders().getRegisters().getThreadRegister().asValue(wordKind);
-        AMD64AddressValue pendingDeoptAddress = new AMD64AddressValue(v.getKind(), thread, offset);
-        if (v instanceof Constant && !getCodeCache().needsDataPatch((Constant) v)) {
-            Constant constantActionAndReason = (Constant) v;
-            assert !getCodeCache().needsDataPatch(constantActionAndReason);
-            append(new StoreConstantOp(constantActionAndReason.getKind(), pendingDeoptAddress, constantActionAndReason, null));
-        } else {
-            append(new StoreOp(v.getKind(), pendingDeoptAddress, load(v), null));
-        }
+        AMD64AddressValue address = new AMD64AddressValue(v.getKind(), thread, offset);
+        emitStore(v.getKind(), address, v, null);
     }
 
     @Override
@@ -464,7 +458,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         if (c.getKind() == Kind.Long) {
             return Constant.forIntegerKind(Kind.Int, (int) (((c.asLong() - encoding.base) >> encoding.shift) & 0xffffffffL), c.getPrimitiveAnnotation());
         } else if (c.getKind() == Kind.Object) {
-            return Constant.forIntegerKind(Kind.Int, 0xdeaddead, c.asObject());
+            return Constant.forNarrowOop(c.asObject());
         } else {
             throw GraalInternalError.shouldNotReachHere();
         }

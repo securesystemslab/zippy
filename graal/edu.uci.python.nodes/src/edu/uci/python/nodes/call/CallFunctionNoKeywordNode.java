@@ -46,6 +46,10 @@ public class CallFunctionNoKeywordNode extends PNode {
         this.arguments = adoptChildren(arguments);
     }
 
+    public PNode[] getArguments() {
+        return arguments;
+    }
+
     public static CallFunctionNoKeywordNode create(PNode callee, PNode[] argumentNodes, PythonCallable callable, PythonContext context) {
         /**
          * Any non global scope callable lookup is not optimized.
@@ -65,7 +69,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         } else if (callable instanceof PGeneratorFunction) {
             return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
         } else if (callable instanceof PFunction) {
-            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes);
+            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
         } else if (callable instanceof PMethod) {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         } else if (callable instanceof PBuiltinFunction) {
@@ -75,11 +79,11 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
     }
 
-    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
+    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
         Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
 
         if (PythonOptions.InlineFunctionCalls) {
-            return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+            return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function, context, globalScopeUnchanged);
         } else {
             return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
         }
@@ -90,7 +94,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
 
         if (PythonOptions.InlineBuiltinFunctionCalls) {
-            return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), globalScopeUnchanged, builtinsModuleUnchanged);
+            return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), context, globalScopeUnchanged, builtinsModuleUnchanged);
         } else {
             return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
         }
@@ -146,6 +150,10 @@ public class CallFunctionNoKeywordNode extends PNode {
             super(callee, arguments);
             this.cached = cached;
             this.globalScopeUnchanged = globalScopeUnchanged;
+        }
+
+        public PythonCallable getCallee() {
+            return cached;
         }
 
         @Override

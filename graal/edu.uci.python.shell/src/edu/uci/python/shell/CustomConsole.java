@@ -32,21 +32,29 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, "__main__");
-        Source source = context.getSourceManager().get(name);
-        execfile(context, source);
+        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
+
+        try {
+            Source source = context.getSourceManager().get(name);
+            execfile(context, source);
+        } finally {
+            context.shutdown();
+        }
     }
 
     public void execfile(PythonContext context, Source source) {
         setSystemState();
 
-        PythonParseResult result = context.getParser().parse(context, source, CompileMode.exec, cflags);
+        PythonModule module = new PythonModule("__main__", context, context.getBuiltins());
+        PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
+
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
             result.printAST();
@@ -71,7 +79,8 @@ public class CustomConsole extends JLineConsole {
     }
 
     public void parseFile(PythonContext context, Source source) {
-        PythonParseResult result = context.getParser().parse(context, source, CompileMode.exec, cflags);
+        PythonModule module = new PythonModule("__main__", context, context.getBuiltins());
+        PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
 
         if (PythonOptions.PrintAST) {
             printBanner("After Parsing");

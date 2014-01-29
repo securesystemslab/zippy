@@ -57,14 +57,27 @@ public abstract class PTXTest extends GraalCompilerTest {
         return compileKernel(getMetaAccess().lookupJavaMethod(getMethod(test)));
     }
 
+    protected HotSpotNmethod installKernel(ResolvedJavaMethod method, ExternalCompilationResult ptxCode) {
+        PTXHotSpotBackend ptxBackend = getPTXBackend();
+        return ptxBackend.installKernel(method, ptxCode);
+    }
+
     @Override
     protected InstalledCode getCode(ResolvedJavaMethod method, StructuredGraph graph) {
         PTXHotSpotBackend ptxBackend = getPTXBackend();
         ExternalCompilationResult ptxCode = compileKernel(method);
         Assume.assumeTrue(ptxBackend.isDeviceInitialized());
-        InstalledCode installedPTXCode = ptxBackend.installKernel(method, ptxCode);
-        StructuredGraph wrapper = new PTXWrapperBuilder(method, installedPTXCode.getStart(), (HotSpotProviders) getProviders()).getGraph();
-        return super.getCode(method, wrapper);
+        HotSpotNmethod installedPTXCode = installKernel(method, ptxCode);
+        StructuredGraph wrapper = new PTXWrapperBuilder(method, installedPTXCode, (HotSpotProviders) getProviders()).getGraph();
+
+        // The PTX C++ layer expects a 1:1 relationship between kernel compilation
+        // and kernel execution as it creates a cuContext in the former and
+        // destroys it in the latter. So, each kernel installed requires a unique
+        // wrapper.
+        // TODO: do cuContext management properly
+        boolean forceCompile = true;
+
+        return getCode(method, wrapper, forceCompile);
     }
 
     protected static void compileAndPrintCode(PTXTest test) {

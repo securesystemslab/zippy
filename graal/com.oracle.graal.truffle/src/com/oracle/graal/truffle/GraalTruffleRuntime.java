@@ -48,7 +48,6 @@ import com.oracle.graal.phases.util.*;
 import com.oracle.graal.runtime.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -73,19 +72,14 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
         return "Graal Truffle Runtime";
     }
 
-    public CallTarget createCallTarget(RootNode rootNode) {
-        return createCallTarget(rootNode, new FrameDescriptor());
-    }
-
-    @Override
-    public CallTarget createCallTarget(RootNode rootNode, FrameDescriptor frameDescriptor) {
+    public RootCallTarget createCallTarget(RootNode rootNode) {
         if (!acceptForCompilation(rootNode)) {
-            return new DefaultCallTarget(rootNode, frameDescriptor);
+            return new UnoptimizedCallTarget(rootNode);
         }
         if (truffleCompiler == null) {
             truffleCompiler = new TruffleCompilerImpl();
         }
-        return new OptimizedCallTarget(rootNode, frameDescriptor, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue());
+        return new OptimizedCallTarget(rootNode, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue());
     }
 
     @Override

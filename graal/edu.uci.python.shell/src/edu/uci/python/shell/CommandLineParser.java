@@ -51,12 +51,12 @@ public class CommandLineParser {
                 PythonOptions.PrintFunction = true;
             }
 
-            if (arg.equals("-NoInlineBuiltinFunctionCalls")) {
+            if (arg.equals("-InlineBuiltinFunctionCalls:false")) {
                 PythonOptions.InlineBuiltinFunctionCalls = false;
             }
 
-            if (arg.equals("-OptimizeGeneratorExpressions")) {
-                PythonOptions.OptimizeGeneratorExpressions = true;
+            if (arg.equals("-OptimizeGeneratorExpressions:false")) {
+                PythonOptions.OptimizeGeneratorExpressions = false;
             }
 
             index++;

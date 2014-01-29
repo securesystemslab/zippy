@@ -61,7 +61,7 @@ def measure():
 
 # warm up
 for i in range(5):
-    n_queens(8)
+    list(n_queens(8))
 
 measure()
-        
+

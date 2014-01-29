@@ -47,6 +47,12 @@ public class PythonOptions {
 
     public static boolean InlineBuiltinFunctionCalls = true;
 
+    public static final boolean CacheAttributeLoads = true;
+
+    public static final boolean UnboxSequenceStorage = true;
+
+    public static final boolean UnboxSequenceIteration = true;
+
     // Generators
     public static final boolean InlineGeneratorCalls = true;
 
@@ -54,11 +60,7 @@ public class PythonOptions {
 
     public static final boolean UseSimpleGeneratorInlining = false;
 
-    public static final boolean CacheAttributeLoads = true;
-
-    public static final boolean UnboxSequenceStorage = true;
-
-    public static final boolean UnboxSequenceIteration = true;
+    public static final boolean ParallelizeGeneratorCalls = false;
 
     private PrintStream standardOut = System.out;
 

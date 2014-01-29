@@ -48,6 +48,11 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         this.generatorRoot = adoptChild(prepareBody(generatorRoot.getInlinedRootNode()));
     }
 
+    @Override
+    public PythonCallable getCallee() {
+        return generator;
+    }
+
     public CallTarget getCallTarget() {
         return generator.getCallTarget();
     }

@@ -58,6 +58,5 @@ def measure():
     print("bm-ai: " + duration)
 
 if __name__ == "__main__":
-    # print(list(n_queens(8))[-1])
     measure()
         

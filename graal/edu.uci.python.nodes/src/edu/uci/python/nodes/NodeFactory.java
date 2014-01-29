@@ -77,8 +77,8 @@ public class NodeFactory {
         return new ModuleNode(block, fd);
     }
 
-    public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, PNode body) {
-        return new FunctionRootNode(context, functionName, body);
+    public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
+        return new FunctionRootNode(context, functionName, frameDescriptor, body);
     }
 
     public PNode createAddClassAttribute(String attributeId, PNode rhs) {
@@ -460,14 +460,6 @@ public class NodeFactory {
 
     public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
         return new TryFinallyNode(body, finalbody);
-    }
-
-    public StatementNode createTryExceptNode(BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        return TryExceptNode.create(body, orelse, exceptType, exceptName, exceptBody);
-    }
-
-    public PNode createRaiseNode(PNode type, PNode inst) {
-        return new RaiseNode(type, inst);
     }
 
     public StatementNode createAssert(CastToBooleanNode condition, PNode message) {

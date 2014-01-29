@@ -27,7 +27,7 @@ package com.oracle.truffle.api;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.instrument.*;
-import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.nodes.instrument.InstrumentationProbeNode.ProbeChain;
 
 /**
  * Language-agnostic access to AST-based debugging support.
@@ -37,57 +37,34 @@ import com.oracle.truffle.api.source.*;
 public interface DebugManager {
 
     /**
-     * Gets a list of current breakpoints.
+     * Informs the {@link DebugManager} that the Guest Language runtime is starting to load a
+     * source. Care should be taken to ensure that under any circumstance there is always a
+     * following call to {@link #notifyFinishedLoading(Source)} with the same argument.
      */
-    LineBreakpoint[] getBreakpoints();
+    void notifyStartLoading(Source source);
 
     /**
-     * Sets a breakpoint at a line-based location.
+     * Informs the {@link DebugManager} that the Guest Language runtime has finished loading a
+     * source. Care should be taken to ensure that under any circumstance there is always a prior
+     * call to {@link #notifyStartLoading(Source)} with the same argument.
      */
-    LineBreakpoint setBreakpoint(SourceLineLocation lineLocation);
+    void notifyFinishedLoading(Source source);
 
     /**
-     * Sets a breakpoint at a line-based location with a boolean expression in the guest language to
-     * serve as a break condition.
+     * Return a reference to the (canonical) instrumentation site associated with a particular
+     * source code location; this site will have effect on any Truffle/AST implementation
+     * corresponding to the source location, even if the AST is copied multiple times.
      */
-    LineBreakpoint setConditionalBreakpoint(SourceLineLocation lineLocation, String condition);
+    ProbeChain getProbeChain(SourceSection sourceSection);
 
     /**
-     * Sets a breakpoint at a line-based location that will remove itself when hit.
-     */
-    LineBreakpoint setOneShotBreakpoint(SourceLineLocation lineLocation);
-
-    /**
-     * Is there a line-based breakpoint set at a location?
-     */
-    boolean hasBreakpoint(SourceLineLocation lineLocation);
-
-    /**
-     * Removes a breakpoint at a line-based location.
-     */
-    void removeBreakpoint(SourceLineLocation lineLocation);
-
-    /**
-     * Notification from Truffle execution that execution should halt in a debugging context.
-     */
-    /**
-     * Receives notification of a suspended execution context; execution resumes when this method
-     * returns.
+     * Informs the {@link DebugManager} that Truffle execution has halted; execution will resume
+     * when this method returns.
      * 
      * @param astNode a guest language AST node that represents the current execution site, assumed
      *            not to be any kind of {@link InstrumentationNode},
      * @param frame execution frame at the site where execution suspended
      */
     void haltedAt(Node astNode, MaterializedFrame frame);
-
-    /**
-     * Description of a line-based breakpoint.
-     */
-    interface LineBreakpoint {
-
-        SourceLineLocation getSourceLineLocation();
-
-        String getDebugStatus();
-    }
 
 }

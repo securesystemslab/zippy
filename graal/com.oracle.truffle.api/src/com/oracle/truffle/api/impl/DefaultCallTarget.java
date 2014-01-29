@@ -28,33 +28,19 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-public class DefaultCallTarget extends CallTarget {
+/**
+ * This is an implementation-specific class. Do not use or instantiate it. Instead, use
+ * {@link TruffleRuntime#createCallTarget(RootNode)} to create a {@link RootCallTarget}.
+ */
+public class DefaultCallTarget extends RootCallTarget {
 
-    protected final RootNode rootNode;
-    protected final FrameDescriptor frameDescriptor;
-
-    public DefaultCallTarget(RootNode function, FrameDescriptor frameDescriptor) {
-        this.rootNode = function;
-        this.frameDescriptor = frameDescriptor;
-        this.rootNode.setCallTarget(this);
-    }
-
-    @Override
-    public String toString() {
-        return rootNode.toString();
+    protected DefaultCallTarget(RootNode function) {
+        super(function);
     }
 
     @Override
     public Object call(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = new DefaultVirtualFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
-    }
-
-    public FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
-    }
-
-    public RootNode getRootNode() {
-        return rootNode;
+        VirtualFrame frame = new DefaultVirtualFrame(getRootNode().getFrameDescriptor(), caller, args);
+        return getRootNode().execute(frame);
     }
 }
