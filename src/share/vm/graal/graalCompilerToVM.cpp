@@ -553,7 +553,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GRAAL_COUNTERS_SIZE);
+  set_int("graalCountersSize", (jint) GraalCounterSize);
 
 #undef set_boolean
 #undef set_int
@@ -816,7 +816,7 @@ C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
 C2V_END
 
 C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
-  typeArrayOop arrayOop = oopFactory::new_longArray(GRAAL_COUNTERS_SIZE, CHECK_NULL);
+  typeArrayOop arrayOop = oopFactory::new_longArray(GraalCounterSize, CHECK_NULL);
   JavaThread::collect_counters(arrayOop);
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
