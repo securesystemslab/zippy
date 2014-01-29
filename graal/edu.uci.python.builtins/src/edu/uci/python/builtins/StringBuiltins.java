@@ -44,6 +44,34 @@ public final class StringBuiltins extends PythonBuiltins {
         return StringBuiltinsFactory.getFactories();
     }
 
+    // str.startswith(prefix[, start[, end]])
+    @Builtin(name = "startswith", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class PythonStartsWithNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object startsWith(String self, String prefix) {
+            if (self.startsWith(prefix)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public Object startsWith(PString self, String prefix) {
+            if (self.getValue().startsWith(prefix)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public Object startsWith(Object self, Object prefix) {
+            throw new RuntimeException("startsWith is not supported for " + self + " " + self.getClass() + " prefix " + prefix);
+        }
+    }
+
     // str.join(iterable)
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonStringJoinNode extends PythonBuiltinNode {

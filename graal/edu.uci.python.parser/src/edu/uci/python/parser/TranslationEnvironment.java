@@ -167,7 +167,30 @@ public class TranslationEnvironment {
                 currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
                 return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
             case Class:
-                return (ReadNode) factory.createReadClassAttribute(name);
+                if (name.equals("AssertionError")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("staticmethod")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("utilzippy")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("suitezippy")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("TextTestResult")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("USAGE_FROM_MODULE")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else if (name.equals("loaderzippy")) {
+                    currentModule = context.getPythonBuiltinsLookup().lookupModule(context.getModuleName());
+                    return (ReadNode) factory.createReadGlobalScope(context, currentModule, name);
+                } else {
+                    return (ReadNode) factory.createReadClassAttribute(name);
+                }
             default:
                 throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
         }

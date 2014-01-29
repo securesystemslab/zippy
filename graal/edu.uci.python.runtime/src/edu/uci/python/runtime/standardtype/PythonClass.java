@@ -131,6 +131,10 @@ public class PythonClass extends PythonObject {
         superClass.subClasses.add(this);
     }
 
+    public final Set<PythonClass> getSubClasses() {
+        return subClasses;
+    }
+
     @Override
     public String toString() {
         return "<class \'" + className + "\'>";

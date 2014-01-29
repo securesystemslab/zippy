@@ -29,6 +29,7 @@ import java.util.*;
 
 import org.python.core.*;
 
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
@@ -38,6 +39,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -198,6 +200,21 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // dir([object])
+    @Builtin(name = "dir", minNumOfArguments = 0, maxNumOfArguments = 1)
+    public abstract static class PythonDirNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object dir(PythonBasicObject object) {
+            List<String> attributes = object.getAttributeNames();
+            return new PTuple(attributes.toArray());
+        }
+
+        public Object dir(Object object) {
+            throw new RuntimeException("dir is not supported for " + object + " " + object.getClass());
+        }
+    }
+
     // divmod(a, b)
     @Builtin(name = "divmod", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
     public abstract static class DivModNode extends PythonBuiltinNode {
@@ -219,11 +236,104 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // filter(function, iterable)
+    @Builtin(name = "filter", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    public abstract static class FilterNode extends PythonBuiltinNode {
+
+        @Specialization
+        public PTuple filter(PythonCallable function, PIterable iterable) {
+            PIterator iter = iterable.__iter__();
+            List<Object> filteredElements = new ArrayList<>();
+
+            try {
+                while (true) {
+                    Object item = iter.__next__();
+                    Object[] args = new Object[]{item};
+                    Object result = function.call(null, args);
+                    if (result instanceof Boolean) {
+                        boolean booleanResult = (Boolean) result;
+                        if (booleanResult) {
+                            filteredElements.add(item);
+                        }
+                    }
+                }
+            } catch (StopIterationException e) {
+                // fall through
+            }
+
+            return new PTuple(filteredElements.toArray());
+        }
+    }
+
+    // getattr(object, name[, default])
+    @Builtin(name = "getattr", minNumOfArguments = 2, maxNumOfArguments = 3)
+    public abstract static class GetAttrNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object getAttr(PythonBasicObject object, String name, Object defaultValue) {
+            Object attrValue = object.getAttribute(name);
+            if (attrValue instanceof PFunction) {
+                PFunction funcAttr = (PFunction) attrValue;
+                if (object instanceof PythonObject) {
+                    PythonObject pObject = (PythonObject) object;
+                    PMethod method = CallAttributeNode.createPMethodFor(pObject, funcAttr);
+                    return method;
+                }
+            }
+
+            if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
+                return defaultValue;
+            }
+
+            return attrValue;
+        }
+
+        @Specialization
+        public Object getAttr(Object object, Object name, Object defaultValue) {
+            throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
+        }
+    }
+
+    // hasattr(object, name)
+    @Builtin(name = "hasattr", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    public abstract static class HasAttrNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object hasAttr(PythonBasicObject object, String name) {
+            List<String> attributes = object.getAttributeNames();
+            if (attributes.contains(name)) {
+                return true;
+            }
+
+            attributes = object.getPythonClass().getAttributeNames();
+            if (attributes.contains(name)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Specialization
+        public Object hasAttr(Object object, Object name) {
+            throw new RuntimeException("hasAttr is not supported for " + object + " " + object.getClass() + " name " + name);
+        }
+    }
+
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
     public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
 
-        @Specialization
+        @SuppressWarnings("unused")
+        @Specialization(order = 1)
+        public Object isinstance(String str, PythonClass clazz) {
+            if (clazz.getClassName().equals("str")) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Specialization(order = 2)
         public Object isinstance(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
@@ -242,9 +352,57 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization
+        @Specialization(order = 3)
+        public Object isinstance(PythonClass clazz, PyObject type) {
+            if (type instanceof PyType) {
+                return true;
+            } else {
+                throw new RuntimeException("isinstance is not supported for " + clazz + " " + clazz.getClass() + ", " + type + " " + type.getClass());
+            }
+        }
+
+        @Specialization(order = 4)
         public Object isinstance(Object object, Object clazz) {
-            throw new RuntimeException("isintance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
+            throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
+        }
+    }
+
+    // issubclass(class, classinfo)
+    @Builtin(name = "issubclass", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    public abstract static class PythonIsSubClassNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 1)
+        public Object issubclass(PythonModule clazz, PythonClass clazzinfo) {
+            return false;
+        }
+
+        @Specialization(order = 2)
+        public Object issubclass(PythonClass clazz, PythonClass clazzinfo) {
+            Set<PythonClass> subClasses = clazzinfo.getSubClasses();
+            Iterator<PythonClass> iter = subClasses.iterator();
+            while (iter.hasNext()) {
+                PythonClass subClass = iter.next();
+                if (subClass.equals(clazz)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization(order = 3)
+        public Object issubclass(Object object, PythonClass clazzinfo) {
+            if (!(object instanceof PythonClass)) {
+                return false;
+            }
+
+            throw new RuntimeException("issubclass is not supported for " + object + " " + object.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
+        }
+
+        @Specialization(order = 4)
+        public Object issubclass(Object clazz, Object clazzinfo) {
+            throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }
     }
 
@@ -264,10 +422,9 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return iterable.__iter__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization()
         public Object iter(Object object, Object sentinel) {
-            throw new RuntimeException("Not supported sentinel case");
+            throw new RuntimeException("Not supported sentinel case object " + object + " sentinel " + sentinel);
         }
     }
 
@@ -583,6 +740,36 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return sum;
         }
+
+    }
+
+    // super([type[, object-or-type]])
+    @Builtin(name = "super", minNumOfArguments = 1, maxNumOfArguments = 2)
+    public abstract static class PythonSuperNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object applySuper(PythonClass type, Object object) {
+            return type.getSuperClass();
+        }
+
+        @Specialization
+        public Object applySuperGeneric(Object type, Object object) {
+            throw new RuntimeException("super is not supported for type " + type + " object " + object);
+        }
+
+    }
+
+    // __import__(name, globals=None, locals=None, fromlist=(), level=0)
+    @Builtin(name = "__import__", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class __Import__Node extends PythonBuiltinNode {
+
+        @Specialization
+        public Object __import__(String name) {
+            Object importedModule = getContext().getPythonBuiltinsLookup().lookupModule(name);
+            return importedModule;
+        }
+
     }
 
     @SlowPath

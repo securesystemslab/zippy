@@ -204,6 +204,21 @@ public abstract class PythonBasicObject {
         setAttributes(instanceVariableMap);
     }
 
+    public List<String> getAttributeNames() {
+        if (objectLayout == null) {
+            return Collections.emptyList();
+        }
+
+        final List<String> attributeNames = new ArrayList<>();
+
+        for (Entry<String, StorageLocation> entry : objectLayout.getAllStorageLocations().entrySet()) {
+            final String name = entry.getKey();
+            attributeNames.add(name);
+        }
+
+        return attributeNames;
+    }
+
     protected Map<String, Object> getAttributes() {
         if (objectLayout == null) {
             return Collections.emptyMap();

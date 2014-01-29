@@ -69,10 +69,12 @@ public class PythonModuleImporter {
                 importedModule = createModule(path, frame);
             } else {
                 path = getPathFromLibrary();
-
                 if (path != null) {
                     importedModule = createModule(path, frame);
                 } else {
+                    // CheckStyle: stop system..print check
+                    System.out.println("[ZipPy] importing from jython runtime " + moduleName);
+                    // CheckStyle: resume system..print check
                     importedModule = __builtin__.__import__(moduleName);
                 }
             }
@@ -104,6 +106,11 @@ public class PythonModuleImporter {
     }
 
     private String getPathFromLibrary() {
+        if (moduleName.equals("unittest")) {
+            String casePath = PYTHONLIBRARYPATH + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
+            return casePath;
+        }
+
         String dirPath = PYTHONLIBRARYPATH;
         String sourceName = "__init__.py";
 
@@ -177,7 +184,6 @@ public class PythonModuleImporter {
 
         return null;
     }
-
     // private String getImporterPath() {
     // String path = ".";
     //

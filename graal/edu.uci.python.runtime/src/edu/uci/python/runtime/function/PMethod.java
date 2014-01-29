@@ -76,4 +76,9 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
     }
 
+    @Override
+    public String toString() {
+        return "<method " + function.getName() + " at " + hashCode() + ">";
+    }
+
 }

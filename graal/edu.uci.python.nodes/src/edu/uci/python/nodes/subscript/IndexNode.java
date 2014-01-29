@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class IndexNode extends UnaryOpNode {
 
@@ -47,6 +48,11 @@ public abstract class IndexNode extends UnaryOpNode {
     @Specialization
     public String doString(String key) {
         return key;
+    }
+
+    @Specialization
+    public Object doPythonClass(PythonClass clazz) {
+        return clazz;
     }
 
     @Specialization

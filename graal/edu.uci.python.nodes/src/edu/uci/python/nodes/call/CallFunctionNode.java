@@ -89,10 +89,20 @@ public abstract class CallFunctionNode extends PNode {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
             replace(specialized);
             return specialized.callConstructor(frame, (PythonClass) callee, args);
+        } else if (callee instanceof PythonObject) {
+            PythonObject pobject = (PythonObject) callee;
+            Object callAttribute = pobject.getAttribute("__call__");
+            if (callAttribute instanceof PFunction) {
+                PFunction callFunction = (PFunction) callAttribute;
+                PMethod callMethod = CallAttributeNode.createPMethodFor(pobject, callFunction);
+                return callMethod.call(frame.pack(), args);
+            } else {
+                throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+            }
         } else if (callee instanceof PyObject) {
             if (PythonOptions.TraceJythonRuntime) {
                 // CheckStyle: stop system..print check
-                System.out.println("[ZipPy]: calling jython runtime function " + callee);
+                // System.out.println("[ZipPy]: calling jython runtime function " + callee);
                 // CheckStyle: resume system..print check
             }
 
