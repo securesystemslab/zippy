@@ -32,13 +32,13 @@ private:
   static JNINativeMethod HSAIL_methods[];
 
   // static native boolean initialize();
-  static jboolean initialize(JNIEnv *env, jclass);
+  JNIEXPORT static jboolean initialize(JNIEnv *env, jclass);
 
   // static native long generateKernel(byte[] targetCode, String name);
-  static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
-  static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args);
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args);
 
   static void register_heap();
 

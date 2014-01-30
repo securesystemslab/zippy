@@ -95,16 +95,16 @@ private:
   static JNINativeMethod PTX_methods[];
 
   // static native boolean initialize();
-  static jboolean initialize(JNIEnv* env, jclass);
+  JNIEXPORT static jboolean initialize(JNIEnv* env, jclass);
 
   // static native long generateKernel(byte[] targetCode, String name);
-  static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native long getLaunchKernelAddress();
-  static jlong get_execute_kernel_from_vm_address(JNIEnv *env, jclass);
+  JNIEXPORT static jlong get_execute_kernel_from_vm_address(JNIEnv *env, jclass);
 
   // static native int getAvailableProcessors0();
-  static jint get_total_cores(JNIEnv *env, jobject);
+  JNIEXPORT static jint get_total_cores(JNIEnv *env, jobject);
 
   // Links the CUDA driver library functions
   static bool link();
