@@ -87,6 +87,12 @@
 #define GRAAL_CU_CTX_MAP_HOST            0x08
 #define GRAAL_CU_CTX_SCHED_BLOCKING_SYNC 0x04
 
+/**
+ * Support compute capability 3.0 and later
+ */
+
+#define GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION 3.0
+
 class Ptx {
   friend class PtxCall;
 
