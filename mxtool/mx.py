@@ -3295,30 +3295,46 @@ def _copy_workingset_xml(wspath, workingSets):
             self.current_ws = None
             self.seen_ws = list()
             self.seen_projects = list()
+            self.aggregate_ws = False
+            self.nested_ws = False
 
     ps = ParserState()
 
     # parsing logic
     def _ws_start(name, attributes):
         if name == 'workingSet':
-            ps.current_ws_name = attributes['name']
-            if workingSets.has_key(ps.current_ws_name):
-                ps.current_ws = workingSets[ps.current_ws_name]
-                ps.seen_ws.append(ps.current_ws_name)
-                ps.seen_projects = list()
-            else:
-                ps.current_ws = None
+            if attributes.has_key('name'):
+                ps.current_ws_name = attributes['name']
+                if attributes.has_key('aggregate') and attributes['aggregate'] == 'true':
+                    ps.aggregate_ws = True
+                    ps.current_ws = None
+                elif workingSets.has_key(ps.current_ws_name):
+                    ps.current_ws = workingSets[ps.current_ws_name]
+                    ps.seen_ws.append(ps.current_ws_name)
+                    ps.seen_projects = list()
+                else:
+                    ps.current_ws = None
             target.open(name, attributes)
             parser.StartElementHandler = _ws_item
 
     def _ws_end(name):
+        closeAndResetHandler = False
         if name == 'workingSet':
-            if not ps.current_ws is None:
-                for p in ps.current_ws:
-                    if not p in ps.seen_projects:
-                        _workingset_element(target, p)
-            target.close('workingSet')
-            parser.StartElementHandler = _ws_start
+            if ps.aggregate_ws:
+                if ps.nested_ws:
+                    ps.nested_ws = False
+                else:
+                    ps.aggregate_ws = False
+                    closeAndResetHandler = True
+            else:
+                if not ps.current_ws is None:
+                    for p in ps.current_ws:
+                        if not p in ps.seen_projects:
+                            _workingset_element(target, p)
+                closeAndResetHandler = True
+            if closeAndResetHandler:
+                target.close('workingSet')
+                parser.StartElementHandler = _ws_start
         elif name == 'workingSetManager':
             # process all working sets that are new to the file
             for w in sorted(workingSets.keys()):
@@ -3336,6 +3352,9 @@ def _copy_workingset_xml(wspath, workingSets):
                 p_name = attributes['elementID'][1:]  # strip off the leading '='
                 _workingset_element(target, p_name)
                 ps.seen_projects.append(p_name)
+        elif name == 'workingSet':
+            ps.nested_ws = True
+            target.element(name, attributes)
 
     # process document
     parser.StartElementHandler = _ws_start
