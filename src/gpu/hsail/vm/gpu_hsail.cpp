@@ -142,6 +142,8 @@ GPU_END
 
 #if defined(LINUX)
 static const char* okra_library_name = "libokra_x86_64.so";
+#elif defined(_WINDOWS)
+static char const* okra_library_name = "okra_x86_64.dll";
 #else
 static char const* okra_library_name = NULL;
 #endif
