@@ -29,6 +29,7 @@
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
+#include "memory/gcLocker.inline.hpp"
 #include "runtime/interfaceSupport.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalCompiler.hpp"
@@ -404,6 +405,7 @@ class PtxCall: StackObj {
   gpu::Ptx::CUdeviceptr  _ret_value;     // pointer to slot in GPU memory holding the return value
   int          _ret_type_size; // size of the return type value
   bool         _ret_is_object; // specifies if the return type is Object
+  bool         _gc_locked;
 
   bool check(int status, const char *action) {
     if (status != GRAAL_CUDA_SUCCESS) {
@@ -425,7 +427,7 @@ class PtxCall: StackObj {
   }
 
  public:
-  PtxCall(JavaThread* thread, address buffer, int buffer_size, oop* pinned, int encodedReturnTypeSize) : _thread(thread),
+  PtxCall(JavaThread* thread, address buffer, int buffer_size, oop* pinned, int encodedReturnTypeSize) : _thread(thread), _gc_locked(false),
       _buffer(buffer), _buffer_size(buffer_size), _pinned(pinned), _pinned_length(0), _ret_value(0), _ret_is_object(encodedReturnTypeSize < 0) {
     _ret_type_size = _ret_is_object ? -encodedReturnTypeSize : encodedReturnTypeSize;
   }
@@ -445,6 +447,16 @@ class PtxCall: StackObj {
     if (count == 0) {
       return;
     }
+    // Once we start pinning objects, no GC must occur
+    // until the kernel has completed. This is a big
+    // hammer for ensuring we can safely pass objects
+    // to the GPU.
+    GC_locker::lock_critical(_thread);
+    _gc_locked = true;
+    if (TraceGPUInteraction) {
+      tty->print_cr("[CUDA] Locked GC");
+    }
+
     for (int i = 0; i < count; i++) {
       int offset = objectOffsets[i];
       oop* argPtr = (oop*) (_buffer + offset);
@@ -531,6 +543,12 @@ class PtxCall: StackObj {
     unpin_objects();
     free_return_value();
     destroy_context();
+    if (_gc_locked) {
+      GC_locker::unlock_critical(_thread);
+      if (TraceGPUInteraction) {
+        tty->print_cr("[CUDA] Unlocked GC");
+      }
+    }
   }
 };
 
@@ -549,10 +567,6 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
     SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
     return 0L;
   }
-
-#if 0
-  Universe::heap()->collect(GCCause::_jvmti_force_gc);
-#endif
 
   PtxCall call(thread, (address) buffer, bufferSize, (oop*) (address) pinnedObjects, encodedReturnTypeSize);
 
