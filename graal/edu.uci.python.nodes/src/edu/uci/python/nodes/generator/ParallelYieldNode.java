@@ -27,11 +27,13 @@ package edu.uci.python.nodes.generator;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.lmax.disruptor.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PParallelGenerator.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class ParallelYieldNode extends YieldNode {
@@ -48,6 +50,8 @@ public abstract class ParallelYieldNode extends YieldNode {
                 return new YieldToBlockingQueueNode(right);
             case 2:
                 return new YieldToQueueNode(right);
+            case 3:
+                return new YieldToRingBufferNode(right);
             default:
                 throw new IllegalStateException();
         }
@@ -104,6 +108,21 @@ public abstract class ParallelYieldNode extends YieldNode {
             while (!queue.offer(value)) {
                 // spin
             }
+        }
+    }
+
+    public static final class YieldToRingBufferNode extends ParallelYieldNode {
+
+        public YieldToRingBufferNode(PNode right) {
+            super(right);
+        }
+
+        @Override
+        protected void appendValue(VirtualFrame frame, Object value) {
+            final RingBuffer<ObjectEvent> rb = PArguments.getParallelGeneratorArguments(frame).getRingBuffer();
+            long next = rb.next();
+            rb.get(next).setValue(value);
+            rb.publish(next);
         }
     }
 

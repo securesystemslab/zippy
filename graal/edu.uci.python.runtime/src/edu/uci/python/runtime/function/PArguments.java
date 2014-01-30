@@ -27,10 +27,12 @@ package edu.uci.python.runtime.function;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.lmax.disruptor.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PParallelGenerator.*;
 import edu.uci.python.runtime.iterator.*;
 
 public class PArguments extends Arguments {
@@ -183,12 +185,14 @@ public class PArguments extends Arguments {
         private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
         private final Queue<Object> queue;
+        private RingBuffer<ObjectEvent> ringBuffer;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = queue;
             this.buffer = null;
             this.queue = null;
+            this.ringBuffer = null;
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, SingleProducerCircularBuffer buffer, Object[] arguments) {
@@ -196,6 +200,7 @@ public class PArguments extends Arguments {
             this.blockingQueue = null;
             this.buffer = buffer;
             this.queue = null;
+            this.ringBuffer = null;
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, Queue<Object> queue, Object[] arguments) {
@@ -203,6 +208,15 @@ public class PArguments extends Arguments {
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = queue;
+            this.ringBuffer = null;
+        }
+
+        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, RingBuffer<ObjectEvent> ringBuffer, Object[] arguments) {
+            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.blockingQueue = null;
+            this.buffer = null;
+            this.queue = null;
+            this.ringBuffer = ringBuffer;
         }
 
         public BlockingQueue<Object> getBlockingQueue() {
@@ -217,6 +231,10 @@ public class PArguments extends Arguments {
 
         public Queue<Object> getQueue() {
             return queue;
+        }
+
+        public RingBuffer<ObjectEvent> getRingBuffer() {
+            return ringBuffer;
         }
     }
 
