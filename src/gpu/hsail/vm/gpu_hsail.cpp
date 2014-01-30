@@ -141,11 +141,9 @@ GPU_ENTRY(jlong, gpu::Hsail::generate_kernel, (JNIEnv *env, jclass, jbyteArray c
 GPU_END
 
 #if defined(LINUX)
-static const char okra_library_name[] = "libokra_x86_64.so";
-#elif defined(_WINDOWS)
-static char const okra_library_name[] = "okra_x86_64.dll";
+static const char* okra_library_name = "libokra_x86_64.so";
 #else
-static char const okra_library_name[] = NULL;
+static char const* okra_library_name = NULL;
 #endif
 
 #define STRINGIFY(x)     #x
