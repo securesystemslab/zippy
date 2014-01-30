@@ -412,7 +412,7 @@ class PtxCall: StackObj {
       Thread* THREAD = _thread;
       char* message = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, O_BUFLEN + 1);
       jio_snprintf(message, O_BUFLEN, "[CUDA] *** Error (status=%d): %s", status, action);
-      if (TraceGPUInteraction || HAS_PENDING_EXCEPTION) {
+      if (TraceGPUInteraction) {
         tty->print_cr(message);
       }
       if (!HAS_PENDING_EXCEPTION) {
