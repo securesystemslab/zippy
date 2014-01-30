@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.datatype;
 
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.lmax.disruptor.*;
@@ -39,28 +40,48 @@ public class PParallelGenerator extends PGenerator {
 
     private boolean isFirstEntry = true;
     private final PythonContext context;
-    private ConcurrentLinkedQueue<Object> queue;
+
     private final BlockingQueue<Object> blockingQueue;
-    private SingleProducerCircularBuffer buffer;
+    private final SingleProducerCircularBuffer buffer;
+    private Queue<Object> queue;
 
     // Disruptor
     private RingBuffer<ObjectEvent> ringBuffer;
     private SequenceBarrier sequenceBarrier;
     private Sequence sequence;
 
-    private static final int QUEUE_CHOICE = 1;
-    private static final int BLOCKING_QUEUE_CHOICE = 1;
+    public static final int QUEUE_CHOICE = 1;
+    public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
-        BlockingQueue<Object> blockingQueue = createBlockingQueue();
-        PArguments parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
-        return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+        PArguments parallelArgs;
+
+        switch (QUEUE_CHOICE) {
+            case 0:
+                SingleProducerCircularBuffer buffer = new SingleProducerCircularBuffer();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, buffer, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, buffer);
+            case 1:
+                BlockingQueue<Object> blockingQueue = createBlockingQueue();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+            default:
+                throw new IllegalStateException();
+        }
     }
 
-    public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = blockingQueue;
+        this.buffer = null;
+    }
+
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, SingleProducerCircularBuffer buffer) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
+        this.blockingQueue = null;
+        this.buffer = buffer;
     }
 
     public final void generates() {
@@ -172,26 +193,19 @@ public class PParallelGenerator extends PGenerator {
     }
 
     private Object doWithCircularBuffer() {
-        if (buffer == null) {
-            buffer = new SingleProducerCircularBuffer();
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
-                    try {
-                        while (true) {
-                            Object value = callTarget.call(null, arguments);
-                            buffer.put(value);
-                        }
-                    } catch (StopIterationException e) {
-                        buffer.setAsTerminated();
-                    }
+                    callTarget.call(null, arguments);
+                    buffer.setAsTerminated();
                 }
 
             });
         }
 
-        Object result = buffer.take();
-        return result;
+        return buffer.take();
     }
 
     private Object doWithDisruptor() {

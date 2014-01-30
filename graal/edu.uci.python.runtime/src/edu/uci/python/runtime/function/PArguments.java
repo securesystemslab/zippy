@@ -180,14 +180,28 @@ public class PArguments extends Arguments {
     public static final class ParallelGeneratorArguments extends PArguments {
 
         private final BlockingQueue<Object> queue;
+        private final SingleProducerCircularBuffer buffer;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.queue = queue;
+            this.buffer = null;
+        }
+
+        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, SingleProducerCircularBuffer buffer, Object[] arguments) {
+            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.queue = null;
+            this.buffer = buffer;
         }
 
         public BlockingQueue<Object> getQueue() {
+            assert queue != null;
             return queue;
+        }
+
+        public SingleProducerCircularBuffer getBuffer() {
+            assert buffer != null;
+            return buffer;
         }
     }
 

@@ -33,24 +33,60 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class ParallelYieldNode extends YieldNode {
+public abstract class ParallelYieldNode extends YieldNode {
 
     public ParallelYieldNode(PNode right) {
         super(right);
     }
 
+    public static ParallelYieldNode create(PNode right) {
+        switch (PParallelGenerator.QUEUE_CHOICE) {
+            case 0:
+                return new YieldToCirculrBufferNode(right);
+            case 1:
+                return new YieldToBlockingQueueNode(right);
+            default:
+                throw new RuntimeException();
+        }
+    }
+
+    protected abstract void appendValue(VirtualFrame frame, Object value);
+
     @Override
     public Object execute(VirtualFrame frame) {
-        final BlockingQueue<Object> queue = PArguments.getParallelGeneratorArguments(frame).getQueue();
-        Object value = right.execute(frame);
-
-        try {
-            queue.put(value);
-        } catch (InterruptedException e) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            e.printStackTrace();
-        }
-
+        appendValue(frame, right.execute(frame));
         return PNone.NONE;
     }
+
+    public static final class YieldToBlockingQueueNode extends ParallelYieldNode {
+
+        public YieldToBlockingQueueNode(PNode right) {
+            super(right);
+        }
+
+        @Override
+        protected void appendValue(VirtualFrame frame, Object value) {
+            try {
+                BlockingQueue<Object> queue = PArguments.getParallelGeneratorArguments(frame).getQueue();
+                queue.put(value);
+            } catch (InterruptedException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static final class YieldToCirculrBufferNode extends ParallelYieldNode {
+
+        public YieldToCirculrBufferNode(PNode right) {
+            super(right);
+        }
+
+        @Override
+        protected void appendValue(VirtualFrame frame, Object value) {
+            SingleProducerCircularBuffer buffer = PArguments.getParallelGeneratorArguments(frame).getBuffer();
+            buffer.put(value);
+        }
+    }
+
 }
