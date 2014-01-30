@@ -554,7 +554,17 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GraalCounterSize);
+  set_int("graalCountersSize", (jint) GraalCounterSize);\
+
+  //------------------------------------------------------------------------------------------------
+
+  set_long("libraryLoadAddress", (jlong) os::dll_load);
+  set_long("functionLookupAddress", (jlong) os::dll_lookup);
+  #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
+  set_long("rtldDefault", (jlong) RTLD_DEFAULT);
+  #else 
+  set_long("rtldDefault", (jlong) 0xDEADFACE); //TODO(mg): will crash on java side, not supported!  
+  #endif
 
 #undef set_boolean
 #undef set_int
