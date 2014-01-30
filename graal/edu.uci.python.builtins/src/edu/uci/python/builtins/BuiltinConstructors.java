@@ -529,6 +529,28 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
     }
 
+    // type(object)
+    @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isClass = true)
+    public abstract static class PythonTypeNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object type(PythonObject object) {
+            return object.getPythonClass();
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(int value) {
+            return getContext().getPythonBuiltinsLookup().lookupModule("__main__").getAttribute("int");
+        }
+
+        @Specialization
+        public Object type(Object object) {
+            throw new RuntimeException("type is not supported for object " + object);
+        }
+
+    }
+
     // zip(*iterables)
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
     public abstract static class PythonZipNode extends PythonBuiltinNode {

@@ -204,7 +204,6 @@ def expectedFailure(func):
 #             raise self.failureException("{0} not triggered"
 #                 .format(exc_name))
 
-
 class TestCase(object):
     """A class whose instances are single test cases.
 
@@ -285,6 +284,7 @@ class TestCase(object):
         self.addTypeEqualityFunc(set, 'assertSetEqual')
         self.addTypeEqualityFunc(frozenset, 'assertSetEqual')
         self.addTypeEqualityFunc(str, 'assertMultiLineEqual')
+        self.assertionError = None
 
     def addTypeEqualityFunc(self, typeobj, function):
         """Add a type specific assertEqual style function to compare a type.
@@ -339,6 +339,7 @@ class TestCase(object):
         the specified test method's docstring.
         """
         doc = self._testMethodDoc
+        print("DOC", doc)
         return doc and doc.split("\n")[0].strip() or None
 
 
@@ -373,8 +374,8 @@ class TestCase(object):
     def _executeTestPart(self, function, outcome, isTest=False):
         try:
             function()
-        except KeyboardInterrupt:
-            raise
+        #except KeyboardInterrupt:
+        #    raise
         # except SkipTest as e:
         #     outcome.success = False
         #     outcome.skipped = str(e)
@@ -396,9 +397,10 @@ class TestCase(object):
             outcome.success = False
             outcome.failures.append(sys.exc_info())
             exc_info = sys.exc_info()
-        except:
-            outcome.success = False
-            outcome.errors.append(sys.exc_info())
+        #except:
+        #    outcome.success = False
+        #    outcome.errors.append(sys.exc_info())
+        
 
     #def run(self, result=None):
     def run(self, result):
@@ -425,7 +427,7 @@ class TestCase(object):
         try:
             outcome = _Outcome()
             self._outcomeForDoCleanups = outcome
-            self._executeTestPart(self.setUp, outcome)
+            #self._executeTestPart(self.setUp, outcome)
             if outcome.success:
                 self._executeTestPart(testMethod, outcome, isTest=True)
                 self._executeTestPart(self.tearDown, outcome)
@@ -436,27 +438,28 @@ class TestCase(object):
             else:
                 if outcome.skipped is not None:
                     self._addSkip(result, outcome.skipped)
-                for exc_info in outcome.errors:
-                    result.addError(self, exc_info)
-                for exc_info in outcome.failures:
-                    result.addFailure(self, exc_info)
-                if outcome.unexpectedSuccess is not None:
-                    addUnexpectedSuccess = getattr(result, 'addUnexpectedSuccess', None)
-                    if addUnexpectedSuccess is not None:
-                        addUnexpectedSuccess(self)
-                    else:
-                        #warnings.warn("TestResult has no addUnexpectedSuccess method, reporting as failures",
-                        #              RuntimeWarning)
-                        result.addFailure(self, outcome.unexpectedSuccess)
+                # for exc_info in outcome.errors:
+                #     result.addError(self, exc_info)
+                #for exc_info in outcome.failures:
+                result.addFailure(self, "AssertionError: " + self.assertionError.args[0])
+                #result.addFailure(self, exc_info)
+                # if outcome.unexpectedSuccess is not None:
+                #     addUnexpectedSuccess = getattr(result, 'addUnexpectedSuccess', None)
+                #     if addUnexpectedSuccess is not None:
+                #         addUnexpectedSuccess(self)
+                #     else:
+                #         #warnings.warn("TestResult has no addUnexpectedSuccess method, reporting as failures",
+                #         #              RuntimeWarning)
+                #         result.addFailure(self, outcome.unexpectedSuccess)
 
-                if outcome.expectedFailure is not None:
-                    addExpectedFailure = getattr(result, 'addExpectedFailure', None)
-                    if addExpectedFailure is not None:
-                        addExpectedFailure(self, outcome.expectedFailure)
-                    else:
-                        #warnings.warn("TestResult has no addExpectedFailure method, reporting as passes",
-                        #              RuntimeWarning)
-                        result.addSuccess(self)
+                # if outcome.expectedFailure is not None:
+                #     addExpectedFailure = getattr(result, 'addExpectedFailure', None)
+                #     if addExpectedFailure is not None:
+                #         addExpectedFailure(self, outcome.expectedFailure)
+                #     else:
+                #         #warnings.warn("TestResult has no addExpectedFailure method, reporting as passes",
+                #         #              RuntimeWarning)
+                #         result.addSuccess(self)
 
         finally:
             result.stopTest(self)
@@ -626,8 +629,10 @@ class TestCase(object):
         """The default assertEqual implementation, not type specific."""
         if not first == second:
             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
-            msg = self._formatMessage(msg, standardMsg)
-            raise self.failureException(msg)
+            #msg = self._formatMessage(msg, standardMsg)
+            self.assertionError = self.failureException(msg)
+            raise self.assertionError
+            #raise self.failureException(msg)
 
     #def assertEqual(self, first, second, msg=None):
     def assertEqual(self, first, second, msg):
@@ -645,7 +650,9 @@ class TestCase(object):
         if not first != second:
             msg = self._formatMessage(msg, '%s == %s' % (safe_repr(first),
                                                           safe_repr(second)))
-            raise self.failureException(msg)
+            self.assertionError = self.failureException(msg)
+            raise currentAssertionError
+            #raise self.failureException(msg)
 
     def assertAlmostEqual(self, first, second, places=None, msg=None,
                           delta=None):
@@ -684,7 +691,9 @@ class TestCase(object):
                                                           safe_repr(second),
                                                           places)
         msg = self._formatMessage(msg, standardMsg)
-        raise self.failureException(msg)
+        self.assertionError = self.failureException(msg)
+        raise currentAssertionError
+        #raise self.failureException(msg)
 
     def assertNotAlmostEqual(self, first, second, places=None, msg=None,
                              delta=None):
@@ -716,7 +725,9 @@ class TestCase(object):
                                                          places)
 
         msg = self._formatMessage(msg, standardMsg)
-        raise self.failureException(msg)
+        self.assertionError = self.failureException(msg)
+        raise self.assertionError
+        #raise self.failureException(msg)
 
 
     # def assertSequenceEqual(self, seq1, seq2, msg=None, seq_type=None):

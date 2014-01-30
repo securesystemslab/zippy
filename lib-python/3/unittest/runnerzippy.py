@@ -84,10 +84,13 @@ class TextTestResult(resultzippy.TestResult):
         #super(TextTestResult, self).addFailure(test, err)
         super(TextTestResult, self).addFailure(self, test, err)
         if self.showAll:
+            #self.stream.writeln("FAIL")
             self.stream.writeln("FAIL")
         elif self.dots:
-            self.stream.write('F')
-            self.stream.flush()
+            #self.stream.write('F')
+            self.stream.stream.write('F')
+            #self.stream.flush()
+            self.stream.stream.flush()
 
     def addSkip(self, test, reason):
         #super(TextTestResult, self).addSkip(test, reason)
@@ -125,7 +128,8 @@ class TextTestResult(resultzippy.TestResult):
     def printErrorList(self, flavour, errors):
         for test, err in errors:
             self.stream.writeln(self.separator1)
-            self.stream.writeln("%s: %s" % (flavour,self.getDescription(test)))
+            #self.stream.writeln("%s: %s" % (flavour,self.getDescription(test)))
+            self.stream.writeln("%s: %s" % (flavour, test._testMethodName))
             self.stream.writeln(self.separator2)
             self.stream.writeln("%s" % err)
 
@@ -197,8 +201,8 @@ class TextTestRunner(object):
         if run != 1:
             message = "s"
         else:
-           message = "" 
-        
+           message = ""
+            
         self.stream.writeln("Ran %d test%s in %.3fs" %
                              (run, message, timeTaken))
         
@@ -218,7 +222,8 @@ class TextTestRunner(object):
 
         infos = []
         if not result.wasSuccessful():
-            self.stream.write("FAILED")
+            #self.stream.write("FAILED")
+            self.stream.stream.write("FAILED")
             failed, errored = len(result.failures), len(result.errors)
             if failed:
                 infos.append("failures=%d" % failed)

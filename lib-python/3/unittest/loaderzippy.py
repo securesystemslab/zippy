@@ -69,8 +69,9 @@ class TestLoader(object):
         for name in dir(module):
             obj = getattr(module, name)
             #if isinstance(obj, type) and issubclass(obj, casezippy.TestCase):
-            if issubclass(obj, casezippy.TestCase):
-                tests.append(self.loadTestsFromTestCase(obj))
+            if isinstance(obj, type):
+                if(issubclass(obj, casezippy.TestCase)):                
+                    tests.append(self.loadTestsFromTestCase(obj))
 
         #load_tests = getattr(module, 'load_tests', None)
         load_tests = getattr(module, 'load_tests')
