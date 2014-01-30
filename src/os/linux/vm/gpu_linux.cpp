@@ -34,6 +34,8 @@
 static unsigned int nvidia_vendor_id = 0x10de;
 static unsigned int amd_vendor_id = 0x1002;
 
+#define PCI_DRIVER_NAME_START_POS 255
+
 jobject gpu::probe_gpus(JNIEnv* env) {
   bool hsail = false;
   bool ptx = false;
@@ -52,6 +54,9 @@ jobject gpu::probe_gpus(JNIEnv* env) {
   unsigned int bus_num_devfn_ign;
   unsigned int vendor;
   unsigned int device;
+  const char *driver_name_string = "nvidia";
+  const int driver_name_string_len = strlen(driver_name_string);
+
   if (pci_devices == NULL) {
     tty->print_cr("*** Failed to open /proc/bus/pci/devices");
     return NULL;
@@ -59,13 +64,16 @@ jobject gpu::probe_gpus(JNIEnv* env) {
 
   while (fgets(contents, sizeof(contents)-1, pci_devices)) {
     sscanf(contents, "%04x%04x%04x", &bus_num_devfn_ign, &vendor, &device);
-    /* Break after finding the first GPU device. */
     if (vendor == nvidia_vendor_id) {
-      if (TraceGPUInteraction) {
-        tty->print_cr("Found supported nVidia GPU: vendor=0x%04x, device=0x%04x", vendor, device);
-      }
-      if (!ptx && gpu::Ptx::register_natives(env)) {
-        ptx = true;
+      /* Check if this device is registered to be using nvidia driver */
+      if (strncmp(&contents[PCI_DRIVER_NAME_START_POS],
+                  driver_name_string, driver_name_string_len) == 0) {
+        if (TraceGPUInteraction) {
+          tty->print_cr("Found supported nVidia device [vendor=0x%04x, device=0x%04x]", vendor, device);
+        }
+        if (!ptx && gpu::Ptx::register_natives(env)) {
+          ptx = true;
+        }
       }
     }
   }

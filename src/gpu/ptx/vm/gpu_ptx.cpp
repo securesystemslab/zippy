@@ -184,7 +184,34 @@ GPU_ENTRY(jboolean, gpu::Ptx::initialize, (JNIEnv *env, jclass))
   }
 
   /* Get device attributes */
+  int minor, major;
   int unified_addressing;
+  float version = 0.0;
+
+  /* Get the compute capability of the device found */
+  status = _cuda_cu_device_get_attribute(&minor, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, _cu_device);
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to get minor attribute of device: %d", _cu_device);
+    return false;
+  }
+  status = _cuda_cu_device_get_attribute(&major, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, _cu_device);
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to get major attribute of device: %d", _cu_device);
+    return false;
+  }
+
+  /* Check if the device supports atleast GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION */
+  version = (float) major + ((float) minor)/10;
+
+  if (version < GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION) {
+    tty->print_cr("[CUDA] Only cuda compute capability 3.0 and later supported. Device %d supports %.1f",
+                  _cu_device, version);
+    return false;
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Device %d supports cuda compute capability %.1f", _cu_device, version);
+  }
 
   status = _cuda_cu_device_get_attribute(&unified_addressing, GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, _cu_device);
 
@@ -194,7 +221,8 @@ GPU_ENTRY(jboolean, gpu::Ptx::initialize, (JNIEnv *env, jclass))
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Unified addressing support on device %d: %d", _cu_device, unified_addressing);
+    tty->print_cr("[CUDA] Device %d %s unified addressing support", _cu_device,
+                  ((unified_addressing == 0) ? "does not have" : "has"));
   }
 
 
@@ -296,7 +324,6 @@ GPU_ENTRY(jint, gpu::Ptx::get_total_cores, (JNIEnv *env, jobject))
     }
 
     if (TraceGPUInteraction) {
-        tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", _cu_device, major, minor);
         tty->print_cr("[CUDA] Number of cores: %d async engines: %d can map host mem: %d concurrent kernels: %d",
                       total, async_engines, can_map_host_memory, concurrent_kernels);
         tty->print_cr("[CUDA] Max threads per block: %d warp size: %d", max_threads_per_block, warp_size);
