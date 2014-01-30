@@ -235,13 +235,18 @@ public class PParallelGenerator extends PGenerator {
 
                 public void run() {
                     callTarget.call(null, arguments);
-                    buffer.setAsTerminated();
+                    buffer.put(StopIterationException.INSTANCE);
                 }
 
             });
         }
 
-        return buffer.take();
+        final Object result = buffer.take();
+        if (result == StopIterationException.INSTANCE) {
+            throw StopIterationException.INSTANCE;
+        } else {
+            return result;
+        }
     }
 
     private Object doWithDisruptor() {
