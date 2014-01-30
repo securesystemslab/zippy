@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.datatype;
 
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.lmax.disruptor.*;
@@ -39,28 +40,87 @@ public class PParallelGenerator extends PGenerator {
 
     private boolean isFirstEntry = true;
     private final PythonContext context;
-    private ConcurrentLinkedQueue<Object> queue;
+
     private final BlockingQueue<Object> blockingQueue;
-    private SingleProducerCircularBuffer buffer;
+    private final SingleProducerCircularBuffer buffer;
+    private final Queue<Object> queue;
 
     // Disruptor
-    private RingBuffer<ObjectEvent> ringBuffer;
-    private SequenceBarrier sequenceBarrier;
-    private Sequence sequence;
+    private final RingBuffer<ObjectEvent> ringBuffer;
+    private final SequenceBarrier sequenceBarrier;
+    private final Sequence sequence;
 
-    private static final int QUEUE_CHOICE = 1;
-    private static final int BLOCKING_QUEUE_CHOICE = 1;
+    public static final int QUEUE_CHOICE = 1;
+    public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
-        BlockingQueue<Object> blockingQueue = createBlockingQueue();
-        PArguments parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
-        return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+        PArguments parallelArgs;
+
+        switch (QUEUE_CHOICE) {
+            case 0:
+                SingleProducerCircularBuffer buffer = new SingleProducerCircularBuffer();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, buffer, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, buffer);
+            case 1:
+                BlockingQueue<Object> blockingQueue = createBlockingQueue();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+            case 2:
+                Queue<Object> queue = new ConcurrentLinkedQueue<>();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
+            case 3:
+                RingBuffer<ObjectEvent> ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, 32);
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, ringBuffer, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, ringBuffer);
+            default:
+                throw new IllegalStateException();
+        }
     }
 
-    public PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = blockingQueue;
+        this.buffer = null;
+        this.queue = null;
+        this.ringBuffer = null;
+        this.sequenceBarrier = null;
+        this.sequence = null;
+    }
+
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, SingleProducerCircularBuffer buffer) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
+        this.blockingQueue = null;
+        this.buffer = buffer;
+        this.queue = null;
+        this.ringBuffer = null;
+        this.sequenceBarrier = null;
+        this.sequence = null;
+    }
+
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, Queue<Object> queue) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
+        this.blockingQueue = null;
+        this.buffer = null;
+        this.queue = queue;
+        this.ringBuffer = null;
+        this.sequenceBarrier = null;
+        this.sequence = null;
+    }
+
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, RingBuffer<ObjectEvent> ringBuffer) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
+        this.blockingQueue = null;
+        this.buffer = null;
+        this.queue = null;
+        this.ringBuffer = ringBuffer;
+        this.sequenceBarrier = ringBuffer.newBarrier();
+        this.sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
+        ringBuffer.addGatingSequences(sequence);
     }
 
     public final void generates() {
@@ -109,17 +169,14 @@ public class PParallelGenerator extends PGenerator {
     }
 
     private Object doWithConcurrentLinkedQueue() {
-        if (queue == null) {
-            queue = new ConcurrentLinkedQueue<>();
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
-                    try {
-                        while (true) {
-                            queue.offer(callTarget.call(null, arguments));
-                        }
-                    } catch (StopIterationException e) {
-                        queue.offer(StopIterationException.INSTANCE);
+                    callTarget.call(null, arguments);
+                    while (!queue.offer(StopIterationException.INSTANCE)) {
+                        // spin
                     }
                 }
 
@@ -172,60 +229,42 @@ public class PParallelGenerator extends PGenerator {
     }
 
     private Object doWithCircularBuffer() {
-        if (buffer == null) {
-            buffer = new SingleProducerCircularBuffer();
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
-                    try {
-                        while (true) {
-                            Object value = callTarget.call(null, arguments);
-                            buffer.put(value);
-                        }
-                    } catch (StopIterationException e) {
-                        buffer.setAsTerminated();
-                    }
+                    callTarget.call(null, arguments);
+                    buffer.put(StopIterationException.INSTANCE);
                 }
 
             });
         }
 
-        Object result = buffer.take();
-        return result;
+        final Object result = buffer.take();
+        if (result == StopIterationException.INSTANCE) {
+            throw StopIterationException.INSTANCE;
+        } else {
+            return result;
+        }
     }
 
     private Object doWithDisruptor() {
-        if (ringBuffer == null) {
-            ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, 32);
-            sequenceBarrier = ringBuffer.newBarrier();
-            sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
-            ringBuffer.addGatingSequences(sequence);
-
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
+                    callTarget.call(null, arguments);
                     final RingBuffer<ObjectEvent> rb = ringBuffer;
-
-                    Object value;
-
-                    try {
-                        while (true) {
-                            value = callTarget.call(null, arguments);
-                            long next = rb.next();
-                            rb.get(next).setValue(value);
-                            rb.publish(next);
-                        }
-                    } catch (StopIterationException e) {
-                        long next = rb.next();
-                        rb.get(next).setValue(StopIterationException.INSTANCE);
-                        rb.publish(next);
-                    }
+                    long next = rb.next();
+                    rb.get(next).setValue(StopIterationException.INSTANCE);
+                    rb.publish(next);
                 }
 
             });
         }
 
-        sequenceBarrier.clearAlert();
         long nextSequence = sequence.get() + 1L;
 
         try {

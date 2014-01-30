@@ -63,7 +63,7 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
         PNode parallelBody = NodeUtil.cloneNode(((FunctionRootNode) root).getUninitializedBody());
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
-            yield.replace(new ParallelYieldNode(yield.getRhs()));
+            yield.replace(ParallelYieldNode.create(yield.getRhs()));
         }
 
         RootNode parallelRoot = new FunctionRootNode(context, name, frameDescriptor, parallelBody);

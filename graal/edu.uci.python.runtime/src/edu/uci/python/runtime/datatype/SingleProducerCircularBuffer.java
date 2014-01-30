@@ -27,25 +27,17 @@ package edu.uci.python.runtime.datatype;
 import java.io.*;
 import java.util.concurrent.atomic.*;
 
-import edu.uci.python.runtime.exception.*;
-
 public final class SingleProducerCircularBuffer {
 
     private static final int INDEX_MASK = 0B1111;
     private final Object[] buffer;
     private AtomicLong readCursor;
     private AtomicLong writeCursor;
-    private boolean isTerminated;
 
     public SingleProducerCircularBuffer() {
         this.buffer = new Object[INDEX_MASK + 1];
         this.readCursor = new PaddedAtomicLong();
         this.writeCursor = new PaddedAtomicLong();
-    }
-
-    public void setAsTerminated() {
-        writeCursor.lazySet(writeCursor.get() + 1);
-        isTerminated = true;
     }
 
     /**
@@ -64,9 +56,7 @@ public final class SingleProducerCircularBuffer {
         }
 
         buffer[getIndex(currentWriteCursor)] = value;
-
         // log(value, currentWriteCursor);
-
         writeCursor.lazySet(currentWriteCursor + 1);
     }
 
@@ -91,17 +81,8 @@ public final class SingleProducerCircularBuffer {
             }
         }
 
-        /**
-         * Termination test.
-         */
-        if (isTerminated && currentReadCursor == writeCursor.get() - 1) {
-            throw StopIterationException.INSTANCE;
-        }
-
         Object result = buffer[getIndex(currentReadCursor)];
-
         // log(result, readCursor.get());
-
         readCursor.lazySet(currentReadCursor + 1);
         return result;
     }
