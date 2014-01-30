@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.function;
 
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
@@ -179,29 +180,43 @@ public class PArguments extends Arguments {
 
     public static final class ParallelGeneratorArguments extends PArguments {
 
-        private final BlockingQueue<Object> queue;
+        private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
+        private final Queue<Object> queue;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-            this.queue = queue;
+            this.blockingQueue = queue;
             this.buffer = null;
+            this.queue = null;
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, SingleProducerCircularBuffer buffer, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-            this.queue = null;
+            this.blockingQueue = null;
             this.buffer = buffer;
+            this.queue = null;
         }
 
-        public BlockingQueue<Object> getQueue() {
-            assert queue != null;
-            return queue;
+        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, Queue<Object> queue, Object[] arguments) {
+            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            this.blockingQueue = null;
+            this.buffer = null;
+            this.queue = queue;
+        }
+
+        public BlockingQueue<Object> getBlockingQueue() {
+            assert blockingQueue != null;
+            return blockingQueue;
         }
 
         public SingleProducerCircularBuffer getBuffer() {
             assert buffer != null;
             return buffer;
+        }
+
+        public Queue<Object> getQueue() {
+            return queue;
         }
     }
 

@@ -43,14 +43,14 @@ public class PParallelGenerator extends PGenerator {
 
     private final BlockingQueue<Object> blockingQueue;
     private final SingleProducerCircularBuffer buffer;
-    private Queue<Object> queue;
+    private final Queue<Object> queue;
 
     // Disruptor
     private RingBuffer<ObjectEvent> ringBuffer;
     private SequenceBarrier sequenceBarrier;
     private Sequence sequence;
 
-    public static final int QUEUE_CHOICE = 1;
+    public static final int QUEUE_CHOICE = 2;
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
@@ -65,6 +65,10 @@ public class PParallelGenerator extends PGenerator {
                 BlockingQueue<Object> blockingQueue = createBlockingQueue();
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+            case 2:
+                Queue<Object> queue = new ConcurrentLinkedQueue<>();
+                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
             default:
                 throw new IllegalStateException();
         }
@@ -75,6 +79,7 @@ public class PParallelGenerator extends PGenerator {
         this.context = context;
         this.blockingQueue = blockingQueue;
         this.buffer = null;
+        this.queue = null;
     }
 
     protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, SingleProducerCircularBuffer buffer) {
@@ -82,6 +87,15 @@ public class PParallelGenerator extends PGenerator {
         this.context = context;
         this.blockingQueue = null;
         this.buffer = buffer;
+        this.queue = null;
+    }
+
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, Queue<Object> queue) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
+        this.blockingQueue = null;
+        this.buffer = null;
+        this.queue = queue;
     }
 
     public final void generates() {
@@ -130,17 +144,14 @@ public class PParallelGenerator extends PGenerator {
     }
 
     private Object doWithConcurrentLinkedQueue() {
-        if (queue == null) {
-            queue = new ConcurrentLinkedQueue<>();
+        if (isFirstEntry) {
+            isFirstEntry = false;
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
-                    try {
-                        while (true) {
-                            queue.offer(callTarget.call(null, arguments));
-                        }
-                    } catch (StopIterationException e) {
-                        queue.offer(StopIterationException.INSTANCE);
+                    callTarget.call(null, arguments);
+                    while (!queue.offer(StopIterationException.INSTANCE)) {
+                        // spin
                     }
                 }
 

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.generator;
 
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
@@ -45,8 +46,10 @@ public abstract class ParallelYieldNode extends YieldNode {
                 return new YieldToCirculrBufferNode(right);
             case 1:
                 return new YieldToBlockingQueueNode(right);
+            case 2:
+                return new YieldToQueueNode(right);
             default:
-                throw new RuntimeException();
+                throw new IllegalStateException();
         }
     }
 
@@ -67,7 +70,7 @@ public abstract class ParallelYieldNode extends YieldNode {
         @Override
         protected void appendValue(VirtualFrame frame, Object value) {
             try {
-                BlockingQueue<Object> queue = PArguments.getParallelGeneratorArguments(frame).getQueue();
+                BlockingQueue<Object> queue = PArguments.getParallelGeneratorArguments(frame).getBlockingQueue();
                 queue.put(value);
             } catch (InterruptedException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -86,6 +89,21 @@ public abstract class ParallelYieldNode extends YieldNode {
         protected void appendValue(VirtualFrame frame, Object value) {
             SingleProducerCircularBuffer buffer = PArguments.getParallelGeneratorArguments(frame).getBuffer();
             buffer.put(value);
+        }
+    }
+
+    public static final class YieldToQueueNode extends ParallelYieldNode {
+
+        public YieldToQueueNode(PNode right) {
+            super(right);
+        }
+
+        @Override
+        protected void appendValue(VirtualFrame frame, Object value) {
+            Queue<Object> queue = PArguments.getParallelGeneratorArguments(frame).getQueue();
+            while (!queue.offer(value)) {
+                // spin
+            }
         }
     }
 
