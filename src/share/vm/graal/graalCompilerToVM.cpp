@@ -554,7 +554,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GraalCounterSize);\
+  set_int("graalCountersSize", (jint) GraalCounterSize);
 
   //------------------------------------------------------------------------------------------------
 
