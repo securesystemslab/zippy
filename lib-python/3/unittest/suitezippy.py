@@ -67,8 +67,9 @@ class BaseTestSuite(object):
 
     #def __call__(self, *args, **kwds):
     def __call__(self, args):
-        kwds = {}
-        return self.run(args, kwds)
+        #kwds = {}
+        #return self.run(args, kwds)
+        return self.run(args)
         #return self.run(*args, **kwds)
 
     def debug(self):

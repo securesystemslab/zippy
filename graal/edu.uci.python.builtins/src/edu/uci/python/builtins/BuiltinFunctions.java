@@ -334,7 +334,16 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public Object isinstance(PythonObject object, PythonClass clazz) {
+        public Object isinstance(PythonBasicObject object, PythonClass clazz) {
+            return isInstanceofPythonClass(object, clazz);
+        }
+
+        @Specialization(order = 3)
+        public Object isinstance(PythonClass object, PythonClass clazz) {
+            return isInstanceofPythonClass(object, clazz);
+        }
+
+        private static boolean isInstanceofPythonClass(PythonBasicObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -349,20 +358,30 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 superClass = superClass.getSuperClass();
             }
 
-            return false;
-        }
-
-        @Specialization(order = 3)
-        public Object isinstance(PythonClass clazz, PyObject type) {
-            if (type instanceof PyType) {
-                return true;
-            } else {
-                throw new RuntimeException("isinstance is not supported for " + clazz + " " + clazz.getClass() + ", " + type + " " + type.getClass());
+            if (object instanceof PythonClass) {
+                if (clazz.getClassName().equals("type")) {
+                    return true;
+                }
             }
+
+            return false;
         }
 
         @Specialization(order = 4)
         public Object isinstance(Object object, Object clazz) {
+            if (object instanceof String && clazz instanceof PythonClass) {
+                PythonClass pythonClass = (PythonClass) clazz;
+                if (pythonClass.getClassName().equals("str")) {
+                    return true;
+                }
+
+                return false;
+            } else if (object instanceof PythonBasicObject && clazz instanceof PythonClass) {
+                PythonBasicObject basicObject = (PythonBasicObject) object;
+                PythonClass pythonClass = (PythonClass) clazz;
+                return isInstanceofPythonClass(basicObject, pythonClass);
+            }
+
             throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
         }
     }
@@ -392,15 +411,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 3)
-        public Object issubclass(Object object, PythonClass clazzinfo) {
-            if (!(object instanceof PythonClass)) {
-                return false;
-            }
-
-            throw new RuntimeException("issubclass is not supported for " + object + " " + object.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
-        }
-
-        @Specialization(order = 4)
         public Object issubclass(Object clazz, Object clazzinfo) {
             throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }

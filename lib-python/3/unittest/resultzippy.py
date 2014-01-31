@@ -122,7 +122,8 @@ class TestResult(object):
     def addFailure(self, test, err):
         """Called when an error has occurred. 'err' is a tuple of values as
         returned by sys.exc_info()."""
-        self.failures.append((test, self._exc_info_to_string(err, test)))
+        #self.failures.append((test, self._exc_info_to_string(err, test)))
+        self.failures.append((test, err))
         self._mirrorOutput = True
 
     def addSuccess(self, test):
