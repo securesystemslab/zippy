@@ -396,9 +396,9 @@ class TestCase(object):
             outcome.success = False
             #outcome.failures.append(sys.exc_info())
             #exc_info = sys.exc_info()
-        #except:
-        #    outcome.success = False
-        #    outcome.errors.append(sys.exc_info())
+        except:
+            outcome.success = False
+            #outcome.errors.append(sys.exc_info())
         
 
     #def run(self, result=None):

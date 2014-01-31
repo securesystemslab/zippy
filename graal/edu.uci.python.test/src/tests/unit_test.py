@@ -19,6 +19,9 @@ class ComparisonTests(unittest.TestCase):
     
     def testGreaterThan(self):
         self.assertTrue(4 > 3, "4 > 3 is not true")
+        
+    def testGreaterThanOrEqual(self):
+        self.assertTrue(3 >= 4, "3 >= 4 is not true")
 
 if __name__ == '__main__':
     unittest.main()
