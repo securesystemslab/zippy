@@ -131,31 +131,31 @@ class GenericTryExceptNode extends TryExceptNode {
 
         context.setCurrentException(e);
 
+        /**
+         * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
+         * 'Exception'
+         * 
+         * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by zero'
+         */
+
         if (exceptType != null) {
             PyObject type = (PyObject) exceptType.execute(frame);
-            /**
-             * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
-             * 'Exception'
-             * 
-             * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by
-             * zero'
-             */
             if (e.type == type) {
                 if (exceptName != null) {
                     ((WriteLocalVariableNode) exceptName).executeWith(frame, e);
                 }
-
-                Object retVal = exceptBody.execute(frame);
-
-                // clear the exception after executing the except body.
-                context.setCurrentException(null);
-
-                return retVal;
+            } else {
+                throw excep;
             }
-
         }
 
-        throw excep;
+        Object retVal = exceptBody.execute(frame);
+
+        // clear the exception after executing the except body.
+        context.setCurrentException(null);
+
+        return retVal;
+
     }
 
 }

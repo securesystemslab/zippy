@@ -339,7 +339,6 @@ class TestCase(object):
         the specified test method's docstring.
         """
         doc = self._testMethodDoc
-        print("DOC", doc)
         return doc and doc.split("\n")[0].strip() or None
 
 
@@ -395,8 +394,9 @@ class TestCase(object):
         #         outcome.errors.append(exc_info)
         except self.failureException:
             outcome.success = False
-            outcome.failures.append(sys.exc_info())
-            exc_info = sys.exc_info()
+
+            #outcome.failures.append(sys.exc_info())
+            #exc_info = sys.exc_info()
         #except:
         #    outcome.success = False
         #    outcome.errors.append(sys.exc_info())
@@ -427,17 +427,17 @@ class TestCase(object):
         try:
             outcome = _Outcome()
             self._outcomeForDoCleanups = outcome
-            #self._executeTestPart(self.setUp, outcome)
+            self._executeTestPart(self.setUp, outcome)
             if outcome.success:
                 self._executeTestPart(testMethod, outcome, isTest=True)
-                self._executeTestPart(self.tearDown, outcome)
+                #self._executeTestPart(self.tearDown, outcome)
                 
             #self.doCleanups()
             if outcome.success:
                 result.addSuccess(self)
             else:
-                if outcome.skipped is not None:
-                    self._addSkip(result, outcome.skipped)
+                #if outcome.skipped is not None:
+                #    self._addSkip(result, outcome.skipped)
                 # for exc_info in outcome.errors:
                 #     result.addError(self, exc_info)
                 #for exc_info in outcome.failures:
@@ -471,11 +471,12 @@ class TestCase(object):
     def doCleanups(self):
         """Execute all cleanup functions. Normally called for you after
         tearDown."""
-        outcome = self._outcomeForDoCleanups or _Outcome()
-        while self._cleanups:
-            function, args, kwargs = self._cleanups.pop()
-            part = lambda: function(*args, **kwargs)
-            self._executeTestPart(part, outcome)
+        #outcome = self._outcomeForDoCleanups or _Outcome()
+        outcome = _Outcome()
+        #while self._cleanups:
+        #    function, args, kwargs = self._cleanups.pop()
+        #    part = lambda: function(*args, **kwargs)
+        #    self._executeTestPart(part, outcome)
 
         # return this for backwards compatibility
         # even though we no longer us it internally
@@ -503,17 +504,23 @@ class TestCase(object):
         """Fail immediately, with the given message."""
         raise self.failureException(msg)
 
-    def assertFalse(self, expr, msg=None):
+    #def assertFalse(self, expr, msg=None):
+    def assertFalse(self, expr, msg):
         """Check that the expression is false."""
         if expr:
             msg = self._formatMessage(msg, "%s is not false" % safe_repr(expr))
-            raise self.failureException(msg)
+            self.assertionError = self.failureException(msg)
+            raise self.assertionError
+            #raise self.failureException(msg)
 
-    def assertTrue(self, expr, msg=None):
+    #def assertTrue(self, expr, msg=None):
+    def assertTrue(self, expr, msg):
         """Check that the expression is true."""
         if not expr:
-            msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
-            raise self.failureException(msg)
+            #msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
+            self.assertionError = self.failureException(msg)
+            raise self.assertionError
+            #raise self.failureException(msg)
 
     def _formatMessage(self, msg, standardMsg):
         """Honour the longMessage attribute when generating failure messages.
@@ -643,7 +650,8 @@ class TestCase(object):
         #assertion_func(first, second, msg=msg)
         assertion_func(first, second, msg)
 
-    def assertNotEqual(self, first, second, msg=None):
+    #def assertNotEqual(self, first, second, msg=None):
+    def assertNotEqual(self, first, second, msg):
         """Fail if the two objects are equal as determined by the '=='
            operator.
         """
@@ -651,7 +659,7 @@ class TestCase(object):
             msg = self._formatMessage(msg, '%s == %s' % (safe_repr(first),
                                                           safe_repr(second)))
             self.assertionError = self.failureException(msg)
-            raise currentAssertionError
+            raise self.assertionError
             #raise self.failureException(msg)
 
     def assertAlmostEqual(self, first, second, places=None, msg=None,
@@ -692,7 +700,7 @@ class TestCase(object):
                                                           places)
         msg = self._formatMessage(msg, standardMsg)
         self.assertionError = self.failureException(msg)
-        raise currentAssertionError
+        raise self.assertionError
         #raise self.failureException(msg)
 
     def assertNotAlmostEqual(self, first, second, places=None, msg=None,

@@ -11,5 +11,14 @@ class ArihtmeticTests(unittest.TestCase):
     def testSubtraction(self):
         self.assertEqual(3 - 4, 1, "3 - 4 not equal to -1")
 
+
+class ComparisonTests(unittest.TestCase):
+
+    def testLessThan(self):
+        self.assertTrue(3 < 4, "3 < 4 is not true")
+    
+    def testGreaterThan(self):
+        self.assertTrue(4 > 3, "4 > 3 is not true")
+
 if __name__ == '__main__':
     unittest.main()

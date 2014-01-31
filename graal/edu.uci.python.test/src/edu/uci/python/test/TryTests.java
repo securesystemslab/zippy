@@ -121,6 +121,59 @@ public class TryTests {
     }
 
     @Test
+    public void exceptWithoutArg() {
+        String source = "def foo():\n" + //
+                        "    result = 1 / 0\n" + //
+                        "\n" + //
+                        "try:\n" + //
+                        "    foo()\n" + //
+                        "except:\n" + //
+                        "    print(\"division by zero!\")\n" + //
+                        "else:\n" + //
+                        "    print(\"result is \", result)\n" + //
+                        "finally:\n" + //
+                        "    print(\"executing finally clause\")\n";
+
+        assertPrints("division by zero!\n" + "executing finally clause\n", source);
+    }
+
+    @Test
+    public void exceptWithoutArg2() {
+        String source = "def foo():\n" + //
+                        "    raise KeyboardInterrupt\n" + //
+
+                        "def bar():\n" + //
+                        "    try:\n" + //
+                        "        foo()\n" + //
+                        "    except AssertionError:\n" + //
+                        "        print(\"EXCEPT ASSERTION ERROR\")\n" + //
+                        "    except:\n" + //
+                        "        print(\"EXCEPT WITHOUT AN EXPRESSION\")\n" + //
+
+                        "bar()\n";
+
+        assertPrints("EXCEPT WITHOUT AN EXPRESSION\n", source);
+    }
+
+    @Test
+    public void raiseAssertion() {
+        String source = "\n" + //
+                        "def foo():\n" + //
+                        "    raise AssertionError(\"Problem\")\n" + //
+
+                        "def bar():\n" + //
+                        "   try:\n" + //
+                        "        foo()\n" + //
+                        "   except AssertionError:\n" + //
+                        "        print(\"EXCEPTED ASSERTION ERROR\")\n" + //
+
+                        "bar()\n" + //
+                        "bar()\n";
+
+        assertPrints("EXCEPTED ASSERTION ERROR\nEXCEPTED ASSERTION ERROR\n", source);
+    }
+
+    @Test
     public void scriptTryTest() {
         Path script = Paths.get("raise_try_test.py");
         assertPrints("KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause\n", script);
