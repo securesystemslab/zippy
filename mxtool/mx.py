@@ -2494,7 +2494,7 @@ def checkstyle(args):
         dotCheckstyle = join(p.dir, '.checkstyle')
 
         if not exists(dotCheckstyle):
-            continue
+            abort('ERROR: .checkstyle for Project {0} is missing'.format(p.name))
 
         # skip checking this Java project if its Java compliance level is "higher" than the configured JDK
         if java().javaCompliance < p.javaCompliance:
