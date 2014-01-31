@@ -168,9 +168,10 @@ public class TryTests {
                         "        print(\"EXCEPTED ASSERTION ERROR\")\n" + //
 
                         "bar()\n" + //
-                        "bar()\n";
+                        "bar()\n" + //
+                        "print(\"CONTINUING\")\n";
 
-        assertPrints("EXCEPTED ASSERTION ERROR\nEXCEPTED ASSERTION ERROR\n", source);
+        assertPrints("EXCEPTED ASSERTION ERROR\nEXCEPTED ASSERTION ERROR\nCONTINUING\n", source);
     }
 
     @Test
