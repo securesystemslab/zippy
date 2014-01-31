@@ -62,6 +62,8 @@ public class PythonOptions {
 
     public static final boolean ParallelizeGeneratorCalls = false;
 
+    public static final boolean ProfileGeneratorCalls = true;
+
     private PrintStream standardOut = System.out;
 
     private PrintStream standardErr = System.err;

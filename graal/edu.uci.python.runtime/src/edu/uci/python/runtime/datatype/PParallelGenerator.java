@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.datatype;
 
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -50,10 +51,17 @@ public class PParallelGenerator extends PGenerator {
     private final SequenceBarrier sequenceBarrier;
     private final Sequence sequence;
 
+    // Profiling
+    private static long profiledTime;
+
     public static final int QUEUE_CHOICE = 1;
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
+        if (PythonOptions.ProfileGeneratorCalls) {
+            resetProfiledTime();
+        }
+
         PArguments parallelArgs;
 
         switch (QUEUE_CHOICE) {
@@ -123,6 +131,10 @@ public class PParallelGenerator extends PGenerator {
         ringBuffer.addGatingSequences(sequence);
     }
 
+    /**
+     * Design wise, a better way to kick off generator execution, but practically it is currently
+     * slower than the exising approach.
+     */
     public final void generates() {
         context.getExecutorService().execute(new Runnable() {
 
@@ -201,12 +213,18 @@ public class PParallelGenerator extends PGenerator {
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
+                    long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
+
                     try {
                         callTarget.call(null, arguments);
                         blockingQueue.put(StopIterationException.INSTANCE);
                     } catch (InterruptedException e) {
                         CompilerDirectives.transferToInterpreterAndInvalidate();
                         e.printStackTrace();
+                    }
+
+                    if (PythonOptions.ProfileGeneratorCalls) {
+                        profiledTime += System.nanoTime() - start;
                     }
                 }
 
@@ -306,6 +324,15 @@ public class PParallelGenerator extends PGenerator {
             return new ObjectEvent();
         }
 
+    }
+
+    public static void resetProfiledTime() {
+        profiledTime = 0;
+    }
+
+    public static void printProfiledTime() {
+        PrintStream out = System.out;
+        out.printf("parallel generator time: %.3f\n", profiledTime / 1000000000.0);
     }
 
 }
