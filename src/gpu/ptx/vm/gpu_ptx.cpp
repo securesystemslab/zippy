@@ -630,7 +630,7 @@ private:
     if (obj != NULL) {
       char type[256];
       obj->klass()->name()->as_C_string(type, 256);
-      _st->print("oop "PTR_FORMAT" (%s)", obj, type);
+      _st->print("oop "PTR_FORMAT" (%s)", (address) obj, type);
     } else {
       _st->print("oop null");
     }
