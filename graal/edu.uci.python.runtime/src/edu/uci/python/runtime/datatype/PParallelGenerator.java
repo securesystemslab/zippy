@@ -54,7 +54,7 @@ public class PParallelGenerator extends PGenerator {
     // Profiling
     private static long profiledTime;
 
-    public static final int QUEUE_CHOICE = 1;
+    public static final int QUEUE_CHOICE = 0;
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
@@ -186,9 +186,15 @@ public class PParallelGenerator extends PGenerator {
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
+                    long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
+
                     callTarget.call(null, arguments);
                     while (!queue.offer(StopIterationException.INSTANCE)) {
                         // spin
+                    }
+
+                    if (PythonOptions.ProfileGeneratorCalls) {
+                        profiledTime += System.nanoTime() - start;
                     }
                 }
 
@@ -252,8 +258,14 @@ public class PParallelGenerator extends PGenerator {
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
+                    long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
+
                     callTarget.call(null, arguments);
                     buffer.put(StopIterationException.INSTANCE);
+
+                    if (PythonOptions.ProfileGeneratorCalls) {
+                        profiledTime += System.nanoTime() - start;
+                    }
                 }
 
             });
@@ -273,11 +285,17 @@ public class PParallelGenerator extends PGenerator {
             context.getExecutorService().execute(new Runnable() {
 
                 public void run() {
+                    long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
+
                     callTarget.call(null, arguments);
                     final RingBuffer<ObjectEvent> rb = ringBuffer;
                     long next = rb.next();
                     rb.get(next).setValue(StopIterationException.INSTANCE);
                     rb.publish(next);
+
+                    if (PythonOptions.ProfileGeneratorCalls) {
+                        profiledTime += System.nanoTime() - start;
+                    }
                 }
 
             });
