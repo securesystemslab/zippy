@@ -828,13 +828,7 @@ public class PythonTreeTranslator extends Visitor {
             if (i == 0) {
                 body = factory.createBlock(b);
             } else {
-                List<PNode> trynode = new ArrayList<>();
-                trynode.add(retVal);
-                body = factory.createBlock(trynode);
-            }
-
-            if (i == excepts.size() - 1) {
-                orelse = factory.createBlock(o);
+                body = factory.createSingleStatementBlock(retVal);
             }
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
@@ -846,6 +840,9 @@ public class PythonTreeTranslator extends Visitor {
             retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
         }
 
+        orelse = factory.createBlock(o);
+        body = factory.createSingleStatementBlock(retVal);
+        retVal = TryExceptNode.create(context, body, orelse, null, null, null);
         return retVal;
     }
 

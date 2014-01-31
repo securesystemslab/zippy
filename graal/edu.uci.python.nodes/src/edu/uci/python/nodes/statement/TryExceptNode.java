@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statement;
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -56,17 +57,36 @@ public abstract class TryExceptNode extends StatementNode {
     }
 
     public static TryExceptNode create(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        if (orelse == null) {
-            return new TryOnlyNode(context, body, orelse, exceptType, exceptName, exceptBody);
+        if (exceptBody == null) {
+            if (orelse == null) {
+                return new TryOnlyNode(context, body);
+            }
+            return new TryElseNode(context, body, orelse);
         }
-        return new TryElseNode(context, body, orelse, exceptType, exceptName, exceptBody);
+        return new ExceptOnlyNode(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
 }
 
 class TryOnlyNode extends TryExceptNode {
 
-    protected TryOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    protected TryOnlyNode(PythonContext context, BlockNode body) {
+        super(context, body, null, null, null, null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            return body.execute(frame);
+        } catch (ControlFlowException c) {
+            return null;
+        }
+    }
+}
+
+class ExceptOnlyNode extends TryExceptNode {
+
+    protected ExceptOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
         super(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
@@ -75,44 +95,8 @@ class TryOnlyNode extends TryExceptNode {
         try {
             return body.execute(frame);
         } catch (RuntimeException ex) {
-            this.replace(new GenericTryExceptNode(this)).executeExcept(frame, ex);
-            throw ex;
+            return executeExcept(frame, ex);
         }
-    }
-}
-
-class TryElseNode extends TryExceptNode {
-
-    protected TryElseNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
-        super(context, body, orelse, exceptType, exceptName, exceptBody);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            body.execute(frame);
-        } catch (RuntimeException ex) {
-            return this.replace(new GenericTryExceptNode(this)).executeExcept(frame, ex);
-        }
-        return orelse.execute(frame);
-    }
-}
-
-class GenericTryExceptNode extends TryExceptNode {
-
-    protected GenericTryExceptNode(TryExceptNode prev) {
-        super(prev.context, prev.body, prev.orelse, prev.exceptType, prev.exceptName, prev.exceptBody);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            body.execute(frame);
-        } catch (RuntimeException ex) {
-            executeExcept(frame, ex);
-            throw ex;
-        }
-        return orelse.execute(frame);
     }
 
     protected Object executeExcept(VirtualFrame frame, RuntimeException excep) {
@@ -122,11 +106,7 @@ class GenericTryExceptNode extends TryExceptNode {
         } else if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
             e = Py.ZeroDivisionError("divide by zero");
         } else {
-            if (context.getCurrentException() != null) {
-                e = (PyException) context.getCurrentException();
-            } else {
-                throw excep;
-            }
+            throw excep;
         }
 
         context.setCurrentException(e);
@@ -149,13 +129,28 @@ class GenericTryExceptNode extends TryExceptNode {
             }
         }
 
-        Object retVal = exceptBody.execute(frame);
+        exceptBody.execute(frame);
 
         // clear the exception after executing the except body.
         context.setCurrentException(null);
-
-        return retVal;
+        throw new ControlFlowException();
 
     }
+}
 
+class TryElseNode extends TryExceptNode {
+
+    protected TryElseNode(PythonContext context, BlockNode body, BlockNode orelse) {
+        super(context, body, orelse, null, null, null);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            body.execute(frame);
+        } catch (ControlFlowException c) {
+            return null;
+        }
+        return orelse.execute(frame);
+    }
 }
