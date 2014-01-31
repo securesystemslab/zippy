@@ -16,15 +16,12 @@ def do_each_yield(i):
 
 def generator(n):
 	for i in range(n):
-		# yield i * 2
 		yield do_each_yield(i)
 
 def call_generator(num, iteration):
 	item = 0	
 	for i in generator(num):
-		item = i + item % 5
-		for t in range(i * 2):
-			item += t % 5
+		item += do_each_yield(i)
 
 	return item
 
@@ -33,7 +30,7 @@ def measure():
 	print("Start timing...")
 	start = time.time()
 
-	num = 10000
+	num = 50000
 	last_item = call_generator(num, 10)
 
 	print("Last item ", last_item)
