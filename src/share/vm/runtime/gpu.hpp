@@ -29,8 +29,6 @@
 #include "oops/symbol.hpp"
 #include "utilities/array.hpp"
 
-class PTXKernelArguments;
-
 // Defines the interface to the graphics processor(s).
 class gpu : AllStatic {
  private:

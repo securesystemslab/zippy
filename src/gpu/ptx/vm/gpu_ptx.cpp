@@ -31,9 +31,18 @@
 #include "memory/allocation.inline.hpp"
 #include "memory/gcLocker.inline.hpp"
 #include "runtime/interfaceSupport.hpp"
+#include "runtime/vframe.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalCompiler.hpp"
-#include "ptxKernelArguments.hpp"
+
+#define T_BYTE_SIZE        1
+#define T_BOOLEAN_SIZE     4
+#define T_INT_BYTE_SIZE    4
+#define T_FLOAT_BYTE_SIZE  4
+#define T_DOUBLE_BYTE_SIZE 8
+#define T_LONG_BYTE_SIZE   8
+#define T_OBJECT_BYTE_SIZE sizeof(intptr_t)
+#define T_ARRAY_BYTE_SIZE  sizeof(intptr_t)
 
 // Entry to GPU native method implementation that transitions current thread to '_thread_in_vm'.
 #define GPU_VMENTRY(result_type, name, signature) \
@@ -76,7 +85,9 @@ gpu::Ptx::cuda_cu_device_get_attribute_func_t gpu::Ptx::_cuda_cu_device_get_attr
 gpu::Ptx::cuda_cu_launch_kernel_func_t gpu::Ptx::_cuda_cu_launch_kernel;
 gpu::Ptx::cuda_cu_module_get_function_func_t gpu::Ptx::_cuda_cu_module_get_function;
 gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data_ex;
+gpu::Ptx::cuda_cu_memcpy_htod_func_t gpu::Ptx::_cuda_cu_memcpy_htod;
 gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
+gpu::Ptx::cuda_cu_memalloc_func_t gpu::Ptx::_cuda_cu_memalloc;
 gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
 gpu::Ptx::cuda_cu_mem_host_register_func_t gpu::Ptx::_cuda_cu_mem_host_register;
 gpu::Ptx::cuda_cu_mem_host_get_device_pointer_func_t gpu::Ptx::_cuda_cu_mem_host_get_device_pointer;
@@ -432,7 +443,7 @@ class PtxCall: StackObj {
   gpu::Ptx::CUdeviceptr  _ret_value;     // pointer to slot in GPU memory holding the return value
   int          _ret_type_size; // size of the return type value
   bool         _ret_is_object; // specifies if the return type is Object
-  bool         _gc_locked;
+  bool         _gc_locked;     // denotes when execution has locked GC
 
   bool check(int status, const char *action) {
     if (status != GRAAL_CUDA_SUCCESS) {
@@ -575,9 +586,85 @@ class PtxCall: StackObj {
       if (TraceGPUInteraction) {
         tty->print_cr("[CUDA] Unlocked GC");
       }
+      _gc_locked = false;
     }
   }
 };
+
+// Prints values in the kernel arguments buffer
+class KernelArgumentsPrinter: public SignatureIterator {
+  Method*       _method;
+  address       _buffer;
+  size_t        _bufferOffset;
+  outputStream* _st;
+
+private:
+
+  // Get next java argument
+  oop next_arg(BasicType expectedType);
+
+ public:
+  KernelArgumentsPrinter(Method* method, address buffer, outputStream* st) : SignatureIterator(method->signature()),
+    _method(method), _buffer(buffer), _bufferOffset(0), _st(st) {
+    if (!method->is_static()) {
+      print_oop();
+    }
+    iterate();
+  }
+
+  address next(size_t dataSz) {
+    if (is_return_type()) {
+      return _buffer;
+    }
+    if (_bufferOffset != 0) {
+      _st->print(", ");
+    }
+    _bufferOffset = align_size_up_(_bufferOffset, dataSz);
+    address result = _buffer + _bufferOffset;
+    _bufferOffset += dataSz;
+    return result;
+  }
+
+  void print_oop() {
+    oop obj = *((oop*) next(sizeof(oop)));
+    if (obj != NULL) {
+      char type[256];
+      obj->klass()->name()->as_C_string(type, 256);
+      _st->print("oop "PTR_FORMAT" (%s)", obj, type);
+    } else {
+      _st->print("oop null");
+    }
+  }
+
+  bool skip() {
+    return is_return_type();
+  }
+
+  void do_bool  ()                     { if (!skip()) _st->print("bool %d",    *((jboolean*) next(sizeof(jboolean)))); }
+  void do_char  ()                     { if (!skip()) _st->print("char %c",    *((jchar*)    next(sizeof(jchar))));    }
+  void do_float ()                     { if (!skip()) _st->print("float %g",   *((jfloat*)   next(sizeof(jfloat))));   }
+  void do_double()                     { if (!skip()) _st->print("double %g",  *((jdouble*)  next(sizeof(jdouble))));  }
+  void do_byte  ()                     { if (!skip()) _st->print("byte %d",    *((jbyte*)    next(sizeof(jbyte))));    }
+  void do_short ()                     { if (!skip()) _st->print("short %d",   *((jshort*)   next(sizeof(jshort))));   }
+  void do_int   ()                     { if (!skip()) _st->print("int %d",     *((jint*)     next(sizeof(jint))));     }
+  void do_long  ()                     { if (!skip()) _st->print("long "JLONG_FORMAT,  *((jlong*)    next(sizeof(jlong))));    }
+  void do_void  ()                     { }
+  void do_object(int begin, int end)   { if (!skip()) print_oop();      }
+  void do_array (int begin, int end)   { if (!skip()) print_oop();      }
+};
+
+static void printKernelArguments(JavaThread* thread, address buffer) {
+  for (vframeStream vfst(thread); !vfst.at_end(); vfst.next()) {
+    Method* m = vfst.method();
+    if (m != NULL) {
+      stringStream st(O_BUFLEN);
+      st.print("[CUDA] Call: %s.%s(", m->method_holder()->name()->as_C_string(), m->name()->as_C_string());
+      KernelArgumentsPrinter kap(m, buffer, &st);
+      tty->print_cr("%s)", st.as_string());
+      return;
+    }
+  }
+}
 
 GPU_VMENTRY(jlong, gpu::Ptx::get_execute_kernel_from_vm_address, (JNIEnv *env, jclass))
   return (jlong) gpu::Ptx::execute_kernel_from_vm;
@@ -593,6 +680,10 @@ JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kern
   if (kernel == 0L) {
     SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
     return 0L;
+  }
+
+  if (TraceGPUInteraction) {
+    printKernelArguments(thread, (address) buffer);
   }
 
   PtxCall call(thread, (address) buffer, bufferSize, (oop*) (address) pinnedObjects, encodedReturnTypeSize);
