@@ -103,7 +103,6 @@ class TestResult(object):
             self._stderr_buffer.truncate()
 
     def stopTestRun(self):
-        print("BURASIIIIIII")
         #pass
         """Called once after all tests are executed.
 
