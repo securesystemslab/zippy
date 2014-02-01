@@ -2034,7 +2034,7 @@ def build(args, parser=None):
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
 
 
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-encoding', 'UTF-8', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
                 if java().debug_port is not None:
                     javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
                 javacCmd += processorArgs
@@ -2052,6 +2052,7 @@ def build(args, parser=None):
 
                 jdtArgs += [ '-jar', jdtJar,
                          '-' + compliance,
+                         '-encoding', 'UTF-8',
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir]
                 jdtArgs += processorArgs
