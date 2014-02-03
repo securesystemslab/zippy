@@ -1201,16 +1201,23 @@ class TestCase(object):
         return deprecated_func
 
     # # see #9424
-    # failUnlessEqual = assertEquals = _deprecate(assertEqual)
+    # _deprecate is commented, since Unpacking Argument Lists(*args, **kwargs) are not supported 
+    #failUnlessEqual = assertEquals = _deprecate(assertEqual)
+    failUnlessEqual = assertEquals = assertEqual
     # failIfEqual = assertNotEquals = _deprecate(assertNotEqual)
+    failIfEqual = assertNotEquals = assertNotEqual
     # failUnlessAlmostEqual = assertAlmostEquals = _deprecate(assertAlmostEqual)
+    failUnlessAlmostEqual = assertAlmostEquals = assertAlmostEqual
     # failIfAlmostEqual = assertNotAlmostEquals = _deprecate(assertNotAlmostEqual)
+    failIfAlmostEqual = assertNotAlmostEquals = assertNotAlmostEqual
     # failUnless = assert_ = _deprecate(assertTrue)
+    failUnless = assert_ = assertTrue
     # failUnlessRaises = _deprecate(assertRaises)
+    failUnlessRaises = assertRaises
     # failIf = _deprecate(assertFalse)
+    failIf = assertFalse
     #assertRaisesRegexp = _deprecate(assertRaisesRegex)
     #assertRegexpMatches = _deprecate(assertRegex)
-
 
 
 class FunctionTestCase(TestCase):
