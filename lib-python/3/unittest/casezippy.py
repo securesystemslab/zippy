@@ -394,12 +394,11 @@ class TestCase(object):
         #         outcome.errors.append(exc_info)
         except self.failureException:
             outcome.success = False
-
             #outcome.failures.append(sys.exc_info())
             #exc_info = sys.exc_info()
-        #except:
-        #    outcome.success = False
-        #    outcome.errors.append(sys.exc_info())
+        except:
+            outcome.success = False
+            #outcome.errors.append(sys.exc_info())
         
 
     #def run(self, result=None):
@@ -1193,13 +1192,13 @@ class TestCase(object):
     #         raise self.failureException(msg)
 
 
-    # def _deprecate(original_func):
-    #     def deprecated_func(*args, **kwargs):
-    #         #warnings.warn(
-    #         #    'Please use {0} instead.'.format(original_func.__name__),
-    #         #    DeprecationWarning, 2)
-    #         return original_func(*args, **kwargs)
-    #     return deprecated_func
+    def _deprecate(original_func):
+        def deprecated_func(*args, **kwargs):
+            #warnings.warn(
+            #    'Please use {0} instead.'.format(original_func.__name__),
+            #    DeprecationWarning, 2)
+            return original_func(*args, **kwargs)
+        return deprecated_func
 
     # # see #9424
     # failUnlessEqual = assertEquals = _deprecate(assertEqual)
