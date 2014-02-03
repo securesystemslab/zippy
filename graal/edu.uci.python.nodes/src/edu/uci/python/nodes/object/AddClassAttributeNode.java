@@ -44,7 +44,7 @@ public class AddClassAttributeNode extends PNode {
         this.rhs = adoptChild(rhs);
     }
 
-    private static PythonClass getClass(VirtualFrame frame) {
+    protected static PythonClass getClass(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
         Object arg = args.getArgument(0);
         assert arg != null && arg instanceof PythonClass : "AddClassAttributeNode expects the first argument of the class definition method call to be the defining class";
@@ -76,7 +76,8 @@ public class AddClassAttributeNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            throw new UnsupportedOperationException();
+            PythonClass clazz = AddClassAttributeNode.getClass(frame);
+            return clazz.getAttribute(attributeId);
         }
     }
 }

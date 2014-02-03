@@ -97,6 +97,17 @@ public class ClassTests {
     }
 
     @Test
+    public void classAttribute3() {
+        String source = "class Foo:\n" + //
+                        "    def assertEqual():\n" + //
+                        "        pass\n" + //
+                        "    class_attr = assertEqual\n" + //
+                        "\n" + //
+                        "print(Foo.class_attr)\n";
+        assertPrintContains("<function assertEqual", source);
+    }
+
+    @Test
     public void userClassInheritance() {
         String source = "class ClassA(object):\n" + //
                         "    pass\n" + //
