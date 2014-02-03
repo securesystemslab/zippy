@@ -294,10 +294,9 @@ class Deoptimization : AllStatic {
       // standard action for unloaded CP entry
       return _unloaded_action;
   }
-  static short trap_request_debug_id(int trap_request) {
+  static int trap_request_debug_id(int trap_request) {
       if (trap_request < 0)
-        return (DeoptAction)
-          ((~(trap_request) >> _debug_id_shift) & right_n_bits(_debug_id_bits));
+        return ((~(trap_request) >> _debug_id_shift) & right_n_bits(_debug_id_bits));
       else
         // standard action for unloaded CP entry
         return 0;

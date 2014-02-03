@@ -1347,7 +1347,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     DeoptReason reason = trap_request_reason(trap_request);
     DeoptAction action = trap_request_action(trap_request);
 #ifdef GRAAL
-    short debug_id = trap_request_debug_id(trap_request);
+    int debug_id = trap_request_debug_id(trap_request);
 #endif
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
@@ -2038,7 +2038,7 @@ const char* Deoptimization::format_trap_request(char* buf, size_t buflen,
   const char* reason = trap_reason_name(trap_request_reason(trap_request));
   const char* action = trap_action_name(trap_request_action(trap_request));
 #ifdef GRAAL
-  short debug_id = trap_request_debug_id(trap_request);
+  int debug_id = trap_request_debug_id(trap_request);
 #endif
   size_t len;
   if (unloaded_class_index < 0) {
