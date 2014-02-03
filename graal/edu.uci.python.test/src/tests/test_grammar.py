@@ -20,37 +20,28 @@ class TokenTests(unittest.TestCase):
         # Backslash means line continuation:
         x = 1 \
         + 1
-        #self.assertEqual(x, 2, 'backslash for line continuation')
         self.assertEqual(x, 2, 'backslash for line continuation')
 
         # Backslash does not means continuation in comments :\
         x = 0
-        #self.assertEquals(x, 0, 'backslash ending comment')
-        self.assertEqual(x, 0, 'backslash ending comment')
+        self.assertEquals(x, 0, 'backslash ending comment')
 
     def testPlainIntegers(self):
         #self.assertEquals(type(000), type(0))
         #self.assertEqual(type(000), type(0))
-        #self.assertEquals(0xff, 255)
-        self.assertEqual(0xff, 255)
-        #self.assertEquals(0o377, 255)
-        self.assertEqual(0o377, 255)
-        #self.assertEquals(2147483647, 0o17777777777)
-        self.assertEqual(2147483647, 0o17777777777)
-        #self.assertEquals(0b1001, 9)
-        self.assertEqual(0b1001, 9)
+        self.assertEquals(0xff, 255)
+        self.assertEquals(0o377, 255)
+        self.assertEquals(2147483647, 0o17777777777)
+        self.assertEquals(0b1001, 9)
         # "0x" is not a valid literal
         #self.assertRaises(SyntaxError, eval, "0x")
         from sys import maxsize
         if maxsize == 2147483647:
             self.assertEquals(-2147483647-1, -0o20000000000)
             # XXX -2147483648
-            #self.assert_(0o37777777777 > 0)
-            self.assertTrue(0o37777777777 > 0)
-            #self.assert_(0xffffffff > 0)
-            self.assertTrue(0xffffffff > 0)
-            #self.assert_(0b1111111111111111111111111111111 > 0)
-            self.assertTrue(0b1111111111111111111111111111111 > 0)
+            self.assert_(0o37777777777 > 0)
+            self.assert_(0xffffffff > 0)
+            self.assert_(0b1111111111111111111111111111111 > 0)
 #             for s in ('2147483648', '0o40000000000', '0x100000000',
 #                       '0b10000000000000000000000000000000'):
 #                 try:
@@ -58,12 +49,9 @@ class TokenTests(unittest.TestCase):
 #                 except OverflowError:
 #                     self.fail("OverflowError on huge integer literal %r" % s)
         elif maxsize == 9223372036854775807:
-            #self.assertEquals(-9223372036854775807-1, -0o1000000000000000000000)
-            self.assertEqual(-9223372036854775807-1, -0o1000000000000000000000)
-            #self.assert_(0o1777777777777777777777 > 0)
-            self.assertTrue(0o1777777777777777777777 > 0)
-            #self.assert_(0xffffffffffffffff > 0)
-            self.assertTrue(0xffffffffffffffff > 0)
+            self.assertEquals(-9223372036854775807-1, -0o1000000000000000000000)
+            self.assert_(0o1777777777777777777777 > 0)
+            self.assert_(0xffffffffffffffff > 0)
             #self.assert_(0b11111111111111111111111111111111111111111111111111111111111111 > 0)
 #             for s in '9223372036854775808', '0o2000000000000000000000', \
 #                      '0x10000000000000000', \
@@ -100,20 +88,15 @@ class TokenTests(unittest.TestCase):
         x = 3.1e4
  
     def testStringLiterals(self):
-        #x = ''; y = ""; self.assert_(len(x) == 0 and x == y)
-        x = ''; y = ""; self.assertTrue(len(x) == 0 and x == y)
-        #x = '\''; y = "'"; self.assert_(len(x) == 1 and x == y and ord(x) == 39)
-        x = '\''; y = "'"; self.assertTrue(len(x) == 1 and x == y and ord(x) == 39)
-        #x = '"'; y = "\""; self.assert_(len(x) == 1 and x == y and ord(x) == 34)
-        x = '"'; y = "\""; self.assertTrue(len(x) == 1 and x == y and ord(x) == 34)
+        x = ''; y = ""; self.assert_(len(x) == 0 and x == y)
+        x = '\''; y = "'"; self.assert_(len(x) == 1 and x == y and ord(x) == 39)
+        x = '"'; y = "\""; self.assert_(len(x) == 1 and x == y and ord(x) == 34)
         x = "doesn't \"shrink\" does it"
         y = 'doesn\'t "shrink" does it'
-        #self.assert_(len(x) == 24 and x == y)
-        self.assertTrue(len(x) == 24 and x == y)
+        self.assert_(len(x) == 24 and x == y)
         x = "does \"shrink\" doesn't it"
         y = 'does "shrink" doesn\'t it'
-        #self.assert_(len(x) == 24 and x == y)
-        self.assertTrue(len(x) == 24 and x == y)
+        self.assert_(len(x) == 24 and x == y)
 #         x = """
 # The "quick"
 # brown fox

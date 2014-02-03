@@ -39,6 +39,17 @@ import edu.uci.python.shell.*;
 
 public class PythonTests {
 
+    public static void assertPrintContains(String expected, String code) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        PythonContext context = getContext(printStream, System.err);
+        Source source = context.getSourceManager().get("(test)", code);
+        RunScript.runScript(new String[0], source, context);
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertTrue(result.contains(expected));
+    }
+
     public static void assertPrints(String expected, String code) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
