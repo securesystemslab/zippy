@@ -26,8 +26,6 @@ package edu.uci.python.nodes.call;
 
 import static com.oracle.truffle.api.CompilerDirectives.*;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -74,6 +72,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             Object[] args = CallFunctionNode.executeArguments(frame, arguments);
             return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         } else {
+            if (PythonOptions.TraceJythonRuntime) {
+                // CheckStyle: stop system..print check
+                System.out.println("[ZipPy]: calling jython runtime function " + callee);
+                // CheckStyle: resume system..print check
+            }
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
             replace(callFunction);
             return callFunction.execute(frame);

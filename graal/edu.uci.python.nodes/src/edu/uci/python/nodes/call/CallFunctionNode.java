@@ -98,12 +98,6 @@ public abstract class CallFunctionNode extends PNode {
 
     @Specialization
     public Object doPyObject(VirtualFrame frame, PyObject callee) {
-        if (PythonOptions.TraceJythonRuntime) {
-            // CheckStyle: stop system..print check
-            System.out.println("[ZipPy]: calling jython runtime function " + callee);
-            // CheckStyle: resume system..print check
-        }
-
         Object[] args = executeArguments(frame, arguments);
         PyObject[] pyargs = adaptToPyObjects(args);
         return unboxPyObject(callee.__call__(pyargs));
