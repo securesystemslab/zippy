@@ -53,7 +53,7 @@ public class PythonOptions {
 
     public static final boolean UnboxSequenceIteration = true;
 
-    public static final boolean IntrinsifyBuiltinCalls = false;
+    public static final boolean IntrinsifyBuiltinCalls = true;
 
     // Generators
     public static boolean InlineGeneratorCalls = true;

@@ -66,6 +66,10 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
             yield.replace(ParallelYieldNode.create(yield.getRhs()));
         }
 
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator(false);
+        }
+
         RootNode parallelRoot = new FunctionRootNode(context, name, frameDescriptor, parallelBody);
         return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
