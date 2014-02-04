@@ -36,19 +36,11 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorForNode;
     private final CallTarget parallelCallTarget;
 
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
+    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
+                    CallTarget parallelCallTarget, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
-        this.parallelCallTarget = null;
-    }
-
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, CallTarget parallelCallTarget) {
-        super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
-        assert PythonOptions.ParallelizeGeneratorCalls;
-        this.numOfGeneratorBlockNode = 0;
-        this.numOfGeneratorForNode = 0;
         this.parallelCallTarget = parallelCallTarget;
     }
 
@@ -65,6 +57,11 @@ public final class PGeneratorFunction extends PFunction {
         if (PythonOptions.ParallelizeGeneratorCalls) {
             assert parallelCallTarget != null;
             PParallelGenerator generator = PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
+
+            if (PythonOptions.ProfileGeneratorCalls) {
+                context.getStandardOut().println("[ZipPy] create parallel generator " + generator);
+            }
+
             return generator;
         } else {
             return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);

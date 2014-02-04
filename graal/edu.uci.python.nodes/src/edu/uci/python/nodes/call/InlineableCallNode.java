@@ -61,12 +61,20 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
     }
 
     public void invokeGeneratorExpressionOptimizer() {
+        if (!PythonOptions.OptimizeGeneratorExpressions) {
+            return;
+        }
+
         RootNode current = getRootNode();
         assert current != null;
         new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
     }
 
     public void invokeBuiltinIntrinsifier(CallBuiltinInlinedNode inlinedCall) {
+        if (!PythonOptions.IntrinsifyBuiltinCalls) {
+            return;
+        }
+
         new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged, inlinedCall).intrinsify();
     }
 

@@ -52,9 +52,9 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
 
         if (PythonOptions.ParallelizeGeneratorCalls) {
-            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, createParallelCallTarget());
+            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, createParallelCallTarget(), numOfGeneratorBlockNode, numOfGeneratorForNode);
         } else {
-            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 
