@@ -26,6 +26,8 @@ package edu.uci.python.nodes.call;
 
 import static com.oracle.truffle.api.CompilerDirectives.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -52,6 +54,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
     public Object execute(VirtualFrame frame) {
         transferToInterpreterAndInvalidate();
         Object calleeObj = callee.execute(frame);
+
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
@@ -63,7 +66,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
                 replace(callFunction);
-                return callFunction.doPythonCallable(frame, callable);
+                return callFunction.execute(frame);
             }
         } else if (calleeObj instanceof PythonClass) {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
@@ -73,7 +76,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         } else {
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
             replace(callFunction);
-            return callFunction.doGeneric(frame, calleeObj);
+            return callFunction.execute(frame);
         }
     }
 
