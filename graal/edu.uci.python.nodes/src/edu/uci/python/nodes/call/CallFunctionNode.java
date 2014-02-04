@@ -74,43 +74,39 @@ public abstract class CallFunctionNode extends PNode {
     }
 
     @Specialization
+    public Object doPythonObject(VirtualFrame frame, PythonObject callee) {
+        /**
+         * Calls __call__() method of an object if it exists. Otherwise, throws a type error
+         */
+        Object[] args = executeArguments(frame, arguments);
+        PKeyword[] kwords = executeKeywordArguments(frame, keywords);
+        Object callAttribute = callee.getAttribute("__call__");
+
+        if (callAttribute instanceof PFunction) {
+            PFunction callFunction = (PFunction) callAttribute;
+            PMethod callMethod = CallAttributeNode.createPMethodFor(callee, callFunction);
+            if (keywords.length == 0) {
+                return callMethod.call(frame.pack(), args);
+            } else {
+                return callMethod.call(frame.pack(), args, kwords);
+
+            }
+        } else {
+            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+        }
+    }
+
+    @Specialization
     public Object doPyObject(VirtualFrame frame, PyObject callee) {
         Object[] args = executeArguments(frame, arguments);
         PyObject[] pyargs = adaptToPyObjects(args);
         return unboxPyObject(callee.__call__(pyargs));
     }
 
+    @SuppressWarnings("unused")
     @Generic
     public Object doGeneric(VirtualFrame frame, Object callee) {
-        Object[] args = executeArguments(frame, arguments);
-
-        if (callee instanceof PythonClass) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            return specialized.callConstructor(frame, (PythonClass) callee, args);
-        } else if (callee instanceof PythonObject) {
-            PythonObject pobject = (PythonObject) callee;
-            Object callAttribute = pobject.getAttribute("__call__");
-            if (callAttribute instanceof PFunction) {
-                PFunction callFunction = (PFunction) callAttribute;
-                PMethod callMethod = CallAttributeNode.createPMethodFor(pobject, callFunction);
-                return callMethod.call(frame.pack(), args);
-            } else {
-                throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-            }
-        } else if (callee instanceof PyObject) {
-            if (PythonOptions.TraceJythonRuntime) {
-                // CheckStyle: stop system..print check
-                // System.out.println("[ZipPy]: calling jython runtime function " + callee);
-                // CheckStyle: resume system..print check
-            }
-
-            PyObject[] pyargs = adaptToPyObjects(args);
-            PyObject pyCallable = (PyObject) callee;
-            return unboxPyObject(pyCallable.__call__(pyargs));
-        } else {
-            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-        }
+        throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
     }
 
     @ExplodeLoop
@@ -139,4 +135,5 @@ public abstract class CallFunctionNode extends PNode {
     public String toString() {
         return getClass().getSimpleName() + "(callee=" + getCallee() + ")";
     }
+
 }
