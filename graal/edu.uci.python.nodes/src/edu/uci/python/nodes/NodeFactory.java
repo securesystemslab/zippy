@@ -466,6 +466,10 @@ public class NodeFactory {
         return new AssertNode(condition, message);
     }
 
+    public StatementNode createWithNode(PythonContext context, PNode withContext, PNode asName, BlockNode body) {
+        return WithNode.create(context, withContext, asName, body);
+    }
+
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
