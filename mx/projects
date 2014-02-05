@@ -184,7 +184,7 @@ project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
 project@com.oracle.graal.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.ffi.amd64,com.oracle.graal.replacements.amd64
+project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.nfi.hotspot.amd64,com.oracle.graal.replacements.amd64
 project@com.oracle.graal.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
@@ -651,21 +651,21 @@ project@com.oracle.graal.asm.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.sparc@javaCompliance=1.7
 project@com.oracle.graal.asm.sparc@workingSets=Graal,Assembler,SPARC
 
-# graal.ffi.amd64
-project@com.oracle.graal.ffi.amd64@subDir=graal
-project@com.oracle.graal.ffi.amd64@sourceDirs=src
-project@com.oracle.graal.ffi.amd64@dependencies=com.oracle.graal.compiler.amd64,com.oracle.graal.hotspot
-project@com.oracle.graal.ffi.amd64@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.ffi.amd64@javaCompliance=1.7
-project@com.oracle.graal.ffi.amd64.test@workingSets=Graal,AMD64
+# graal.nfi.hotspot.amd64
+project@com.oracle.graal.nfi.hotspot.amd64@subDir=graal
+project@com.oracle.graal.nfi.hotspot.amd64@sourceDirs=src
+project@com.oracle.graal.nfi.hotspot.amd64@dependencies=com.oracle.graal.compiler.amd64,com.oracle.graal.hotspot
+project@com.oracle.graal.nfi.hotspot.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nfi.hotspot.amd64@javaCompliance=1.7
+project@com.oracle.graal.nfi.hotspot.amd64@workingSets=Graal,AMD64
 
-# graal.ffi.amd64.test
-project@com.oracle.graal.ffi.amd64.test@subDir=graal
-project@com.oracle.graal.ffi.amd64.test@sourceDirs=test
-project@com.oracle.graal.ffi.amd64.test@dependencies=JUNIT,com.oracle.graal.runtime
-project@com.oracle.graal.ffi.amd64.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.ffi.amd64.test@javaCompliance=1.7
-project@com.oracle.graal.ffi.amd64.test@workingSets=Graal,AMD64,Test
+# graal.nfi.test
+project@com.oracle.graal.nfi.test@subDir=graal
+project@com.oracle.graal.nfi.test@sourceDirs=test
+project@com.oracle.graal.nfi.test@dependencies=JUNIT,com.oracle.graal.runtime
+project@com.oracle.graal.nfi.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nfi.test@javaCompliance=1.7
+project@com.oracle.graal.nfi.test@workingSets=Graal,Test
 
 # truffle.api
 project@com.oracle.truffle.api@subDir=graal
