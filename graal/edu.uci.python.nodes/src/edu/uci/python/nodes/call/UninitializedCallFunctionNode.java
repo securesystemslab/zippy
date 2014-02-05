@@ -76,7 +76,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         } else {
             if ((calleeObj instanceof PyObject) && (PythonOptions.TraceJythonRuntime)) {
                 // CheckStyle: stop system..print check
-                System.out.println("[ZipPy]: calling jython runtime function " + callee);
+                System.out.println("[ZipPy]: calling jython runtime function " + calleeObj);
                 // CheckStyle: resume system..print check
             }
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);

@@ -104,16 +104,14 @@ class TokenTests(unittest.TestCase):
 # the 'lazy' dog.
 # """
 #         y = '\nThe "quick"\nbrown fox\njumps over\nthe \'lazy\' dog.\n'
-#         #self.assertEquals(x, y)
-#         self.assertEqual(x, y)
+#         self.assertEquals(x, y)
 #         y = '''
 # The "quick"
 # brown fox
 # jumps over
 # the 'lazy' dog.
 # '''
-        #self.assertEquals(x, y)
-#         self.assertEqual(x, y)
+#        self.assertEquals(x, y)
 #         y = "\n\
 # The \"quick\"\n\
 # brown fox\n\
@@ -121,7 +119,6 @@ class TokenTests(unittest.TestCase):
 # the 'lazy' dog.\n\
 #"
 #        self.assertEquals(x, y)
-#         self.assertEqual(x, y)
 #         y = '\n\
 # The \"quick\"\n\
 # brown fox\n\
@@ -129,14 +126,13 @@ class TokenTests(unittest.TestCase):
 # the \'lazy\' dog.\n\
 #'
 #        self.assertEquals(x, y)
-#        self.assertEqual(x, y)
 
 #     def testEllipsis(self):
 #         x = ...
 #         self.assert_(x is Ellipsis)
 #         self.assertRaises(SyntaxError, eval, ".. .")
 
-# class GrammarTests(unittest.TestCase):
+class GrammarTests(unittest.TestCase):
 # 
 #     # single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
 #     # XXX can't test in a script -- this rule is only used when interactive
@@ -151,7 +147,7 @@ class TokenTests(unittest.TestCase):
 #         # testlist ENDMARKER
 #         x = eval('1, 0 or 1')
 # 
-#     def testFuncdef(self):
+    def testFuncdef(self):
 #         ### [decorators] 'def' NAME parameters ['->' test] ':' suite
 #         ### decorator: '@' dotted_name [ '(' [arglist] ')' ] NEWLINE
 #         ### decorators: decorator+
@@ -164,12 +160,12 @@ class TokenTests(unittest.TestCase):
 #         ###              ('*' [vfpdef] (',' vfpdef ['=' test])*  [',' '**' vfpdef] | '**' vfpdef)
 #         ###              | vfpdef ['=' test] (',' vfpdef ['=' test])* [','])
 #         ### vfpdef: NAME
-#         def f1(): pass
-#         f1()
+        def f1(): pass
+        f1()
 #         f1(*())
 #         f1(*(), **{})
-#         def f2(one_argument): pass
-#         def f3(two, arguments): pass
+        def f2(one_argument): pass
+        def f3(two, arguments): pass
 #         self.assertEquals(f2.__code__.co_varnames, ('one_argument',))
 #         self.assertEquals(f3.__code__.co_varnames, ('two', 'arguments'))
 #         def a1(one_arg,): pass
@@ -178,11 +174,11 @@ class TokenTests(unittest.TestCase):
 #         def v1(a, *rest): pass
 #         def v2(a, b, *rest): pass
 # 
-#         f1()
-#         f2(1)
-#         f2(1,)
-#         f3(1, 2)
-#         f3(1, 2,)
+        f1()
+        f2(1)
+        f2(1,)
+        f3(1, 2)
+        f3(1, 2,)
 #         v0()
 #         v0(1)
 #         v0(1,)
@@ -198,38 +194,38 @@ class TokenTests(unittest.TestCase):
 #         v2(1,2,3,4)
 #         v2(1,2,3,4,5,6,7,8,9,0)
 # 
-#         def d01(a=1): pass
-#         d01()
-#         d01(1)
+        def d01(a=1): pass
+        d01()
+        d01(1)
 #         d01(*(1,))
 #         d01(**{'a':2})
-#         def d11(a, b=1): pass
-#         d11(1)
-#         d11(1, 2)
+        def d11(a, b=1): pass
+        d11(1)
+        d11(1, 2)
 #         d11(1, **{'b':2})
-#         def d21(a, b, c=1): pass
-#         d21(1, 2)
-#         d21(1, 2, 3)
+        def d21(a, b, c=1): pass
+        d21(1, 2)
+        d21(1, 2, 3)
 #         d21(*(1, 2, 3))
 #         d21(1, *(2, 3))
 #         d21(1, 2, *(3,))
 #         d21(1, 2, **{'c':3})
-#         def d02(a=1, b=2): pass
-#         d02()
-#         d02(1)
-#         d02(1, 2)
+        def d02(a=1, b=2): pass
+        d02()
+        d02(1)
+        d02(1, 2)
 #         d02(*(1, 2))
 #         d02(1, *(2,))
 #         d02(1, **{'b':2})
 #         d02(**{'a': 1, 'b': 2})
-#         def d12(a, b=1, c=2): pass
-#         d12(1)
-#         d12(1, 2)
-#         d12(1, 2, 3)
-#         def d22(a, b, c=1, d=2): pass
-#         d22(1, 2)
-#         d22(1, 2, 3)
-#         d22(1, 2, 3, 4)
+        def d12(a, b=1, c=2): pass
+        d12(1)
+        d12(1, 2)
+        d12(1, 2, 3)
+        def d22(a, b, c=1, d=2): pass
+        d22(1, 2)
+        d22(1, 2, 3)
+        d22(1, 2, 3, 4)
 #         def d01v(a=1, *rest): pass
 #         d01v()
 #         d01v(1)
@@ -354,32 +350,32 @@ class TokenTests(unittest.TestCase):
 #         self.assertEquals(l6(1,2,k=10), 1+2+10)
 # 
 # 
-#     ### stmt: simple_stmt | compound_stmt
-#     # Tested below
-# 
-#     def testSimpleStmt(self):
-#         ### simple_stmt: small_stmt (';' small_stmt)* [';']
-#         x = 1; pass; del x
-#         def foo():
-#             # verify statments that end with semi-colons
-#             x = 1; pass; del x;
-#         foo()
-# 
-#     ### small_stmt: expr_stmt | pass_stmt | del_stmt | flow_stmt | import_stmt | global_stmt | access_stmt
-#     # Tested below
-# 
-#     def testExprStmt(self):
-#         # (exprlist '=')* exprlist
-#         1
-#         1, 2, 3
-#         x = 1
-#         x = 1, 2, 3
-#         x = y = z = 1, 2, 3
-#         x, y, z = 1, 2, 3
-#         abc = a, b, c = x, y, z = xyz = 1, 2, (3, 4)
-# 
-#         check_syntax_error(self, "x + 1 = 1")
-#         check_syntax_error(self, "a + 1 = b + 2")
+    ### stmt: simple_stmt | compound_stmt
+    # Tested below
+ 
+    def testSimpleStmt(self):
+        ### simple_stmt: small_stmt (';' small_stmt)* [';']
+        x = 1; pass; del x
+        def foo():
+            # verify statments that end with semi-colons
+            x = 1; pass; del x;
+        foo()
+ 
+    ### small_stmt: expr_stmt | pass_stmt | del_stmt | flow_stmt | import_stmt | global_stmt | access_stmt
+    # Tested below
+ 
+    def testExprStmt(self):
+        # (exprlist '=')* exprlist
+        1
+        1, 2, 3
+        x = 1
+        x = 1, 2, 3
+        x = y = z = 1, 2, 3
+        x, y, z = 1, 2, 3
+        #abc = a, b, c = x, y, z = xyz = 1, 2, (3, 4)
+ 
+        #check_syntax_error(self, "x + 1 = 1")
+        #check_syntax_error(self, "a + 1 = b + 2")
 # 
 #     def testDelStmt(self):
 #         # 'del' exprlist
@@ -390,43 +386,43 @@ class TokenTests(unittest.TestCase):
 #         del abc
 #         del x, y, (z, xyz)
 # 
-#     def testPassStmt(self):
-#         # 'pass'
-#         pass
-# 
-#     # flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt
-#     # Tested below
-# 
-#     def testBreakStmt(self):
-#         # 'break'
-#         while 1: break
-# 
-#     def testContinueStmt(self):
-#         # 'continue'
-#         i = 1
-#         while i: i = 0; continue
-# 
-#         msg = ""
-#         while not msg:
-#             msg = "ok"
-#             try:
-#                 continue
-#                 msg = "continue failed to continue inside try"
-#             except:
-#                 msg = "continue inside try called except block"
-#         if msg != "ok":
-#             self.fail(msg)
-# 
-#         msg = ""
-#         while not msg:
-#             msg = "finally block not called"
-#             try:
-#                 continue
-#             finally:
-#                 msg = "ok"
-#         if msg != "ok":
-#             self.fail(msg)
-# 
+    def testPassStmt(self):
+        # 'pass'
+        pass
+ 
+    # flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt
+    # Tested below
+ 
+    def testBreakStmt(self):
+        # 'break'
+        while 1: break
+ 
+    def testContinueStmt(self):
+        # 'continue'
+        i = 1
+        while i: i = 0; continue
+ 
+        msg = ""
+        while not msg:
+            msg = "ok"
+            try:
+                continue
+                msg = "continue failed to continue inside try"
+            except:
+                msg = "continue inside try called except block"
+        if msg != "ok":
+            self.fail(msg)
+ 
+        msg = ""
+        while not msg:
+            msg = "finally block not called"
+            try:
+                continue
+            finally:
+                msg = "ok"
+        if msg != "ok":
+            self.fail(msg)
+ 
 #     def test_break_continue_loop(self):
 #         # This test warrants an explanation. It is a test specifically for SF bugs
 #         # #463359 and #462937. The bug is that a 'break' statement executed or
@@ -436,7 +432,7 @@ class TokenTests(unittest.TestCase):
 #         # a very small number (usually 0.) Because of this, the following test
 #         # *must* written as a function, and the tracking vars *must* be function
 #         # arguments with default values. Otherwise, the test will loop and loop.
-# 
+#  
 #         def test_inner(extra_burning_oil = 1, count=0):
 #             big_hippo = 2
 #             while big_hippo:
@@ -452,44 +448,44 @@ class TokenTests(unittest.TestCase):
 #             if count > 2 or big_hippo != 1:
 #                 self.fail("continue then break in try/except in loop broken!")
 #         test_inner()
-# 
-#     def testReturn(self):
-#         # 'return' [testlist]
-#         def g1(): return
-#         def g2(): return 1
-#         g1()
-#         x = g2()
+ 
+    def testReturn(self):
+        # 'return' [testlist]
+        def g1(): return
+        def g2(): return 1
+        g1()
+        x = g2()
 #         check_syntax_error(self, "class foo:return 1")
-# 
+ 
 #     def testYield(self):
 #         check_syntax_error(self, "class foo:yield 1")
-# 
-#     def testRaise(self):
-#         # 'raise' test [',' test]
-#         try: raise RuntimeError('just testing')
-#         except RuntimeError: pass
-#         try: raise KeyboardInterrupt
-#         except KeyboardInterrupt: pass
-# 
-#     def testImport(self):
-#         # 'import' dotted_as_names
-#         import sys
-#         import time, sys
-#         # 'from' dotted_name 'import' ('*' | '(' import_as_names ')' | import_as_names)
-#         from time import time
-#         from time import (time)
-#         # not testable inside a function, but already done at top of the module
-#         # from sys import *
-#         from sys import path, argv
-#         from sys import (path, argv)
-#         from sys import (path, argv,)
-# 
-#     def testGlobal(self):
-#         # 'global' NAME (',' NAME)*
-#         global a
-#         global a, b
-#         global one, two, three, four, five, six, seven, eight, nine, ten
-# 
+ 
+    def testRaise(self):
+        # 'raise' test [',' test]
+        try: raise RuntimeError('just testing')
+        except RuntimeError: pass
+        try: raise KeyboardInterrupt
+        except KeyboardInterrupt: pass
+ 
+    def testImport(self):
+        # 'import' dotted_as_names
+        import sys
+        import time, sys
+        # 'from' dotted_name 'import' ('*' | '(' import_as_names ')' | import_as_names)
+        from time import time
+        from time import (time)
+        # not testable inside a function, but already done at top of the module
+        # from sys import *
+        from sys import path, argv
+        from sys import (path, argv)
+        from sys import (path, argv,)
+ 
+    def testGlobal(self):
+        # 'global' NAME (',' NAME)*
+        global a
+        global a, b
+        global one, two, three, four, five, six, seven, eight, nine, ten
+ 
 #     def testNonlocal(self):
 #         # 'nonlocal' NAME (',' NAME)*
 #         x = 0
@@ -512,37 +508,37 @@ class TokenTests(unittest.TestCase):
 #             if __debug__:
 #                 self.fail("AssertionError not raised by assert 0")
 # 
-#     ### compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | funcdef | classdef
-#     # Tested below
-# 
-#     def testIf(self):
-#         # 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
-#         if 1: pass
-#         if 1: pass
-#         else: pass
-#         if 0: pass
-#         elif 0: pass
-#         if 0: pass
-#         elif 0: pass
-#         elif 0: pass
-#         elif 0: pass
-#         else: pass
-# 
-#     def testWhile(self):
-#         # 'while' test ':' suite ['else' ':' suite]
-#         while 0: pass
-#         while 0: pass
-#         else: pass
-# 
-#         # Issue1920: "while 0" is optimized away,
-#         # ensure that the "else" clause is still present.
-#         x = 0
-#         while 0:
-#             x = 1
-#         else:
-#             x = 2
-#         self.assertEquals(x, 2)
-# 
+    ### compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | funcdef | classdef
+    # Tested below
+ 
+    def testIf(self):
+        # 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
+        if 1: pass
+        if 1: pass
+        else: pass
+        if 0: pass
+        elif 0: pass
+        if 0: pass
+        elif 0: pass
+        elif 0: pass
+        elif 0: pass
+        else: pass
+ 
+    def testWhile(self):
+        # 'while' test ':' suite ['else' ':' suite]
+        while 0: pass
+        while 0: pass
+        else: pass
+ 
+        # Issue1920: "while 0" is optimized away,
+        # ensure that the "else" clause is still present.
+        x = 0
+        while 0:
+            x = 1
+        else:
+            x = 2
+        self.assertEquals(x, 2)
+ 
 #     def testFor(self):
 #         # 'for' exprlist 'in' exprlist ':' suite ['else' ':' suite]
 #         for i in 1, 2, 3: pass
@@ -564,7 +560,7 @@ class TokenTests(unittest.TestCase):
 #         for x in Squares(10): n = n+x
 #         if n != 285:
 #             self.fail('for over growing sequence')
-# 
+#  
 #         result = []
 #         for x, in [(1,), (2,), (3,)]:
 #             result.append(x)
@@ -592,83 +588,83 @@ class TokenTests(unittest.TestCase):
 #         except (EOFError, TypeError, ZeroDivisionError) as msg: pass
 #         try: pass
 #         finally: pass
-# 
-#     def testSuite(self):
-#         # simple_stmt | NEWLINE INDENT NEWLINE* (stmt NEWLINE*)+ DEDENT
-#         if 1: pass
-#         if 1:
-#             pass
-#         if 1:
-#             #
-#             #
-#             #
-#             pass
-#             pass
-#             #
-#             pass
-#             #
-# 
-#     def testTest(self):
-#         ### and_test ('or' and_test)*
-#         ### and_test: not_test ('and' not_test)*
-#         ### not_test: 'not' not_test | comparison
-#         if not 1: pass
-#         if 1 and 1: pass
-#         if 1 or 1: pass
-#         if not not not 1: pass
-#         if not 1 and 1 and 1: pass
-#         if 1 and 1 or 1 and 1 and 1 or not 1 and 1: pass
-# 
-#     def testComparison(self):
-#         ### comparison: expr (comp_op expr)*
-#         ### comp_op: '<'|'>'|'=='|'>='|'<='|'!='|'in'|'not' 'in'|'is'|'is' 'not'
-#         if 1: pass
-#         x = (1 == 1)
-#         if 1 == 1: pass
-#         if 1 != 1: pass
-#         if 1 < 1: pass
-#         if 1 > 1: pass
-#         if 1 <= 1: pass
-#         if 1 >= 1: pass
-#         if 1 is 1: pass
-#         if 1 is not 1: pass
-#         if 1 in (): pass
-#         if 1 not in (): pass
-#         if 1 < 1 > 1 == 1 >= 1 <= 1 != 1 in 1 not in 1 is 1 is not 1: pass
-# 
-#     def testBinaryMaskOps(self):
-#         x = 1 & 1
-#         x = 1 ^ 1
-#         x = 1 | 1
-# 
-#     def testShiftOps(self):
-#         x = 1 << 1
-#         x = 1 >> 1
-#         x = 1 << 1 >> 1
-# 
-#     def testAdditiveOps(self):
-#         x = 1
-#         x = 1 + 1
-#         x = 1 - 1 - 1
-#         x = 1 - 1 + 1 - 1 + 1
-# 
-#     def testMultiplicativeOps(self):
-#         x = 1 * 1
-#         x = 1 / 1
-#         x = 1 % 1
-#         x = 1 / 1 * 1 % 1
-# 
-#     def testUnaryOps(self):
-#         x = +1
-#         x = -1
-#         x = ~1
-#         x = ~1 ^ 1 & 1 | 1 & 1 ^ -1
-#         x = -1*1/1 + 1*1 - ---1*1
-# 
+ 
+    def testSuite(self):
+        # simple_stmt | NEWLINE INDENT NEWLINE* (stmt NEWLINE*)+ DEDENT
+        if 1: pass
+        if 1:
+            pass
+        if 1:
+            #
+            #
+            #
+            pass
+            pass
+            #
+            pass
+            #
+ 
+    def testTest(self):
+        ### and_test ('or' and_test)*
+        ### and_test: not_test ('and' not_test)*
+        ### not_test: 'not' not_test | comparison
+        if not 1: pass
+        if 1 and 1: pass
+        if 1 or 1: pass
+        if not not not 1: pass
+        if not 1 and 1 and 1: pass
+        if 1 and 1 or 1 and 1 and 1 or not 1 and 1: pass
+ 
+    def testComparison(self):
+        ### comparison: expr (comp_op expr)*
+        ### comp_op: '<'|'>'|'=='|'>='|'<='|'!='|'in'|'not' 'in'|'is'|'is' 'not'
+        if 1: pass
+        x = (1 == 1)
+        if 1 == 1: pass
+        if 1 != 1: pass
+        if 1 < 1: pass
+        if 1 > 1: pass
+        if 1 <= 1: pass
+        if 1 >= 1: pass
+        if 1 is 1: pass
+        if 1 is not 1: pass
+        if 1 in (): pass
+        if 1 not in (): pass
+        #if 1 < 1 > 1 == 1 >= 1 <= 1 != 1 in 1 not in 1 is 1 is not 1: pass
+ 
+    def testBinaryMaskOps(self):
+        x = 1 & 1
+        x = 1 ^ 1
+        x = 1 | 1
+ 
+    def testShiftOps(self):
+        x = 1 << 1
+        x = 1 >> 1
+        x = 1 << 1 >> 1
+ 
+    def testAdditiveOps(self):
+        x = 1
+        x = 1 + 1
+        x = 1 - 1 - 1
+        x = 1 - 1 + 1 - 1 + 1
+ 
+    def testMultiplicativeOps(self):
+        x = 1 * 1
+        x = 1 / 1
+        x = 1 % 1
+        x = 1 / 1 * 1 % 1
+ 
+    def testUnaryOps(self):
+        x = +1
+        x = -1
+        x = ~1
+        x = ~1 ^ 1 & 1 | 1 & 1 ^ -1
+        x = -1*1/1 + 1*1 - ---1*1
+ 
 #     def testSelectors(self):
 #         ### trailer: '(' [testlist] ')' | '[' subscript ']' | '.' NAME
 #         ### subscript: expr | [expr] ':' [expr]
-# 
+#  
 #         import sys, time
 #         c = sys.path[0]
 #         x = time.time()
@@ -695,37 +691,37 @@ class TokenTests(unittest.TestCase):
 #         L.sort(key=lambda x: x if isinstance(x, tuple) else ())
 #         self.assertEquals(str(L), '[1, (1,), (1, 2), (1, 2, 3)]')
 # 
-#     def testAtoms(self):
-#         ### atom: '(' [testlist] ')' | '[' [testlist] ']' | '{' [dictsetmaker] '}' | NAME | NUMBER | STRING
-#         ### dictsetmaker: (test ':' test (',' test ':' test)* [',']) | (test (',' test)* [','])
-# 
-#         x = (1)
-#         x = (1 or 2 or 3)
-#         x = (1 or 2 or 3, 2, 3)
-# 
-#         x = []
-#         x = [1]
-#         x = [1 or 2 or 3]
-#         x = [1 or 2 or 3, 2, 3]
-#         x = []
-# 
-#         x = {}
-#         x = {'one': 1}
-#         x = {'one': 1,}
+    def testAtoms(self):
+        ### atom: '(' [testlist] ')' | '[' [testlist] ']' | '{' [dictsetmaker] '}' | NAME | NUMBER | STRING
+        ### dictsetmaker: (test ':' test (',' test ':' test)* [',']) | (test (',' test)* [','])
+ 
+        x = (1)
+        x = (1 or 2 or 3)
+        x = (1 or 2 or 3, 2, 3)
+ 
+        x = []
+        x = [1]
+        x = [1 or 2 or 3]
+        x = [1 or 2 or 3, 2, 3]
+        x = []
+  
+        x = {}
+        x = {'one': 1}
+        x = {'one': 1,}
 #         x = {'one' or 'two': 1 or 2}
-#         x = {'one': 1, 'two': 2}
-#         x = {'one': 1, 'two': 2,}
-#         x = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6}
-# 
-#         x = {'one'}
-#         x = {'one', 1,}
-#         x = {'one', 'two', 'three'}
-#         x = {2, 3, 4,}
-# 
-#         x = x
-#         x = 'x'
-#         x = 123
-# 
+        x = {'one': 1, 'two': 2}
+        x = {'one': 1, 'two': 2,}
+        x = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6}
+  
+        x = {'one'}
+        x = {'one', 1,}
+        x = {'one', 'two', 'three'}
+        x = {2, 3, 4,}
+  
+        x = x
+        x = 'x'
+        x = 123
+ 
 #     ### exprlist: expr (',' expr)* [',']
 #     ### testlist: test (',' test)* [',']
 #     # These have been exercised enough above
@@ -828,7 +824,7 @@ class TokenTests(unittest.TestCase):
 #             self.fail('should produce StopIteration exception')
 #         except StopIteration:
 #             pass
-# 
+#  
 #         a = 1
 #         try:
 #             g = (a for d in a)
@@ -836,14 +832,14 @@ class TokenTests(unittest.TestCase):
 #             self.fail('should produce TypeError')
 #         except TypeError:
 #             pass
-# 
+#  
 #         self.assertEqual(list((x, y) for x in 'abcd' for y in 'abcd'), [(x, y) for x in 'abcd' for y in 'abcd'])
 #         self.assertEqual(list((x, y) for x in 'ab' for y in 'xy'), [(x, y) for x in 'ab' for y in 'xy'])
-# 
+#  
 #         a = [x for x in range(10)]
 #         b = (x for x in (y for y in a))
 #         self.assertEqual(sum(b), sum([x for x in range(10)]))
-# 
+#  
 #         self.assertEqual(sum(x**2 for x in range(10)), sum([x**2 for x in range(10)]))
 #         self.assertEqual(sum(x*x for x in range(10) if x%2), sum([x*x for x in range(10) if x%2]))
 #         self.assertEqual(sum(x for x in (y for y in range(10))), sum([x for x in range(10)]))
@@ -873,15 +869,15 @@ class TokenTests(unittest.TestCase):
 #         self.assertEqual([x for x, in [(4,), (5,), (6,)]], [4, 5, 6])
 #         self.assertEqual(list(x for x, in [(7,), (8,), (9,)]), [7, 8, 9])
 # 
-#     def testIfElseExpr(self):
-#         # Test ifelse expressions in various cases
-#         def _checkeval(msg, ret):
-#             "helper to check that evaluation of expressions is done correctly"
-#             print(x)
-#             return ret
-# 
-#         # the next line is not allowed anymore
-#         #self.assertEqual([ x() for x in lambda: True, lambda: False if x() ], [True])
+    def testIfElseExpr(self):
+        # Test ifelse expressions in various cases
+        def _checkeval(msg, ret):
+            "helper to check that evaluation of expressions is done correctly"
+            print(x)
+            return ret
+ 
+        # the next line is not allowed anymore
+        #self.assertEqual([ x() for x in lambda: True, lambda: False if x() ], [True])
 #         self.assertEqual([ x() for x in (lambda: True, lambda: False) if x() ], [True])
 #         self.assertEqual([ x(False) for x in (lambda x: False if x else True, lambda x: True if x else False) if x(False) ], [True])
 #         self.assertEqual((5 if 1 else _checkeval("check 1", 0)), 5)
