@@ -36,13 +36,13 @@ public class FunctionDefinitionNode extends PNode {
 
     protected final String name;
     protected final PythonContext context;
-    protected final CallTarget callTarget;
+    protected final RootCallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final boolean needsDeclarationFrame;
     protected final Arity arity;
     @Child protected StatementNode defaults;
 
-    public FunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
         this.name = name;
         this.context = context;
         this.callTarget = callTarget;

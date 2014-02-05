@@ -39,7 +39,7 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
 
-    public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, CallTarget callTarget, FrameDescriptor frameDescriptor,
+    public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
                     boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
@@ -59,7 +59,7 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
     }
 
     private CallTarget createParallelCallTarget() {
-        RootNode root = ((RootCallTarget) callTarget).getRootNode();
+        RootNode root = callTarget.getRootNode();
         PNode parallelBody = NodeUtil.cloneNode(((FunctionRootNode) root).getUninitializedBody());
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {

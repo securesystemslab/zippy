@@ -62,7 +62,10 @@ public class PythonOptions {
 
     public static boolean UseSimpleGeneratorInlining = false;
 
+    // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
+
+    public static final boolean ProfileGeneratorIterations = false;
 
     public static final boolean ProfileGeneratorCalls = false;
 

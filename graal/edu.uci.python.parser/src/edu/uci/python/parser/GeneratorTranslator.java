@@ -36,13 +36,17 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.*;
 
 public class GeneratorTranslator {
 
+    private PythonContext context;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
 
     public void translate(FunctionRootNode root) {
+        context = root.getContext();
+
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -104,16 +108,17 @@ public class GeneratorTranslator {
         }
     }
 
-    @SuppressWarnings("static-method")
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
+        assert context != null;
+
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(context, argumentLoads, body, returnTarget.getReturn()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.getEmptyBlock(), returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(context, BlockNode.getEmptyBlock(), returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 

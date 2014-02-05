@@ -60,8 +60,8 @@ def measure():
     print("bm-ai: " + duration)
 
 # warm up
-for i in range(5):
-    list(n_queens(8))
+for i in range(25):
+    list(n_queens(9))
 
 measure()
 
