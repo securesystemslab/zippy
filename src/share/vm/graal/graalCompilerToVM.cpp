@@ -563,7 +563,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
   set_long("rtldDefault", (jlong) RTLD_DEFAULT);
   #else 
-  set_long("rtldDefault", (jlong) 0xDEADFACE); //TODO(mg): will crash on java side, not supported!  
+  // Windows is not supported at the moment. 
+  // On Java-side we do a check on 0xDEADFACE and crash if rtldDefault == 0xDEADFACE. 
+  // Using 0 is not possible as it is a valid value for rtldDefault on some platforms.
+  set_long("rtldDefault", (jlong) 0xDEADFACE);
   #endif
 
 #undef set_boolean
