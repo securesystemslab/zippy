@@ -20,31 +20,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.test.deopt;
+package com.oracle.graal.compiler.test;
 
 import org.junit.*;
 
-import com.oracle.graal.compiler.test.*;
-import com.oracle.graal.compiler.test.ea.EATestBase.TestClassObject;
+import com.oracle.graal.compiler.test.ea.EATestBase.TestClassInt;
 
-/**
- * In the following tests, we try to deoptimize out of synchronized methods.
- */
-public class SynchronizedMethodDeoptimizationTest extends GraalCompilerTest {
-
-    public static final TestClassObject testObject = null;
-
-    public static synchronized Object testMethodSynchronized(Object o) {
-        if (o == null) {
-            // this branch will always deoptimize
-            return testObject.x;
-        }
-        return o;
-    }
+public class ShortCircuitNodeTest extends GraalCompilerTest {
 
     @Test
     public void test1() {
-        test("testMethodSynchronized", "test");
-        test("testMethodSynchronized", (Object) null);
+        // only executeActual, to avoid creating profiling information
+        executeActual(getMethod("test1Snippet"), 1, 2);
+    }
+
+    public static final TestClassInt field = null;
+    public static TestClassInt field2 = null;
+
+    @SuppressWarnings("unused")
+    public static void test1Snippet(int a, int b) {
+        /*
+         * if a ShortCircuitOrNode is created for the check inside test2, then faulty handling of
+         * guards can create a cycle in the graph.
+         */
+        int v;
+        if (a == 1) {
+            if (b != 1) {
+                int i = field.x;
+            }
+            field2 = null;
+            v = 0;
+        } else {
+            v = 1;
+        }
+
+        if (test2(v, b)) {
+            int i = field.x;
+        }
+    }
+
+    public static boolean test2(int a, int b) {
+        return a != 0 || b != 1;
     }
 }

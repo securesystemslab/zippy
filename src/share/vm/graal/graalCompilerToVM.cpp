@@ -553,7 +553,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GRAAL_COUNTERS_SIZE);
+  set_int("graalCountersSize", (jint) GraalCounterSize);
 
 #undef set_boolean
 #undef set_int
@@ -668,6 +668,9 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
     Disassembler::decode(nm, &st);
   } else {
     Disassembler::decode(cb, &st);
+  }
+  if (st.size() <= 0) {
+    return NULL;
   }
 
   Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
@@ -813,7 +816,7 @@ C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
 C2V_END
 
 C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
-  typeArrayOop arrayOop = oopFactory::new_longArray(GRAAL_COUNTERS_SIZE, CHECK_NULL);
+  typeArrayOop arrayOop = oopFactory::new_longArray(GraalCounterSize, CHECK_NULL);
   JavaThread::collect_counters(arrayOop);
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
@@ -826,6 +829,11 @@ C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_metho
   return CompileBroker::assign_compile_id(method, entry_bci);
 C2V_END
 
+
+C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_data))
+  MethodData* mdo = asMethodData(metaspace_method_data);
+  return mdo != NULL && mdo->is_mature();
+C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
@@ -846,6 +854,7 @@ C2V_END
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
 #define METASPACE_KLASS       "J"
 #define METASPACE_METHOD      "J"
+#define METASPACE_METHOD_DATA "J"
 #define METASPACE_CONSTANT_POOL "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
@@ -889,6 +898,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
   {CC"allocateCompileId",             CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
+  {CC"isMature",                      CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
 };
 
 int CompilerToVM_methods_count() {
