@@ -558,8 +558,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   //------------------------------------------------------------------------------------------------
 
-  set_long("libraryLoadAddress", (jlong) os::dll_load);
-  set_long("functionLookupAddress", (jlong) os::dll_lookup);
+  set_long("dllLoad", (jlong) os::dll_load);
+  set_long("dllLookup", (jlong) os::dll_lookup);
   #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
   set_long("rtldDefault", (jlong) RTLD_DEFAULT);
   #endif
