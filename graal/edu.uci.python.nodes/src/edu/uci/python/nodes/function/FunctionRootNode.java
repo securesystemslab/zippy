@@ -55,6 +55,10 @@ public final class FunctionRootNode extends RootNode {
         return context;
     }
 
+    public String getFunctionName() {
+        return functionName;
+    }
+
     public InlinedFunctionRootNode getInlinedRootNode() {
         return new InlinedFunctionRootNode(this);
     }

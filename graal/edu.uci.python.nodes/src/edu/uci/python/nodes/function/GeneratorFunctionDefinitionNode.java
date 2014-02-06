@@ -26,10 +26,6 @@ package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -38,40 +34,21 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
+    private final RootCallTarget parallelCallTarget;
 
     public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, StatementNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
-                    boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+                    RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
+        this.parallelCallTarget = parallelCallTarget;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-
-        if (PythonOptions.ParallelizeGeneratorCalls) {
-            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, createParallelCallTarget(), numOfGeneratorBlockNode, numOfGeneratorForNode);
-        } else {
-            return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
-        }
-    }
-
-    private CallTarget createParallelCallTarget() {
-        RootNode root = callTarget.getRootNode();
-        PNode parallelBody = NodeUtil.cloneNode(((FunctionRootNode) root).getUninitializedBody());
-
-        for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
-            yield.replace(ParallelYieldNode.create(yield.getRhs()));
-        }
-
-        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
-            genexp.setDeclarationFrameGenerator(false);
-        }
-
-        RootNode parallelRoot = new FunctionRootNode(context, name, frameDescriptor, parallelBody);
-        return Truffle.getRuntime().createCallTarget(parallelRoot);
+        return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, parallelCallTarget, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
 }

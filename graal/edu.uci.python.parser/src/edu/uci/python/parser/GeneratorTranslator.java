@@ -28,6 +28,7 @@ import java.util.*;
 
 import org.python.google.common.primitives.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -40,13 +41,17 @@ import edu.uci.python.runtime.*;
 
 public class GeneratorTranslator {
 
-    private PythonContext context;
+    private final FunctionRootNode root;
+    private final PythonContext context;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
 
-    public void translate(FunctionRootNode root) {
-        context = root.getContext();
+    public GeneratorTranslator(PythonContext context, FunctionRootNode root) {
+        this.context = context;
+        this.root = root;
+    }
 
+    public RootCallTarget translate() {
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -106,6 +111,8 @@ public class GeneratorTranslator {
                 bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray));
             }
         }
+
+        return Truffle.getRuntime().createCallTarget(root);
     }
 
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
@@ -172,6 +179,25 @@ public class GeneratorTranslator {
 
     public int getNumOfGeneratorForNode() {
         return numOfGeneratorForNode;
+    }
+
+    public RootCallTarget createParallelGeneratorCallTarget() {
+        if (!PythonOptions.ParallelizeGeneratorCalls) {
+            return null;
+        }
+
+        PNode parallelBody = NodeUtil.cloneNode(root.getUninitializedBody());
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
+            yield.replace(ParallelYieldNode.create(yield.getRhs()));
+        }
+
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator(false);
+        }
+
+        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), root.getFrameDescriptor(), parallelBody);
+        return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
 
 }
