@@ -401,8 +401,7 @@ class TestCase(object):
             #outcome.errors.append(sys.exc_info())
         
 
-    #def run(self, result=None):
-    def run(self, result):
+    def run(self, result=None):
         orig_result = result
         if result is None:
             result = self.defaultTestResult()
@@ -503,8 +502,7 @@ class TestCase(object):
         """Fail immediately, with the given message."""
         raise self.failureException(msg)
 
-    #def assertFalse(self, expr, msg=None):
-    def assertFalse(self, expr, msg):
+    def assertFalse(self, expr, msg=None):
         """Check that the expression is false."""
         if expr:
             msg = self._formatMessage(msg, "%s is not false" % safe_repr(expr))
@@ -512,8 +510,7 @@ class TestCase(object):
             raise self.assertionError
             #raise self.failureException(msg)
 
-    #def assertTrue(self, expr, msg=None):
-    def assertTrue(self, expr, msg):
+    def assertTrue(self, expr, msg=None):
         """Check that the expression is true."""
         if not expr:
             #msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
@@ -630,8 +627,7 @@ class TestCase(object):
 
         return self._baseAssertEqual
 
-    #def _baseAssertEqual(self, first, second, msg=None):
-    def _baseAssertEqual(self, first, second, msg):
+    def _baseAssertEqual(self, first, second, msg=None):
         """The default assertEqual implementation, not type specific."""
         if not first == second:
             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
@@ -640,8 +636,7 @@ class TestCase(object):
             raise self.assertionError
             #raise self.failureException(msg)
 
-    #def assertEqual(self, first, second, msg=None):
-    def assertEqual(self, first, second, msg):
+    def assertEqual(self, first, second, msg=None):
         """Fail if the two objects are unequal as determined by the '=='
            operator.
         """
@@ -649,8 +644,7 @@ class TestCase(object):
         #assertion_func(first, second, msg=msg)
         assertion_func(first, second, msg)
 
-    #def assertNotEqual(self, first, second, msg=None):
-    def assertNotEqual(self, first, second, msg):
+    def assertNotEqual(self, first, second, msg=None):
         """Fail if the two objects are equal as determined by the '=='
            operator.
         """
