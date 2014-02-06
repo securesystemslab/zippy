@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.statement;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
@@ -82,13 +84,29 @@ public class WithNode extends StatementNode {
                 exception = Py.ZeroDivisionError("divide by zero");
             }
 
+            Object returnValue = null;
+
             if (exception instanceof PyException) {
                 Object type = ((PyException) exception).type;
                 Object value = ((PyException) exception).value;
                 Object trace = ((PyException) exception).traceback;
-                exitCall.call(frame.pack(), new Object[]{type, value, trace});
+                returnValue = exitCall.call(frame.pack(), new Object[]{null, type, value, trace});
             } else if (exception == null) {
-                exitCall.call(frame.pack(), new PNode[0]);
+                returnValue = exitCall.call(frame.pack(), new PNode[0]);
+            } else {
+                throw exception;
+            }
+
+            // Corner cases:
+            if (returnValue != null) {
+                if (returnValue instanceof Boolean && ((Boolean) returnValue) == false) {
+                    throw exception;
+                }
+
+                if (returnValue instanceof Integer && ((Integer) returnValue) == 0) {
+                    throw exception;
+                }
+
             } else {
                 throw exception;
             }
