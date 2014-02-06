@@ -176,7 +176,7 @@ public class TryTests {
 
     @Test
     public void scriptTryTest() {
-        Path script = Paths.get("raise_try_test.py");
+        Path script = Paths.get("raise-try-test.py");
         assertPrints("KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause\n", script);
     }
 

@@ -33,8 +33,8 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
-import org.python.google.common.collect.*;
 
+import org.python.google.common.collect.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -880,9 +880,18 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitWith(With node) throws Exception {
-        /**
-         * TODO With node has not been implemented
-         */
-        return null;
+
+        PNode withContext = (PNode) visit(node.getInternalContext_expr());
+        PNode asName = (PNode) visit(node.getInternalOptional_vars());
+
+        asName = ((ReadNode) asName).makeWriteNode(withContext);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
+        List<PNode> b = visitStatements(node.getInternalBody());
+        BlockNode body = factory.createBlock(b);
+
+        StatementNode retVal = factory.createWithNode(context, withContext, asName, body);
+
+        environment.endScope(node);
+        return retVal;
     }
 }
