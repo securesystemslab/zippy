@@ -42,7 +42,7 @@ public class BlockNode extends StatementNode {
         this.statements = adoptChildren(statements);
     }
 
-    public PNode[] getStatements() {
+    public final PNode[] getStatements() {
         return statements;
     }
 

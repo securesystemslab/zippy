@@ -84,6 +84,10 @@ public class PArguments extends Arguments {
         return self;
     }
 
+    public final boolean hasSelfArgument() {
+        return self != null;
+    }
+
     public final Object[] getArgumentsArray() {
         return CompilerDirectives.unsafeCast(arguments, Object[].class, true);
     }
