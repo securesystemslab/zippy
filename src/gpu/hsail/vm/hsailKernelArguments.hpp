@@ -63,8 +63,8 @@ private:
     _parameter_count = ArgumentCount(signature).size();
 
     if (TraceGPUInteraction) {
-      ResourceMark rm;
-      tty->print_cr("[HSAIL] sig:%s  args length=%d, _parameter_count=%d", signature->as_C_string(), _length, _parameter_count);
+      char buf[O_BUFLEN];
+      tty->print_cr("[HSAIL] sig:%s  args length=%d, _parameter_count=%d", signature->as_C_string(buf, O_BUFLEN), _length, _parameter_count);
     }    
     if (!_is_static) {      
       // First object in args should be 'this'
