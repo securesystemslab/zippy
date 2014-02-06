@@ -63,7 +63,8 @@ private:
     _parameter_count = ArgumentCount(signature).size();
 
     if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] sig:%s  args length=%d", signature->as_C_string(), _length);
+      ResourceMark rm;
+      tty->print_cr("[HSAIL] sig:%s  args length=%d, _parameter_count=%d", signature->as_C_string(), _length, _parameter_count);
     }    
     if (!_is_static) {      
       // First object in args should be 'this'
@@ -103,6 +104,11 @@ private:
     /* TODO : To be implemented */
     guarantee(false, "do_short:NYI");
   }
+
+  bool isLastParameter() {
+      return  (_index == (_is_static ?  _parameter_count - 1 : _parameter_count));
+  }
+
 };
 
 #endif  // KERNEL_ARGUMENTS_HPP
