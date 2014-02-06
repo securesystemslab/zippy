@@ -23,6 +23,8 @@
  */
 
 #include "runtime/gpu.hpp"
+#include "ptx/vm/gpu_ptx.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "utilities/ostream.hpp"
 
 jobject gpu::probe_gpus(JNIEnv* env) {
@@ -31,7 +33,7 @@ jobject gpu::probe_gpus(JNIEnv* env) {
    * Let the CUDA driver initialization be the gate to GPU for now, pending
    * a better detection solution for NVIDA PTX and AMD HSAIL.
    */
-  if (gpu::Ptx::register_natives(env)) {
+  if (Ptx::register_natives(env)) {
     if (TraceGPUInteraction) {
       tty->print_cr("Assuming NVidia/PTX support (APPLE)");
     }

@@ -46,7 +46,7 @@ void HSAILKernelArguments::do_bool() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_boolean(_kernel, jValue.z);
+  bool pushed = Hsail::_okra_push_boolean(_kernel, jValue.z);
   assert(pushed == true, "arg push failed");
 }
 
@@ -58,7 +58,7 @@ void HSAILKernelArguments::do_byte() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_byte(_kernel, jValue.b);
+  bool pushed = Hsail::_okra_push_byte(_kernel, jValue.b);
   assert(pushed == true, "arg push failed");
 }
 
@@ -72,7 +72,7 @@ void HSAILKernelArguments::do_double() {
   if (TraceGPUInteraction) {
     tty->print_cr("[HSAIL] HSAILKernelArguments::double value = %e", jValue.d);
   }  
-  bool pushed = gpu::Hsail::_okra_push_double(_kernel, jValue.d);
+  bool pushed = Hsail::_okra_push_double(_kernel, jValue.d);
   assert(pushed == true, "arg push failed");
 }
 
@@ -86,7 +86,7 @@ void HSAILKernelArguments::do_float() {
   if (TraceGPUInteraction) {
     tty->print_cr("[HSAIL] HSAILKernelArguments::float value = %f", jValue.f);
   }    
-  bool pushed = gpu::Hsail::_okra_push_float(_kernel, jValue.f);
+  bool pushed = Hsail::_okra_push_float(_kernel, jValue.f);
   assert(pushed == true, "float push failed");
 }
 
@@ -107,7 +107,7 @@ void HSAILKernelArguments::do_int() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_int(_kernel, jValue.i);
+  bool pushed = Hsail::_okra_push_int(_kernel, jValue.i);
   assert(pushed == true, "arg push failed");
 }
 
@@ -119,7 +119,7 @@ void HSAILKernelArguments::do_long() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_long(_kernel, jValue.j);
+  bool pushed = Hsail::_okra_push_long(_kernel, jValue.j);
   assert(pushed == true, "arg push failed");  
 }
 
@@ -130,7 +130,7 @@ void HSAILKernelArguments::do_array(int begin, int end) {
     tty->print_cr("[HSAIL] HSAILKernelArguments::do_array 0x%08x, is a %s", (address) arg, arg->klass()->external_name());
   }
     
-  bool pushed = gpu::Hsail::_okra_push_object(_kernel, arg);
+  bool pushed = Hsail::_okra_push_object(_kernel, arg);
   assert(pushed == true, "arg push failed");  
 }
 
@@ -153,7 +153,7 @@ void HSAILKernelArguments::do_object() {
     tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, 0x%08x is a %s", (address) arg, arg->klass()->external_name());
   }
     
-  bool pushed = gpu::Hsail::_okra_push_object(_kernel, arg);
+  bool pushed = Hsail::_okra_push_object(_kernel, arg);
   assert(pushed == true, "arg push failed");  
 }
 
