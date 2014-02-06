@@ -43,7 +43,7 @@ public class WithTests {
 
                         "    def __exit__(self, type, value, trace):\n" + //
                         "         print(\"In __exit__()\");\n" + //
-                        "         return 5;\n" + //
+                        "         return True;\n" + //
 
                         "    def do_something(self, x):\n" + //
                         "         raise KeyboardInterrupt\n" + //
@@ -94,7 +94,7 @@ public class WithTests {
     @Test
     public void scriptTryTest() {
         Path script = Paths.get("with-test.py");
-        assertPrints("In __enter__()\nsample: Foo\nIn __exit__()\nsample: Foo\n1\n", script);
+        assertPrints("type: <type 'exceptions.ZeroDivisionError'>\nvalue: divide by zero\nException has been thrown correctly\na =  5\n", script);
     }
 
 }
