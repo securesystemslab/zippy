@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeInfo.Kind;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 
 public abstract class ReadLocalVariableNode extends ReadVariableNode {
 
@@ -114,7 +115,11 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
 
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-            return doIntUnboxed(frame, frame);
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(frame);
+            } else {
+                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+            }
         }
 
         @Override

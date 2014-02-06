@@ -60,21 +60,7 @@ public final class PGeneratorFunction extends PFunction {
     public Object call(PackedFrame caller, Object[] args) {
         if (PythonOptions.ParallelizeGeneratorCalls) {
             assert parallelCallTarget != null;
-
-            if (PythonOptions.ProfileGeneratorIterations) {
-                int count = context.getGeneratorIterationCount(getCallTarget().getRootNode().toString());
-                if (count < 100) {
-                    return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
-                }
-            }
-
-            PParallelGenerator generator = PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
-
-            if (PythonOptions.ProfileGeneratorCalls) {
-                context.getStandardOut().println("[ZipPy] create parallel generator " + generator);
-            }
-
-            return generator;
+            return makeParallelGeneratorHelper(args);
         } else {
             return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
