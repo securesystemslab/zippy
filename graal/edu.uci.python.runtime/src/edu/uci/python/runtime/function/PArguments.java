@@ -80,12 +80,12 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.ParallelGeneratorArguments.class);
     }
 
-    public Object getSelf() {
+    public final Object getSelf() {
         return self;
     }
 
-    public final boolean hasSelfArgument() {
-        return self != null;
+    public final int getArgumentsLength() {
+        return self != null ? arguments.length + 1 : arguments.length;
     }
 
     public final Object[] getArgumentsArray() {

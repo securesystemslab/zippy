@@ -35,4 +35,5 @@ public class ReadSelfArgumentNode extends PNode {
     public Object execute(VirtualFrame frame) {
         return PArguments.get(frame).getSelf();
     }
+
 }

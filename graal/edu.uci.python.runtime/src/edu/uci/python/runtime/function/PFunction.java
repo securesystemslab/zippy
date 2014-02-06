@@ -32,7 +32,6 @@ import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PFunction extends PythonBuiltinObject implements PythonCallable {
