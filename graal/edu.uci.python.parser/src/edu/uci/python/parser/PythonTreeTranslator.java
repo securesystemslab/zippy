@@ -885,7 +885,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode asName = (PNode) visit(node.getInternalOptional_vars());
 
         asName = ((ReadNode) asName).makeWriteNode(withContext);
-        environment.beginScope(node, ScopeInfo.ScopeKind.With);
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         List<PNode> b = visitStatements(node.getInternalBody());
         BlockNode body = factory.createBlock(b);
 

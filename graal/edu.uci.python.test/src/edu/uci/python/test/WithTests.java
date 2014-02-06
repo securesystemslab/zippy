@@ -93,7 +93,7 @@ public class WithTests {
 
     @Test
     public void scriptTryTest() {
-        Path script = Paths.get("with_test.py");
+        Path script = Paths.get("with-test.py");
         assertPrints("In __enter__()\nsample: Foo\nIn __exit__()\nsample: Foo\n1\n", script);
     }
 

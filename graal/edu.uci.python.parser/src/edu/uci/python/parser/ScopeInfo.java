@@ -34,7 +34,7 @@ import edu.uci.python.nodes.argument.*;
 public class ScopeInfo {
 
     public static enum ScopeKind {
-        Module, Function, Class, With,
+        Module, Function, Class,
         // generator expression or generator function
         Generator,
         // list comprehension

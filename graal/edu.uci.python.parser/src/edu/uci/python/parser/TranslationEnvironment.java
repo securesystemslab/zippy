@@ -153,7 +153,6 @@ public class TranslationEnvironment {
                 return (ReadNode) factory.createReadGlobalScope(context, pythonModule, name);
             case Generator:
             case ListComp:
-            case With:
             case Function:
                 return (ReadNode) (slot != null ? factory.createReadLocal(slot) : findVariableInEnclosingOrGlobalScope(name));
             case Class:
