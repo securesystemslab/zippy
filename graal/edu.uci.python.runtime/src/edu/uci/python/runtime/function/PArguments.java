@@ -123,6 +123,7 @@ public class PArguments extends Arguments {
 
         private final MaterializedFrame generatorFrame;
         private boolean firstEntry = true;                   // See {@link GeneratorReturnTargetNode}
+        private int iterationCount;                          // See {@link GeneratorReturnTargetNode}
         private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
@@ -143,6 +144,14 @@ public class PArguments extends Arguments {
 
         public void setFirstEntry(boolean value) {
             firstEntry = value;
+        }
+
+        public int getIterationCount() {
+            return iterationCount;
+        }
+
+        public void increaseIterationCount() {
+            iterationCount++;
         }
 
         public int getBlockIndexAt(int slot) {

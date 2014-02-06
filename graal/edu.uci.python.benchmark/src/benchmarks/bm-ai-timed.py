@@ -55,13 +55,13 @@ def n_queens(queen_count):
 def measure():
     print("Start timing...")
     start = time.time()
-    print(list(n_queens(8))[-1])
+    print(list(n_queens(10))[-1])
     duration = "%.3f\n" % (time.time() - start)
     print("bm-ai: " + duration)
 
 # warm up
-for i in range(5):
-    list(n_queens(8))
+for i in range(31):
+    list(n_queens(9))
 
 measure()
 

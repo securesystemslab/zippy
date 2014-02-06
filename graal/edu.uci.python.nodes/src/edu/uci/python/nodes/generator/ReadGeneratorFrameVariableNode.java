@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.NodeInfo.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
@@ -120,7 +121,11 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
-            return doIntUnboxed(frame, mframe);
+            if (frameSlot.getKind() == FrameSlotKind.Int) {
+                return getInteger(mframe);
+            } else {
+                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+            }
         }
 
         @Override

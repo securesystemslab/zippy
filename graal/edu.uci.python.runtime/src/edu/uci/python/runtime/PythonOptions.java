@@ -53,16 +53,29 @@ public class PythonOptions {
 
     public static final boolean UnboxSequenceIteration = true;
 
+    public static final boolean IntrinsifyBuiltinCalls = true;
+
     // Generators
-    public static final boolean InlineGeneratorCalls = true;
+    public static boolean InlineGeneratorCalls = true;
 
     public static boolean OptimizeGeneratorExpressions = true;
 
-    public static final boolean UseSimpleGeneratorInlining = false;
+    public static boolean UseSimpleGeneratorInlining = false;
 
+    // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
 
+    public static final boolean ProfileGeneratorIterations = false;
+
     public static final boolean ProfileGeneratorCalls = false;
+
+    static {
+        if (ParallelizeGeneratorCalls) {
+            InlineGeneratorCalls = false;
+            OptimizeGeneratorExpressions = false;
+            UseSimpleGeneratorInlining = false;
+        }
+    }
 
     private PrintStream standardOut = System.out;
 

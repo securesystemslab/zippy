@@ -60,20 +60,18 @@ public class CallFunctionNoKeywordNode extends PNode {
 
         ReadGlobalScopeNode calleeNode = (ReadGlobalScopeNode) callee;
 
-        if (callable instanceof PythonBuiltinClass) {
+        if (callable instanceof PGeneratorFunction) {
+            return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
+        } else if (callable instanceof PFunction) {
+            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
+        } else if (callable instanceof PBuiltinFunction) {
+            return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
+        } else if (callable instanceof PythonBuiltinClass) {
             /**
              * Built-in class constructor
              */
             PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass) callable).getAttribute("__init__");
             return createBuiltinCall(function, calleeNode, argumentNodes, context);
-        } else if (callable instanceof PGeneratorFunction) {
-            return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
-        } else if (callable instanceof PFunction) {
-            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
-        } else if (callable instanceof PMethod) {
-            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
-        } else if (callable instanceof PBuiltinFunction) {
-            return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
         } else {
             throw new UnsupportedOperationException();
         }

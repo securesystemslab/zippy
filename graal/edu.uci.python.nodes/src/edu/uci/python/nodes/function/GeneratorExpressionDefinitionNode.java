@@ -37,15 +37,19 @@ import edu.uci.python.runtime.function.*;
 public class GeneratorExpressionDefinitionNode extends PNode {
 
     private final CallTarget callTarget;
+    private final CallTarget parallelCallTarget;
     private final FrameDescriptor frameDescriptor;
     private final boolean needsDeclarationFrame;
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
+
     @CompilationFinal private boolean isDeclarationFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionDefinitionNode(CallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+    public GeneratorExpressionDefinitionNode(CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode,
+                    int numOfGeneratorForNode) {
         this.callTarget = callTarget;
+        this.parallelCallTarget = parallelCallTarget;
         this.frameDescriptor = descriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
@@ -102,7 +106,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
 
         public CallableGeneratorExpressionDefinition(GeneratorExpressionDefinitionNode prev) {
-            super(prev.callTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
+            super(prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
         }
 
         @Override

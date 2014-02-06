@@ -1564,6 +1564,9 @@ class JavaCompliance:
 
         return cmp(self.value, other.value)
 
+    def __hash__(self):
+        return self.value.__hash__()
+
 """
 A version specification as defined in JSR-56
 """
@@ -2741,10 +2744,7 @@ def _source_locator_memento(deps):
     slm.open('sourceLookupDirector')
     slm.open('sourceContainers', {'duplicates' : 'false'})
 
-    # Every Java program depends on the JRE
-    memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'}).xml(standalone='no')
-    slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
-
+    javaCompliance = None
     for dep in deps:
         if dep.isLibrary():
             if hasattr(dep, 'eclipse.container'):
@@ -2756,6 +2756,15 @@ def _source_locator_memento(deps):
         else:
             memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
+            if javaCompliance is None or dep.javaCompliance < javaCompliance:
+                javaCompliance = dep.javaCompliance
+
+    if javaCompliance:
+        memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(javaCompliance)}).xml(standalone='no')
+        slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
+    else:
+        memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'}).xml(standalone='no')
+        slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
 
     slm.close('sourceContainers')
     slm.close('sourceLookupDirector')
@@ -2932,7 +2941,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
             files.append(genDir)
 
-        # Every Java program depends on the JRE
+        # Every Java program depends on a JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
 
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project

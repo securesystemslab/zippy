@@ -1,3 +1,5 @@
+# Qunaibit 10/10/2013
+# Raise Exceptions
 def divide(x, y):
     try:
         result = x / y

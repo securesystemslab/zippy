@@ -50,6 +50,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
     private final TruffleInlining inlining;
     private boolean compilationEnabled;
     private int callCount;
+    private SpeculationLog speculationLog = new SpeculationLog();
 
     protected OptimizedCallTarget(RootNode rootNode, TruffleCompiler compiler, int invokeCounter, int compilationThreshold) {
         super(rootNode);
@@ -298,5 +299,9 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Fram
                 }
             });
         }
+    }
+
+    public SpeculationLog getSpeculationLog() {
+        return speculationLog;
     }
 }

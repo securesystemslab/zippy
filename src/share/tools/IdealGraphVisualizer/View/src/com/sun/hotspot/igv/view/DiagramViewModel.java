@@ -43,6 +43,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
     // Warning: Update setData method if fields are added
     private Group group;
+    private ArrayList<InputGraph> graphs;
     private Set<Integer> hiddenNodes;
     private Set<Integer> onScreenNodes;
     private Set<Integer> selectedNodes;
@@ -56,6 +57,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     private ChangedEvent<DiagramViewModel> hiddenNodesChangedEvent;
     private ChangedEvent<DiagramViewModel> viewPropertiesChangedEvent;
     private boolean showNodeHull;
+    private boolean hideDuplicates;
     private ChangedListener<FilterChain> filterChainChangedListener = new ChangedListener<FilterChain>() {
 
         @Override
@@ -83,6 +85,10 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
         boolean groupChanged = (group == newModel.group);
         this.group = newModel.group;
+        if (groupChanged) {
+            filterGraphs();
+        }
+
         diagramChanged |= (filterChain != newModel.filterChain);
         this.filterChain = newModel.filterChain;
         diagramChanged |= (sequenceFilterChain != newModel.sequenceFilterChain);
@@ -122,11 +128,33 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         viewPropertiesChangedEvent.fire();
     }
 
+    public boolean getHideDuplicates() {
+        return hideDuplicates;
+    }
+
+    public void setHideDuplicates(boolean b) {
+        System.err.println("setHideDuplicates: " + b);
+        hideDuplicates = b;
+        InputGraph currentGraph = getFirstGraph();
+        if (hideDuplicates) {
+            // Back up to the unhidden equivalent graph
+            int index = graphs.indexOf(currentGraph);
+            while (graphs.get(index).getProperties().get("_isDuplicate") != null) {
+                index--;
+            }
+            currentGraph = graphs.get(index);
+        }
+        filterGraphs();
+        selectGraph(currentGraph);
+        viewPropertiesChangedEvent.fire();
+    }
+
     public DiagramViewModel(Group g, FilterChain filterChain, FilterChain sequenceFilterChain) {
-        super(calculateStringList(g));
+        super(Arrays.asList("default"));
 
         this.showNodeHull = true;
         this.group = g;
+        filterGraphs();
         assert filterChain != null;
         this.filterChain = filterChain;
         assert sequenceFilterChain != null;
@@ -165,7 +193,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         @Override
         public void changed(Group source) {
             assert source == group;
-            setPositions(calculateStringList(source));
+            filterGraphs();
             setSelectedNodes(selectedNodes);
         }
     };
@@ -211,7 +239,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
                 }
                 InputNode last = null;
                 int index = 0;
-                for (InputGraph g : group.getGraphs()) {
+                for (InputGraph g : graphs) {
                     Color curColor = colors.get(index);
                     InputNode cur = g.getNode(id);
                     if (cur != null) {
@@ -316,16 +344,24 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         diagramChanged();
     }
 
-    private static List<String> calculateStringList(Group g) {
-        List<String> result = new ArrayList<>();
-        for (InputGraph graph : g.getGraphs()) {
-            result.add(graph.getName());
+    /*
+     * Select the set of graphs to be presented.
+     */
+    private void filterGraphs() {
+        ArrayList<InputGraph> result = new ArrayList<>();
+        List<String> positions = new ArrayList<>();
+        for (InputGraph graph : group.getGraphs()) {
+            String duplicate = graph.getProperties().get("_isDuplicate");
+            if (duplicate == null || !hideDuplicates) {
+                result.add(graph);
+                positions.add(graph.getName());
+            }
         }
-        return result;
+        this.graphs = result;
+        setPositions(positions);
     }
 
     public InputGraph getFirstGraph() {
-        List<InputGraph> graphs = group.getGraphs();
         if (getFirstPosition() < graphs.size()) {
             return graphs.get(getFirstPosition());
         }
@@ -333,7 +369,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public InputGraph getSecondGraph() {
-        List<InputGraph> graphs = group.getGraphs();
         if (getSecondPosition() < graphs.size()) {
             return graphs.get(getSecondPosition());
         }
@@ -341,7 +376,12 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public void selectGraph(InputGraph g) {
-        int index = group.getGraphs().indexOf(g);
+        int index = graphs.indexOf(g);
+        if (index == -1 && hideDuplicates) {
+            // A graph was selected that's currently hidden, so unhide and select it.
+            setHideDuplicates(false);
+            index = graphs.indexOf(g);
+        }
         assert index != -1;
         setPositions(index, index);
     }

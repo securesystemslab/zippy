@@ -1418,31 +1418,27 @@ void WatcherThread::print_on(outputStream* st) const {
 
 #ifdef GRAAL
 
-#if GRAAL_COUNTERS_SIZE > 0
-jlong JavaThread::_graal_old_thread_counters[GRAAL_COUNTERS_SIZE];
+jlong* JavaThread::_graal_old_thread_counters;
 
 bool graal_counters_include(oop threadObj) {
-  return !GRAAL_COUNTERS_EXCLUDE_COMPILER_THREADS || threadObj == NULL || threadObj->klass() != SystemDictionary::CompilerThread_klass();
+  return !GraalCountersExcludeCompiler || threadObj == NULL || threadObj->klass() != SystemDictionary::CompilerThread_klass();
 }
 
 void JavaThread::collect_counters(typeArrayOop array) {
-  MutexLocker tl(Threads_lock);
-  for (int i = 0; i < array->length(); i++) {
-    array->long_at_put(i, _graal_old_thread_counters[i]);
-  }
-  for (JavaThread* tp = Threads::first(); tp != NULL; tp = tp->next()) {
-    if (graal_counters_include(tp->threadObj())) {
-      for (int i = 0; i < array->length(); i++) {
-        array->long_at_put(i, array->long_at(i) + tp->_graal_counters[i]);
+  if (GraalCounterSize > 0) {
+    MutexLocker tl(Threads_lock);
+    for (int i = 0; i < array->length(); i++) {
+      array->long_at_put(i, _graal_old_thread_counters[i]);
+    }
+    for (JavaThread* tp = Threads::first(); tp != NULL; tp = tp->next()) {
+      if (graal_counters_include(tp->threadObj())) {
+        for (int i = 0; i < array->length(); i++) {
+          array->long_at_put(i, array->long_at(i) + tp->_graal_counters[i]);
+        }
       }
     }
   }
 }
-#else
-void JavaThread::collect_counters(typeArrayOop array) {
-  // empty
-}
-#endif // GRAAL_COUNTERS_SIZE > 0
 
 #endif // GRAAL
 
@@ -1486,11 +1482,12 @@ void JavaThread::initialize() {
   _graal_alternate_call_target = NULL;
   _graal_implicit_exception_pc = NULL;
   _graal_compiling = false;
-#if GRAAL_COUNTERS_SIZE > 0
-  for (int i = 0; i < GRAAL_COUNTERS_SIZE; i++) {
-    _graal_counters[i] = 0;
+  if (GraalCounterSize > 0) {
+    _graal_counters = NEW_C_HEAP_ARRAY(jlong, GraalCounterSize, mtInternal);
+    memset(_graal_counters, 0, sizeof(jlong) * GraalCounterSize);
+  } else {
+    _graal_counters = NULL;
   }
-#endif // GRAAL_COUNTER_SIZE > 0
 #endif // GRAAL
   (void)const_cast<oop&>(_exception_oop = NULL);
   _exception_pc  = 0;
@@ -1680,13 +1677,14 @@ JavaThread::~JavaThread() {
   if (_thread_profiler != NULL) delete _thread_profiler;
   if (_thread_stat != NULL) delete _thread_stat;
 
-#if defined(GRAAL) && (GRAAL_COUNTERS_SIZE > 0)
-  if (graal_counters_include(threadObj())) {
-    for (int i = 0; i < GRAAL_COUNTERS_SIZE; i++) {
+#ifdef GRAAL
+  if (GraalCounterSize > 0 && graal_counters_include(threadObj())) {
+    for (int i = 0; i < GraalCounterSize; i++) {
       _graal_old_thread_counters[i] += _graal_counters[i];
     }
+    FREE_C_HEAP_ARRAY(jlong, _graal_counters, mtInternal);
   }
-#endif
+#endif // GRAAL
 }
 
 
@@ -3458,6 +3456,15 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize global data structures and create system classes in heap
   vm_init_globals();
 
+#ifdef GRAAL
+  if (GraalCounterSize > 0) {
+    JavaThread::_graal_old_thread_counters = NEW_C_HEAP_ARRAY(jlong, GraalCounterSize, mtInternal);
+    memset(JavaThread::_graal_old_thread_counters, 0, sizeof(jlong) * GraalCounterSize);
+  } else {
+    JavaThread::_graal_old_thread_counters = NULL;
+  }
+#endif // GRAAL
+
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();
   main_thread->set_thread_state(_thread_in_vm);
@@ -4108,6 +4115,12 @@ bool Threads::destroy_vm() {
   notify_vm_shutdown();
 
   delete thread;
+
+#ifdef GRAAL
+  if (GraalCounterSize > 0) {
+    FREE_C_HEAP_ARRAY(jlong, JavaThread::_graal_old_thread_counters, mtInternal);
+  }
+#endif // GRAAL
 
   // exit_globals() will delete tty
   exit_globals();

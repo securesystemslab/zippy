@@ -28,6 +28,7 @@ import java.util.*;
 
 import org.python.google.common.primitives.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -36,13 +37,21 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.*;
 
 public class GeneratorTranslator {
 
+    private final FunctionRootNode root;
+    private final PythonContext context;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
 
-    public void translate(FunctionRootNode root) {
+    public GeneratorTranslator(PythonContext context, FunctionRootNode root) {
+        this.context = context;
+        this.root = root;
+    }
+
+    public RootCallTarget translate() {
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -102,18 +111,21 @@ public class GeneratorTranslator {
                 bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray));
             }
         }
+
+        return Truffle.getRuntime().createCallTarget(root);
     }
 
-    @SuppressWarnings("static-method")
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
+        assert context != null;
+
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(context, argumentLoads, body, returnTarget.getReturn()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(BlockNode.getEmptyBlock(), returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(context, BlockNode.getEmptyBlock(), returnTarget.getBody(), returnTarget.getReturn()));
         }
     }
 
@@ -167,6 +179,25 @@ public class GeneratorTranslator {
 
     public int getNumOfGeneratorForNode() {
         return numOfGeneratorForNode;
+    }
+
+    public RootCallTarget createParallelGeneratorCallTarget() {
+        if (!PythonOptions.ParallelizeGeneratorCalls) {
+            return null;
+        }
+
+        PNode parallelBody = NodeUtil.cloneNode(root.getUninitializedBody());
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
+            yield.replace(ParallelYieldNode.create(yield.getRhs()));
+        }
+
+        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
+            genexp.setDeclarationFrameGenerator(false);
+        }
+
+        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), root.getFrameDescriptor(), parallelBody);
+        return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
 
 }

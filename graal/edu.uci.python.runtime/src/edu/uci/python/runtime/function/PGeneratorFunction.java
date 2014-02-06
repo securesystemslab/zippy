@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -36,19 +37,14 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorForNode;
     private final CallTarget parallelCallTarget;
 
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
+    private String generatorId;
+    @CompilationFinal private boolean isWorthParallelizing = true;
+
+    public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
+                    CallTarget parallelCallTarget, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
-        this.parallelCallTarget = null;
-    }
-
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, CallTarget parallelCallTarget) {
-        super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
-        assert PythonOptions.ParallelizeGeneratorCalls;
-        this.numOfGeneratorBlockNode = 0;
-        this.numOfGeneratorForNode = 0;
         this.parallelCallTarget = parallelCallTarget;
     }
 
@@ -64,7 +60,39 @@ public final class PGeneratorFunction extends PFunction {
     public Object call(PackedFrame caller, Object[] args) {
         if (PythonOptions.ParallelizeGeneratorCalls) {
             assert parallelCallTarget != null;
+            return makeParallelGeneratorHelper(args);
+        } else {
+            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private PGenerator makeParallelGeneratorHelper(Object[] args) {
+        /**
+         * A generator is by default considered as worth doing parallelization.<br>
+         * If generator iteration profiling is enabled, the worthiness is reconsidered.<br>
+         * Only when the previously instanciated generator has generated over 100 items, it is
+         * considered worthy.
+         */
+        if (PythonOptions.ProfileGeneratorIterations && generatorId == null) {
+            isWorthParallelizing = false;
+            generatorId = getCallTarget().getRootNode().toString();
+            int count = context.getGeneratorIterationCount(generatorId);
+
+            if (count == -1) { // Missing iteration count
+                generatorId = null;
+            } else {
+                isWorthParallelizing = count > 100;
+            }
+        }
+
+        if (isWorthParallelizing) {
             PParallelGenerator generator = PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
+
+            if (PythonOptions.ProfileGeneratorCalls) {
+                context.getStandardOut().println("[ZipPy] create parallel generator " + generator);
+            }
+
             return generator;
         } else {
             return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
