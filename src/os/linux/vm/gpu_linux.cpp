@@ -42,7 +42,7 @@ jobject gpu::probe_gpus(JNIEnv* env) {
   bool hsail = false;
   bool ptx = false;
 
-  if (UseHSAILSimulator && Hsail::register_natives(env)) {
+  if (Hsail::register_natives(env)) {
     hsail = true;
   }
 

@@ -29,7 +29,7 @@
 
 jobject gpu::probe_gpus(JNIEnv* env) {
   // TODO: add detection of PTX/NVidia
-  if (UseHSAILSimulator && Hsail::register_natives(env)) {
+  if (Hsail::register_natives(env)) {
     return env->NewStringUTF("HSAIL");
   }
   return env->NewStringUTF("");
