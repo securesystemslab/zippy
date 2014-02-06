@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/gpu.hpp"
+#include "ptx/vm/gpu_ptx.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
@@ -47,12 +48,14 @@
 // Entry to GPU native method implementation that transitions current thread to '_thread_in_vm'.
 #define GPU_VMENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL name signature { \
+  if (TraceGPUInteraction) tty->print_cr("[CUDA] Ptx::" #name); \
   GRAAL_VM_ENTRY_MARK; \
 
 // Entry to GPU native method implementation that calls a JNI function
 // and hence cannot transition current thread to '_thread_in_vm'.
 #define GPU_ENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL name signature { \
+  if (TraceGPUInteraction) tty->print_cr("[CUDA] Ptx::" #name); \
 
 #define GPU_END }
 
@@ -61,37 +64,37 @@
 
 #define STRING                "Ljava/lang/String;"
 
-JNINativeMethod gpu::Ptx::PTX_methods[] = {
-  {CC"initialize",              CC"()Z",               FN_PTR(gpu::Ptx::initialize)},
-  {CC"generateKernel",          CC"([B" STRING ")J",   FN_PTR(gpu::Ptx::generate_kernel)},
-  {CC"getLaunchKernelAddress",  CC"()J",               FN_PTR(gpu::Ptx::get_execute_kernel_from_vm_address)},
-  {CC"getAvailableProcessors0", CC"()I",               FN_PTR(gpu::Ptx::get_total_cores)},
+JNINativeMethod Ptx::PTX_methods[] = {
+  {CC"initialize",              CC"()Z",               FN_PTR(Ptx::initialize)},
+  {CC"generateKernel",          CC"([B" STRING ")J",   FN_PTR(Ptx::generate_kernel)},
+  {CC"getLaunchKernelAddress",  CC"()J",               FN_PTR(Ptx::get_execute_kernel_from_vm_address)},
+  {CC"getAvailableProcessors0", CC"()I",               FN_PTR(Ptx::get_total_cores)},
 };
 
-void * gpu::Ptx::_device_context;
-int    gpu::Ptx::_cu_device = 0;
+void * Ptx::_device_context;
+int    Ptx::_cu_device = 0;
 
-gpu::Ptx::cuda_cu_init_func_t gpu::Ptx::_cuda_cu_init;
-gpu::Ptx::cuda_cu_ctx_create_func_t gpu::Ptx::_cuda_cu_ctx_create;
-gpu::Ptx::cuda_cu_ctx_destroy_func_t gpu::Ptx::_cuda_cu_ctx_destroy;
-gpu::Ptx::cuda_cu_ctx_synchronize_func_t gpu::Ptx::_cuda_cu_ctx_synchronize;
-gpu::Ptx::cuda_cu_ctx_get_current_func_t gpu::Ptx::_cuda_cu_ctx_get_current;
-gpu::Ptx::cuda_cu_ctx_set_current_func_t gpu::Ptx::_cuda_cu_ctx_set_current;
-gpu::Ptx::cuda_cu_device_get_count_func_t gpu::Ptx::_cuda_cu_device_get_count;
-gpu::Ptx::cuda_cu_device_get_name_func_t gpu::Ptx::_cuda_cu_device_get_name;
-gpu::Ptx::cuda_cu_device_get_func_t gpu::Ptx::_cuda_cu_device_get;
-gpu::Ptx::cuda_cu_device_compute_capability_func_t gpu::Ptx::_cuda_cu_device_compute_capability;
-gpu::Ptx::cuda_cu_device_get_attribute_func_t gpu::Ptx::_cuda_cu_device_get_attribute;
-gpu::Ptx::cuda_cu_launch_kernel_func_t gpu::Ptx::_cuda_cu_launch_kernel;
-gpu::Ptx::cuda_cu_module_get_function_func_t gpu::Ptx::_cuda_cu_module_get_function;
-gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data_ex;
-gpu::Ptx::cuda_cu_memcpy_htod_func_t gpu::Ptx::_cuda_cu_memcpy_htod;
-gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
-gpu::Ptx::cuda_cu_memalloc_func_t gpu::Ptx::_cuda_cu_memalloc;
-gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
-gpu::Ptx::cuda_cu_mem_host_register_func_t gpu::Ptx::_cuda_cu_mem_host_register;
-gpu::Ptx::cuda_cu_mem_host_get_device_pointer_func_t gpu::Ptx::_cuda_cu_mem_host_get_device_pointer;
-gpu::Ptx::cuda_cu_mem_host_unregister_func_t gpu::Ptx::_cuda_cu_mem_host_unregister;
+Ptx::cuda_cu_init_func_t Ptx::_cuda_cu_init;
+Ptx::cuda_cu_ctx_create_func_t Ptx::_cuda_cu_ctx_create;
+Ptx::cuda_cu_ctx_destroy_func_t Ptx::_cuda_cu_ctx_destroy;
+Ptx::cuda_cu_ctx_synchronize_func_t Ptx::_cuda_cu_ctx_synchronize;
+Ptx::cuda_cu_ctx_get_current_func_t Ptx::_cuda_cu_ctx_get_current;
+Ptx::cuda_cu_ctx_set_current_func_t Ptx::_cuda_cu_ctx_set_current;
+Ptx::cuda_cu_device_get_count_func_t Ptx::_cuda_cu_device_get_count;
+Ptx::cuda_cu_device_get_name_func_t Ptx::_cuda_cu_device_get_name;
+Ptx::cuda_cu_device_get_func_t Ptx::_cuda_cu_device_get;
+Ptx::cuda_cu_device_compute_capability_func_t Ptx::_cuda_cu_device_compute_capability;
+Ptx::cuda_cu_device_get_attribute_func_t Ptx::_cuda_cu_device_get_attribute;
+Ptx::cuda_cu_launch_kernel_func_t Ptx::_cuda_cu_launch_kernel;
+Ptx::cuda_cu_module_get_function_func_t Ptx::_cuda_cu_module_get_function;
+Ptx::cuda_cu_module_load_data_ex_func_t Ptx::_cuda_cu_module_load_data_ex;
+Ptx::cuda_cu_memcpy_htod_func_t Ptx::_cuda_cu_memcpy_htod;
+Ptx::cuda_cu_memcpy_dtoh_func_t Ptx::_cuda_cu_memcpy_dtoh;
+Ptx::cuda_cu_memalloc_func_t Ptx::_cuda_cu_memalloc;
+Ptx::cuda_cu_memfree_func_t Ptx::_cuda_cu_memfree;
+Ptx::cuda_cu_mem_host_register_func_t Ptx::_cuda_cu_mem_host_register;
+Ptx::cuda_cu_mem_host_get_device_pointer_func_t Ptx::_cuda_cu_mem_host_get_device_pointer;
+Ptx::cuda_cu_mem_host_unregister_func_t Ptx::_cuda_cu_mem_host_unregister;
 
 #define STRINGIFY(x)     #x
 
@@ -108,7 +111,7 @@ gpu::Ptx::cuda_cu_mem_host_unregister_func_t gpu::Ptx::_cuda_cu_mem_host_unregis
 /*
  * see http://en.wikipedia.org/wiki/CUDA#Supported_GPUs
  */
-int gpu::Ptx::ncores(int major, int minor) {
+int Ptx::ncores(int major, int minor) {
     int device_type = (major << 4) + minor;
 
     switch (device_type) {
@@ -126,7 +129,7 @@ int gpu::Ptx::ncores(int major, int minor) {
     }
 }
 
-bool gpu::Ptx::register_natives(JNIEnv* env) {
+bool Ptx::register_natives(JNIEnv* env) {
   jclass klass = env->FindClass("com/oracle/graal/hotspot/ptx/PTXHotSpotBackend");
   if (klass == NULL) {
     if (TraceGPUInteraction) {
@@ -136,7 +139,7 @@ bool gpu::Ptx::register_natives(JNIEnv* env) {
   }
   jint status = env->RegisterNatives(klass, PTX_methods, sizeof(PTX_methods) / sizeof(JNINativeMethod));
   if (status != JNI_OK) {
-    if (TraceGPUInteraction) {
+    if (true || TraceGPUInteraction) {
       tty->print_cr("Error registering natives for PTXHotSpotBackend: %d", status);
     }
     return false;
@@ -144,7 +147,7 @@ bool gpu::Ptx::register_natives(JNIEnv* env) {
   return true;
 }
 
-GPU_ENTRY(jboolean, gpu::Ptx::initialize, (JNIEnv *env, jclass))
+GPU_ENTRY(jboolean, Ptx::initialize, (JNIEnv *env, jclass))
 
   if (!link()) {
     return false;
@@ -255,7 +258,7 @@ GPU_ENTRY(jboolean, gpu::Ptx::initialize, (JNIEnv *env, jclass))
   return true;
 GPU_END
 
-GPU_ENTRY(jint, gpu::Ptx::get_total_cores, (JNIEnv *env, jobject))
+GPU_ENTRY(jint, Ptx::get_total_cores, (JNIEnv *env, jobject))
 
     int minor, major, nmp;
     int status = _cuda_cu_device_get_attribute(&minor,
@@ -342,7 +345,7 @@ GPU_ENTRY(jint, gpu::Ptx::get_total_cores, (JNIEnv *env, jobject))
     return total;
 GPU_END
 
-GPU_ENTRY(jlong, gpu::Ptx::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle))
+GPU_ENTRY(jlong, Ptx::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle))
   ResourceMark rm;
   jsize name_len = env->GetStringLength(name_handle);
   jsize code_len = env->GetArrayLength(code_handle);
@@ -440,7 +443,7 @@ class PtxCall: StackObj {
   int          _buffer_size;   // size (in bytes) of _buffer
   oop*         _pinned;        // objects that have been pinned with cuMemHostRegister
   int          _pinned_length; // length of _pinned
-  gpu::Ptx::CUdeviceptr  _ret_value;     // pointer to slot in GPU memory holding the return value
+  Ptx::CUdeviceptr  _ret_value;     // pointer to slot in GPU memory holding the return value
   int          _ret_type_size; // size of the return type value
   bool         _ret_is_object; // specifies if the return type is Object
   bool         _gc_locked;     // denotes when execution has locked GC
@@ -474,8 +477,8 @@ class PtxCall: StackObj {
 
   void alloc_return_value() {
     if (_ret_type_size != 0) {
-      if (check(gpu::Ptx::_cuda_cu_memalloc(&_ret_value, _ret_type_size), "Allocate device memory for return value")) {
-        gpu::Ptx::CUdeviceptr* retValuePtr = (gpu::Ptx::CUdeviceptr*) ((_buffer + _buffer_size) - sizeof(_ret_value));
+      if (check(Ptx::_cuda_cu_memalloc(&_ret_value, _ret_type_size), "Allocate device memory for return value")) {
+        Ptx::CUdeviceptr* retValuePtr = (Ptx::CUdeviceptr*) ((_buffer + _buffer_size) - sizeof(_ret_value));
         *retValuePtr = _ret_value;
       }
     }
@@ -503,7 +506,7 @@ class PtxCall: StackObj {
         // Size (in bytes) of object
         int objSize = obj->size() * HeapWordSize;
         //tty->print_cr("Pinning object %d at offset %d: %p", i, offset, obj);
-        if (!check(gpu::Ptx::_cuda_cu_mem_host_register(obj, objSize, GRAAL_CU_MEMHOSTREGISTER_DEVICEMAP), "Pin object")) {
+        if (!check(Ptx::_cuda_cu_mem_host_register(obj, objSize, GRAAL_CU_MEMHOSTREGISTER_DEVICEMAP), "Pin object")) {
           return;
         }
 
@@ -512,7 +515,7 @@ class PtxCall: StackObj {
 
         // Replace host pointer to object with device pointer
         // to object in kernel parameters buffer
-        if (!check(gpu::Ptx::_cuda_cu_mem_host_get_device_pointer((gpu::Ptx::CUdeviceptr*) argPtr, obj, 0), "Get device pointer for pinned object")) {
+        if (!check(Ptx::_cuda_cu_mem_host_get_device_pointer((Ptx::CUdeviceptr*) argPtr, obj, 0), "Get device pointer for pinned object")) {
           return;
         }
       }
@@ -529,7 +532,7 @@ class PtxCall: StackObj {
       GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &_buffer_size,
       GRAAL_CU_LAUNCH_PARAM_END
     };
-    if (check(gpu::Ptx::_cuda_cu_launch_kernel((struct CUfunc_st*) (address) kernel,
+    if (check(Ptx::_cuda_cu_launch_kernel((struct CUfunc_st*) (address) kernel,
                                       gridX, gridY, gridZ,
                                       dimX, dimY, dimZ,
                                       0, NULL, NULL, (void**) &config), "Launch kernel")) {
@@ -537,7 +540,7 @@ class PtxCall: StackObj {
   }
 
   void synchronize() {
-    check(gpu::Ptx::_cuda_cu_ctx_synchronize(), "Synchronize kernel");
+    check(Ptx::_cuda_cu_ctx_synchronize(), "Synchronize kernel");
   }
 
   void unpin_objects() {
@@ -545,7 +548,7 @@ class PtxCall: StackObj {
       oop obj = _pinned[--_pinned_length];
       assert(obj != NULL, "npe");
       //tty->print_cr("Unpinning object %d: %p", _pinned_length, obj);
-      if (!check(gpu::Ptx::_cuda_cu_mem_host_unregister(obj), "Unpin object")) {
+      if (!check(Ptx::_cuda_cu_mem_host_unregister(obj), "Unpin object")) {
         return;
       }
     }
@@ -553,27 +556,27 @@ class PtxCall: StackObj {
 
   oop get_object_return_value() {
     oop return_val;
-    check(gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, T_OBJECT_BYTE_SIZE), "Copy return value from device");
+    check(Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, T_OBJECT_BYTE_SIZE), "Copy return value from device");
     return return_val;
   }
 
   jlong get_primitive_return_value() {
     jlong return_val;
-    check(gpu::Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, _ret_type_size), "Copy return value from device");
+    check(Ptx::_cuda_cu_memcpy_dtoh(&return_val, _ret_value, _ret_type_size), "Copy return value from device");
     return return_val;
   }
 
   void free_return_value() {
     if (_ret_value != 0) {
-      check(gpu::Ptx::_cuda_cu_memfree(_ret_value), "Free device memory");
+      check(Ptx::_cuda_cu_memfree(_ret_value), "Free device memory");
       _ret_value = 0;
     }
   }
 
   void destroy_context() {
-    if (gpu::Ptx::_device_context != NULL) {
-      check(gpu::Ptx::_cuda_cu_ctx_destroy(gpu::Ptx::_device_context), "Destroy context");
-      gpu::Ptx::_device_context = NULL;
+    if (Ptx::_device_context != NULL) {
+      check(Ptx::_cuda_cu_ctx_destroy(Ptx::_device_context), "Destroy context");
+      Ptx::_device_context = NULL;
     }
   }
 
@@ -666,11 +669,11 @@ static void printKernelArguments(JavaThread* thread, address buffer) {
   }
 }
 
-GPU_VMENTRY(jlong, gpu::Ptx::get_execute_kernel_from_vm_address, (JNIEnv *env, jclass))
-  return (jlong) gpu::Ptx::execute_kernel_from_vm;
+GPU_VMENTRY(jlong, Ptx::get_execute_kernel_from_vm_address, (JNIEnv *env, jclass))
+  return (jlong) Ptx::execute_kernel_from_vm;
 GPU_END
 
-JRT_ENTRY(jlong, gpu::Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
+JRT_ENTRY(jlong, Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
                                                   jlong buffer,
                                                   jint bufferSize,
                                                   jint objectParametersCount,
@@ -724,7 +727,7 @@ static char const cuda_library_name[] = "/usr/local/cuda/lib/libcuda.dylib";
 static char const cuda_library_name[] = "";
 #endif
 
-bool gpu::Ptx::link() {
+bool Ptx::link() {
   if (cuda_library_name == NULL) {
     if (TraceGPUInteraction) {
       tty->print_cr("Failed to find CUDA linkage");

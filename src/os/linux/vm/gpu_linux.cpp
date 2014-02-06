@@ -23,6 +23,8 @@
  */
 
 #include "runtime/gpu.hpp"
+#include "ptx/vm/gpu_ptx.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "utilities/ostream.hpp"
 
 /*
@@ -40,7 +42,7 @@ jobject gpu::probe_gpus(JNIEnv* env) {
   bool hsail = false;
   bool ptx = false;
 
-  if (UseHSAILSimulator && gpu::Hsail::register_natives(env)) {
+  if (Hsail::register_natives(env)) {
     hsail = true;
   }
 
@@ -71,7 +73,7 @@ jobject gpu::probe_gpus(JNIEnv* env) {
         if (TraceGPUInteraction) {
           tty->print_cr("Found supported nVidia device [vendor=0x%04x, device=0x%04x]", vendor, device);
         }
-        if (!ptx && gpu::Ptx::register_natives(env)) {
+        if (!ptx && Ptx::register_natives(env)) {
           ptx = true;
         }
       }

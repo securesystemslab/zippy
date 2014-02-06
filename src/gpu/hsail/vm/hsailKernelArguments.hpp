@@ -26,10 +26,11 @@
 #define KERNEL_ARGUMENTS_HSAIL_HPP
 
 #include "runtime/gpu.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "runtime/signature.hpp"
 
 class HSAILKernelArguments : public SignatureIterator {
-  friend class gpu::Hsail;
+  friend class Hsail;
 
 public:
 
@@ -71,7 +72,7 @@ private:
       if (TraceGPUInteraction) {
         tty->print_cr("[HSAIL] instance method, this 0x%08x, is a %s", (address) arg, arg->klass()->external_name());
       }
-      bool pushed = gpu::Hsail::_okra_push_object(kernel, arg);
+      bool pushed = Hsail::_okra_push_object(kernel, arg);
       assert(pushed == true, "'this' push failed");
     } else {
       if (TraceGPUInteraction) {

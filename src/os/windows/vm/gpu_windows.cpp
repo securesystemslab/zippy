@@ -24,11 +24,12 @@
 
 #include "precompiled.hpp"
 #include "runtime/gpu.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "utilities/ostream.hpp"
 
 jobject gpu::probe_gpus(JNIEnv* env) {
   // TODO: add detection of PTX/NVidia
-  if (UseHSAILSimulator && gpu::Hsail::register_natives(env)) {
+  if (Hsail::register_natives(env)) {
     return env->NewStringUTF("HSAIL");
   }
   return env->NewStringUTF("");
