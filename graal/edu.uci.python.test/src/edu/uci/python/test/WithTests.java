@@ -92,6 +92,36 @@ public class WithTests {
     }
 
     @Test
+    public void withNoAsName() {
+        String source = "\n" + //
+                        "a = 5\n" + //
+                        "class Sample:\n" + //
+                        "    def __enter__(self):\n" + //
+                        "        print(\"In __enter__()\")\n" + //
+                        "        return self\n" + //
+
+                        "    def __exit__(self, type, value, trace):\n" + //
+                        "         print(\"In __exit__()\");\n" + //
+                        "         return 5;\n" + //
+
+                        "    def do_something(self, x):\n" + //
+                        "         return \"Foo\"\n" + //
+
+                        "def get_sample():\n" + //
+                        "    return Sample()\n" + //
+
+                        "with get_sample():\n" + //
+                        "    print(\"Execute without asName\")\n" + //
+                        "    a = 1;\n" + //
+
+                        "print (a);\n" + //
+
+                        "\n";
+
+        assertPrints("In __enter__()\nExecute without asName\nIn __exit__()\n1\n", source);
+    }
+
+    @Test
     public void scriptTryTest() {
         Path script = Paths.get("with-test.py");
         assertPrints("type: <type 'exceptions.ZeroDivisionError'>\nvalue: divide by zero\nException has been thrown correctly\na =  5\n", script);
