@@ -641,8 +641,7 @@ class TestCase(object):
            operator.
         """
         assertion_func = self._getAssertEqualityFunc(first, second)
-        #assertion_func(first, second, msg=msg)
-        assertion_func(first, second, msg)
+        assertion_func(first, second, msg=msg)
 
     def assertNotEqual(self, first, second, msg=None):
         """Fail if the two objects are equal as determined by the '=='
