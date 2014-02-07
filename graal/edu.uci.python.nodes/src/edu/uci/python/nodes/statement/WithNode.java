@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.statement;
 
-import javax.swing.text.html.HTMLDocument.HTMLReader.*;
-
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;

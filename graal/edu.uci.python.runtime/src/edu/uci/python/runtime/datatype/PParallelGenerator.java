@@ -136,7 +136,7 @@ public class PParallelGenerator extends PGenerator {
      * slower than the exising approach.
      */
     public final void generates() {
-        context.getExecutorService().execute(new Runnable() {
+        context.submitParallelTask(new Runnable() {
 
             public void run() {
                 try {
@@ -183,7 +183,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithConcurrentLinkedQueue() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -216,7 +216,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithBlockingQueue() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -255,7 +255,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithCircularBuffer() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -282,7 +282,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithDisruptor() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
