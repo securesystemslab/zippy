@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime;
 
-import static com.higherfrequencytrading.affinity.AffinityStrategies.*;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -72,7 +70,7 @@ public class PythonContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.addBuiltins(this);
-        this.executorService = Executors.newCachedThreadPool(new GeneratorThreadFactory(SAME_CORE));
+        this.executorService = Executors.newCachedThreadPool();
         this.generatorIterationCounts = new HashMap<>();
     }
 

@@ -55,6 +55,7 @@ public class GeneratorThreadFactory implements ThreadFactory {
                     if (al.cpuId() >= 0) {
                         lastAffinityLock = al;
                     }
+                    al.bind();
                     r.run();
                 } finally {
                     al.release();
