@@ -46,7 +46,7 @@ public class Arity {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
-        this.takesKeywordArg = false;
+        this.takesKeywordArg = true;
         this.takesFixedNumOfArgs = false;
         this.takesVarArgs = false;
         this.parameterIds = parameterIds;
