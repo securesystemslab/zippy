@@ -24,10 +24,13 @@
  */
 package edu.uci.python.runtime;
 
+import static com.higherfrequencytrading.affinity.AffinityStrategies.*;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.higherfrequencytrading.affinity.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
@@ -70,7 +73,7 @@ public class PythonContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.addBuiltins(this);
-        this.executorService = Executors.newCachedThreadPool();
+        this.executorService = Executors.newCachedThreadPool(new AffinityThreadFactory("bg", SAME_CORE));
         this.generatorIterationCounts = new HashMap<>();
     }
 
