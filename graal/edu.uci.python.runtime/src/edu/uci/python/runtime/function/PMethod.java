@@ -58,7 +58,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        Object[] combined = function.applyKeywordArgs(args, keywords);
+        Object[] combined = function.applyKeywordArgs(true, args, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
     }
 

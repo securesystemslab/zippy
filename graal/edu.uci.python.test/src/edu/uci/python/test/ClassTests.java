@@ -137,4 +137,16 @@ public class ClassTests {
         assertPrints("arg True\nmsg 1 is not less than 2\n", source);
     }
 
+    @Test
+    public void keywordArgInMethod() {
+        String source = "class TestSuite():\n" + //
+                        "    def assertTrue(self, arg, msg=None):\n" + //
+                        "        print(\"arg\", arg)\n" + //
+                        "        print(\"msg\", msg)\n" + //
+                        "testSuite = TestSuite()\n" + //
+                        "testSuite.assertTrue(1 < 2, msg=\"1 is not less than 2\")\n";
+
+        assertPrints("arg True\nmsg 1 is not less than 2\n", source);
+    }
+
 }
