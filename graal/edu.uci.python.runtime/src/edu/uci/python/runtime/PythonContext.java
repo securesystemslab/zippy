@@ -30,7 +30,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.higherfrequencytrading.affinity.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
@@ -73,7 +72,7 @@ public class PythonContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.addBuiltins(this);
-        this.executorService = Executors.newCachedThreadPool(new AffinityThreadFactory("bg", SAME_CORE));
+        this.executorService = Executors.newCachedThreadPool(new GeneratorThreadFactory(SAME_CORE));
         this.generatorIterationCounts = new HashMap<>();
     }
 
