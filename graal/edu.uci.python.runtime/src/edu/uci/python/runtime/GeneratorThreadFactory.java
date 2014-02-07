@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime;
 
+import java.io.*;
 import java.util.concurrent.*;
 
 import com.higherfrequencytrading.affinity.*;
@@ -61,6 +62,10 @@ public class GeneratorThreadFactory implements ThreadFactory {
             }
         }, name2);
         t.setDaemon(daemon);
+
+        PrintStream out = System.out;
+        out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
+
         return t;
     }
 
