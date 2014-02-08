@@ -27,13 +27,11 @@ package edu.uci.python.nodes.generator;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.lmax.disruptor.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.datatype.PParallelGenerator.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class ParallelYieldNode extends YieldNode {
@@ -113,31 +111,27 @@ public abstract class ParallelYieldNode extends YieldNode {
 
     public static final class YieldToRingBufferNode extends ParallelYieldNode {
 
-        private static final int BATCH = 4;
-        private long low;
-        private long high;
-        private long next;
-
         public YieldToRingBufferNode(PNode right) {
             super(right);
         }
 
         @Override
         protected void appendValue(VirtualFrame frame, Object value) {
-            final RingBuffer<ObjectEvent> rb = PArguments.getParallelGeneratorArguments(frame).getRingBuffer();
+            final DisruptorRingBufferHandler rb = PArguments.getParallelGeneratorArguments(frame).getRingBuffer();
 
-            if (next == high) {
-                high = rb.next(BATCH);
-                next = low = high - (BATCH - 1);
-            } else {
-                next++;
-            }
-
-            rb.get(next).setValue(value);
-
-            if (next == high) {
-                rb.publish(low, high);
-            }
+// if (next == high) {
+// high = rb.next(BATCH);
+// next = low = high - (BATCH - 1);
+// } else {
+// next++;
+// }
+//
+// rb.get(next).setValue(value);
+//
+// if (next == high) {
+// rb.publish(low, high);
+// }
+            rb.put(value);
         }
     }
 

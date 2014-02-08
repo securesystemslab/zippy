@@ -27,12 +27,10 @@ package edu.uci.python.runtime.function;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.lmax.disruptor.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.datatype.PParallelGenerator.*;
 import edu.uci.python.runtime.iterator.*;
 
 public class PArguments extends Arguments {
@@ -198,7 +196,7 @@ public class PArguments extends Arguments {
         private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
         private final Queue<Object> queue;
-        private final RingBuffer<ObjectEvent> ringBuffer;
+        private final DisruptorRingBufferHandler ringBuffer;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
@@ -224,7 +222,7 @@ public class PArguments extends Arguments {
             this.ringBuffer = null;
         }
 
-        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, RingBuffer<ObjectEvent> ringBuffer, Object[] arguments) {
+        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, DisruptorRingBufferHandler ringBuffer, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = null;
             this.buffer = null;
@@ -246,7 +244,7 @@ public class PArguments extends Arguments {
             return queue;
         }
 
-        public RingBuffer<ObjectEvent> getRingBuffer() {
+        public DisruptorRingBufferHandler getRingBuffer() {
             return ringBuffer;
         }
     }
