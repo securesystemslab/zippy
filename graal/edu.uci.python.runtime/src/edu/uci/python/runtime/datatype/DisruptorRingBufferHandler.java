@@ -27,14 +27,23 @@ package edu.uci.python.runtime.datatype;
 import com.lmax.disruptor.*;
 import com.oracle.truffle.api.*;
 
-public final class DisruptorRingBufferHandler {
+public class DisruptorRingBufferHandler {
 
     private static final EventFactory<ObjectEvent> EMPTY_EVENTS = new ObjectEventFactory();
     private static final int BUFFER_SIZE = 32;
+    private static final boolean PUBLISH_IN_BATCH = true;
 
-    private final RingBuffer<ObjectEvent> ringBuffer;
+    protected final RingBuffer<ObjectEvent> ringBuffer;
     private final SequenceBarrier sequenceBarrier;
     private final Sequence sequence;
+
+    public static DisruptorRingBufferHandler create() {
+        if (PUBLISH_IN_BATCH) {
+            return new RingBufferBatchHandler();
+        } else {
+            return new DisruptorRingBufferHandler();
+        }
+    }
 
     public DisruptorRingBufferHandler() {
         ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, BUFFER_SIZE);
@@ -46,6 +55,10 @@ public final class DisruptorRingBufferHandler {
         long next = ringBuffer.next();
         ringBuffer.get(next).setValue(value);
         ringBuffer.publish(next);
+    }
+
+    public void putAndDrain(Object poison) {
+        put(poison);
     }
 
     public Object take() {
@@ -61,6 +74,37 @@ public final class DisruptorRingBufferHandler {
         Object result = ringBuffer.get(nextSequence).getValue();
         sequence.set(nextSequence);
         return result;
+    }
+
+    public static final class RingBufferBatchHandler extends DisruptorRingBufferHandler {
+
+        private static final int BATCH_SIZE = 8;
+        private long next;
+        private long hi;
+        private long lo;
+
+        @Override
+        public void put(Object value) {
+            if (next == hi) {
+                hi = ringBuffer.next(BATCH_SIZE);
+                next = lo = hi - (BATCH_SIZE - 1);
+            } else {
+                next++;
+            }
+
+            ringBuffer.get(next).setValue(value);
+
+            if (next == hi) {
+                ringBuffer.publish(lo, hi);
+            }
+        }
+
+        @Override
+        public void putAndDrain(Object poison) {
+            next++;
+            ringBuffer.get(next).setValue(poison);
+            ringBuffer.publish(lo, next);
+        }
     }
 
     public static class ObjectEvent {

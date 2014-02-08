@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime;
 
+import static com.higherfrequencytrading.affinity.AffinityStrategies.*;
+
 import java.io.*;
 import java.util.concurrent.*;
 
@@ -37,9 +39,9 @@ public class GeneratorThreadFactory implements ThreadFactory {
     private AffinityLock lastAffinityLock = null;
     private int id = 1;
 
-    public GeneratorThreadFactory(AffinityStrategy... strategies) {
+    public GeneratorThreadFactory() {
         this.name = "generator";
-        this.strategies = strategies.length == 0 ? new AffinityStrategy[]{AffinityStrategies.ANY} : strategies;
+        this.strategies = new AffinityStrategy[]{SAME_CORE, SAME_SOCKET, ANY};
         this.lastAffinityLock = AffinityLock.acquireLock();
     }
 

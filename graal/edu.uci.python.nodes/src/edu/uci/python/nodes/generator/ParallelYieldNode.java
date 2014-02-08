@@ -118,19 +118,6 @@ public abstract class ParallelYieldNode extends YieldNode {
         @Override
         protected void appendValue(VirtualFrame frame, Object value) {
             final DisruptorRingBufferHandler rb = PArguments.getParallelGeneratorArguments(frame).getRingBuffer();
-
-// if (next == high) {
-// high = rb.next(BATCH);
-// next = low = high - (BATCH - 1);
-// } else {
-// next++;
-// }
-//
-// rb.get(next).setValue(value);
-//
-// if (next == high) {
-// rb.publish(low, high);
-// }
             rb.put(value);
         }
     }

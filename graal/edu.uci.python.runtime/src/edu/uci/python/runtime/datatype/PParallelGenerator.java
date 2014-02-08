@@ -74,7 +74,7 @@ public class PParallelGenerator extends PGenerator {
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
             case 3:
-                DisruptorRingBufferHandler ringBuffer = new DisruptorRingBufferHandler();
+                DisruptorRingBufferHandler ringBuffer = DisruptorRingBufferHandler.create();
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, ringBuffer, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, ringBuffer);
             default:
@@ -275,7 +275,7 @@ public class PParallelGenerator extends PGenerator {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
 
                     callTarget.call(null, arguments);
-                    ringBuffer.put(StopIterationException.INSTANCE);
+                    ringBuffer.putAndDrain(StopIterationException.INSTANCE);
 
                     if (PythonOptions.ProfileGeneratorCalls) {
                         profiledTime += System.nanoTime() - start;
@@ -286,8 +286,6 @@ public class PParallelGenerator extends PGenerator {
         }
 
         final Object result = ringBuffer.take();
-
-        // context.getStandardOut().println(">>>>> take " + result);
 
         if (result == StopIterationException.INSTANCE) {
             throw StopIterationException.INSTANCE;
