@@ -54,7 +54,7 @@ public class PParallelGenerator extends PGenerator {
     // Profiling
     private static long profiledTime;
 
-    public static final int QUEUE_CHOICE = 0;
+    public static final int QUEUE_CHOICE = 3;
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {

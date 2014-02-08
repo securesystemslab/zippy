@@ -198,7 +198,7 @@ public class PArguments extends Arguments {
         private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
         private final Queue<Object> queue;
-        private RingBuffer<ObjectEvent> ringBuffer;
+        private final RingBuffer<ObjectEvent> ringBuffer;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
             super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);

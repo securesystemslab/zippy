@@ -36,7 +36,7 @@ def measure(work_of_each_iteration, num_of_iterations):
 	print("generator-parallel: " + duration)
 
 #warm up
-for run in range(100): # 200
+for run in range(100): # 100
 	call_generator(200, 5000)
 
 measure(100000, 20000)

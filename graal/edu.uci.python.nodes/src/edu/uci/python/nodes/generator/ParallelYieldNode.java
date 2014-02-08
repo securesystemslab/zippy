@@ -113,6 +113,11 @@ public abstract class ParallelYieldNode extends YieldNode {
 
     public static final class YieldToRingBufferNode extends ParallelYieldNode {
 
+        private static final int BATCH = 4;
+        private long low;
+        private long high;
+        private long next;
+
         public YieldToRingBufferNode(PNode right) {
             super(right);
         }
@@ -120,9 +125,19 @@ public abstract class ParallelYieldNode extends YieldNode {
         @Override
         protected void appendValue(VirtualFrame frame, Object value) {
             final RingBuffer<ObjectEvent> rb = PArguments.getParallelGeneratorArguments(frame).getRingBuffer();
-            long next = rb.next();
+
+            if (next == high) {
+                high = rb.next(BATCH);
+                next = low = high - (BATCH - 1);
+            } else {
+                next++;
+            }
+
             rb.get(next).setValue(value);
-            rb.publish(next);
+
+            if (next == high) {
+                rb.publish(low, high);
+            }
         }
     }
 
