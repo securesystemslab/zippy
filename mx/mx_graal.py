@@ -81,6 +81,8 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.7.0_04')
 
+JDK_UNIX_PERMISSIONS = 0755
+
 def _get_vm():
     """
     Gets the configured VM, presenting a dialogue if there is no currently configured VM.
@@ -324,7 +326,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, 0755)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
             shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'original'))
 
 
@@ -402,7 +404,9 @@ def _installGraalJarInJdks(graalDist):
                 fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
-                shutil.move(tmp, join(jreLibDir, 'graal.jar'))
+                graalJar = join(jreLibDir, 'graal.jar')
+                shutil.move(tmp, graalJar)
+                os.chmod(graalJar, JDK_UNIX_PERMISSIONS)
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -568,7 +572,7 @@ def build(args, vm=None):
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, 0755)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
             mx.log('Creating VM directory in JDK7: ' + vmDir)
             os.makedirs(vmDir)
 
@@ -685,7 +689,7 @@ def build(args, vm=None):
         if not found:
             mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
-                os.chmod(jvmCfg, 0755)
+                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS)
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     if line.startswith(prefix):
