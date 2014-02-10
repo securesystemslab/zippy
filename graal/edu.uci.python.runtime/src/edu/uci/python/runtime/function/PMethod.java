@@ -74,6 +74,10 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        /**
+         * TODO Causes problem in unit test, so arity check is not performed on PMethod.
+         */
+        // function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
     }
 
     @Override

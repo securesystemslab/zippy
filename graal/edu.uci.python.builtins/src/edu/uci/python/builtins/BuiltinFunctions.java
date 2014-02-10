@@ -269,20 +269,38 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "getattr", minNumOfArguments = 2, maxNumOfArguments = 3)
     public abstract static class GetAttrNode extends PythonBuiltinNode {
 
-        @Specialization
-        public Object getAttr(PythonBasicObject object, String name, Object defaultValue) {
-            Object attrValue = object.getAttribute(name);
-            if (attrValue instanceof PFunction) {
-                PFunction funcAttr = (PFunction) attrValue;
-                if (object instanceof PythonObject) {
-                    PythonObject pObject = (PythonObject) object;
-                    PMethod method = CallAttributeNode.createPMethodFor(pObject, funcAttr);
-                    return method;
-                }
+        @Specialization(order = 1)
+        public Object getAttrFromModule(PythonModule module, String name, Object defaultValue) {
+            Object attrValue = module.getAttribute(name);
+            if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
+                return defaultValue;
             }
+
+            return attrValue;
+        }
+
+        @Specialization(order = 2)
+        public Object getAttrFromClass(PythonClass clazz, String name, Object defaultValue) {
+            Object attrValue = clazz.getAttribute(name);
+            if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
+                return defaultValue;
+            }
+
+            return attrValue;
+        }
+
+        @Specialization(order = 3)
+        public Object getAttrFromObject(PythonObject object, String name, Object defaultValue) {
+            Object attrValue = object.getAttribute(name);
 
             if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
                 return defaultValue;
+            }
+
+            if (attrValue instanceof PFunction) {
+                PFunction funcAttr = (PFunction) attrValue;
+                PMethod method = CallAttributeNode.createPMethodFor(object, funcAttr);
+                return method;
             }
 
             return attrValue;
