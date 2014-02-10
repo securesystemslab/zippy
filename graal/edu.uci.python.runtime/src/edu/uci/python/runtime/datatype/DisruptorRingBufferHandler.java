@@ -33,22 +33,25 @@ public class DisruptorRingBufferHandler {
     private static final int BUFFER_SIZE = 32;
     private static final boolean PUBLISH_IN_BATCH = true;
 
+    private final String generatorName;
     protected final RingBuffer<ObjectEvent> ringBuffer;
     private final SequenceBarrier sequenceBarrier;
     private final Sequence sequence;
 
-    public static DisruptorRingBufferHandler create() {
+    public static DisruptorRingBufferHandler create(String generatorName) {
         if (PUBLISH_IN_BATCH) {
-            return new RingBufferBatchHandler();
+            return new RingBufferBatchHandler(generatorName);
         } else {
-            return new DisruptorRingBufferHandler();
+            return new DisruptorRingBufferHandler(generatorName);
         }
     }
 
-    public DisruptorRingBufferHandler() {
+    public DisruptorRingBufferHandler(String generatorName) {
+        this.generatorName = generatorName;
         ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, BUFFER_SIZE);
         sequenceBarrier = ringBuffer.newBarrier();
         sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
+        ringBuffer.addGatingSequences(sequence);
     }
 
     public void put(Object value) {
@@ -76,7 +79,16 @@ public class DisruptorRingBufferHandler {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "ring buffer " + generatorName;
+    }
+
     public static final class RingBufferBatchHandler extends DisruptorRingBufferHandler {
+
+        public RingBufferBatchHandler(String generatorName) {
+            super(generatorName);
+        }
 
         private static final int BATCH_SIZE = 8;
         private long next;
@@ -112,10 +124,12 @@ public class DisruptorRingBufferHandler {
         private Object value;
 
         public Object getValue() {
+            assert value != null;
             return value;
         }
 
         public void setValue(Object value) {
+            assert value != null;
             this.value = value;
         }
     }

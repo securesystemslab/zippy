@@ -74,7 +74,7 @@ public class PParallelGenerator extends PGenerator {
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
             case 3:
-                DisruptorRingBufferHandler ringBuffer = DisruptorRingBufferHandler.create();
+                DisruptorRingBufferHandler ringBuffer = DisruptorRingBufferHandler.create(name);
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, ringBuffer, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, ringBuffer);
             default:
