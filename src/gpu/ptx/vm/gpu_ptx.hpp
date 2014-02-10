@@ -112,6 +112,8 @@ private:
   // static native int getAvailableProcessors0();
   JNIEXPORT static jint get_total_cores(JNIEnv *env, jobject);
 
+  JNIEXPORT static void destroy_ptx_context();
+
   // Links the CUDA driver library functions
   static bool link();
 

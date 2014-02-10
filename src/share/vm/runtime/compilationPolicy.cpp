@@ -172,16 +172,20 @@ bool CompilationPolicy::can_be_offloaded_to_gpu(methodHandle m) {
       {
         ResourceMark rm;
         if (klass_name != NULL) {
-          if (klass_name != NULL && method_name != NULL) {
-            const char* lambdaPrefix = "lambda$";
-            char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
-            if (methodPrefix != 0) {
-              if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0)) {
-                if (TraceGPUInteraction) {
-                  char buf[O_BUFLEN];
-                  tty->print_cr("Selected lambda method %s for GPU offload", m->name_and_sig_as_C_string(buf, O_BUFLEN));
+          const char* javaClass = "java/";
+          // Exclude java library classes - for now
+          if (strncmp(klass_name->as_C_string(), javaClass, strlen(javaClass))) {
+            if (method_name != NULL) {
+              const char* lambdaPrefix = "lambda$";
+              char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
+              if (methodPrefix != 0) {
+                if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0)) {
+                  if (TraceGPUInteraction) {
+                    char buf[O_BUFLEN];
+                    tty->print_cr("Selected lambda method %s for GPU offload", m->name_and_sig_as_C_string(buf, O_BUFLEN));
+                  }
+                  return true;
                 }
-                return true;
               }
             }
           }

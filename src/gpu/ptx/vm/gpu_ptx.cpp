@@ -48,7 +48,7 @@
 // Entry to GPU native method implementation that transitions current thread to '_thread_in_vm'.
 #define GPU_VMENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL name signature { \
-  if (TraceGPUInteraction) tty->print_cr("[CUDA] Ptx::" #name); \
+  if (TraceGPUInteraction) tty->print_cr("[CUDA] " #name); \
   GRAAL_VM_ENTRY_MARK; \
 
 // Entry to GPU native method implementation that calls a JNI function
@@ -69,9 +69,10 @@ JNINativeMethod Ptx::PTX_methods[] = {
   {CC"generateKernel",          CC"([B" STRING ")J",   FN_PTR(Ptx::generate_kernel)},
   {CC"getLaunchKernelAddress",  CC"()J",               FN_PTR(Ptx::get_execute_kernel_from_vm_address)},
   {CC"getAvailableProcessors0", CC"()I",               FN_PTR(Ptx::get_total_cores)},
+  {CC"destroyContext",          CC"()V",               FN_PTR(Ptx::destroy_ptx_context)},
 };
 
-void * Ptx::_device_context;
+void * Ptx::_device_context = 0;
 int    Ptx::_cu_device = 0;
 
 Ptx::cuda_cu_init_func_t Ptx::_cuda_cu_init;
@@ -218,8 +219,8 @@ GPU_ENTRY(jboolean, Ptx::initialize, (JNIEnv *env, jclass))
   version = (float) major + ((float) minor)/10;
 
   if (version < GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION) {
-    tty->print_cr("[CUDA] Only cuda compute capability 3.0 and later supported. Device %d supports %.1f",
-                  _cu_device, version);
+    tty->print_cr("[CUDA] Only cuda compute capability %.1f and later supported. Device %d supports %.1f",
+                  (float) GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION, _cu_device, version);
     return false;
   }
 
@@ -251,6 +252,18 @@ GPU_ENTRY(jboolean, Ptx::initialize, (JNIEnv *env, jclass))
 
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Using %s", device_name);
+  }
+
+  // Create CUDA context to compile and execute the kernel
+
+  status = _cuda_cu_ctx_create(&_device_context, GRAAL_CU_CTX_MAP_HOST, _cu_device);
+
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
+    return false;
+  }
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Success: Created context for device: %d", _cu_device);
   }
 
   gpu::initialized_gpu(device_name);
@@ -381,23 +394,20 @@ GPU_ENTRY(jlong, Ptx::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_han
   jit_options[2] = GRAAL_CU_JIT_MAX_REGISTERS;
   jit_option_values[2] = (void *)(size_t)jit_register_count;
 
-  // Create CUDA context to compile and execute the kernel
-  int status = _cuda_cu_ctx_create(&_device_context, GRAAL_CU_CTX_MAP_HOST, _cu_device);
+  // Set CUDA context to compile and execute the kernel
 
-  if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
-    return 0L;
-  }
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Success: Created context for device: %d", _cu_device);
+  if (_device_context == NULL) {
+    tty->print_cr("[CUDA] Encountered uninitialized CUDA context for device(%d)", _cu_device);
+      return 0L;
   }
 
-  status = _cuda_cu_ctx_set_current(_device_context);
+  int status = _cuda_cu_ctx_set_current(_device_context);
 
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to set current context for device: %d", _cu_device);
     return 0L;
   }
+
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Success: Set current context for device: %d", _cu_device);
     tty->print_cr("[CUDA] PTX Kernel\n%s", code);
@@ -573,17 +583,9 @@ class PtxCall: StackObj {
     }
   }
 
-  void destroy_context() {
-    if (Ptx::_device_context != NULL) {
-      check(Ptx::_cuda_cu_ctx_destroy(Ptx::_device_context), "Destroy context");
-      Ptx::_device_context = NULL;
-    }
-  }
-
   ~PtxCall() {
     unpin_objects();
     free_return_value();
-    destroy_context();
     if (_gc_locked) {
       GC_locker::unlock_critical(_thread);
       if (TraceGPUInteraction) {
@@ -669,6 +671,23 @@ static void printKernelArguments(JavaThread* thread, address buffer) {
   }
 }
 
+GPU_VMENTRY(void, Ptx::destroy_ptx_context, (void))
+    if (_device_context != NULL) {
+      int status = _cuda_cu_ctx_destroy(_device_context);
+      if (status != GRAAL_CUDA_SUCCESS) {
+        if (TraceGPUInteraction) {
+          tty->print_cr("[CUDA] Error(%d) : Failed to destroy context", status);
+        }
+      _device_context = NULL;
+      } else {
+        if (TraceGPUInteraction) {
+          tty->print_cr("[CUDA] Destroyed context", status);
+        }
+      }
+    }
+
+GPU_END
+
 GPU_VMENTRY(jlong, Ptx::get_execute_kernel_from_vm_address, (JNIEnv *env, jclass))
   return (jlong) Ptx::execute_kernel_from_vm;
 GPU_END
@@ -720,7 +739,7 @@ JRT_ENTRY(jlong, Ptx::execute_kernel_from_vm(JavaThread* thread, jlong kernel, j
 JRT_END
 
 #if defined(LINUX)
-static const char cuda_library_name[] = "libcuda.so";
+static const char cuda_library_name[] = "/usr/lib/libcuda.so";
 #elif defined(__APPLE__)
 static char const cuda_library_name[] = "/usr/local/cuda/lib/libcuda.dylib";
 #else
