@@ -24,7 +24,7 @@
  */
 package edu.uci.python.nodes.argument;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
@@ -32,7 +32,7 @@ import edu.uci.python.nodes.*;
 
 public class ReadDefaultArgumentNode extends PNode {
 
-    @CompilerDirectives.CompilationFinal private Object value;
+    @CompilationFinal private Object value;
 
     public ReadDefaultArgumentNode() {
         value = null;

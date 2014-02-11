@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,42 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.runtime;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import static com.higherfrequencytrading.affinity.AffinityStrategies.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
+import java.io.*;
+import java.util.concurrent.*;
 
-public class BlockNode extends StatementNode {
+import com.higherfrequencytrading.affinity.*;
 
-    public static BlockNode getEmptyBlock() {
-        return new BlockNode(new PNode[]{PNode.EMPTYNODE});
-    }
+public class AffinityTest {
+    private static final ExecutorService ES = Executors.newFixedThreadPool(4, new AffinityThreadFactory("bg", SAME_CORE, DIFFERENT_SOCKET, ANY));
 
-    @Children protected final PNode[] statements;
-
-    public BlockNode(PNode[] statements) {
-        this.statements = adoptChildren(statements);
-    }
-
-    public final PNode[] getStatements() {
-        return statements;
-    }
-
-    public boolean isEmpty() {
-        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EMPTYNODE));
-    }
-
-    @ExplodeLoop
-    @Override
-    public Object execute(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
-            statements[i].executeVoid(frame);
+    public static void main(String... args) throws InterruptedException {
+        for (int i = 0; i < 12; i++) {
+            ES.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws InterruptedException {
+                    Thread.sleep(100);
+                    return null;
+                }
+            });
         }
-
-        return PNone.NONE;
+        Thread.sleep(200);
+        PrintStream out = System.out;
+        out.println("\nThe assignment of CPUs is\n" + AffinityLock.dumpLocks());
+        ES.shutdown();
+        ES.awaitTermination(1, TimeUnit.SECONDS);
     }
-
 }

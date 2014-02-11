@@ -879,9 +879,11 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitWith(With node) throws Exception {
 
         PNode withContext = (PNode) visit(node.getInternalContext_expr());
-        PNode asName = (PNode) visit(node.getInternalOptional_vars());
-
-        asName = ((ReadNode) asName).makeWriteNode(withContext);
+        PNode asName = null;
+        if (node.getInternalOptional_vars() != null) {
+            asName = (PNode) visit(node.getInternalOptional_vars());
+            asName = ((ReadNode) asName).makeWriteNode(withContext);
+        }
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         List<PNode> b = visitStatements(node.getInternalBody());
         BlockNode body = factory.createBlock(b);

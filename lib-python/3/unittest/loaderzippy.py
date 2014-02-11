@@ -73,8 +73,7 @@ class TestLoader(object):
                 if(issubclass(obj, casezippy.TestCase)):                
                     tests.append(self.loadTestsFromTestCase(obj))
 
-        #load_tests = getattr(module, 'load_tests', None)
-        load_tests = getattr(module, 'load_tests')
+        load_tests = getattr(module, 'load_tests', None)
         tests = self.suiteClass(tests)
         if use_load_tests and load_tests is not None:
             try:

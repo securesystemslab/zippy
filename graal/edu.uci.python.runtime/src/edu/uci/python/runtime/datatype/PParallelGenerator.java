@@ -28,8 +28,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.lmax.disruptor.*;
-import com.lmax.disruptor.TimeoutException;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -47,14 +45,12 @@ public class PParallelGenerator extends PGenerator {
     private final Queue<Object> queue;
 
     // Disruptor
-    private final RingBuffer<ObjectEvent> ringBuffer;
-    private final SequenceBarrier sequenceBarrier;
-    private final Sequence sequence;
+    private final DisruptorRingBufferHandler ringBuffer;
 
     // Profiling
     private static long profiledTime;
 
-    public static final int QUEUE_CHOICE = 0;
+    public static final int QUEUE_CHOICE = 3;
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
@@ -78,7 +74,7 @@ public class PParallelGenerator extends PGenerator {
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
             case 3:
-                RingBuffer<ObjectEvent> ringBuffer = RingBuffer.createSingleProducer(EMPTY_EVENTS, 32);
+                DisruptorRingBufferHandler ringBuffer = DisruptorRingBufferHandler.create(name);
                 parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, ringBuffer, arguments);
                 return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, ringBuffer);
             default:
@@ -93,8 +89,6 @@ public class PParallelGenerator extends PGenerator {
         this.buffer = null;
         this.queue = null;
         this.ringBuffer = null;
-        this.sequenceBarrier = null;
-        this.sequence = null;
     }
 
     protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, SingleProducerCircularBuffer buffer) {
@@ -104,8 +98,6 @@ public class PParallelGenerator extends PGenerator {
         this.buffer = buffer;
         this.queue = null;
         this.ringBuffer = null;
-        this.sequenceBarrier = null;
-        this.sequence = null;
     }
 
     protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, Queue<Object> queue) {
@@ -115,20 +107,15 @@ public class PParallelGenerator extends PGenerator {
         this.buffer = null;
         this.queue = queue;
         this.ringBuffer = null;
-        this.sequenceBarrier = null;
-        this.sequence = null;
     }
 
-    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, RingBuffer<ObjectEvent> ringBuffer) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, DisruptorRingBufferHandler ringBuffer) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = null;
         this.buffer = null;
         this.queue = null;
         this.ringBuffer = ringBuffer;
-        this.sequenceBarrier = ringBuffer.newBarrier();
-        this.sequence = new Sequence(Sequencer.INITIAL_CURSOR_VALUE);
-        ringBuffer.addGatingSequences(sequence);
     }
 
     /**
@@ -136,7 +123,7 @@ public class PParallelGenerator extends PGenerator {
      * slower than the exising approach.
      */
     public final void generates() {
-        context.getExecutorService().execute(new Runnable() {
+        context.submitParallelTask(new Runnable() {
 
             public void run() {
                 try {
@@ -183,7 +170,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithConcurrentLinkedQueue() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -216,7 +203,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithBlockingQueue() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -255,7 +242,7 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithCircularBuffer() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
@@ -282,16 +269,13 @@ public class PParallelGenerator extends PGenerator {
     private Object doWithDisruptor() {
         if (isFirstEntry) {
             isFirstEntry = false;
-            context.getExecutorService().execute(new Runnable() {
+            context.submitParallelTask(new Runnable() {
 
                 public void run() {
                     long start = PythonOptions.ProfileGeneratorCalls ? System.nanoTime() : 0;
 
                     callTarget.call(null, arguments);
-                    final RingBuffer<ObjectEvent> rb = ringBuffer;
-                    long next = rb.next();
-                    rb.get(next).setValue(StopIterationException.INSTANCE);
-                    rb.publish(next);
+                    ringBuffer.putAndDrain(StopIterationException.INSTANCE);
 
                     if (PythonOptions.ProfileGeneratorCalls) {
                         profiledTime += System.nanoTime() - start;
@@ -301,47 +285,13 @@ public class PParallelGenerator extends PGenerator {
             });
         }
 
-        long nextSequence = sequence.get() + 1L;
-
-        try {
-            sequenceBarrier.waitFor(nextSequence);
-        } catch (AlertException | InterruptedException | TimeoutException e) {
-            CompilerDirectives.transferToInterpreter();
-            throw new RuntimeException();
-        }
-
-        Object result = ringBuffer.get(nextSequence).getValue();
-        sequence.set(nextSequence);
+        final Object result = ringBuffer.take();
 
         if (result == StopIterationException.INSTANCE) {
             throw StopIterationException.INSTANCE;
         } else {
             return result;
         }
-    }
-
-    public static class ObjectEvent {
-
-        private Object value;
-
-        public Object getValue() {
-            return value;
-        }
-
-        public void setValue(Object value) {
-            this.value = value;
-        }
-
-    }
-
-    public static final EventFactory<ObjectEvent> EMPTY_EVENTS = new ObjectEventFactory();
-
-    public static class ObjectEventFactory implements EventFactory<ObjectEvent> {
-
-        public ObjectEvent newInstance() {
-            return new ObjectEvent();
-        }
-
     }
 
     public static void resetProfiledTime() {

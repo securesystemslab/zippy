@@ -124,4 +124,29 @@ public class ClassTests {
         Path script = Paths.get("class_test.py");
         assertPrints("42\n", script);
     }
+
+    @Test
+    public void defaultArgInMethod() {
+        String source = "class TestSuite():\n" + //
+                        "    def assertTrue(self, arg, msg=None):\n" + //
+                        "        print(\"arg\", arg)\n" + //
+                        "        print(\"msg\", msg)\n" + //
+                        "testSuite = TestSuite()\n" + //
+                        "testSuite.assertTrue(1 < 2, \"1 is not less than 2\")\n";
+
+        assertPrints("arg True\nmsg 1 is not less than 2\n", source);
+    }
+
+    @Test
+    public void keywordArgInMethod() {
+        String source = "class TestSuite():\n" + //
+                        "    def assertTrue(self, arg, msg=None):\n" + //
+                        "        print(\"arg\", arg)\n" + //
+                        "        print(\"msg\", msg)\n" + //
+                        "testSuite = TestSuite()\n" + //
+                        "testSuite.assertTrue(1 < 2, msg=\"1 is not less than 2\")\n";
+
+        assertPrints("arg True\nmsg 1 is not less than 2\n", source);
+    }
+
 }

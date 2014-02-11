@@ -32,7 +32,6 @@ import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PFunction extends PythonBuiltinObject implements PythonCallable {
@@ -82,13 +81,13 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, args));
+        return callTarget.call(caller, new PArguments(null, declarationFrame, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        Object[] combined = applyKeywordArgs(arguments, keywords);
-        return callTarget.call(caller, new PArguments(PNone.NONE, declarationFrame, combined));
+        Object[] combined = applyKeywordArgs(false, arguments, keywords);
+        return callTarget.call(caller, new PArguments(null, declarationFrame, combined));
     }
 
     @Override
@@ -96,9 +95,9 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
-    protected Object[] applyKeywordArgs(Object[] arguments, Object[] keywords) {
+    protected Object[] applyKeywordArgs(boolean withImplicitSelf, Object[] arguments, Object[] keywords) {
         List<String> parameters = arity.getParameterIds();
-        Object[] combined = new Object[parameters.size()];
+        Object[] combined = new Object[withImplicitSelf ? parameters.size() - 1 : parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
 
@@ -112,6 +111,8 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
                  * unexpected keyword argument 'c'
                  */
             }
+
+            keywordIdx = withImplicitSelf ? --keywordIdx : keywordIdx;
             combined[keywordIdx] = keyarg.getValue();
         }
 

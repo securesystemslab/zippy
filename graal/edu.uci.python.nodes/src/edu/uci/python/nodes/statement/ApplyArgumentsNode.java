@@ -42,10 +42,10 @@ public class ApplyArgumentsNode extends BlockNode {
     @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
-        final Object[] arguments = frame.getArguments(PArguments.class).getArgumentsArray();
+        final int argumentsLength = frame.getArguments(PArguments.class).getArgumentsLength();
 
         for (int i = 0; i < getStatements().length; i++) {
-            if (i >= arguments.length) {
+            if (i >= argumentsLength) {
                 break;
             }
 

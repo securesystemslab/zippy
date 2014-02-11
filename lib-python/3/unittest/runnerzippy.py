@@ -21,10 +21,10 @@ class _WritelnDecorator(object):
             raise AttributeError(attr)
         return getattr(self.stream,attr)
 
-    #def writeln(self, arg=None):
-    def writeln(self, arg):
+    def writeln(self, arg=None):
         if arg:
             self.stream.write(arg)
+            #self.write(arg)
         self.stream.write('\n') # text-mode streams translate to \r\n if needed
         #self.write('\n') # text-mode streams translate to \r\n if needed
 

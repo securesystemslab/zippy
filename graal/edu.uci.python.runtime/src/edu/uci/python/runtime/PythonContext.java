@@ -142,8 +142,8 @@ public class PythonContext {
         return currentException;
     }
 
-    public ExecutorService getExecutorService() {
-        return executorService;
+    public void submitParallelTask(Runnable task) {
+        executorService.execute(task);
     }
 
     public void updateGeneratorIterationCount(String generatorId, int count) {
