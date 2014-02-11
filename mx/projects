@@ -85,12 +85,6 @@ library@JYTHON@urls=http://mirrors.ibiblio.org/maven2/org/python/jython-standalo
 library@DISRUPTOR@path=lib/disruptor-3.2.0.jar
 library@DISRUPTOR@urls=http://repo1.maven.org/maven2/com/lmax/disruptor/3.2.0/disruptor-3.2.0.jar
 
-library@JNA@path=lib/jna-4.0.0.jar
-library@JNA@urls=http://repo1.maven.org/maven2/net/java/dev/jna/jna/4.0.0/jna-4.0.0.jar
-
-library@AFFINITY@path=lib/affinity-1.7.jar
-library@AFFINITY@urls=http://repo1.maven.org/maven2/com/higherfrequencytrading/affinity/1.7/affinity-1.7.jar
-
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
@@ -760,7 +754,7 @@ project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
 # python.runtime
 project@edu.uci.python.runtime@subDir=graal
 project@edu.uci.python.runtime@sourceDirs=src
-project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR, JNA, AFFINITY
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR
 project@edu.uci.python.runtime@javaCompliance=1.7
 project@edu.uci.python.runtime@workingSets=Truffle,Python
 
