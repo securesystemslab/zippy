@@ -1071,21 +1071,23 @@ def gate(args, gate_body=_basic_gate_body):
         mx.pylint([])
         tasks.append(t.stop())
 
-        t = Task('Clean')
-        cleanArgs = []
-        if not args.cleanNative:
-            cleanArgs.append('--no-native')
-        if not args.cleanJava:
-            cleanArgs.append('--no-java')
-        clean(cleanArgs)
-        tasks.append(t.stop())
+        def _clean(name='Clean'):
+            t = Task(name)
+            cleanArgs = []
+            if not args.cleanNative:
+                cleanArgs.append('--no-native')
+            if not args.cleanJava:
+                cleanArgs.append('--no-java')
+            clean(cleanArgs)
+            tasks.append(t.stop())
+        _clean()
 
         t = Task('IDEConfigCheck')
         mx.ideclean([])
         mx.ideinit([])
         tasks.append(t.stop())
 
-        eclipse_exe = os.environ.get('ECLIPSE_EXE')
+        eclipse_exe = mx.get_env('ECLIPSE_EXE')
         if eclipse_exe is not None:
             t = Task('CodeFormatCheck')
             if mx.eclipseformat(['-e', eclipse_exe]) != 0:
@@ -1098,8 +1100,15 @@ def gate(args, gate_body=_basic_gate_body):
             t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
         tasks.append(t.stop())
 
-        t = Task('BuildJava')
-        build(['--no-native', '--jdt-warning-as-error'])
+        if mx.get_env('JDT'):
+            t = Task('BuildJavaWithEcj')
+            build(['--no-native', '--jdt-warning-as-error'])
+            tasks.append(t.stop())
+
+            _clean('CleanAfterEcjBuild')
+
+        t = Task('BuildJavaWithJavac')
+        build(['--no-native', '--force-javac'])
         tasks.append(t.stop())
 
         t = Task('Checkstyle')
