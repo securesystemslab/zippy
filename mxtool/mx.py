@@ -1567,11 +1567,15 @@ def build(args, parser=None):
 
     jdtJar = None
     if args.jdt is not None:
-        if args.jdt.endswith('.jar'):
-            jdtJar = args.jdt
-            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
-                # Silently ignore JDT if default location is used but not ecj.jar exists there
+        if not args.jdt.endswith('.jar'):
+            abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
+        jdtJar = args.jdt
+        if not exists(jdtJar):
+            if os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
+                # Silently ignore JDT if default location is used but does not exist
                 jdtJar = None
+            else:
+                abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
 
     built = set()
 
