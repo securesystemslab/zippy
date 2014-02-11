@@ -69,6 +69,8 @@ public class PythonOptions {
 
     public static final boolean ProfileGeneratorCalls = false;
 
+    public static final boolean ProfileFunctionCalls = true;
+
     static {
         if (ParallelizeGeneratorCalls) {
             InlineGeneratorCalls = false;

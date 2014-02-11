@@ -111,6 +111,11 @@ public class CallFunctionNoKeywordNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         final PythonCallable callable = (PythonCallable) callee.execute(frame);
+
+        if (PythonOptions.ProfileFunctionCalls) {
+            Profiler.getInstance().increment(callable);
+        }
+
         return executeCall(frame, callable);
     }
 

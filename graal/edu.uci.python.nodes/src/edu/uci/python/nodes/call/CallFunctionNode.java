@@ -70,6 +70,11 @@ public abstract class CallFunctionNode extends PNode {
     public Object doPythonCallable(VirtualFrame frame, PythonCallable callee) {
         Object[] args = executeArguments(frame, arguments);
         PKeyword[] kwords = executeKeywordArguments(frame, keywords);
+
+        if (PythonOptions.ProfileFunctionCalls) {
+            Profiler.getInstance().increment(callee);
+        }
+
         return callee.call(frame.pack(), args, kwords);
     }
 
@@ -85,6 +90,11 @@ public abstract class CallFunctionNode extends PNode {
         if (callAttribute instanceof PFunction) {
             PFunction callFunction = (PFunction) callAttribute;
             PMethod callMethod = CallAttributeNode.createPMethodFor(callee, callFunction);
+
+            if (PythonOptions.ProfileFunctionCalls) {
+                Profiler.getInstance().increment(callMethod);
+            }
+
             if (keywords.length == 0) {
                 return callMethod.call(frame.pack(), args);
             } else {
@@ -100,6 +110,11 @@ public abstract class CallFunctionNode extends PNode {
     public Object doPyObject(VirtualFrame frame, PyObject callee) {
         Object[] args = executeArguments(frame, arguments);
         PyObject[] pyargs = adaptToPyObjects(args);
+
+        if (PythonOptions.ProfileFunctionCalls) {
+            Profiler.getInstance().increment(callee);
+        }
+
         return unboxPyObject(callee.__call__(pyargs));
     }
 

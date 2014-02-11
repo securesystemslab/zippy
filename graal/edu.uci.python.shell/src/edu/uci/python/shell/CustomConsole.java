@@ -30,6 +30,7 @@ import org.python.util.*;
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -82,6 +83,11 @@ public class CustomConsole extends JLineConsole {
             } else {
                 PGenerator.printProfiledTime();
             }
+        }
+
+        if (PythonOptions.ProfileFunctionCalls) {
+            printBanner("Function Invocation Count Results");
+            Profiler.getInstance().printProfilerResults();
         }
 
         Py.flushLine();

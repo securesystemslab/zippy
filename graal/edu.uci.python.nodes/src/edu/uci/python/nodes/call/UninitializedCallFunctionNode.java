@@ -62,7 +62,8 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             if (keywords.length == 0) {
                 CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
                 replace(callFunction);
-                return callFunction.executeCall(frame, callable);
+                return callFunction.execute(frame);
+                // return callFunction.executeCall(frame, callable);
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
                 replace(callFunction);

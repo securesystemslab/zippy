@@ -109,6 +109,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
                 replace(inlinedCallNode);
                 invokeGeneratorExpressionOptimizer();
+                Profiler.getInstance().removeAfterInlining(function);
                 return true;
             }
 
@@ -156,6 +157,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
                                 this.builtinModuleUnchanged, factory);
                 replace(inlinedCallNode);
                 invokeBuiltinIntrinsifier(inlinedCallNode);
+                Profiler.getInstance().removeAfterInlining(function);
                 return true;
             }
 
