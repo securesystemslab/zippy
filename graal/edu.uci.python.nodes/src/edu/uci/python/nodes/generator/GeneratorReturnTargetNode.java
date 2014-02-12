@@ -24,24 +24,20 @@
  */
 package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorReturnTargetNode extends ReturnTargetNode {
+public final class GeneratorReturnTargetNode extends ReturnTargetNode {
 
     @Child protected PNode parameters;
-    private final PythonContext context;
 
-    public GeneratorReturnTargetNode(PythonContext context, PNode parameters, PNode body, PNode returnValue) {
+    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue) {
         super(body, returnValue);
         this.parameters = adoptChild(parameters);
-        this.context = context;
     }
 
     public PNode getParameters() {
@@ -56,24 +52,11 @@ public class GeneratorReturnTargetNode extends ReturnTargetNode {
         PArguments.getGeneratorArguments(frame).setFirstEntry(value);
     }
 
-    private static int getIterationCount(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getIterationCount();
-    }
-
-    private static void increaseIterationCount(VirtualFrame frame) {
-        PArguments.getGeneratorArguments(frame).increaseIterationCount();
-    }
-
-    @SuppressWarnings("unused")
     @Override
     public Object execute(VirtualFrame frame) {
         if (getFirstEntry(frame)) {
             parameters.executeVoid(frame);
             setFirstEntry(frame, false);
-        }
-
-        if (CompilerDirectives.inInterpreter() && PythonOptions.ProfileGeneratorIterations) {
-            increaseIterationCount(frame);
         }
 
         try {
@@ -83,11 +66,6 @@ public class GeneratorReturnTargetNode extends ReturnTargetNode {
             return returnValue.execute(frame);
         } catch (ReturnException ire) {
             // return statement in generators throws StopIteration immediately.
-        }
-
-        if (CompilerDirectives.inInterpreter() && PythonOptions.ProfileGeneratorIterations) {
-            int count = getIterationCount(frame);
-            context.updateGeneratorIterationCount(getParent().toString(), count);
         }
 
         throw StopIterationException.INSTANCE;

@@ -37,7 +37,6 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorForNode;
     private final CallTarget parallelCallTarget;
 
-    private String generatorId;
     @CompilationFinal private boolean isWorthParallelizing = true;
 
     public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
@@ -66,26 +65,7 @@ public final class PGeneratorFunction extends PFunction {
         }
     }
 
-    @SuppressWarnings("unused")
     private PGenerator makeParallelGeneratorHelper(Object[] args) {
-        /**
-         * A generator is by default considered as worth doing parallelization.<br>
-         * If generator iteration profiling is enabled, the worthiness is reconsidered.<br>
-         * Only when the previously instanciated generator has generated over 100 items, it is
-         * considered worthy.
-         */
-        if (PythonOptions.ProfileGeneratorIterations && generatorId == null) {
-            isWorthParallelizing = false;
-            generatorId = getCallTarget().getRootNode().toString();
-            int count = context.getGeneratorIterationCount(generatorId);
-
-            if (count == -1) { // Missing iteration count
-                generatorId = null;
-            } else {
-                isWorthParallelizing = count > 100;
-            }
-        }
-
         if (isWorthParallelizing) {
             PParallelGenerator generator = PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
 
