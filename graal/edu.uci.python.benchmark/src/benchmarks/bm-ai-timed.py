@@ -52,16 +52,19 @@ def n_queens(queen_count):
                         == len(set(vec[i]-i for i in cols))):
             yield vec
 
+def main(queen_count):
+    return list(i for i in n_queens(queen_count))
+
 def measure():
     print("Start timing...")
     start = time.time()
-    print(list(n_queens(10))[-1])
+    print(main(10)[-1])
     duration = "%.3f\n" % (time.time() - start)
     print("bm-ai: " + duration)
 
 # warm up
-for i in range(31):
-    list(n_queens(9))
+for i in range(1500): #1500
+    main(7)
 
 measure()
 
