@@ -33,6 +33,7 @@ import com.oracle.truffle.api.utilities.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
@@ -180,6 +181,12 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         @Override
         public Object executeCall(VirtualFrame frame, PythonCallable callable) {
             final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+
+            if (PythonOptions.ProfileFunctionCalls) {
+                Profiler.getInstance().increment(callable);
+                // Profiler.getInstance().increment(function);
+            }
+
             return function.call(frame.pack(), args);
         }
     }

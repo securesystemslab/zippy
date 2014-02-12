@@ -1,8 +1,7 @@
-package edu.uci.python.nodes.call;
+package edu.uci.python.profiler;
 
 import java.util.*;
-
-import edu.uci.python.runtime.function.*;
+import java.util.Map.Entry;
 
 public class Profiler {
 
@@ -27,7 +26,7 @@ public class Profiler {
         }
     }
 
-    public void removeAfterInlining(PythonCallable callable) {
+    public void removeAfterInlining(Object callable) {
         invocationCounts.remove(callable);
         // CheckStyle: stop system..print check
         System.out.println("[ZipPy Profiler] removing from profiling after inlining " + callable);
@@ -35,9 +34,10 @@ public class Profiler {
     }
 
     public void printProfilerResults() {
-        Iterator it = invocationCounts.entrySet().iterator();
+        Iterator<Entry<Object, Integer> > it = invocationCounts.entrySet().iterator();
+        
         while (it.hasNext()) {
-            Map.Entry pairs = (Map.Entry) it.next();
+            Entry<Object, Integer> pairs = it.next();
             // CheckStyle: stop system..print check
             System.out.println(pairs.getKey() + " = " + pairs.getValue());
             // CheckStyle: resume system..print check

@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -111,11 +112,6 @@ public class CallFunctionNoKeywordNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         final PythonCallable callable = (PythonCallable) callee.execute(frame);
-
-        if (PythonOptions.ProfileFunctionCalls) {
-            Profiler.getInstance().increment(callable);
-        }
-
         return executeCall(frame, callable);
     }
 
@@ -131,6 +127,11 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     public Object executeCall(VirtualFrame frame, PythonCallable callable) {
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+
+        if (PythonOptions.ProfileFunctionCalls) {
+            Profiler.getInstance().increment(callable);
+        }
+
         return callable.call(frame.pack(), args);
     }
 

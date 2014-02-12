@@ -767,7 +767,7 @@ project@edu.uci.python.runtime@workingSets=Truffle,Python
 # python.nodes
 project@edu.uci.python.nodes@subDir=graal
 project@edu.uci.python.nodes@sourceDirs=src
-project@edu.uci.python.nodes@dependencies=edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.nodes@dependencies=edu.uci.python.runtime,edu.uci.python.profiler,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
 project@edu.uci.python.nodes@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.nodes@javaCompliance=1.7
 project@edu.uci.python.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
@@ -805,14 +805,6 @@ project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.test@javaCompliance=1.7
 project@edu.uci.python.test@workingSets=Truffle,Python
 
-# python.test
-project@edu.uci.python.test@subDir=graal
-project@edu.uci.python.test@sourceDirs=src
-project@edu.uci.python.test@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.shell,edu.uci.python.builtins,JUNIT
-project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.test@javaCompliance=1.7
-project@edu.uci.python.test@workingSets=Truffle,Python
-
 # python.builtins
 project@edu.uci.python.builtins@subDir=graal
 project@edu.uci.python.builtins@sourceDirs=src
@@ -821,6 +813,14 @@ project@edu.uci.python.builtins@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.builtins@javaCompliance=1.7
 project@edu.uci.python.builtins@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python.builtins@workingSets=Truffle,Python
+
+# python.profiler
+project@edu.uci.python.profiler@subDir=graal
+project@edu.uci.python.profiler@sourceDirs=src
+project@edu.uci.python.profiler@dependencies=
+project@edu.uci.python.profiler@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.profiler@javaCompliance=1.7
+project@edu.uci.python.profiler@workingSets=Truffle,Python
 
 # truffle.ruby.runtime
 project@com.oracle.truffle.ruby.runtime@subDir=graal
