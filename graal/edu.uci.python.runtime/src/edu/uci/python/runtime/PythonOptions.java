@@ -65,8 +65,6 @@ public class PythonOptions {
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
 
-    public static final boolean ProfileGeneratorIterations = false;
-
     public static final boolean ProfileGeneratorCalls = false;
 
     public static final boolean ProfileFunctionCalls = true;
