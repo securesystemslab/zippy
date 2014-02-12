@@ -799,14 +799,6 @@ project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.test@javaCompliance=1.7
 project@edu.uci.python.test@workingSets=Truffle,Python
 
-# python.test
-project@edu.uci.python.test@subDir=graal
-project@edu.uci.python.test@sourceDirs=src
-project@edu.uci.python.test@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.shell,edu.uci.python.builtins,JUNIT
-project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.test@javaCompliance=1.7
-project@edu.uci.python.test@workingSets=Truffle,Python
-
 # python.builtins
 project@edu.uci.python.builtins@subDir=graal
 project@edu.uci.python.builtins@sourceDirs=src
