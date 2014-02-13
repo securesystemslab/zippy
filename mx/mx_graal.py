@@ -1272,12 +1272,12 @@ def jmh(args):
 
     vmArgs, benchmarks = _extract_VM_args(args)
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
-    if not exists(jmhPath):
+    if not jmhPath or not exists(jmhPath):
         mx.abort("$JMH_BENCHMARKS not properly definied")
 
     def _blackhole(x):
         mx.logv(x[:-1])
-
+    mx.log("Building benchmarks...")
     mx.run(['mvn', 'package'], cwd = jmhPath, out = _blackhole)
 
     matchedSuites = set()
@@ -1289,6 +1289,10 @@ def jmh(args):
             mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't start with 'micros-'")
             continue
 
+        microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
+        if not exists(microJar):
+            mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't contain the expected jar file ('" + microJar + "')")
+            continue 
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
@@ -1300,7 +1304,8 @@ def jmh(args):
                 if match:
                     matchedSuites.add(micros)
 
-            mx.run_java(['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"), "-l"], cwd = jmhPath, out = _addBenchmark)
+            
+            mx.run_java(['-jar', microJar, "-l"], cwd = jmhPath, out = _addBenchmark)
         else:
             matchedSuites.add(micros)
 
