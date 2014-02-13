@@ -712,7 +712,7 @@ def vmfg(args):
     """run the fastdebug build of VM selected by the '--vm' option"""
     return vm(args, vmbuild='fastdebug')
 
-def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
+def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     """run the VM selected by the '--vm' option"""
 
     if vm is None:
@@ -761,7 +761,11 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
 
-    return mx.run(pfx + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+    return (pfx, exe, vm, args, cwd)
+
+def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
+    (pfx_, exe_, vm_, args_, cwd) = _parseVmArgs(args, vm, cwd, vmbuild)
+    return mx.run(pfx_ + [exe_, '-' + vm_] + args_, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
     """
@@ -1293,7 +1297,7 @@ def jmh(args):
         microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
         if not exists(microJar):
             mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't contain the expected jar file ('" + microJar + "')")
-            continue 
+            continue
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
@@ -1306,8 +1310,7 @@ def jmh(args):
                     numBench[0] += 1
                     matchedSuites.add(micros)
 
-            
-            mx.run_java(['-jar', microJar, "-l"], cwd = jmhPath, out = _addBenchmark)
+            mx.run_java(['-jar', microJar, "-l"], cwd = jmhPath, out = _addBenchmark, addDefaultArgs = False)
         else:
             matchedSuites.add(micros)
 
@@ -1322,11 +1325,16 @@ def jmh(args):
 
     for suite in matchedSuites:
         absoluteMicro = os.path.join(jmhPath, suite)
-        vm(['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
+        (pfx, exe, vm, forkedVmArgs, _) = _parseVmArgs(vmArgs)
+        if pfx:
+            mx.warn("JMH ignores prefix: \"" + pfx + "\"")
+        mx.run_java(
+           ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
             "-f", "1",
             "-i", "10", "-wi", "10",
-            "--jvmArgs", " ".join(["-" + _get_vm()] + vmArgs)] + regex,
-            vm = 'original',
+            "--jvm", exe,
+            "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
+            addDefaultArgs = False,
             cwd = jmhPath)
 
 

@@ -1053,8 +1053,8 @@ def java():
     assert _java is not None
     return _java
 
-def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
-    return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
+def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
+    return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def _kill_process_group(pid):
     pgid = os.getpgid(pid)
@@ -1333,8 +1333,11 @@ class JavaConfig:
         if self.debug_port is not None:
             self.java_args += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(self.debug_port)]
 
-    def format_cmd(self, args):
-        return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
+    def format_cmd(self, args, addDefaultArgs):
+        if addDefaultArgs:
+            return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
+        else:
+            return [self.java] + args
 
     def bootclasspath(self):
         if self._bootclasspath is None:
