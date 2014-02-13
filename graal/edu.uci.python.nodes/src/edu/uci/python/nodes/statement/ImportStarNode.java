@@ -73,11 +73,11 @@ public class ImportStarNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         PyObject importedModule = __builtin__.__import__(moduleName);
-        PyObject __all__ = importedModule.__findattr__("__all__");
+        PyObject all = importedModule.__findattr__("__all__");
         PyObject names;
 
-        if (__all__ != null) {
-            names = __all__;
+        if (all != null) {
+            names = all;
         } else {
             names = importedModule.__dir__();
         }

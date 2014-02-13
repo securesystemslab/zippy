@@ -41,7 +41,6 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.nodes.subscript.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -225,11 +224,6 @@ public class NodeFactory {
 
     public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
         return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
-    }
-
-    public PNode createGeneratorExpression(CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
-        return new GeneratorExpressionDefinitionNode(callTarget, parallelCallTarget, descriptor, needsDeclarationFrame, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

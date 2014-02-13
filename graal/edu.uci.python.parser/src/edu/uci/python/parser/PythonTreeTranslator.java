@@ -232,15 +232,14 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.endScope(node);
         return funcDef;
-        // return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
-    private PNode createGeneratorExpressionDefinition(StatementNode body) {
+    private GeneratorExpressionDefinitionNode createGeneratorExpressionDefinition(StatementNode body) {
         FrameDescriptor fd = environment.getCurrentFrame();
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, "generator_exp", fd, body);
         result.addParsedFunction("generator_exp", funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-        return factory.createGeneratorExpression(gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
+        return new GeneratorExpressionDefinitionNode(gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
                         gtran.getNumOfGeneratorForNode());
     }
 
@@ -627,8 +626,9 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
         body = visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
-        PNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
+        GeneratorExpressionDefinitionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
         environment.endScope(node);
+        genExprDef.setEnclosingFrameDescriptor(environment.getCurrentFrame());
         return genExprDef;
     }
 
