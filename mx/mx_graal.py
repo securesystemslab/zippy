@@ -1281,6 +1281,7 @@ def jmh(args):
     mx.run(['mvn', 'package'], cwd = jmhPath, out = _blackhole)
 
     matchedSuites = set()
+    numBench = [0]
     for micros in os.listdir(jmhPath):
         absoluteMicro = os.path.join(jmhPath, micros)
         if not os.path.isdir(absoluteMicro):
@@ -1302,6 +1303,7 @@ def jmh(args):
                     match = match or (b in x)
 
                 if match:
+                    numBench[0] += 1
                     matchedSuites.add(micros)
 
             
@@ -1310,6 +1312,9 @@ def jmh(args):
             matchedSuites.add(micros)
 
     mx.logv("matchedSuites: " + str(matchedSuites))
+    plural = 's' if not benchmarks or numBench[0] > 1 else ''
+    number = str(numBench[0]) if benchmarks else "all"
+    mx.log("Running " + number + " benchmark" + plural + '...')
 
     regex = []
     if benchmarks:
