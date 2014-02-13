@@ -37,7 +37,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PBaseSet extends PythonBuiltinObject implements PIterable {
 
-    protected Set<Object> set;
+    private final Set<Object> set;
 
     public PBaseSet() {
         this.set = new HashSet<>();

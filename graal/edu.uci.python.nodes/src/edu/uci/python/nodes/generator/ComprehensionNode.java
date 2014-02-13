@@ -24,35 +24,54 @@
  */
 package edu.uci.python.nodes.generator;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.sequence.*;
 
-public class ListComprehensionNode extends FrameSlotNode {
+public abstract class ComprehensionNode extends FrameSlotNode {
 
     @Child protected PNode comprehension;
 
-    public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+    public ComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
         super(frameSlot);
         this.comprehension = adoptChild(comprehension);
     }
 
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.frameSlot, node.comprehension);
-    }
-
     @Override
-    public Object execute(VirtualFrame frame) {
-        setObject(frame, new PList());
-        comprehension.execute(frame);
-        return getObject(frame);
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
+    public final Object executeWrite(VirtualFrame frame, Object value) {
         throw new UnsupportedOperationException();
+    }
+
+    public static final class ListComprehensionNode extends ComprehensionNode {
+
+        public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+            super(frameSlot, comprehension);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            setObject(frame, new PList());
+            comprehension.execute(frame);
+            return getObject(frame);
+        }
+    }
+
+    public static final class TupleComprehensionNode extends ComprehensionNode {
+
+        public TupleComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+            super(frameSlot, comprehension);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            setObject(frame, new PList());
+            comprehension.execute(frame);
+            PList list = CompilerDirectives.unsafeCast(getObject(frame), PList.class, true);
+            return new PTuple(list.getStorage().getInternalArray(), false);
+        }
     }
 
 }

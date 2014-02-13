@@ -212,7 +212,7 @@ public class NodeFactory {
     }
 
     public PNode createListComprehension(FrameSlot frameSlot, PNode comprehension) {
-        return new ListComprehensionNode(frameSlot, comprehension);
+        return new ComprehensionNode.ListComprehensionNode(frameSlot, comprehension);
     }
 
     public PNode createListAppend(FrameSlot frameSlot, PNode right) {

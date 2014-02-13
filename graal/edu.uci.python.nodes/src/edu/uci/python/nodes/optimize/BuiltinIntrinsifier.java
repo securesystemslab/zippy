@@ -36,13 +36,13 @@ import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
 
 public class BuiltinIntrinsifier {
 
     private final PythonContext context;
     @SuppressWarnings("unused") private final Assumption globalScopeUnchanged;
     @SuppressWarnings("unused") private final Assumption builtinModuleUnchanged;
+
     private final CallBuiltinInlinedNode call;
     private GeneratorExpressionDefinitionNode genexp;
 
@@ -54,30 +54,30 @@ public class BuiltinIntrinsifier {
     }
 
     public void intrinsify() {
-        if (isCallToBuiltinFunctionList() && isNotCallingFromGenerator()) {
-            transformToListComp();
+        if (isCallerGenerator()) {
+            return;
+        }
+
+        IntrinsifiableBuiltin target = IntrinsifiableBuiltin.findIntrinsifiable(call.getCallee().getName());
+        if (target != null && isArgumentGeneratorExpression()) {
+            transformToComprehension(target);
         }
     }
 
-    public boolean isNotCallingFromGenerator() {
+    public boolean isCallerGenerator() {
         Node current = call;
         while (!(current instanceof ReturnTargetNode)) {
             current = current.getParent();
         }
 
         if (current instanceof GeneratorReturnTargetNode) {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
-    public boolean isCallToBuiltinFunctionList() {
-        PBuiltinFunction callee = call.getCallee();
-        if (!callee.getName().equals("list")) {
-            return false;
-        }
-
+    private boolean isArgumentGeneratorExpression() {
         if (call.getArguments().length != 1) {
             return false;
         }
@@ -108,7 +108,7 @@ public class BuiltinIntrinsifier {
         return slotNode.getSlot().getFrameDescriptor();
     }
 
-    private void transformToListComp() {
+    private void transformToComprehension(IntrinsifiableBuiltin target) {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
         FrameDescriptor enclosingFrame = findEnclosingFrameDescriptor(call);
         PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getUninitializedBody();
@@ -129,13 +129,13 @@ public class BuiltinIntrinsifier {
 
         redirectLevelRead(uninitializedGenexpBody);
 
-        FrameSlot listCompSlot = enclosingFrame.addFrameSlot("<list_comp_val" + genexp.hashCode() + ">");
+        FrameSlot listCompSlot = enclosingFrame.addFrameSlot("<" + target.getName() + "_comp_val" + genexp.hashCode() + ">");
         YieldNode yield = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, YieldNode.class);
         WriteLocalVariableNode write = (WriteLocalVariableNode) yield.getRhs();
-        yield.replace(ListAppendNodeFactory.create(listCompSlot, write.getRhs()));
-        call.replace(new ListComprehensionNode(listCompSlot, uninitializedGenexpBody));
+        yield.replace(IntrinsifiableBuiltin.createComprehensionAppendNode(target, listCompSlot, write.getRhs()));
+        call.replace(IntrinsifiableBuiltin.createComprehensionNode(target, listCompSlot, uninitializedGenexpBody));
 
-        context.getStandardOut().println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to 'list' to list comprehension");
+        context.getStandardOut().println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
     }
 
     private static void redirectLocalRead(FrameSlot orig, FrameSlot target, PNode root) {

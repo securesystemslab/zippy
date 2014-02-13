@@ -88,7 +88,7 @@ public final class PTuple extends PImmutableSequence {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PTuple(Object[] elements, boolean copy) {
+    public PTuple(Object[] elements, boolean copy) {
         if (copy) {
             array = new Object[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);

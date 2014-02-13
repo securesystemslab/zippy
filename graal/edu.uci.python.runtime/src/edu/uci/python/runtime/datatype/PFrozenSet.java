@@ -65,14 +65,14 @@ public class PFrozenSet extends PBaseSet {
 
     @Override
     public Object getMax() {
-        Object[] copy = this.set.toArray();
+        Object[] copy = getSet().toArray();
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
     public Object getMin() {
-        Object[] copy = this.set.toArray();
+        Object[] copy = getSet().toArray();
         Arrays.sort(copy);
         return copy[0];
     }
