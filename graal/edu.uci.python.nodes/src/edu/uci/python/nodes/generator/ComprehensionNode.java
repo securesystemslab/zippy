@@ -24,11 +24,16 @@
  */
 package edu.uci.python.nodes.generator;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class ComprehensionNode extends FrameSlotNode {
@@ -53,9 +58,10 @@ public abstract class ComprehensionNode extends FrameSlotNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            setObject(frame, new PList());
+            final PList list = new PList();
+            setObject(frame, list);
             comprehension.execute(frame);
-            return getObject(frame);
+            return list;
         }
     }
 
@@ -67,10 +73,89 @@ public abstract class ComprehensionNode extends FrameSlotNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            setObject(frame, new PList());
+            final ArrayList<Object> list = new ArrayList<>();
+            setObject(frame, list);
             comprehension.execute(frame);
-            PList list = CompilerDirectives.unsafeCast(getObject(frame), PList.class, true);
-            return new PTuple(list.getStorage().getInternalArray(), false);
+            return new PTuple(list.toArray(), false);
+        }
+    }
+
+    @NodeChild(value = "rightNode", type = PNode.class)
+    public abstract static class ArrayListAddNode extends FrameSlotNode {
+
+        public ArrayListAddNode(FrameSlot frameSlot) {
+            super(frameSlot);
+        }
+
+        protected ArrayListAddNode(ArrayListAddNode node) {
+            this(node.frameSlot);
+        }
+
+        @Specialization
+        public Object doObject(VirtualFrame frame, Object right) {
+            getList(frame).add(right);
+            return right;
+        }
+
+        @SuppressWarnings("unchecked")
+        private ArrayList<Object> getList(Frame frame) {
+            return CompilerDirectives.unsafeCast(getObject(frame), ArrayList.class, true);
+        }
+    }
+
+    public static final class SetComprehensionNode extends ComprehensionNode {
+
+        public SetComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+            super(frameSlot, comprehension);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Set<Object> set = new HashSet<>();
+            setObject(frame, set);
+            comprehension.execute(frame);
+            return new PSet(set);
+        }
+    }
+
+    @NodeChild(value = "rightNode", type = PNode.class)
+    public abstract static class HashSetAddNode extends FrameSlotNode {
+
+        public HashSetAddNode(FrameSlot frameSlot) {
+            super(frameSlot);
+        }
+
+        protected HashSetAddNode(HashSetAddNode node) {
+            this(node.frameSlot);
+        }
+
+        @Specialization
+        public Object doObject(VirtualFrame frame, Object right) {
+            getSet(frame).add(right);
+            return right;
+        }
+
+        @SuppressWarnings("unchecked")
+        private HashSet<Object> getSet(Frame frame) {
+            return CompilerDirectives.unsafeCast(getObject(frame), HashSet.class, true);
+        }
+    }
+
+    public static final class ComprehensionGuardNode extends PNode {
+
+        private final FrameFactory frameFactory;
+        private final FrameDescriptor frameDescriptor;
+        @Child protected PNode comprehension;
+
+        public ComprehensionGuardNode(FrameFactory frameFactory, FrameDescriptor frameDescriptor, PNode comprehension) {
+            this.frameFactory = frameFactory;
+            this.frameDescriptor = frameDescriptor;
+            this.comprehension = adoptChild(comprehension);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return comprehension.execute(frameFactory.create(frameDescriptor, null, PArguments.EMPTY_ARGUMENT));
         }
     }
 

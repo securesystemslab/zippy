@@ -30,6 +30,8 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.generator.ComprehensionNodeFactory.ArrayListAddNodeFactory;
+import edu.uci.python.nodes.generator.ComprehensionNodeFactory.HashSetAddNodeFactory;
 
 enum IntrinsifiableBuiltin {
 
@@ -51,6 +53,7 @@ enum IntrinsifiableBuiltin {
         Map<String, IntrinsifiableBuiltin> sets = new HashMap<>();
         sets.put(LIST.name, LIST);
         sets.put(TUPLE.name, TUPLE);
+        // sets.put(SET.name, SET);
         return sets;
     }
 
@@ -64,6 +67,8 @@ enum IntrinsifiableBuiltin {
                 return new ComprehensionNode.ListComprehensionNode(targetSlot, comprehension);
             case TUPLE:
                 return new ComprehensionNode.TupleComprehensionNode(targetSlot, comprehension);
+            case SET:
+                return new ComprehensionNode.SetComprehensionNode(targetSlot, comprehension);
             default:
                 throw new IllegalStateException();
         }
@@ -72,8 +77,11 @@ enum IntrinsifiableBuiltin {
     static PNode createComprehensionAppendNode(IntrinsifiableBuiltin targetBuiltin, FrameSlot targetSlot, PNode comprehension) {
         switch (targetBuiltin) {
             case LIST:
-            case TUPLE:
                 return ListAppendNodeFactory.create(targetSlot, comprehension);
+            case TUPLE:
+                return ArrayListAddNodeFactory.create(targetSlot, comprehension);
+            case SET:
+                return HashSetAddNodeFactory.create(targetSlot, comprehension);
             default:
                 throw new IllegalStateException();
         }

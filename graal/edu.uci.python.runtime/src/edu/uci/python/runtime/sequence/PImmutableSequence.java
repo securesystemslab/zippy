@@ -51,4 +51,5 @@ public abstract class PImmutableSequence extends PSequence {
     public final void delItem(int idx) {
         throw new UnsupportedOperationException();
     }
+
 }

@@ -28,7 +28,7 @@ import java.util.*;
 
 import edu.uci.python.runtime.iterator.*;
 
-public class PSet extends PBaseSet {
+public final class PSet extends PBaseSet {
 
     public PSet() {
         super();
@@ -63,29 +63,31 @@ public class PSet extends PBaseSet {
     }
 
     // add
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean add(Object o) {
         throw new UnsupportedOperationException();
     }
 
     // remove
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean remove(Object o) {
         throw new UnsupportedOperationException();
     }
 
     // discard
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean discard(Object o) {
         throw new UnsupportedOperationException();
     }
 
     // pop
+    @SuppressWarnings("static-method")
     public boolean pop() {
         throw new UnsupportedOperationException();
     }
 
     // clear
+    @SuppressWarnings("static-method")
     public boolean clear() {
         throw new UnsupportedOperationException();
     }
