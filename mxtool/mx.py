@@ -38,6 +38,7 @@ import textwrap
 import socket
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
+import pipes
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -1131,7 +1132,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             log('Environment variables:')
             for key in sorted(env.keys()):
                 log('    ' + key + '=' + env[key])
-        log(' '.join(args))
+        log(' '.join(map(pipes.quote, args)))
 
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
