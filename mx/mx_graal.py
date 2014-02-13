@@ -1264,6 +1264,62 @@ def bench(args):
         with open(resultFile, 'w') as f:
             f.write(json.dumps(results))
 
+def jmh(args):
+    """run the JMH_BENCHMARKS"""
+
+    # TODO: add option for `mvn clean package'
+    # TODO: add options to pass through arguments directly to JMH
+
+    vmArgs, benchmarks = _extract_VM_args(args)
+    jmhPath = mx.get_env('JMH_BENCHMARKS', None)
+    if not exists(jmhPath):
+        mx.abort("$JMH_BENCHMARKS not properly definied")
+
+    def _blackhole(x):
+        mx.logv(x[:-1])
+
+    mx.run(['mvn', 'package'], cwd = jmhPath, out = _blackhole)
+
+    matchedSuites = set()
+    for micros in os.listdir(jmhPath):
+        absoluteMicro = os.path.join(jmhPath, micros)
+        if not os.path.isdir(absoluteMicro):
+            continue
+        if not micros.startswith("micros-"):
+            mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't start with 'micros-'")
+            continue
+
+        if benchmarks:
+            def _addBenchmark(x):
+                if x.startswith("Benchmark:"):
+                    return
+                match = False
+                for b in benchmarks:
+                    match = match or (b in x)
+
+                if match:
+                    matchedSuites.add(micros)
+
+            mx.run_java(['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"), "-l"], cwd = jmhPath, out = _addBenchmark)
+        else:
+            matchedSuites.add(micros)
+
+    mx.logv("matchedSuites: " + str(matchedSuites))
+
+    regex = []
+    if benchmarks:
+        regex.append(r".*(" + "|".join(benchmarks) + ").*")
+
+    for suite in matchedSuites:
+        absoluteMicro = os.path.join(jmhPath, suite)
+        vm(['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
+            "-f", "1",
+            "-i", "10", "-wi", "10",
+            "--jvmArgs", " ".join(["-" + _get_vm()] + vmArgs)] + regex,
+            vm = 'original',
+            cwd = jmhPath)
+
+
 def specjvm2008(args):
     """run one or more SPECjvm2008 benchmarks"""
 
@@ -1548,6 +1604,7 @@ def mx_init(suite):
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [print_jdkhome, ''],
+        'jmh': [jmh, '[VM options] [filters...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
