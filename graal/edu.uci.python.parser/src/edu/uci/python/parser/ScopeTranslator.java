@@ -82,10 +82,6 @@ public class ScopeTranslator extends Visitor {
         }
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
-// int n = ac.names.size();
-// for (int i = 0; i < n; i++) {
-// environment.createLocal(ac.names.get(i));
-// }
 
         visitArgs(node.getInternalArgs(), ac);
         List<PythonTree> argsInit = castToPythonTreeList(ac.init_code);
@@ -119,7 +115,6 @@ public class ScopeTranslator extends Visitor {
         }
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
-        // environment.beginScope(node, ScopeInfo.ScopeKind.Lambda);
         visitArgs(node.getInternalArgs(), ac);
         List<PythonTree> argsInit = castToPythonTreeList(ac.init_code);
         node.addChildren(argsInit);

@@ -316,17 +316,6 @@ public class NodeFactory {
         }
     }
 
-    public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
-        PNode current = createComparisonOperation(ops.get(0), left, rights.get(0));
-
-        for (int i = 1; i < rights.size(); i++) {
-            PNode newCompare = createComparisonOperation(ops.get(i), rights.get(i - 1), rights.get(i));
-            current = AndNodeFactory.create(current, newCompare);
-        }
-
-        return current;
-    }
-
     PNode createBooleanOperation(boolopType operator, PNode left, PNode right) {
         switch (operator) {
             case And:

@@ -55,6 +55,8 @@ public class TranslationEnvironment {
     private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;
 
+    private Collection<PNode> statementPatch;
+
     public TranslationEnvironment(mod module, PythonContext context, PythonModule pythonModule) {
         this.module = module;
         this.context = context;
@@ -280,4 +282,19 @@ public class TranslationEnvironment {
     public FrameSlot getListComprehensionSlot() {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(LIST_COMPREHENSION_SLOT_ID + listComprehensionSlotCounter);
     }
+
+    public boolean hasStatementPatch() {
+        return statementPatch != null;
+    }
+
+    public Collection<PNode> getStatementPatch() {
+        Collection<PNode> patch = statementPatch;
+        statementPatch = null; // have to reset
+        return patch;
+    }
+
+    public void storeStatementPatch(Collection<PNode> patch) {
+        this.statementPatch = patch;
+    }
+
 }
