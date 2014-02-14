@@ -729,10 +729,6 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
-    if len([a for a in args if 'PrintAssembly' in a]) != 0:
-        hsdis([], copyToDir=_vmLibDirInJdk(jdk))
-    if mx.java().debug_port is not None:
-        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         # Exclude all compiler tests and snippets
@@ -750,9 +746,6 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
                         'destfile' : 'jacoco.exec'
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
-    if '-d64' not in args:
-        args = ['-d64'] + args
-
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     pfx = _vm_prefix.split() if _vm_prefix is not None else []
 
@@ -761,6 +754,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
 
+    args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)
 
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):

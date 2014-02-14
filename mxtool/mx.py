@@ -990,7 +990,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
         self.add_argument('--cp-sfx', dest='cp_suffix', help='class path suffix', metavar='<arg>')
-        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>', default='-ea -Xss2m -Xmx1g')
+        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>')
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
@@ -1310,7 +1310,7 @@ class JavaConfig:
         def delAtAndSplit(s):
             return shlex.split(s.lstrip('@'))
 
-        self.java_args = delAtAndSplit(_opts.java_args)
+        self.java_args = delAtAndSplit(_opts.java_args) if _opts.java_args else []
         self.java_args_pfx = sum(map(delAtAndSplit, _opts.java_args_pfx), [])
         self.java_args_sfx = sum(map(delAtAndSplit, _opts.java_args_sfx), [])
 
@@ -1335,9 +1335,12 @@ class JavaConfig:
 
     def format_cmd(self, args, addDefaultArgs):
         if addDefaultArgs:
-            return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
+            return [self.java] + self.processArgs(args)
         else:
             return [self.java] + args
+
+    def processArgs(self, args):
+        return self.java_args_pfx + self.java_args + self.java_args_sfx + args
 
     def bootclasspath(self):
         if self._bootclasspath is None:
