@@ -102,7 +102,17 @@ public class PList extends PSequence {
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setItemInBound(index, value);
+        try {
+            store.setItemInBound(index, value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
+
+            try {
+                store.setItemInBound(idx, value);
+            } catch (SequenceStoreException ex) {
+                throw new RuntimeException();
+            }
+        }
     }
 
     @Override
@@ -130,7 +140,17 @@ public class PList extends PSequence {
             normalizedStop = normalizedStart;
         }
 
-        store.setSliceInBound(normalizedStart, normalizedStop, step, value.getStorage());
+        try {
+            store.setSliceInBound(normalizedStart, normalizedStop, step, value.getStorage());
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value.getStorage().getIndicativeValue());
+
+            try {
+                store.setSliceInBound(start, stop, step, value.getStorage());
+            } catch (SequenceStoreException ex) {
+                throw new RuntimeException();
+            }
+        }
     }
 
     @Override
@@ -192,8 +212,12 @@ public class PList extends PSequence {
         assert value > 0;
         SequenceStorage newStore = store.copy();
 
-        for (int i = 1; i < value; i++) {
-            newStore.extend(store.copy());
+        try {
+            for (int i = 1; i < value; i++) {
+                newStore.extend(store.copy());
+            }
+        } catch (SequenceStoreException e) {
+            throw new RuntimeException();
         }
 
         return new PList(newStore);
@@ -208,7 +232,12 @@ public class PList extends PSequence {
             store.append(value);
         } catch (SequenceStoreException e) {
             store = store.generalizeFor(value);
-            store.append(value);
+
+            try {
+                store.append(value);
+            } catch (SequenceStoreException e1) {
+                throw new RuntimeException();
+            }
         }
     }
 
@@ -219,7 +248,12 @@ public class PList extends PSequence {
             store.extend(other);
         } catch (SequenceStoreException e) {
             store = store.generalizeFor(other.getIndicativeValue());
-            store.extend(other);
+
+            try {
+                store.extend(other);
+            } catch (SequenceStoreException e1) {
+                throw new RuntimeException();
+            }
         }
     }
 
@@ -231,7 +265,12 @@ public class PList extends PSequence {
             newStore.extend(otherStore);
         } catch (SequenceStoreException e) {
             newStore = newStore.generalizeFor(otherStore.getIndicativeValue());
-            newStore.extend(otherStore);
+
+            try {
+                newStore.extend(otherStore);
+            } catch (SequenceStoreException e1) {
+                throw new RuntimeException();
+            }
         }
 
         return new PList(newStore);
@@ -254,7 +293,12 @@ public class PList extends PSequence {
             store.insertItem(index, value);
         } catch (SequenceStoreException e) {
             store = store.generalizeFor(value);
-            store.insertItem(index, value);
+
+            try {
+                store.insertItem(index, value);
+            } catch (SequenceStoreException e1) {
+                throw new RuntimeException();
+            }
         }
     }
 

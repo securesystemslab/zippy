@@ -29,7 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 /**
  * An sequence store cannot meet its target's storage type.
  */
-public class SequenceStoreException extends ControlFlowException {
+public class SequenceStoreException extends SlowPathException {
 
     private static final long serialVersionUID = -2938582159978230604L;
     public static final SequenceStoreException INSTANCE = new SequenceStoreException();
