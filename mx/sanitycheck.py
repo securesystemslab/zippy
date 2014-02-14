@@ -150,6 +150,7 @@ pythonBenchmarks = {
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
 }
 
 python2Benchmarks = {
@@ -163,6 +164,7 @@ python2Benchmarks = {
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
 }
 
 specjvm2008Names = [

@@ -6,7 +6,7 @@
 
 __author__ = "collinwinter@google.com (Collin Winter)"
 
-import time
+import sys, time
 
 # Pure-Python implementation of itertools.permutations().
 def permutations(iterable, r=None):
@@ -56,9 +56,10 @@ def main(queen_count):
     return list(i for i in n_queens(queen_count))
 
 def measure():
+    queen_count = int(sys.argv[1])
     print("Start timing...")
     start = time.time()
-    print(main(10)[-1])
+    print(main(queen_count)[-1])
     duration = "%.3f\n" % (time.time() - start)
     print("bm-ai: " + duration)
 
