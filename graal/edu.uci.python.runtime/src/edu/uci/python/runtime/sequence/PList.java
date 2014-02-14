@@ -228,6 +228,10 @@ public class PList extends PSequence {
     }
 
     public void append(Object value) {
+        if (store instanceof EmptySequenceStorage) {
+            store = store.generalizeFor(value);
+        }
+
         try {
             store.append(value);
         } catch (SequenceStoreException e) {
