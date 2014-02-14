@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.optimize;
 
+import java.io.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -39,7 +41,7 @@ import edu.uci.python.runtime.*;
 
 public class BuiltinIntrinsifier {
 
-    private final PythonContext context;
+    @SuppressWarnings("unused") private final PythonContext context;
     @SuppressWarnings("unused") private final Assumption globalScopeUnchanged;
     @SuppressWarnings("unused") private final Assumption builtinModuleUnchanged;
 
@@ -84,7 +86,7 @@ public class BuiltinIntrinsifier {
 
         PNode arg = call.getArguments()[0];
         if (arg instanceof GeneratorExpressionDefinitionNode) {
-            this.genexp = (GeneratorExpressionDefinitionNode) arg;
+            genexp = (GeneratorExpressionDefinitionNode) arg;
             return true;
         }
 
@@ -94,8 +96,8 @@ public class BuiltinIntrinsifier {
     private void transformToComprehension(IntrinsifiableBuiltin target) {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
         FrameDescriptor enclosingFrame = genexp.getEnclosingFrameDescriptor();
-        PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getUninitializedBody();
-        uninitializedGenexpBody = (PNode) NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForWithLocalTargetNode.class).copy();
+        PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getClonedUninitializedBody();
+        uninitializedGenexpBody = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForWithLocalTargetNode.class);
 
         for (FrameSlot genexpSlot : genexpFrame.getSlots()) {
             if (genexpSlot.getIdentifier().equals("<return_val>")) {
@@ -118,7 +120,9 @@ public class BuiltinIntrinsifier {
         yield.replace(IntrinsifiableBuiltin.createComprehensionAppendNode(target, listCompSlot, write.getRhs()));
         call.replace(IntrinsifiableBuiltin.createComprehensionNode(target, listCompSlot, uninitializedGenexpBody));
 
-        context.getStandardOut().println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
+        genexp.setAsOptimized();
+        PrintStream out = System.out;
+        out.println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
     }
 
     private static void redirectLocalRead(FrameSlot orig, FrameSlot target, PNode root) {

@@ -53,7 +53,7 @@ enum IntrinsifiableBuiltin {
         Map<String, IntrinsifiableBuiltin> sets = new HashMap<>();
         sets.put(LIST.name, LIST);
         sets.put(TUPLE.name, TUPLE);
-        // sets.put(SET.name, SET);
+        sets.put(SET.name, SET);
         return sets;
     }
 

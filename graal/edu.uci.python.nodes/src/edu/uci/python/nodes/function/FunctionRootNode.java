@@ -67,6 +67,10 @@ public final class FunctionRootNode extends RootNode {
         return uninitializedBody;
     }
 
+    public PNode getClonedUninitializedBody() {
+        return NodeUtil.cloneNode(uninitializedBody);
+    }
+
     @Override
     public FunctionRootNode copy() {
         return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor(), this.uninitializedBody);

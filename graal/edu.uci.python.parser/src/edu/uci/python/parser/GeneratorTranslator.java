@@ -186,7 +186,7 @@ public class GeneratorTranslator {
             return null;
         }
 
-        PNode parallelBody = NodeUtil.cloneNode(root.getUninitializedBody());
+        PNode parallelBody = root.getClonedUninitializedBody();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
             yield.replace(ParallelYieldNode.create(yield.getRhs()));
