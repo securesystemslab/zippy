@@ -89,8 +89,8 @@ public class GeneratorTranslator {
         }
 
         for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
-            genexp.setDeclarationFrameGenerator(true);
-            NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setDeclarationFrameGenerator(true);
+            genexp.setEnclosingFrameGenerator(true);
+            NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
 
         for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
@@ -193,7 +193,7 @@ public class GeneratorTranslator {
         }
 
         for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
-            genexp.setDeclarationFrameGenerator(false);
+            genexp.setEnclosingFrameGenerator(false);
         }
 
         RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), root.getFrameDescriptor(), parallelBody);

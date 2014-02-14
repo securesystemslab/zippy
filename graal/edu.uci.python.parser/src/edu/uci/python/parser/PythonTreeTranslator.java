@@ -627,8 +627,8 @@ public class PythonTreeTranslator extends Visitor {
         body = visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
         GeneratorExpressionDefinitionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
+        genExprDef.setEnclosingFrameDescriptor(environment.getEnclosingFrame());
         environment.endScope(node);
-        genExprDef.setEnclosingFrameDescriptor(environment.getCurrentFrame());
         return genExprDef;
     }
 

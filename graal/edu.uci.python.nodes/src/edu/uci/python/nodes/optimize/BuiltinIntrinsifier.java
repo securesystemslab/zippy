@@ -113,7 +113,6 @@ public class BuiltinIntrinsifier {
         redirectLevelRead(uninitializedGenexpBody);
 
         FrameSlot listCompSlot = enclosingFrame.addFrameSlot("<" + target.getName() + "_comp_val" + genexp.hashCode() + ">");
-        NodeUtil.printCompactTree(System.out, uninitializedGenexpBody);
         YieldNode yield = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, YieldNode.class);
         WriteLocalVariableNode write = (WriteLocalVariableNode) yield.getRhs();
         yield.replace(IntrinsifiableBuiltin.createComprehensionAppendNode(target, listCompSlot, write.getRhs()));

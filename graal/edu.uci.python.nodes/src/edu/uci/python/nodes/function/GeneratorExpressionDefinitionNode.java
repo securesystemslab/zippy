@@ -44,7 +44,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     private final int numOfGeneratorForNode;
 
     @CompilationFinal private FrameDescriptor enclosingFrameDescriptor;
-    @CompilationFinal private boolean isDeclarationFrameGenerator;
+    @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
     public GeneratorExpressionDefinitionNode(CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode,
@@ -78,12 +78,12 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         enclosingFrameDescriptor = frameDescriptor;
     }
 
-    public boolean isDeclarationFrameGenerator() {
-        return isDeclarationFrameGenerator;
+    public boolean isEnclosingFrameGenerator() {
+        return isEnclosingFrameGenerator;
     }
 
-    public void setDeclarationFrameGenerator(boolean value) {
-        isDeclarationFrameGenerator = value;
+    public void setEnclosingFrameGenerator(boolean value) {
+        isEnclosingFrameGenerator = value;
     }
 
     public boolean isOptimized() {
@@ -109,7 +109,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? (isDeclarationFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
+        MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
         return PGenerator.create("generator expr", callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 

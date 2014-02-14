@@ -129,6 +129,12 @@ public class TranslationEnvironment {
         return frameDescriptor;
     }
 
+    public FrameDescriptor getEnclosingFrame() {
+        FrameDescriptor frameDescriptor = currentScope.getParent().getFrameDescriptor();
+        assert frameDescriptor != null;
+        return frameDescriptor;
+    }
+
     public FrameSlot createLocal(String name) {
         assert name != null : "name is null!";
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(name);
