@@ -129,14 +129,14 @@ pythonMicroBenchmarks = {
     'for-range'             : '0',
     'function-call'         : '0',
     'list-comp'             : '0',
-    'list-indexing'         : '-NoInlineBuiltinFunctionCalls',
+    'list-indexing'         : '-InlineBuiltinFunctionCalls:false',
     'list-iterating'        : '0',
     'builtin-len'           : '0',
     'builtin-len-tuple'     : '0',
     'math-sqrt'             : '0',
     'generator'             : '0',
-    'generator-expression'  : '-optimizeGeneratorExpressions',
-    'genexp-builtin-call'   : '-optimizeGeneratorExpressions',
+    'generator-expression'  : '0',
+    'genexp-builtin-call'   : '0',
 }
 
 pythonBenchmarks = {

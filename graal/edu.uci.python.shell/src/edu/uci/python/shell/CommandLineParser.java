@@ -32,35 +32,38 @@ public class CommandLineParser {
         int index = 0;
 
         while (index < args.length) {
-            String arg = args[index];
+            String arg = args[index++];
 
-            if (!args[index].startsWith("-")) {
-                index++;
+            if (!arg.startsWith("-")) {
                 continue;
             }
 
             if (arg.equals("-print-ast")) {
                 PythonOptions.PrintAST = true;
+                continue;
             }
 
             if (arg.equals("-visualize-ast")) {
                 PythonOptions.VisualizedAST = true;
+                continue;
             }
 
             if (arg.equals("-print-function")) {
                 PythonOptions.PrintFunction = true;
+                continue;
             }
 
             if (arg.equals("-InlineBuiltinFunctionCalls:false")) {
                 PythonOptions.InlineBuiltinFunctionCalls = false;
+                continue;
             }
 
             if (arg.equals("-OptimizeGeneratorExpressions:false")) {
                 PythonOptions.OptimizeGeneratorExpressions = false;
+                continue;
             }
 
-            index++;
+            throw new IllegalStateException("Unknown options " + arg);
         }
     }
-
 }
