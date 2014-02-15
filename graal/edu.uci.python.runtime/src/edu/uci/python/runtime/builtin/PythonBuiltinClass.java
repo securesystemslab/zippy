@@ -84,4 +84,9 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public String getCallableName() {
+        return getClassName();
+    }
+
 }

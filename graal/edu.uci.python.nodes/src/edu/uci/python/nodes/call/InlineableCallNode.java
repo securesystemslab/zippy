@@ -110,7 +110,6 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
                 CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
                 replace(inlinedCallNode);
                 invokeGeneratorExpressionOptimizer();
-                Profiler.getInstance().removeAfterInlining(function);
                 return true;
             }
 
@@ -122,6 +121,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             if (CompilerDirectives.inInterpreter()) {
                 callCount++;
             }
+
             return super.execute(frame);
         }
     }
@@ -158,7 +158,6 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
                                 this.builtinModuleUnchanged, factory);
                 replace(inlinedCallNode);
                 invokeBuiltinIntrinsifier(inlinedCallNode);
-                Profiler.getInstance().removeAfterInlining(function);
                 return true;
             }
 
@@ -183,7 +182,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
             final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
 
             if (PythonOptions.ProfileFunctionCalls) {
-                Profiler.getInstance().increment(callable);
+                Profiler.getInstance().increment(callable.getCallableName());
                 // Profiler.getInstance().increment(function);
             }
 

@@ -39,4 +39,6 @@ public interface PythonCallable {
 
     FrameDescriptor getFrameDescriptor();
 
+    String getCallableName();
+
 }

@@ -128,6 +128,11 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         }
 
+        @Override
+        public String getCallableName() {
+            return "generator definition";
+        }
+
     }
 
 }

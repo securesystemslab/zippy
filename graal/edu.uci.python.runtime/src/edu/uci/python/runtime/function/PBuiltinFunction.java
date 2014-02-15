@@ -90,6 +90,10 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         return name;
     }
 
+    public String getCallableName() {
+        return name;
+    }
+
     @Override
     public String toString() {
         return "<built-in function " + name + ">";

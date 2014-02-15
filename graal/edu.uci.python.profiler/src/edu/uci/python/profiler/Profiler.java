@@ -7,42 +7,55 @@ public class Profiler {
 
     private static Profiler INSTANCE = new Profiler();
 
-    private HashMap<Object, Integer> invocationCounts;
+    private HashMap<String, Long> invocationCounts;
 
     private Profiler() {
         invocationCounts = new HashMap<>();
     }
 
-    public static Profiler getInstance() {
-        return INSTANCE;
-    }
-
-    public void increment(Object callable) {
+    public void increment(String callable) {
         if (invocationCounts.containsKey(callable)) {
-            int counter = invocationCounts.get(callable);
+            long counter = invocationCounts.get(callable);
             invocationCounts.put(callable, counter + 1);
         } else {
-            invocationCounts.put(callable, 1);
+            invocationCounts.put(callable, 1L);
         }
     }
 
-    public void removeAfterInlining(Object callable) {
-        invocationCounts.remove(callable);
-        // CheckStyle: stop system..print check
-        System.out.println("[ZipPy Profiler] removing from profiling after inlining " + callable);
-        // CheckStyle: resume system..print check
-    }
-
     public void printProfilerResults() {
-        Iterator<Entry<Object, Integer> > it = invocationCounts.entrySet().iterator();
-        
+        Map<String, Long> sorted = sortByValue(invocationCounts);
+        Iterator<Entry<String, Long>> it = sorted.entrySet().iterator();
+        // Iterator<Entry<String, Integer>> it = invocationCounts.entrySet().iterator();
+
         while (it.hasNext()) {
-            Entry<Object, Integer> pairs = it.next();
+            Entry<String, Long> pairs = it.next();
             // CheckStyle: stop system..print check
             System.out.println(pairs.getKey() + " = " + pairs.getValue());
             // CheckStyle: resume system..print check
             it.remove();
         }
+
+    }
+
+    public static Map<String, Long> sortByValue(Map<String, Long> map) {
+        List<Map.Entry<String, Long>> list = new LinkedList<>(map.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<String, Long>>() {
+
+            public int compare(Map.Entry<String, Long> m1, Map.Entry<String, Long> m2) {
+                return (m2.getValue()).compareTo(m1.getValue());
+            }
+        });
+
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Long> entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+    }
+
+    public static Profiler getInstance() {
+        return INSTANCE;
     }
 
 }

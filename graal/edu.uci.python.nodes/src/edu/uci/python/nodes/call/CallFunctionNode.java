@@ -73,7 +73,7 @@ public abstract class CallFunctionNode extends PNode {
         PKeyword[] kwords = executeKeywordArguments(frame, keywords);
 
         if (PythonOptions.ProfileFunctionCalls) {
-            Profiler.getInstance().increment(callee);
+            Profiler.getInstance().increment(callee.getCallableName());
         }
 
         return callee.call(frame.pack(), args, kwords);
@@ -93,7 +93,7 @@ public abstract class CallFunctionNode extends PNode {
             PMethod callMethod = CallAttributeNode.createPMethodFor(callee, callFunction);
 
             if (PythonOptions.ProfileFunctionCalls) {
-                Profiler.getInstance().increment(callMethod);
+                Profiler.getInstance().increment(callMethod.getCallableName());
             }
 
             if (keywords.length == 0) {
@@ -113,7 +113,7 @@ public abstract class CallFunctionNode extends PNode {
         PyObject[] pyargs = adaptToPyObjects(args);
 
         if (PythonOptions.ProfileFunctionCalls) {
-            Profiler.getInstance().increment(callee);
+            Profiler.getInstance().increment(callee.toString());
         }
 
         return unboxPyObject(callee.__call__(pyargs));

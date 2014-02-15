@@ -129,7 +129,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
 
         if (PythonOptions.ProfileFunctionCalls) {
-            Profiler.getInstance().increment(callable);
+            Profiler.getInstance().increment(callable.getCallableName());
         }
 
         return callable.call(frame.pack(), args);
