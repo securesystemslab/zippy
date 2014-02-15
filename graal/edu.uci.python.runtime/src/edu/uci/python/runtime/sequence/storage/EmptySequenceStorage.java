@@ -26,7 +26,7 @@ package edu.uci.python.runtime.sequence.storage;
 
 import org.python.core.*;
 
-public final class EmptySequenceStorage extends ImmutableSequenceStorage {
+public final class EmptySequenceStorage extends SequenceStorage {
 
     public static final EmptySequenceStorage INSTANCE = new EmptySequenceStorage();
 
@@ -92,6 +92,39 @@ public final class EmptySequenceStorage extends ImmutableSequenceStorage {
     public SequenceStorage getSliceInBound(int start, int stop, int step, int length) {
         assert start == stop && stop == 0;
         return this;
+    }
+
+    @Override
+    public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        throw SequenceStoreException.INSTANCE;
+    }
+
+    @Override
+    public void delItemInBound(int idx) {
+        throw new UnsupportedOperationException("Cannot delete from empty storage");
+    }
+
+    @Override
+    public Object popInBound(int idx) {
+        return new UnsupportedOperationException();
+    }
+
+    @Override
+    public void append(Object value) throws SequenceStoreException {
+        throw SequenceStoreException.INSTANCE;
+    }
+
+    @Override
+    public void extend(SequenceStorage other) throws SequenceStoreException {
+        throw SequenceStoreException.INSTANCE;
+    }
+
+    @Override
+    public void reverse() {
+    }
+
+    @Override
+    public void sort() {
     }
 
 }
