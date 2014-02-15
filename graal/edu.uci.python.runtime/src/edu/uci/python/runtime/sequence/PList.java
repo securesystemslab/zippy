@@ -110,7 +110,7 @@ public class PList extends PSequence {
             try {
                 store.setItemInBound(idx, value);
             } catch (SequenceStoreException ex) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
     }
@@ -148,7 +148,7 @@ public class PList extends PSequence {
             try {
                 store.setSliceInBound(start, stop, step, value.getStorage());
             } catch (SequenceStoreException ex) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
     }
@@ -217,7 +217,7 @@ public class PList extends PSequence {
                 newStore.extend(store.copy());
             }
         } catch (SequenceStoreException e) {
-            throw new RuntimeException();
+            throw new IllegalStateException();
         }
 
         return new PList(newStore);
@@ -240,7 +240,7 @@ public class PList extends PSequence {
             try {
                 store.append(value);
             } catch (SequenceStoreException e1) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
     }
@@ -256,7 +256,7 @@ public class PList extends PSequence {
             try {
                 store.extend(other);
             } catch (SequenceStoreException e1) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
     }
@@ -273,7 +273,7 @@ public class PList extends PSequence {
             try {
                 newStore.extend(otherStore);
             } catch (SequenceStoreException e1) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
 
@@ -301,7 +301,7 @@ public class PList extends PSequence {
             try {
                 store.insertItem(index, value);
             } catch (SequenceStoreException e1) {
-                throw new RuntimeException();
+                throw new IllegalStateException();
             }
         }
     }
