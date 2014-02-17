@@ -197,9 +197,14 @@ C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, j
   HotSpotResolvedJavaMethod::set_ignoredBySecurityStackWalk(hotspot_method, method->is_ignored_by_security_stack_walk());
 C2V_END
 
-C2V_VMENTRY(jboolean, isMethodCompilable,(JNIEnv *, jobject, jlong metaspace_method))
+C2V_VMENTRY(jboolean, canInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
-  return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method);
+  return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method) && !method->dont_inline();
+C2V_END
+
+C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  return CompilerOracle::should_inline(method) || method->force_inline();
 C2V_END
 
 C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_method))
@@ -558,8 +563,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   //------------------------------------------------------------------------------------------------
 
-  set_long("libraryLoadAddress", (jlong) os::dll_load);
-  set_long("functionLookupAddress", (jlong) os::dll_lookup);
+  set_long("dllLoad", (jlong) os::dll_load);
+  set_long("dllLookup", (jlong) os::dll_lookup);
   #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
   set_long("rtldDefault", (jlong) RTLD_DEFAULT);
   #endif
@@ -883,7 +888,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
+  {CC"canInlineMethod",               CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
+  {CC"shouldInlineMethod",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"lookupType",                    CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},

@@ -37,26 +37,26 @@ library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.7-wi
 library@JRUBYPARSER@path=lib/jrubyparser-0.5.0.jar
 library@JRUBYPARSER@urls=http://repo1.maven.org/maven2/org/jruby/jrubyparser/0.5.0/jrubyparser-0.5.0.jar
 
-library@JLINE@path=lib/jline-2.10.jar
-library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.10/jline-2.10.jar
+library@JLINE@path=lib/jline-2.11.jar
+library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.11/jline-2.11.jar
 
 library@JRUBYSTDLIB@path=lib/jruby-stdlib-1.7.4.jar
 library@JRUBYSTDLIB@urls=http://repo1.maven.org/maven2/org/jruby/jruby-stdlib/1.7.4/jruby-stdlib-1.7.4.jar
 
-library@JNR_POSIX@path=lib/jnr-posix-3.0.0.jar
-library@JNR_POSIX@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-posix/3.0.0/jnr-posix-3.0.0.jar
+library@JNR_POSIX@path=lib/jnr-posix-3.0.1.jar
+library@JNR_POSIX@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-posix/3.0.1/jnr-posix-3.0.1.jar
 
-library@JNR_CONSTANTS@path=lib/jnr-constants-0.8.4.jar
-library@JNR_CONSTANTS@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.8.4/jnr-constants-0.8.4.jar
+library@JNR_CONSTANTS@path=lib/jnr-constants-0.8.5.jar
+library@JNR_CONSTANTS@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.8.5/jnr-constants-0.8.5.jar
 
-library@JNR_FFI@path=lib/jnr-ffi-1.0.4.jar
-library@JNR_FFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/1.0.4/jnr-ffi-1.0.4.jar
+library@JNR_FFI@path=lib/jnr-ffi-1.0.10.jar
+library@JNR_FFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/1.0.10/jnr-ffi-1.0.10.jar
 
-library@JFFI@path=lib/jffi-1.2.1.jar
-library@JFFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.1/jffi-1.2.1.jar
+library@JFFI@path=lib/jffi-1.2.7.jar
+library@JFFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.7/jffi-1.2.7.jar
 
-library@JFFI_NATIVE@path=lib/jffi-1.2.1-native.jar
-library@JFFI_NATIVE@urls=http://search.maven.org/remotecontent?filepath=com/github/jnr/jffi/1.2.1/jffi-1.2.1-native.jar
+library@JFFI_NATIVE@path=lib/jffi-1.2.7-native.jar
+library@JFFI_NATIVE@urls=http://search.maven.org/remotecontent?filepath=com/github/jnr/jffi/1.2.7/jffi-1.2.7-native.jar
 
 library@JNR_X86ASM@path=lib/jnr-x86asm-1.0.2.jar
 library@JNR_X86ASM@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar
@@ -184,7 +184,7 @@ project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
 project@com.oracle.graal.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.nfi.hotspot.amd64,com.oracle.graal.replacements.amd64
+project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.compiler.amd64,com.oracle.graal.hotspot,com.oracle.graal.replacements.amd64
 project@com.oracle.graal.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
@@ -650,22 +650,6 @@ project@com.oracle.graal.asm.sparc@dependencies=com.oracle.graal.hotspot,com.ora
 project@com.oracle.graal.asm.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.sparc@javaCompliance=1.7
 project@com.oracle.graal.asm.sparc@workingSets=Graal,Assembler,SPARC
-
-# graal.nfi.hotspot.amd64
-project@com.oracle.graal.nfi.hotspot.amd64@subDir=graal
-project@com.oracle.graal.nfi.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.nfi.hotspot.amd64@dependencies=com.oracle.graal.compiler.amd64,com.oracle.graal.hotspot
-project@com.oracle.graal.nfi.hotspot.amd64@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.nfi.hotspot.amd64@javaCompliance=1.7
-project@com.oracle.graal.nfi.hotspot.amd64@workingSets=Graal,AMD64
-
-# graal.nfi.test
-project@com.oracle.graal.nfi.test@subDir=graal
-project@com.oracle.graal.nfi.test@sourceDirs=test
-project@com.oracle.graal.nfi.test@dependencies=JUNIT,com.oracle.graal.runtime
-project@com.oracle.graal.nfi.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.nfi.test@javaCompliance=1.7
-project@com.oracle.graal.nfi.test@workingSets=Graal,Test
 
 # truffle.api
 project@com.oracle.truffle.api@subDir=graal

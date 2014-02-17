@@ -38,6 +38,7 @@ import textwrap
 import socket
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
+import pipes
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -989,7 +990,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
         self.add_argument('--cp-sfx', dest='cp_suffix', help='class path suffix', metavar='<arg>')
-        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>', default='-ea -Xss2m -Xmx1g')
+        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>')
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
@@ -1052,8 +1053,8 @@ def java():
     assert _java is not None
     return _java
 
-def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
-    return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
+def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
+    return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def _kill_process_group(pid):
     pgid = os.getpgid(pid)
@@ -1131,7 +1132,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             log('Environment variables:')
             for key in sorted(env.keys()):
                 log('    ' + key + '=' + env[key])
-        log(' '.join(args))
+        log(' '.join(map(pipes.quote, args)))
 
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
@@ -1309,7 +1310,7 @@ class JavaConfig:
         def delAtAndSplit(s):
             return shlex.split(s.lstrip('@'))
 
-        self.java_args = delAtAndSplit(_opts.java_args)
+        self.java_args = delAtAndSplit(_opts.java_args) if _opts.java_args else []
         self.java_args_pfx = sum(map(delAtAndSplit, _opts.java_args_pfx), [])
         self.java_args_sfx = sum(map(delAtAndSplit, _opts.java_args_sfx), [])
 
@@ -1332,8 +1333,14 @@ class JavaConfig:
         if self.debug_port is not None:
             self.java_args += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(self.debug_port)]
 
-    def format_cmd(self, args):
-        return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
+    def format_cmd(self, args, addDefaultArgs):
+        if addDefaultArgs:
+            return [self.java] + self.processArgs(args)
+        else:
+            return [self.java] + args
+
+    def processArgs(self, args):
+        return self.java_args_pfx + self.java_args + self.java_args_sfx + args
 
     def bootclasspath(self):
         if self._bootclasspath is None:
@@ -1557,6 +1564,7 @@ def build(args, parser=None):
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
+    parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
     parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
 
@@ -1566,12 +1574,16 @@ def build(args, parser=None):
     args = parser.parse_args(args)
 
     jdtJar = None
-    if args.jdt is not None:
-        if args.jdt.endswith('.jar'):
-            jdtJar = args.jdt
-            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
-                # Silently ignore JDT if default location is used but not ecj.jar exists there
+    if not args.javac and args.jdt is not None:
+        if not args.jdt.endswith('.jar'):
+            abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
+        jdtJar = args.jdt
+        if not exists(jdtJar):
+            if os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
+                # Silently ignore JDT if default location is used but does not exist
                 jdtJar = None
+            else:
+                abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
 
     built = set()
 

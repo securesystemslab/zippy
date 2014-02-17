@@ -813,6 +813,34 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
      static_field(StubRoutines,                _cipherBlockChaining_decryptAESCrypt,          address)                               \
      static_field(StubRoutines,                _updateBytesCRC32,                             address)                               \
      static_field(StubRoutines,                _crc_table_adr,                                address)                               \
+     static_field(StubRoutines,                _jbyte_arraycopy,                              address)                               \
+     static_field(StubRoutines,                _jshort_arraycopy,                             address)                               \
+     static_field(StubRoutines,                _jint_arraycopy,                               address)                               \
+     static_field(StubRoutines,                _jlong_arraycopy,                              address)                               \
+     static_field(StubRoutines,                _oop_arraycopy,                                address)                               \
+     static_field(StubRoutines,                _oop_arraycopy_uninit,                         address)                               \
+     static_field(StubRoutines,                _jbyte_disjoint_arraycopy,                     address)                               \
+     static_field(StubRoutines,                _jshort_disjoint_arraycopy,                    address)                               \
+     static_field(StubRoutines,                _jint_disjoint_arraycopy,                      address)                               \
+     static_field(StubRoutines,                _jlong_disjoint_arraycopy,                     address)                               \
+     static_field(StubRoutines,                _oop_disjoint_arraycopy,                       address)                               \
+     static_field(StubRoutines,                _oop_disjoint_arraycopy_uninit,                address)                               \
+     static_field(StubRoutines,                _arrayof_jbyte_arraycopy,                      address)                               \
+     static_field(StubRoutines,                _arrayof_jshort_arraycopy,                     address)                               \
+     static_field(StubRoutines,                _arrayof_jint_arraycopy,                       address)                               \
+     static_field(StubRoutines,                _arrayof_jlong_arraycopy,                      address)                               \
+     static_field(StubRoutines,                _arrayof_oop_arraycopy,                        address)                               \
+     static_field(StubRoutines,                _arrayof_oop_arraycopy_uninit,                 address)                               \
+     static_field(StubRoutines,                _arrayof_jbyte_disjoint_arraycopy,             address)                               \
+     static_field(StubRoutines,                _arrayof_jshort_disjoint_arraycopy,            address)                               \
+     static_field(StubRoutines,                _arrayof_jint_disjoint_arraycopy,              address)                               \
+     static_field(StubRoutines,                _arrayof_jlong_disjoint_arraycopy,             address)                               \
+     static_field(StubRoutines,                _arrayof_oop_disjoint_arraycopy,               address)                               \
+     static_field(StubRoutines,                _arrayof_oop_disjoint_arraycopy_uninit,        address)                               \
+     static_field(StubRoutines,                _checkcast_arraycopy,                          address)                               \
+     static_field(StubRoutines,                _checkcast_arraycopy_uninit,                   address)                               \
+     static_field(StubRoutines,                _unsafe_arraycopy,                             address)                               \
+     static_field(StubRoutines,                _generic_arraycopy,                            address)                               \
                                                                                                                                      \
   /*****************/                                                                                                                \
   /* SharedRuntime */                                                                                                                \
