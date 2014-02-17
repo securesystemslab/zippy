@@ -380,7 +380,7 @@ class Library(Dependency):
             return None
         if resolve and self.mustExist and not exists(path):
             assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
-            print('Downloading ' + self.name + ' from ' + str(self.urls))
+            print 'Downloading ' + self.name + ' from ' + str(self.urls)
             download(path, self.urls)
         return path
 
@@ -391,7 +391,7 @@ class Library(Dependency):
         if not isabs(path):
             path = join(self.suite.dir, path)
         if resolve and len(self.sourceUrls) != 0 and not exists(path):
-            print('Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls))
+            print 'Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls)
             download(path, self.sourceUrls)
         return path
 
@@ -726,7 +726,7 @@ class XMLDoc(xml.dom.minidom.Document):
         assert self.current == self
         result = self.toprettyxml(indent, newl, encoding="UTF-8")
         if escape:
-            entities = { '"':  "&quot;", "'":  "&apos;", '\n': '&#10;' }
+            entities = {'"':  "&quot;", "'":  "&apos;", '\n': '&#10;'}
             result = xml.sax.saxutils.escape(result, entities)
         if standalone is not None:
             result = result.replace('encoding="UTF-8"?>', 'encoding="UTF-8" standalone="' + str(standalone) + '"?>')
@@ -1098,7 +1098,7 @@ def _waitWithTimeout(process, args, timeout):
 
 # Makes the current subprocess accessible to the abort() function
 # This is a tuple of the Popen object and args.
-_currentSubprocess = None
+_currentSubprocess = (None, None)
 
 def waitOn(p):
     if get_os() == 'windows':
@@ -1179,7 +1179,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     except KeyboardInterrupt:
         abort(1)
     finally:
-        _currentSubprocess = None
+        _currentSubprocess = (None, None)
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -1260,10 +1260,10 @@ class JavaCompliance:
         assert m is not None, 'not a recognized version string: ' + ver
         self.value = int(m.group(1))
 
-    def __str__ (self):
+    def __str__(self):
         return '1.' + str(self.value)
 
-    def __cmp__ (self, other):
+    def __cmp__(self, other):
         if isinstance(other, types.StringType):
             other = JavaCompliance(other)
 
@@ -1438,9 +1438,8 @@ def abort(codeOrMessage):
 
     # import traceback
     # traceback.print_stack()
-    currentSubprocess = _currentSubprocess
-    if currentSubprocess is not None:
-        p, _ = currentSubprocess
+    p, _ = _currentSubprocess
+    if p is not None:
         if get_os() == 'windows':
             p.kill()
         else:
@@ -1471,13 +1470,13 @@ def download(path, urls, verbose=False):
 
     def url_open(url):
         userAgent = 'Mozilla/5.0 (compatible)'
-        headers = { 'User-Agent' : userAgent }
+        headers = {'User-Agent' : userAgent}
         req = urllib2.Request(url, headers=headers)
         return urllib2.urlopen(req)
 
     for url in urls:
         try:
-            if (verbose):
+            if verbose:
                 log('Downloading ' + url + ' to ' + path)
             if url.startswith('zip:') or url.startswith('jar:'):
                 i = url.find('!/')
@@ -1765,7 +1764,7 @@ def build(args, parser=None):
                 if java().debug_port is not None:
                     jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
 
-                jdtArgs += [ '-jar', jdtJar,
+                jdtArgs += ['-jar', jdtJar,
                          '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir]
@@ -2284,7 +2283,7 @@ def checkstyle(args):
                     size = 0
                     while i < len(javafilelist):
                         s = len(javafilelist[i]) + 1
-                        if (size + s < 30000):
+                        if size + s < 30000:
                             size += s
                             i += 1
                         else:
@@ -2857,7 +2856,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshF
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output', 'value': consoleOn})
     launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
-    launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 	'value' : java().jdk})
+    launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 'value' : java().jdk})
     launchOut.close('mapAttribute')
 
     if refresh:
@@ -2979,9 +2978,6 @@ def _find_eclipse_wsroot(wsdir):
         return None
     else:
         return _find_eclipse_wsroot(split[0])
-
-def _foobar(val):
-    print(val)
 
 def _make_workingset_xml(workingSets):
     wsdoc = XMLDoc()
@@ -3118,7 +3114,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.element('description', data='Builds, tests, and runs the project ' + p.name + '.')
         out.element('import', {'file' : 'nbproject/build-impl.xml'})
         out.open('target', {'name' : '-post-compile'})
-        out.open('exec', { 'executable' : sys.executable})
+        out.open('exec', {'executable' : sys.executable})
         out.element('env', {'key' : 'JAVA_HOME', 'value' : java().jdk})
         out.element('arg', {'value' : os.path.abspath(__file__)})
         out.element('arg', {'value' : 'archive'})
@@ -3899,7 +3895,7 @@ def update_commands(suite, new_commands):
 
 def warn(msg):
     if _warn:
-        print('WARNING: ' + msg)
+        print 'WARNING: ' + msg
 
 # Table of commands in alphabetical order.
 # Keys are command names, value are lists: [<function>, <usage msg>, <format args to doc string of function>...]
