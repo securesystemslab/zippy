@@ -26,15 +26,16 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class StringTest {
+
     @Test
     public void simple() {
-        Path script = Paths.get("string_test.py");
-        assertPrints("combine xy\n", script);
+        String source = "a = 'combine'\n" + //
+                        "b = 'x' + 'y'\n" + //
+                        "print(a, b)\n";
+        assertPrints("combine xy\n", source);
     }
 
 }

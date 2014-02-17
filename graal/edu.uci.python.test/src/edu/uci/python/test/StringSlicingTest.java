@@ -26,15 +26,50 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class StringSlicingTest {
+
     @Test
-    public void simple() {
-        Path script = Paths.get("string_slicing_test.py");
-        assertPrints("bc\nabc\nbcdefghij\nabcdefghij\nj\nabcdefghi\n", script);
+    public void slice0() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[1:3])\n";
+        assertPrints("bc\n", source);
+    }
+
+    @Test
+    public void slice1() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:3])\n";
+        assertPrints("abc\n", source);
+    }
+
+    @Test
+    public void slice2() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[1:])\n";
+        assertPrints("bcdefghij\n", source);
+    }
+
+    @Test
+    public void slice3() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:])\n";
+        assertPrints("abcdefghij\n", source);
+    }
+
+    @Test
+    public void slice4() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[-1:])\n";
+        assertPrints("j\n", source);
+    }
+
+    @Test
+    public void slice5() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:-1])\n";
+        assertPrints("abcdefghi\n", source);
     }
 
 }

@@ -31,7 +31,7 @@ import org.junit.*;
 public class RegularExpressionTests {
 
     @Test
-    public void basic() {
+    public void findall() {
         String source = "import re\n" + //
                         "s = \"SIX + NINE\"\n" + //
                         "words = re.findall(\"[A-Za-z]+\", s)\n" + //
