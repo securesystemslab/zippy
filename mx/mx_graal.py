@@ -611,7 +611,7 @@ def build(args, vm=None):
             project_config = variant + '_' + build
             _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=' + project_config + ' /target:clean', _graal_home)
             winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' + _graal_home + r'\make\windows"& call create.bat ' + _graal_home
-            print(winCompileCmd)
+            print winCompileCmd
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
                 mx.log('Error executing create command')
@@ -640,7 +640,7 @@ def build(args, vm=None):
             tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
             if tags:
                 # extract the most recent tag
-                tag = sorted(tags, key = lambda e : [int(x) for x in e[len("graal-"):].split('.')], reverse = True)[0]
+                tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
                 env.setdefault('USER_RELEASE_SUFFIX', tag)
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
@@ -651,10 +651,10 @@ def build(args, vm=None):
             else:
                 env['INCLUDE_GRAAL'] = 'true'
             env.setdefault('INSTALL', 'y')
-            if mx.get_os() == 'solaris' :
+            if mx.get_os() == 'solaris':
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
-                if cCompilerVersion.startswith('CC: Sun C++') :
+                if cCompilerVersion.startswith('CC: Sun C++'):
                     compilerRev = cCompilerVersion.split(' ')[3]
                     env.setdefault('ENFORCE_COMPILER_REV', compilerRev)
                     env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev)
@@ -768,7 +768,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     source file matched in a list.
     """
 
-    matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
+    matches = lambda line: len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
 def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
@@ -1207,7 +1207,7 @@ def bench(args):
     results = {}
     benchmarks = []
     # DaCapo
-    if ('dacapo' in args or 'all' in args):
+    if 'dacapo' in args or 'all' in args:
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
         dacapos = benchmarks_in_group('dacapo')
@@ -1215,10 +1215,10 @@ def bench(args):
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
                 mx.abort('Unknown DaCapo : ' + dacapo)
             iterations = sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark]
-            if (iterations > 0):
+            if iterations > 0:
                 benchmarks += [sanitycheck.getDacapo(dacapo, iterations)]
 
-    if ('scaladacapo' in args or 'all' in args):
+    if 'scaladacapo' in args or 'all' in args:
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
         scaladacapos = benchmarks_in_group('scaladacapo')
@@ -1226,31 +1226,31 @@ def bench(args):
             if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
             iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
-            if (iterations > 0):
+            if iterations > 0:
                 benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, ['-n', str(iterations)])]
 
     # Bootstrap
-    if ('bootstrap' in args or 'all' in args):
+    if 'bootstrap' in args or 'all' in args:
         benchmarks += sanitycheck.getBootstraps()
     # SPECjvm2008
-    if ('specjvm2008' in args or 'all' in args):
+    if 'specjvm2008' in args or 'all' in args:
         benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120'])]
     else:
         specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
             benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120', specjvm])]
 
-    if ('specjbb2005' in args or 'all' in args):
+    if 'specjbb2005' in args or 'all' in args:
         benchmarks += [sanitycheck.getSPECjbb2005()]
 
-    if ('specjbb2013' in args):  # or 'all' in args //currently not in default set
+    if 'specjbb2013' in args:  # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
 
-    if ('ctw-full' in args):
+    if 'ctw-full' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.Full))
-    if ('ctw-noinline' in args):
+    if 'ctw-noinline' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoInline))
-    if ('ctw-nocomplex' in args):
+    if 'ctw-nocomplex' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     for test in benchmarks:
@@ -1276,7 +1276,7 @@ def jmh(args):
     def _blackhole(x):
         mx.logv(x[:-1])
     mx.log("Building benchmarks...")
-    mx.run(['mvn', 'package'], cwd = jmhPath, out = _blackhole)
+    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
 
     matchedSuites = set()
     numBench = [0]
@@ -1304,7 +1304,7 @@ def jmh(args):
                     numBench[0] += 1
                     matchedSuites.add(micros)
 
-            mx.run_java(['-jar', microJar, "-l"], cwd = jmhPath, out = _addBenchmark, addDefaultArgs = False)
+            mx.run_java(['-jar', microJar, "-l"], cwd=jmhPath, out=_addBenchmark, addDefaultArgs=False)
         else:
             matchedSuites.add(micros)
 
@@ -1328,8 +1328,8 @@ def jmh(args):
             "-i", "10", "-wi", "10",
             "--jvm", exe,
             "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
-            addDefaultArgs = False,
-            cwd = jmhPath)
+            addDefaultArgs=False,
+            cwd=jmhPath)
 
 
 def specjvm2008(args):
@@ -1645,7 +1645,7 @@ def mx_init(suite):
                     'The VM selected by --vm and --vmbuild options is under this directory (i.e., ' +
                     join('<path>', '<jdk-version>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
 
-    if (_vmSourcesAvailable):
+    if _vmSourcesAvailable:
         mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
         mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run (default: ' + _vmbuildChoices[0] + ')')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
@@ -1660,10 +1660,10 @@ def mx_init(suite):
 
 def mx_post_parse_cmd_line(opts):  #
     # TODO _minVersion check could probably be part of a Suite in mx?
-    if (mx.java().version < _minVersion) :
+    if mx.java().version < _minVersion:
         mx.abort('Requires Java version ' + str(_minVersion) + ' or greater, got version ' + str(mx.java().version))
 
-    if (_vmSourcesAvailable):
+    if _vmSourcesAvailable:
         if hasattr(opts, 'vm') and opts.vm is not None:
             global _vm
             _vm = opts.vm
