@@ -25,7 +25,6 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
-import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.truffle.api.nodes.*;
@@ -50,7 +49,6 @@ public class PythonContext {
 
     // Parallel generators
     private final ExecutorService executorService;
-    private final Map<String, Integer> generatorIterationCounts;
 
     private static PythonContext currentContext;
 
@@ -71,7 +69,6 @@ public class PythonContext {
 
         this.builtinsModule = this.lookup.addBuiltins(this);
         this.executorService = Executors.newCachedThreadPool();
-        this.generatorIterationCounts = new HashMap<>();
     }
 
     public PythonModule getBuiltins() {
@@ -144,17 +141,6 @@ public class PythonContext {
 
     public void submitParallelTask(Runnable task) {
         executorService.execute(task);
-    }
-
-    public void updateGeneratorIterationCount(String generatorId, int count) {
-        generatorIterationCounts.put(generatorId, count);
-    }
-
-    public int getGeneratorIterationCount(String generatorId) {
-        if (!generatorIterationCounts.containsKey(generatorId)) {
-            return -1;
-        }
-        return generatorIterationCounts.get(generatorId);
     }
 
     public void shutdown() {
