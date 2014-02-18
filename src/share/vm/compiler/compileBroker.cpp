@@ -1472,6 +1472,16 @@ uint CompileBroker::assign_compile_id(methodHandle method, int osr_bci) {
 
 
 // ------------------------------------------------------------------
+// CompileBroker::assign_compile_id_unlocked
+//
+// Public wrapper for assign_compile_id that acquires the needed locks
+uint CompileBroker::assign_compile_id_unlocked(Thread* thread, methodHandle method, int osr_bci) {
+  MutexLocker locker(MethodCompileQueue_lock, thread);
+  return assign_compile_id(method, osr_bci);
+}
+
+
+// ------------------------------------------------------------------
 // CompileBroker::is_compile_blocking
 //
 // Should the current thread be blocked until this compilation request

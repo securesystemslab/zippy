@@ -847,8 +847,7 @@ C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_metho
   HandleMark hm;
   ResourceMark rm;
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
-  MutexLocker locker(MethodCompileQueue_lock, thread);
-  return CompileBroker::assign_compile_id(method, entry_bci);
+  return CompileBroker::assign_compile_id_unlocked(THREAD, method, entry_bci);
 C2V_END
 
 

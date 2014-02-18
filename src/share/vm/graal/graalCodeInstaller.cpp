@@ -422,7 +422,7 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
     jint id = HotSpotCompiledNmethod::id(compiled_code);
     if (id == -1) {
       // Make sure a valid compile_id is associated with every compile
-      id = CompileBroker::assign_compile_id(method, entry_bci);
+      id = CompileBroker::assign_compile_id_unlocked(Thread::current(), method, entry_bci);
     }
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
         GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, leaf_graph_ids, installed_code, speculation_log);
