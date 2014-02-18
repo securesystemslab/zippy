@@ -665,6 +665,21 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // ord(c)
+    @Builtin(name = "ord", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class OrdNode extends PythonBuiltinNode {
+
+        @Specialization
+        public int ord(String chr) {
+            if (chr.length() != 1) {
+                typeError("ord() expected a character, but string of length " + chr.length() + " found");
+            }
+
+            return chr.charAt(0);
+        }
+
+    }
+
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
     public abstract static class PythonPrintNode extends PythonBuiltinNode {

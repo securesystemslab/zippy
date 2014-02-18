@@ -38,4 +38,17 @@ public class StringTest {
         assertPrints("combine xy\n", source);
     }
 
+    @Test
+    public void staticMakeTrans() {
+        String source = "t = str.maketrans('abc', '123')\n" + //
+                        "print(t)\n";
+        assertPrints("", source);
+    }
+
+    @Test
+    public void ord() {
+        String source = "print(ord('a'))\n";
+        assertPrints("97\n", source);
+    }
+
 }

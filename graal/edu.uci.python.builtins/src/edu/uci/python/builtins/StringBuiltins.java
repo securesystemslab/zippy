@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
@@ -42,6 +43,14 @@ public final class StringBuiltins extends PythonBuiltins {
     @Override
     protected List<com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
         return StringBuiltinsFactory.getFactories();
+    }
+
+    private static final PList idmap = new PList();
+
+    static {
+        for (int i = 0; i < 256; i++) {
+            idmap.append(Character.toString((char) i));
+        }
     }
 
     // str.startswith(prefix[, start[, end]])
@@ -126,6 +135,27 @@ public final class StringBuiltins extends PythonBuiltins {
         @Specialization
         public String upper(PString self) {
             return self.getValue().toUpperCase();
+        }
+    }
+
+    // static str.maketrans()
+    @Builtin(name = "maketrans", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class MakeTransNode extends PythonBuiltinNode {
+
+        @Specialization
+        public PDict maketrans(String from, String to) {
+            if (from.length() != to.length()) {
+                throw new RuntimeException("maketrans arguments must have same length");
+            }
+
+            PDict translation = new PDict();
+            for (int i = 0; i < from.length(); i++) {
+                int key = from.charAt(i);
+                int value = to.charAt(i);
+                translation.setItem(key, value);
+            }
+
+            return translation;
         }
     }
 
