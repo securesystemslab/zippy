@@ -60,6 +60,13 @@ public class PythonModuleImporter {
     public Object importModule(VirtualFrame frame) {
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
+        /**
+         * Use Jython's regex module.
+         */
+        if (moduleName.equals("re")) {
+            return importFromJython();
+        }
+
         if (importedModule != null) {
             return importedModule;
         } else {
@@ -72,15 +79,19 @@ public class PythonModuleImporter {
                 if (path != null) {
                     importedModule = createModule(path, frame);
                 } else {
-                    // CheckStyle: stop system..print check
-                    System.out.println("[ZipPy] importing from jython runtime " + moduleName);
-                    // CheckStyle: resume system..print check
-                    importedModule = __builtin__.__import__(moduleName);
+                    importedModule = importFromJython();
                 }
             }
         }
 
         return importedModule;
+    }
+
+    private PyObject importFromJython() {
+        // CheckStyle: stop system..print check
+        System.out.println("[ZipPy] importing from jython runtime " + moduleName);
+        // CheckStyle: resume system..print check
+        return __builtin__.__import__(moduleName);
     }
 
     private String getPathFromImporterPath() {
