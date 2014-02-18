@@ -45,6 +45,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         if (idx < 0) {
             index += primary.length();
         }
+
         return charAtToString(primary, index);
     }
 

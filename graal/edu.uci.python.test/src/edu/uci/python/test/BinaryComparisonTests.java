@@ -42,4 +42,11 @@ public class BinaryComparisonTests {
         assertPrints("True\n", source);
     }
 
+    @Test
+    public void moreComplexChainedEquals() {
+        String source = "a = 11\n" + //
+                        "print(11 == a == 11)";
+        assertPrints("True\n", source);
+    }
+
 }

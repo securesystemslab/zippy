@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,37 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
+import static org.junit.Assert.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.sequence.*;
+import java.nio.file.*;
 
-public class ListComprehensionNode extends FrameSlotNode {
+import org.junit.*;
 
-    @Child protected PNode comprehension;
+import edu.uci.python.runtime.*;
 
-    public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
-        super(frameSlot);
-        this.comprehension = adoptChild(comprehension);
-    }
+public class BuiltinIntrinsificationTests {
 
-    protected ListComprehensionNode(ListComprehensionNode node) {
-        this(node.frameSlot, node.comprehension);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        setObject(frame, new PList());
-        comprehension.execute(frame);
-        return getObject(frame);
-    }
-
-    @Override
-    public Object executeWrite(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
+    @Test
+    public void listComp() {
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        Path script = Paths.get("builtin-list-intrinsification-test.py");
+        assertPrints("9\n", script);
     }
 
 }

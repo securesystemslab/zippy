@@ -34,6 +34,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -53,6 +54,8 @@ public class TranslationEnvironment {
     private static final String LIST_COMPREHENSION_SLOT_ID = "<list_comp_val>";
     private static final String TEMP_LOCAL_PREFIX = "temp_";
     private int listComprehensionSlotCounter = 0;
+
+    private Collection<PNode> statementPatch;
 
     public TranslationEnvironment(mod module, PythonContext context, PythonModule pythonModule) {
         this.module = module;
@@ -124,6 +127,12 @@ public class TranslationEnvironment {
 
     public FrameDescriptor getCurrentFrame() {
         FrameDescriptor frameDescriptor = currentScope.getFrameDescriptor();
+        assert frameDescriptor != null;
+        return frameDescriptor;
+    }
+
+    public FrameDescriptor getEnclosingFrame() {
+        FrameDescriptor frameDescriptor = currentScope.getParent().getFrameDescriptor();
         assert frameDescriptor != null;
         return frameDescriptor;
     }
@@ -273,4 +282,19 @@ public class TranslationEnvironment {
     public FrameSlot getListComprehensionSlot() {
         return currentScope.getFrameDescriptor().findOrAddFrameSlot(LIST_COMPREHENSION_SLOT_ID + listComprehensionSlotCounter);
     }
+
+    public boolean hasStatementPatch() {
+        return statementPatch != null;
+    }
+
+    public Collection<PNode> getStatementPatch() {
+        Collection<PNode> patch = statementPatch;
+        statementPatch = null; // have to reset
+        return patch;
+    }
+
+    public void storeStatementPatch(Collection<PNode> patch) {
+        this.statementPatch = patch;
+    }
+
 }

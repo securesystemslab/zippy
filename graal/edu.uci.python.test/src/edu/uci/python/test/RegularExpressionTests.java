@@ -22,26 +22,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.impl.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.runtime.datatype.*;
+import org.junit.*;
 
-public final class PythonFrameTypeConversion extends DefaultFrameTypeConversion {
+public class RegularExpressionTests {
 
-    private static final PythonFrameTypeConversion INSTANCE = new PythonFrameTypeConversion();
-
-    private PythonFrameTypeConversion() {
-    }
-
-    public static PythonFrameTypeConversion getInstance() {
-        return INSTANCE;
-    }
-
-    @Override
-    public Object getDefaultValue() {
-        return PNone.NONE;
+    @Test
+    public void findall() {
+        String source = "import re\n" + //
+                        "s = \"SIX + NINE\"\n" + //
+                        "words = re.findall(\"[A-Za-z]+\", s)\n" + //
+                        "print(words)";
+        assertPrints("['SIX', 'NINE']\n", source);
     }
 
 }

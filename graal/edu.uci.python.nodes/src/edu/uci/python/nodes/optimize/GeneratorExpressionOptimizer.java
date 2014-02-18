@@ -144,7 +144,7 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentIds.length; i++) {
             FrameSlot argSlot = enclosingFrame.findFrameSlot(argumentIds[i]);
-            PNode read = genExp.isDeclarationFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot);
+            PNode read = genExp.isEnclosingFrameGenerator() ? ReadGeneratorFrameVariableNode.create(argSlot) : NodeFactory.getInstance().createReadLocal(argSlot);
 
             if (readFromCargoFrame) {
                 read = new FrameSwappingNode(read);

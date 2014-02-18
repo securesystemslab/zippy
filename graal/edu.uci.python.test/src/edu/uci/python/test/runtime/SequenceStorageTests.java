@@ -101,7 +101,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void objectAppend() {
+    public void objectAppend() throws SequenceStoreException {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         store.append(42);
         assertEquals(42, store.getItemInBound(6));
@@ -109,7 +109,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void objectExtend() {
+    public void objectExtend() throws SequenceStoreException {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage other = new ObjectSequenceStorage(getObjectValues());
         store.extend(other);
@@ -129,7 +129,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intGetAndSet() {
+    public void intGetAndSet() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         assertEquals(4, store.getItemInBound(3));
         store.setItemInBound(5, 10);
@@ -147,7 +147,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intSetSlice() {
+    public void intSetSlice() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         IntSequenceStorage slice = new IntSequenceStorage(new int[]{42, 42, 42});
 
@@ -159,7 +159,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intSetSliceOutOfBound() {
+    public void intSetSliceOutOfBound() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         IntSequenceStorage slice = new IntSequenceStorage(new int[]{42, 42, 42});
 
@@ -184,7 +184,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intInsert() {
+    public void intInsert() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         store.insertItem(3, 42);
         assertEquals(42, store.getItemInBound(3));
@@ -193,7 +193,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intAppend() {
+    public void intAppend() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         store.append(42);
         assertEquals(42, store.getItemInBound(6));
@@ -201,7 +201,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void intExtend() {
+    public void intExtend() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         IntSequenceStorage other = new IntSequenceStorage(getIntValues());
         store.extend(other);
@@ -212,4 +212,5 @@ public class SequenceStorageTests {
 
         assertEquals(12, store.length());
     }
+
 }

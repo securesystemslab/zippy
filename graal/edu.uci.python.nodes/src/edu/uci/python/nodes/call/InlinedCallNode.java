@@ -70,6 +70,9 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
     protected void prepareBodyNode(Node node) {
         NodeFactory factory = NodeFactory.getInstance();
 
+        /**
+         * Redirecting all frame accesses to the new {@link FrameDescriptor}.
+         */
         if (node instanceof FrameSlotNode) {
             FrameSlotNode fsNode = (FrameSlotNode) node;
             FrameSlot origSlot = fsNode.getSlot();
@@ -81,6 +84,15 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
             } else if (node instanceof WriteLocalVariableNode) {
                 node.replace(factory.createWriteLocal(((WriteLocalVariableNode) node).getRhs(), newSlot));
             }
+        }
+
+        /**
+         * Update {@link GeneratorExpressionDefinitionNode}'s enclosing frame to the new
+         * {@link FrameDescriptor}.
+         */
+        if (node instanceof GeneratorExpressionDefinitionNode) {
+            GeneratorExpressionDefinitionNode genexp = (GeneratorExpressionDefinitionNode) node;
+            genexp.setEnclosingFrameDescriptor(frameDescriptor);
         }
     }
 

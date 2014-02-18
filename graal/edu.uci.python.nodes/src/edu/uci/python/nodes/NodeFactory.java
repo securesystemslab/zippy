@@ -41,7 +41,6 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.nodes.subscript.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -212,7 +211,7 @@ public class NodeFactory {
     }
 
     public PNode createListComprehension(FrameSlot frameSlot, PNode comprehension) {
-        return new ListComprehensionNode(frameSlot, comprehension);
+        return new ComprehensionNode.ListComprehensionNode(frameSlot, comprehension);
     }
 
     public PNode createListAppend(FrameSlot frameSlot, PNode right) {
@@ -225,11 +224,6 @@ public class NodeFactory {
 
     public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
         return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
-    }
-
-    public PNode createGeneratorExpression(CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
-        return new GeneratorExpressionDefinitionNode(callTarget, parallelCallTarget, descriptor, needsDeclarationFrame, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -320,17 +314,6 @@ public class NodeFactory {
             default:
                 throw new RuntimeException("unexpected operation: " + operator);
         }
-    }
-
-    public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
-        PNode current = createComparisonOperation(ops.get(0), left, rights.get(0));
-
-        for (int i = 1; i < rights.size(); i++) {
-            PNode newCompare = createComparisonOperation(ops.get(i), rights.get(i - 1), rights.get(i));
-            current = AndNodeFactory.create(current, newCompare);
-        }
-
-        return current;
     }
 
     PNode createBooleanOperation(boolopType operator, PNode left, PNode right) {

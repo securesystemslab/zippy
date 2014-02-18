@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.sequence;
+package edu.uci.python.nodes.truffle;
+
+import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.runtime.datatype.*;
 
-public abstract class PImmutableSequence extends PSequence {
+public final class PythonFrameTypeConversion extends DefaultFrameTypeConversion {
 
-    /**
-     * TODO: should the UnsupportedOperationException actually be a Python exception?
-     * "TypeError: 'tuple' object does not support item assignment"
-     */
-    @Override
-    public final void setItem(int idx, Object value) {
-        throw new UnsupportedOperationException();
+    private static final PythonFrameTypeConversion INSTANCE = new PythonFrameTypeConversion();
+
+    private PythonFrameTypeConversion() {
+    }
+
+    public static PythonFrameTypeConversion getInstance() {
+        return INSTANCE;
     }
 
     @Override
-    public final void setSlice(PSlice slice, PSequence value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final void setSlice(int start, int stop, int step, PSequence value) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public final void delItem(int idx) {
-        throw new UnsupportedOperationException();
+    public Object getDefaultValue() {
+        return PNone.NONE;
     }
 
 }

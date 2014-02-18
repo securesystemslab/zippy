@@ -33,8 +33,8 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
-
 import org.python.google.common.collect.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -43,6 +43,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.loop.*;
@@ -106,9 +107,15 @@ public class PythonTreeTranslator extends Visitor {
             // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
-            if (statement != null) {
-                statements.add(statement);
+            if (statement == null) {
+                continue;
             }
+
+            if (environment.hasStatementPatch()) {
+                statements.addAll(environment.getStatementPatch());
+            }
+
+            statements.add(statement);
         }
 
         return statements;
@@ -232,15 +239,14 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.endScope(node);
         return funcDef;
-        // return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
-    private PNode createGeneratorExpressionDefinition(StatementNode body) {
+    private GeneratorExpressionDefinitionNode createGeneratorExpressionDefinition(StatementNode body) {
         FrameDescriptor fd = environment.getCurrentFrame();
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, "generator_exp", fd, body);
         result.addParsedFunction("generator_exp", funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-        return factory.createGeneratorExpression(gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
+        return new GeneratorExpressionDefinitionNode(gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfGeneratorBlockNode(),
                         gtran.getNumOfGeneratorForNode());
     }
 
@@ -518,7 +524,50 @@ public class PythonTreeTranslator extends Visitor {
         List<cmpopType> ops = node.getInternalOps();
         PNode left = (PNode) visit(node.getInternalLeft());
         List<PNode> rights = walkExprList(node.getInternalComparators());
-        return factory.createComparisonOperations(left, ops, rights);
+        return createComparisonOperations(left, ops, rights);
+    }
+
+    public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
+        /**
+         * Simple comparison.
+         */
+        if (ops.size() == 1 && rights.size() == 1) {
+            return factory.createComparisonOperation(ops.get(0), left, rights.get(0));
+        }
+
+        /**
+         * Chained comparisons.
+         */
+        List<PNode> assignmentsToBeLifted = new ArrayList<>();
+
+        // Left most compare.
+        ReadNode tempVar = environment.makeTempLocalVariable();
+        PNode assignmentToBeLifted = tempVar.makeWriteNode(rights.get(0));
+        assignmentsToBeLifted.add(assignmentToBeLifted);
+        PNode currentCompare = factory.createComparisonOperation(ops.get(0), left, (PNode) tempVar);
+
+        // the rest
+        for (int i = 1; i < rights.size(); i++) {
+            PNode leftOp;
+            PNode rightOp;
+
+            if (i == rights.size() - 1) {
+                leftOp = (PNode) tempVar;
+                rightOp = rights.get(i);
+            } else {
+                leftOp = (PNode) tempVar;
+                tempVar = environment.makeTempLocalVariable();
+                rightOp = (PNode) tempVar;
+                assignmentToBeLifted = tempVar.makeWriteNode(rights.get(i));
+                assignmentsToBeLifted.add(assignmentToBeLifted);
+            }
+
+            PNode newCompare = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+            currentCompare = AndNodeFactory.create(currentCompare, newCompare);
+        }
+
+        environment.storeStatementPatch(assignmentsToBeLifted);
+        return currentCompare;
     }
 
     @Override
@@ -627,7 +676,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
         body = visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
-        PNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
+        GeneratorExpressionDefinitionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body);
+        genExprDef.setEnclosingFrameDescriptor(environment.getEnclosingFrame());
         environment.endScope(node);
         return genExprDef;
     }
