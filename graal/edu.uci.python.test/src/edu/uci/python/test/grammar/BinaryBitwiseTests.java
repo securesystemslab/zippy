@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,11 +30,12 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class TupleTest {
+public class BinaryBitwiseTests {
     @Test
     public void simple() {
-        Path script = Paths.get("tuple_test.py");
-        assertPrints("(a, 123, b, 49324324242949949) ()\n", script);
+        Path script = Paths.get("binary_bitwise_test.py");
+        assertPrints("----------- << >>\n8 2 680564733841876926926749214863536422912 0 -256 -1\n----------- & | ^\n0 441 415\n----------- & | ^ w/ BitInteger\n0 943824320482304948 544382094820482034324155\n",
+                        script);
     }
 
 }

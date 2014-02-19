@@ -22,62 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class ListComprehensionTests {
+public class BinaryComparisonTests {
 
     @Test
-    public void simple() {
-        String source = "llist = [x*2 for x in range(5)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
+    public void chainedComparisons() {
+        String source = "print(2 < 5 > 3)";
+        assertPrints("True\n", source);
     }
 
     @Test
-    public void doubleLoop() {
-        String source = "llist = [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
+    public void chainedEquals() {
+        String source = "print(11 == 11 == 11 == 11)";
+        assertPrints("True\n", source);
     }
 
     @Test
-    public void nestedListComp() {
-        String source = "llist = [[x for x in range(5)] for y in range(3)]\n" + //
-                        "print(llist)\n";
-
-        assertPrints("[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]\n", source);
-    }
-
-    @Test
-    public void simpleWithLocalTarget() {
-        String source = "def foo():\n" + //
-                        "    return [x*2 for x in range(5)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 2, 4, 6, 8]\n", source);
-    }
-
-    @Test
-    public void doubleLoopWithLocalTarget() {
-        String source = "def foo():" + //
-                        "    return [x+y for x in range(5) for y in range(3)]\n" + //
-                        "print(foo())\n";
-
-        assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
-    }
-
-    @Test
-    public void listCompTest() {
-        Path script = Paths.get("listcomp.py");
-        assertPrints("[0, 2, 4, 6, 8]\n", script);
+    public void moreComplexChainedEquals() {
+        String source = "a = 11\n" + //
+                        "print(11 == a == 11)";
+        assertPrints("True\n", source);
     }
 
 }

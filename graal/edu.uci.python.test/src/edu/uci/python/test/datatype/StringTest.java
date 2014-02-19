@@ -22,19 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class GlobalVarTest {
+public class StringTest {
+
     @Test
     public void simple() {
-        Path script = Paths.get("globalvar_test.py");
-        assertPrints("20\n20\n", script);
+        String source = "a = 'combine'\n" + //
+                        "b = 'x' + 'y'\n" + //
+                        "print(a, b)\n";
+        assertPrints("combine xy\n", source);
+    }
+
+    @Test
+    public void staticMakeTrans() {
+        String source = "t = str.maketrans('abc', '123')\n" + //
+                        "print(t)\n";
+        assertPrints("{98 : 50, 99 : 51, 97 : 49}\n", source);
+    }
+
+    @Test
+    public void translate() {
+        String source = "table = {98 : 50, 99 : 51, 97 : 49}\n" + //
+                        "s = 'cba'\n" + //
+                        "print(s.translate(table))\n";
+        assertPrints("321\n", source);
+    }
+
+    @Test
+    public void ord() {
+        String source = "print(ord('a'))\n";
+        assertPrints("97\n", source);
     }
 
 }

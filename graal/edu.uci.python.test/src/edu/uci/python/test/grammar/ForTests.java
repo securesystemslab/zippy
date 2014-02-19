@@ -22,25 +22,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
-public class ScopeTests {
+public class ForTests {
 
     @Test
-    public void implicitNonLocal() {
-        String source = "def foo():\n" + //
-                        "    a = 42\n" + //
-                        "    def bar():\n" + //
-                        "        print(a)\n" + //
-                        "    \n" + //
-                        "    return bar\n" + //
-                        "\n" + //
-                        "foo()()\n";
+    public void simple() {
+        Path script = Paths.get("simple_for_test.py");
+        assertPrints("1\n2\n3\n", script);
+    }
 
-        assertPrints("42\n", source);
+    @Test
+    public void forTest() {
+        Path script = Paths.get("for_test.py");
+        assertPrints("1\n2\n3\n1 2\n3 4\n5 6\n", script);
+    }
+
+    // the following method tests a file with for loops that also include chains of for
+    // loops and other statements.
+    @Test
+    public void iterateAndElseInFor() {
+        Path script = Paths.get("more_complex_for_test.py");
+        assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
+    }
+
+    @Test
+    public void nestedUnpackingInFor() {
+        String source = "ll = [([1, 2], [3, 4]), ([5, 6], [7, 8])]\n" + //
+                        "for [a, b], [c, d] in ll:\n" + //
+                        "    print(a, b, c, d)\n" + //
+                        "\n";
+
+        assertPrints("1 2 3 4\n5 6 7 8\n", source);
     }
 }

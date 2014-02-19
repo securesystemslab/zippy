@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class NumberTest {
+public class TupleTest {
     @Test
     public void simple() {
-        Path script = Paths.get("number_test.py");
-        assertPrints("1\n548473910574835071\n1.1\nTrue\nFalse\n", script);
+        Path script = Paths.get("tuple_test.py");
+        assertPrints("(a, 123, b, 49324324242949949) ()\n", script);
     }
 
 }

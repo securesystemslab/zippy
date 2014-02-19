@@ -22,54 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
-public class StringSlicingTest {
-
+public class LocalVarTest {
     @Test
-    public void slice0() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[1:3])\n";
-        assertPrints("bc\n", source);
-    }
-
-    @Test
-    public void slice1() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[:3])\n";
-        assertPrints("abc\n", source);
-    }
-
-    @Test
-    public void slice2() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[1:])\n";
-        assertPrints("bcdefghij\n", source);
-    }
-
-    @Test
-    public void slice3() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[:])\n";
-        assertPrints("abcdefghij\n", source);
-    }
-
-    @Test
-    public void slice4() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[-1:])\n";
-        assertPrints("j\n", source);
-    }
-
-    @Test
-    public void slice5() {
-        String source = "alphabet = \"abcdefghij\"\n" + //
-                        "print(alphabet[:-1])\n";
-        assertPrints("abcdefghi\n", source);
+    public void simple() {
+        Path script = Paths.get("localvar_test.py");
+        assertPrints("1 43724832472947924729 4234.994839\n3 44162075767671819461 [3, 4]\n", script);
     }
 
 }

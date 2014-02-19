@@ -22,43 +22,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class ForTests {
+public class StringSlicingTest {
 
     @Test
-    public void simple() {
-        Path script = Paths.get("simple_for_test.py");
-        assertPrints("1\n2\n3\n", script);
+    public void slice0() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[1:3])\n";
+        assertPrints("bc\n", source);
     }
 
     @Test
-    public void forTest() {
-        Path script = Paths.get("for_test.py");
-        assertPrints("1\n2\n3\n1 2\n3 4\n5 6\n", script);
-    }
-
-    // the following method tests a file with for loops that also include chains of for
-    // loops and other statements.
-    @Test
-    public void iterateAndElseInFor() {
-        Path script = Paths.get("more_complex_for_test.py");
-        assertPrints("Current fruit : banana\nCurrent fruit : apple\nCurrent fruit : mango\n10 = 2 * 5\n11 prime number\n12 = 2 * 6\n13 prime number\n14 = 2 * 7\n", script);
+    public void slice1() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:3])\n";
+        assertPrints("abc\n", source);
     }
 
     @Test
-    public void nestedUnpackingInFor() {
-        String source = "ll = [([1, 2], [3, 4]), ([5, 6], [7, 8])]\n" + //
-                        "for [a, b], [c, d] in ll:\n" + //
-                        "    print(a, b, c, d)\n" + //
-                        "\n";
-
-        assertPrints("1 2 3 4\n5 6 7 8\n", source);
+    public void slice2() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[1:])\n";
+        assertPrints("bcdefghij\n", source);
     }
+
+    @Test
+    public void slice3() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:])\n";
+        assertPrints("abcdefghij\n", source);
+    }
+
+    @Test
+    public void slice4() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[-1:])\n";
+        assertPrints("j\n", source);
+    }
+
+    @Test
+    public void slice5() {
+        String source = "alphabet = \"abcdefghij\"\n" + //
+                        "print(alphabet[:-1])\n";
+        assertPrints("abcdefghi\n", source);
+    }
+
 }

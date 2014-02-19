@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class WhileTest {
+public class NumberTest {
     @Test
     public void simple() {
-        Path script = Paths.get("while_test.py");
-        assertPrints("a is true 1\n0  <  5\n0  <  4\n0  <  3\n0  <  2\n0  <  1\n1  <  5\n1  <  4\n1  <  3\n1  <  2\n1  <  1\n", script);
+        Path script = Paths.get("number_test.py");
+        assertPrints("1\n548473910574835071\n1.1\nTrue\nFalse\n", script);
     }
 
 }

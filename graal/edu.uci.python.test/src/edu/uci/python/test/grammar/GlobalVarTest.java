@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,17 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class SubscriptTest {
+public class GlobalVarTest {
     @Test
     public void simple() {
-        Path script = Paths.get("subscript_test2.py");
-        assertPrints("1\n", script);
-    }
-
-    @Test
-    public void simple2() {
-        Path script = Paths.get("subscript_test.py");
-        assertPrints("[1, 2]\n", script);
+        Path script = Paths.get("globalvar_test.py");
+        assertPrints("20\n20\n", script);
     }
 
 }

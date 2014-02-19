@@ -22,19 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class MultiAssignTest {
-    @Test
-    public void simple() {
-        Path script = Paths.get("multiassign_test.py");
-        assertPrints("4 3\n1 2\n7 8\n1 2 3 4\n", script);
-    }
+public class ScopeTests {
 
+    @Test
+    public void implicitNonLocal() {
+        String source = "def foo():\n" + //
+                        "    a = 42\n" + //
+                        "    def bar():\n" + //
+                        "        print(a)\n" + //
+                        "    \n" + //
+                        "    return bar\n" + //
+                        "\n" + //
+                        "foo()()\n";
+
+        assertPrints("42\n", source);
+    }
 }

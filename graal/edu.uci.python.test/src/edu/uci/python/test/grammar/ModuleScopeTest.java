@@ -22,28 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
-public class AugAssignmentTests {
-
+public class ModuleScopeTest {
     @Test
-    public void add() {
-        String source = "a = 1\n" + //
-                        "a += 1\n" + //
-                        "print(a)";
-        assertPrints("2\n", source);
-    }
-
-    @Test
-    public void sub() {
-        String source = "a = 3\n" + //
-                        "a -= 1\n" + //
-                        "print(a)";
-        assertPrints("2\n", source);
+    public void simple() {
+        Path script = Paths.get("module_scope_test.py");
+        assertPrints("42\n", script);
     }
 
 }

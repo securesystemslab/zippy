@@ -22,41 +22,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
-public class MultiassignTests {
-
+public class BinaryBooleanTests {
     @Test
-    public void multiAssign() {
-        String source = "a, b = [3, 4]\n" + //
-                        "a, b = b, a\n" + //
-                        "print(a, b)\n";
-        assertPrints("4 3\n", source);
-    }
-
-    @Test
-    public void explicitTupleAssignment() {
-        String source = "(a, b) = [1, 2]\n" + //
-                        "print(a, b)\n";
-        assertPrints("1 2\n", source);
-    }
-
-    @Test
-    public void explicitListAssignment() {
-        String source = "list_l = [7, 8]\n" + //
-                        "[a, b] = list_l\n" + //
-                        "print(a, b)\n";
-        assertPrints("7 8\n", source);
-    }
-
-    @Test
-    public void nestedUnpacking() {
-        String source = "(a, b), [c, d] = [[1, 2], [3, 4]]\n" + //
-                        "print(a, b, c, d)\n";
-        assertPrints("1 2 3 4\n", source);
+    public void simple() {
+        Path script = Paths.get("binary_boolean_test.py");
+        assertPrints("----------- and\n0 0 0 9.9292\n----------- or\n1 2 12953285437432947239 2.4343\n", script);
     }
 }

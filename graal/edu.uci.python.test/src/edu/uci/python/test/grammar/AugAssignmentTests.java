@@ -22,31 +22,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
 import org.junit.*;
 
-public class BinaryComparisonTests {
+public class AugAssignmentTests {
 
     @Test
-    public void chainedComparisons() {
-        String source = "print(2 < 5 > 3)";
-        assertPrints("True\n", source);
+    public void add() {
+        String source = "a = 1\n" + //
+                        "a += 1\n" + //
+                        "print(a)";
+        assertPrints("2\n", source);
     }
 
     @Test
-    public void chainedEquals() {
-        String source = "print(11 == 11 == 11 == 11)";
-        assertPrints("True\n", source);
-    }
-
-    @Test
-    public void moreComplexChainedEquals() {
-        String source = "a = 11\n" + //
-                        "print(11 == a == 11)";
-        assertPrints("True\n", source);
+    public void sub() {
+        String source = "a = 3\n" + //
+                        "a -= 1\n" + //
+                        "print(a)";
+        assertPrints("2\n", source);
     }
 
 }

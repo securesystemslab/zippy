@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class LocalVarTest {
+public class UnaryTest {
     @Test
     public void simple() {
-        Path script = Paths.get("localvar_test.py");
-        assertPrints("1 43724832472947924729 4234.994839\n3 44162075767671819461 [3, 4]\n", script);
+        Path script = Paths.get("unary_test.py");
+        assertPrints("3 -129 -346\n37857431053781905 -129547839057329057230 -3455473924052745730\n3.45 -54353.65636\nFalse True False False\n", script);
     }
 
 }

@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,11 +30,11 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class ControlFlowTests {
+public class LocalVarTypeTest {
     @Test
     public void simple() {
-        Path script = Paths.get("controlflow_test.py");
-        assertPrints("taken\n4\n3\n2\n1\n0\n", script);
+        Path script = Paths.get("localvar_type_test.py");
+        assertPrints("1.0\n2\n42\n547390573890573429057\n42\n4.2\n", script);
     }
 
 }

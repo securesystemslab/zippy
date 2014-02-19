@@ -22,41 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
-public class StringTest {
+public class IfTest {
 
     @Test
-    public void simple() {
-        String source = "a = 'combine'\n" + //
-                        "b = 'x' + 'y'\n" + //
-                        "print(a, b)\n";
-        assertPrints("combine xy\n", source);
+    public void basic() {
+        String source = "a = 1\n" + //
+                        "b = 2\n" + //
+                        "if a < b:\n" + //
+                        "    print('a < b')\n" + //
+                        "if a:\n" + //
+                        "    print('a is true')\n" + //
+                        "if not b:\n" + //
+                        "    print('b is false')\n" + //
+                        "if not a > b:\n" + //
+                        "    print('not a > b')\n";
+        assertPrints("a < b\na is true\nnot a > b\n", source);
     }
 
     @Test
-    public void staticMakeTrans() {
-        String source = "t = str.maketrans('abc', '123')\n" + //
-                        "print(t)\n";
-        assertPrints("{98 : 50, 99 : 51, 97 : 49}\n", source);
+    public void elif() {
+        Path script = Paths.get("if-test.py");
+        assertPrints("31\n", script);
     }
-
-    @Test
-    public void translate() {
-        String source = "table = {98 : 50, 99 : 51, 97 : 49}\n" + //
-                        "s = 'cba'\n" + //
-                        "print(s.translate(table))\n";
-        assertPrints("321\n", source);
-    }
-
-    @Test
-    public void ord() {
-        String source = "print(ord('a'))\n";
-        assertPrints("97\n", source);
-    }
-
 }
