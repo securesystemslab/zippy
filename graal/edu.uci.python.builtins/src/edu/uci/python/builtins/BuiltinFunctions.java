@@ -34,6 +34,7 @@ import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -45,6 +46,8 @@ import edu.uci.python.runtime.standardtype.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 /**
@@ -233,6 +236,20 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public PTuple doDouble(double a, double b) {
             double q = Math.floor(a / b);
             return new PTuple(new Object[]{q, a % b});
+        }
+    }
+
+    // eval(expression, globals=None, locals=None)
+    @Builtin(name = "eval", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class EvalNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object eval(String expression) {
+            PythonParser parser = getContext().getParser();
+            PythonParseResult parsed = parser.parse(getContext(), new PythonModule("<eval>", getContext()), expression);
+            RootNode root = parsed.getModuleRoot();
+            VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, null, root.getFrameDescriptor());
+            return root.execute(frame);
         }
     }
 

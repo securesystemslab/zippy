@@ -54,7 +54,7 @@ public class CustomConsole extends JLineConsole {
         setSystemState();
 
         PythonModule module = context.createMainModule();
-        PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
+        PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
@@ -89,7 +89,7 @@ public class CustomConsole extends JLineConsole {
 
     public void parseFile(PythonContext context, Source source) {
         PythonModule module = context.createMainModule();
-        PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
+        PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {
             printBanner("After Parsing");

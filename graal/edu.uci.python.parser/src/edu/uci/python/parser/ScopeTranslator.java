@@ -66,6 +66,12 @@ public class ScopeTranslator extends Visitor {
     }
 
     @Override
+    public Object visitExpression(Expression node) throws Exception {
+        traverse(node);
+        return node;
+    }
+
+    @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         environment.createLocal(node.getInternalName());
         ArgListCompiler ac = new ArgListCompiler();

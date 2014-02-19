@@ -91,6 +91,9 @@ public class ImportManager {
     }
 
     private String getPathFromImporterPath(String moduleName) {
+        /**
+         * FIXME zwei: Why this?
+         */
         String importingModulePath = context.getParser().getSource().getPath();
         String filename = moduleName + ".py";
         String path = null;
@@ -173,7 +176,7 @@ public class ImportManager {
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] parsing module " + path);
             // CheckStyle: resume system..print check
-            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompileMode.exec, CompilerFlags.getCompilerFlags());
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompilerFlags.getCompilerFlags());
 
             if (parsedModule != null) {
                 // CheckStyle: stop system..print check

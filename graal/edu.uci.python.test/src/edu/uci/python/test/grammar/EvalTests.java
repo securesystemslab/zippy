@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,28 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.test.grammar;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import static edu.uci.python.test.PythonTests.*;
 
-public class ModuleNode extends RootNode {
+import org.junit.*;
 
-    @Child PNode body;
+public class EvalTests {
 
-    public ModuleNode(PNode body, FrameDescriptor descriptor) {
-        super(null, descriptor);
-        this.body = adoptChild(body);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName();
+    @Test
+    public void simple() {
+        String source = "expr = '1 + 1'\n" + //
+                        "print(eval(expr))\n";
+        assertPrints("2\n", source);
     }
 
 }

@@ -26,6 +26,7 @@ package edu.uci.python.parser;
 
 import java.io.*;
 
+import org.python.antlr.base.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -38,14 +39,14 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonParserImpl implements PythonParser {
 
-    Source scriptSource = null;
+    private Source scriptSource;
 
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
 
     @Override
-    public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompileMode kind, CompilerFlags cflags) {
+    public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
         this.scriptSource = source;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
@@ -57,9 +58,9 @@ public class PythonParserImpl implements PythonParser {
             InputStream printFlag = new ByteArrayInputStream(print.getBytes());
             InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
 
-            node = ParserFacade.parse(withPrintFlag, kind, filename, cflags);
+            node = ParserFacade.parse(withPrintFlag, CompileMode.exec, filename, cflags);
         } else {
-            node = ParserFacade.parse(istream, kind, filename, cflags);
+            node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
         }
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
@@ -79,7 +80,20 @@ public class PythonParserImpl implements PythonParser {
     }
 
     @Override
+    public PythonParseResult parse(PythonContext context, PythonModule module, String expression) {
+        mod node = ParserFacade.parseExpressionOrModule(new StringReader(expression), "<eval>", CompilerFlags.getCompilerFlags());
+
+        TranslationEnvironment environment = new TranslationEnvironment(context, module);
+        ScopeTranslator ptp = new ScopeTranslator(environment);
+        node = ptp.process(node);
+
+        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
+        return ptt.translate(node);
+    }
+
+    @Override
     public Source getSource() {
         return scriptSource;
     }
+
 }

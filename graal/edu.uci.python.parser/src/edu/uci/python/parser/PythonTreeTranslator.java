@@ -94,7 +94,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> body = visitStatements(node.getInternalBody());
         FrameDescriptor fd = environment.getCurrentFrame();
         environment.endScope(node);
-        RootNode newNode = new NodeFactory().createModule(body, fd);
+        RootNode newNode = factory.createModule(body, fd);
         return newNode;
     }
 
@@ -119,6 +119,15 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         return statements;
+    }
+
+    @Override
+    public Object visitExpression(Expression node) throws Exception {
+        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
+        PNode body = (PNode) visit(node.getInternalBody());
+        FrameDescriptor fd = environment.getCurrentFrame();
+        environment.endScope(node);
+        return new ModuleNode(body, fd);
     }
 
     @Override
