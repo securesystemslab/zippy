@@ -26,6 +26,8 @@ package edu.uci.python.builtins;
 
 import java.util.*;
 
+import edu.uci.python.builtins.module.*;
+import edu.uci.python.builtins.type.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;

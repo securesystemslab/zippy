@@ -22,13 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.builtins;
+package edu.uci.python.builtins.module;
 
 import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.sequence.*;
 
