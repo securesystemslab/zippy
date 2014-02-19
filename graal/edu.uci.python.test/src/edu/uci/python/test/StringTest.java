@@ -46,6 +46,14 @@ public class StringTest {
     }
 
     @Test
+    public void translate() {
+        String source = "table = {98 : 50, 99 : 51, 97 : 49}\n" + //
+                        "s = 'cba'\n" + //
+                        "print(s.translate(table))\n";
+        assertPrints("321\n", source);
+    }
+
+    @Test
     public void ord() {
         String source = "print(ord('a'))\n";
         assertPrints("97\n", source);

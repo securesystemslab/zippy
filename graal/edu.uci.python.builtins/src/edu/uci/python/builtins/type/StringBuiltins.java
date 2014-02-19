@@ -160,4 +160,27 @@ public final class StringBuiltins extends PythonBuiltins {
         }
     }
 
+    // str.translate()
+    @Builtin(name = "translate", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class TranslateNode extends PythonBuiltinNode {
+
+        @Specialization(order = 0)
+        public String translate(String self, PDict table) {
+            char[] translatedChars = new char[self.length()];
+            for (int i = 0; i < self.length(); i++) {
+                char chr = self.charAt(i);
+                Object value = table.getItem((int) chr);
+
+                if (value == null) {
+                    continue;
+                }
+
+                int ord = (int) value;
+                translatedChars[i] = (char) ord;
+            }
+
+            return new String(translatedChars);
+        }
+    }
+
 }

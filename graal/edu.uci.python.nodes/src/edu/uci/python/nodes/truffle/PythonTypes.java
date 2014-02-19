@@ -28,9 +28,7 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.TypeCast;
-import com.oracle.truffle.api.dsl.TypeCheck;
-import com.oracle.truffle.api.dsl.TypeSystem;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -169,6 +167,11 @@ public class PythonTypes {
         }
 
         return (PComplex) value;
+    }
+
+    @ImplicitCast
+    public String unboxPString(PString value) {
+        return value.getValue();
     }
 
 }
