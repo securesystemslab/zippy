@@ -44,7 +44,6 @@ import com.oracle.truffle.api.dsl.NodeFactory;
 public abstract class PythonBuiltins {
 
     private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
-
     private final Map<String, PythonBuiltinClass> builtinClasses = new HashMap<>();
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();

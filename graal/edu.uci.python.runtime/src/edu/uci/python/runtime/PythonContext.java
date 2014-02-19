@@ -69,7 +69,7 @@ public class PythonContext {
         // The order matters.
         currentContext = this;
 
-        this.builtinsModule = this.lookup.addBuiltins(this);
+        this.builtinsModule = this.lookup.populateBuiltins(this);
         this.executorService = Executors.newCachedThreadPool();
     }
 
