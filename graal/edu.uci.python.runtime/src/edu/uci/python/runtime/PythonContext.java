@@ -71,6 +71,12 @@ public class PythonContext {
         this.executorService = Executors.newCachedThreadPool();
     }
 
+    public PythonModule createMainModule() {
+        PythonModule main = new PythonModule("__main__", this);
+        main.setAttribute("__builtins__", getBuiltins());
+        return main;
+    }
+
     public PythonModule getBuiltins() {
         return builtinsModule;
     }

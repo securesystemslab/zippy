@@ -53,7 +53,7 @@ public class CustomConsole extends JLineConsole {
     public void execfile(PythonContext context, Source source) {
         setSystemState();
 
-        PythonModule module = new PythonModule("__main__", context, context.getBuiltins());
+        PythonModule module = context.createMainModule();
         PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
 
         if (PythonOptions.PrintAST) {
@@ -88,7 +88,7 @@ public class CustomConsole extends JLineConsole {
     }
 
     public void parseFile(PythonContext context, Source source) {
-        PythonModule module = new PythonModule("__main__", context, context.getBuiltins());
+        PythonModule module = context.createMainModule();
         PythonParseResult result = context.getParser().parse(context, module, source, CompileMode.exec, cflags);
 
         if (PythonOptions.PrintAST) {

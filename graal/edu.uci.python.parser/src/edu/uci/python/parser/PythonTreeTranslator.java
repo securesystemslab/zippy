@@ -70,7 +70,7 @@ public class PythonTreeTranslator extends Visitor {
         this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
         this.assigns = new AssignmentTranslator(environment, this);
-        this.result = new PythonParseResult();
+        this.result = new PythonParseResult(environment.getModule());
     }
 
     public PythonParseResult translate(PythonTree root) {

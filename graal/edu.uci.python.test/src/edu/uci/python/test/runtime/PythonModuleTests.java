@@ -39,7 +39,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule("testModule", context, context.getBuiltins());
+        PythonModule module = new PythonModule("testModule", context);
 
         assertEquals("testModule", module.getAttribute("__name__").toString());
         assertEquals("", module.getAttribute("__doc__").toString());
@@ -49,7 +49,7 @@ public class PythonModuleTests {
     @Test
     public void builtinsMinTest() {
         final PythonContext context = PythonTests.getContext();
-        final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+        final PythonModule builtins = context.getBuiltins();
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
         Object returnValue = min.call(PythonTests.createVirtualFrame().pack(), new Object[]{4, 2, 1});
         assertEquals(1, returnValue);
@@ -58,7 +58,7 @@ public class PythonModuleTests {
     @Test
     public void builtinsIntTest() {
         final PythonContext context = PythonTests.getContext();
-        final PythonModule builtins = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+        final PythonModule builtins = context.getBuiltins();
         PythonBuiltinClass intClass = (PythonBuiltinClass) builtins.getAttribute("int");
         Object returnValue = intClass.call(PythonTests.createVirtualFrame().pack(), new Object[]{"42"});
         assertEquals(42, returnValue);
@@ -67,7 +67,7 @@ public class PythonModuleTests {
     @Test
     public void mainModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule main = context.getPythonBuiltinsLookup().lookupModule("__main__");
+        PythonModule main = context.createMainModule();
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
         Object returned = abs.call(PythonTests.createVirtualFrame().pack(), new Object[]{-42});

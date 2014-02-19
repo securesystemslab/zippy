@@ -43,17 +43,6 @@ public class PythonModule extends PythonBasicObject {
         addDefaultConstants(name);
     }
 
-    public PythonModule(String name, PythonContext context, PythonModule builtins) {
-        super(context.getModuleClass());
-        this.name = name;
-        unmodifiedAssumption = new CyclicAssumption("unmodified");
-        addDefaultConstants(name);
-
-        setAttribute("__builtins__", builtins);
-
-        context.getPythonBuiltinsLookup().addModule(name, this);
-    }
-
     @Override
     public Assumption getUnmodifiedAssumption() {
         return unmodifiedAssumption.getAssumption();

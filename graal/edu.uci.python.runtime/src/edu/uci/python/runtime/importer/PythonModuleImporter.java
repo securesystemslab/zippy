@@ -29,7 +29,6 @@ import java.io.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -37,6 +36,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
 public class PythonModuleImporter {
@@ -57,7 +57,7 @@ public class PythonModuleImporter {
         this.moduleName = moduleName;
     }
 
-    public Object importModule(VirtualFrame frame) {
+    public Object importModule() {
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
@@ -73,11 +73,11 @@ public class PythonModuleImporter {
             String path = getPathFromImporterPath();
 
             if (path != null) {
-                importedModule = createModule(path, frame);
+                importedModule = createModule(path);
             } else {
                 path = getPathFromLibrary();
                 if (path != null) {
-                    importedModule = createModule(path, frame);
+                    importedModule = createModule(path);
                 } else {
                     importedModule = importFromJython();
                 }
@@ -156,16 +156,13 @@ public class PythonModuleImporter {
         return null;
     }
 
-    @SuppressWarnings("unused")
-    private PythonModule createModule(String path, Frame frame) {
+    private PythonModule createModule(String path) {
         PythonParseResult parsedModule = parseModule(path);
 
         if (parsedModule != null) {
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot());
             callTarget.call(null, new PArguments(null));
-            PythonContext moduleContext = parsedModule.getContext();
-            PythonModule importedModule = moduleContext.getPythonBuiltinsLookup().lookupModule(moduleName);
-            return importedModule;
+            return parsedModule.getModule();
         }
 
         return null;
@@ -176,7 +173,7 @@ public class PythonModuleImporter {
 
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
-            PythonModule importedModule = new PythonModule(moduleName, context, context.getBuiltins());
+            PythonModule importedModule = new PythonModule(moduleName, context);
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] parsing module " + path);
             // CheckStyle: resume system..print check

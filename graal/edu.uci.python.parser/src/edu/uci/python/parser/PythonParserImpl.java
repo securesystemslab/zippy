@@ -62,7 +62,7 @@ public class PythonParserImpl implements PythonParser {
             node = ParserFacade.parse(istream, kind, filename, cflags);
         }
 
-        TranslationEnvironment environment = new TranslationEnvironment(node, context, module);
+        TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 

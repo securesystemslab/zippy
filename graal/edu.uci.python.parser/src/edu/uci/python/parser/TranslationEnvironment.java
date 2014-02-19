@@ -27,7 +27,6 @@ package edu.uci.python.parser;
 import java.util.*;
 
 import org.python.antlr.*;
-import org.python.antlr.base.*;
 
 import com.oracle.truffle.api.frame.*;
 
@@ -40,10 +39,9 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class TranslationEnvironment {
 
-    private final mod module;
     private final PythonContext context;
     private final NodeFactory factory;
-    private final PythonModule pythonModule;
+    private final PythonModule module;
 
     private Map<PythonTree, ScopeInfo> scopeInfos;
     private ScopeInfo currentScope;
@@ -57,10 +55,9 @@ public class TranslationEnvironment {
 
     private Collection<PNode> statementPatch;
 
-    public TranslationEnvironment(mod module, PythonContext context, PythonModule pythonModule) {
-        this.module = module;
+    public TranslationEnvironment(PythonContext context, PythonModule pythonModule) {
         this.context = context;
-        this.pythonModule = pythonModule;
+        this.module = pythonModule;
         this.factory = NodeFactory.getInstance();
         scopeInfos = new HashMap<>();
     }
@@ -71,7 +68,7 @@ public class TranslationEnvironment {
         return this;
     }
 
-    protected mod getModule() {
+    protected PythonModule getModule() {
         return module;
     }
 
@@ -159,7 +156,7 @@ public class TranslationEnvironment {
 
         switch (getScopeKind()) {
             case Module:
-                return (ReadNode) factory.createReadGlobalScope(context, pythonModule, name);
+                return (ReadNode) factory.createReadGlobalScope(context, module, name);
             case Generator:
             case ListComp:
             case Function:
@@ -178,7 +175,7 @@ public class TranslationEnvironment {
         }
 
         assert readLevel == null;
-        return (ReadNode) factory.createReadGlobalScope(context, pythonModule, name);
+        return (ReadNode) factory.createReadGlobalScope(context, module, name);
     }
 
     public ReadNode makeTempLocalVariable() {
