@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.importer;
+package edu.uci.python.runtime;
 
 import java.io.*;
 
@@ -30,7 +30,6 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
