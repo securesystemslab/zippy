@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.importer.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -46,6 +47,7 @@ public class PythonContext {
 
     private final SourceManager sourceManager;
     private final PythonParser parser;
+    private final ImportManager importManager;
 
     // Parallel generators
     private final ExecutorService executorService;
@@ -63,6 +65,7 @@ public class PythonContext {
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
         this.sourceManager = new SourceManager();
         this.parser = parser;
+        this.importManager = new ImportManager(this);
 
         // The order matters.
         currentContext = this;
@@ -134,6 +137,10 @@ public class PythonContext {
 
     public SourceManager getSourceManager() {
         return sourceManager;
+    }
+
+    public ImportManager getImportManager() {
+        return importManager;
     }
 
     public void setCurrentException(RuntimeException e) {

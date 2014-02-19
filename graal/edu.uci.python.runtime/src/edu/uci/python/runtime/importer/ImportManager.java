@@ -39,12 +39,10 @@ import edu.uci.python.runtime.standardtype.*;
  * @author zwei
  */
 
-public class PythonModuleImporter {
+public class ImportManager {
 
+    private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
     private final PythonContext context;
-    private final String moduleName;
-
-    private static final String PYTHONLIBRARYPATH = getPythonLibraryPath();
 
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
@@ -52,34 +50,33 @@ public class PythonModuleImporter {
         return librayPath;
     }
 
-    public PythonModuleImporter(PythonContext context, String moduleName) {
+    public ImportManager(PythonContext context) {
         this.context = context;
-        this.moduleName = moduleName;
     }
 
-    public Object importModule() {
+    public Object importModule(String moduleName) {
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
          * Use Jython's regex module.
          */
         if (moduleName.equals("re")) {
-            return importFromJython();
+            return importFromJython(moduleName);
         }
 
         if (importedModule != null) {
             return importedModule;
         } else {
-            String path = getPathFromImporterPath();
+            String path = getPathFromImporterPath(moduleName);
 
             if (path != null) {
-                importedModule = createModule(path);
+                importedModule = tryImporting(path, moduleName);
             } else {
-                path = getPathFromLibrary();
+                path = getPathFromLibrary(moduleName);
                 if (path != null) {
-                    importedModule = createModule(path);
+                    importedModule = tryImporting(path, moduleName);
                 } else {
-                    importedModule = importFromJython();
+                    importedModule = importFromJython(moduleName);
                 }
             }
         }
@@ -87,14 +84,14 @@ public class PythonModuleImporter {
         return importedModule;
     }
 
-    private PyObject importFromJython() {
+    private static PyObject importFromJython(String moduleName) {
         // CheckStyle: stop system..print check
         System.out.println("[ZipPy] importing from jython runtime " + moduleName);
         // CheckStyle: resume system..print check
         return __builtin__.__import__(moduleName);
     }
 
-    private String getPathFromImporterPath() {
+    private String getPathFromImporterPath(String moduleName) {
         String importingModulePath = context.getParser().getSource().getPath();
         String filename = moduleName + ".py";
         String path = null;
@@ -116,13 +113,13 @@ public class PythonModuleImporter {
         return null;
     }
 
-    private String getPathFromLibrary() {
+    private static String getPathFromLibrary(String moduleName) {
         if (moduleName.equals("unittest")) {
-            String casePath = PYTHONLIBRARYPATH + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
+            String casePath = PYTHON_LIB_PATH + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
             return casePath;
         }
 
-        String dirPath = PYTHONLIBRARYPATH;
+        String dirPath = PYTHON_LIB_PATH;
         String sourceName = "__init__.py";
 
         // First check for packages
@@ -156,8 +153,8 @@ public class PythonModuleImporter {
         return null;
     }
 
-    private PythonModule createModule(String path) {
-        PythonParseResult parsedModule = parseModule(path);
+    private PythonModule tryImporting(String path, String moduleName) {
+        PythonParseResult parsedModule = parseModule(path, moduleName);
 
         if (parsedModule != null) {
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot());
@@ -168,7 +165,7 @@ public class PythonModuleImporter {
         return null;
     }
 
-    private PythonParseResult parseModule(String path) {
+    private PythonParseResult parseModule(String path, String moduleName) {
         File file = new File(path);
 
         if (file.exists()) {

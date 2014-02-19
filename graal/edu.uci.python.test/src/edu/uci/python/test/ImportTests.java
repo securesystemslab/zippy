@@ -34,7 +34,7 @@ public class ImportTests {
 
     @Test
     public void scriptImportTest() {
-        Path script = Paths.get("import_test.py");
+        Path script = Paths.get("import-test.py");
         assertPrints("imported foo()\n" + "local foo()\n" + "local variable\n" + "imported variable\n", script);
     }
 
