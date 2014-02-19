@@ -68,18 +68,10 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object startsWith(PString self, String prefix) {
-            if (self.getValue().startsWith(prefix)) {
-                return true;
-            }
-
-            return false;
-        }
-
-        @Specialization
         public Object startsWith(Object self, Object prefix) {
             throw new RuntimeException("startsWith is not supported for " + self + " " + self.getClass() + " prefix " + prefix);
         }
+
     }
 
     // str.join(iterable)
@@ -133,10 +125,6 @@ public final class StringBuiltins extends PythonBuiltins {
             return self.toUpperCase();
         }
 
-        @Specialization
-        public String upper(PString self) {
-            return self.getValue().toUpperCase();
-        }
     }
 
     // static str.maketrans()
