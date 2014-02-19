@@ -71,7 +71,6 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
-        // arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
     @Override

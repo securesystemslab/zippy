@@ -32,8 +32,6 @@ import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.module.annotation.*;
 import edu.uci.python.runtime.object.*;
 
@@ -42,7 +40,6 @@ public class PythonModule extends PythonBasicObject {
     public static final String __NAME__ = "__name__";
 
     private final String name;
-    private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
     private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
 
     private final CyclicAssumption unmodifiedAssumption;
@@ -55,7 +52,7 @@ public class PythonModule extends PythonBasicObject {
         this.name = name;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
         setAttribute(__NAME__, name);
-        addBuiltinMethodsAndConstants(PythonModule.class);
+        addBuiltinConstants(PythonModule.class);
     }
 
     public PythonModule(String name, PythonContext context, PythonModule builtins) {
@@ -68,8 +65,6 @@ public class PythonModule extends PythonBasicObject {
         setAttribute("__builtins__", builtins);
 
         context.getPythonBuiltinsLookup().addModule(name, this);
-
-// addBuiltinMethodsAndConstants(PythonModule.class);
     }
 
     public PythonModule(String name, PythonModule module) {
@@ -78,7 +73,6 @@ public class PythonModule extends PythonBasicObject {
         this.context = module.context;
         this.name = name;
         setAttribute(__NAME__, name);
-        builtinMethods.addAll(module.builtinMethods);
         builtinConstants.addAll(module.builtinConstants);
     }
 
@@ -87,8 +81,8 @@ public class PythonModule extends PythonBasicObject {
         return unmodifiedAssumption.getAssumption();
     }
 
-    private void addBuiltinMethodsAndConstants(Class definingClass) {
-        findBuiltinMethodsAndConstantsByReflection(definingClass);
+    private void addBuiltinConstants(Class definingClass) {
+        findBuiltinConstantsUsingReflection(definingClass);
 
         for (AnnotatedBuiltinConstant constant : builtinConstants) {
             Object value = constant.getValue();
@@ -96,22 +90,12 @@ public class PythonModule extends PythonBasicObject {
                 setAttribute(constant.getName(), value);
             }
         }
-
-        for (AnnotatedBuiltinMethod method : builtinMethods) {
-            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
-            String methodName = method.getNames().get(0);
-            if (getAttribute(methodName) == PNone.NONE) {
-                setAttribute(methodName, function);
-            }
-        }
     }
 
-    private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {
+    private void findBuiltinConstantsUsingReflection(Class definingClass) {
         for (Field field : definingClass.getDeclaredFields()) {
             if (field.getAnnotation(BuiltinConstant.class) != null) {
                 builtinConstants.add(buildConstant(field));
-            } else if (field.getAnnotation(BuiltinMethod.class) != null) {
-                builtinMethods.add(buildMethod(field));
             }
         }
     }
@@ -122,25 +106,6 @@ public class PythonModule extends PythonBasicObject {
 
         try {
             return new AnnotatedBuiltinConstant(field.getName(), field.get(null));
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static AnnotatedBuiltinMethod buildMethod(Field field) {
-        assert Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers()) && Modifier.isFinal(field.getModifiers());
-        final BuiltinMethod methodAnnotation = field.getAnnotation(BuiltinMethod.class);
-
-        final List<String> names = new ArrayList<>();
-        if (!methodAnnotation.unmangledName().equals("")) {
-            names.add(methodAnnotation.unmangledName());
-        } else {
-            names.add(field.getName());
-        }
-        names.addAll(Arrays.asList(methodAnnotation.aliases()));
-
-        try {
-            return new AnnotatedBuiltinMethod(names, methodAnnotation.isClassMethod(), (PythonCallTarget) field.get(null));
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }

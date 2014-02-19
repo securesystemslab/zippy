@@ -37,8 +37,6 @@ public interface PythonBuiltinsLookup {
 
     PythonModule addBuiltins(PythonContext context);
 
-// void addImportedModuleToLookup(PythonContext context, String moduleName);
-
     void addModule(String moduleName, PythonModule module);
 
     PythonModule lookupModule(String name);
