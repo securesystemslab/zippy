@@ -55,9 +55,9 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
 
-        addType(PList.class, createType("list", new ListBuiltins(), context));
-        addType(PString.class, createType("str", new StringBuiltins(), context));
-        addType(PDict.class, createType("dict", new DictionaryBuiltins(), context));
+        addType(PList.class, createType("list", (PythonBuiltinClass) builtinsModule.getAttribute("list"), new ListBuiltins(), context));
+        addType(PString.class, createType("str", (PythonBuiltinClass) builtinsModule.getAttribute("str"), new StringBuiltins(), context));
+        addType(PDict.class, createType("dict", (PythonBuiltinClass) builtinsModule.getAttribute("dict"), new DictionaryBuiltins(), context));
 
         return builtinsModule;
     }
@@ -78,8 +78,8 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         return module;
     }
 
-    private static PythonBuiltinClass createType(String name, PythonBuiltins builtins, PythonContext context) {
-        PythonBuiltinClass clazz = new PythonBuiltinClass(context, context.getTypeClass(), name);
+    private static PythonBuiltinClass createType(String name, PythonBuiltinClass pristineClass, PythonBuiltins builtins, PythonContext context) {
+        PythonBuiltinClass clazz = pristineClass == null ? new PythonBuiltinClass(context, context.getTypeClass(), name) : pristineClass;
         addBuiltinsToClass(clazz, builtins, context);
         return clazz;
     }

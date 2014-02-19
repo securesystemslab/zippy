@@ -42,7 +42,7 @@ public class StringTest {
     public void staticMakeTrans() {
         String source = "t = str.maketrans('abc', '123')\n" + //
                         "print(t)\n";
-        assertPrints("", source);
+        assertPrints("{98 : 50, 99 : 51, 97 : 49}\n", source);
     }
 
     @Test
