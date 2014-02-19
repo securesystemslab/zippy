@@ -68,6 +68,15 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @Specialization
+        public Object startsWith(PString self, String prefix) {
+            if (self.getValue().startsWith(prefix)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Specialization
         public Object startsWith(Object self, Object prefix) {
             throw new RuntimeException("startsWith is not supported for " + self + " " + self.getClass() + " prefix " + prefix);
         }
@@ -125,6 +134,11 @@ public final class StringBuiltins extends PythonBuiltins {
             return self.toUpperCase();
         }
 
+        @Specialization
+        public String upper(PString self) {
+            return self.getValue().toUpperCase();
+        }
+
     }
 
     // static str.maketrans()
@@ -153,10 +167,11 @@ public final class StringBuiltins extends PythonBuiltins {
     public abstract static class TranslateNode extends PythonBuiltinNode {
 
         @Specialization(order = 0)
-        public String translate(String self, PDict table) {
-            char[] translatedChars = new char[self.length()];
-            for (int i = 0; i < self.length(); i++) {
-                char chr = self.charAt(i);
+        public String translate(PString self, PDict table) {
+            String selfs = self.getValue();
+            char[] translatedChars = new char[selfs.length()];
+            for (int i = 0; i < selfs.length(); i++) {
+                char chr = selfs.charAt(i);
                 Object value = table.getItem((int) chr);
 
                 if (value == null) {

@@ -35,7 +35,7 @@ public @interface Builtin {
 
     String name() default "";
 
-    boolean isClass() default false;
+    boolean isConstructor() default false;
 
     int fixedNumOfArguments() default -1;
 
@@ -54,4 +54,5 @@ public @interface Builtin {
     String[] keywordNames() default {};
 
     boolean requiresContext() default false;
+
 }
