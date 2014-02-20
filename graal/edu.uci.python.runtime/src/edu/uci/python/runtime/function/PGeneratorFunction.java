@@ -61,7 +61,7 @@ public final class PGeneratorFunction extends PFunction {
             assert parallelCallTarget != null;
             return makeParallelGeneratorHelper(args);
         } else {
-            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(context, getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 
@@ -75,7 +75,7 @@ public final class PGeneratorFunction extends PFunction {
 
             return generator;
         } else {
-            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(context, getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 

@@ -82,6 +82,8 @@ public class CustomConsole extends JLineConsole {
             } else {
                 PGenerator.printProfiledTime();
             }
+
+            context.printGeneratorProfilingInfo();
         }
 
         Py.flushLine();

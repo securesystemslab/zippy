@@ -196,7 +196,7 @@ public final class StringBuiltins extends PythonBuiltins {
             for (int i = 0; i < selfs.length(); i++) {
                 char original = selfs.charAt(i);
                 Object translated = table.getItem((int) original);
-                int ord = (int) (translated == null ? original : translated);
+                int ord = translated == null ? original : (int) translated;
                 translatedChars[i] = (char) ord;
             }
 
