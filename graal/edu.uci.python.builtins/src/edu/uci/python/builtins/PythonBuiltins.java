@@ -44,7 +44,6 @@ import com.oracle.truffle.api.dsl.NodeFactory;
 public abstract class PythonBuiltins {
 
     private final Map<String, PBuiltinFunction> builtinFunctions = new HashMap<>();
-
     private final Map<String, PythonBuiltinClass> builtinClasses = new HashMap<>();
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
@@ -59,7 +58,7 @@ public abstract class PythonBuiltins {
             RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context);
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
-            if (builtin.isClass()) {
+            if (builtin.isConstructor()) {
                 PythonBuiltinClass builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
                 builtinClass.setAttributeUnsafe("__init__", function);
                 setBuiltinClass(builtin.name(), builtinClass);

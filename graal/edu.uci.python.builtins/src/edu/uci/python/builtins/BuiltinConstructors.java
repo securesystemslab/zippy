@@ -49,7 +49,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // bool([x])
-    @Builtin(name = "bool", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "bool", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonBoolNode extends PythonBuiltinNode {
 
         @Specialization
@@ -77,7 +77,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // complex([real[, imag]])
-    @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isClass = true)
+    @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isConstructor = true)
     public abstract static class PythonComplexNode extends PythonBuiltinNode {
 
         @Specialization
@@ -115,7 +115,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // dict(**kwarg)
     // dict(mapping, **kwarg)
     // dict(iterable, **kwarg)
-    @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
+    @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class PythonDictionaryNode extends PythonBuiltinNode {
 
         protected static boolean emptyArgument(Object[] args) {
@@ -170,7 +170,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // enumerate(iterable, start=0)
-    @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isClass = true)
+    @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isConstructor = true)
     public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
         /**
          * TODO enumerate can take a keyword argument start, and currently that's not supported.
@@ -201,7 +201,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // float([x])
-    @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonFloatNode extends PythonBuiltinNode {
 
         @Specialization
@@ -225,7 +225,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // frozenset([iterable])
-    @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
 
         protected static boolean emptyArgument(Object arg) {
@@ -268,7 +268,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // int(x=0)
     // int(x, base=10)
-    @Builtin(name = "int", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"base"}, isClass = true)
+    @Builtin(name = "int", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"base"}, isConstructor = true)
     public abstract static class PythonIntNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -303,7 +303,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // list([iterable])
-    @Builtin(name = "list", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "list", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonListNode extends PythonBuiltinNode {
 
         @Specialization
@@ -341,7 +341,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // map(function, iterable, ...)
-    @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isClass = true)
+    @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isConstructor = true)
     public abstract static class PythonMapNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -408,7 +408,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // range(stop)
     // range(start, stop[, step])
-    @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isClass = true)
+    @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isConstructor = true)
     public abstract static class PythonRangeNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -460,7 +460,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // set([iterable])
-    @Builtin(name = "set", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "set", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonSetNode extends PythonBuiltinNode {
 
         @Specialization
@@ -495,7 +495,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // str(object='')
     // str(object=b'', encoding='utf-8', errors='strict')
-    @Builtin(name = "str", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"object, encoding, errors"}, isClass = true)
+    @Builtin(name = "str", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"object, encoding, errors"}, isConstructor = true)
     public abstract static class PythonStrNode extends PythonBuiltinNode {
 
         @Specialization
@@ -505,7 +505,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // tuple([iterable])
-    @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isClass = true)
+    @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonTupleNode extends PythonBuiltinNode {
 
         @Specialization(order = 1)
@@ -530,7 +530,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // type(object)
-    @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isClass = true)
+    @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isConstructor = true)
     public abstract static class PythonTypeNode extends PythonBuiltinNode {
 
         @Specialization
@@ -552,7 +552,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // zip(*iterables)
-    @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isClass = true)
+    @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class PythonZipNode extends PythonBuiltinNode {
 
         @Specialization

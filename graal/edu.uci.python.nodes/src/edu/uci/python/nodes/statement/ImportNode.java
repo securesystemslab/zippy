@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.importer.*;
 
 public class ImportNode extends PNode {
 
@@ -42,8 +41,7 @@ public class ImportNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonModuleImporter importer = new PythonModuleImporter(context, moduleName);
-        return importer.importModule(frame);
+        return context.getImportManager().importModule(moduleName);
     }
 
 }

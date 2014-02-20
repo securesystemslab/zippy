@@ -26,6 +26,8 @@ package edu.uci.python.builtins;
 
 import java.util.*;
 
+import edu.uci.python.builtins.module.*;
+import edu.uci.python.builtins.type.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
@@ -35,9 +37,10 @@ import edu.uci.python.runtime.standardtype.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 
-public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
+public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
     private final Map<String, PythonModule> builtinModules;
     private final Map<Class<? extends PythonBuiltinObject>, PythonBuiltinClass> builtinTypes;
@@ -47,7 +50,7 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinTypes = new HashMap<>();
     }
 
-    public PythonModule addBuiltins(PythonContext context) {
+    public PythonModule populateBuiltins(PythonContext context) {
         PythonModule builtinsModule = createModule("__builtins__", context, new BuiltinFunctions(), new BuiltinConstructors());
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("__builtins__", builtinsModule);
@@ -55,9 +58,9 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
 
-        addType(PList.class, createType("list", new ListBuiltins(), context));
-        addType(PString.class, createType("str", new StringBuiltins(), context));
-        addType(PDict.class, createType("dict", new DictionaryBuiltins(), context));
+        addType(PList.class, createType("list", context, builtinsModule, new ListBuiltins()));
+        addType(PString.class, createType("str", context, builtinsModule, new StringBuiltins()));
+        addType(PDict.class, createType("dict", context, builtinsModule, new DictionaryBuiltins()));
 
         return builtinsModule;
     }
@@ -78,8 +81,8 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         return module;
     }
 
-    private static PythonBuiltinClass createType(String name, PythonBuiltins builtins, PythonContext context) {
-        PythonBuiltinClass clazz = new PythonBuiltinClass(context, context.getTypeClass(), name);
+    private static PythonBuiltinClass createType(String name, PythonContext context, PythonModule builtinsModule, PythonBuiltins builtins) {
+        PythonBuiltinClass clazz = (PythonBuiltinClass) builtinsModule.getAttribute(name);
         addBuiltinsToClass(clazz, builtins, context);
         return clazz;
     }
@@ -125,4 +128,5 @@ public class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         PythonBuiltinClass type = builtinTypes.get(clazz);
         return type;
     }
+
 }

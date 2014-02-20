@@ -27,13 +27,11 @@ package edu.uci.python.nodes;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.statement.*;
-
 public class ModuleNode extends RootNode {
 
-    @Child BlockNode body;
+    @Child PNode body;
 
-    public ModuleNode(BlockNode body, FrameDescriptor descriptor) {
+    public ModuleNode(PNode body, FrameDescriptor descriptor) {
         super(null, descriptor);
         this.body = adoptChild(body);
     }

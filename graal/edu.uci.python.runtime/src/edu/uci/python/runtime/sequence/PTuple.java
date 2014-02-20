@@ -166,17 +166,29 @@ public final class PTuple extends PImmutableSequence {
     public String toString() {
         StringBuilder buf = new StringBuilder("(");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i]);
+            buf.append(getStringForElementAt(i));
             buf.append(", ");
         }
+
         if (array.length > 0) {
-            buf.append(array[array.length - 1]);
+            buf.append(getStringForElementAt(array.length - 1));
         }
+
         if (array.length == 1) {
             buf.append(",");
         }
+
         buf.append(")");
         return buf.toString();
+    }
+
+    private String getStringForElementAt(int index) {
+        Object element = array[index];
+        if (element instanceof String) {
+            return "'" + element + "'";
+        } else {
+            return element.toString();
+        }
     }
 
     @Override

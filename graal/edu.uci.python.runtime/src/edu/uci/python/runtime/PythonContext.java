@@ -25,7 +25,6 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
-import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.truffle.api.nodes.*;
@@ -47,10 +46,10 @@ public class PythonContext {
 
     private final SourceManager sourceManager;
     private final PythonParser parser;
+    private final ImportManager importManager;
 
     // Parallel generators
     private final ExecutorService executorService;
-    private final Map<String, Integer> generatorIterationCounts;
 
     private static PythonContext currentContext;
 
@@ -65,13 +64,19 @@ public class PythonContext {
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
         this.sourceManager = new SourceManager();
         this.parser = parser;
+        this.importManager = new ImportManager(this);
 
         // The order matters.
         currentContext = this;
 
-        this.builtinsModule = this.lookup.addBuiltins(this);
+        this.builtinsModule = this.lookup.populateBuiltins(this);
         this.executorService = Executors.newCachedThreadPool();
-        this.generatorIterationCounts = new HashMap<>();
+    }
+
+    public PythonModule createMainModule() {
+        PythonModule main = new PythonModule("__main__", this);
+        main.setAttribute("__builtins__", getBuiltins());
+        return main;
     }
 
     public PythonModule getBuiltins() {
@@ -133,6 +138,10 @@ public class PythonContext {
         return sourceManager;
     }
 
+    public ImportManager getImportManager() {
+        return importManager;
+    }
+
     public void setCurrentException(RuntimeException e) {
         currentException = e;
     }
@@ -144,17 +153,6 @@ public class PythonContext {
 
     public void submitParallelTask(Runnable task) {
         executorService.execute(task);
-    }
-
-    public void updateGeneratorIterationCount(String generatorId, int count) {
-        generatorIterationCounts.put(generatorId, count);
-    }
-
-    public int getGeneratorIterationCount(String generatorId) {
-        if (!generatorIterationCounts.containsKey(generatorId)) {
-            return -1;
-        }
-        return generatorIterationCounts.get(generatorId);
     }
 
     public void shutdown() {

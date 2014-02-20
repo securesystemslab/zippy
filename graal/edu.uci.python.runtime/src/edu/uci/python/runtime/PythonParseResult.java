@@ -28,18 +28,30 @@ import java.util.*;
 
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.runtime.standardtype.*;
+
 public class PythonParseResult {
 
-    private RootNode module;
+    private final PythonModule module;
+    private RootNode rootNode;
     private PythonContext context;
+
     private final Map<String, RootNode> functions = new HashMap<>();
 
-    public RootNode getModuleRoot() {
+    public PythonParseResult(PythonModule module) {
+        this.module = module;
+    }
+
+    public PythonModule getModule() {
         return module;
     }
 
-    public void setModule(RootNode module) {
-        this.module = module;
+    public RootNode getModuleRoot() {
+        return rootNode;
+    }
+
+    public void setModule(RootNode root) {
+        this.rootNode = root;
     }
 
     public PythonContext getContext() {
@@ -65,7 +77,7 @@ public class PythonParseResult {
     public void printAST() {
         if (PythonOptions.PrintASTFilter == null || "module".contains(PythonOptions.PrintASTFilter)) {
             printSeparationLine("module");
-            NodeUtil.printCompactTree(System.out, module);
+            NodeUtil.printCompactTree(System.out, rootNode);
         }
 
         for (String functionName : functions.keySet()) {
@@ -86,7 +98,7 @@ public class PythonParseResult {
     }
 
     public void visualizeToNetwork() {
-        new GraphPrintVisitor().beginGraph("module").visit(module).printToNetwork();
+        new GraphPrintVisitor().beginGraph("module").visit(rootNode).printToNetwork();
 
         for (String functionName : functions.keySet()) {
             RootNode root = functions.get(functionName);

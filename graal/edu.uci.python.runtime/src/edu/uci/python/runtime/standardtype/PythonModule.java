@@ -24,62 +24,23 @@
  */
 package edu.uci.python.runtime.standardtype;
 
-import java.lang.reflect.*;
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.misc.*;
-import edu.uci.python.runtime.module.annotation.*;
 import edu.uci.python.runtime.object.*;
 
 public class PythonModule extends PythonBasicObject {
 
-    public static final String __NAME__ = "__name__";
-
     private final String name;
-    private final List<AnnotatedBuiltinMethod> builtinMethods = new ArrayList<>();
-    private final List<AnnotatedBuiltinConstant> builtinConstants = new ArrayList<>();
-
     private final CyclicAssumption unmodifiedAssumption;
-
-    private PythonContext context;
 
     public PythonModule(String name, PythonContext context) {
         super(context.getModuleClass());
-        this.context = context;
         this.name = name;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
-        setAttribute(__NAME__, name);
-        addBuiltinMethodsAndConstants(PythonModule.class);
-    }
-
-    public PythonModule(String name, PythonContext context, PythonModule builtins) {
-        super(context.getModuleClass());
-        this.context = context;
-        this.name = name;
-        unmodifiedAssumption = new CyclicAssumption("unmodified");
-        setAttribute(__NAME__, name);
-
-        setAttribute("__builtins__", builtins);
-
-        context.getPythonBuiltinsLookup().addModule(name, this);
-
-// addBuiltinMethodsAndConstants(PythonModule.class);
-    }
-
-    public PythonModule(String name, PythonModule module) {
-        super(module.context.getModuleClass(), module);
-        unmodifiedAssumption = module.unmodifiedAssumption;
-        this.context = module.context;
-        this.name = name;
-        setAttribute(__NAME__, name);
-        builtinMethods.addAll(module.builtinMethods);
-        builtinConstants.addAll(module.builtinConstants);
+        addDefaultConstants(name);
     }
 
     @Override
@@ -87,63 +48,10 @@ public class PythonModule extends PythonBasicObject {
         return unmodifiedAssumption.getAssumption();
     }
 
-    private void addBuiltinMethodsAndConstants(Class definingClass) {
-        findBuiltinMethodsAndConstantsByReflection(definingClass);
-
-        for (AnnotatedBuiltinConstant constant : builtinConstants) {
-            Object value = constant.getValue();
-            if (getAttribute(constant.getName()) == PNone.NONE) {
-                setAttribute(constant.getName(), value);
-            }
-        }
-
-        for (AnnotatedBuiltinMethod method : builtinMethods) {
-            final PBuiltinFunction function = new PBuiltinFunction(method.getNames().get(0), method.getCallTarget());
-            String methodName = method.getNames().get(0);
-            if (getAttribute(methodName) == PNone.NONE) {
-                setAttribute(methodName, function);
-            }
-        }
-    }
-
-    private void findBuiltinMethodsAndConstantsByReflection(Class definingClass) {
-        for (Field field : definingClass.getDeclaredFields()) {
-            if (field.getAnnotation(BuiltinConstant.class) != null) {
-                builtinConstants.add(buildConstant(field));
-            } else if (field.getAnnotation(BuiltinMethod.class) != null) {
-                builtinMethods.add(buildMethod(field));
-            }
-        }
-    }
-
-    public static AnnotatedBuiltinConstant buildConstant(Field field) {
-        assert Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers()) && Modifier.isFinal(field.getModifiers());
-        assert field.getAnnotation(BuiltinConstant.class) != null;
-
-        try {
-            return new AnnotatedBuiltinConstant(field.getName(), field.get(null));
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static AnnotatedBuiltinMethod buildMethod(Field field) {
-        assert Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers()) && Modifier.isFinal(field.getModifiers());
-        final BuiltinMethod methodAnnotation = field.getAnnotation(BuiltinMethod.class);
-
-        final List<String> names = new ArrayList<>();
-        if (!methodAnnotation.unmangledName().equals("")) {
-            names.add(methodAnnotation.unmangledName());
-        } else {
-            names.add(field.getName());
-        }
-        names.addAll(Arrays.asList(methodAnnotation.aliases()));
-
-        try {
-            return new AnnotatedBuiltinMethod(names, methodAnnotation.isClassMethod(), (PythonCallTarget) field.get(null));
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+    private void addDefaultConstants(String moduleName) {
+        setAttribute("__name__", moduleName);
+        setAttribute("__doc__", PNone.NONE);
+        setAttribute("__package__", PNone.NONE);
     }
 
     public String getModuleName() {
@@ -159,15 +67,7 @@ public class PythonModule extends PythonBasicObject {
 
     @Override
     public String toString() {
-        return "<module '" + this.getAttribute(__NAME__) + "'>";
+        return "<module '" + this.getAttribute("__name__") + "'>";
     }
 
-    /**
-     * The default constant values of Python modules.
-     */
-    @BuiltinConstant public static final Object __name__ = PNone.NONE;
-
-    @BuiltinConstant public static final Object __doc__ = PNone.NONE;
-
-    @BuiltinConstant public static final Object __package__ = PNone.NONE;
 }

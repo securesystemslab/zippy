@@ -34,7 +34,6 @@ import static org.junit.Assert.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.shell.*;
 
 public class PythonTests {
@@ -107,21 +106,17 @@ public class PythonTests {
         assertEquals(expected, result);
     }
 
-    @SuppressWarnings("unused")
     public static PythonContext getContext() {
         PythonOptions opts = new PythonOptions();
         PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
-        new PythonModule("__main__", context, context.getBuiltins());
         return context;
     }
 
-    @SuppressWarnings("unused")
     public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(stdout);
         opts.setStandardErr(stderr);
         PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
-        new PythonModule("__main__", context, context.getBuiltins());
         return context;
     }
 
