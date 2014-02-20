@@ -3057,6 +3057,10 @@ def _copy_workingset_xml(wspath, workingSets):
         if name == 'item':
             if ps.current_ws is None:
                 target.element(name, attributes)
+            elif not attributes.has_key('elementID') and attributes.has_key('factoryID') and attributes.has_key('path') and attributes.has_key('type'):
+                target.element(name, attributes)
+                p_name = attributes['path'][1:] # strip off the leading '/'
+                ps.seen_projects.append(p_name)
             else:
                 p_name = attributes['elementID'][1:]  # strip off the leading '='
                 _workingset_element(target, p_name)
