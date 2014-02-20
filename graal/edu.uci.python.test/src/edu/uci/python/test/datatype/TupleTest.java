@@ -26,15 +26,15 @@ package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class TupleTest {
+
     @Test
     public void simple() {
-        Path script = Paths.get("tuple_test.py");
-        assertPrints("(a, 123, b, 49324324242949949) ()\n", script);
+        String source = "t = ('a', 123, 'b', 49324324242949949)\n" + //
+                        "print(t)";
+        assertPrints("('a', 123, 'b', 49324324242949949)\n", source);
     }
 
 }

@@ -66,4 +66,11 @@ public class StringTest {
         assertPrints("210\n", source);
     }
 
+    @Test
+    public void stringToTuple() {
+        String source = "s = \"0123456789\"\n" + //
+                        "print(tuple(s))\n";
+        assertPrints("('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')\n", source);
+    }
+
 }
