@@ -754,7 +754,7 @@ project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
 # python.runtime
 project@edu.uci.python.runtime@subDir=graal
 project@edu.uci.python.runtime@sourceDirs=src
-project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,edu.uci.python.profiler,JYTHON, DISRUPTOR
 project@edu.uci.python.runtime@javaCompliance=1.7
 project@edu.uci.python.runtime@workingSets=Truffle,Python
 

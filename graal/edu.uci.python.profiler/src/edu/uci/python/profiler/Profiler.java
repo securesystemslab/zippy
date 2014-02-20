@@ -13,12 +13,12 @@ public class Profiler {
         invocationCounts = new HashMap<>();
     }
 
-    public void increment(String callable) {
-        if (invocationCounts.containsKey(callable)) {
-            long counter = invocationCounts.get(callable);
-            invocationCounts.put(callable, counter + 1);
+    public void increment(String callableName) {
+        if (invocationCounts.containsKey(callableName)) {
+            long counter = invocationCounts.get(callableName);
+            invocationCounts.put(callableName, counter + 1);
         } else {
-            invocationCounts.put(callable, 1L);
+            invocationCounts.put(callableName, 1L);
         }
     }
 

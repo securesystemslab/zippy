@@ -65,9 +65,7 @@ public class PythonOptions {
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
 
-    public static final boolean ProfileGeneratorCalls = false;
-
-    public static final boolean ProfileFunctionCalls = true;
+    public static final boolean ProfileGeneratorCalls = true;
 
     static {
         if (ParallelizeGeneratorCalls) {
@@ -76,6 +74,9 @@ public class PythonOptions {
             UseSimpleGeneratorInlining = false;
         }
     }
+
+    // Profiling
+    public static final boolean ProfileFunctionCalls = true;
 
     private PrintStream standardOut = System.out;
 

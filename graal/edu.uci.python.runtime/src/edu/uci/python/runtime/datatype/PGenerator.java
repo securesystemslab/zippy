@@ -33,6 +33,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.profiler.*;
 
 public class PGenerator implements PIterator {
 
@@ -74,6 +75,7 @@ public class PGenerator implements PIterator {
             long start = System.nanoTime();
             Object result = callTarget.call(null, arguments);
             profiledTime += System.nanoTime() - start;
+            Profiler.getInstance().increment(name);
             return result;
         } else {
             return callTarget.call(null, arguments);
