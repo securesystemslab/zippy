@@ -164,9 +164,13 @@ public class PythonContext {
 
     public void printGeneratorProfilingInfo() {
         PrintStream ps = System.out;
+        ps.println("--------------- generator profiling info ---------------");
         for (String id : generatorProfilingInfo.keySet()) {
             long[] times = generatorProfilingInfo.get(id);
-            ps.print(id + times[0] + times[1]);
+            double innerTime = (double) times[0] / 1000000000;
+            double outerTime = (double) times[1] / 1000000000;
+            ps.printf("%25s : ", id);
+            ps.printf("inner time: %f10, outer time: %f10, in/out: %f6 \n", innerTime, outerTime, innerTime / outerTime);
         }
     }
 

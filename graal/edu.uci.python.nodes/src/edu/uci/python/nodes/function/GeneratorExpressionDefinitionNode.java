@@ -113,7 +113,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
-        return PGenerator.create(context, "generator expr", callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return PGenerator.create(context, "generator expr" + hashCode(), callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
