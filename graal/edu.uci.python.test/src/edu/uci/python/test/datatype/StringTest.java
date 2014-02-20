@@ -59,4 +59,11 @@ public class StringTest {
         assertPrints("97\n", source);
     }
 
+    @Test
+    public void join() {
+        String source = "s = set(str(i) for i in range(3))\n" + //
+                        "print(''.join(s))\n";
+        assertPrints("210\n", source);
+    }
+
 }

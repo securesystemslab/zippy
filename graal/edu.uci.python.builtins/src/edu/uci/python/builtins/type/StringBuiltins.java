@@ -88,40 +88,63 @@ public final class StringBuiltins extends PythonBuiltins {
     public abstract static class PythonStringJoinNode extends PythonBuiltinNode {
 
         @Specialization
-        public String join(Object self, Object arg) {
+        public String join(Object self, String arg) {
             StringBuilder sb = new StringBuilder();
+            char[] joinString = arg.toCharArray();
 
-            if (arg instanceof String) {
-                char[] joinString = ((String) arg).toCharArray();
-                for (int i = 0; i < joinString.length - 1; i++) {
-                    sb.append(Character.toString(joinString[i]));
-                    sb.append(self.toString());
-                }
-
-                sb.append(Character.toString(joinString[joinString.length - 1]));
-                return sb.toString();
-            } else if (arg instanceof PSequence) {
-                PSequence seq = ((PSequence) arg);
-
-                for (int i = 0; i < seq.len() - 1; i++) {
-                    sb.append(seq.getItem(i).toString());
-                    sb.append(self.toString());
-                }
-
-                sb.append(seq.getItem(seq.len() - 1));
-                return sb.toString();
-            } else if (arg instanceof PCharArray) {
-                char[] stringList = ((PCharArray) arg).getSequence();
-                for (int i = 0; i < stringList.length - 1; i++) {
-                    sb.append(Character.toString(stringList[i]));
-                    sb.append((String) self);
-                }
-
-                sb.append(Character.toString(stringList[stringList.length - 1]));
-                return sb.toString();
-            } else {
-                throw new RuntimeException("invalid arguments type for join()");
+            for (int i = 0; i < joinString.length - 1; i++) {
+                sb.append(Character.toString(joinString[i]));
+                sb.append(self.toString());
             }
+
+            sb.append(Character.toString(joinString[joinString.length - 1]));
+            return sb.toString();
+        }
+
+        @Specialization
+        public String join(Object self, PSequence arg) {
+            StringBuilder sb = new StringBuilder();
+            PSequence seq = (arg);
+
+            for (int i = 0; i < seq.len() - 1; i++) {
+                sb.append(seq.getItem(i).toString());
+                sb.append(self.toString());
+            }
+
+            sb.append(seq.getItem(seq.len() - 1));
+            return sb.toString();
+        }
+
+        @Specialization
+        public String join(Object self, PCharArray arg) {
+            StringBuilder sb = new StringBuilder();
+            char[] stringList = arg.getSequence();
+            for (int i = 0; i < stringList.length - 1; i++) {
+                sb.append(Character.toString(stringList[i]));
+                sb.append((String) self);
+            }
+
+            sb.append(Character.toString(stringList[stringList.length - 1]));
+            return sb.toString();
+        }
+
+        @Specialization
+        public String join(Object self, PSet arg) {
+            StringBuilder sb = new StringBuilder();
+            Object[] joinString = arg.getSet().toArray();
+            for (int i = 0; i < joinString.length - 1; i++) {
+                sb.append(joinString[i]);
+                sb.append(self);
+            }
+
+            sb.append(joinString[joinString.length - 1]);
+            return sb.toString();
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public String join(Object self, Object arg) {
+            throw new RuntimeException("invalid arguments type for join()");
         }
     }
 
