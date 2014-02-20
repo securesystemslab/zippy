@@ -48,9 +48,9 @@ public class StringTest {
     @Test
     public void translate() {
         String source = "table = {98 : 50, 99 : 51, 97 : 49}\n" + //
-                        "s = 'cba'\n" + //
+                        "s = 'c b a'\n" + //
                         "print(s.translate(table))\n";
-        assertPrints("321\n", source);
+        assertPrints("3 2 1\n", source);
     }
 
     @Test
