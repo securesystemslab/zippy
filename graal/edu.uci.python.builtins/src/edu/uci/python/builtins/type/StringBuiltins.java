@@ -129,6 +129,10 @@ public final class StringBuiltins extends PythonBuiltins {
 
         @Specialization
         public String join(Object self, PSet arg) {
+            if (arg.len() == 0) {
+                return self.toString();
+            }
+
             StringBuilder sb = new StringBuilder();
             Object[] joinString = arg.getSet().toArray();
             for (int i = 0; i < joinString.length - 1; i++) {

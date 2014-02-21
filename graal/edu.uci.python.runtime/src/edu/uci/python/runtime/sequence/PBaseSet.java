@@ -256,17 +256,22 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder().append("({");
+        if (set.size() == 0) {
+            return "set()";
+        }
+
+        StringBuilder buf = new StringBuilder().append("{");
 
         for (Iterator<Object> i = set.iterator(); i.hasNext();) {
-            buf.append((i.next()).toString());
+            String str = PSequence.toString(i.next());
+            buf.append(str);
 
             if (i.hasNext()) {
                 buf.append(", ");
             }
         }
 
-        buf.append("})");
+        buf.append("}");
         return buf.toString();
     }
 

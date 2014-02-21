@@ -90,7 +90,6 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
     public boolean inline(FrameFactory factory) {
         CompilerAsserts.neverPartOfCompilation();
-
         assert this.getParent() != null;
         PNode parent = (PNode) getParent();
         assert parent.getParent() != null;

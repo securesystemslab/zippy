@@ -50,10 +50,14 @@ def alphametics(s):
     9567 + 1085 == 10652
     """
     words = re.findall("[A-Za-z]+", s)
+    #print('words', words)
     chars = set("".join(words))         # Characters to be substituted.
     assert len(chars) <= 10             # There are only ten possible digits.
+    #print('chars', chars)
     firsts = set(w[0] for w in words)   # First letters of each of word.
+    #print('firsts', firsts, 'chars - first', chars - firsts)
     chars = "".join(firsts) + "".join(chars - firsts)
+    #print('chars', chars)
     n = len(firsts)                     # chars[:n] cannot be assigned zero.
     for perm in permutations("0123456789", len(chars)):
         if "0" not in perm[:n]:
@@ -62,24 +66,24 @@ def alphametics(s):
             if eval(equation):
                 yield equation
 
-def main():
+def main(equation):
     # This is a fairly simple equation. More interesting ones like
     # SEND + MORE = MONEY take forever to solve, though.
     ## equation = "SEND + MORE == MONEY"
     ## equation = "CROSS + ROADS == DANGER"
     ## equation = "EED + BE == CCCC"
-    equation = "SIX + SIX + SIX == NINE + NINE"
-    return list(alphametics(equation))
-
-# if __name__ == "__main__":
-#     test_alphametics()
+    #equation = "SIX + SIX + SIX == NINE + NINE"
+    return [i for i in alphametics(equation)]
 
 def measure():
-    # queen_count = int(sys.argv[1])
     print("Start timing...")
     start = time.time()
-    print(main())
+    equation = "SIX + SIX + SIX == NINE + NINE"
+    print(main(equation))
     duration = "%.3f\n" % (time.time() - start)
     print("bm-alphametics: " + duration)
+
+for i in range(1000):
+    main("EE + BB")
 
 measure()

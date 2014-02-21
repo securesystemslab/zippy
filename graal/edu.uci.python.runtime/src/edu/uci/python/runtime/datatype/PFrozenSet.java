@@ -79,7 +79,7 @@ public class PFrozenSet extends PBaseSet {
 
     @Override
     public String toString() {
-        return "frozenset" + super.toString();
+        return "frozenset(" + super.toString() + ")";
     }
 
 }
