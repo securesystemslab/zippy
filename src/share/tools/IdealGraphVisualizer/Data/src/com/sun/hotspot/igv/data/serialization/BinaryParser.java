@@ -551,7 +551,7 @@ public class BinaryParser implements GraphParser {
                         throw new IOException("Unknown type");
                 }
             case PROPERTY_SUBGRAPH:
-                InputGraph graph = parseGraph(null);
+                InputGraph graph = parseGraph("");
                 new Group(null).addElement(graph);
                 return graph;
             default:
