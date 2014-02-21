@@ -47,7 +47,7 @@ public class SetLiteralNode extends LiteralNode {
     @ExplodeLoop
     @Override
     public PSet executePSet(VirtualFrame frame) {
-        Set<Object> elements = new HashSet<>();
+        final Set<Object> elements = new HashSet<>();
 
         for (PNode v : this.values) {
             elements.add(v.execute(frame));
@@ -65,4 +65,5 @@ public class SetLiteralNode extends LiteralNode {
     public String toString() {
         return "list";
     }
+
 }
