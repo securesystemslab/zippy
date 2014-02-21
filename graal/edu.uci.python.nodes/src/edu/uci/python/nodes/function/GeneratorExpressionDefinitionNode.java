@@ -38,6 +38,7 @@ import edu.uci.python.runtime.function.*;
 public class GeneratorExpressionDefinitionNode extends PNode {
 
     protected final PythonContext context;
+    private final String genexpId;
     private final CallTarget callTarget;
     private final CallTarget parallelCallTarget;
     private final FrameDescriptor frameDescriptor;
@@ -52,6 +53,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     public GeneratorExpressionDefinitionNode(PythonContext context, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.context = context;
+        this.genexpId = "generator expr" + hashCode();
         this.callTarget = callTarget;
         this.parallelCallTarget = parallelCallTarget;
         this.frameDescriptor = descriptor;
@@ -113,7 +115,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
-        return PGenerator.create(context, "generator expr" + hashCode(), callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return PGenerator.create(context, genexpId, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
