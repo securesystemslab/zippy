@@ -51,7 +51,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionDefinitionNode(PythonContext context, String name, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
+    public GeneratorExpressionDefinitionNode(String name, PythonContext context, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.name = name;
         this.context = context;
@@ -120,13 +120,13 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
-        return PGenerator.create(context, name, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return PGenerator.create(name, context, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
 
         public CallableGeneratorExpressionDefinition(GeneratorExpressionDefinitionNode prev) {
-            super(prev.context, prev.getName(), prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
+            super(prev.name, prev.context, prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
         }
 
         @Override
@@ -136,7 +136,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
         @Override
         public Object call(PackedFrame caller, Object[] args) {
-            return PGenerator.create(context, getName(), getCallTarget(), getFrameDescriptor(), null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
+            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
         }
 
         @Override

@@ -45,7 +45,7 @@ public class PGenerator implements PIterator {
     // Profiling
     private static long profiledTime;
 
-    public static PGenerator create(PythonContext context, String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
+    public static PGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         if (PythonOptions.ProfileGeneratorCalls) {
             resetProfiledTime();

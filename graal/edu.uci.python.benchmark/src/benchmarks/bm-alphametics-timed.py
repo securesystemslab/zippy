@@ -9,13 +9,11 @@ bm_ai.py runs the following little solvers:
 
 # Wanted by the alphametics solver.
 
-
 __author__ = "collinwinter@google.com (Collin Winter)"
 
 # Python imports
 import re
 import time
-
 
 # Pure-Python implementation of itertools.permutations().
 def permutations(iterable, r=None):
@@ -50,14 +48,10 @@ def alphametics(s):
     9567 + 1085 == 10652
     """
     words = re.findall("[A-Za-z]+", s)
-    #print('words', words)
     chars = set("".join(words))         # Characters to be substituted.
     assert len(chars) <= 10             # There are only ten possible digits.
-    #print('chars', chars)
     firsts = set(w[0] for w in words)   # First letters of each of word.
-    #print('firsts', firsts, 'chars - first', chars - firsts)
     chars = "".join(firsts) + "".join(chars - firsts)
-    #print('chars', chars)
     n = len(firsts)                     # chars[:n] cannot be assigned zero.
     for perm in permutations("0123456789", len(chars)):
         if "0" not in perm[:n]:
@@ -83,7 +77,7 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("bm-alphametics: " + duration)
 
-for i in range(1000):
-    main("EE + BB")
+for i in range(700):
+    main("SI + SI + SI == NIN + NIN")
 
 measure()

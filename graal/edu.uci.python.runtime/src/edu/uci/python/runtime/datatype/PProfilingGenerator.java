@@ -27,6 +27,7 @@ package edu.uci.python.runtime.datatype;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -48,6 +49,7 @@ public class PProfilingGenerator extends PGenerator {
 
     @Override
     public Object __next__() throws StopIterationException {
+        Profiler.getInstance().increment(name);
         iterationStart = System.nanoTime();
         outerTime += iterationEnd == 0 ? 0 : iterationStart - iterationEnd;
 
