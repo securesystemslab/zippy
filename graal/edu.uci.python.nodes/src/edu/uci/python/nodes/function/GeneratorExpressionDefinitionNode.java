@@ -31,6 +31,7 @@ import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
@@ -38,6 +39,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
     // name = "generator_exp:" + line number of the generator;
     private final String name;
+    protected final PythonContext context;
     private final CallTarget callTarget;
     private final CallTarget parallelCallTarget;
     private final FrameDescriptor frameDescriptor;
@@ -49,9 +51,10 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionDefinitionNode(String name, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
+    public GeneratorExpressionDefinitionNode(PythonContext context, String name, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
+                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.name = name;
+        this.context = context;
         this.callTarget = callTarget;
         this.parallelCallTarget = parallelCallTarget;
         this.frameDescriptor = descriptor;
@@ -117,15 +120,13 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
-        return PGenerator.create(name, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
-        // return PGenerator.create("generator expr", callTarget, frameDescriptor, declarationFrame,
-// null, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return PGenerator.create(context, name, callTarget, frameDescriptor, declarationFrame, null, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
 
         public CallableGeneratorExpressionDefinition(GeneratorExpressionDefinitionNode prev) {
-            super(prev.getName(), prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
+            super(prev.context, prev.getName(), prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
         }
 
         @Override
@@ -135,9 +136,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
 
         @Override
         public Object call(PackedFrame caller, Object[] args) {
-            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
-            // return PGenerator.create("generator expr", getCallTarget(), getFrameDescriptor(),
-// null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
+            return PGenerator.create(context, getName(), getCallTarget(), getFrameDescriptor(), null, args, getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
         }
 
         @Override

@@ -37,7 +37,7 @@ import edu.uci.python.profiler.*;
 
 public class PGenerator implements PIterator {
 
-    private final String name;
+    protected final String name;
     protected final CallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final PArguments arguments;
@@ -45,8 +45,8 @@ public class PGenerator implements PIterator {
     // Profiling
     private static long profiledTime;
 
-    public static PGenerator create(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfGeneratorBlockNode,
-                    int numOfGeneratorForNode) {
+    public static PGenerator create(PythonContext context, String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
+                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         if (PythonOptions.ProfileGeneratorCalls) {
             resetProfiledTime();
         }
@@ -55,7 +55,12 @@ public class PGenerator implements PIterator {
          */
         MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENT, frameDescriptor);
         PArguments generatorArgs = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments, numOfGeneratorBlockNode, numOfGeneratorForNode);
-        return new PGenerator(name, callTarget, frameDescriptor, generatorArgs);
+
+        if (PythonOptions.ProfileGeneratorCalls) {
+            return new PProfilingGenerator(name, callTarget, frameDescriptor, generatorArgs, context);
+        } else {
+            return new PGenerator(name, callTarget, frameDescriptor, generatorArgs);
+        }
     }
 
     public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments) {

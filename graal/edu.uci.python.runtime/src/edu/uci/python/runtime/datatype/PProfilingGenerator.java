@@ -22,48 +22,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.literal;
+package edu.uci.python.runtime.datatype;
 
-import java.util.*;
-
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class SetLiteralNode extends LiteralNode {
+public class PProfilingGenerator extends PGenerator {
 
-    @Children protected final PNode[] values;
+    private final PythonContext context;
 
-    public SetLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+    private long innerTime;
+    private long outerTime;
+
+    private long iterationStart;
+    private long iterationEnd;
+
+    public PProfilingGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, PythonContext context) {
+        super(name, callTarget, frameDescriptor, arguments);
+        this.context = context;
     }
 
-    protected SetLiteralNode(SetLiteralNode node) {
-        this(node.values);
-    }
-
-    @ExplodeLoop
     @Override
-    public PSet executePSet(VirtualFrame frame) {
-        final Set<Object> elements = new HashSet<>();
+    public Object __next__() throws StopIterationException {
+        iterationStart = System.nanoTime();
+        outerTime += iterationEnd == 0 ? 0 : iterationStart - iterationEnd;
 
-        for (PNode v : this.values) {
-            elements.add(v.execute(frame));
+        try {
+            Object result = callTarget.call(null, arguments);
+
+            iterationEnd = System.nanoTime();
+            innerTime += iterationEnd - iterationStart;
+
+            return result;
+        } catch (StopIterationException e) {
+            iterationEnd = System.nanoTime();
+            innerTime += iterationEnd - iterationStart;
+            reportProfilingInfo();
+            throw e;
         }
-
-        return new PSet(elements);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return executePSet(frame);
-    }
-
-    @Override
-    public String toString() {
-        return "list";
+    private void reportProfilingInfo() {
+        context.registerGeneratorProfilingInfo(name, innerTime, outerTime);
     }
 
 }

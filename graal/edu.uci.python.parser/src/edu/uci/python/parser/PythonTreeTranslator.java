@@ -253,13 +253,10 @@ public class PythonTreeTranslator extends Visitor {
     private GeneratorExpressionDefinitionNode createGeneratorExpressionDefinition(StatementNode body, int lineNum) {
         FrameDescriptor fd = environment.getCurrentFrame();
         String generatorName = "generator_exp:" + lineNum;
-        // FunctionRootNode funcRoot = factory.createFunctionRoot(context, "generator_exp", fd,
-// body);
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, fd, body);
-        // result.addParsedFunction("generator_exp", funcRoot);
         result.addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-        return new GeneratorExpressionDefinitionNode(generatorName, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(),
+        return new GeneratorExpressionDefinitionNode(context, generatorName, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(),
                         gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
     }
 

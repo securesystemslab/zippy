@@ -83,6 +83,8 @@ public class CustomConsole extends JLineConsole {
             } else {
                 PGenerator.printProfiledTime();
             }
+
+            context.printGeneratorProfilingInfo();
         }
 
         if (PythonOptions.ProfileFunctionCalls) {

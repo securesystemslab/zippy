@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.truffle.api.nodes.*;
@@ -50,6 +51,7 @@ public class PythonContext {
 
     // Parallel generators
     private final ExecutorService executorService;
+    private final Map<String, long[]> generatorProfilingInfo;
 
     private static PythonContext currentContext;
 
@@ -71,6 +73,7 @@ public class PythonContext {
 
         this.builtinsModule = this.lookup.populateBuiltins(this);
         this.executorService = Executors.newCachedThreadPool();
+        this.generatorProfilingInfo = new HashMap<>();
     }
 
     public PythonModule createMainModule() {
@@ -153,6 +156,22 @@ public class PythonContext {
 
     public void submitParallelTask(Runnable task) {
         executorService.execute(task);
+    }
+
+    public void registerGeneratorProfilingInfo(String generatorId, long innerTime, long outerTime) {
+        generatorProfilingInfo.put(generatorId, new long[]{innerTime, outerTime});
+    }
+
+    public void printGeneratorProfilingInfo() {
+        PrintStream ps = System.out;
+        ps.println("--------------- generator profiling info ---------------");
+        for (String id : generatorProfilingInfo.keySet()) {
+            long[] times = generatorProfilingInfo.get(id);
+            double innerTime = (double) times[0] / 1000000000;
+            double outerTime = (double) times[1] / 1000000000;
+            ps.printf("%25s : ", id);
+            ps.printf("inner time: %f10, outer time: %f10, in/out: %f6 \n", innerTime, outerTime, innerTime / outerTime);
+        }
     }
 
     public void shutdown() {

@@ -55,4 +55,12 @@ public abstract class PSequence extends PythonBuiltinObject implements PIterable
 
     public abstract boolean lessThan(PSequence sequence);
 
+    public static String toString(Object item) {
+        if (item instanceof String) {
+            return "'" + item.toString() + "'";
+        } else {
+            return item.toString();
+        }
+    }
+
 }

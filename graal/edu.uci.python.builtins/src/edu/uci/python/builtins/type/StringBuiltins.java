@@ -80,7 +80,6 @@ public final class StringBuiltins extends PythonBuiltins {
         public Object startsWith(Object self, Object prefix) {
             throw new RuntimeException("startsWith is not supported for " + self + " " + self.getClass() + " prefix " + prefix);
         }
-
     }
 
     // str.join(iterable)
@@ -130,6 +129,10 @@ public final class StringBuiltins extends PythonBuiltins {
 
         @Specialization
         public String join(Object self, PSet arg) {
+            if (arg.len() == 0) {
+                return self.toString();
+            }
+
             StringBuilder sb = new StringBuilder();
             Object[] joinString = arg.getSet().toArray();
             for (int i = 0; i < joinString.length - 1; i++) {
@@ -193,15 +196,11 @@ public final class StringBuiltins extends PythonBuiltins {
         public String translate(PString self, PDict table) {
             String selfs = self.getValue();
             char[] translatedChars = new char[selfs.length()];
+
             for (int i = 0; i < selfs.length(); i++) {
-                char chr = selfs.charAt(i);
-                Object value = table.getItem((int) chr);
-
-                if (value == null) {
-                    continue;
-                }
-
-                int ord = (int) value;
+                char original = selfs.charAt(i);
+                Object translated = table.getItem((int) original);
+                int ord = translated == null ? original : (int) translated;
                 translatedChars[i] = (char) ord;
             }
 

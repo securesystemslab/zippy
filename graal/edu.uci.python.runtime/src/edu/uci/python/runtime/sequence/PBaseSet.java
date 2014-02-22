@@ -44,10 +44,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
     }
 
     public PBaseSet(Set<Object> elements) {
-        this();
-        for (Object element : elements) {
-            this.set.add(element);
-        }
+        this.set = elements;
     }
 
     public PBaseSet(PIterator iter) {
@@ -256,17 +253,22 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder().append("({");
+        if (set.size() == 0) {
+            return "set()";
+        }
+
+        StringBuilder buf = new StringBuilder().append("{");
 
         for (Iterator<Object> i = set.iterator(); i.hasNext();) {
-            buf.append((i.next()).toString());
+            String str = PSequence.toString(i.next());
+            buf.append(str);
 
             if (i.hasNext()) {
                 buf.append(", ");
             }
         }
 
-        buf.append("})");
+        buf.append("}");
         return buf.toString();
     }
 
