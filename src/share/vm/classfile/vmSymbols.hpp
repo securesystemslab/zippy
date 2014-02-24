@@ -308,8 +308,6 @@
   template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotNmethod,             "com/oracle/graal/hotspot/meta/HotSpotNmethod")                  \
   template(com_oracle_graal_hotspot_meta_HotSpotJavaType,            "com/oracle/graal/hotspot/meta/HotSpotJavaType")                 \
-  template(com_oracle_graal_hotspot_meta_HotSpotMethodData,          "com/oracle/graal/hotspot/meta/HotSpotMethodData")               \
-  template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \

@@ -259,11 +259,6 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
   }
 }
 
-Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
-  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NH);
-  return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
-}
-
 BasicType GraalCompiler::kindToBasicType(jchar ch) {
   switch(ch) {
     case 'z': return T_BOOLEAN;

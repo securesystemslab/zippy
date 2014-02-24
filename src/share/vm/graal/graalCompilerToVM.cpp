@@ -352,7 +352,8 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
   }
 
   Handle type = GraalCompiler::get_JavaTypeFromSignature(signature, cp->pool_holder(), CHECK_NULL);
-  Handle field_handle = GraalCompiler::get_JavaField(offset, flags.as_int(), name, holder, type, THREAD);
+  Handle java_name = java_lang_String::create_from_symbol(name, CHECK_NULL);
+  Handle field_handle = VMToCompiler::createJavaField(holder, java_name, type, offset, flags.as_int(), false, CHECK_NULL);
 
   return JNIHandles::make_local(THREAD, field_handle());
 C2V_END
@@ -377,29 +378,6 @@ C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return Dependencies::find_finalizable_subclass(klass) != NULL;
-C2V_END
-
-C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
-  ResourceMark rm;
-
-  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass));
-  GrowableArray<Handle> fields(k->java_fields_count());
-
-  for (AllFieldStream fs(k()); !fs.done(); fs.next()) {
-    if (!fs.access_flags().is_static()) {
-      Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, THREAD);
-      int flags = fs.access_flags().as_int();
-      bool internal = fs.access_flags().is_internal();
-      Handle name = java_lang_String::create_from_symbol(fs.name(), THREAD);
-      Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, THREAD);
-      fields.append(field());
-    }
-  }
-  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::HotSpotResolvedJavaField_klass(), fields.length(), CHECK_NULL);
-  for (int i = 0; i < fields.length(); ++i) {
-    field_array->obj_at_put(i, fields.at(i)());
-  }
-  return JNIHandles::make_local(THREAD, field_array());
 C2V_END
 
 C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jobject klass))
@@ -869,7 +847,6 @@ C2V_END
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
-#define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
@@ -898,7 +875,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
   {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
-  {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
