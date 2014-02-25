@@ -441,34 +441,21 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization(order = 2)
         public Object issubclass(PythonClass clazz, PythonClass clazzinfo) {
-            if (clazz.getClass().equals(clazzinfo)) {
+            /**
+             * TODO How do you check two classes are equal? Name comparison can't be true all the
+             * time.
+             */
+            if (clazz.getClassName().equals(clazzinfo.getClassName())) {
                 return true;
             } else {
-                if (clazz.getSuperClass().equals(clazzinfo) || clazz.getSuperClass() == clazzinfo) {
-                    return true;
-
+                PythonClass superClass = clazz.getSuperClass();
+                while (superClass != null) {
+                    if (superClass.getClassName().equals(clazzinfo.getClassName())) {
+                        return true;
+                    }
+                    superClass = superClass.getSuperClass();
                 }
-// while (superClass != null) {
-// superClass = superClass.getSuperClass();
-// if (superClass != null) {
-//
-// if (superClass.equals(clazzinfo)) {
-// return true;
-// } else {
-// }
-// }
-// }
             }
-
-// Set<PythonClass> subClasses = clazzinfo.getSubClasses();
-//
-// Iterator<PythonClass> iter = subClasses.iterator();
-// while (iter.hasNext()) {
-// PythonClass subClass = iter.next();
-// if (subClass.equals(clazz)) {
-// return true;
-// }
-// }
 
             return false;
         }
