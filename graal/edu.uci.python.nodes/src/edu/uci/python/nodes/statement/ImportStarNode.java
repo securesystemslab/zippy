@@ -82,7 +82,8 @@ public class ImportStarNode extends PNode {
             names = importedModule.__dir__();
         }
 
-        PythonModule mainModule = context.getPythonBuiltinsLookup().lookupModule("__main__");
+        // PythonModule mainModule = context.getPythonBuiltinsLookup().lookupModule("__main__");
+        PythonModule mainModule = context.getMainModule();
 
         for (int i = 0; i < names.__len__(); i++) {
             PyString name = (PyString) names.__getitem__(i);
@@ -92,5 +93,4 @@ public class ImportStarNode extends PNode {
 
         return null;
     }
-
 }

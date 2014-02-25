@@ -35,6 +35,7 @@ import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -420,6 +421,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 PythonBasicObject basicObject = (PythonBasicObject) object;
                 PythonClass pythonClass = (PythonClass) clazz;
                 return isInstanceofPythonClass(basicObject, pythonClass);
+            } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {
+                return false;
             }
 
             throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
@@ -438,14 +441,34 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization(order = 2)
         public Object issubclass(PythonClass clazz, PythonClass clazzinfo) {
-            Set<PythonClass> subClasses = clazzinfo.getSubClasses();
-            Iterator<PythonClass> iter = subClasses.iterator();
-            while (iter.hasNext()) {
-                PythonClass subClass = iter.next();
-                if (subClass.equals(clazz)) {
+            if (clazz.getClass().equals(clazzinfo)) {
+                return true;
+            } else {
+                if (clazz.getSuperClass().equals(clazzinfo) || clazz.getSuperClass() == clazzinfo) {
                     return true;
+
                 }
+// while (superClass != null) {
+// superClass = superClass.getSuperClass();
+// if (superClass != null) {
+//
+// if (superClass.equals(clazzinfo)) {
+// return true;
+// } else {
+// }
+// }
+// }
             }
+
+// Set<PythonClass> subClasses = clazzinfo.getSubClasses();
+//
+// Iterator<PythonClass> iter = subClasses.iterator();
+// while (iter.hasNext()) {
+// PythonClass subClass = iter.next();
+// if (subClass.equals(clazz)) {
+// return true;
+// }
+// }
 
             return false;
         }
@@ -831,10 +854,15 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public Object __import__(String name) {
-            Object importedModule = getContext().getPythonBuiltinsLookup().lookupModule(name);
-            return importedModule;
+            // Object importedModule = getContext().getPythonBuiltinsLookup().lookupModule(name);
+            if (name.equals("__main__")) {
+                Object importedModule = getContext().getMainModule();
+                return importedModule;
+            } else {
+                Object importedModule = getContext().getPythonBuiltinsLookup().lookupModule(name);
+                return importedModule;
+            }
         }
-
     }
 
     @SlowPath

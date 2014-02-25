@@ -541,7 +541,9 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @Specialization
         @SuppressWarnings("unused")
         public Object type(int value) {
-            return getContext().getPythonBuiltinsLookup().lookupModule("__main__").getAttribute("int");
+            // return
+// getContext().getPythonBuiltinsLookup().lookupModule("__main__").getAttribute("int");
+            return getContext().getBuiltins().getAttribute("int");
         }
 
         @Specialization
