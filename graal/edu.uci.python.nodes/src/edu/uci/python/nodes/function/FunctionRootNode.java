@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.exception.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -82,7 +83,10 @@ public final class FunctionRootNode extends RootNode {
             try {
                 return body.execute(frame);
             } catch (Exception e) {
-                return ZippyThrowsExceptionNode.MESSAGE;
+                if (e != StopIterationException.INSTANCE) {
+                    return ZippyThrowsExceptionNode.MESSAGE;
+                }
+                return e;
             }
         } else {
             return body.execute(frame);

@@ -142,13 +142,9 @@ public class PythonTreeTranslator extends Visitor {
             try {
                 return visitFunctionDefinition(node);
             } catch (Exception e) {
-                if (e instanceof NotCovered) {
-                    environment.endScope(node);
-                    ZippyThrowsExceptionNode t = ZippyThrowsExceptionNode.getInstance();
-                    return environment.findVariable(name).makeWriteNode(t);
-                }
-
-                return e;
+                environment.endScope(node);
+                ZippyThrowsExceptionNode t = ZippyThrowsExceptionNode.getInstance();
+                return environment.findVariable(name).makeWriteNode(t);
             }
         } else {
             return visitFunctionDefinition(node);

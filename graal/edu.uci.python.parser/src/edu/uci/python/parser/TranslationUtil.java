@@ -111,7 +111,7 @@ public class TranslationUtil {
         throw new NotCovered(message);
     }
 
-    public static class NotCovered extends RuntimeException {
+    private static class NotCovered extends RuntimeException {
 
         private static final long serialVersionUID = 2485134940559018951L;
 
