@@ -173,9 +173,6 @@ public class ImportManager {
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
             PythonModule importedModule = new PythonModule(moduleName, context);
-            // CheckStyle: stop system..print check
-            System.out.println("[ZipPy] parsing module " + path);
-            // CheckStyle: resume system..print check
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompilerFlags.getCompilerFlags());
 
             if (parsedModule != null) {

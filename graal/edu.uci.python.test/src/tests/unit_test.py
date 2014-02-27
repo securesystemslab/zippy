@@ -13,13 +13,13 @@ class ArihtmeticTests(unittest.TestCase):
 
 
 class ComparisonTests(unittest.TestCase):
-
+ 
     def testLessThan(self):
         self.assertTrue(3 < 4, "3 < 4 is not true")
-    
+     
     def testGreaterThan(self):
         self.assertTrue(4 > 3, "4 > 3 is not true")
-        
+         
     def testGreaterThanOrEqual(self):
         self.assertTrue(3 >= 4, "3 >= 4 is not true")
 

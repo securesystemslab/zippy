@@ -372,7 +372,13 @@ class TestCase(object):
 
     def _executeTestPart(self, function, outcome, isTest=False):
         try:
-            function()
+            #function()
+            #changed to return_value = function() to check the return value for zippy translation failures
+            return_value = function()
+            if (return_value == "ZippyThrowsException"):
+                outcome.success = False
+                self.failureException = AssertionError("ZipPy throws exception during translation/execution")
+                self.assertionError = AssertionError("ZipPy throws exception during translation/execution")
         #except KeyboardInterrupt:
         #    raise
         # except SkipTest as e:

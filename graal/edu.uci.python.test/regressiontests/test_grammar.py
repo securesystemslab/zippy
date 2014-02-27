@@ -27,14 +27,14 @@ class TokenTests(unittest.TestCase):
         self.assertEquals(x, 0, 'backslash ending comment')
 
     def testPlainIntegers(self):
-        #self.assertEquals(type(000), type(0))
-        #self.assertEqual(type(000), type(0))
+#         self.assertEquals(type(000), type(0))
+#         self.assertEqual(type(000), type(0))
         self.assertEquals(0xff, 255)
         self.assertEquals(0o377, 255)
         self.assertEquals(2147483647, 0o17777777777)
         self.assertEquals(0b1001, 9)
         # "0x" is not a valid literal
-        #self.assertRaises(SyntaxError, eval, "0x")
+#         self.assertRaises(SyntaxError, eval, "0x")
         from sys import maxsize
         if maxsize == 2147483647:
             self.assertEquals(-2147483647-1, -0o20000000000)

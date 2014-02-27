@@ -72,7 +72,9 @@ public class PythonParserImpl implements PythonParser {
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
             for (RootNode functionRoot : result.getFunctionRoots()) {
-                new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
+                if (functionRoot instanceof FunctionRootNode) {
+                    new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
+                }
             }
         }
 

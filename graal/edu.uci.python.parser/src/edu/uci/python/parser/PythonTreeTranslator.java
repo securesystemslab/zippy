@@ -132,12 +132,37 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
+        String name = node.getInternalName();
+        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+            /**
+             * Some unittest test functions might fail in the translation phase in ZipPy. Therefore,
+             * NotCovered is caught here. The result of this test function will be a Fail, and the
+             * rest of the test units will continue.
+             */
+            try {
+                return visitFunctionDefinition(node);
+            } catch (Exception e) {
+                if (e instanceof NotCovered) {
+                    environment.endScope(node);
+                    ZippyThrowsExceptionNode t = ZippyThrowsExceptionNode.getInstance();
+                    return environment.findVariable(name).makeWriteNode(t);
+                }
+
+                return e;
+            }
+        } else {
+            return visitFunctionDefinition(node);
+        }
+    }
+
+    private Object visitFunctionDefinition(FunctionDef node) throws Exception {
+        String name = node.getInternalName();
+
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
         List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
 
-        String name = node.getInternalName();
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
 
@@ -186,7 +211,6 @@ public class PythonTreeTranslator extends Visitor {
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
-
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }

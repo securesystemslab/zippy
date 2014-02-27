@@ -78,7 +78,15 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
+        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+            try {
+                return body.execute(frame);
+            } catch (Exception e) {
+                return ZippyThrowsExceptionNode.MESSAGE;
+            }
+        } else {
+            return body.execute(frame);
+        }
     }
 
     @Override
