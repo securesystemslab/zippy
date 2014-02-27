@@ -183,7 +183,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public boolean callable(Object object) {
             /**
-             * Added temporarily to skip translation/exection errors in unit testing
+             * Added temporarily to skip translation/execution errors in unit testing
              */
 
             if (object.equals(ZippyThrowsExceptionNode.MESSAGE)) {

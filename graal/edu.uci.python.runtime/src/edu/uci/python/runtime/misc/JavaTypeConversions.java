@@ -46,7 +46,9 @@ public class JavaTypeConversions {
     }
 
     public static boolean toBoolean(Object arg) {
-        if (arg instanceof Integer) {
+        if (arg instanceof Boolean) {
+            return (Boolean) arg;
+        } else if (arg instanceof Integer) {
             int intArg = (Integer) arg;
             return intArg != 0;
         } else if (arg instanceof BigInteger) {
@@ -62,7 +64,7 @@ public class JavaTypeConversions {
             PIterable iterable = (PIterable) arg;
             return iterable.len() != 0;
         } else {
-            throw new RuntimeException("invalid value for boolean()");
+            throw new RuntimeException("invalid value for boolean() " + arg);
         }
     }
 

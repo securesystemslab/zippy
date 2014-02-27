@@ -28,53 +28,105 @@ import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.runtime.misc.*;
+
 import static edu.uci.python.runtime.ArithmeticUtil.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     public abstract static class AndNode extends BinaryBooleanNode {
 
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(boolean left) {
+            return left;
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(int left) {
+            return isNotZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(BigInteger left) {
+            return isNotZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(double left) {
+            return isNotZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(Object left) {
+            return JavaTypeConversions.toBoolean(left);
+        }
+
         @Specialization(order = 0)
-        boolean doBoolean(boolean left, boolean right) {
-            return left && right;
+        boolean doBoolean(boolean left, boolean hasRight, boolean right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 1)
-        int doInteger(int left, int right) {
-            return isZero(left) ? left : right;
+        public int doInteger(int left, boolean hasRight, int right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 2)
-        BigInteger doBitInteger(BigInteger left, BigInteger right) {
-            return isZero(left) ? left : right;
+        public Object doBitInteger(BigInteger left, boolean hasRight, BigInteger right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 3)
-        double doDouble(double left, double right) {
-            return isZero(left) ? left : right;
+        public Object doDouble(double left, boolean hasRight, double right) {
+            return hasRight ? right : left;
         }
     }
 
     public abstract static class OrNode extends BinaryBooleanNode {
 
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(boolean left) {
+            return !left;
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(int left) {
+            return isZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(BigInteger left) {
+            return isZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(double left) {
+            return isZero(left);
+        }
+
+        @ShortCircuit("rightNode")
+        public boolean needsRightNode(Object left) {
+            return !JavaTypeConversions.toBoolean(left);
+        }
+
         @Specialization(order = 0)
-        boolean doBoolean(boolean left, boolean right) {
-            return left || right;
+        public boolean doBoolean(boolean left, boolean hasRight, boolean right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 1)
-        int doInteger(int left, int right) {
-            return isNotZero(left) ? left : right;
+        public int doInteger(int left, boolean hasRight, int right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 2)
-        BigInteger doBitInteger(BigInteger left, BigInteger right) {
-            return isNotZero(left) ? left : right;
+        public Object doBitInteger(BigInteger left, boolean hasRight, BigInteger right) {
+            return hasRight ? right : left;
         }
 
         @Specialization(order = 3)
-        double doDouble(double left, double right) {
-            return isNotZero(left) ? left : right;
+        public Object doDouble(double left, boolean hasRight, double right) {
+            return hasRight ? right : left;
         }
     }
 

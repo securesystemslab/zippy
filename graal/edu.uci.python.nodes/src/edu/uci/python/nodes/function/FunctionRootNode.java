@@ -83,10 +83,11 @@ public final class FunctionRootNode extends RootNode {
             try {
                 return body.execute(frame);
             } catch (Exception e) {
-                if (e != StopIterationException.INSTANCE) {
+                if (e == StopIterationException.INSTANCE) {
+                    throw e;
+                } else {
                     return ZippyThrowsExceptionNode.MESSAGE;
                 }
-                return e;
             }
         } else {
             return body.execute(frame);
