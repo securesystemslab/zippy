@@ -84,9 +84,11 @@ public class ImportManager {
     }
 
     private static PyObject importFromJython(String moduleName) {
-        // CheckStyle: stop system..print check
-        System.out.println("[ZipPy] importing from jython runtime " + moduleName);
-        // CheckStyle: resume system..print check
+        if (PythonOptions.TraceImports) {
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] importing from jython runtime " + moduleName);
+            // CheckStyle: resume system..print check
+        }
         return __builtin__.__import__(moduleName);
     }
 
@@ -138,7 +140,6 @@ public class ImportManager {
         if (!isPackage) {
             sourceName = moduleName + ".py";
             sourceFile = new File(dirPath, sourceName);
-
             if (sourceFile.isFile()) {
                 String path = sourceFile.getPath();
                 return path;
@@ -176,9 +177,11 @@ public class ImportManager {
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompilerFlags.getCompilerFlags());
 
             if (parsedModule != null) {
-                // CheckStyle: stop system..print check
-                System.out.println("[ZipPy] parsed module " + path);
-                // CheckStyle: resume system..print check
+                if (PythonOptions.TraceImports) {
+                    // CheckStyle: stop system..print check
+                    System.out.println("[ZipPy] parsed module " + path);
+                    // CheckStyle: resume system..print check
+                }
                 if (PythonOptions.PrintAST) {
                     parsedModule.printAST();
                 }

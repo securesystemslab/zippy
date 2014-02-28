@@ -35,7 +35,9 @@ public class PythonOptions {
 
     public static String PrintASTFilter = null;
 
-    public static boolean TraceJythonRuntime = true;
+    public static boolean TraceJythonRuntime = false;
+
+    public static boolean TraceImports = false;
 
     // Translation flags
     public static boolean PrintFunction = false;

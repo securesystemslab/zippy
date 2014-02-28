@@ -10,7 +10,10 @@ class ArihtmeticTests(unittest.TestCase):
         self.assertEqual(3 * 4, 12, "3 * 4 not equal to 12")
           
     def testSubtraction(self):
-        self.assertEqual(3 - 4, 1, "3 - 4 not equal to -1")
+        self.assertEqual(3 - 4, -1, "3 - 4 not equal to -1")
+    
+    def testSyntax(self):
+        self.assertRaises(SyntaxError, compile, "lambda x: x = 2", '<test string>', 'exec')
  
  
 class ComparisonTests(unittest.TestCase):
