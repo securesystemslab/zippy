@@ -808,7 +808,6 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop id_obj = CompilationResult_Mark::id(site);
-  arrayOop references = (arrayOop) CompilationResult_Mark::references(site);
 
   if (id_obj != NULL) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");

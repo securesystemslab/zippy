@@ -1325,6 +1325,7 @@ def jmh(args):
         mx.run_java(
            ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
             "-f", "1",
+            "-v", "EXTRA" if mx._opts.verbose else "NORMAL",
             "-i", "10", "-wi", "10",
             "--jvm", exe,
             "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
