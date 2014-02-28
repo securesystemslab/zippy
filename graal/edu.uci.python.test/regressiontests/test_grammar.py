@@ -930,7 +930,6 @@ class GrammarTests(unittest.TestCase):
         # Test ifelse expressions in various cases
         def _checkeval(msg, ret):
             "helper to check that evaluation of expressions is done correctly"
-            print("CHECK EVAL DAYIM")
             print(x)
             return ret
         
