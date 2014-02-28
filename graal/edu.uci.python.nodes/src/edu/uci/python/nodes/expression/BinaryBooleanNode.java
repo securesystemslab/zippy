@@ -72,12 +72,12 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
 
         @Specialization(order = 2)
-        public Object doBitInteger(BigInteger left, boolean hasRight, BigInteger right) {
+        public BigInteger doBigInteger(BigInteger left, boolean hasRight, BigInteger right) {
             return hasRight ? right : left;
         }
 
         @Specialization(order = 3)
-        public Object doDouble(double left, boolean hasRight, double right) {
+        public double doDouble(double left, boolean hasRight, double right) {
             return hasRight ? right : left;
         }
     }
@@ -120,12 +120,12 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
 
         @Specialization(order = 2)
-        public Object doBitInteger(BigInteger left, boolean hasRight, BigInteger right) {
+        public BigInteger doBigInteger(BigInteger left, boolean hasRight, BigInteger right) {
             return hasRight ? right : left;
         }
 
         @Specialization(order = 3)
-        public Object doDouble(double left, boolean hasRight, double right) {
+        public double doDouble(double left, boolean hasRight, double right) {
             return hasRight ? right : left;
         }
     }
