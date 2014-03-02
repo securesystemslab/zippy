@@ -30,7 +30,7 @@ package edu.uci.python.nodes;
 
 import com.oracle.truffle.api.frame.*;
 
-public class ZippyThrowsExceptionNode extends PNode {
+public final class ZippyThrowsExceptionNode extends PNode {
 
     public static final String MESSAGE = "ZippyThrowsException";
 
@@ -47,4 +47,5 @@ public class ZippyThrowsExceptionNode extends PNode {
     public Object execute(VirtualFrame frame) {
         return MESSAGE;
     }
+
 }
