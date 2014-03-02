@@ -1,9 +1,10 @@
 # Python test set -- part 6, built-in types
 
-from test.support import run_unittest, run_with_locale, impl_detail
+# The following imports have been excluded since Zippy can't parse/execute them
+# from test.support import run_unittest, run_with_locale, impl_detail
 import unittest
-import sys
-import locale
+# import sys
+# import locale
 
 class TypesTests(unittest.TestCase):
 
@@ -570,8 +571,9 @@ class TypesTests(unittest.TestCase):
         self.assertGreater(tuple.__itemsize__, 0)
 
 
-def test_main():
-    run_unittest(TypesTests)
+# def test_main():
+#     run_unittest(TypesTests)
 
 if __name__ == '__main__':
-    test_main()
+#     test_main()
+    unittest.main()        

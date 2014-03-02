@@ -1,8 +1,9 @@
 import unittest
-from test import support
-
-import collections, random, string
-import gc, weakref
+# The following imports have been excluded since Zippy can't parse/execute them
+# from test import support
+# 
+# import collections, random, string
+# import gc, weakref
 
 
 class DictTest(unittest.TestCase):
@@ -368,23 +369,23 @@ class DictTest(unittest.TestCase):
             for i in d:
                 d[i+1] = 1
 
-    def test_repr(self):
-        d = {}
-        self.assertEqual(repr(d), '{}')
-        d[1] = 2
-        self.assertEqual(repr(d), '{1: 2}')
-        d = {}
-        d[1] = d
-        self.assertEqual(repr(d), '{1: {...}}')
-
-        class Exc(Exception): pass
-
-        class BadRepr(object):
-            def __repr__(self):
-                raise Exc()
-
-        d = {1: BadRepr()}
-        self.assertRaises(Exc, repr, d)
+#     def test_repr(self):
+#         d = {}
+#         self.assertEqual(repr(d), '{}')
+#         d[1] = 2
+#         self.assertEqual(repr(d), '{1: 2}')
+#         d = {}
+#         d[1] = d
+#         self.assertEqual(repr(d), '{1: {...}}')
+#  
+#         class Exc(Exception): pass
+#  
+#         class BadRepr(object):
+#             def __repr__(self):
+#                 raise Exc()
+#  
+#         d = {1: BadRepr()}
+#         self.assertRaises(Exc, repr, d)
 
     def test_eq(self):
         self.assertEqual({}, {})
@@ -758,23 +759,25 @@ class DictTest(unittest.TestCase):
         self._tracked(MyDict())
 
 
-from test import mapping_tests
-
-class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
-    type2test = dict
-
-class Dict(dict):
-    pass
-
-class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
-    type2test = Dict
-
-def test_main():
-    support.run_unittest(
-        DictTest,
-        GeneralMappingTests,
-        SubclassMappingTests,
-    )
+# from test import mapping_tests
+# 
+# class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
+#     type2test = dict
+# 
+# class Dict(dict):
+#     pass
+# 
+# class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
+#     type2test = Dict
+# 
+# def test_main():
+#     support.run_unittest(
+#         DictTest,
+#         GeneralMappingTests,
+#         SubclassMappingTests,
+#     )
 
 if __name__ == "__main__":
-    test_main()
+    #test_main()
+    unittest.main()
+
