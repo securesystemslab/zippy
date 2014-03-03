@@ -1,5 +1,6 @@
 # Python test set -- built-in functions
 
+# The following imports have been excluded since Zippy can't parse/execute them
 # import platform
 import unittest
 # import sys

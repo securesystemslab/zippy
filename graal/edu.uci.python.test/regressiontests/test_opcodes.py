@@ -1,5 +1,5 @@
 # Python test set -- part 2, opcodes
-
+# The following imports have been excluded since Zippy can't parse/execute them
 #from test.support import run_unittest
 import unittest
 
