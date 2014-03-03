@@ -1,3 +1,5 @@
+#from mapping_tests import BasicTestMappingProtocol 
+import mapping_tests
 import unittest
 # The following imports have been excluded since Zippy can't parse/execute them
 # from test import support
@@ -21,17 +23,17 @@ class DictTest(unittest.TestCase):
         # calling built-in types without argument must return empty
         self.assertEqual(dict(), {})
         self.assertIsNot(dict(), {})
-
-    def test_literal_constructor(self):
-        # check literal constructor for different sized dicts
-        # (to exercise the BUILD_MAP oparg).
-        for n in (0, 1, 6, 256, 400):
-            items = [(''.join(random.sample(string.ascii_letters, 8)), i)
-                     for i in range(n)]
-            random.shuffle(items)
-            formatted_items = ('{!r}: {:d}'.format(k, v) for k, v in items)
-            dictliteral = '{' + ', '.join(formatted_items) + '}'
-            self.assertEqual(eval(dictliteral), dict(items))
+ 
+#     def test_literal_constructor(self):
+#         # check literal constructor for different sized dicts
+#         # (to exercise the BUILD_MAP oparg).
+#         for n in (0, 1, 6, 256, 400):
+#             items = [(''.join(random.sample(string.ascii_letters, 8)), i)
+#                      for i in range(n)]
+#             random.shuffle(items)
+#             formatted_items = ('{!r}: {:d}'.format(k, v) for k, v in items)
+#             dictliteral = '{' + ', '.join(formatted_items) + '}'
+#             self.assertEqual(eval(dictliteral), dict(items))
 
     def test_bool(self):
         self.assertIs(not {}, True)
@@ -138,7 +140,7 @@ class DictTest(unittest.TestCase):
 
         d.update()
         self.assertEqual(d, {1:1, 2:2, 3:3})
-
+ 
         self.assertRaises((TypeError, AttributeError), d.update, None)
 
         class SimpleUserDict:
@@ -377,13 +379,13 @@ class DictTest(unittest.TestCase):
 #         d = {}
 #         d[1] = d
 #         self.assertEqual(repr(d), '{1: {...}}')
-#  
+#    
 #         class Exc(Exception): pass
-#  
+#    
 #         class BadRepr(object):
 #             def __repr__(self):
 #                 raise Exc()
-#  
+#    
 #         d = {1: BadRepr()}
 #         self.assertRaises(Exc, repr, d)
 
@@ -567,33 +569,33 @@ class DictTest(unittest.TestCase):
             d[(1,)]
         self.assertEqual(c.exception.args, ((1,),))
 
-    def test_bad_key(self):
-        # Dictionary lookups should fail if __eq__() raises an exception.
-        class CustomException(Exception):
-            pass
-
-        class BadDictKey:
-            def __hash__(self):
-                return hash(self.__class__)
-
-            def __eq__(self, other):
-                if isinstance(other, self.__class__):
-                    raise CustomException
-                return other
-
-        d = {}
-        x1 = BadDictKey()
-        x2 = BadDictKey()
-        d[x1] = 1
-        for stmt in ['d[x2] = 2',
-                     'z = d[x2]',
-                     'x2 in d',
-                     'd.get(x2)',
-                     'd.setdefault(x2, 42)',
-                     'd.pop(x2)',
-                     'd.update({x2: 2})']:
-            with self.assertRaises(CustomException):
-                exec(stmt, locals())
+#     def test_bad_key(self):
+#         # Dictionary lookups should fail if __eq__() raises an exception.
+#         class CustomException(Exception):
+#             pass
+#  
+#         class BadDictKey:
+#             def __hash__(self):
+#                 return hash(self.__class__)
+#  
+#             def __eq__(self, other):
+#                 if isinstance(other, self.__class__):
+#                     raise CustomException
+#                 return other
+#  
+#         d = {}
+#         x1 = BadDictKey()
+#         x2 = BadDictKey()
+#         d[x1] = 1
+#         for stmt in ['d[x2] = 2',
+#                      'z = d[x2]',
+#                      'x2 in d',
+#                      'd.get(x2)',
+#                      'd.setdefault(x2, 42)',
+#                      'd.pop(x2)',
+#                      'd.update({x2: 2})']:
+#             with self.assertRaises(CustomException):
+#                 exec(stmt, locals())
 
     def test_resize1(self):
         # Dict resizing bug, found by Jack Jansen in 2.2 CVS development.
@@ -760,16 +762,19 @@ class DictTest(unittest.TestCase):
 
 
 # from test import mapping_tests
-# 
-# class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
-#     type2test = dict
-# 
-# class Dict(dict):
-#     pass
-# 
-# class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
-#     type2test = Dict
-# 
+# from mapping_tests import BasicTestMappingProtocol 
+
+class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
+# class GeneralMappingTests(BasicTestMappingProtocol):
+    type2test = dict
+   
+class Dict(dict):
+    pass
+  
+class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
+# class SubclassMappingTests(BasicTestMappingProtocol):
+    type2test = Dict
+  
 # def test_main():
 #     support.run_unittest(
 #         DictTest,

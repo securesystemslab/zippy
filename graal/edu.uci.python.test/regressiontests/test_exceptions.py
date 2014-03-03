@@ -744,7 +744,7 @@ class ExceptionTests(unittest.TestCase):
 #                 raise ValueError()
 #         class MyException(Exception, metaclass=Meta):
 #             pass
-# 
+#  
 #         with captured_output("stderr") as stderr:
 #             try:
 #                 raise KeyError()
@@ -756,7 +756,7 @@ class ExceptionTests(unittest.TestCase):
 #                 self.fail("Should have raised KeyError")
 #             else:
 #                 self.fail("Should have raised KeyError")
-# 
+#  
 #         def g():
 #             try:
 #                 return g()

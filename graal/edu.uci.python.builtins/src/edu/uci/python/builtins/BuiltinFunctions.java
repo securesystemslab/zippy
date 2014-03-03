@@ -218,8 +218,23 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class PythonDirNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object dir(PythonBasicObject object) {
-            List<String> attributes = object.getAttributeNames();
+        public Object dir(PythonModule module) {
+            List<String> attributes = module.getAttributeNames();
+            return new PTuple(attributes.toArray());
+        }
+
+        @Specialization
+        public Object dir(PythonClass clazz) {
+            List<String> attributes = clazz.getAttributeNames();
+
+            if (clazz.getSuperClass() != null) {
+                /**
+                 * TODO should add all the attributes in the class hierarchy
+                 */
+                List<String> superClassAttributes = clazz.getSuperClass().getAttributeNames();
+                attributes.addAll(superClassAttributes);
+            }
+
             return new PTuple(attributes.toArray());
         }
 
