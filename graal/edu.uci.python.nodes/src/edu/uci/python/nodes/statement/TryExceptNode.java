@@ -39,24 +39,24 @@ public abstract class TryExceptNode extends StatementNode {
 
     @Child protected BlockNode orelse;
 
-    @Child protected PNode exceptType;
+    @Child protected PNode[] exceptType;
     @Child protected PNode exceptName;
     @Child protected BlockNode exceptBody;
 
     protected final PythonContext context;
 
-    protected TryExceptNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    protected TryExceptNode(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
 
         this.exceptName = adoptChild(exceptName);
-        this.exceptType = adoptChild(exceptType);
+        this.exceptType = adoptChildren(exceptType);
         this.exceptBody = adoptChild(exceptBody);
 
         this.context = context;
     }
 
-    public static TryExceptNode create(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    public static TryExceptNode create(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
         if (exceptBody == null) {
             if (orelse == null) {
                 return new TryOnlyNode(context, body);
@@ -86,7 +86,7 @@ class TryOnlyNode extends TryExceptNode {
 
 class ExceptOnlyNode extends TryExceptNode {
 
-    protected ExceptOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode exceptType, PNode exceptName, BlockNode exceptBody) {
+    protected ExceptOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
         super(context, body, orelse, exceptType, exceptName, exceptBody);
     }
 
@@ -117,12 +117,15 @@ class ExceptOnlyNode extends TryExceptNode {
          * 
          * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by zero'
          */
-
         if (exceptType != null) {
-            PyObject type = (PyObject) exceptType.execute(frame);
+            PyObject type = null;
+            for (int i = 0; i < exceptType.length && type != e.type; i++) {
+                type = (PyObject) exceptType[i].execute(frame);
+            }
+
             if (e.type == type) {
                 if (exceptName != null) {
-                    ((WriteLocalVariableNode) exceptName).executeWith(frame, e);
+                    ((WriteNode) exceptName).executeWrite(frame, e);
                 }
             } else {
                 throw excep;
