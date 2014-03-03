@@ -320,7 +320,7 @@ public class Properties implements Serializable, Iterable<Property> {
     }
 
     public void setProperty(String name, String value) {
-        setPropertyInternal(name.intern(), value.intern());
+        setPropertyInternal(name.intern(), value != null ? value.intern() : null);
     }
     private void setPropertyInternal(String name, String value) {
 
