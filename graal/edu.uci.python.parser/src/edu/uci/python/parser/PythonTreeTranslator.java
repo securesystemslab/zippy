@@ -962,8 +962,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode withContext = (PNode) visit(node.getInternalContext_expr());
         PNode asName = null;
         if (node.getInternalOptional_vars() != null) {
-            asName = (PNode) visit(node.getInternalOptional_vars());
-            asName = ((ReadNode) asName).makeWriteNode(withContext);
+            List<PNode> asNames = assigns.walkTarget(node.getInternalOptional_vars(), withContext);
+            asName = factory.createBlock(asNames);
         }
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         List<PNode> b = visitStatements(node.getInternalBody());
