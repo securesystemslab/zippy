@@ -910,11 +910,21 @@ public class PythonTreeTranslator extends Visitor {
             }
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
-            // PNode exceptType = (PNode) visit(except.getInternalType());
-            PNode exceptType = (except.getInternalType() == null) ? null : (PNode) visit(except.getInternalType());
+
+            PNode[] exceptType = null;
+            if (except.getInternalType() != null) {
+                if (except.getInternalType() instanceof Tuple) {
+                    List<PNode> types = walkExprList(((Tuple) except.getInternalType()).getInternalElts());
+                    exceptType = types.toArray(new PNode[types.size()]);
+                } else {
+                    exceptType = new PNode[]{(PNode) visit(except.getInternalType())};
+                }
+            }
+
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
+
             retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
         }
 

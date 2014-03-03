@@ -175,6 +175,19 @@ public class TryTests {
     }
 
     @Test
+    public void tupleExceptTypes() {
+        String source = "\n" + //
+                        "try: 1/0\n" + //
+                        "except (EOFError, TypeError, ZeroDivisionError): pass\n" + //
+                        "try: 1/0\n" + //
+                        "except (EOFError, TypeError, ZeroDivisionError) as msg: pass\n" + //
+                        "try: pass\n" + //
+                        "finally: pass\n";
+
+        assertPrints("", source);
+    }
+
+    @Test
     public void scriptTryTest() {
         Path script = Paths.get("raise-try-test.py");
         assertPrints("KeyboardInterrupt! KeyboardInterrupt\n\n" + "executing finally clause\n", script);
