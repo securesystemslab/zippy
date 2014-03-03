@@ -32,7 +32,6 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
@@ -77,12 +76,6 @@ public class CustomConsole extends JLineConsole {
         }
 
         if (PythonOptions.ProfileGeneratorCalls) {
-            if (PythonOptions.ParallelizeGeneratorCalls) {
-                PParallelGenerator.printProfiledTime();
-            } else {
-                PGenerator.printProfiledTime();
-            }
-
             context.printGeneratorProfilingInfo();
         }
 
