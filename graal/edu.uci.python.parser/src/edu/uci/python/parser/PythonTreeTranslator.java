@@ -281,15 +281,39 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     public Arity createArity(String functionName, arguments node) {
-        int numOfArguments = node.getInternalArgs().size();
-        int numOfDefaultArguments = node.getInternalDefaults().size();
-        List<String> parameterIds = new ArrayList<>();
+        boolean takesVarArgs = false;
+        /**
+         * takesKeywordArg is true by default, because in Python every parameter can be passed as a
+         * keyword argument such as foo(a = 20)
+         */
+        boolean takesKeywordArg = true;
+        boolean takesFixedNumOfArgs = true;
 
-        for (expr arg : node.getInternalArgs()) {
-            parameterIds.add(((Name) arg).getInternalId());
+        int numOfArguments = node.getInternalArgs().size();
+        int maxNumOfArgs = numOfArguments;
+
+        if (node.getInternalVararg() != null) {
+            maxNumOfArgs = -1;
+            takesVarArgs = true;
+            takesFixedNumOfArgs = false;
         }
 
-        return new Arity(functionName, numOfArguments - numOfDefaultArguments, numOfArguments, parameterIds);
+        List<String> parameterIds = new ArrayList<>();
+
+        int numOfDefaultArguments = node.getInternalDefaults().size();
+        if (numOfDefaultArguments > 0) {
+            takesFixedNumOfArgs = false;
+            for (expr arg : node.getInternalArgs()) {
+                parameterIds.add(((Name) arg).getInternalId());
+            }
+        }
+
+        if (node.getInternalVararg() != null) {
+            parameterIds.add(node.getInternalVararg());
+        }
+
+        int minNumOfArgs = numOfArguments - numOfDefaultArguments;
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, parameterIds);
     }
 
     public BlockNode visitArgs(arguments node) throws Exception {
@@ -306,6 +330,17 @@ public class PythonTreeTranslator extends Visitor {
             expr arg = node.getInternalArgs().get(i);
             assert arg instanceof Name;
             argumentReads.add((PNode) visit(arg));
+        }
+
+        /**
+         * Varargs handled.
+         */
+
+        if (node.getInternalVararg() != null) {
+            FrameSlot slot = environment.createLocal(node.getInternalVararg());
+            ReadVarArgsNode readVarArgs = new ReadVarArgsNode(slot.getIndex());
+            PNode writeLocal = factory.createWriteLocal(readVarArgs, slot);
+            argumentReads.add(writeLocal);
         }
 
         /**

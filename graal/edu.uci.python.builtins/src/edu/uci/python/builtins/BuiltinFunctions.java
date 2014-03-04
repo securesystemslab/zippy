@@ -544,19 +544,19 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "hasOneArgument")
-        public Object maxSequence(PSequence arg1, Object[] args, Object keywordArg) {
+        public Object maxSequence(PSequence arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 2, guards = "hasOneArgument")
-        public Object maxBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
+        public Object maxBaseSet(PBaseSet arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 3, guards = "hasOneArgument")
-        public Object maxDictionary(PDict arg1, Object[] args, Object keywordArg) {
+        public Object maxDictionary(PDict arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
@@ -565,7 +565,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
          */
         @SuppressWarnings("unused")
         @Specialization(order = 4)
-        public Object maxPIterator(PIterator arg1, Object[] args, PNone keywordArg) {
+        public Object maxPIterator(PIterator arg1, PTuple args, PNone keywordArg) {
             int max = Integer.MIN_VALUE;
 
             try {
@@ -580,14 +580,14 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 5)
-        public Object maxGeneric(Object arg1, Object[] args, Object keywordArg) {
+        public Object maxGeneric(Object arg1, PTuple args, Object keywordArg) {
             if (keywordArg instanceof PNone) {
-                if (args.length == 1) {
-                    return getMax(arg1, args[0]);
+                if (args.len() == 1) {
+                    return getMax(arg1, args.getItem(0));
                 } else {
-                    Object[] argsArray = new Object[args.length + 1];
+                    Object[] argsArray = new Object[args.len() + 1];
                     argsArray[0] = arg1;
-                    System.arraycopy(args, 0, argsArray, 1, args.length);
+                    System.arraycopy(args.getArray(), 0, argsArray, 1, args.len());
                     Object max = getMax(argsArray);
                     return max;
                 }
@@ -619,8 +619,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        public static boolean hasOneArgument(Object arg1, Object[] args, Object keywordArg) {
-            return (args.length == 0 && keywordArg instanceof PNone);
+        public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
+            return (args.len() == 0 && keywordArg instanceof PNone);
         }
 
     }
@@ -632,40 +632,40 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "hasOneArgument")
-        public Object minString(String arg1, Object[] args, Object keywordArg) {
+        public Object minString(String arg1, PTuple args, Object keywordArg) {
             PString pstring = new PString(arg1);
             return pstring.getMin();
         }
 
         @SuppressWarnings("unused")
         @Specialization(guards = "hasOneArgument")
-        public Object minSequence(PSequence arg1, Object[] args, Object keywordArg) {
+        public Object minSequence(PSequence arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
 
         @SuppressWarnings("unused")
         @Specialization(guards = "hasOneArgument")
-        public Object minBaseSet(PBaseSet arg1, Object[] args, Object keywordArg) {
+        public Object minBaseSet(PBaseSet arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
 
         @SuppressWarnings("unused")
         @Specialization(guards = "hasOneArgument")
-        public Object minDictionary(PDict arg1, Object[] args, Object keywordArg) {
+        public Object minDictionary(PDict arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
 
         @Specialization
-        public Object minGeneric(Object arg1, Object[] args, Object keywordArg) {
+        public Object minGeneric(Object arg1, PTuple args, Object keywordArg) {
             if (keywordArg instanceof PNone) {
                 if (arg1 instanceof Iterable) {
                     throw new RuntimeException("Multiple iterables are not supported");
-                } else if (args.length == 1) {
-                    return getMin(arg1, args[0]);
+                } else if (args.len() == 1) {
+                    return getMin(arg1, args.getItem(0));
                 } else {
-                    Object[] argsArray = new Object[args.length + 1];
+                    Object[] argsArray = new Object[args.len() + 1];
                     argsArray[0] = arg1;
-                    System.arraycopy(args, 0, argsArray, 1, args.length);
+                    System.arraycopy(args.getArray(), 0, argsArray, 1, args.len());
                     Object min = getMin(argsArray);
                     return min;
                 }
@@ -698,8 +698,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        public static boolean hasOneArgument(Object arg1, Object[] args, Object keywordArg) {
-            return (args.length == 0 && keywordArg instanceof PNone);
+        public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
+            return (args.len() == 0 && keywordArg instanceof PNone);
         }
 
     }
@@ -741,7 +741,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class PythonPrintNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object print(Object[] values, Object[] keywords) {
+        public Object print(PTuple values, Object[] keywords) {
             String sep = null;
             String end = null;
 
@@ -757,6 +757,44 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             return print(values, sep, end);
+        }
+
+        @SlowPath
+        private Object print(PTuple values, String possibleSep, String possibleEnd) {
+            String sep = possibleSep;
+            String end = possibleEnd;
+            // CheckStyle: stop system..print check
+            if (values.len() == 0) {
+                getContext().getStandardOut().print(System.getProperty("line.separator"));
+            } else {
+                if (sep == null) {
+                    sep = "";
+                }
+
+                if (end == null) {
+                    end = System.getProperty("line.separator");
+                }
+
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < values.len() - 1; i++) {
+                    if (values.getItem(i) instanceof Boolean) {
+                        sb.append(((boolean) values.getItem(i) ? "True" : "False") + " ");
+                    } else {
+                        sb.append(values.getItem(i) + " ");
+                    }
+                }
+
+                if (values.getItem(values.len() - 1) instanceof Boolean) {
+                    sb.append(((boolean) values.getItem(values.len() - 1) ? "True" : "False"));
+                } else {
+                    sb.append(values.getItem(values.len() - 1));
+                }
+
+                getContext().getStandardOut().print(sb.toString() + sep + end);
+
+            }
+            // CheckStyle: resume system..print check
+            return null;
         }
 
         @SlowPath
@@ -855,6 +893,34 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public Object applySuperGeneric(Object type, Object object) {
             throw new RuntimeException("super is not supported for type " + type + " object " + object);
+        }
+
+    }
+
+    // type(object)
+    @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isConstructor = true)
+    public abstract static class PythonTypeNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object type(PythonObject object) {
+            return object.getPythonClass();
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(int value) {
+            return getContext().getBuiltins().getAttribute("int");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(double value) {
+            return getContext().getBuiltins().getAttribute("float");
+        }
+
+        @Specialization
+        public Object type(Object object) {
+            throw new RuntimeException("type is not supported for object " + object);
         }
 
     }

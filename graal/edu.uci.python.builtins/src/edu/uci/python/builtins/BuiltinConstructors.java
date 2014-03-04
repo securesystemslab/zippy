@@ -118,47 +118,47 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class PythonDictionaryNode extends PythonBuiltinNode {
 
-        protected static boolean emptyArgument(Object[] args) {
-            return args.length == 0;
+        protected static boolean emptyArgument(PTuple args) {
+            return args.len() == 0;
         }
 
-        protected static boolean oneArgument(Object[] args) {
-            return args.length == 1;
+        protected static boolean oneArgument(PTuple args) {
+            return args.len() == 1;
         }
 
-        protected static boolean firstArgIsDict(Object[] args) {
-            return args[0] instanceof PDict;
+        protected static boolean firstArgIsDict(PTuple args) {
+            return args.getItem(0) instanceof PDict;
         }
 
-        protected static boolean firstArgIsIterable(Object[] args) {
-            return args[0] instanceof PIterable;
+        protected static boolean firstArgIsIterable(PTuple args) {
+            return args.getItem(0) instanceof PIterable;
         }
 
-        protected static boolean firstArgIsIterator(Object[] args) {
-            return args[0] instanceof PIterator;
+        protected static boolean firstArgIsIterator(PTuple args) {
+            return args.getItem(0) instanceof PIterator;
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 0, guards = "emptyArgument")
-        public PDict dictEmpty(Object[] args) {
+        public PDict dictEmpty(PTuple args) {
             return new PDict();
         }
 
         @Specialization(order = 1, guards = {"oneArgument", "firstArgIsDict"})
-        public PDict dictFromDict(Object[] args) {
-            return new PDict(((PDict) args[0]).getMap());
+        public PDict dictFromDict(PTuple args) {
+            return new PDict(((PDict) args.getItem(0)).getMap());
         }
 
         @Specialization(order = 2, guards = {"oneArgument", "firstArgIsIterable"})
-        public PDict dictFromIterable(Object[] args) {
-            PIterable iterable = (PIterable) args[0];
+        public PDict dictFromIterable(PTuple args) {
+            PIterable iterable = (PIterable) args.getItem(0);
             PIterator iter = iterable.__iter__();
             return new PDict(iter);
         }
 
         @Specialization(order = 3, guards = {"oneArgument", "firstArgIsIterator"})
-        public PDict dictFromIterator(Object[] args) {
-            PIterator iter = (PIterator) args[0];
+        public PDict dictFromIterator(PTuple args) {
+            PIterator iter = (PIterator) args.getItem(0);
             return new PDict(iter);
         }
 
@@ -346,13 +346,13 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
-        public Object mapString(PythonCallable function, String str, Object[] iterators) {
+        public Object mapString(PythonCallable function, String str, PTuple iterators) {
             return doMap(function, new PString(str).__iter__());
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 2)
-        public Object mapFunctionIterable(PythonCallable function, PIterable iterable, Object[] iterators) {
+        public Object mapFunctionIterable(PythonCallable function, PIterable iterable, PTuple iterators) {
             return doMap(function, iterable.__iter__());
         }
 
@@ -372,7 +372,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(order = 3)
-        public Object mapClassIterable(PythonClass clazz, PIterable iterable, Object[] iterators) {
+        public Object mapClassIterable(PythonClass clazz, PIterable iterable, PTuple iterators) {
             PIterator iter = iterable.__iter__();
             PList list = new PList();
 
@@ -401,7 +401,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization
-        public Object mapSequence(Object function, Object iterable, Object[] iterators) {
+        public Object mapSequence(Object function, Object iterable, PTuple iterators) {
             throw new RuntimeException("map is not supported for " + function + " " + function.getClass() + " iterable " + iterable + " " + iterable.getClass());
         }
     }
@@ -529,40 +529,16 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
     }
 
-    // type(object)
-    @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonTypeNode extends PythonBuiltinNode {
-
-        @Specialization
-        public Object type(PythonObject object) {
-            return object.getPythonClass();
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
-        public Object type(int value) {
-            // return
-// getContext().getPythonBuiltinsLookup().lookupModule("__main__").getAttribute("int");
-            return getContext().getBuiltins().getAttribute("int");
-        }
-
-        @Specialization
-        public Object type(Object object) {
-            throw new RuntimeException("type is not supported for object " + object);
-        }
-
-    }
-
     // zip(*iterables)
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class PythonZipNode extends PythonBuiltinNode {
 
         @Specialization
-        public PZip zip(Object[] args) {
-            PIterable[] iterables = new PIterable[args.length];
+        public PZip zip(PTuple args) {
+            PIterable[] iterables = new PIterable[args.len()];
 
-            for (int i = 0; i < args.length; i++) {
-                iterables[i] = getIterable(args[i]);
+            for (int i = 0; i < args.len(); i++) {
+                iterables[i] = getIterable(args.getItem(i));
             }
 
             return new PZip(iterables);

@@ -574,6 +574,7 @@ class TestCase(object):
             return context
         with context:
             callableObj(*args, **kwargs)
+#             callableObj(args, kwargs)
 
     # def assertWarns(self, expected_warning, callable_obj=None, *args, **kwargs):
     #     """Fail unless a warning of class warnClass is triggered
