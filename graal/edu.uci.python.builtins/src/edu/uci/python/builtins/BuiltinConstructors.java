@@ -74,6 +74,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             }
             return JavaTypeConversions.toBoolean(object);
         }
+
     }
 
     // complex([real[, imag]])
@@ -110,6 +111,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
             throw Py.TypeError("can't convert real " + real + " imag " + imaginary);
         }
+
     }
 
     // dict(**kwarg)
@@ -167,6 +169,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public PDict dictionary(Object args) {
             throw new RuntimeException("invalid args for dict()");
         }
+
     }
 
     // enumerate(iterable, start=0)
@@ -198,6 +201,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                 throw new RuntimeException("enumerate does not support keyword argument " + keywordArg);
             }
         }
+
     }
 
     // float([x])
@@ -222,6 +226,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
             throw Py.TypeError("can't convert " + arg.getClass().getSimpleName() + " to float ");
         }
+
     }
 
     // frozenset([iterable])
@@ -264,6 +269,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public PFrozenSet frozenset(Object arg) {
             throw new UnsupportedOperationException();
         }
+
     }
 
     // int(x=0)
@@ -300,6 +306,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public static boolean noKeywordArg(Object arg, Object keywordArg) {
             return (keywordArg instanceof PNone);
         }
+
     }
 
     // list([iterable])
@@ -338,6 +345,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             CompilerAsserts.neverPartOfCompilation();
             throw new RuntimeException("list does not support iterable object " + arg);
         }
+
     }
 
     // map(function, iterable, ...)
@@ -404,6 +412,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public Object mapSequence(Object function, Object iterable, PTuple iterators) {
             throw new RuntimeException("map is not supported for " + function + " " + function.getClass() + " iterable " + iterable + " " + iterable.getClass());
         }
+
     }
 
     // range(stop)
@@ -457,6 +466,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public static boolean caseStartStop(int start, int stop, Object step) {
             return step == PNone.NONE;
         }
+
     }
 
     // set([iterable])
@@ -491,6 +501,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                 throw new RuntimeException("set does not support iterable object " + arg);
             }
         }
+
     }
 
     // str(object='')
@@ -502,6 +513,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public String str(Object arg) {
             return arg.toString();
         }
+
     }
 
     // tuple([iterable])
@@ -527,6 +539,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public PTuple tuple(Object arg) {
             throw new RuntimeException("tuple does not support iterable object " + arg);
         }
+
     }
 
     // zip(*iterables)
@@ -553,6 +566,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
             throw new RuntimeException("zip does not support iterable object " + arg.getClass());
         }
+
     }
 
 }

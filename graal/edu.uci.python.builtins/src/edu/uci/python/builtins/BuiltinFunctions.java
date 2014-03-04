@@ -83,9 +83,22 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization
+        public Object absObject(PythonObject object) {
+            Object absAttribute = object.getAttribute("__abs__");
+            if (absAttribute != null && absAttribute instanceof PFunction) {
+                PFunction absFunction = (PFunction) absAttribute;
+                PMethod method = CallAttributeNode.createPMethodFor(object, absFunction);
+                return method.call(null, null);
+            } else {
+                throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(object) + "'");
+            }
+        }
+
+        @Specialization
         public double absObject(Object arg) {
             throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(arg) + "'");
         }
+
     }
 
     // all(iterable)
@@ -127,6 +140,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public boolean all(Object object) {
             throw new RuntimeException("all does not support iterable object " + object);
         }
+
     }
 
     // any(iterable)
@@ -168,6 +182,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public boolean any(Object object) {
             throw new RuntimeException("any does not support iterable object " + object);
         }
+
     }
 
     // callable(object)
@@ -192,6 +207,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return object instanceof PythonCallable;
         }
+
     }
 
     // chr(i)
@@ -211,6 +227,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             throw Py.TypeError("an integer is required");
         }
+
     }
 
     // dir([object])
@@ -262,6 +279,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             double q = Math.floor(a / b);
             return new PTuple(new Object[]{q, a % b});
         }
+
     }
 
     // eval(expression, globals=None, locals=None)
@@ -281,6 +299,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, null, root.getFrameDescriptor());
             return root.execute(frame);
         }
+
     }
 
     // filter(function, iterable)
@@ -310,6 +329,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return new PTuple(filteredElements.toArray());
         }
+
     }
 
     // getattr(object, name[, default])
@@ -357,6 +377,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object getAttr(Object object, Object name, Object defaultValue) {
             throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
         }
+
     }
 
     // hasattr(object, name)
@@ -382,6 +403,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object hasAttr(Object object, Object name) {
             throw new RuntimeException("hasAttr is not supported for " + object + " " + object.getClass() + " name " + name);
         }
+
     }
 
     // isinstance(object, classinfo)
@@ -451,6 +473,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
         }
+
     }
 
     // issubclass(class, classinfo)
@@ -488,6 +511,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object issubclass(Object clazz, Object clazzinfo) {
             throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }
+
     }
 
     // iter(object[, sentinel])
@@ -510,6 +534,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object iter(Object object, Object sentinel) {
             throw new RuntimeException("Not supported sentinel case object " + object + " sentinel " + sentinel);
         }
+
     }
 
     // len(s)
@@ -535,6 +560,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public int len(Object arg) {
             throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
+
     }
 
     // max(iterable, *[, key])
@@ -719,6 +745,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object next(Object iterator, Object defaultObject) {
             throw new RuntimeException("Unsupported iterator " + iterator);
         }
+
     }
 
     // ord(c)
@@ -834,6 +861,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             // CheckStyle: resume system..print check
             return null;
         }
+
     }
 
     // reversed(seq)
@@ -940,6 +968,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 return importedModule;
             }
         }
+
     }
 
     @SlowPath
