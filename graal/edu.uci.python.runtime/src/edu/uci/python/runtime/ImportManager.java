@@ -174,7 +174,14 @@ public class ImportManager {
         if (file.exists()) {
             Source source = context.getSourceManager().get(path);
             PythonModule importedModule = new PythonModule(moduleName, context);
-            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompilerFlags.getCompilerFlags());
+            CompilerFlags cflags = CompilerFlags.getCompilerFlags();
+            cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+            cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+            cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+            cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+            cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
+
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, cflags);
 
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {
