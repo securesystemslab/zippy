@@ -39,8 +39,6 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonParserImpl implements PythonParser {
 
-    private Source scriptSource;
-
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
@@ -48,20 +46,9 @@ public class PythonParserImpl implements PythonParser {
     @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
-        this.scriptSource = source;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
-
-        if (!PythonOptions.PrintFunction) {
-            // enable printing flag for python's builtin function (v3.x) in parser.
-            String print = "from __future__ import print_function \n";
-            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
-            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
-
-            node = ParserFacade.parse(withPrintFlag, CompileMode.exec, filename, cflags);
-        } else {
-            node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
-        }
+        node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
@@ -82,6 +69,12 @@ public class PythonParserImpl implements PythonParser {
     }
 
     @Override
+    public PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags) {
+        Source source = context.getSourceManager().get(module.getModulePath());
+        return parse(context, module, source, cflags);
+    }
+
+    @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, String expression) {
         mod node = ParserFacade.parseExpressionOrModule(new StringReader(expression), "<eval>", CompilerFlags.getCompilerFlags());
 
@@ -91,11 +84,6 @@ public class PythonParserImpl implements PythonParser {
 
         PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
         return ptt.translate(node);
-    }
-
-    @Override
-    public Source getSource() {
-        return scriptSource;
     }
 
 }

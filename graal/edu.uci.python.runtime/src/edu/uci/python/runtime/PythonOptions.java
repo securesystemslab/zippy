@@ -37,7 +37,7 @@ public class PythonOptions {
 
     public static boolean TraceJythonRuntime = false;
 
-    public static boolean TraceImports = false;
+    public static boolean TraceImports = true;
 
     // Translation flags
     public static boolean PrintFunction = false;
@@ -58,9 +58,9 @@ public class PythonOptions {
     public static final boolean IntrinsifyBuiltinCalls = true;
 
     // Generators
-    public static boolean InlineGeneratorCalls = true;
+    public static boolean InlineGeneratorCalls = false;
 
-    public static boolean OptimizeGeneratorExpressions = true;
+    public static boolean OptimizeGeneratorExpressions = false;
 
     public static boolean UseSimpleGeneratorInlining = false;
 
@@ -77,7 +77,7 @@ public class PythonOptions {
         }
     }
 
-    public static final boolean catchZippyExceptionForUnitTesting = false;
+    public static final boolean catchZippyExceptionForUnitTesting = true;
 
     private PrintStream standardOut = System.out;
 

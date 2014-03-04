@@ -74,7 +74,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     private static PythonModule createModule(String name, PythonContext context, PythonBuiltins... builtins) {
-        PythonModule module = new PythonModule(name, context);
+        PythonModule module = new PythonModule(context, name, null);
         for (PythonBuiltins builtin : builtins) {
             addBuiltinsToModule(module, builtin, context);
         }

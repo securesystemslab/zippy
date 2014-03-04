@@ -39,7 +39,7 @@ public class PythonModuleTests {
     @Test
     public void pythonModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule module = new PythonModule("testModule", context);
+        PythonModule module = new PythonModule(context, "testModule", null);
 
         assertEquals("testModule", module.getAttribute("__name__").toString());
         assertEquals("", module.getAttribute("__doc__").toString());
@@ -67,7 +67,7 @@ public class PythonModuleTests {
     @Test
     public void mainModuleTest() {
         final PythonContext context = PythonTests.getContext();
-        PythonModule main = context.createMainModule();
+        PythonModule main = context.createMainModule(null);
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
         Object returned = abs.call(PythonTests.createVirtualFrame().pack(), new Object[]{-42});

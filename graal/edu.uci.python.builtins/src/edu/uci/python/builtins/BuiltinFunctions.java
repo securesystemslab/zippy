@@ -276,7 +276,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @SlowPath
         private Object evalExpression(String expression) {
             PythonParser parser = getContext().getParser();
-            PythonParseResult parsed = parser.parse(getContext(), new PythonModule("<eval>", getContext()), expression);
+            PythonParseResult parsed = parser.parse(getContext(), new PythonModule(getContext(), "<eval>", null), expression);
             RootNode root = parsed.getModuleRoot();
             VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, null, root.getFrameDescriptor());
             return root.execute(frame);

@@ -52,7 +52,12 @@ public class CustomConsole extends JLineConsole {
     public void execfile(PythonContext context, Source source) {
         setSystemState();
 
-        PythonModule module = context.createMainModule();
+        PythonModule module = context.createMainModule(source.getPath());
+        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
         PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {
@@ -83,7 +88,12 @@ public class CustomConsole extends JLineConsole {
     }
 
     public void parseFile(PythonContext context, Source source) {
-        PythonModule module = context.createMainModule();
+        PythonModule module = context.createMainModule(source.getPath());
+        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
         PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {

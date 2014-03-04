@@ -450,7 +450,7 @@ public class NodeFactory {
         return new AssertNode(condition, message);
     }
 
-    public StatementNode createWithNode(PythonContext context, PNode withContext, PNode asName, BlockNode body) {
+    public StatementNode createWithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
         return WithNode.create(context, withContext, asName, body);
     }
 

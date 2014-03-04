@@ -32,9 +32,9 @@ import edu.uci.python.runtime.standardtype.*;
 
 public interface PythonParser {
 
-    Source getSource();
-
     PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags);
+
+    PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags);
 
     PythonParseResult parse(PythonContext context, PythonModule module, String expression);
 

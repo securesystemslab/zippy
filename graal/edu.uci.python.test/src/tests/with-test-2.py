@@ -13,8 +13,10 @@ class GrammarTests():
         with manager():
             pass
         with manager() as x:
+            print(x)
             pass
         with manager() as (x, y):
+            print(x , y)
             pass
         with manager(), manager():
             pass
@@ -22,3 +24,6 @@ class GrammarTests():
             pass
         with manager() as x, manager():
             pass
+
+g = GrammarTests()
+g.test_with_statement()
