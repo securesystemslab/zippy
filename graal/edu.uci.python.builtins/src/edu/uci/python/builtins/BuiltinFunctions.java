@@ -234,6 +234,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
         }
 
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object charFromObject(double arg) {
+            throw Py.TypeError("integer argument expected, got float");
+        }
+
         @Specialization
         public char charFromObject(Object arg) {
             if (arg instanceof Double) {
