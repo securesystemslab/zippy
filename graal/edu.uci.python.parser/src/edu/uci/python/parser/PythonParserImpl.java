@@ -54,7 +54,7 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         PythonParseResult result = ptt.translate(node);
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
@@ -82,8 +82,7 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         return ptt.translate(node);
     }
-
 }

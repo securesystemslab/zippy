@@ -109,12 +109,12 @@ public class NodeFactory {
         return new ImportNode(context, importee);
     }
 
-    public PNode createImportFrom(PythonContext context, String fromModuleName, String importee) {
-        return new ImportFromNode(context, fromModuleName, importee);
+    public PNode createImportFrom(PythonContext context, PythonModule relativeto, String fromModuleName, String importee) {
+        return new ImportFromNode(context, relativeto, fromModuleName, importee);
     }
 
-    public PNode createImportStar(PythonContext context, String fromModuleName) {
-        return new ImportStarNode(context, fromModuleName);
+    public PNode createImportStar(PythonContext context, PythonModule relativeto, String fromModuleName) {
+        return new ImportStarNode(context, relativeto, fromModuleName);
     }
 
     public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {

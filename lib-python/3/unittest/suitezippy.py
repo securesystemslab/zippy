@@ -2,8 +2,10 @@
 
 import sys
 
-import casezippy
-import utilzippy
+# import casezippy
+# import utilzippy
+from . import casezippy
+from . import utilzippy
 #from . import case
 #from . import util
 

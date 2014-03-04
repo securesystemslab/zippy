@@ -56,13 +56,13 @@ __all__.extend(['getTestCaseNames', 'makeSuite', 'findTestCases'])
 __unittest = True
 
 #from resultzippy import TestResult
-from casezippy import (TestCase, FunctionTestCase, SkipTest, skip, skipIf,
+from .casezippy import (TestCase, FunctionTestCase, SkipTest, skip, skipIf,
                    skipUnless, expectedFailure)
 #from suitezippy import BaseTestSuite, TestSuite
 #from loaderzippy import (TestLoader, defaultTestLoader, makeSuite, getTestCaseNames,
 #                     findTestCases)
-from mainzippy import TestProgram, main
-from runnerzippy import TextTestRunner, TextTestResult
+from .mainzippy import TestProgram, main
+from .runnerzippy import TextTestRunner, TextTestResult
 #from .signals import installHandler, registerResult, removeResult, removeHandler
 
 # deprecated

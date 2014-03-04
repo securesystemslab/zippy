@@ -37,17 +37,23 @@ public class ImportFromNode extends PNode {
     private final PythonContext context;
     private final String moduleName;
     private final String importee;
+    private final PythonModule relativeto;
 
-    public ImportFromNode(PythonContext context, String moduleName, String importee) {
+    public ImportFromNode(PythonContext context, PythonModule relativeto, String moduleName, String importee) {
         this.context = context;
         this.moduleName = moduleName;
         this.importee = importee;
+        this.relativeto = relativeto;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        Object imported = context.getImportManager().importModule(moduleName);
-        return doImportFrom(imported);
+        if (moduleName.compareTo("") != 0) {
+            Object imported = context.getImportManager().importModule(relativeto, moduleName);
+            return doImportFrom(imported);
+        } else {
+            return context.getImportManager().importModule(relativeto, importee);
+        }
     }
 
     private Object doImportFrom(Object importedModule) {

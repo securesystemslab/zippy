@@ -5,7 +5,8 @@ import time
 #import warnings
 
 #from . import result
-import resultzippy
+from . import resultzippy
+# import resultzippy
 #from .signals import registerResult
 
 __unittest = True

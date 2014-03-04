@@ -1,4 +1,4 @@
-import importme
+from . import importme
 import sys
 
 def foo():

@@ -64,10 +64,12 @@ public class ImportStarNode extends PNode {
 
     private final PythonContext context;
     private final String moduleName;
+    @SuppressWarnings("unused") private final PythonModule relativeto;
 
-    public ImportStarNode(PythonContext context, String moduleName) {
+    public ImportStarNode(PythonContext context, PythonModule relativeto, String moduleName) {
         this.context = context;
         this.moduleName = moduleName;
+        this.relativeto = relativeto;
     }
 
     @Override

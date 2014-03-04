@@ -53,6 +53,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
 public class PythonTreeTranslator extends Visitor {
@@ -63,27 +64,29 @@ public class PythonTreeTranslator extends Visitor {
     private final LoopsBookKeeper loops;
     private final AssignmentTranslator assigns;
     private final PythonParseResult result;
+    private final PythonModule module;
 
-    public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
+    public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module) {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
         this.assigns = new AssignmentTranslator(environment, this);
         this.result = new PythonParseResult(environment.getModule());
+        this.module = module;
     }
 
     public PythonParseResult translate(PythonTree root) {
-        ModuleNode module;
+        ModuleNode moduleNode;
 
         try {
-            module = (ModuleNode) visit(root);
+            moduleNode = (ModuleNode) visit(root);
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException("Failed in " + this + " with error " + t);
         }
 
-        result.setModule(module);
+        result.setModule(moduleNode);
         result.setContext(context);
         return result;
     }
@@ -406,20 +409,22 @@ public class PythonTreeTranslator extends Visitor {
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName, Integer level) {
+        PythonModule relativeto = level > 0 ? this.module : context.getMainModule();
+
         String importName = aliaz.getInternalName();
         if (importName.equals("*")) {
-            return createSingleImportStarStatement(fromModuleName);
+            return createSingleImportStarStatement(relativeto, fromModuleName);
         }
 
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        PNode importNode = factory.createImportFrom(context, fromModuleName, importName);
+        PNode importNode = factory.createImportFrom(context, relativeto, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportStarStatement(String fromModuleName) {
-        PNode importNode = factory.createImportStar(context, fromModuleName);
+    private PNode createSingleImportStarStatement(PythonModule relativeto, String fromModuleName) {
+        PNode importNode = factory.createImportStar(context, relativeto, fromModuleName);
         return importNode;
     }
 
@@ -442,20 +447,17 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
-        if (node.getInternalModule().compareTo("__future__") == 0) {
-            return null;
-        }
 
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
-
+        System.out.println();
         if (aliases.size() == 1) {
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule(), node.getInternalLevel()));
         }
 
         return factory.createBlock(imports);

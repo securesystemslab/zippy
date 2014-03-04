@@ -8,13 +8,13 @@ import sys
 #import warnings
 #import collections
 
-#from . import result
-import resultzippy
+from . import resultzippy
+#import resultzippy
 #from .util import (strclass, safe_repr, sorted_list_difference,
 #                   unorderable_list_difference, _count_diff_all_purpose,
 #                   _count_diff_hashable)
 
-from utilzippy import (strclass, safe_repr, sorted_list_difference,
+from .utilzippy import (strclass, safe_repr, sorted_list_difference,
                    unorderable_list_difference)
 __unittest = True
 
