@@ -211,12 +211,27 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // chr(i)
+    // The valid range for the argument is from 0 through 1,114,111 (0x10FFFF in base 16).
+    // ValueError will be raised if i is outside that range.
     @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class PythonChrNode extends PythonBuiltinNode {
 
         @Specialization
         public String charFromInt(int arg) {
-            return Character.toString((char) arg);
+            if (arg >= 0 && arg < 1114111) {
+                return Character.toString((char) arg);
+            } else {
+                throw Py.ValueError("chr() arg not in range(0x110000)");
+            }
+        }
+
+        @Specialization
+        public char charFromObject(BigInteger arg) {
+            if (arg.longValue() > Integer.MAX_VALUE) {
+                throw Py.OverflowError("integer is greater than maximum");
+            } else {
+                throw new RuntimeException("chr does not support BigInteger " + arg);
+            }
         }
 
         @Specialization
