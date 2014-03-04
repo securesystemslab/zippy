@@ -568,8 +568,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(Space,                       _bottom,                                       HeapWord*)                             \
   nonstatic_field(Space,                       _end,                                          HeapWord*)                             \
                                                                                                                                      \
-     static_field(HeapRegion,                  LogOfHRGrainBytes,                             int)                                   \
-                                                                                                                                     \
   nonstatic_field(ThreadLocalAllocBuffer,      _start,                                        HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _top,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _end,                                          HeapWord*)                             \
@@ -1533,8 +1531,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
            declare_type(EdenSpace,                    ContiguousSpace)    \
            declare_type(OffsetTableContigSpace,       ContiguousSpace)    \
            declare_type(TenuredSpace,                 OffsetTableContigSpace) \
-           declare_type(G1OffsetTableContigSpace,     ContiguousSpace)    \
-           declare_type(HeapRegion,                   G1OffsetTableContigSpace) \
   declare_toplevel_type(BarrierSet)                                       \
            declare_type(ModRefBarrierSet,             BarrierSet)         \
            declare_type(CardTableModRefBS,            ModRefBarrierSet)   \

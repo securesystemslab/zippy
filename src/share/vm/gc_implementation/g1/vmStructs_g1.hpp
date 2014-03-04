@@ -68,6 +68,7 @@
                                                                               \
   declare_type(G1CollectedHeap, SharedHeap)                                   \
                                                                               \
+  declare_type(G1OffsetTableContigSpace, ContiguousSpace)                     \
   declare_type(HeapRegion, ContiguousSpace)                                   \
   declare_toplevel_type(HeapRegionSeq)                                        \
   declare_toplevel_type(HeapRegionSetBase)                                    \
