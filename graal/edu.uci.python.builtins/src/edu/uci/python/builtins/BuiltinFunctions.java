@@ -90,7 +90,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 PMethod method = CallAttributeNode.createPMethodFor(object, absFunction);
                 return method.call(null, null);
             } else {
-                throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(object) + "'");
+                throw Py.TypeError("bad operand type for abs(): '" + object + "'");
             }
         }
 
@@ -106,14 +106,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class PythonAllNode extends PythonBuiltinNode {
 
         @Child protected CastToBooleanNode toBoolean;
-
-        private boolean toBoolean(Object value) {
-            if (toBoolean == null) {
-                CompilerDirectives.transferToInterpreter();
-                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
-            }
-            return toBoolean.executeBoolean(value);
-        }
 
         @Specialization
         public boolean all(PIterable iterable) {
@@ -136,11 +128,39 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return true;
         }
 
+// @Specialization
+// public boolean all(PGenerator generator) {
+// if (generator.len() == 0) {
+// return false;
+// }
+//
+// PIterator iterator = generator.__iter__();
+//
+// try {
+// while (true) {
+// if (!toBoolean(iterator.__next__())) {
+// return false;
+// }
+// }
+// } catch (StopIterationException e) {
+// // fall through
+// }
+//
+// return true;
+// }
+
         @Specialization
         public boolean all(Object object) {
             throw new RuntimeException("all does not support iterable object " + object);
         }
 
+        private boolean toBoolean(Object value) {
+            if (toBoolean == null) {
+                CompilerDirectives.transferToInterpreter();
+                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
+            }
+            return toBoolean.executeBoolean(value);
+        }
     }
 
     // any(iterable)
@@ -897,6 +917,22 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public PIterator reversed(PSequence sequence) {
             return new PSequenceIterator.PSequenceReverseIterator(sequence);
+        }
+
+    }
+
+    // round(number[, ndigits])
+    @Builtin(name = "round", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class RoundNode extends PythonBuiltinNode {
+
+        @Specialization
+        public int round(int arg) {
+            return Math.round(arg);
+        }
+
+        @Specialization
+        public double round(double arg) {
+            return Math.round(arg);
         }
 
     }
