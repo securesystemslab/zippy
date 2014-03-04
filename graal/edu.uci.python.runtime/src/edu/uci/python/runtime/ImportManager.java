@@ -36,6 +36,7 @@ import edu.uci.python.runtime.standardtype.*;
 /**
  * @author Gulfem
  * @author zwei
+ * @author myq
  */
 
 public class ImportManager {
@@ -66,7 +67,7 @@ public class ImportManager {
         if (importedModule != null) {
             return importedModule;
         } else {
-            String path = getPathFromImporterPath(moduleName);
+            String path = getMainPath(moduleName);
 
             if (path != null) {
                 importedModule = tryImporting(path, moduleName);
@@ -92,11 +93,14 @@ public class ImportManager {
         return __builtin__.__import__(moduleName);
     }
 
-    private String getPathFromImporterPath(String moduleName) {
-        /**
-         * FIXME zwei: Why this?
-         */
-        String importingModulePath = context.getParser().getSource().getPath();
+    private String getMainPath(String moduleName) {
+        String mainPath = context.getMainModule().getModulePath();
+        return getPathFromImporterPath(moduleName, mainPath);
+    }
+
+    private static String getPathFromImporterPath(String moduleName, String basePath) {
+
+        String importingModulePath = basePath;
         String filename = moduleName + ".py";
         String path = null;
 
@@ -172,8 +176,7 @@ public class ImportManager {
         File file = new File(path);
 
         if (file.exists()) {
-            Source source = context.getSourceManager().get(path);
-            PythonModule importedModule = new PythonModule(moduleName, context);
+            PythonModule importedModule = new PythonModule(context, moduleName, path);
             CompilerFlags cflags = CompilerFlags.getCompilerFlags();
             cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
             cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
@@ -181,7 +184,7 @@ public class ImportManager {
             cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
             cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
 
-            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, cflags);
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, cflags);
 
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {
