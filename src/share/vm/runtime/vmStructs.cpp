@@ -568,8 +568,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(Space,                       _bottom,                                       HeapWord*)                             \
   nonstatic_field(Space,                       _end,                                          HeapWord*)                             \
                                                                                                                                      \
-     static_field(HeapRegion,                  LogOfHRGrainBytes,                             int)                                   \
-                                                                                                                                     \
   nonstatic_field(ThreadLocalAllocBuffer,      _start,                                        HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _top,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _end,                                          HeapWord*)                             \
@@ -1533,8 +1531,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
            declare_type(EdenSpace,                    ContiguousSpace)    \
            declare_type(OffsetTableContigSpace,       ContiguousSpace)    \
            declare_type(TenuredSpace,                 OffsetTableContigSpace) \
-           declare_type(G1OffsetTableContigSpace,     ContiguousSpace)    \
-           declare_type(HeapRegion,                   G1OffsetTableContigSpace) \
   declare_toplevel_type(BarrierSet)                                       \
            declare_type(ModRefBarrierSet,             BarrierSet)         \
            declare_type(CardTableModRefBS,            ModRefBarrierSet)   \
@@ -2498,13 +2494,14 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
                                                                           \
   declare_constant(Symbol::max_symbol_length)                             \
                                                                           \
-  /*************************************************/                     \
-  /* ConstantPool* layout enum for InvokeDynamic */                     \
-  /*************************************************/                     \
+  /***********************************************/                       \
+  /* ConstantPool* layout enum for InvokeDynamic */                       \
+  /***********************************************/                       \
                                                                           \
-  declare_constant(ConstantPool::_indy_bsm_offset)                 \
-  declare_constant(ConstantPool::_indy_argc_offset)                \
-  declare_constant(ConstantPool::_indy_argv_offset)                \
+  declare_constant(ConstantPool::_indy_bsm_offset)                        \
+  declare_constant(ConstantPool::_indy_argc_offset)                       \
+  declare_constant(ConstantPool::_indy_argv_offset)                       \
+  declare_constant(ConstantPool::CPCACHE_INDEX_TAG)                       \
                                                                           \
   /********************************/                                      \
   /* ConstantPoolCacheEntry enums */                                      \

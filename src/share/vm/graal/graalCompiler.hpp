@@ -78,26 +78,6 @@ public:
 
   static BasicType kindToBasicType(jchar ch);
 
-  static int to_cp_index_u2(int index) {
-    // Tag.
-    return index + ConstantPool::CPCACHE_INDEX_TAG;
-  }
-
-  static int to_cp_index(int raw_index, Bytecodes::Code bc) {
-    int cp_index;
-    if (bc == Bytecodes::_invokedynamic) {
-      cp_index = raw_index;
-      assert(ConstantPool::is_invokedynamic_index(cp_index), "not an invokedynamic constant pool index");
-    } else {
-      assert(bc == Bytecodes::_getfield        || bc == Bytecodes::_putfield  ||
-             bc == Bytecodes::_getstatic       || bc == Bytecodes::_putstatic ||
-             bc == Bytecodes::_invokeinterface || bc == Bytecodes::_invokevirtual ||
-             bc == Bytecodes::_invokespecial   || bc == Bytecodes::_invokestatic, err_msg("unexpected invoke opcode: %d %s", bc, Bytecodes::name(bc)));
-      cp_index = to_cp_index_u2(raw_index);
-    }
-    return cp_index;
-  }
-
   static BufferBlob* initialize_buffer_blob();
 };
 
