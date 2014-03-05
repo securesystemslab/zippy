@@ -471,6 +471,14 @@ project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 project@com.oracle.graal.java@workingSets=Graal,Java
 
+# graal.baseline
+project@com.oracle.graal.baseline@subDir=graal
+project@com.oracle.graal.baseline@sourceDirs=src
+project@com.oracle.graal.baseline@dependencies=com.oracle.graal.java,com.oracle.graal.lir
+project@com.oracle.graal.baseline@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.baseline@javaCompliance=1.7
+project@com.oracle.graal.baseline@workingSets=Graal,Java
+
 # graal.java.decompiler
 project@com.oracle.graal.java.decompiler@subDir=graal
 project@com.oracle.graal.java.decompiler@sourceDirs=src
@@ -506,7 +514,7 @@ project@com.oracle.graal.test@workingSets=Graal,Test
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime,com.oracle.graal.baseline
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 project@com.oracle.graal.compiler.test@workingSets=Graal,Test
