@@ -340,10 +340,7 @@ public class PythonTreeTranslator extends Visitor {
          */
 
         if (node.getInternalVararg() != null) {
-            FrameSlot slot = environment.createLocal(node.getInternalVararg());
-            ReadVarArgsNode readVarArgs = new ReadVarArgsNode(slot.getIndex());
-            PNode writeLocal = factory.createWriteLocal(readVarArgs, slot);
-            argumentReads.add(writeLocal);
+            argumentReads.add(environment.getWriteVarArgsToLocal(node.getInternalVararg()));
         }
 
         /**

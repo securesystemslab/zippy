@@ -579,7 +579,16 @@ class TestCase(object):
             return context
         with context:
 #             callableObj(*args, **kwargs)
-            callableObj(args, kwargs)
+#             callableObj(args, kwargs)
+            # When we support argument unpacking, this elif block can be removed
+            if (len(args) == 1):
+                callableObj(args[0])
+            elif (len(args) == 2):
+                callableObj(args[0], args[1])
+            elif (len(args) == 3):
+                callableObj(args[0], args[1], args[2])
+            elif (len(args) == 4):
+                callableObj(args[0], args[1], args[2], args[3])
 
     # def assertWarns(self, expected_warning, callable_obj=None, *args, **kwargs):
     #     """Fail unless a warning of class warnClass is triggered
