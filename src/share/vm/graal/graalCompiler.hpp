@@ -71,8 +71,8 @@ public:
   // Print compilation timers and statistics
   virtual void print_timers();
 
-  static Handle get_JavaTypeFromSignature(Symbol* signature, KlassHandle accessor, TRAPS);
-  static Handle get_JavaType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
+  static KlassHandle get_KlassFromSignature(Symbol* signature, KlassHandle loading_klass);
+  static KlassHandle get_Klass(constantPoolHandle cp, int index, KlassHandle accessor, Symbol*& klass_name);
 
   void exit();
 

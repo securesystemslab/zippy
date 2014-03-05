@@ -359,20 +359,6 @@
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
   template(finalizeOptions_name,                  "finalizeOptions")                                                                  \
-  template(createUnresolvedJavaMethod_name,       "createUnresolvedJavaMethod")                                                       \
-  template(createUnresolvedJavaMethod_signature,  "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
-  template(createSignature_name,                  "createSignature")                                                                  \
-  template(createSignature_signature,             "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/Signature;")                        \
-  template(createJavaField_name,                  "createJavaField")                                                                  \
-  template(createJavaField_signature,             "(Lcom/oracle/graal/api/meta/JavaType;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;IIZ)Lcom/oracle/graal/api/meta/JavaField;") \
-  template(createResolvedJavaMethod_name,         "createResolvedJavaMethod")                                                         \
-  template(createResolvedJavaMethod_signature,    "(Lcom/oracle/graal/api/meta/JavaType;J)Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
-  template(createUnresolvedJavaType_name,         "createUnresolvedJavaType")                                                         \
-  template(createUnresolvedJavaType_signature,    "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")                         \
-  template(createResolvedJavaType_name,           "createResolvedJavaType")                                                           \
-  template(createResolvedJavaType_signature,      "(Ljava/lang/Class;)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
-  template(createPrimitiveJavaType_name,          "createPrimitiveJavaType")                                                          \
-  template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
   template(runtime_name,                          "runtime")                                                                          \

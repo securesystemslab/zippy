@@ -263,7 +263,7 @@ C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray unresolvedInfo_handle))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   instanceKlassHandle pool_holder(cp->pool_holder());
 
@@ -271,30 +271,37 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_
 
   methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
   if (!method.is_null()) {
-    Handle holder = VMToCompiler::createResolvedJavaType(method->method_holder()->java_mirror(), CHECK_NULL);
-    return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
+    return (jlong) method();
   } else {
-    // Get the method's name and signature.
-    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
-    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
+    // Get the unresolved method's name and signature.
+    typeArrayOop unresolvedInfo = (typeArrayOop) JNIHandles::resolve(unresolvedInfo_handle);
+    assert(unresolvedInfo != NULL && unresolvedInfo->length() == 4, "must be");
+    unresolvedInfo->long_at_put(0, (jlong) cp->name_ref_at(index));
+    unresolvedInfo->long_at_put(1, (jlong) cp->signature_ref_at(index));
     Handle type;
     if (bc != Bytecodes::_invokedynamic) {
       int holder_index = cp->klass_ref_index_at(index);
-      type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
+      Symbol* klass_name = NULL;
+      KlassHandle klass = GraalCompiler::get_Klass(cp, holder_index, cp->pool_holder(), klass_name);
+      unresolvedInfo->long_at_put(2, (jlong) klass_name);
+      unresolvedInfo->long_at_put(3, (jlong) klass());
     } else {
-      type = Handle(SystemDictionary::MethodHandle_klass()->java_mirror());
+      unresolvedInfo->long_at_put(3, (jlong) SystemDictionary::MethodHandle_klass());
     }
-    return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
+    return 0L;
   }
 C2V_END
 
-C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jlongArray unresolvedTypeName_handle))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
-  Handle result = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, result());
+  Symbol* klass_name = NULL;
+  KlassHandle klass = GraalCompiler::get_Klass(cp, index, cp->pool_holder(), klass_name);
+  typeArrayOop unresolvedTypeName = (typeArrayOop) JNIHandles::resolve(unresolvedTypeName_handle);
+  unresolvedTypeName->long_at_put(0, (jlong) klass_name);
+  return (jlong) klass();
 C2V_END
 
-C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte op))
+C2V_VMENTRY(void, loadReferencedTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte op))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   Bytecodes::Code bc = (Bytecodes::Code) (((int) op) & 0xFF);
   if (bc != Bytecodes::_checkcast && bc != Bytecodes::_instanceof && bc != Bytecodes::_new && bc != Bytecodes::_anewarray
@@ -316,42 +323,44 @@ C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jlong metas
   }
 C2V_END
 
-C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jboolean, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
   ResourceMark rm;
 
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
 
   int nt_index = cp->name_and_type_ref_index_at(index);
-  int sig_index = cp->signature_ref_index_at(nt_index);
-  Symbol* signature = cp->symbol_at(sig_index);
+  int type_index = cp->signature_ref_index_at(nt_index);
+  Symbol* type_name = cp->symbol_at(type_index);
   int name_index = cp->name_ref_index_at(nt_index);
   Symbol* name = cp->symbol_at(name_index);
   int holder_index = cp->klass_ref_index_at(index);
-  Handle holder = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
-  instanceKlassHandle holder_klass;
+  Symbol* holder_name = NULL;
+  KlassHandle holder = GraalCompiler::get_Klass(cp, holder_index, cp->pool_holder(), holder_name);
+  KlassHandle type = GraalCompiler::get_KlassFromSignature(type_name, cp->pool_holder());
+  typeArrayOop info = (typeArrayOop) JNIHandles::resolve(info_handle);
+  assert(info != NULL && info->length() == 7, "must be");
+  info->long_at_put(0, (jlong) name);
+  info->long_at_put(1, (jlong) type_name);
+  info->long_at_put(2, (jlong) type());
+  info->long_at_put(3, (jlong) holder_name);
+  info->long_at_put(4, (jlong) holder());
 
   Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
-  int offset = -1;
-  AccessFlags flags;
-  if (holder->klass() == SystemDictionary::HotSpotResolvedObjectType_klass()) {
+  if (!holder.is_null()) {
+    int offset = -1;
     fieldDescriptor result;
     LinkResolver::resolve_field_access(result, cp, index, Bytecodes::java_code(code), true, false, Thread::current());
 
     if (HAS_PENDING_EXCEPTION) {
       CLEAR_PENDING_EXCEPTION;
     } else {
-      offset = result.offset();
-      flags = result.access_flags();
-      holder_klass = result.field_holder();
-      holder = VMToCompiler::createResolvedJavaType(holder_klass->java_mirror(), CHECK_NULL);
+      info->long_at_put(4, (jlong) result.field_holder());
+      info->long_at_put(5, (jlong) result.access_flags().as_int());
+      info->long_at_put(6, (jlong) result.offset());
+      return true;
     }
   }
-
-  Handle type = GraalCompiler::get_JavaTypeFromSignature(signature, cp->pool_holder(), CHECK_NULL);
-  Handle java_name = java_lang_String::create_from_symbol(name, CHECK_NULL);
-  Handle field_handle = VMToCompiler::createJavaField(holder, java_name, type, offset, flags.as_int(), false, CHECK_NULL);
-
-  return JNIHandles::make_local(THREAD, field_handle());
+  return false;
 C2V_END
 
 C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
@@ -866,10 +875,10 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupType",                    CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
   {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupAppendixInPool)},
-  {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB)"METHOD,                          FN_PTR(lookupMethodInPool)},
-  {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
-  {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
-  {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
+  {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_METHOD,              FN_PTR(lookupMethodInPool)},
+  {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I[J)"METASPACE_KLASS,                FN_PTR(lookupTypeInPool)},
+  {CC"loadReferencedTypeInPool",      CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(loadReferencedTypeInPool)},
+  {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB[J)Z",                             FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
   {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
