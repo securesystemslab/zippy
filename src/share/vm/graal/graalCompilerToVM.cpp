@@ -257,9 +257,7 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
-  Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  index = GraalCompiler::to_cp_index(index, bc);
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
   return JNIHandles::make_local(THREAD, appendix_oop);
@@ -270,19 +268,18 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_
   instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  int cp_index = GraalCompiler::to_cp_index(index, bc);
 
-  methodHandle method = GraalEnv::get_method_by_index(cp, cp_index, bc, pool_holder);
+  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
   if (!method.is_null()) {
     Handle holder = VMToCompiler::createResolvedJavaType(method->method_holder()->java_mirror(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
-    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(cp_index), CHECK_NULL);
-    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(cp_index), CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
+    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
     Handle type;
     if (bc != Bytecodes::_invokedynamic) {
-      int holder_index = cp->klass_ref_index_at(cp_index);
+      int holder_index = cp->klass_ref_index_at(index);
       type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
     } else {
       type = Handle(SystemDictionary::MethodHandle_klass()->java_mirror());
@@ -303,7 +300,7 @@ C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jlong metas
   if (bc != Bytecodes::_checkcast && bc != Bytecodes::_instanceof && bc != Bytecodes::_new && bc != Bytecodes::_anewarray
       && bc != Bytecodes::_multianewarray && bc != Bytecodes::_ldc && bc != Bytecodes::_ldc_w && bc != Bytecodes::_ldc2_w)
   {
-    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index(index, bc));
+    index = cp->remap_instruction_operand_from_cache(index);
   }
   constantTag tag = cp->tag_at(index);
   if (tag.is_field_or_method()) {
@@ -322,15 +319,14 @@ C2V_END
 C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   ResourceMark rm;
 
-  int cp_index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
 
-  int nt_index = cp->name_and_type_ref_index_at(cp_index);
+  int nt_index = cp->name_and_type_ref_index_at(index);
   int sig_index = cp->signature_ref_index_at(nt_index);
   Symbol* signature = cp->symbol_at(sig_index);
   int name_index = cp->name_ref_index_at(nt_index);
   Symbol* name = cp->symbol_at(name_index);
-  int holder_index = cp->klass_ref_index_at(cp_index);
+  int holder_index = cp->klass_ref_index_at(index);
   Handle holder = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
   instanceKlassHandle holder_klass;
 
@@ -339,7 +335,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_c
   AccessFlags flags;
   if (holder->klass() == SystemDictionary::HotSpotResolvedObjectType_klass()) {
     fieldDescriptor result;
-    LinkResolver::resolve_field_access(result, cp, cp_index, Bytecodes::java_code(code), true, false, Thread::current());
+    LinkResolver::resolve_field_access(result, cp, index, Bytecodes::java_code(code), true, false, Thread::current());
 
     if (HAS_PENDING_EXCEPTION) {
       CLEAR_PENDING_EXCEPTION;
@@ -869,7 +865,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"lookupType",                    CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
-  {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"IB)"OBJECT,                          FN_PTR(lookupAppendixInPool)},
+  {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupAppendixInPool)},
   {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB)"METHOD,                          FN_PTR(lookupMethodInPool)},
   {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
   {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},

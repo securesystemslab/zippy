@@ -2494,13 +2494,14 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
                                                                           \
   declare_constant(Symbol::max_symbol_length)                             \
                                                                           \
-  /*************************************************/                     \
-  /* ConstantPool* layout enum for InvokeDynamic */                     \
-  /*************************************************/                     \
+  /***********************************************/                       \
+  /* ConstantPool* layout enum for InvokeDynamic */                       \
+  /***********************************************/                       \
                                                                           \
-  declare_constant(ConstantPool::_indy_bsm_offset)                 \
-  declare_constant(ConstantPool::_indy_argc_offset)                \
-  declare_constant(ConstantPool::_indy_argv_offset)                \
+  declare_constant(ConstantPool::_indy_bsm_offset)                        \
+  declare_constant(ConstantPool::_indy_argc_offset)                       \
+  declare_constant(ConstantPool::_indy_argv_offset)                       \
+  declare_constant(ConstantPool::CPCACHE_INDEX_TAG)                       \
                                                                           \
   /********************************/                                      \
   /* ConstantPoolCacheEntry enums */                                      \
