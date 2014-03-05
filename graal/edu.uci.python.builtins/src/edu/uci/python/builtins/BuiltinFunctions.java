@@ -993,6 +993,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         @SuppressWarnings("unused")
+        public Object type(boolean value) {
+            return getContext().getBuiltins().getAttribute("bool");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
         public Object type(int value) {
             return getContext().getBuiltins().getAttribute("int");
         }
@@ -1004,8 +1010,50 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PComplex value) {
+            return getContext().getBuiltins().getAttribute("complex");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(String value) {
+            return getContext().getBuiltins().getAttribute("str");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PList value) {
+            return getContext().getBuiltins().getAttribute("list");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PTuple value) {
+            return getContext().getBuiltins().getAttribute("tuple");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PSet value) {
+            return getContext().getBuiltins().getAttribute("set");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PRange value) {
+            return getContext().getBuiltins().getAttribute("range");
+        }
+
+        @Specialization
+        @SuppressWarnings("unused")
+        public Object type(PDict value) {
+            return getContext().getBuiltins().getAttribute("dict");
+        }
+
+        @Generic
         public Object type(Object object) {
-            throw new RuntimeException("type is not supported for object " + object);
+            throw new RuntimeException("type is not supported for object " + object + " " + object.getClass());
         }
 
     }

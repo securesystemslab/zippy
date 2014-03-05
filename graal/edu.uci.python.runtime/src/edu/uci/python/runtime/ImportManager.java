@@ -55,6 +55,10 @@ public class ImportManager {
     }
 
     public Object importModule(String moduleName) {
+        return importModule(context.getMainModule(), moduleName);
+    }
+
+    public Object importModule(PythonModule relativeto, String moduleName) {
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
@@ -67,7 +71,7 @@ public class ImportManager {
         if (importedModule != null) {
             return importedModule;
         } else {
-            String path = getMainPath(moduleName);
+            String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
 
             if (path != null) {
                 importedModule = tryImporting(path, moduleName);
@@ -93,13 +97,7 @@ public class ImportManager {
         return __builtin__.__import__(moduleName);
     }
 
-    private String getMainPath(String moduleName) {
-        String mainPath = context.getMainModule().getModulePath();
-        return getPathFromImporterPath(moduleName, mainPath);
-    }
-
     private static String getPathFromImporterPath(String moduleName, String basePath) {
-
         String importingModulePath = basePath;
         String filename = moduleName + ".py";
         String path = null;
@@ -184,7 +182,8 @@ public class ImportManager {
             cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
             cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
 
-            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, cflags);
+            Source source = context.getSourceManager().get(path);
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, cflags);
 
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {

@@ -49,7 +49,6 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
         @Specialization
         boolean doInteger(int operand) {
-            System.out.println("INTEGER DAYIM");
             return operand != 0;
         }
 

@@ -279,6 +279,12 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left != right;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean doPNone(String left, PNone right) {
+            return false;
+        }
+
         @Generic
         public boolean doGeneric(Object left, Object right) {
             return !left.equals(right);

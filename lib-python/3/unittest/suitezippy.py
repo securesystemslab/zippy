@@ -2,8 +2,10 @@
 
 import sys
 
-import casezippy
-import utilzippy
+# import casezippy
+# import utilzippy
+from . import casezippy
+from . import utilzippy
 #from . import case
 #from . import util
 
@@ -50,6 +52,7 @@ class BaseTestSuite(object):
         #                                         (case.TestCase, TestSuite)):
         #    raise TypeError("TestCases and TestSuites must be instantiated "
         #                    "before passing them to addTest()")
+#         print("APPENDING", test._testMethodName)
         self._tests.append(test)
 
     def addTests(self, tests):

@@ -5,7 +5,8 @@ import time
 #import warnings
 
 #from . import result
-import resultzippy
+from . import resultzippy
+# import resultzippy
 #from .signals import registerResult
 
 __unittest = True
@@ -63,13 +64,20 @@ class TextTestResult(resultzippy.TestResult):
     def addSuccess(self, test):
         #super(TextTestResult, self).addSuccess(test)
         super(TextTestResult, self).addSuccess(self, test)
-        if self.showAll:
-            self.stream.writeln("ok")
-        elif self.dots:
-            #self.stream.write('.')
-            self.stream.stream.write('.')
-            #self.stream.flush()
-            self.stream.stream.flush()
+        self.stream.stream.write(test._testMethodName)
+        self.stream.writeln(" ... ok")
+        self.stream.stream.flush()
+
+#     def addSuccess(self, test):
+#         #super(TextTestResult, self).addSuccess(test)
+#         super(TextTestResult, self).addSuccess(self, test)
+#         if self.showAll:
+#             self.stream.writeln("ok")
+#         elif self.dots:
+#             #self.stream.write('.')
+#             self.stream.stream.write('.')
+#             #self.stream.flush()
+#             self.stream.stream.flush()
 
     def addError(self, test, err):
         #super(TextTestResult, self).addError(test, err)
@@ -83,14 +91,21 @@ class TextTestResult(resultzippy.TestResult):
     def addFailure(self, test, err):
         #super(TextTestResult, self).addFailure(test, err)
         super(TextTestResult, self).addFailure(self, test, err)
-        if self.showAll:
-            #self.stream.writeln("FAIL")
-            self.stream.writeln("FAIL")
-        elif self.dots:
-            #self.stream.write('F')
-            self.stream.stream.write('F')
-            #self.stream.flush()
-            self.stream.stream.flush()
+        self.stream.stream.write(test._testMethodName)
+        self.stream.writeln(" ... fail")
+        self.stream.stream.flush()
+
+#     def addFailure(self, test, err):
+#         #super(TextTestResult, self).addFailure(test, err)
+#         super(TextTestResult, self).addFailure(self, test, err)
+#         if self.showAll:
+#             #self.stream.writeln("FAIL")
+#             self.stream.writeln("FAIL")
+#         elif self.dots:
+#             #self.stream.write('F')
+#             self.stream.stream.write('F')
+#             #self.stream.flush()
+#             self.stream.stream.flush()
 
     def addSkip(self, test, reason):
         #super(TextTestResult, self).addSkip(test, reason)

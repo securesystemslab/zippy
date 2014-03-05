@@ -8,13 +8,13 @@ import sys
 #import warnings
 #import collections
 
-#from . import result
-import resultzippy
+from . import resultzippy
+#import resultzippy
 #from .util import (strclass, safe_repr, sorted_list_difference,
 #                   unorderable_list_difference, _count_diff_all_purpose,
 #                   _count_diff_hashable)
 
-from utilzippy import (strclass, safe_repr, sorted_list_difference,
+from .utilzippy import (strclass, safe_repr, sorted_list_difference,
                    unorderable_list_difference)
 __unittest = True
 
@@ -104,55 +104,55 @@ def expectedFailure(func):
     return wrapper
 
 
-# class _AssertRaisesBaseContext(object):
+class _AssertRaisesBaseContext(object):
+ 
+    def __init__(self, expected, test_case, callable_obj=None,
+                  expected_regex=None):
+        self.expected = expected
+        self.failureException = test_case.failureException
+        if callable_obj is not None:
+            try:
+                self.obj_name = callable_obj.__name__
+            except AttributeError:
+                self.obj_name = str(callable_obj)
+        else:
+            self.obj_name = None
+        if isinstance(expected_regex, (bytes, str)):
+            expected_regex = re.compile(expected_regex)
+        self.expected_regex = expected_regex
 
-#     def __init__(self, expected, test_case, callable_obj=None,
-#                   expected_regex=None):
-#         self.expected = expected
-#         self.failureException = test_case.failureException
-#         if callable_obj is not None:
-#             try:
-#                 self.obj_name = callable_obj.__name__
-#             except AttributeError:
-#                 self.obj_name = str(callable_obj)
-#         else:
-#             self.obj_name = None
-#         if isinstance(expected_regex, (bytes, str)):
-#             expected_regex = re.compile(expected_regex)
-#         self.expected_regex = expected_regex
 
-
-# class _AssertRaisesContext(_AssertRaisesBaseContext):
-#     """A context manager used to implement TestCase.assertRaises* methods."""
-
-#     def __enter__(self):
-#         return self
-
-#     def __exit__(self, exc_type, exc_value, tb):
-#         if exc_type is None:
-#             try:
-#                 exc_name = self.expected.__name__
-#             except AttributeError:
-#                 exc_name = str(self.expected)
-#             if self.obj_name:
-#                 raise self.failureException("{0} not raised by {1}"
-#                     .format(exc_name, self.obj_name))
-#             else:
-#                 raise self.failureException("{0} not raised"
-#                     .format(exc_name))
-#         if not issubclass(exc_type, self.expected):
-#             # let unexpected exceptions pass through
-#             return False
-#         # store exception, without traceback, for later retrieval
-#         self.exception = exc_value.with_traceback(None)
-#         if self.expected_regex is None:
-#             return True
-
-#         expected_regex = self.expected_regex
-#         if not expected_regex.search(str(exc_value)):
-#             raise self.failureException('"%s" does not match "%s"' %
-#                      (expected_regex.pattern, str(exc_value)))
-#         return True
+class _AssertRaisesContext(_AssertRaisesBaseContext):
+    """A context manager used to implement TestCase.assertRaises* methods."""
+   
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, tb):
+        if exc_type is None:
+            try:
+                exc_name = self.expected.__name__
+            except AttributeError:
+                exc_name = str(self.expected)
+            if self.obj_name:
+                raise self.failureException("{0} not raised by {1}"
+                    .format(exc_name, self.obj_name))
+            else:
+                raise self.failureException("{0} not raised"
+                    .format(exc_name))
+        if not issubclass(exc_type, self.expected):
+            # let unexpected exceptions pass through
+            return False
+        # store exception, without traceback, for later retrieval
+        self.exception = exc_value.with_traceback(None)
+        if self.expected_regex is None:
+            return True
+   
+        expected_regex = self.expected_regex
+        if not expected_regex.search(str(exc_value)):
+            raise self.failureException('"%s" does not match "%s"' %
+                     (expected_regex.pattern, str(exc_value)))
+        return True
 
 
 # class _AssertWarnsContext(_AssertRaisesBaseContext):
@@ -445,7 +445,11 @@ class TestCase(object):
                 # for exc_info in outcome.errors:
                 #     result.addError(self, exc_info)
                 #for exc_info in outcome.failures:
-                result.addFailure(self, "AssertionError: " + self.assertionError.args[0])
+                if (self.assertionError.args[0] is not None):
+                    result.addFailure(self, "AssertionError: ")
+                else:
+                    result.addFailure(self, "AssertionError: " + self.assertionError.args[0])
+     
                 #result.addFailure(self, exc_info)
                 # if outcome.unexpectedSuccess is not None:
                 #     addUnexpectedSuccess = getattr(result, 'addUnexpectedSuccess', None)
@@ -506,6 +510,7 @@ class TestCase(object):
 
     def fail(self, msg=None):
         """Fail immediately, with the given message."""
+        self.assertionError = self.failureException(msg)
         raise self.failureException(msg)
 
     def assertFalse(self, expr, msg=None):
@@ -573,8 +578,8 @@ class TestCase(object):
         if callableObj is None:
             return context
         with context:
-            callableObj(*args, **kwargs)
-#             callableObj(args, kwargs)
+#             callableObj(*args, **kwargs)
+            callableObj(args, kwargs)
 
     # def assertWarns(self, expected_warning, callable_obj=None, *args, **kwargs):
     #     """Fail unless a warning of class warnClass is triggered

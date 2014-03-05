@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.function;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -84,6 +86,8 @@ public final class FunctionRootNode extends RootNode {
                 return body.execute(frame);
             } catch (Exception e) {
                 if (e == StopIterationException.INSTANCE) {
+                    throw e;
+                } else if (e instanceof PyException) {
                     throw e;
                 } else {
                     return ZippyThrowsExceptionNode.MESSAGE;
