@@ -26,6 +26,7 @@
 #define SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP
 
 #include "compiler/abstractCompiler.hpp"
+#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalEnv.hpp"
 
 #define VM_STRUCTS_GRAAL(nonstatic_field, static_field)                       \
@@ -43,5 +44,8 @@
                                                                                                   \
   declare_preprocessor_constant("JVM_ACC_SYNTHETIC", JVM_ACC_SYNTHETIC)                           \
   declare_preprocessor_constant("JVM_RECOGNIZED_FIELD_MODIFIERS", JVM_RECOGNIZED_FIELD_MODIFIERS) \
+                                                                                                  \
+  declare_constant(CompilerToVM::KLASS_TAG)                                                       \
+  declare_constant(CompilerToVM::SYMBOL_TAG)                                                      \
 
 #endif // SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP
