@@ -110,7 +110,21 @@ class _AssertRaisesBaseContext(object):
                   expected_regex=None):
         self.expected = expected
         self.failureException = test_case.failureException
+        
+        if callable_obj is not None:
+            self.obj_name = str(callable_obj)
+        else:
+            self.obj_name = None
 
+
+#         if callable_obj is not None:
+#             try:
+#                 self.obj_name = callable_obj
+#             except AttributeError:
+#                 self.obj_name = str(callable_obj)
+#         else:
+#             self.obj_name = None
+        
 #         if callable_obj is not None:
 #             try:
 #                 self.obj_name = callable_obj.__name__
@@ -135,12 +149,15 @@ class _AssertRaisesContext(_AssertRaisesBaseContext):
                 exc_name = self.expected.__name__
             except AttributeError:
                 exc_name = str(self.expected)
-            if self.obj_name:
-                raise self.failureException("{0} not raised by {1}"
-                    .format(exc_name, self.obj_name))
-            else:
-                raise self.failureException("{0} not raised"
-                    .format(exc_name))
+#             if self.obj_name:
+#                 raise self.failureException("{0} not raised by {1}"
+#                     .format(exc_name, self.obj_name))
+#             else:
+#                 raise self.failureException("{0} not raised"
+#                     .format(exc_name))
+            self.failureMessage = "AssertionError: " + exc_name + " is not raised by " + self.obj_name
+            raise self.failureException(self.failureMessage)
+            #raise self.failureException("{0} not raised".format(exc_name))
         if not issubclass(exc_type, self.expected):
             # let unexpected exceptions pass through
             return False
@@ -376,10 +393,11 @@ class TestCase(object):
             #function()
             #changed to return_value = function() to check the return value for zippy translation failures
             return_value = function()
-            if (return_value == "ZippyThrowsException"):
+            # Catches zippy translation errors
+            if (return_value == "ZippyTranslationError"):
                 outcome.success = False
-                self.failureException = AssertionError("ZipPy throws exception during translation/execution")
-                self.failureMessage = "ZipPy throws exception during translation/execution"
+                self.failureException = AssertionError("ZipPy throws exception during translation")
+                self.failureMessage = "ZipPy throws exception during translation"
         #except KeyboardInterrupt:
         #    raise
         # except SkipTest as e:
@@ -406,7 +424,7 @@ class TestCase(object):
         except:
             outcome.success = False
             #outcome.errors.append(sys.exc_info())
-        
+                
 
     def run(self, result=None):
         orig_result = result
@@ -434,7 +452,13 @@ class TestCase(object):
             self._outcomeForDoCleanups = outcome
             self._executeTestPart(self.setUp, outcome)
             if outcome.success:
-                self._executeTestPart(testMethod, outcome, isTest=True)
+                #self._executeTestPart(testMethod, outcome, isTest=True)
+                # Catches Zippy execution errors
+                return_value = self._executeTestPart(testMethod, outcome, isTest=True)
+                if (return_value == "ZippyExecutionError"):
+                    outcome.success = False
+                    self.failureException = AssertionError("ZipPy throws exception during execution")
+                    self.failureMessage = "ZipPy throws exception during execution"
                 #self._executeTestPart(self.tearDown, outcome)
                 
             #self.doCleanups()
@@ -526,7 +550,7 @@ class TestCase(object):
     def assertTrue(self, expr, msg=None):
         """Check that the expression is true."""
         if not expr:
-            #msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
+            msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
             self.failureMessage = msg
             raise self.failureException(msg)
 
@@ -544,12 +568,13 @@ class TestCase(object):
             return msg or standardMsg
         if msg is None:
             return standardMsg
-        try:
+        
+#         try:
             # don't switch to '{}' formatting in Python 2.X
             # it changes the way unicode input is handled
-            return '%s : %s' % (standardMsg, msg)
-        except UnicodeDecodeError:
-            return  '%s : %s' % (safe_repr(standardMsg), safe_repr(msg))
+        return '%s : %s' % (standardMsg, msg)
+#         except UnicodeDecodeError:
+            #return  '%s : %s' % (safe_repr(standardMsg), safe_repr(msg))
 
 
     def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
@@ -653,7 +678,7 @@ class TestCase(object):
         """The default assertEqual implementation, not type specific."""
         if not first == second:
             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
-            #msg = self._formatMessage(msg, standardMsg)
+            msg = self._formatMessage(msg, standardMsg)
             self.failureMessage = msg
             raise self.failureException(msg)
 
@@ -670,7 +695,8 @@ class TestCase(object):
         """
         if not first != second:
             msg = self._formatMessage(msg, '%s == %s' % (safe_repr(first),
-                                                          safe_repr(second)))
+                                                        safe_repr(second)))
+
             self.failureMessage = msg
             raise self.failureException(msg)
 

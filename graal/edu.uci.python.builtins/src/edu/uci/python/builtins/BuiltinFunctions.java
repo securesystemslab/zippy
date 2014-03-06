@@ -221,7 +221,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
              * Added temporarily to skip translation/execution errors in unit testing
              */
 
-            if (object.equals(ZippyThrowsExceptionNode.MESSAGE)) {
+            if (object.equals(ZippyTranslationErrorNode.MESSAGE)) {
                 return true;
             }
 
@@ -900,6 +900,41 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public double round(double arg) {
             return Math.round(arg);
+        }
+
+    }
+
+    // setattr(object, name, value)
+    @Builtin(name = "setattr", hasFixedNumOfArguments = true, fixedNumOfArguments = 3)
+    public abstract static class SetAttrNode extends PythonBuiltinNode {
+
+        @Specialization(order = 1)
+        public Object setAttrInModule(PythonModule module, String name, Object value) {
+            module.setAttribute(name, value);
+            return null;
+        }
+
+        @Specialization(order = 2)
+        public Object setAttrInClass(PythonClass clazz, String name, Object value) {
+            clazz.setAttribute(name, value);
+            return null;
+        }
+
+        @Specialization(order = 3)
+        public Object setAttrInObject(PythonObject object, String name, Object value) {
+            object.setAttribute(name, value);
+            return null;
+        }
+
+        @Specialization(order = 4)
+        public Object setAttr(PyObject object, String name, Object value) {
+            object.__setitem__(name, PythonTypesUtil.adaptToPyObject(value));
+            return null;
+        }
+
+        @Specialization(order = 5)
+        public Object setAttr(Object object, Object name, Object value) {
+            throw new RuntimeException("setAttr is not supported for " + object + " " + object.getClass() + " name " + name + " value " + value);
         }
 
     }

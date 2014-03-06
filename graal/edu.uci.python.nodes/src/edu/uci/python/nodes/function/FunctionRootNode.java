@@ -24,14 +24,11 @@
  */
 package edu.uci.python.nodes.function;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.exception.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -81,21 +78,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (PythonOptions.catchZippyExceptionForUnitTesting) {
-            try {
-                return body.execute(frame);
-            } catch (Exception e) {
-                if (e == StopIterationException.INSTANCE) {
-                    throw e;
-                } else if (e instanceof PyException) {
-                    throw e;
-                } else {
-                    return ZippyThrowsExceptionNode.MESSAGE;
-                }
-            }
-        } else {
-            return body.execute(frame);
-        }
+        return body.execute(frame);
     }
 
     @Override
