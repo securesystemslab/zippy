@@ -103,6 +103,14 @@ def expectedFailure(func):
         raise _UnexpectedSuccess
     return wrapper
 
+#     def _baseAssertEqual(self, first, second, msg=None):
+#         """The default assertEqual implementation, not type specific."""
+#         if not first == second:
+#             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
+#             #msg = self._formatMessage(msg, standardMsg)
+#             self.failureMessage = self.failureException(msg)
+#             raise self.failureMessage
+#             #raise self.failureException(msg)
 
 class _AssertRaisesBaseContext(object):
  
@@ -110,16 +118,17 @@ class _AssertRaisesBaseContext(object):
                   expected_regex=None):
         self.expected = expected
         self.failureException = test_case.failureException
-        if callable_obj is not None:
-            try:
-                self.obj_name = callable_obj.__name__
-            except AttributeError:
-                self.obj_name = str(callable_obj)
-        else:
-            self.obj_name = None
-        if isinstance(expected_regex, (bytes, str)):
-            expected_regex = re.compile(expected_regex)
-        self.expected_regex = expected_regex
+
+#         if callable_obj is not None:
+#             try:
+#                 self.obj_name = callable_obj.__name__
+#             except AttributeError:
+#                 self.obj_name = str(callable_obj)
+#         else:
+#             self.obj_name = None
+#         if isinstance(expected_regex, (bytes, str)):
+#             expected_regex = re.compile(expected_regex)
+#         self.expected_regex = expected_regex
 
 
 class _AssertRaisesContext(_AssertRaisesBaseContext):
@@ -144,14 +153,14 @@ class _AssertRaisesContext(_AssertRaisesBaseContext):
             # let unexpected exceptions pass through
             return False
         # store exception, without traceback, for later retrieval
-        self.exception = exc_value.with_traceback(None)
-        if self.expected_regex is None:
-            return True
+#         self.exception = exc_value.with_traceback(None)
+#         if self.expected_regex is None:
+#             return True
    
-        expected_regex = self.expected_regex
-        if not expected_regex.search(str(exc_value)):
-            raise self.failureException('"%s" does not match "%s"' %
-                     (expected_regex.pattern, str(exc_value)))
+#         expected_regex = self.expected_regex
+#         if not expected_regex.search(str(exc_value)):
+#             raise self.failureException('"%s" does not match "%s"' %
+#                      (expected_regex.pattern, str(exc_value)))
         return True
 
 
@@ -284,7 +293,7 @@ class TestCase(object):
         self.addTypeEqualityFunc(set, 'assertSetEqual')
         self.addTypeEqualityFunc(frozenset, 'assertSetEqual')
         self.addTypeEqualityFunc(str, 'assertMultiLineEqual')
-        self.assertionError = None
+        self.failureMessage = None
 
     def addTypeEqualityFunc(self, typeobj, function):
         """Add a type specific assertEqual style function to compare a type.
@@ -378,7 +387,7 @@ class TestCase(object):
             if (return_value == "ZippyThrowsException"):
                 outcome.success = False
                 self.failureException = AssertionError("ZipPy throws exception during translation/execution")
-                self.assertionError = AssertionError("ZipPy throws exception during translation/execution")
+                self.failureMessage = "ZipPy throws exception during translation/execution"
         #except KeyboardInterrupt:
         #    raise
         # except SkipTest as e:
@@ -445,11 +454,13 @@ class TestCase(object):
                 # for exc_info in outcome.errors:
                 #     result.addError(self, exc_info)
                 #for exc_info in outcome.failures:
-                if (self.assertionError.args[0] is not None):
-                    result.addFailure(self, "AssertionError: ")
+                if self.failureMessage is None:
+                    assertionMessage = "AssertionError: "
                 else:
-                    result.addFailure(self, "AssertionError: " + self.assertionError.args[0])
-     
+                    assertionMessage = "AssertionError: " + self.failureMessage
+
+                result.addFailure(self, assertionMessage)
+
                 #result.addFailure(self, exc_info)
                 # if outcome.unexpectedSuccess is not None:
                 #     addUnexpectedSuccess = getattr(result, 'addUnexpectedSuccess', None)
@@ -510,24 +521,22 @@ class TestCase(object):
 
     def fail(self, msg=None):
         """Fail immediately, with the given message."""
-        self.assertionError = self.failureException(msg)
+        self.failureMessage = msg
         raise self.failureException(msg)
 
     def assertFalse(self, expr, msg=None):
         """Check that the expression is false."""
         if expr:
             msg = self._formatMessage(msg, "%s is not false" % safe_repr(expr))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertTrue(self, expr, msg=None):
         """Check that the expression is true."""
         if not expr:
             #msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def _formatMessage(self, msg, standardMsg):
         """Honour the longMessage attribute when generating failure messages.
@@ -653,9 +662,8 @@ class TestCase(object):
         if not first == second:
             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
             #msg = self._formatMessage(msg, standardMsg)
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertEqual(self, first, second, msg=None):
         """Fail if the two objects are unequal as determined by the '=='
@@ -671,9 +679,8 @@ class TestCase(object):
         if not first != second:
             msg = self._formatMessage(msg, '%s == %s' % (safe_repr(first),
                                                           safe_repr(second)))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertAlmostEqual(self, first, second, places=None, msg=None,
                           delta=None):
@@ -712,9 +719,8 @@ class TestCase(object):
                                                           safe_repr(second),
                                                           places)
         msg = self._formatMessage(msg, standardMsg)
-        self.assertionError = self.failureException(msg)
-        raise self.assertionError
-        #raise self.failureException(msg)
+        self.failureMessage = msg
+        raise self.failureException(msg)
 
     def assertNotAlmostEqual(self, first, second, places=None, msg=None,
                              delta=None):
@@ -746,9 +752,8 @@ class TestCase(object):
                                                          places)
 
         msg = self._formatMessage(msg, standardMsg)
-        self.assertionError = self.failureException(msg)
-        raise self.assertionError
-        #raise self.failureException(msg)
+        self.failureMessage = msg
+        raise self.failureException(msg)
 
 
     # def assertSequenceEqual(self, seq1, seq2, msg=None, seq_type=None):

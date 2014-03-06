@@ -549,6 +549,11 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 3)
+        public Object issubclass(PyObject clazz, PyObject clazzinfo) {
+            return Py.isSubClass(clazz, clazzinfo);
+        }
+
+        @Specialization(order = 4)
         public Object issubclass(Object clazz, Object clazzinfo) {
             throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }
@@ -856,44 +861,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
                     sb.append(((boolean) values.getItem(values.len() - 1) ? "True" : "False"));
                 } else {
                     sb.append(values.getItem(values.len() - 1));
-                }
-
-                getContext().getStandardOut().print(sb.toString() + sep + end);
-
-            }
-            // CheckStyle: resume system..print check
-            return null;
-        }
-
-        @SlowPath
-        private Object print(Object[] values, String possibleSep, String possibleEnd) {
-            String sep = possibleSep;
-            String end = possibleEnd;
-            // CheckStyle: stop system..print check
-            if (values.length == 0) {
-                getContext().getStandardOut().print(System.getProperty("line.separator"));
-            } else {
-                if (sep == null) {
-                    sep = "";
-                }
-
-                if (end == null) {
-                    end = System.getProperty("line.separator");
-                }
-
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < values.length - 1; i++) {
-                    if (values[i] instanceof Boolean) {
-                        sb.append(((boolean) values[i] ? "True" : "False") + " ");
-                    } else {
-                        sb.append(values[i] + " ");
-                    }
-                }
-
-                if (values[values.length - 1] instanceof Boolean) {
-                    sb.append(((boolean) values[values.length - 1] ? "True" : "False"));
-                } else {
-                    sb.append(values[values.length - 1]);
                 }
 
                 getContext().getStandardOut().print(sb.toString() + sep + end);
