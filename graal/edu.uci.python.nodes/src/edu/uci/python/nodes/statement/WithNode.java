@@ -97,7 +97,6 @@ public class WithNode extends StatementNode {
                 Object type = ((PyException) exception).type;
                 Object value = ((PyException) exception).value;
                 Object trace = ((PyException) exception).traceback;
-// returnValue = exitCall.call(frame.pack(), new Object[]{null, type, value, trace});
                 returnValue = exitCall.call(frame.pack(), new Object[]{pythonObj, type, value, trace});
             } else if (exception == null) {
                 return exitCall.call(frame.pack(), new Object[]{pythonObj});

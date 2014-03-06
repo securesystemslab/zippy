@@ -109,7 +109,9 @@ public class ScopeTranslator extends Visitor {
         }
 
         // Create a frame slot for var arg
-        environment.createLocal(node.getInternalVararg());
+        if (node.getInternalVararg() != null) {
+            environment.createLocal(node.getInternalVararg());
+        }
     }
 
     @Override

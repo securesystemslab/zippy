@@ -103,14 +103,6 @@ def expectedFailure(func):
         raise _UnexpectedSuccess
     return wrapper
 
-#     def _baseAssertEqual(self, first, second, msg=None):
-#         """The default assertEqual implementation, not type specific."""
-#         if not first == second:
-#             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
-#             #msg = self._formatMessage(msg, standardMsg)
-#             self.failureMessage = self.failureException(msg)
-#             raise self.failureMessage
-#             #raise self.failureException(msg)
 
 class _AssertRaisesBaseContext(object):
  
