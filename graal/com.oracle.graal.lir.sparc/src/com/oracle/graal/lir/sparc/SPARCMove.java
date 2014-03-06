@@ -39,6 +39,16 @@ import com.oracle.graal.lir.asm.*;
 
 public class SPARCMove {
 
+    public static SPARCLIRInstruction createMove(AllocatableValue dst, Value src) {
+        if (src instanceof SPARCAddressValue) {
+            return new LoadAddressOp(dst, (SPARCAddressValue) src);
+        } else if (isRegister(src) || isStackSlot(dst)) {
+            return new MoveFromRegOp(dst, src);
+        } else {
+            return new MoveToRegOp(dst, src);
+        }
+    }
+
     @Opcode("MOVE")
     public static class MoveToRegOp extends SPARCLIRInstruction implements MoveOp {
 
@@ -110,7 +120,7 @@ public class SPARCMove {
         @Override
         public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
             if (state != null) {
-                crb.recordImplicitException(masm.codeBuffer.position(), state);
+                crb.recordImplicitException(masm.position(), state);
             }
             emitMemAccess(masm);
         }
@@ -215,7 +225,7 @@ public class SPARCMove {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
-            crb.recordImplicitException(masm.codeBuffer.position(), state);
+            crb.recordImplicitException(masm.position(), state);
             new Ldx(new SPARCAddress(asRegister(input), 0), r0).emit(masm);
         }
 

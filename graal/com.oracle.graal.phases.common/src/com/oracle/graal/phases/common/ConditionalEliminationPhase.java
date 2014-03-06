@@ -315,9 +315,18 @@ public class ConditionalEliminationPhase extends Phase {
 
         private void registerCondition(boolean isTrue, LogicNode condition, ValueNode anchor) {
             if (!isTrue && condition instanceof ShortCircuitOrNode) {
-                ShortCircuitOrNode disjunction = (ShortCircuitOrNode) condition;
-                registerCondition(disjunction.isXNegated(), disjunction.getX(), anchor);
-                registerCondition(disjunction.isYNegated(), disjunction.getY(), anchor);
+                /*
+                 * We can only do this for fixed nodes, because floating guards will be registered
+                 * at a BeginNode but might be "valid" only later due to data flow dependencies.
+                 * Therefore, registering both conditions of a ShortCircuitOrNode for a floating
+                 * guard could lead to cycles in data flow, because the guard will be used as anchor
+                 * for both conditions, and one condition could be depending on the other.
+                 */
+                if (anchor instanceof FixedNode) {
+                    ShortCircuitOrNode disjunction = (ShortCircuitOrNode) condition;
+                    registerCondition(disjunction.isXNegated(), disjunction.getX(), anchor);
+                    registerCondition(disjunction.isYNegated(), disjunction.getY(), anchor);
+                }
             }
             state.addCondition(isTrue, condition, anchor);
 
@@ -617,7 +626,7 @@ public class ConditionalEliminationPhase extends Phase {
                         if (type != ObjectStamp.typeOrNull(receiver)) {
                             ResolvedJavaMethod method = type.resolveMethod(callTarget.targetMethod());
                             if (method != null) {
-                                if ((method.getModifiers() & Modifier.FINAL) != 0 || (type.getModifiers() & Modifier.FINAL) != 0) {
+                                if (Modifier.isFinal(method.getModifiers()) || Modifier.isFinal(type.getModifiers())) {
                                     callTarget.setInvokeKind(InvokeKind.Special);
                                     callTarget.setTargetMethod(method);
                                 }
@@ -630,6 +639,9 @@ public class ConditionalEliminationPhase extends Phase {
         }
 
         private GuardingNode searchAnchor(ValueNode value, ResolvedJavaType type) {
+            if (!value.recordsUsages()) {
+                return null;
+            }
             for (Node n : value.usages()) {
                 if (n instanceof InstanceOfNode) {
                     InstanceOfNode instanceOfNode = (InstanceOfNode) n;

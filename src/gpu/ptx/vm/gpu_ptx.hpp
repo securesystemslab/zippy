@@ -84,19 +84,45 @@
  * Context creation flags
  */
 
-#define GRAAL_CU_CTX_MAP_HOST 0x08
+#define GRAAL_CU_CTX_MAP_HOST            0x08
+#define GRAAL_CU_CTX_SCHED_BLOCKING_SYNC 0x04
+
+/**
+ * Support compute capability 3.0 and later
+ */
+
+#define GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION 3.0
 
 class Ptx {
-  friend class gpu;
+  friend class PtxCall;
 
- protected:
-  static bool probe_linkage();
-  static bool initialize_gpu();
-  static unsigned int total_cores();
-  static void * generate_kernel(unsigned char *code, int code_len, const char *name);
-  static bool execute_warp(int dimX, int dimY, int dimZ, address kernel, PTXKernelArguments & ka, JavaValue &ret);
-  static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
+private:
+
+  static JNINativeMethod PTX_methods[];
+
+  // static native boolean initialize();
+  JNIEXPORT static jboolean initialize(JNIEnv* env, jclass);
+
+  // static native long generateKernel(byte[] targetCode, String name);
+  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+
+  // static native long getLaunchKernelAddress();
+  JNIEXPORT static jlong get_execute_kernel_from_vm_address(JNIEnv *env, jclass);
+
+  // static native int getAvailableProcessors0();
+  JNIEXPORT static jint get_total_cores(JNIEnv *env, jobject);
+
+  JNIEXPORT static void destroy_ptx_context();
+
+  // Links the CUDA driver library functions
+  static bool link();
+
+  static int ncores(int major, int minor);
+
 public:
+  // Registers the implementations for the native methods in PTXHotSpotBackend
+  static bool register_natives(JNIEnv* env);
+
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
   typedef unsigned long long CUdeviceptr;
 #else
@@ -106,8 +132,11 @@ public:
 typedef int CUdevice;     /* CUDA device */
 
   static jlong execute_kernel_from_vm(JavaThread* thread, jlong kernel, jint dimX, jint dimY, jint dimZ,
-                                      jlong parametersAndReturnValueBuffer,
-                                      jint parametersAndReturnValueBufferSize,
+                                      jlong buffer,
+                                      jint bufferSize,
+                                      jint objectParametersCount,
+                                      jlong objectParametersOffsets,
+                                      jlong pinnedObjects,
                                       int encodedReturnTypeSize);
 
 private:
@@ -115,6 +144,7 @@ private:
   typedef int (*cuda_cu_ctx_create_func_t)(void*, unsigned int, CUdevice);
   typedef int (*cuda_cu_ctx_destroy_func_t)(void*);
   typedef int (*cuda_cu_ctx_synchronize_func_t)(void);
+  typedef int (*cuda_cu_ctx_get_current_func_t)(void*);
   typedef int (*cuda_cu_ctx_set_current_func_t)(void*);
   typedef int (*cuda_cu_device_get_count_func_t)(int*);
   typedef int (*cuda_cu_device_get_name_func_t)(char*, int, int);
@@ -127,12 +157,12 @@ private:
                                               unsigned int, void*, void**, void**);
   typedef int (*cuda_cu_module_get_function_func_t)(void*, void*, const char*);
   typedef int (*cuda_cu_module_load_data_ex_func_t)(void*, void*, unsigned int, void*, void**);
-  typedef int (*cuda_cu_memalloc_func_t)(gpu::Ptx::CUdeviceptr*, size_t);
-  typedef int (*cuda_cu_memfree_func_t)(gpu::Ptx::CUdeviceptr);
-  typedef int (*cuda_cu_memcpy_htod_func_t)(gpu::Ptx::CUdeviceptr, const void*, unsigned int);
-  typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, gpu::Ptx::CUdeviceptr,  unsigned int);
+  typedef int (*cuda_cu_memalloc_func_t)(Ptx::CUdeviceptr*, size_t);
+  typedef int (*cuda_cu_memfree_func_t)(Ptx::CUdeviceptr);
+  typedef int (*cuda_cu_memcpy_htod_func_t)(Ptx::CUdeviceptr, const void*, unsigned int);
+  typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, Ptx::CUdeviceptr,  unsigned int);
   typedef int (*cuda_cu_mem_host_register_func_t)(void*, size_t, unsigned int);
-  typedef int (*cuda_cu_mem_host_get_device_pointer_func_t)(gpu::Ptx::CUdeviceptr*, void*, unsigned int);
+  typedef int (*cuda_cu_mem_host_get_device_pointer_func_t)(Ptx::CUdeviceptr*, void*, unsigned int);
   typedef int (*cuda_cu_mem_host_unregister_func_t)(void*);
 
 public:
@@ -152,6 +182,7 @@ public:
   static cuda_cu_memfree_func_t                   _cuda_cu_memfree;
   static cuda_cu_memcpy_htod_func_t               _cuda_cu_memcpy_htod;
   static cuda_cu_memcpy_dtoh_func_t               _cuda_cu_memcpy_dtoh;
+  static cuda_cu_ctx_get_current_func_t           _cuda_cu_ctx_get_current;
   static cuda_cu_ctx_set_current_func_t           _cuda_cu_ctx_set_current;
   static cuda_cu_mem_host_register_func_t         _cuda_cu_mem_host_register;
   static cuda_cu_mem_host_get_device_pointer_func_t _cuda_cu_mem_host_get_device_pointer;

@@ -62,8 +62,10 @@ import com.oracle.graal.lir.ptx.PTXMove.MoveFromRegOp;
 import com.oracle.graal.lir.ptx.PTXMove.MoveToRegOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.util.*;
 
 /**
@@ -79,17 +81,8 @@ public class PTXLIRGenerator extends LIRGenerator {
     public static final ForeignCallDescriptor ARITHMETIC_FREM = new ForeignCallDescriptor("arithmeticFrem", float.class, float.class, float.class);
     public static final ForeignCallDescriptor ARITHMETIC_DREM = new ForeignCallDescriptor("arithmeticDrem", double.class, double.class, double.class);
 
-    public static class PTXSpillMoveFactory implements LIR.SpillMoveFactory {
-
-        @Override
-        public LIRInstruction createMove(AllocatableValue result, Value input) {
-            throw GraalInternalError.unimplemented("PTXSpillMoveFactory.createMove()");
-        }
-    }
-
     public PTXLIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
         super(graph, providers, frameMap, cc, lir);
-        lir.spillMoveFactory = new PTXSpillMoveFactory();
         int callVariables = cc.getArgumentCount() + (cc.getReturn().equals(Value.ILLEGAL) ? 0 : 1);
         lir.setFirstVariableNumber(callVariables);
         nextPredRegNum = 0;
@@ -162,9 +155,9 @@ public class PTXLIRGenerator extends LIRGenerator {
             }
             Warp warpAnnotation = parameterIndex >= 0 ? MetaUtil.getParameterAnnotation(Warp.class, parameterIndex, graph.method()) : null;
             if (warpAnnotation != null) {
-                setResult(param, emitWarpParam(paramValue.getKind(), warpAnnotation));
+                setResult(param, emitWarpParam(paramValue.getKind().getStackKind(), warpAnnotation));
             } else {
-                setResult(param, emitLoadParam(paramValue.getKind(), paramValue, null));
+                setResult(param, emitLoadParam(paramValue.getKind().getStackKind(), paramValue, null));
             }
         }
     }
@@ -232,7 +225,7 @@ public class PTXLIRGenerator extends LIRGenerator {
                 Value convertedIndex;
                 Value indexRegister;
 
-                convertedIndex = emitConvert(Kind.Int, Kind.Long, index);
+                convertedIndex = emitSignExtend(index, 32, 64);
                 if (scale != 1) {
                     if (CodeUtil.isPowerOf2(scale)) {
                         indexRegister = emitShl(convertedIndex, Constant.forInt(CodeUtil.log2(scale)));
@@ -299,7 +292,7 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination) {
+    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
         switch (left.getKind().getStackKind()) {
             case Int:
                 append(new CompareOp(ICMP, cond, left, right, nextPredRegNum));
@@ -327,12 +320,12 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated) {
+    public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, double overflowProbability) {
         throw GraalInternalError.unimplemented("PTXLIRGenerator.emitOverflowCheckBranch()");
     }
 
     @Override
-    public void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination) {
+    public void emitIntegerTestBranch(Value left, Value right, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
         // / emitIntegerTest(left, right);
         // append(new BranchOp(negated ? Condition.NE : Condition.EQ, label));
         throw GraalInternalError.unimplemented("emitIntegerTestBranch()");
@@ -681,15 +674,112 @@ public class PTXLIRGenerator extends LIRGenerator {
         return result;
     }
 
-    @Override
-    public Variable emitConvert(Kind from, Kind to, Value inputVal) {
+    public Variable emitConvertOp(Kind from, Kind to, Value inputVal) {
         Variable input = load(inputVal);
         Variable result = newVariable(to);
         append(new ConvertOp(result, input, to, from));
         return result;
     }
 
-    public Value emitReinterpret(Kind to, Value inputVal) {
+    @Override
+    public Value emitFloatConvert(FloatConvert op, Value inputVal) {
+        switch (op) {
+            case D2F:
+                return emitConvertOp(Kind.Double, Kind.Float, inputVal);
+            case D2I:
+                return emitConvertOp(Kind.Double, Kind.Int, inputVal);
+            case D2L:
+                return emitConvertOp(Kind.Double, Kind.Long, inputVal);
+            case F2D:
+                return emitConvertOp(Kind.Float, Kind.Double, inputVal);
+            case F2I:
+                return emitConvertOp(Kind.Float, Kind.Int, inputVal);
+            case F2L:
+                return emitConvertOp(Kind.Float, Kind.Long, inputVal);
+            case I2D:
+                return emitConvertOp(Kind.Int, Kind.Double, inputVal);
+            case I2F:
+                return emitConvertOp(Kind.Int, Kind.Float, inputVal);
+            case L2D:
+                return emitConvertOp(Kind.Long, Kind.Double, inputVal);
+            case L2F:
+                return emitConvertOp(Kind.Long, Kind.Float, inputVal);
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    @Override
+    public Value emitNarrow(Value inputVal, int bits) {
+        if (inputVal.getKind() == Kind.Long && bits <= 32) {
+            return emitConvertOp(Kind.Long, Kind.Int, inputVal);
+        } else {
+            return inputVal;
+        }
+    }
+
+    @Override
+    public Value emitSignExtend(Value inputVal, int fromBits, int toBits) {
+        assert fromBits <= toBits && toBits <= 64;
+        if (fromBits == toBits) {
+            return inputVal;
+        } else if (toBits > 32) {
+            // sign extend to 64 bits
+            switch (fromBits) {
+                case 8:
+                    return emitConvertOp(Kind.Byte, Kind.Long, inputVal);
+                case 16:
+                    return emitConvertOp(Kind.Short, Kind.Long, inputVal);
+                case 32:
+                    return emitConvertOp(Kind.Int, Kind.Long, inputVal);
+                case 64:
+                    return inputVal;
+                default:
+                    throw GraalInternalError.unimplemented("unsupported sign extension (" + fromBits + " bit -> " + toBits + " bit)");
+            }
+        } else {
+            // sign extend to 32 bits (smaller values are internally represented as 32 bit values)
+            switch (fromBits) {
+                case 8:
+                    return emitConvertOp(Kind.Byte, Kind.Int, inputVal);
+                case 16:
+                    return emitConvertOp(Kind.Short, Kind.Int, inputVal);
+                case 32:
+                    return inputVal;
+                default:
+                    throw GraalInternalError.unimplemented("unsupported sign extension (" + fromBits + " bit -> " + toBits + " bit)");
+            }
+        }
+    }
+
+    @Override
+    public Value emitZeroExtend(Value inputVal, int fromBits, int toBits) {
+        assert fromBits <= toBits && toBits <= 64;
+        if (fromBits == toBits) {
+            return inputVal;
+        } else if (fromBits > 32) {
+            assert inputVal.getKind() == Kind.Long;
+            Variable result = newVariable(Kind.Long);
+            long mask = IntegerStamp.defaultMask(fromBits);
+            append(new Op2Stack(LAND, result, inputVal, Constant.forLong(mask)));
+            return result;
+        } else {
+            assert inputVal.getKind() == Kind.Int;
+            Variable result = newVariable(Kind.Int);
+            int mask = (int) IntegerStamp.defaultMask(fromBits);
+            append(new Op2Stack(IAND, result, inputVal, Constant.forInt(mask)));
+            if (toBits > 32) {
+                Variable longResult = newVariable(Kind.Long);
+                emitMove(longResult, result);
+                return longResult;
+            } else {
+                return result;
+            }
+        }
+    }
+
+    @Override
+    public Value emitReinterpret(PlatformKind to, Value inputVal) {
         Variable result = newVariable(to);
         emitMove(result, inputVal);
         return result;
@@ -775,7 +865,7 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCharArrayEquals(Variable result, Value array1, Value array2, Value length) {
+    public void emitArrayEquals(Kind kind, Variable result, Value array1, Value array2, Value length) {
         // TODO Auto-generated method stub
         throw GraalInternalError.unimplemented();
     }

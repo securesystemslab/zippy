@@ -54,20 +54,30 @@ public interface CompilerToVM {
     boolean hasBalancedMonitors(long metaspaceMethod);
 
     /**
-     * Determines if a given metaspace Method object is compilable. A method may not be compilable
-     * for a number of reasons such as:
+     * Determines if a given metaspace Method can be inlined. A method may not be inlinable for a
+     * number of reasons such as:
      * <ul>
-     * <li>a CompileOracle directive may prevent compilation of methods</li>
+     * <li>a CompileOracle directive may prevent inlining or compilation of this methods</li>
      * <li>the method may have a bytecode breakpoint set</li>
      * <li>the method may have other bytecode features that require special handling by the VM</li>
      * </ul>
      * 
-     * A non-compilable method should not be inlined.
+     * @param metaspaceMethod the metaspace Method object to query
+     * @return true if the method can be inlined
+     */
+    boolean canInlineMethod(long metaspaceMethod);
+
+    /**
+     * Determines if a given metaspace Method should be inlined at any cost. This could be because:
+     * <ul>
+     * <li>a CompileOracle directive may forces inlining of this methods</li>
+     * <li>an annotation forces inlining of this method</li>
+     * </ul>
      * 
      * @param metaspaceMethod the metaspace Method object to query
-     * @return true if the method is compilable
+     * @return true if the method should be inlined
      */
-    boolean isMethodCompilable(long metaspaceMethod);
+    boolean shouldInlineMethod(long metaspaceMethod);
 
     /**
      * Used to implement {@link ResolvedJavaType#findUniqueConcreteMethod(ResolvedJavaMethod)}.
@@ -108,15 +118,58 @@ public interface CompilerToVM {
 
     Object lookupConstantInPool(long metaspaceConstantPool, int cpi);
 
-    JavaMethod lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    /**
+     * Looks up a method entry in a constant pool. If the method is resolved, then
+     * {@code unresolvedInfo} is unmodified. Otherwise, it contains these values:
+     * 
+     * <pre>
+     *     [(Symbol*) name,
+     *      (Symbol*) signature,
+     *      (Symbol*) holderName, // only non-zero if holder == 0
+     *      (Klass*)  holder]
+     * </pre>
+     * 
+     * @param metaspaceConstantPool
+     * @param unresolvedInfo an array in which the details for an unresolved method are returned
+     * @return a metaspace Method for a resolved method entry otherwise 0 in which case the values
+     *         returned in {@code unresolvedInfo} should be consulted
+     */
+    long lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode, long[] unresolvedInfo);
 
-    JavaType lookupTypeInPool(long metaspaceConstantPool, int cpi);
+    /**
+     * Looks up a class entry in a constant pool.
+     * 
+     * @param metaspaceConstantPool
+     * @param unresolvedTypeName a 1 element array in which the name of the class is returned if
+     *            this method returns 0
+     * @return a metaspace Klass for a resolved method entry otherwise 0 in which case the value
+     *         returned in {@code unresolvedTypeName} should be consulted
+     */
+    long lookupTypeInPool(long metaspaceConstantPool, int cpi, long[] unresolvedTypeName);
 
-    JavaField lookupFieldInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    /**
+     * Looks up a field entry in a constant pool and attempts to resolve it. The values returned in
+     * {@code info} are:
+     * 
+     * <pre>
+     *     [(Symbol*) name,
+     *      (Symbol*) typeName,   // only non-zero if type == 0
+     *      (Klass*)  type,
+     *      (Symbol*) holderName, // only non-zero if holder == 0
+     *      (Klass*)  holder,
+     *      (int)     flags,      // only valid if field is resolved
+     *      (int)     offset]     // only valid if field is resolved
+     * </pre>
+     * 
+     * @param metaspaceConstantPool
+     * @param info an array in which the details of the field are returned
+     * @return true if the field is resolved
+     */
+    boolean lookupFieldInPool(long metaspaceConstantPool, int cpi, byte opcode, long[] info);
 
-    void lookupReferencedTypeInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    void loadReferencedTypeInPool(long metaspaceConstantPool, int cpi, byte opcode);
 
-    Object lookupAppendixInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    Object lookupAppendixInPool(long metaspaceConstantPool, int cpi);
 
     public enum CodeInstallResult {
         OK("ok"), DEPENDENCIES_FAILED("dependencies failed"), CACHE_FULL("code cache is full"), CODE_TOO_LARGE("code is too large");
@@ -194,8 +247,6 @@ public interface CompilerToVM {
 
     long resolveMethod(HotSpotResolvedObjectType klass, String name, String signature);
 
-    HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
-
     long getClassInitializer(HotSpotResolvedObjectType klass);
 
     boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
@@ -258,8 +309,17 @@ public interface CompilerToVM {
      */
     long[] collectCounters();
 
+    boolean isMature(long metaspaceMethodData);
+
     /**
      * Generate a unique id to identify the result of the compile.
      */
     int allocateCompileId(HotSpotResolvedJavaMethod method, int entryBCI);
+
+    /**
+     * Gets the names of the supported GPU architectures.
+     * 
+     * @return a comma separated list of names
+     */
+    String getGPUs();
 }

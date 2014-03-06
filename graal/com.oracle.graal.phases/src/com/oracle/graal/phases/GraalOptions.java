@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,8 @@ import com.oracle.graal.options.*;
 // @formatter:off
 public final class GraalOptions {
 
+    @Option(help = "Use baseline compiler configuration")
+    public static final OptionValue<Boolean> UseBaselineCompiler = new OptionValue<>(false);
     @Option(help = "Enable use of compiler intrinsics")
     public static final OptionValue<Boolean> Intrinsify = new OptionValue<>(true);
     @Option(help = "Enable inlining of monomorphic calls")
@@ -232,6 +234,9 @@ public final class GraalOptions {
     @Option(help = "Try to avoid emitting code where patching is required")
     public static final OptionValue<Boolean> ImmutableCode = new OptionValue<>(false);
 
+    @Option(help = "")
+    public static final OptionValue<Boolean> CallArrayCopy = new OptionValue<>(true);
+
     // Runtime settings
     @Option(help = "")
     public static final OptionValue<Boolean> SupportJsrBytecodes = new OptionValue<>(true);
@@ -250,8 +255,6 @@ public final class GraalOptions {
     public static final OptionValue<Boolean> OptScheduleOutOfLoops = new OptionValue<>(true);
     @Option(help = "")
     public static final OptionValue<Boolean> OptEliminateGuards = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> OptEliminateSafepoints = new OptionValue<>(true);
     @Option(help = "")
     public static final OptionValue<Boolean> OptImplicitNullChecks = new OptionValue<>(true);
     @Option(help = "")

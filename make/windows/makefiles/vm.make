@@ -126,7 +126,6 @@ CXX_INCLUDE_DIRS=$(CXX_INCLUDE_DIRS) \
   /I "$(COMMONSRC)\share\vm\prims" \
   /I "$(COMMONSRC)\os\windows\vm" \
   /I "$(COMMONSRC)\os_cpu\windows_$(Platform_arch)\vm" \
-  /I "$(COMMONSRC)\os_gpu\windows_hsail\vm" \
   /I "$(COMMONSRC)\cpu\$(Platform_arch)\vm"
 
 CXX_DONT_USE_PCH=/D DONT_USE_PRECOMPILED_HEADER
@@ -171,7 +170,6 @@ VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/utilities
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/libadt
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/os/windows/vm
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/os_cpu/windows_$(Platform_arch)/vm
-VM_PATH=$(VM_PATH);$(WorkSpace)/src/os_gpu/windows_hsail/vm
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/cpu/$(Platform_arch)/vm
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/opto
 

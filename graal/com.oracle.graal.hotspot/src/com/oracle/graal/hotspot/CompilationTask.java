@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot;
 
+import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.hotspot.bridge.VMToCompilerImpl.*;
@@ -29,6 +30,7 @@ import static com.oracle.graal.nodes.StructuredGraph.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.phases.common.InliningUtil.*;
 
+import java.io.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -49,9 +51,16 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.tiers.*;
 
-public class CompilationTask implements Runnable {
+public class CompilationTask implements Runnable, Comparable {
 
-    public static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
+    // Keep static finals in a group with withinEnqueue as the last one. CompilationTask can be
+    // called from within it's own clinit so it needs to be careful about accessing state. Once
+    // withinEnqueue is non-null we assume that CompilationTask is fully initialized.
+    private static final AtomicLong uniqueTaskIds = new AtomicLong();
+
+    private static final DebugMetric BAILOUTS = Debug.metric("Bailouts");
+
+    private static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
 
         @Override
         protected Boolean initialValue() {
@@ -59,8 +68,24 @@ public class CompilationTask implements Runnable {
         }
     };
 
+    public static final boolean isWithinEnqueue() {
+        // It's possible this can be called before the <clinit> has completed so check for null
+        return withinEnqueue == null || withinEnqueue.get();
+    }
+
+    public static class BeginEnqueue implements Closeable {
+        public BeginEnqueue() {
+            assert !withinEnqueue.get();
+            withinEnqueue.set(Boolean.TRUE);
+        }
+
+        public void close() {
+            withinEnqueue.set(Boolean.FALSE);
+        }
+    }
+
     private enum CompilationStatus {
-        Queued, Running
+        Queued, Running, Finished
     }
 
     private final HotSpotBackend backend;
@@ -71,12 +96,20 @@ public class CompilationTask implements Runnable {
 
     private StructuredGraph graph;
 
-    public CompilationTask(HotSpotBackend backend, HotSpotResolvedJavaMethod method, int entryBCI, int id) {
-        assert id >= 0;
+    /**
+     * A long representing the sequence number of this task. Used for sorting the compile queue.
+     */
+    private long taskId;
+
+    private boolean blocking;
+
+    public CompilationTask(HotSpotBackend backend, HotSpotResolvedJavaMethod method, int entryBCI, boolean blocking) {
         this.backend = backend;
         this.method = method;
         this.entryBCI = entryBCI;
-        this.id = id;
+        this.id = backend.getRuntime().getCompilerToVM().allocateCompileId(method, entryBCI);
+        this.blocking = blocking;
+        this.taskId = uniqueTaskIds.incrementAndGet();
         this.status = new AtomicReference<>(CompilationStatus.Queued);
     }
 
@@ -101,7 +134,40 @@ public class CompilationTask implements Runnable {
                 method.setCurrentTask(null);
             }
             withinEnqueue.set(Boolean.TRUE);
+            status.set(CompilationStatus.Finished);
+            synchronized (this) {
+                notifyAll();
+            }
         }
+    }
+
+    /**
+     * Block waiting till the compilation completes.
+     */
+    public synchronized void block() {
+        while (status.get() != CompilationStatus.Finished) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                // Ignore and retry
+            }
+        }
+    }
+
+    /**
+     * Sort blocking tasks before non-blocking ones and then by lowest taskId within the group.
+     */
+    public int compareTo(Object o) {
+        if (!(o instanceof CompilationTask)) {
+            return 1;
+        }
+        CompilationTask task2 = (CompilationTask) o;
+        if (this.blocking != task2.blocking) {
+            // Blocking CompilationTasks are always higher than CompilationTasks
+            return task2.blocking ? 1 : -1;
+        }
+        // Within the two groups sort by sequence id, so they are processed in insertion order.
+        return this.taskId > task2.taskId ? 1 : -1;
     }
 
     /**
@@ -179,6 +245,13 @@ public class CompilationTask implements Runnable {
                 }
                 InlinedBytecodes.add(method.getCodeSize());
                 CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
+                if (graph.getEntryBCI() != StructuredGraph.INVOCATION_ENTRY_BCI) {
+                    // for OSR, only a pointer is passed to the method.
+                    JavaType[] parameterTypes = new JavaType[]{providers.getMetaAccess().lookupJavaType(long.class)};
+                    CallingConvention tmp = providers.getCodeCache().getRegisterConfig().getCallingConvention(JavaCallee, providers.getMetaAccess().lookupJavaType(void.class), parameterTypes,
+                                    backend.getTarget(), false);
+                    cc = new CallingConvention(cc.getStackSize(), cc.getReturn(), tmp.getArgument(0));
+                }
                 Suites suites = getSuites(providers);
                 ProfilingInfo profilingInfo = getProfilingInfo();
                 OptimisticOptimizations optimisticOpts = getOptimisticOpts(profilingInfo);
@@ -203,7 +276,7 @@ public class CompilationTask implements Runnable {
             }
             stats.finish(method);
         } catch (BailoutException bailout) {
-            Debug.metric("Bailouts").increment();
+            BAILOUTS.increment();
             if (ExitVMOnBailout.getValue()) {
                 TTY.cachedOut.println(MetaUtil.format("Bailout in %H.%n(%p)", method));
                 bailout.printStackTrace(TTY.cachedOut);

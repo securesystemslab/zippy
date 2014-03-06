@@ -49,4 +49,54 @@ public class UnsafeAccess {
             throw new RuntimeException("exception while trying to get Unsafe.theUnsafe via reflection:", e);
         }
     }
+
+    /**
+     * Copies the contents of a {@link String} to a native memory buffer as a {@code '\0'}
+     * terminated C string. The native memory buffer is allocated via
+     * {@link Unsafe#allocateMemory(long)}. The caller is responsible for releasing the buffer when
+     * it is no longer needed via {@link Unsafe#freeMemory(long)}.
+     * 
+     * @return the native memory pointer of the C string created from {@code s}
+     */
+    public static long createCString(String s) {
+        return writeCString(s, unsafe.allocateMemory(s.length() + 1));
+    }
+
+    /**
+     * Reads a {@code '\0'} terminated C string from native memory and converts it to a
+     * {@link String}.
+     * 
+     * @return a Java string
+     */
+    public static String readCString(long address) {
+        if (address == 0) {
+            return null;
+        }
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0;; i++) {
+            char c = (char) unsafe.getByte(address + i);
+            if (c == 0) {
+                break;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Writes the contents of a {@link String} to a native memory buffer as a {@code '\0'}
+     * terminated C string. The caller is responsible for ensuring the buffer is at least
+     * {@code s.length() + 1} bytes long. The caller is also responsible for releasing the buffer
+     * when it is no longer.
+     * 
+     * @return the value of {@code buf}
+     */
+    public static long writeCString(String s, long buf) {
+        int size = s.length();
+        for (int i = 0; i < size; i++) {
+            unsafe.putByte(buf + i, (byte) s.charAt(i));
+        }
+        unsafe.putByte(buf + size, (byte) '\0');
+        return buf;
+    }
 }

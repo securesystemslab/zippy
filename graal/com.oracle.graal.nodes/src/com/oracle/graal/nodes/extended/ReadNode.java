@@ -71,29 +71,39 @@ public final class ReadNode extends FloatableAccessNode implements LIRLowerable,
     public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool, boolean compressible) {
         MetaAccessProvider metaAccess = tool.getMetaAccess();
         if (read.usages().isEmpty()) {
-            // Read without usages can be savely removed.
+            // Read without usages can be safely removed.
             return null;
         }
-        if (tool.canonicalizeReads() && metaAccess != null && object != null && object.isConstant()) {
-            if (location.getLocationIdentity() == LocationIdentity.FINAL_LOCATION && location instanceof ConstantLocationNode) {
-                long displacement = ((ConstantLocationNode) location).getDisplacement();
-                Kind kind = location.getValueKind();
-                if (object.kind() == Kind.Object) {
-                    Object base = object.asConstant().asObject();
-                    if (base != null) {
-                        Constant constant = tool.getConstantReflection().readUnsafeConstant(kind, base, displacement, compressible);
-                        if (constant != null) {
-                            return ConstantNode.forConstant(constant, metaAccess, read.graph());
+        if (tool.canonicalizeReads()) {
+            if (metaAccess != null && object != null && object.isConstant()) {
+                if ((location.getLocationIdentity() == LocationIdentity.FINAL_LOCATION || location.getLocationIdentity() == LocationIdentity.ARRAY_LENGTH_LOCATION) &
+                                location instanceof ConstantLocationNode) {
+                    long displacement = ((ConstantLocationNode) location).getDisplacement();
+                    Kind kind = location.getValueKind();
+                    if (object.kind() == Kind.Object) {
+                        Object base = object.asConstant().asObject();
+                        if (base != null) {
+                            Constant constant = tool.getConstantReflection().readUnsafeConstant(kind, base, displacement, compressible);
+                            if (constant != null) {
+                                return ConstantNode.forConstant(constant, metaAccess, read.graph());
+                            }
+                        }
+                    } else if (object.kind().isNumericInteger()) {
+                        long base = object.asConstant().asLong();
+                        if (base != 0L) {
+                            Constant constant = tool.getConstantReflection().readUnsafeConstant(kind, null, base + displacement, compressible);
+                            if (constant != null) {
+                                return ConstantNode.forConstant(constant, metaAccess, read.graph());
+                            }
                         }
                     }
-                } else if (object.kind().isNumericInteger()) {
-                    long base = object.asConstant().asLong();
-                    if (base != 0L) {
-                        Constant constant = tool.getConstantReflection().readUnsafeConstant(kind, null, base + displacement, compressible);
-                        if (constant != null) {
-                            return ConstantNode.forConstant(constant, metaAccess, read.graph());
-                        }
-                    }
+                }
+            }
+            if (location.getLocationIdentity() == LocationIdentity.ARRAY_LENGTH_LOCATION && object instanceof ArrayLengthProvider) {
+                ValueNode length = ((ArrayLengthProvider) object).length();
+                if (length != null) {
+                    // TODO Does this need a PiCastNode to the positive range?
+                    return length;
                 }
             }
         }

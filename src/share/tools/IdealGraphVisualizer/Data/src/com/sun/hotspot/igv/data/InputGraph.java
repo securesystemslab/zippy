@@ -32,19 +32,19 @@ import java.util.*;
 public class InputGraph extends Properties.Entity implements FolderElement {
 
     private Map<Integer, InputNode> nodes;
-    private Set<InputEdge> edges;
+    private List<InputEdge> edges;
     private Folder parent;
     private Group parentGroup;
     private Map<String, InputBlock> blocks;
-    private Set<InputBlockEdge> blockEdges;
+    private List<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
 
     public InputGraph(String name) {
         setName(name);
         nodes = new LinkedHashMap<>();
-        edges = new LinkedHashSet<>();
+        edges = new ArrayList<>();
         blocks = new LinkedHashMap<>();
-        blockEdges = new LinkedHashSet<>();
+        blockEdges = new ArrayList<>();
         nodeToBlock = new LinkedHashMap<>();
     }
     
@@ -234,7 +234,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public Collection<InputEdge> getEdges() {
-        return Collections.unmodifiableSet(edges);
+        return Collections.unmodifiableList(edges);
     }
 
     public void removeEdge(InputEdge c) {
@@ -283,7 +283,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public Collection<InputBlockEdge> getBlockEdges() {
-        return Collections.unmodifiableSet(blockEdges);
+        return Collections.unmodifiableList(blockEdges);
     }
 
     @Override

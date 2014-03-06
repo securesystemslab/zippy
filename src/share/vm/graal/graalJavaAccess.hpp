@@ -169,7 +169,6 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(CompilationResult_Mark)                                                                                                                          \
     oop_field(CompilationResult_Mark, id, "Ljava/lang/Object;")                                                                                                \
-    oop_field(CompilationResult_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;")                                                       \
   end_class                                                                                                                                                    \
   start_class(DebugInfo)                                                                                                                                       \
     oop_field(DebugInfo, bytecodePosition, "Lcom/oracle/graal/api/code/BytecodePosition;")                                                                     \

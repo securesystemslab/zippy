@@ -22,39 +22,54 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.api.meta.LocationIdentity.*;
 import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.nodes.GuardingPiNode.*;
-import static com.oracle.graal.nodes.calc.IsNullNode.*;
 import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.replacements.SnippetTemplate.*;
 
 import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.debug.*;
+import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.hotspot.nodes.*;
+import com.oracle.graal.graph.Node.ConstantNodeParameter;
+import com.oracle.graal.graph.Node.NodeIntrinsic;
+import com.oracle.graal.loop.phases.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.type.*;
-import com.oracle.graal.phases.*;
+import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
+import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.*;
 import com.oracle.graal.replacements.Snippet.Fold;
-import com.oracle.graal.replacements.nodes.*;
+import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
+import com.oracle.graal.replacements.SnippetTemplate.Arguments;
+import com.oracle.graal.replacements.SnippetTemplate.SnippetInfo;
 import com.oracle.graal.word.*;
 
 @SuppressWarnings("unused")
 public class ArrayCopySnippets implements Snippets {
 
     private static final EnumMap<Kind, Method> arraycopyMethods = new EnumMap<>(Kind.class);
+    private static final EnumMap<Kind, Method> arraycopyCalls = new EnumMap<>(Kind.class);
+
     public static final Method genericArraycopySnippet;
 
     private static void addArraycopySnippetMethod(Kind kind, Class<?> arrayClass) throws NoSuchMethodException {
         arraycopyMethods.put(kind, ArrayCopySnippets.class.getDeclaredMethod("arraycopy", arrayClass, int.class, arrayClass, int.class, int.class));
+        if (CallArrayCopy.getValue()) {
+            if (kind == Kind.Object) {
+                arraycopyCalls.put(kind, ArrayCopySnippets.class.getDeclaredMethod("objectArraycopyUnchecked", arrayClass, int.class, arrayClass, int.class, int.class));
+            } else {
+                arraycopyCalls.put(kind, ArrayCopySnippets.class.getDeclaredMethod(kind + "Arraycopy", arrayClass, int.class, arrayClass, int.class, int.class));
+            }
+        }
     }
 
     static {
@@ -74,7 +89,14 @@ public class ArrayCopySnippets implements Snippets {
         }
     }
 
-    public static Method getSnippetForKind(Kind kind) {
+    public static Method getSnippetForKind(Kind kind, boolean shouldUnroll, boolean exact) {
+        Method m = null;
+        if (!shouldUnroll && exact) {
+            m = arraycopyCalls.get(kind);
+            if (m != null) {
+                return m;
+            }
+        }
         return arraycopyMethods.get(kind);
     }
 
@@ -195,6 +217,62 @@ public class ArrayCopySnippets implements Snippets {
         }
     }
 
+    @NodeIntrinsic(ForeignCallNode.class)
+    public static native void callArraycopy(@ConstantNodeParameter ForeignCallDescriptor descriptor, Word src, Word dest, Word len);
+
+    private static void callArraycopyTemplate(SnippetCounter counter, Kind kind, boolean aligned, boolean disjoint, Object src, int srcPos, Object dest, int destPos, int length) {
+        counter.inc();
+        Object nonNullSrc = guardingNonNull(src);
+        Object nonNullDest = guardingNonNull(dest);
+        checkLimits(nonNullSrc, srcPos, nonNullDest, destPos, length);
+        ArrayCopyCallNode.arraycopy(nonNullSrc, srcPos, nonNullDest, destPos, length, kind, aligned, disjoint);
+    }
+
+    @Snippet
+    public static void objectArraycopyUnchecked(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
+        callArraycopyTemplate(objectCallCounter, Kind.Object, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void byteArraycopy(byte[] src, int srcPos, byte[] dest, int destPos, int length) {
+        callArraycopyTemplate(byteCallCounter, Kind.Byte, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void booleanArraycopy(boolean[] src, int srcPos, boolean[] dest, int destPos, int length) {
+        callArraycopyTemplate(booleanCallCounter, Kind.Boolean, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void charArraycopy(char[] src, int srcPos, char[] dest, int destPos, int length) {
+        callArraycopyTemplate(charCallCounter, Kind.Char, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void shortArraycopy(short[] src, int srcPos, short[] dest, int destPos, int length) {
+        callArraycopyTemplate(shortCallCounter, Kind.Short, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void intArraycopy(int[] src, int srcPos, int[] dest, int destPos, int length) {
+        callArraycopyTemplate(intCallCounter, Kind.Int, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void floatArraycopy(float[] src, int srcPos, float[] dest, int destPos, int length) {
+        callArraycopyTemplate(floatCallCounter, Kind.Float, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void longArraycopy(long[] src, int srcPos, long[] dest, int destPos, int length) {
+        callArraycopyTemplate(longCallCounter, Kind.Long, false, false, src, srcPos, dest, destPos, length);
+    }
+
+    @Snippet
+    public static void doubleArraycopy(double[] src, int srcPos, double[] dest, int destPos, int length) {
+        callArraycopyTemplate(doubleCallCounter, Kind.Double, false, false, src, srcPos, dest, destPos, length);
+    }
+
     private static final SnippetCounter.Group checkCounters = SnippetCounters.getValue() ? new SnippetCounter.Group("System.arraycopy checkInputs") : null;
     private static final SnippetCounter checkSuccessCounter = new SnippetCounter(checkCounters, "checkSuccess", "checkSuccess");
     private static final SnippetCounter checkNPECounter = new SnippetCounter(checkCounters, "checkNPE", "checkNPE");
@@ -210,8 +288,19 @@ public class ArrayCopySnippets implements Snippets {
     private static final SnippetCounter objectCounter = new SnippetCounter(counters, "Object[]", "arraycopy for Object[] arrays");
     private static final SnippetCounter floatCounter = new SnippetCounter(counters, "float[]", "arraycopy for float[] arrays");
     private static final SnippetCounter doubleCounter = new SnippetCounter(counters, "double[]", "arraycopy for double[] arrays");
+
+    private static final SnippetCounter objectCallCounter = new SnippetCounter(counters, "Object[]", "arraycopy call for Object[] arrays");
+
+    private static final SnippetCounter booleanCallCounter = new SnippetCounter(counters, "boolean[]", "arraycopy call for boolean[] arrays");
+    private static final SnippetCounter byteCallCounter = new SnippetCounter(counters, "byte[]", "arraycopy call for byte[] arrays");
+    private static final SnippetCounter charCallCounter = new SnippetCounter(counters, "char[]", "arraycopy call for char[] arrays");
+    private static final SnippetCounter doubleCallCounter = new SnippetCounter(counters, "double[]", "arraycopy call for double[] arrays");
+    private static final SnippetCounter floatCallCounter = new SnippetCounter(counters, "float[]", "arraycopy call for float[] arrays");
+    private static final SnippetCounter intCallCounter = new SnippetCounter(counters, "int[]", "arraycopy call for int[] arrays");
+    private static final SnippetCounter longCallCounter = new SnippetCounter(counters, "long[]", "arraycopy call for long[] arrays");
+    private static final SnippetCounter shortCallCounter = new SnippetCounter(counters, "short[]", "arraycopy call for short[] arrays");
+
     private static final SnippetCounter genericPrimitiveCallCounter = new SnippetCounter(counters, "genericPrimitive", "generic arraycopy snippet for primitive arrays");
     private static final SnippetCounter genericObjectExactCallCounter = new SnippetCounter(counters, "genericObjectExact", "generic arraycopy snippet for special object arrays");
     private static final SnippetCounter genericObjectCallCounter = new SnippetCounter(counters, "genericObject", "call to the generic, native arraycopy method");
-
 }

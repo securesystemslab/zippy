@@ -28,7 +28,6 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
-#include "graal/graalCompilerToGPU.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
@@ -72,13 +71,6 @@ void GraalCompiler::initialize() {
   }
   env->RegisterNatives(klass, CompilerToVM_methods, CompilerToVM_methods_count());
   
-  klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToGPUImpl");
-  if (klass == NULL) {
-    tty->print_cr("graal CompilerToGPUImpl class not found");
-    vm_abort(false);
-  }
-  env->RegisterNatives(klass, CompilerToGPU_methods, CompilerToGPU_methods_count());
-
   ResourceMark rm;
   HandleMark hm;
   {
@@ -219,30 +211,21 @@ void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-Handle GraalCompiler::get_JavaTypeFromSignature(Symbol* signature, KlassHandle loading_klass, TRAPS) {
+KlassHandle GraalCompiler::get_KlassFromSignature(Symbol* signature, KlassHandle loading_klass) {
   BasicType field_type = FieldType::basic_type(signature);
-  // If the field is a pointer type, get the klass of the
-  // field.
+  // If the field is a pointer type, get the klass of the field.
   if (field_type == T_OBJECT || field_type == T_ARRAY) {
-    KlassHandle klass = GraalEnv::get_klass_by_name(loading_klass, signature, false);
-    if (klass.is_null()) {
-      Handle signature_string = java_lang_String::create_from_symbol(signature, CHECK_NH);
-      return VMToCompiler::createUnresolvedJavaType(signature_string, CHECK_NH);
-    } else {
-      return VMToCompiler::createResolvedJavaType(klass->java_mirror(), CHECK_NH);
-    }
-  } else {
-    return VMToCompiler::createPrimitiveJavaType(field_type, CHECK_NH);
+    return GraalEnv::get_klass_by_name(loading_klass, signature, false);
   }
+  return NULL;
 }
 
-Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
+KlassHandle GraalCompiler::get_Klass(constantPoolHandle cp, int index, KlassHandle loading_klass, Symbol*& klass_name) {
   bool is_accessible = false;
 
   KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
-  oop catch_class = NULL;
   if (klass.is_null()) {
-    Symbol* klass_name = NULL;
+    klass_name = NULL;
     {
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it. But we must release the lock before
@@ -252,7 +235,9 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
       if (tag.is_klass()) {
         // The klass has been inserted into the constant pool
         // very recently.
-        return VMToCompiler::createResolvedJavaType(cp->resolved_klass_at(index)->java_mirror(), CHECK_NH);
+        klass = cp->resolved_klass_at(index);
+        klass_name = klass->name();
+        return klass;
       } else if (tag.is_symbol()) {
         klass_name = cp->symbol_at(index);
       } else {
@@ -260,16 +245,10 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
         klass_name = cp->unresolved_klass_at(index);
       }
     }
-    Handle klass_name_string = java_lang_String::create_from_symbol(klass_name, CHECK_NH);
-    return VMToCompiler::createUnresolvedJavaType(klass_name_string, CHECK_NH);
   } else {
-    return VMToCompiler::createResolvedJavaType(klass->java_mirror(), CHECK_NH);
+    klass_name = klass->name();
   }
-}
-
-Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
-  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NH);
-  return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
+  return klass;
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {

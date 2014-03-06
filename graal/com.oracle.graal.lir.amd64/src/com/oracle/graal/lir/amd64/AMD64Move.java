@@ -41,6 +41,16 @@ import com.oracle.graal.lir.asm.*;
 
 public class AMD64Move {
 
+    public static AMD64LIRInstruction createMove(AllocatableValue dst, Value src) {
+        if (src instanceof AMD64AddressValue) {
+            return new LeaOp(dst, (AMD64AddressValue) src);
+        } else if (isRegister(src) || isStackSlot(dst)) {
+            return new MoveFromRegOp(dst, src);
+        } else {
+            return new MoveToRegOp(dst, src);
+        }
+    }
+
     @Opcode("MOVE")
     public static class MoveToRegOp extends AMD64LIRInstruction implements MoveOp {
 
@@ -112,7 +122,7 @@ public class AMD64Move {
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             if (state != null) {
-                crb.recordImplicitException(masm.codeBuffer.position(), state);
+                crb.recordImplicitException(masm.position(), state);
             }
             emitMemAccess(crb, masm);
         }
@@ -139,6 +149,8 @@ public class AMD64Move {
         public void emitMemAccess(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
             switch (kind) {
                 case Boolean:
+                    masm.movzbl(asRegister(result), address.toAddress());
+                    break;
                 case Byte:
                     masm.movsbl(asRegister(result), address.toAddress());
                     break;
@@ -317,7 +329,7 @@ public class AMD64Move {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
-            crb.recordImplicitException(masm.codeBuffer.position(), state);
+            crb.recordImplicitException(masm.position(), state);
             masm.nullCheck(asRegister(input));
         }
 

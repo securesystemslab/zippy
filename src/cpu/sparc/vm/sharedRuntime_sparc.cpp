@@ -1006,6 +1006,15 @@ void AdapterGenerator::gen_i2c_adapter(
   __ delayed()->nop();
 }
 
+void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
+                                    int total_args_passed,
+                                    int comp_args_on_stack,
+                                    const BasicType *sig_bt,
+                                    const VMRegPair *regs) {
+  AdapterGenerator agen(masm);
+  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+}
+
 // ---------------------------------------------------------------
 AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm,
                                                             int total_args_passed,
@@ -1016,9 +1025,7 @@ AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm
                                                             AdapterFingerPrint* fingerprint) {
   address i2c_entry = __ pc();
 
-  AdapterGenerator agen(masm);
-
-  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+  gen_i2c_adapter(masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
 
 
   // -------------------------------------------------------------------------
@@ -1063,7 +1070,7 @@ AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm
   }
 
   address c2i_entry = __ pc();
-
+  AdapterGenerator agen(masm);
   agen.gen_c2i_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, L_skip_fixup);
 
   __ flush();

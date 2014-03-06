@@ -35,6 +35,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class BinaryParser implements GraphParser {
     private static final int BEGIN_GROUP = 0x00;
@@ -72,7 +74,10 @@ public class BinaryParser implements GraphParser {
     private final ReadableByteChannel channel;
     private final GraphDocument rootDocument;
     private final Deque<Folder> folderStack;
+    private final Deque<byte[]> hashStack;
     private final ParseMonitor monitor;
+
+    private MessageDigest digest;
     
     private enum Length {
         S,
@@ -259,7 +264,12 @@ public class BinaryParser implements GraphParser {
         this.channel = channel;
         this.rootDocument = rootDocument;
         folderStack = new LinkedList<>();
+        hashStack = new LinkedList<>();
         this.monitor = monitor;
+        try {
+            this.digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+        }
     }
     
     private void fill() throws IOException {
@@ -274,6 +284,11 @@ public class BinaryParser implements GraphParser {
         while (buffer.remaining() < i) {
             fill();
         }
+        buffer.mark();
+        byte[] result = new byte[i];
+        buffer.get(result);
+        digest.update(result);
+        buffer.reset();
     }
     
     private int readByte() throws IOException {
@@ -312,7 +327,7 @@ public class BinaryParser implements GraphParser {
         char[] chars = new char[len];
         buffer.asCharBuffer().get(chars);
         buffer.position(buffer.position() + len * 2);
-        return new String(chars);
+        return new String(chars).intern();
     }
 
     private byte[] readBytes() throws IOException {
@@ -340,7 +355,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private String readDoublesToString() throws IOException {
@@ -357,7 +372,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private String readPoolObjectsToString() throws IOException {
@@ -373,7 +388,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private <T> T readPoolObject(Class<T> klass) throws IOException {
@@ -536,7 +551,7 @@ public class BinaryParser implements GraphParser {
                         throw new IOException("Unknown type");
                 }
             case PROPERTY_SUBGRAPH:
-                InputGraph graph = parseGraph(null);
+                InputGraph graph = parseGraph("");
                 new Group(null).addElement(graph);
                 return graph;
             default:
@@ -547,6 +562,7 @@ public class BinaryParser implements GraphParser {
     @Override
     public GraphDocument parse() throws IOException {
         folderStack.push(rootDocument);
+        hashStack.push(null);
         if (monitor != null) {
             monitor.setState("Starting parsing");
         }
@@ -589,6 +605,7 @@ public class BinaryParser implements GraphParser {
                     });
                 }
                 folderStack.push(group);
+                hashStack.push(null);
                 if (callback != null && parent instanceof GraphDocument) {
                     callback.started(group);
                 }
@@ -599,6 +616,7 @@ public class BinaryParser implements GraphParser {
                     throw new IOException("Unbalanced groups");
                 }
                 folderStack.pop();
+                hashStack.pop();
                 break;
             }
             default:
@@ -629,7 +647,17 @@ public class BinaryParser implements GraphParser {
             monitor.updateProgress();
         }
         String title = readPoolObject(String.class);
-        return parseGraph(title);
+        digest.reset();
+        InputGraph graph = parseGraph(title);
+        byte[] d = digest.digest();
+        byte[] hash = hashStack.peek();
+        if (hash != null && Arrays.equals(hash, d)) {
+            graph.getProperties().setProperty("_isDuplicate", "true");
+        } else {
+            hashStack.pop();
+            hashStack.push(d);
+        }
+        return graph;
     }
 
     private InputGraph parseGraph(String title) throws IOException {
@@ -752,7 +780,7 @@ public class BinaryParser implements GraphParser {
         for (Edge e : edges) {
             char fromIndex = e.input ? 1 : e.num;
             char toIndex = e.input ? e.num : 0;
-            graph.addEdge(new InputEdge(fromIndex, toIndex, e.from, e.to, e.label));
+            graph.addEdge(InputEdge.createImmutable(fromIndex, toIndex, e.from, e.to, e.label));
         }
     }
     
@@ -809,7 +837,7 @@ public class BinaryParser implements GraphParser {
             m.appendReplacement(sb, result);
         }
         m.appendTail(sb);
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private static class Edge {
@@ -824,7 +852,7 @@ public class BinaryParser implements GraphParser {
         public Edge(int from, int to, char num, String label, boolean input) {
             this.from = from;
             this.to = to;
-            this.label = label;
+            this.label = label != null ? label.intern() : label;
             this.num = num;
             this.input = input;
         }

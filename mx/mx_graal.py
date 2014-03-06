@@ -81,6 +81,8 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.7.0_04')
 
+JDK_UNIX_PERMISSIONS = 0755
+
 def _get_vm():
     """
     Gets the configured VM, presenting a dialogue if there is no currently configured VM.
@@ -324,7 +326,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, 0755)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
             shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'original'))
 
 
@@ -402,7 +404,9 @@ def _installGraalJarInJdks(graalDist):
                 fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
-                shutil.move(tmp, join(jreLibDir, 'graal.jar'))
+                graalJar = join(jreLibDir, 'graal.jar')
+                shutil.move(tmp, graalJar)
+                os.chmod(graalJar, JDK_UNIX_PERMISSIONS)
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -568,7 +572,7 @@ def build(args, vm=None):
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, 0755)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
             mx.log('Creating VM directory in JDK7: ' + vmDir)
             os.makedirs(vmDir)
 
@@ -607,7 +611,7 @@ def build(args, vm=None):
             project_config = variant + '_' + build
             _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=' + project_config + ' /target:clean', _graal_home)
             winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' + _graal_home + r'\make\windows"& call create.bat ' + _graal_home
-            print(winCompileCmd)
+            print winCompileCmd
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
                 mx.log('Error executing create command')
@@ -631,6 +635,13 @@ def build(args, vm=None):
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
+
+            # extract latest release tag for graal
+            tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            if tags:
+                # extract the most recent tag
+                tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
+                env.setdefault('USER_RELEASE_SUFFIX', tag)
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
@@ -640,10 +651,10 @@ def build(args, vm=None):
             else:
                 env['INCLUDE_GRAAL'] = 'true'
             env.setdefault('INSTALL', 'y')
-            if mx.get_os() == 'solaris' :
+            if mx.get_os() == 'solaris':
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
-                if cCompilerVersion.startswith('CC: Sun C++') :
+                if cCompilerVersion.startswith('CC: Sun C++'):
                     compilerRev = cCompilerVersion.split(' ')[3]
                     env.setdefault('ENFORCE_COMPILER_REV', compilerRev)
                     env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev)
@@ -678,7 +689,7 @@ def build(args, vm=None):
         if not found:
             mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
-                os.chmod(jvmCfg, 0755)
+                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS)
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     if line.startswith(prefix):
@@ -701,7 +712,7 @@ def vmfg(args):
     """run the fastdebug build of VM selected by the '--vm' option"""
     return vm(args, vmbuild='fastdebug')
 
-def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
+def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     """run the VM selected by the '--vm' option"""
 
     if vm is None:
@@ -718,10 +729,6 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
-    if len([a for a in args if 'PrintAssembly' in a]) != 0:
-        hsdis([], copyToDir=_vmLibDirInJdk(jdk))
-    if mx.java().debug_port is not None:
-        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         # Exclude all compiler tests and snippets
@@ -739,9 +746,6 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
                         'destfile' : 'jacoco.exec'
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
-    if '-d64' not in args:
-        args = ['-d64'] + args
-
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     pfx = _vm_prefix.split() if _vm_prefix is not None else []
 
@@ -750,7 +754,12 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
 
-    return mx.run(pfx + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+    args = mx.java().processArgs(args)
+    return (pfx, exe, vm, args, cwd)
+
+def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
+    (pfx_, exe_, vm_, args_, cwd) = _parseVmArgs(args, vm, cwd, vmbuild)
+    return mx.run(pfx_ + [exe_, '-' + vm_] + args_, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
     """
@@ -759,7 +768,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     source file matched in a list.
     """
 
-    matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
+    matches = lambda line: len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
 def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
@@ -1060,21 +1069,23 @@ def gate(args, gate_body=_basic_gate_body):
         mx.pylint([])
         tasks.append(t.stop())
 
-        t = Task('Clean')
-        cleanArgs = []
-        if not args.cleanNative:
-            cleanArgs.append('--no-native')
-        if not args.cleanJava:
-            cleanArgs.append('--no-java')
-        clean(cleanArgs)
-        tasks.append(t.stop())
+        def _clean(name='Clean'):
+            t = Task(name)
+            cleanArgs = []
+            if not args.cleanNative:
+                cleanArgs.append('--no-native')
+            if not args.cleanJava:
+                cleanArgs.append('--no-java')
+            clean(cleanArgs)
+            tasks.append(t.stop())
+        _clean()
 
         t = Task('IDEConfigCheck')
         mx.ideclean([])
         mx.ideinit([])
         tasks.append(t.stop())
 
-        eclipse_exe = os.environ.get('ECLIPSE_EXE')
+        eclipse_exe = mx.get_env('ECLIPSE_EXE')
         if eclipse_exe is not None:
             t = Task('CodeFormatCheck')
             if mx.eclipseformat(['-e', eclipse_exe]) != 0:
@@ -1087,8 +1098,15 @@ def gate(args, gate_body=_basic_gate_body):
             t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
         tasks.append(t.stop())
 
-        t = Task('BuildJava')
-        build(['--no-native', '--jdt-warning-as-error'])
+        if mx.get_env('JDT'):
+            t = Task('BuildJavaWithEcj')
+            build(['--no-native', '--jdt-warning-as-error'])
+            tasks.append(t.stop())
+
+            _clean('CleanAfterEcjBuild')
+
+        t = Task('BuildJavaWithJavac')
+        build(['--no-native', '--force-javac'])
         tasks.append(t.stop())
 
         t = Task('Checkstyle')
@@ -1189,7 +1207,7 @@ def bench(args):
     results = {}
     benchmarks = []
     # DaCapo
-    if ('dacapo' in args or 'all' in args):
+    if 'dacapo' in args or 'all' in args:
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
         dacapos = benchmarks_in_group('dacapo')
@@ -1197,10 +1215,10 @@ def bench(args):
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
                 mx.abort('Unknown DaCapo : ' + dacapo)
             iterations = sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark]
-            if (iterations > 0):
+            if iterations > 0:
                 benchmarks += [sanitycheck.getDacapo(dacapo, iterations)]
 
-    if ('scaladacapo' in args or 'all' in args):
+    if 'scaladacapo' in args or 'all' in args:
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
         scaladacapos = benchmarks_in_group('scaladacapo')
@@ -1208,31 +1226,31 @@ def bench(args):
             if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
             iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
-            if (iterations > 0):
+            if iterations > 0:
                 benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, ['-n', str(iterations)])]
 
     # Bootstrap
-    if ('bootstrap' in args or 'all' in args):
+    if 'bootstrap' in args or 'all' in args:
         benchmarks += sanitycheck.getBootstraps()
     # SPECjvm2008
-    if ('specjvm2008' in args or 'all' in args):
+    if 'specjvm2008' in args or 'all' in args:
         benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120'])]
     else:
         specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
             benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120', specjvm])]
 
-    if ('specjbb2005' in args or 'all' in args):
+    if 'specjbb2005' in args or 'all' in args:
         benchmarks += [sanitycheck.getSPECjbb2005()]
 
-    if ('specjbb2013' in args):  # or 'all' in args //currently not in default set
+    if 'specjbb2013' in args:  # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
 
-    if ('ctw-full' in args):
+    if 'ctw-full' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.Full))
-    if ('ctw-noinline' in args):
+    if 'ctw-noinline' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoInline))
-    if ('ctw-nocomplex' in args):
+    if 'ctw-nocomplex' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     for test in benchmarks:
@@ -1243,6 +1261,77 @@ def bench(args):
     if resultFile:
         with open(resultFile, 'w') as f:
             f.write(json.dumps(results))
+
+def jmh(args):
+    """run the JMH_BENCHMARKS"""
+
+    # TODO: add option for `mvn clean package'
+    # TODO: add options to pass through arguments directly to JMH
+
+    vmArgs, benchmarks = _extract_VM_args(args)
+    jmhPath = mx.get_env('JMH_BENCHMARKS', None)
+    if not jmhPath or not exists(jmhPath):
+        mx.abort("$JMH_BENCHMARKS not properly definied")
+
+    def _blackhole(x):
+        mx.logv(x[:-1])
+    mx.log("Building benchmarks...")
+    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
+
+    matchedSuites = set()
+    numBench = [0]
+    for micros in os.listdir(jmhPath):
+        absoluteMicro = os.path.join(jmhPath, micros)
+        if not os.path.isdir(absoluteMicro):
+            continue
+        if not micros.startswith("micros-"):
+            mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't start with 'micros-'")
+            continue
+
+        microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
+        if not exists(microJar):
+            mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't contain the expected jar file ('" + microJar + "')")
+            continue
+        if benchmarks:
+            def _addBenchmark(x):
+                if x.startswith("Benchmark:"):
+                    return
+                match = False
+                for b in benchmarks:
+                    match = match or (b in x)
+
+                if match:
+                    numBench[0] += 1
+                    matchedSuites.add(micros)
+
+            mx.run_java(['-jar', microJar, "-l"], cwd=jmhPath, out=_addBenchmark, addDefaultArgs=False)
+        else:
+            matchedSuites.add(micros)
+
+    mx.logv("matchedSuites: " + str(matchedSuites))
+    plural = 's' if not benchmarks or numBench[0] > 1 else ''
+    number = str(numBench[0]) if benchmarks else "all"
+    mx.log("Running " + number + " benchmark" + plural + '...')
+
+    regex = []
+    if benchmarks:
+        regex.append(r".*(" + "|".join(benchmarks) + ").*")
+
+    for suite in matchedSuites:
+        absoluteMicro = os.path.join(jmhPath, suite)
+        (pfx, exe, vm, forkedVmArgs, _) = _parseVmArgs(vmArgs)
+        if pfx:
+            mx.warn("JMH ignores prefix: \"" + pfx + "\"")
+        mx.run_java(
+           ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
+            "-f", "1",
+            "-v", "EXTRA" if mx._opts.verbose else "NORMAL",
+            "-i", "10", "-wi", "10",
+            "--jvm", exe,
+            "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
+            addDefaultArgs=False,
+            cwd=jmhPath)
+
 
 def specjvm2008(args):
     """run one or more SPECjvm2008 benchmarks"""
@@ -1358,7 +1447,7 @@ def jacocoreport(args):
 def sl(args):
     """run an SL program"""
     vmArgs, slArgs = _extract_VM_args(args)
-    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SimpleLanguage"] + slArgs)
+    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
 
 def trufflejar(args=None):
     """make truffle.jar"""
@@ -1376,17 +1465,6 @@ def trufflejar(args=None):
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
-
-def rubyShellCp():
-    return mx.classpath("com.oracle.truffle.ruby.shell")
-
-def rubyShellClass():
-    return "com.oracle.truffle.ruby.shell.Shell"
-
-def ruby(args):
-    """run a Ruby program or shell"""
-    vmArgs, rubyArgs = _extract_VM_args(args, useDoubleDash=True)
-    vm(vmArgs + ['-cp', rubyShellCp(), rubyShellClass()] + rubyArgs)
 
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
@@ -1528,6 +1606,7 @@ def mx_init(suite):
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [print_jdkhome, ''],
+        'jmh': [jmh, '[VM options] [filters...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
@@ -1546,8 +1625,7 @@ def mx_init(suite):
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
         'sl' : [sl, '[SL args|@VM options]'],
-        'trufflejar' : [trufflejar, ''],
-        'ruby' : [ruby, '[Ruby args|@VM options]']
+        'trufflejar' : [trufflejar, '']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
@@ -1556,7 +1634,7 @@ def mx_init(suite):
                     'The VM selected by --vm and --vmbuild options is under this directory (i.e., ' +
                     join('<path>', '<jdk-version>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
 
-    if (_vmSourcesAvailable):
+    if _vmSourcesAvailable:
         mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
         mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run (default: ' + _vmbuildChoices[0] + ')')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
@@ -1571,10 +1649,10 @@ def mx_init(suite):
 
 def mx_post_parse_cmd_line(opts):  #
     # TODO _minVersion check could probably be part of a Suite in mx?
-    if (mx.java().version < _minVersion) :
+    if mx.java().version < _minVersion:
         mx.abort('Requires Java version ' + str(_minVersion) + ' or greater, got version ' + str(mx.java().version))
 
-    if (_vmSourcesAvailable):
+    if _vmSourcesAvailable:
         if hasattr(opts, 'vm') and opts.vm is not None:
             global _vm
             _vm = opts.vm

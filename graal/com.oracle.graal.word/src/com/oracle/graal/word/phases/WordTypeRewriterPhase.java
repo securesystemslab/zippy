@@ -36,6 +36,7 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.graph.*;
 import com.oracle.graal.word.*;
 import com.oracle.graal.word.Word.Opcode;
 import com.oracle.graal.word.Word.Operation;
@@ -63,7 +64,7 @@ public class WordTypeRewriterPhase extends Phase {
 
     @Override
     protected void run(StructuredGraph graph) {
-        inferStamps(graph);
+        InferStamps.inferStamps(graph);
 
         for (Node n : graph.getNodes()) {
             if (n instanceof ValueNode) {
@@ -74,68 +75,6 @@ public class WordTypeRewriterPhase extends Phase {
         for (Node node : graph.getNodes()) {
             rewriteNode(graph, node);
         }
-    }
-
-    /**
-     * Infer the stamps for all Object nodes in the graph, to make the stamps as precise as
-     * possible. For example, this propagates the word-type through phi functions. To handle phi
-     * functions at loop headers, the stamp inference is called until a fix point is reached.
-     * <p>
-     * Note that we cannot rely on the normal canonicalizer to propagate stamps: The word type
-     * rewriting must run before the first run of the canonicalizer because many nodes are not
-     * prepared to see the word type during canonicalization.
-     */
-    protected void inferStamps(StructuredGraph graph) {
-        /*
-         * We want to make the stamps more precise. For cyclic phi functions, this means we have to
-         * ignore the initial stamp because the imprecise stamp would always propagate around the
-         * cycle. We therefore set the stamp to an illegal stamp, which is automatically ignored
-         * when the phi function performs the "meet" operator on its input stamps.
-         */
-        for (Node n : graph.getNodes()) {
-            if (n instanceof PhiNode || n instanceof ProxyNode) {
-                ValueNode node = (ValueNode) n;
-                if (node.kind() == Kind.Object) {
-                    assert !(node.stamp() instanceof IllegalStamp) : "We assume all Phi and Proxy stamps are legal before the analysis";
-                    node.setStamp(StampFactory.illegal(node.kind()));
-                }
-            }
-        }
-
-        boolean stampChanged;
-        do {
-            stampChanged = false;
-            /*
-             * We could use GraphOrder.forwardGraph() to process the nodes in a defined order and
-             * propagate long def-use chains in fewer iterations. However, measurements showed that
-             * we have few iterations anyway, and the overhead of computing the order is much higher
-             * than the benefit.
-             */
-            for (Node n : graph.getNodes()) {
-                if (n instanceof ValueNode) {
-                    ValueNode node = (ValueNode) n;
-                    if (node.kind() == Kind.Object) {
-                        stampChanged |= node.inferStamp();
-                    }
-                }
-            }
-        } while (stampChanged);
-
-        /*
-         * Check that all the illegal stamps we introduced above are correctly replaced with real
-         * stamps again.
-         */
-        assert checkNoIllegalStamp(graph);
-    }
-
-    private static boolean checkNoIllegalStamp(StructuredGraph graph) {
-        for (Node n : graph.getNodes()) {
-            if (n instanceof PhiNode || n instanceof ProxyNode) {
-                ValueNode node = (ValueNode) n;
-                assert !(node.stamp() instanceof IllegalStamp) : "Stamp is illegal after analysis. This is not necessarily an error, but a condition that we want to investigate (and then maybe relax or remove the assertion).";
-            }
-        }
-        return true;
     }
 
     /**
@@ -263,7 +202,7 @@ public class WordTypeRewriterPhase extends Phase {
 
             case NOT:
                 assert arguments.size() == 1;
-                replace(invoke, graph.unique(new XorNode(wordKind, arguments.get(0), ConstantNode.forIntegerKind(wordKind, -1, graph))));
+                replace(invoke, graph.unique(new XorNode(StampFactory.forKind(wordKind), arguments.get(0), ConstantNode.forIntegerKind(wordKind, -1, graph))));
                 break;
 
             case READ: {
@@ -362,14 +301,14 @@ public class WordTypeRewriterPhase extends Phase {
 
         if (toKind == Kind.Int) {
             assert value.kind() == Kind.Long;
-            return graph.unique(new ConvertNode(Kind.Long, Kind.Int, value));
+            return graph.unique(new NarrowNode(value, 32));
         } else {
             assert toKind == Kind.Long;
             assert value.kind().getStackKind() == Kind.Int;
             if (unsigned) {
-                return graph.unique(new ReinterpretNode(Kind.Long, value));
+                return graph.unique(new ZeroExtendNode(value, 64));
             } else {
-                return graph.unique(new ConvertNode(Kind.Int, Kind.Long, value));
+                return graph.unique(new SignExtendNode(value, 64));
             }
         }
     }
@@ -381,8 +320,8 @@ public class WordTypeRewriterPhase extends Phase {
      */
     private static ValueNode createBinaryNodeInstance(Class<? extends ValueNode> nodeClass, Kind kind, ValueNode left, ValueNode right) {
         try {
-            Constructor<? extends ValueNode> constructor = nodeClass.getConstructor(Kind.class, ValueNode.class, ValueNode.class);
-            return constructor.newInstance(kind, left, right);
+            Constructor<? extends ValueNode> constructor = nodeClass.getConstructor(Stamp.class, ValueNode.class, ValueNode.class);
+            return constructor.newInstance(StampFactory.forKind(kind), left, right);
         } catch (Throwable ex) {
             throw new GraalInternalError(ex).addContext(nodeClass.getName());
         }
@@ -431,7 +370,7 @@ public class WordTypeRewriterPhase extends Phase {
     }
 
     protected ValueNode readOp(StructuredGraph graph, ValueNode base, Invoke invoke, LocationNode location, Kind readKind, BarrierType barrierType, boolean compressible) {
-        ReadNode read = graph.add(new ReadNode(base, location, StampFactory.forKind(readKind), barrierType, compressible));
+        ReadNode read = graph.add(new ReadNode(base, location, StampFactory.forKind(readKind.getStackKind()), barrierType, compressible));
         graph.addBeforeFixed(invoke.asNode(), read);
         /*
          * The read must not float outside its block otherwise it may float above an explicit zero

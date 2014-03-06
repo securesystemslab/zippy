@@ -59,9 +59,9 @@ public class SPARCHotSpotSafepointOp extends SPARCLIRInstruction {
     }
 
     public static void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm, HotSpotVMConfig config, boolean atReturn, LIRFrameState state, Register scratch) {
-        final int pos = masm.codeBuffer.position();
+        final int pos = masm.position();
         new Setx(config.safepointPollingAddress, scratch).emit(masm);
-        crb.recordMark(atReturn ? MARK_POLL_RETURN_NEAR : MARK_POLL_NEAR);
+        crb.recordMark(atReturn ? MARK_POLL_RETURN_FAR : MARK_POLL_FAR);
         if (state != null) {
             crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
         }

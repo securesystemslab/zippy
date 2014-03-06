@@ -33,6 +33,7 @@ import java.util.concurrent.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.CompilerThreadFactory.CompilerThread;
 import com.oracle.graal.compiler.CompilerThreadFactory.DebugConfigAccess;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
@@ -83,7 +84,41 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     private final HotSpotGraalRuntime runtime;
 
-    private ThreadPoolExecutor compileQueue;
+    private Queue compileQueue;
+
+    /**
+     * Wrap access to the thread pool to ensure that {@link CompilationTask#isWithinEnqueue} state
+     * is in the proper state.
+     */
+    static class Queue {
+        private ThreadPoolExecutor executor;
+
+        Queue(CompilerThreadFactory factory) {
+            executor = new ThreadPoolExecutor(Threads.getValue(), Threads.getValue(), 0L, TimeUnit.MILLISECONDS, new PriorityBlockingQueue<Runnable>(), factory);
+        }
+
+        public long getCompletedTaskCount() {
+            try (CompilationTask.BeginEnqueue beginEnqueue = new CompilationTask.BeginEnqueue()) {
+                // Don't allow new enqueues while reading the state of queue.
+                return executor.getCompletedTaskCount();
+            }
+        }
+
+        public void execute(CompilationTask task) {
+            // The caller is expected to have set the within enqueue state.
+            assert CompilationTask.isWithinEnqueue();
+            executor.execute(task);
+        }
+
+        public void shutdown() throws InterruptedException {
+            assert CompilationTask.isWithinEnqueue();
+            executor.shutdown();
+            if (Debug.isEnabled() && Dump.getValue() != null) {
+                // Wait 2 seconds to flush out all graph dumps that may be of interest
+                executor.awaitTermination(2, TimeUnit.SECONDS);
+            }
+        }
+    }
 
     private volatile boolean bootstrapRunning;
 
@@ -93,10 +128,6 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     public VMToCompilerImpl(HotSpotGraalRuntime runtime) {
         this.runtime = runtime;
-    }
-
-    public int allocateCompileTaskId(HotSpotResolvedJavaMethod method, int entryBCI) {
-        return runtime.getCompilerToVM().allocateCompileId(method, entryBCI);
     }
 
     public void startCompiler(boolean bootstrapEnabled) throws Throwable {
@@ -157,7 +188,7 @@ public class VMToCompilerImpl implements VMToCompiler {
                 return Debug.isEnabled() ? DebugEnvironment.initialize(log) : null;
             }
         });
-        compileQueue = new ThreadPoolExecutor(Threads.getValue(), Threads.getValue(), 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), factory);
+        compileQueue = new Queue(factory);
 
         // Create queue status printing thread.
         if (PrintQueue.getValue()) {
@@ -251,14 +282,8 @@ public class VMToCompilerImpl implements VMToCompiler {
             // Compile until the queue is empty.
             int z = 0;
             while (true) {
-                try {
-                    assert !CompilationTask.withinEnqueue.get();
-                    CompilationTask.withinEnqueue.set(Boolean.TRUE);
-                    if (compileQueue.getCompletedTaskCount() >= Math.max(3, compileQueue.getTaskCount())) {
-                        break;
-                    }
-                } finally {
-                    CompilationTask.withinEnqueue.set(Boolean.FALSE);
+                if (compileQueue.getCompletedTaskCount() >= Math.max(3, compileQueue.getCompletedTaskCount())) {
+                    break;
                 }
 
                 Thread.sleep(100);
@@ -317,30 +342,18 @@ public class VMToCompilerImpl implements VMToCompiler {
         compileMethod((HotSpotResolvedJavaMethod) javaMethod, StructuredGraph.INVOCATION_ENTRY_BCI, false);
     }
 
-    private static void shutdownCompileQueue(ThreadPoolExecutor queue) throws InterruptedException {
-        if (queue != null) {
-            queue.shutdown();
-            if (Debug.isEnabled() && Dump.getValue() != null) {
-                // Wait 2 seconds to flush out all graph dumps that may be of interest
-                queue.awaitTermination(2, TimeUnit.SECONDS);
-            }
-        }
-    }
-
     public void shutdownCompiler() throws Exception {
-        try {
-            assert !CompilationTask.withinEnqueue.get();
-            CompilationTask.withinEnqueue.set(Boolean.TRUE);
+        try (CompilationTask.BeginEnqueue beginEnqueue = new CompilationTask.BeginEnqueue()) {
             // We have to use a privileged action here because shutting down the compiler might be
             // called from user code which very likely contains unprivileged frames.
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
                 public Void run() throws Exception {
-                    shutdownCompileQueue(compileQueue);
+                    if (compileQueue != null) {
+                        compileQueue.shutdown();
+                    }
                     return null;
                 }
             });
-        } finally {
-            CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
 
         printDebugValues(ResetDebugValuesAfterBootstrap.getValue() ? "application" : null, false);
@@ -540,7 +553,7 @@ public class VMToCompilerImpl implements VMToCompiler {
             return;
         }
 
-        if (CompilationTask.withinEnqueue.get()) {
+        if (CompilationTask.isWithinEnqueue()) {
             // This is required to avoid deadlocking a compiler thread. The issue is that a
             // java.util.concurrent.BlockingQueue is used to implement the compilation worker
             // queues. If a compiler thread triggers a compilation, then it may be blocked trying
@@ -548,109 +561,26 @@ public class VMToCompilerImpl implements VMToCompiler {
             return;
         }
 
-        CompilationTask.withinEnqueue.set(Boolean.TRUE);
-        try {
+        // Don't allow blocking compiles from CompilerThreads
+        boolean block = blocking && !(Thread.currentThread() instanceof CompilerThread);
+        try (CompilationTask.BeginEnqueue beginEnqueue = new CompilationTask.BeginEnqueue()) {
             if (method.tryToQueueForCompilation()) {
                 assert method.isQueuedForCompilation();
 
-                int id = allocateCompileTaskId(method, entryBCI);
                 HotSpotBackend backend = runtime.getHostBackend();
-                CompilationTask task = new CompilationTask(backend, method, entryBCI, id);
+                CompilationTask task = new CompilationTask(backend, method, entryBCI, block);
 
-                if (blocking) {
-                    task.runCompilation(true);
-                } else {
-                    try {
-                        method.setCurrentTask(task);
-                        compileQueue.execute(task);
-                    } catch (RejectedExecutionException e) {
-                        // The compile queue was already shut down.
+                try {
+                    method.setCurrentTask(task);
+                    compileQueue.execute(task);
+                    if (block) {
+                        task.block();
                     }
+                } catch (RejectedExecutionException e) {
+                    // The compile queue was already shut down.
                 }
             }
-        } finally {
-            CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
-    }
-
-    @Override
-    public JavaMethod createUnresolvedJavaMethod(String name, String signature, JavaType holder) {
-        return new HotSpotMethodUnresolved(name, signature, holder);
-    }
-
-    @Override
-    public JavaField createJavaField(JavaType holder, String name, JavaType type, int offset, int flags, boolean internal) {
-        if (offset != -1) {
-            HotSpotResolvedObjectType resolved = (HotSpotResolvedObjectType) holder;
-            return resolved.createField(name, type, offset, flags, internal);
-        }
-        return new HotSpotUnresolvedField(holder, name, type);
-    }
-
-    @Override
-    public ResolvedJavaMethod createResolvedJavaMethod(JavaType holder, long metaspaceMethod) {
-        HotSpotResolvedObjectType type = (HotSpotResolvedObjectType) holder;
-        return type.createMethod(metaspaceMethod);
-    }
-
-    @Override
-    public ResolvedJavaType createPrimitiveJavaType(int basicType) {
-        Class<?> javaClass;
-        switch (basicType) {
-            case 4:
-                javaClass = boolean.class;
-                break;
-            case 5:
-                javaClass = char.class;
-                break;
-            case 6:
-                javaClass = float.class;
-                break;
-            case 7:
-                javaClass = double.class;
-                break;
-            case 8:
-                javaClass = byte.class;
-                break;
-            case 9:
-                javaClass = short.class;
-                break;
-            case 10:
-                javaClass = int.class;
-                break;
-            case 11:
-                javaClass = long.class;
-                break;
-            case 14:
-                javaClass = void.class;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown basic type: " + basicType);
-        }
-        return HotSpotResolvedPrimitiveType.fromClass(javaClass);
-    }
-
-    @Override
-    public HotSpotUnresolvedJavaType createUnresolvedJavaType(String name) {
-        int dims = 0;
-        int startIndex = 0;
-        while (name.charAt(startIndex) == '[') {
-            startIndex++;
-            dims++;
-        }
-
-        // Decode name if necessary.
-        if (name.charAt(name.length() - 1) == ';') {
-            assert name.charAt(startIndex) == 'L';
-            return new HotSpotUnresolvedJavaType(name, name.substring(startIndex + 1, name.length() - 1), dims);
-        } else {
-            return new HotSpotUnresolvedJavaType(HotSpotUnresolvedJavaType.getFullName(name, dims), name, dims);
-        }
-    }
-
-    @Override
-    public ResolvedJavaType createResolvedJavaType(Class javaMirror) {
-        return HotSpotResolvedObjectType.fromClass(javaMirror);
     }
 
     @Override

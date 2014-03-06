@@ -70,7 +70,7 @@ public abstract class Backend {
     /**
      * Creates the assembler used to emit the machine code.
      */
-    protected abstract AbstractAssembler createAssembler(FrameMap frameMap);
+    protected abstract Assembler createAssembler(FrameMap frameMap);
 
     /**
      * Creates the object used to fill in the details of a given compilation result.
@@ -86,5 +86,5 @@ public abstract class Backend {
      *            {@linkplain InstalledCode#getMethod() associated} with once installed. This
      *            argument can be null.
      */
-    public abstract void emitCode(CompilationResultBuilder crb, LIRGenerator lirGen, ResolvedJavaMethod installedCodeOwner);
+    public abstract void emitCode(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod installedCodeOwner);
 }

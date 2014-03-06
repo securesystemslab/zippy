@@ -78,6 +78,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private InstanceContent content;
     private InstanceContent graphContent;
     private OverviewAction overviewAction;
+    private HideDuplicatesAction hideDuplicatesAction;
     private PredSuccAction predSuccAction;
     private SelectionModeAction selectionModeAction;
     private PanModeAction panModeAction;
@@ -87,6 +88,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private CardLayout cardLayout;
     private RangeSlider rangeSlider;
     private JToggleButton overviewButton;
+    private JToggleButton hideDuplicatesButton;
     private static final String PREFERRED_ID = "EditorTopComponent";
     private static final String SATELLITE_STRING = "satellite";
     private static final String SCENE_STRING = "scene";
@@ -207,6 +209,14 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
         rangeSliderModel.getDiagramChangedEvent().addListener(diagramChangedListener);
         rangeSliderModel.selectGraph(diagram.getGraph());
+        rangeSliderModel.getViewPropertiesChangedEvent().addListener(new ChangedListener<DiagramViewModel>() {
+                @Override
+                public void changed(DiagramViewModel source) {
+                    hideDuplicatesButton.setSelected(getModel().getHideDuplicates());
+                    hideDuplicatesAction.setState(getModel().getHideDuplicates());
+                }
+            });
+
 
         toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
         toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
@@ -229,6 +239,12 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         button.setSelected(true);
         toolBar.add(button);
         predSuccAction.addPropertyChangeListener(this);
+
+        hideDuplicatesAction = new HideDuplicatesAction();
+        hideDuplicatesButton = new JToggleButton(hideDuplicatesAction);
+        hideDuplicatesButton.setSelected(false);
+        toolBar.add(hideDuplicatesButton);
+        hideDuplicatesAction.addPropertyChangeListener(this);
 
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));
@@ -477,6 +493,9 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
             } else {
                 showScene();
             }
+        } else if (evt.getSource() == this.hideDuplicatesAction) {
+            boolean b = (Boolean) hideDuplicatesAction.getValue(HideDuplicatesAction.STATE);
+            this.getModel().setHideDuplicates(b);
         } else if (evt.getSource() == this.selectionModeAction || evt.getSource() == this.panModeAction) {
             if (panModeAction.isSelected()) {
                 scene.setInteractionMode(DiagramViewer.InteractionMode.PANNING);

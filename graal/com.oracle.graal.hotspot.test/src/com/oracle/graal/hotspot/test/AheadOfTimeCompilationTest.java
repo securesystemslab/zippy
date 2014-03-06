@@ -172,6 +172,7 @@ public class AheadOfTimeCompilationTest extends GraalCompilerTest {
         return Boolean.valueOf(true);
     }
 
+    @Ignore("ImmutableCode override may not work reliably in non-hosted mode")
     @Test
     public void testBoxedBooleanAOT() {
         StructuredGraph result = compile("getBoxedBoolean", true);
@@ -204,7 +205,7 @@ public class AheadOfTimeCompilationTest extends GraalCompilerTest {
             // create suites everytime, as we modify options for the compiler
             final Suites suitesLocal = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getSuites().createSuites();
             final CompilationResult compResult = compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(),
-                            OptimisticOptimizations.ALL, getProfilingInfo(graph), new SpeculationLog(), suitesLocal, true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+                            OptimisticOptimizations.ALL, getProfilingInfo(graph), getSpeculationLog(), suitesLocal, true, new CompilationResult(), CompilationResultBuilderFactory.Default);
             addMethod(method, compResult);
         }
 

@@ -467,17 +467,11 @@ public abstract class Node implements Cloneable, Formattable {
             }
             if (newInput != null) {
                 if (newInput.recordsUsages()) {
-                    NodeChangedListener listener = graph.inputChangedListener;
-                    if (listener != null) {
-                        listener.nodeChanged(this);
-                    }
+                    maybeNotifyChanged(this);
                     newInput.addUsage(this);
                 }
             } else if (oldInput != null && oldInput.recordsUsages() && oldInput.usages().isEmpty()) {
-                NodeChangedListener listener = graph.usagesDroppedToZeroListener;
-                if (listener != null) {
-                    listener.nodeChanged(oldInput);
-                }
+                maybeNotifyZeroInputs(oldInput);
             }
         }
     }
@@ -488,6 +482,7 @@ public abstract class Node implements Cloneable, Formattable {
      * this node to newSuccessor's predecessors.
      */
     protected void updatePredecessor(Node oldSuccessor, Node newSuccessor) {
+        assert graph == null || !graph.isFrozen();
         if (oldSuccessor != newSuccessor) {
             if (oldSuccessor != null) {
                 assert assertTrue(oldSuccessor.predecessor == this, "wrong predecessor in old successor (%s): %s", oldSuccessor, oldSuccessor.predecessor);
@@ -517,6 +512,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     private boolean checkReplaceWith(Node other) {
+        assert assertTrue(graph == null || !graph.isFrozen(), "cannot modify frozen graph");
         assert assertFalse(other == this, "cannot replace a node with itself");
         assert assertFalse(isDeleted(), "cannot replace deleted node");
         assert assertTrue(other == null || !other.isDeleted(), "cannot replace with deleted node %s", other);
@@ -529,16 +525,29 @@ public abstract class Node implements Cloneable, Formattable {
             boolean result = usage.getNodeClass().replaceFirstInput(usage, this, other);
             assert assertTrue(result, "not found in inputs, usage: %s", usage);
             if (other != null) {
-                NodeChangedListener listener = graph.inputChangedListener;
-                if (listener != null) {
-                    listener.nodeChanged(usage);
-                }
+                maybeNotifyChanged(usage);
                 if (other.recordsUsages()) {
                     other.addUsage(usage);
                 }
             }
         }
         clearUsages();
+    }
+
+    private void maybeNotifyChanged(Node usage) {
+        assert graph == null || !graph.isFrozen();
+        NodeChangedListener listener = graph.inputChangedListener;
+        if (listener != null) {
+            listener.nodeChanged(usage);
+        }
+    }
+
+    private void maybeNotifyZeroInputs(Node oldInput) {
+        assert graph == null || !graph.isFrozen();
+        NodeChangedListener listener = graph.usagesDroppedToZeroListener;
+        if (listener != null) {
+            listener.nodeChanged(oldInput);
+        }
     }
 
     public void replaceAtPredecessor(Node other) {
@@ -579,10 +588,7 @@ public abstract class Node implements Cloneable, Formattable {
             if (input.recordsUsages()) {
                 removeThisFromUsages(input);
                 if (input.usages().isEmpty()) {
-                    NodeChangedListener listener = graph.usagesDroppedToZeroListener;
-                    if (listener != null) {
-                        listener.nodeChanged(input);
-                    }
+                    maybeNotifyZeroInputs(input);
                 }
             }
         }

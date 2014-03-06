@@ -138,6 +138,7 @@ public class GraalCompiler {
     public static <T extends CompilationResult> T compileGraph(StructuredGraph graph, CallingConvention cc, ResolvedJavaMethod installedCodeOwner, Providers providers, Backend backend,
                     TargetDescription target, GraphCache cache, PhaseSuite<HighTierContext> graphBuilderSuite, OptimisticOptimizations optimisticOpts, ProfilingInfo profilingInfo,
                     SpeculationLog speculationLog, Suites suites, boolean withScope, T compilationResult, CompilationResultBuilderFactory factory) {
+        assert !graph.isFrozen();
         try (Scope s0 = withScope ? Debug.scope("GraalCompiler", graph, providers.getCodeCache()) : null) {
             Assumptions assumptions = new Assumptions(OptAssumptions.getValue());
             LIR lir = null;
@@ -268,10 +269,23 @@ public class GraalCompiler {
             throw Debug.handle(e);
         }
 
-        try (Scope s = Debug.scope("Allocator")) {
+        try (Scope s = Debug.scope("Allocator", lirGen)) {
             if (backend.shouldAllocateRegisters()) {
-                new LinearScan(target, lir, lirGen, frameMap).allocate();
+                new LinearScan(target, lir, frameMap).allocate();
             }
+        } catch (Throwable e) {
+            throw Debug.handle(e);
+        }
+
+        try (Scope s = Debug.scope("ControlFlowOptimizations")) {
+            EdgeMoveOptimizer.optimize(lir);
+            ControlFlowOptimizer.optimize(lir);
+            if (lirGen.canEliminateRedundantMoves()) {
+                RedundantMoveElimination.optimize(lir, frameMap, lirGen.getGraph().method());
+            }
+            NullCheckOptimizer.optimize(lir, target.implicitNullCheckLimit);
+
+            Debug.dump(lir, "After control flow optimization");
         } catch (Throwable e) {
             throw Debug.handle(e);
         }
@@ -281,7 +295,7 @@ public class GraalCompiler {
     public static void emitCode(Backend backend, long[] leafGraphIds, Assumptions assumptions, LIRGenerator lirGen, CompilationResult compilationResult, ResolvedJavaMethod installedCodeOwner,
                     CompilationResultBuilderFactory factory) {
         CompilationResultBuilder crb = backend.newCompilationResultBuilder(lirGen, compilationResult, factory);
-        backend.emitCode(crb, lirGen, installedCodeOwner);
+        backend.emitCode(crb, lirGen.lir, installedCodeOwner);
         crb.finish();
         if (!assumptions.isEmpty()) {
             compilationResult.setAssumptions(assumptions);

@@ -45,6 +45,8 @@ public final class ControlFlowOptimizer {
     private ControlFlowOptimizer() {
     }
 
+    private static final DebugMetric BLOCKS_DELETED = Debug.metric("BlocksDeleted");
+
     /**
      * Checks whether a block can be deleted. Only blocks with exactly one successor and an
      * unconditional branch to this successor are eligable.
@@ -68,6 +70,16 @@ public final class ControlFlowOptimizer {
         return instructions.size() == 2 && !instructions.get(instructions.size() - 1).hasState() && !block.isExceptionEntry();
     }
 
+    private static void alignBlock(LIR lir, Block block) {
+        if (!block.isAligned()) {
+            block.setAlign(true);
+            List<LIRInstruction> instructions = lir.lir(block);
+            assert instructions.get(0) instanceof StandardOp.LabelOp : "first instruction must always be a label";
+            StandardOp.LabelOp label = (StandardOp.LabelOp) instructions.get(0);
+            instructions.set(0, new StandardOp.LabelOp(label.getLabel(), true));
+        }
+    }
+
     private static void deleteEmptyBlocks(LIR lir, List<Block> blocks) {
         assert verifyBlocks(lir, blocks);
         Iterator<Block> iterator = blocks.iterator();
@@ -87,7 +99,12 @@ public final class ControlFlowOptimizer {
                 }
                 block.getSuccessors().clear();
                 block.getPredecessors().clear();
-                Debug.metric("BlocksDeleted").increment();
+
+                if (block.isAligned()) {
+                    alignBlock(lir, other);
+                }
+
+                BLOCKS_DELETED.increment();
                 iterator.remove();
             }
         }

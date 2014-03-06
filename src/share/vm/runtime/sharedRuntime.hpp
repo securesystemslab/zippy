@@ -402,6 +402,12 @@ class SharedRuntime: AllStatic {
                                                       const VMRegPair *regs,
                                                       AdapterFingerPrint* fingerprint);
 
+  static void gen_i2c_adapter(MacroAssembler *_masm,
+                              int total_args_passed,
+                              int comp_args_on_stack,
+                              const BasicType *sig_bt,
+                              const VMRegPair *regs);
+
   // OSR support
 
   // OSR_migration_begin will extract the jvm state from an interpreter
