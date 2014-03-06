@@ -338,7 +338,7 @@ project@com.oracle.graal.replacements.test@workingSets=Graal,Replacements,Test
 # graal.replacements.verifier
 project@com.oracle.graal.replacements.verifier@subDir=graal
 project@com.oracle.graal.replacements.verifier@sourceDirs=src
-project@com.oracle.graal.replacements.verifier@dependencies=com.oracle.graal.api.replacements
+project@com.oracle.graal.replacements.verifier@dependencies=com.oracle.graal.api.replacements,com.oracle.graal.graph
 project@com.oracle.graal.replacements.verifier@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.verifier@javaCompliance=1.7
 project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
@@ -349,6 +349,7 @@ project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
+project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
 
 # graal.nodes.test
