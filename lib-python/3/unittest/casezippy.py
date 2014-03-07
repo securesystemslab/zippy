@@ -396,8 +396,8 @@ class TestCase(object):
             # Catches zippy translation errors
             if (return_value == "ZippyTranslationError"):
                 outcome.success = False
-                self.failureException = AssertionError("ZipPy throws exception during translation")
-                self.failureMessage = "ZipPy throws exception during translation"
+                self.failureException = AssertionError("ZippyTranslationError")
+                self.failureMessage = "ZippyTranslationError"
         #except KeyboardInterrupt:
         #    raise
         # except SkipTest as e:
@@ -454,11 +454,12 @@ class TestCase(object):
             if outcome.success:
                 #self._executeTestPart(testMethod, outcome, isTest=True)
                 # Catches Zippy execution errors
-                return_value = self._executeTestPart(testMethod, outcome, isTest=True)
-                if (return_value == "ZippyExecutionError"):
-                    outcome.success = False
-                    self.failureException = AssertionError("ZipPy throws exception during execution")
-                    self.failureMessage = "ZipPy throws exception during execution"
+                execution_error_message = self._executeTestPart(testMethod, outcome, isTest=True)
+                if (execution_error_message is not None):
+                    if(execution_error_message.startswith("ZippyExecutionError")):
+                        outcome.success = False
+                        self.failureException = AssertionError(execution_error_message)
+                        self.failureMessage = execution_error_message
                 #self._executeTestPart(self.tearDown, outcome)
                 
             #self.doCleanups()

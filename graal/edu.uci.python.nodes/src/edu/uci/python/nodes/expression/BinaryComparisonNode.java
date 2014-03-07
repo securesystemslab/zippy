@@ -293,7 +293,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @SuppressWarnings("unused")
         @Specialization
         public boolean doPNone(String left, PNone right) {
-            return false;
+            return true;
         }
 
         @Generic

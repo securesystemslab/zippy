@@ -27,7 +27,9 @@ class BasicTestMappingProtocol(unittest.TestCase):
         return x
 
     def __init__(self, *args, **kw):
-        unittest.TestCase.__init__(self, *args, **kw)
+        #Currently argument packing(*args) is not supported, so this is why we use args[0]
+#         unittest.TestCase.__init__(self, *args, **kw)
+        unittest.TestCase.__init__(self, args[0])
         self.reference = self._reference().copy()
 
         # A (key, value) pair not in the mapping

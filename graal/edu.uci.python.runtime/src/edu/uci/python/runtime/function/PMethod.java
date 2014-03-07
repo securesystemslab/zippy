@@ -70,7 +70,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
                     Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
                     return returnValue;
                 } catch (Exception e) {
-                    return "ZippyExecutionError";
+                    return "ZippyExecutionError: " + e;
                 }
             }
         }

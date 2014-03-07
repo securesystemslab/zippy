@@ -90,8 +90,7 @@ class TestSuite(BaseTestSuite):
     subclassing, do not forget to call the base class constructor.
     """
 
-    #def run(self, result, debug=False):
-    def run(self, result):
+    def run(self, result, debug=False):
         debug = False
         topLevel = False
         if getattr(result, '_testRunEntered', False) is False:
