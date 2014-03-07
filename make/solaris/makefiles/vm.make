@@ -218,8 +218,14 @@ COMPILER2_SPECIFIC_FILES := opto libadt bcEscapeAnalyzer.cpp c2_\* runtime_\*
 COMPILER1_SPECIFIC_FILES := c1_\*
 SHARK_SPECIFIC_FILES     := shark
 ZERO_SPECIFIC_FILES      := zero
-GRAAL_SPECIFIC_FILES     := graal
-GRAAL_SPECIFIC_GPU_FILES  := gpu\* ptx\* hsail\*
+
+ifneq ($(INCLUDE_GRAAL), true)
+  GRAAL_SPECIFIC_FILES   := graal\* 
+  GRAAL_SPECIFIC_GPU_FILES  := gpu\* ptx\* hsail\*
+else
+  GRAAL_SPECIFIC_FILES   :=
+  GRAAL_SPECIFIC_GPU_FILES   :=
+endif
 
 # Always exclude these.
 Src_Files_EXCLUDE := dtrace jsig.c jvmtiEnvRecommended.cpp jvmtiEnvStub.cpp
