@@ -166,7 +166,7 @@
 
 // COMPILER1 variant
 #ifdef COMPILER1
-#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
   #define TIERED
 #endif
 #define COMPILER1_PRESENT(code) code
@@ -187,7 +187,7 @@
 #define GRAAL_ONLY(code) code
 #define NOT_GRAAL(code)
 #define IS_GRAAL_DEFINED true
-#if !defined(COMPILER1) && !defined(COMPILER2)
+#if !defined(COMPILER2)
 // Graal is the only compiler in the system and so will be used for compilation
 // requests issued by the compile broker.
 #define GRAALVM

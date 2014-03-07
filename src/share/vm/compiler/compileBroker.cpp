@@ -795,23 +795,28 @@ void CompileBroker::compilation_init() {
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-#ifdef GRAALVM
+#if defined(GRAALVM) && !defined(TIERED)
   _compilers[0] = graal;
   c1_count = 0;
   c2_count = 0;
-#else // GRAALVM
+#endif // GRAALVM && !TIERED
+
 #ifdef COMPILER1
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
   }
 #endif // COMPILER1
 
+#if defined(GRAALVM)
+  _compilers[1] = graal;
+  c2_count = 0;
+#endif // GRAALVM
+
 #ifdef COMPILER2
   if (c2_count > 0) {
     _compilers[1] = new C2Compiler();
   }
 #endif // COMPILER2
-#endif // GRAALVM
 #else // SHARK
   int c1_count = 0;
   int c2_count = 1;
@@ -1092,7 +1097,7 @@ void CompileBroker::compile_method_base(methodHandle method,
     if (osr_bci != InvocationEntryBci) {
       tty->print(" osr_bci: %d", osr_bci);
     }
-    tty->print(" comment: %s count: %d", comment, hot_count);
+    tty->print(" level: %d comment: %s count: %d", comp_level, comment, hot_count);
     if (!hot_method.is_null()) {
       tty->print(" hot: ");
       if (hot_method() != method()) {
@@ -1142,15 +1147,25 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (InstanceRefKlass::owns_pending_list_lock(JavaThread::current())) {
     return;
   }
-#ifdef GRAALVM
-  if (!JavaThread::current()->is_graal_compiling()) {
-    bool blockingCompilation = is_compile_blocking(method, osr_bci) ||
-      CompilationPolicy::can_be_offloaded_to_gpu(method);
-    GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
-  } else {
-    // Recursive compile request => ignore.
+
+#if defined(GRAALVM)
+  // In tiered mode we want to only handle highest tier compiles and
+  // in non-tiered mode the default level should be
+  // CompLevel_full_optimization which equals CompLevel_highest_tier.
+  assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
+  assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
+  if (comp_level == CompLevel_full_optimization) {
+    if (!JavaThread::current()->is_graal_compiling()) {
+      bool blockingCompilation = is_compile_blocking(method, osr_bci) ||
+        CompilationPolicy::can_be_offloaded_to_gpu(method);
+      GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
+    } else {
+      // Can't enqueue this request because there would be no one to service it, so simply return.
+    }
+    return;
   }
-#else
+  assert(TieredCompilation, "should only reach here in tiered mode");
+#endif // GRAALVM
 
   // Outputs from the following MutexLocker block:
   CompileTask* task     = NULL;
@@ -1235,7 +1250,6 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (blocking) {
     wait_for_completion(task);
   }
-#endif
 }
 
 
@@ -2365,11 +2379,11 @@ void CompileBroker::print_times(bool per_compiler, bool aggregate) {
       nmethods_code_size += stats->_nmethods_code_size;
 
       if (per_compiler) {
-      tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
-          comp->name(), stats->bytes_per_second(),
-          stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
-          stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
-          stats->_nmethods_size, stats->_nmethods_code_size);
+        tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
+                      comp->name(), stats->bytes_per_second(),
+                      stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
+                      stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
+                      stats->_nmethods_size, stats->_nmethods_code_size);
       }
     }
   }

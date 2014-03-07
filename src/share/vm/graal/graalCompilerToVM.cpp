@@ -814,6 +814,11 @@ C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_da
   return mdo != NULL && mdo->is_mature();
 C2V_END
 
+C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci, int comp_level))
+  Method* method = asMethod(metaspace_method);
+  return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
+C2V_END
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -884,6 +889,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getGPUs",                         CC"()"STRING,                                                     FN_PTR(getGPUs)},
   {CC"allocateCompileId",               CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
   {CC"isMature",                        CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
+  {CC"hasCompiledCodeForOSR",         CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
 };
 
 int CompilerToVM_methods_count() {

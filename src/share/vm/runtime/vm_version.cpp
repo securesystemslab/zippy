@@ -112,7 +112,11 @@ void Abstract_VM_Version::initialize() {
 
 #ifndef VMTYPE
   #ifdef TIERED
-    #define VMTYPE "Server"
+    #ifdef GRAAL
+      #define VMTYPE "Graal"
+    #else
+      #define VMTYPE "Server"
+    #endif
   #else // TIERED
   #ifdef ZERO
   #ifdef SHARK

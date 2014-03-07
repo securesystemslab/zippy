@@ -456,7 +456,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
   GRAAL_EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
   nm = NULL;
-  int comp_level = CompLevel_simple;
+  int comp_level = CompLevel_full_optimization;
   {
     // To prevent compile queue updates.
     MutexLocker locker(MethodCompileQueue_lock, THREAD);

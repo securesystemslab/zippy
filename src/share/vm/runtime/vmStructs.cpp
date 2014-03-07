@@ -2609,6 +2609,18 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(InvocationEntryBci)                                    \
   declare_constant(InvalidOSREntryBci)                                    \
                                                                           \
+  /*************/                                                         \
+  /* CompLevel */                                                         \
+  /*************/                                                         \
+                                                                          \
+  declare_constant(CompLevel_any)                                         \
+  declare_constant(CompLevel_all)                                         \
+  declare_constant(CompLevel_none)                                        \
+  declare_constant(CompLevel_simple)                                      \
+  declare_constant(CompLevel_limited_profile)                             \
+  declare_constant(CompLevel_full_profile)                                \
+  declare_constant(CompLevel_full_optimization)                           \
+                                                                          \
   /***************/                                                       \
   /* OopMapValue */                                                       \
   /***************/                                                       \

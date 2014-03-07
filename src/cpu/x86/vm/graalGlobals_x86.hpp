@@ -31,13 +31,13 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
-#if !defined(COMPILER1) && !defined(COMPILER2)
+#if !defined(COMPILER2)
 define_pd_global(bool, BackgroundCompilation,        true );
 define_pd_global(bool, UseTLAB,                      true );
 define_pd_global(bool, ResizeTLAB,                   true );
 define_pd_global(bool, InlineIntrinsics,             true );
 define_pd_global(bool, PreferInterpreterNativeStubs, false);
-define_pd_global(bool, TieredCompilation,            false);
+define_pd_global(bool, TieredCompilation,            true);
 define_pd_global(intx, BackEdgeThreshold,            100000);
 
 define_pd_global(intx, OnStackReplacePercentage,     933  );
