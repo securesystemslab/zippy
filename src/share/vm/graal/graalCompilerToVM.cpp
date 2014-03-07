@@ -57,6 +57,155 @@
 
 #define C2V_END }
 
+extern "C" {
+extern VMStructEntry* gHotSpotVMStructs;
+extern uint64_t gHotSpotVMStructEntryTypeNameOffset;
+extern uint64_t gHotSpotVMStructEntryFieldNameOffset;
+extern uint64_t gHotSpotVMStructEntryTypeStringOffset;
+extern uint64_t gHotSpotVMStructEntryIsStaticOffset;
+extern uint64_t gHotSpotVMStructEntryOffsetOffset;
+extern uint64_t gHotSpotVMStructEntryAddressOffset;
+extern uint64_t gHotSpotVMStructEntryArrayStride;
+
+extern VMTypeEntry* gHotSpotVMTypes;
+extern uint64_t gHotSpotVMTypeEntryTypeNameOffset;
+extern uint64_t gHotSpotVMTypeEntrySuperclassNameOffset;
+extern uint64_t gHotSpotVMTypeEntryIsOopTypeOffset;
+extern uint64_t gHotSpotVMTypeEntryIsIntegerTypeOffset;
+extern uint64_t gHotSpotVMTypeEntryIsUnsignedOffset;
+extern uint64_t gHotSpotVMTypeEntrySizeOffset;
+extern uint64_t gHotSpotVMTypeEntryArrayStride;
+
+extern VMIntConstantEntry* gHotSpotVMIntConstants;
+extern uint64_t gHotSpotVMIntConstantEntryNameOffset;
+extern uint64_t gHotSpotVMIntConstantEntryValueOffset;
+extern uint64_t gHotSpotVMIntConstantEntryArrayStride;
+
+extern VMLongConstantEntry* gHotSpotVMLongConstants;
+extern uint64_t gHotSpotVMLongConstantEntryNameOffset;
+extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
+extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
+}
+
+// helpers used to set fields in the HotSpotVMConfig object
+static jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
+  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
+  if (id == NULL) {
+    fatal(err_msg("field not found: %s (%s)", name, sig));
+  }
+  return id;
+}
+
+C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
+
+#define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
+#define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
+#define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
+#define set_address(name, value) do { set_long(name, (jlong) value); } while (0)
+
+  guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
+
+  set_address("gHotSpotVMStructs", gHotSpotVMStructs);
+  set_long("gHotSpotVMStructEntryTypeNameOffset",   gHotSpotVMStructEntryTypeNameOffset);
+  set_long("gHotSpotVMStructEntryFieldNameOffset",  gHotSpotVMStructEntryFieldNameOffset);
+  set_long("gHotSpotVMStructEntryTypeStringOffset", gHotSpotVMStructEntryTypeStringOffset);
+  set_long("gHotSpotVMStructEntryIsStaticOffset",   gHotSpotVMStructEntryIsStaticOffset);
+  set_long("gHotSpotVMStructEntryOffsetOffset",     gHotSpotVMStructEntryOffsetOffset);
+  set_long("gHotSpotVMStructEntryAddressOffset",    gHotSpotVMStructEntryAddressOffset);
+  set_long("gHotSpotVMStructEntryArrayStride",      gHotSpotVMStructEntryArrayStride);
+
+  set_address("gHotSpotVMTypes", gHotSpotVMTypes);
+  set_long("gHotSpotVMTypeEntryTypeNameOffset",       gHotSpotVMTypeEntryTypeNameOffset);
+  set_long("gHotSpotVMTypeEntrySuperclassNameOffset", gHotSpotVMTypeEntrySuperclassNameOffset);
+  set_long("gHotSpotVMTypeEntryIsOopTypeOffset",      gHotSpotVMTypeEntryIsOopTypeOffset);
+  set_long("gHotSpotVMTypeEntryIsIntegerTypeOffset",  gHotSpotVMTypeEntryIsIntegerTypeOffset);
+  set_long("gHotSpotVMTypeEntryIsUnsignedOffset",     gHotSpotVMTypeEntryIsUnsignedOffset);
+  set_long("gHotSpotVMTypeEntrySizeOffset",           gHotSpotVMTypeEntrySizeOffset);
+  set_long("gHotSpotVMTypeEntryArrayStride",          gHotSpotVMTypeEntryArrayStride);
+
+  set_address("gHotSpotVMIntConstants", gHotSpotVMIntConstants);
+  set_long("gHotSpotVMIntConstantEntryNameOffset",  gHotSpotVMIntConstantEntryNameOffset);
+  set_long("gHotSpotVMIntConstantEntryValueOffset", gHotSpotVMIntConstantEntryValueOffset);
+  set_long("gHotSpotVMIntConstantEntryArrayStride", gHotSpotVMIntConstantEntryArrayStride);
+
+  set_address("gHotSpotVMLongConstants", gHotSpotVMLongConstants);
+  set_long("gHotSpotVMLongConstantEntryNameOffset",  gHotSpotVMLongConstantEntryNameOffset);
+  set_long("gHotSpotVMLongConstantEntryValueOffset", gHotSpotVMLongConstantEntryValueOffset);
+  set_long("gHotSpotVMLongConstantEntryArrayStride", gHotSpotVMLongConstantEntryArrayStride);
+
+  //------------------------------------------------------------------------------------------------
+
+  set_int("arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
+
+  set_int("extraStackEntries", Method::extra_stack_entries());
+
+  set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
+  set_long("heapTopAddress", (jlong)(address) Universe::heap()->top_addr());
+  set_long("heapEndAddress", (jlong)(address) Universe::heap()->end_addr());
+
+  set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
+
+  set_long("verifyOopMask", Universe::verify_oop_mask());
+  set_long("verifyOopBits", Universe::verify_oop_bits());
+
+  set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
+
+  //------------------------------------------------------------------------------------------------
+
+  set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
+  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
+
+  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
+  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
+  set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
+
+  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
+  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
+  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
+
+  set_address("newInstanceAddress", GraalRuntime::new_instance);
+  set_address("newArrayAddress", GraalRuntime::new_array);
+  set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
+  set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
+  set_address("dynamicNewInstanceAddress", GraalRuntime::dynamic_new_instance);
+  set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
+  set_address("vmMessageAddress", GraalRuntime::vm_message);
+  set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
+  set_address("exceptionHandlerForPcAddress", GraalRuntime::exception_handler_for_pc);
+  set_address("monitorenterAddress", GraalRuntime::monitorenter);
+  set_address("monitorexitAddress", GraalRuntime::monitorexit);
+  set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
+  set_address("createOutOfBoundsExceptionAddress", GraalRuntime::create_out_of_bounds_exception);
+  set_address("logPrimitiveAddress", GraalRuntime::log_primitive);
+  set_address("logObjectAddress", GraalRuntime::log_object);
+  set_address("logPrintfAddress", GraalRuntime::log_printf);
+  set_address("vmErrorAddress", GraalRuntime::vm_error);
+  set_address("loadAndClearExceptionAddress", GraalRuntime::load_and_clear_exception);
+  set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
+  set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
+  set_address("validateObject", GraalRuntime::validate_object);
+
+  //------------------------------------------------------------------------------------------------
+
+  set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
+  set_int("graalCountersSize", (jint) GraalCounterSize);
+
+  //------------------------------------------------------------------------------------------------
+
+  set_long("dllLoad", (jlong) os::dll_load);
+  set_long("dllLookup", (jlong) os::dll_lookup);
+  #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
+  set_long("rtldDefault", (jlong) RTLD_DEFAULT);
+  #endif
+
+#undef set_boolean
+#undef set_int
+#undef set_long
+
+C2V_END
+
 C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
   methodHandle method = asMethod(metaspace_method);
   ResourceMark rm;
@@ -377,161 +526,11 @@ C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
   return -1;
 C2V_END
 
-
-// helpers used to set fields in the HotSpotVMConfig object
-jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
-  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
-  if (id == NULL) {
-    fatal(err_msg("field not found: %s (%s)", name, sig));
-  }
-  return id;
-}
-
 C2V_VMENTRY(void, doNotInlineOrCompile,(JNIEnv *, jobject,  jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   method->set_not_c1_compilable();
   method->set_not_c2_compilable();
   method->set_dont_inline(true);
-C2V_END
-
-extern "C" {
-extern VMStructEntry* gHotSpotVMStructs;
-extern uint64_t gHotSpotVMStructEntryTypeNameOffset;
-extern uint64_t gHotSpotVMStructEntryFieldNameOffset;
-extern uint64_t gHotSpotVMStructEntryTypeStringOffset;
-extern uint64_t gHotSpotVMStructEntryIsStaticOffset;
-extern uint64_t gHotSpotVMStructEntryOffsetOffset;
-extern uint64_t gHotSpotVMStructEntryAddressOffset;
-extern uint64_t gHotSpotVMStructEntryArrayStride;
-
-extern VMTypeEntry* gHotSpotVMTypes;
-extern uint64_t gHotSpotVMTypeEntryTypeNameOffset;
-extern uint64_t gHotSpotVMTypeEntrySuperclassNameOffset;
-extern uint64_t gHotSpotVMTypeEntryIsOopTypeOffset;
-extern uint64_t gHotSpotVMTypeEntryIsIntegerTypeOffset;
-extern uint64_t gHotSpotVMTypeEntryIsUnsignedOffset;
-extern uint64_t gHotSpotVMTypeEntrySizeOffset;
-extern uint64_t gHotSpotVMTypeEntryArrayStride;
-
-extern VMIntConstantEntry* gHotSpotVMIntConstants;
-extern uint64_t gHotSpotVMIntConstantEntryNameOffset;
-extern uint64_t gHotSpotVMIntConstantEntryValueOffset;
-extern uint64_t gHotSpotVMIntConstantEntryArrayStride;
-
-extern VMLongConstantEntry* gHotSpotVMLongConstants;
-extern uint64_t gHotSpotVMLongConstantEntryNameOffset;
-extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
-extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
-}
-
-C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
-
-#define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
-#define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
-#define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
-#define set_address(name, value) do { set_long(name, (jlong) value); } while (0)
-
-  guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
-
-  set_address("gHotSpotVMStructs", gHotSpotVMStructs);
-  set_long("gHotSpotVMStructEntryTypeNameOffset",   gHotSpotVMStructEntryTypeNameOffset);
-  set_long("gHotSpotVMStructEntryFieldNameOffset",  gHotSpotVMStructEntryFieldNameOffset);
-  set_long("gHotSpotVMStructEntryTypeStringOffset", gHotSpotVMStructEntryTypeStringOffset);
-  set_long("gHotSpotVMStructEntryIsStaticOffset",   gHotSpotVMStructEntryIsStaticOffset);
-  set_long("gHotSpotVMStructEntryOffsetOffset",     gHotSpotVMStructEntryOffsetOffset);
-  set_long("gHotSpotVMStructEntryAddressOffset",    gHotSpotVMStructEntryAddressOffset);
-  set_long("gHotSpotVMStructEntryArrayStride",      gHotSpotVMStructEntryArrayStride);
-
-  set_address("gHotSpotVMTypes", gHotSpotVMTypes);
-  set_long("gHotSpotVMTypeEntryTypeNameOffset",       gHotSpotVMTypeEntryTypeNameOffset);
-  set_long("gHotSpotVMTypeEntrySuperclassNameOffset", gHotSpotVMTypeEntrySuperclassNameOffset);
-  set_long("gHotSpotVMTypeEntryIsOopTypeOffset",      gHotSpotVMTypeEntryIsOopTypeOffset);
-  set_long("gHotSpotVMTypeEntryIsIntegerTypeOffset",  gHotSpotVMTypeEntryIsIntegerTypeOffset);
-  set_long("gHotSpotVMTypeEntryIsUnsignedOffset",     gHotSpotVMTypeEntryIsUnsignedOffset);
-  set_long("gHotSpotVMTypeEntrySizeOffset",           gHotSpotVMTypeEntrySizeOffset);
-  set_long("gHotSpotVMTypeEntryArrayStride",          gHotSpotVMTypeEntryArrayStride);
-
-  set_address("gHotSpotVMIntConstants", gHotSpotVMIntConstants);
-  set_long("gHotSpotVMIntConstantEntryNameOffset",  gHotSpotVMIntConstantEntryNameOffset);
-  set_long("gHotSpotVMIntConstantEntryValueOffset", gHotSpotVMIntConstantEntryValueOffset);
-  set_long("gHotSpotVMIntConstantEntryArrayStride", gHotSpotVMIntConstantEntryArrayStride);
-
-  set_address("gHotSpotVMLongConstants", gHotSpotVMLongConstants);
-  set_long("gHotSpotVMLongConstantEntryNameOffset",  gHotSpotVMLongConstantEntryNameOffset);
-  set_long("gHotSpotVMLongConstantEntryValueOffset", gHotSpotVMLongConstantEntryValueOffset);
-  set_long("gHotSpotVMLongConstantEntryArrayStride", gHotSpotVMLongConstantEntryArrayStride);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_int("arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
-
-  set_int("extraStackEntries", Method::extra_stack_entries());
-
-  set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
-  set_long("heapTopAddress", (jlong)(address) Universe::heap()->top_addr());
-  set_long("heapEndAddress", (jlong)(address) Universe::heap()->end_addr());
-
-  set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
-
-  set_long("verifyOopMask", Universe::verify_oop_mask());
-  set_long("verifyOopBits", Universe::verify_oop_bits());
-
-  set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
-
-  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
-  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
-  set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
-
-  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
-  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
-  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
-  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
-
-  set_address("newInstanceAddress", GraalRuntime::new_instance);
-  set_address("newArrayAddress", GraalRuntime::new_array);
-  set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
-  set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
-  set_address("dynamicNewInstanceAddress", GraalRuntime::dynamic_new_instance);
-  set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
-  set_address("vmMessageAddress", GraalRuntime::vm_message);
-  set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
-  set_address("exceptionHandlerForPcAddress", GraalRuntime::exception_handler_for_pc);
-  set_address("monitorenterAddress", GraalRuntime::monitorenter);
-  set_address("monitorexitAddress", GraalRuntime::monitorexit);
-  set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
-  set_address("createOutOfBoundsExceptionAddress", GraalRuntime::create_out_of_bounds_exception);
-  set_address("logPrimitiveAddress", GraalRuntime::log_primitive);
-  set_address("logObjectAddress", GraalRuntime::log_object);
-  set_address("logPrintfAddress", GraalRuntime::log_printf);
-  set_address("vmErrorAddress", GraalRuntime::vm_error);
-  set_address("loadAndClearExceptionAddress", GraalRuntime::load_and_clear_exception);
-  set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
-  set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
-  set_address("validateObject", GraalRuntime::validate_object);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GraalCounterSize);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_long("dllLoad", (jlong) os::dll_load);
-  set_long("dllLookup", (jlong) os::dll_lookup);
-  #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
-  set_long("rtldDefault", (jlong) RTLD_DEFAULT);
-  #endif
-
-#undef set_boolean
-#undef set_int
-#undef set_long
-
 C2V_END
 
 C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code, jobject installed_code, jobject speculation_log))
