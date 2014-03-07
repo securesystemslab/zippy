@@ -55,8 +55,6 @@ void graal_compute_offsets();
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                                                                                           \
     oop_field(HotSpotResolvedJavaMethod, holder, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;")                                                  \
     long_field(HotSpotResolvedJavaMethod, metaspaceMethod)                                                                                                     \
-    int_field(HotSpotResolvedJavaMethod, codeSize)                                                                                                             \
-    int_field(HotSpotResolvedJavaMethod, exceptionHandlerCount)                                                                                                \
     boolean_field(HotSpotResolvedJavaMethod, callerSensitive)                                                                                                  \
     boolean_field(HotSpotResolvedJavaMethod, forceInline)                                                                                                      \
     boolean_field(HotSpotResolvedJavaMethod, dontInline)                                                                                                       \

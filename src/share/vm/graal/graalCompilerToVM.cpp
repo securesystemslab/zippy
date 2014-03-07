@@ -129,6 +129,12 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   return result;
 C2V_END
 
+C2V_VMENTRY(jint, exceptionTableLength, (JNIEnv *, jobject, jlong metaspace_method))
+  ResourceMark rm;
+  methodHandle method = asMethod(metaspace_method);
+  return method->exception_table_length();
+C2V_END
+
 C2V_VMENTRY(jlong, exceptionTableStart, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
   methodHandle method = asMethod(metaspace_method);
@@ -137,16 +143,8 @@ C2V_VMENTRY(jlong, exceptionTableStart, (JNIEnv *, jobject, jlong metaspace_meth
 C2V_END
 
 C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_method))
-
   // Analyze the method to see if monitors are used properly.
   methodHandle method(THREAD, asMethod(metaspace_method));
-  assert(method->has_monitor_bytecodes(), "should have checked this");
-
-  // Check to see if a previous compilation computed the monitor-matching analysis.
-  if (method->guaranteed_monitor_matching()) {
-    return true;
-  }
-
   {
     EXCEPTION_MARK;
     ResourceMark rm(THREAD);
@@ -185,7 +183,6 @@ C2V_END
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
-  HotSpotResolvedJavaMethod::set_exceptionHandlerCount(hotspot_method, method->exception_table_length());
   HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
   HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
   HotSpotResolvedJavaMethod::set_dontInline(hotspot_method, method->dont_inline());
@@ -842,6 +839,7 @@ C2V_END
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",              CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
   {CC"exceptionTableStart",             CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
+  {CC"exceptionTableLength",            CC"("METASPACE_METHOD")I",                                        FN_PTR(exceptionTableLength)},
   {CC"hasBalancedMonitors",             CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"findUniqueConcreteMethod",        CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
   {CC"getKlassImplementor",             CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
