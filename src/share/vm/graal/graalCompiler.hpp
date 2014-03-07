@@ -71,9 +71,6 @@ public:
   // Print compilation timers and statistics
   virtual void print_timers();
 
-  static KlassHandle get_KlassFromSignature(Symbol* signature, KlassHandle loading_klass);
-  static KlassHandle get_Klass(constantPoolHandle cp, int index, KlassHandle accessor, Symbol*& klass_name);
-
   void exit();
 
   static BasicType kindToBasicType(jchar ch);

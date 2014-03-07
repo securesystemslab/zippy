@@ -211,46 +211,6 @@ void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-KlassHandle GraalCompiler::get_KlassFromSignature(Symbol* signature, KlassHandle loading_klass) {
-  BasicType field_type = FieldType::basic_type(signature);
-  // If the field is a pointer type, get the klass of the field.
-  if (field_type == T_OBJECT || field_type == T_ARRAY) {
-    return GraalEnv::get_klass_by_name(loading_klass, signature, false);
-  }
-  return NULL;
-}
-
-KlassHandle GraalCompiler::get_Klass(constantPoolHandle cp, int index, KlassHandle loading_klass, Symbol*& klass_name) {
-  bool is_accessible = false;
-
-  KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
-  if (klass.is_null()) {
-    klass_name = NULL;
-    {
-      // We have to lock the cpool to keep the oop from being resolved
-      // while we are accessing it. But we must release the lock before
-      // calling up into Java.
-      MonitorLockerEx ml(cp->lock());
-      constantTag tag = cp->tag_at(index);
-      if (tag.is_klass()) {
-        // The klass has been inserted into the constant pool
-        // very recently.
-        klass = cp->resolved_klass_at(index);
-        klass_name = klass->name();
-        return klass;
-      } else if (tag.is_symbol()) {
-        klass_name = cp->symbol_at(index);
-      } else {
-        assert(cp->tag_at(index).is_unresolved_klass(), "wrong tag");
-        klass_name = cp->unresolved_klass_at(index);
-      }
-    }
-  } else {
-    klass_name = klass->name();
-  }
-  return klass;
-}
-
 BasicType GraalCompiler::kindToBasicType(jchar ch) {
   switch(ch) {
     case 'z': return T_BOOLEAN;
