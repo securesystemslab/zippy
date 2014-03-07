@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -119,6 +119,11 @@ private:
   void process_exception_handlers();
 
 };
+
+/**
+ * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
+ */
+Method* getMethodFromHotSpotMethod(oop hotspot_method);
 
 #ifdef TARGET_ARCH_x86
 # include "graalCodeInstaller_x86.hpp"

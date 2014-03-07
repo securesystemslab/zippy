@@ -63,11 +63,6 @@ inline Klass* asKlass(jlong metaspaceKlass) {
   return (Klass*) (address) metaspaceKlass;
 }
 
-/**
- * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
- */
-Method* getMethodFromHotSpotMethod(oop hotspot_method);
-
 class JavaArgumentUnboxer : public SignatureIterator {
  protected:
   JavaCallArguments*  _jca;

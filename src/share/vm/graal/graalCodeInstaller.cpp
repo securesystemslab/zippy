@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,11 @@
 #ifdef TARGET_ARCH_ppc
 # include "vmreg_ppc.inline.hpp"
 #endif
+
+Method* getMethodFromHotSpotMethod(oop hotspot_method) {
+  assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotResolvedJavaMethod::klass()), "sanity");
+  return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
+}
 
 // convert Graal register indices (as used in oop maps) to HotSpot registers
 VMReg get_hotspot_reg(jint graal_reg) {

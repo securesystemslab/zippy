@@ -43,11 +43,6 @@
 #include "runtime/gpu.hpp"
 
 
-Method* getMethodFromHotSpotMethod(oop hotspot_method) {
-  assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotResolvedJavaMethod::klass()), "sanity");
-  return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
-}
-
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
 #define C2V_VMENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL c2v_ ## name signature { \
@@ -357,24 +352,22 @@ C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant
   return (jlong) (address) result.field_holder();
 C2V_END
 
-C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
-  assert(JNIHandles::resolve(resolved_type) != NULL, "");
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass, jstring name, jstring signature))
+  Klass* klass = (Klass*) metaspace_klass;
   Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
   Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   return (jlong) (address) klass->lookup_method(name_symbol, signature_symbol);
 C2V_END
 
-C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(hotspot_klass));
+C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
+  Klass* klass = (Klass*) metaspace_klass;
   assert(klass != NULL, "method must not be called for primitive types");
   return Dependencies::find_finalizable_subclass(klass) != NULL;
 C2V_END
 
-C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jobject klass))
-  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass)));
-  Method* clinit = k->class_initializer();
-  return (jlong) (address) clinit;
+C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jlong metaspace_klass))
+  InstanceKlass* klass = (InstanceKlass*) metaspace_klass;
+  return (jlong) (address) klass->class_initializer();
 C2V_END
 
 C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
@@ -708,8 +701,8 @@ C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
   return JNIHandles::make_local(array);
 C2V_END
 
-C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot_method))
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace_method))
+  Method* method = (Method*) metaspace_method;
   if (!method->has_linenumber_table()) {
     return NULL;
   }
@@ -735,18 +728,18 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot
   return result;
 C2V_END
 
-C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   if (!method->has_localvariable_table()) {
     return 0;
   }
   return (jlong) (address) method->localvariable_table_start();
 C2V_END
 
-C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   return method->localvariable_table_length();
 C2V_END
 
@@ -812,10 +805,10 @@ C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
 #endif
 C2V_END
 
-C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_method, int entry_bci))
+C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci))
   HandleMark hm;
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   return CompileBroker::assign_compile_id_unlocked(THREAD, method, entry_bci);
 C2V_END
 
@@ -836,7 +829,6 @@ C2V_END
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
-#define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
@@ -871,9 +863,9 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupMethodInPool",              CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                FN_PTR(lookupMethodInPool)},
   {CC"loadReferencedTypeInPool",        CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(loadReferencedTypeInPool)},
   {CC"resolveField",                    CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,               FN_PTR(resolveField)},
-  {CC"resolveMethod",                   CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
-  {CC"getClassInitializer",             CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
-  {CC"hasFinalizableSubclass",          CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
+  {CC"resolveMethod",                   CC"("METASPACE_KLASS STRING STRING")"METASPACE_METHOD,            FN_PTR(resolveMethod)},
+  {CC"getClassInitializer",             CC"("METASPACE_KLASS")"METASPACE_METHOD,                          FN_PTR(getClassInitializer)},
+  {CC"hasFinalizableSubclass",          CC"("METASPACE_KLASS")Z",                                         FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",          CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getMetaspaceMethod",              CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
   {CC"initializeConfiguration",         CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
@@ -884,16 +876,16 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"disassembleCodeBlob",             CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",    CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",          CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"getLineNumberTable",              CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
-  {CC"getLocalVariableTableStart",      CC"("HS_RESOLVED_METHOD")J",                                      FN_PTR(getLocalVariableTableStart)},
-  {CC"getLocalVariableTableLength",     CC"("HS_RESOLVED_METHOD")I",                                      FN_PTR(getLocalVariableTableLength)},
+  {CC"getLineNumberTable",              CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
+  {CC"getLocalVariableTableStart",      CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
+  {CC"getLocalVariableTableLength",     CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
   {CC"reprofile",                       CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",         CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer",   CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
   {CC"readUnsafeKlassPointer",          CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",                 CC"()[J",                                                         FN_PTR(collectCounters)},
   {CC"getGPUs",                         CC"()"STRING,                                                     FN_PTR(getGPUs)},
-  {CC"allocateCompileId",               CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
+  {CC"allocateCompileId",               CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
   {CC"isMature",                        CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
 };
 
