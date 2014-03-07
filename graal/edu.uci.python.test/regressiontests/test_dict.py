@@ -764,16 +764,16 @@ class DictTest(unittest.TestCase):
 # from test import mapping_tests
 # from mapping_tests import BasicTestMappingProtocol 
 
-# class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
-# # class GeneralMappingTests(BasicTestMappingProtocol):
-#     type2test = dict
-#    
-# class Dict(dict):
-#     pass
-#   
-# class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
-# # class SubclassMappingTests(BasicTestMappingProtocol):
-#     type2test = Dict
+class GeneralMappingTests(mapping_tests.BasicTestMappingProtocol):
+# class GeneralMappingTests(BasicTestMappingProtocol):
+    type2test = dict
+    
+class Dict(dict):
+    pass
+   
+class SubclassMappingTests(mapping_tests.BasicTestMappingProtocol):
+# class SubclassMappingTests(BasicTestMappingProtocol):
+    type2test = Dict
   
 # def test_main():
 #     support.run_unittest(

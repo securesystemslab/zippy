@@ -50,7 +50,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionarySetDefaultNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object setDefalut(PDict dict, Object arg0, Object arg1) {
+        public Object setDefault(PDict dict, Object arg0, Object arg1) {
             if (dict.getMap().containsKey(arg0)) {
                 return dict.getMap().get(arg0);
             } else {
@@ -77,12 +77,16 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     }
 
     // popitem()
-    @Builtin(name = "popitem", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
+    @Builtin(name = "popitem", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class PythonDictionaryPopItemNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object popItem(PDict dict, Object arg0, Object arg1) {
-            return null;
+        public Object popItem(PDict dict) {
+            Object key = dict.__iter__().__next__();
+            dict.delItem(key);
+            Object nextKey = dict.__iter__().__next__();
+            Object nextValue = dict.getItem(nextKey);
+            return new PTuple(new Object[]{nextKey, nextValue});
         }
     }
 
@@ -111,11 +115,11 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryGetNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object get(PDict dict, Object arg0, Object arg1) {
-            if (dict.getMap().get(arg0) != null) {
-                return dict.getMap().get(arg0);
+        public Object get(PDict dict, Object key, Object defaultValue) {
+            if (dict.getMap().get(key) != null) {
+                return dict.getMap().get(key);
             } else {
-                return arg1;
+                return defaultValue;
             }
         }
     }
