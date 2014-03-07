@@ -1163,6 +1163,18 @@ def longtests(args):
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
+        # When the http_proxy environment variable is set, convert it to the proxy settings that ant needs
+        env = os.environ
+        proxy = os.environ.get('http_proxy')
+        if not (proxy is None) and len(proxy) > 0:
+            if proxy.contains('://'):
+                # Remove the http:// prefix (or any other protocol prefix)
+                proxy = proxy.split('://', 1)[1]
+            # Separate proxy server name and port number
+            proxyName, proxyPort = proxy.split(':', 1)
+            proxyEnv = '-DproxyHost="' + proxyName + '" -DproxyPort=' + proxyPort
+            env['ANT_OPTS'] = proxyEnv
+
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         nbplatform = join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')
 
@@ -1179,7 +1191,31 @@ def igv(args):
 
         if not exists(nbplatform):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
+
+def c1visualizer(args):
+    """run the Cl Compiler Visualizer"""
+    libpath = join(_graal_home, 'lib')
+    if mx.get_os() == 'windows':
+        executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer.exe')
+    else:
+        executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
+
+    archive = join(libpath, 'c1visualizer.zip')
+    if not exists(executable):
+        if not exists(archive):
+            mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer.zip'])
+        zf = zipfile.ZipFile(archive, 'r')
+        zf.extractall(libpath)
+
+    if not exists(executable):
+        mx.abort('C1Visualizer binary does not exist: ' + executable)
+
+    if mx.get_os() != 'windows':
+        # Make sure that execution is allowed. The zip file does not always specfiy that correctly
+        os.chmod(executable, 0777)
+
+    mx.run([executable])
 
 def bench(args):
     """run benchmarks and parse their output for results
@@ -1600,6 +1636,7 @@ def mx_init(suite):
         'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
+        'c1visualizer' : [c1visualizer, ''],
         'clean': [clean, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
