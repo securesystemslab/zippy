@@ -2067,6 +2067,8 @@ def archive(args):
                 shutil.rmtree(services)
                 # Atomic on Unix
                 shutil.move(tmp, d.path)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(d.path, 0o666 & ~currentUmask)
                 archives.append(d.path)
                 # print time.time(), 'move:', tmp, '->', d.path
                 d.notify_updated()
@@ -2092,6 +2094,8 @@ def archive(args):
                 # Atomic on Unix
                 jarFile = join(p.dir, p.name + '.jar')
                 shutil.move(tmp, jarFile)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(jarFile, 0o666 & ~currentUmask)
                 archives.append(jarFile)
             finally:
                 if exists(tmp):
@@ -2839,6 +2843,8 @@ def _zip_files(files, baseDir, zipPath):
         os.close(fd)
         # Atomic on Unix
         shutil.move(tmp, zipPath)
+        # Correct the permissions on the temporary file which is created with restrictive permissions
+        os.chmod(zipPath, 0o666 & ~currentUmask)
     finally:
         if exists(tmp):
             os.remove(tmp)
@@ -4039,8 +4045,14 @@ def main():
 
 version = VersionSpec("1.0")
 
+currentUmask = None
+
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
     sys.modules['mx'] = sys.modules.pop('__main__')
+
+    # Capture the current umask since there's no way to query it without mutating it.
+    currentUmask = os.umask(0)
+    os.umask(currentUmask)
 
     main()
