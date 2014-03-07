@@ -30,16 +30,16 @@ package edu.uci.python.nodes;
 
 import com.oracle.truffle.api.frame.*;
 
-public final class ZippyThrowsExceptionNode extends PNode {
+public final class ZippyTranslationErrorNode extends PNode {
 
-    public static final String MESSAGE = "ZippyThrowsException";
+    public static final String MESSAGE = "ZippyTranslationError";
 
-    private static ZippyThrowsExceptionNode instance = new ZippyThrowsExceptionNode();
+    private static ZippyTranslationErrorNode instance = new ZippyTranslationErrorNode();
 
-    private ZippyThrowsExceptionNode() {
+    private ZippyTranslationErrorNode() {
     }
 
-    public static ZippyThrowsExceptionNode getInstance() {
+    public static ZippyTranslationErrorNode getInstance() {
         return instance;
     }
 
