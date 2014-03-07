@@ -128,27 +128,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return true;
         }
 
-// @Specialization
-// public boolean all(PGenerator generator) {
-// if (generator.len() == 0) {
-// return false;
-// }
-//
-// PIterator iterator = generator.__iter__();
-//
-// try {
-// while (true) {
-// if (!toBoolean(iterator.__next__())) {
-// return false;
-// }
-// }
-// } catch (StopIterationException e) {
-// // fall through
-// }
-//
-// return true;
-// }
-
         @Specialization
         public boolean all(Object object) {
             throw new RuntimeException("all does not support iterable object " + object);
@@ -231,8 +210,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // chr(i)
-    // The valid range for the argument is from 0 through 1,114,111 (0x10FFFF in base 16).
-    // ValueError will be raised if i is outside that range.
     @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class PythonChrNode extends PythonBuiltinNode {
 
@@ -1066,7 +1043,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public Object __import__(String name) {
-            // Object importedModule = getContext().getPythonBuiltinsLookup().lookupModule(name);
             if (name.equals("__main__")) {
                 Object importedModule = getContext().getMainModule();
                 return importedModule;

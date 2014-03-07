@@ -30,6 +30,10 @@ package edu.uci.python.nodes;
 
 import com.oracle.truffle.api.frame.*;
 
+/**
+ * @author Gulfem
+ */
+
 public final class ZippyTranslationErrorNode extends PNode {
 
     public static final String MESSAGE = "ZippyTranslationError";
