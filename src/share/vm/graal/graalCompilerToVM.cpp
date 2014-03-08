@@ -353,7 +353,7 @@ C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_meth
   return code == NULL ? 0 : code->insts_size();
 C2V_END
 
-C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean eagerResolve))
+C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean resolve))
   ResourceMark rm;
   Handle name = JNIHandles::resolve(jname);
   Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
@@ -369,20 +369,13 @@ C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass acce
     protection_domain = accessing_klass->protection_domain();
   }
 
-  if (eagerResolve) {
+  if (resolve) {
     resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);
   } else {
     resolved_klass = SystemDictionary::resolve_or_null(class_name, class_loader, protection_domain, THREAD);
   }
 
   return (jlong) (address) resolved_klass;
-C2V_END
-
-C2V_VMENTRY(jlong, lookupKlassByName, (JNIEnv *env, jobject, jstring name, jclass loading_class))
-  KlassHandle loading_klass = java_lang_Class::as_Klass(JNIHandles::resolve(loading_class));
-  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
-  KlassHandle klass = GraalEnv::get_klass_by_name(loading_klass, name_symbol, false);
-  return (jlong) (address) klass();
 C2V_END
 
 C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
@@ -854,7 +847,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"shouldInlineMethod",              CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
   {CC"getCompiledCodeSize",             CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"lookupType",                      CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
-  {CC"lookupKlassByName",               CC"("STRING CLASS")"METASPACE_KLASS,                              FN_PTR(lookupKlassByName)},
   {CC"lookupConstantInPool",            CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
   {CC"lookupNameRefInPool",             CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupNameRefInPool)},
   {CC"lookupNameAndTypeRefIndexInPool", CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupNameAndTypeRefIndexInPool)},
