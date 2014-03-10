@@ -71,10 +71,16 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     }
 
     @Specialization
+    public PIterator doPIterable(PIterable value) {
+        return value.__iter__();
+    }
+
+    @Specialization
     public PIterator doPIterator(PIterator value) {
         return value;
     }
 
+    // (zwei): What is the purpose of this?
     @Specialization
     public Object doJavaList(Object value) {
         if (value instanceof List) {

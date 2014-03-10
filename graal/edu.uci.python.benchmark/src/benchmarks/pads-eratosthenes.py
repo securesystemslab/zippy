@@ -36,6 +36,7 @@ def FactoredIntegers():
             del factorization[i]
         else:
             yield i,factorization[i]
+            print('factorization[i]', factorization[i])
             for p,x in factorization[i].items():
                 q = p**x
                 iq = i+q
@@ -49,7 +50,7 @@ def FactoredIntegers():
 def isPracticalFactorization(f):
     """Test whether f is the factorization of a practical number."""
     f = list(f.items())    
-    f.sort()
+    # f.sort()
     sigma = 1
     for p,x in f:
         if sigma < p - 1:
