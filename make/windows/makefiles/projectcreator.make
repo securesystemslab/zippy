@@ -183,6 +183,7 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_graal COMPILER1 \
+ -define_graal COMPILERGRAAL \
  -define_graal GRAAL \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 

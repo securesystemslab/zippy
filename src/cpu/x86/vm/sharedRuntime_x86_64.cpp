@@ -3368,7 +3368,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ jmp(cont);
 
   int reexecute_offset = __ pc() - start;
-#ifdef GRAALVM
+#if defined(COMPILERGRAAL) && !defined(COMPILER1)
   // Graal does not use this kind of deoptimization
   __ should_not_reach_here();
 #endif

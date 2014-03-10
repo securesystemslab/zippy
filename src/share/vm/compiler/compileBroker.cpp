@@ -795,11 +795,11 @@ void CompileBroker::compilation_init() {
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-#if defined(GRAALVM) && !defined(TIERED)
+#if defined(COMPILERGRAAL) && !defined(TIERED)
   _compilers[0] = graal;
   c1_count = 0;
   c2_count = 0;
-#endif // GRAALVM && !TIERED
+#endif // COMPILERGRAAL && !TIERED
 
 #ifdef COMPILER1
   if (c1_count > 0) {
@@ -807,10 +807,10 @@ void CompileBroker::compilation_init() {
   }
 #endif // COMPILER1
 
-#if defined(GRAALVM)
+#if defined(COMPILERGRAAL)
   _compilers[1] = graal;
   c2_count = 0;
-#endif // GRAALVM
+#endif // COMPILERGRAAL
 
 #ifdef COMPILER2
   if (c2_count > 0) {
@@ -1014,9 +1014,9 @@ CompilerThread* CompileBroker::make_compiler_thread(const char* name, CompileQue
 
 void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler_count) {
   EXCEPTION_MARK;
-#if !defined(ZERO) && !defined(SHARK) && !defined(GRAALVM)
+#if !defined(ZERO) && !defined(SHARK) && !defined(COMPILERGRAAL)
   assert(c2_compiler_count > 0 || c1_compiler_count > 0, "No compilers?");
-#endif // !ZERO && !SHARK && !GRAALVM
+#endif // !ZERO && !SHARK && !COMPILERGRAAL
   // Initialize the compilation queue
   if (c2_compiler_count > 0) {
     _c2_method_queue  = new CompileQueue("C2MethodQueue",  MethodCompileQueue_lock);
@@ -1148,7 +1148,7 @@ void CompileBroker::compile_method_base(methodHandle method,
     return;
   }
 
-#if defined(GRAALVM)
+#if defined(COMPILERGRAAL)
   // In tiered mode we want to only handle highest tier compiles and
   // in non-tiered mode the default level should be
   // CompLevel_full_optimization which equals CompLevel_highest_tier.
@@ -1165,7 +1165,7 @@ void CompileBroker::compile_method_base(methodHandle method,
     return;
   }
   assert(TieredCompilation, "should only reach here in tiered mode");
-#endif // GRAALVM
+#endif // COMPILERGRAAL
 
   // Outputs from the following MutexLocker block:
   CompileTask* task     = NULL;

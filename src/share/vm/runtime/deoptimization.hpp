@@ -309,7 +309,7 @@ class Deoptimization : AllStatic {
   }
   static int make_trap_request(DeoptReason reason, DeoptAction action,
                                int index = -1) {
-#ifdef GRAALVM
+#if defined(COMPILERGRAAL) && !defined(COMPILER1) && !defined(COMPILER2)
     assert(index == -1, "Graal does not use index");
 #endif
 

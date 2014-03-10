@@ -99,7 +99,7 @@ void GraalCompiler::initialize() {
     VMToCompiler::finalizeOptions(CITime || CITimeEach);
 
     if (UseCompiler) {
-      bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
+      bool bootstrap = COMPILERGRAAL_PRESENT(BootstrapGraal) NOT_COMPILERGRAAL(false);
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
