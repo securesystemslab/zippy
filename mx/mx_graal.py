@@ -977,6 +977,11 @@ def _basic_gate_body(args, tasks):
         vm(['-esa', '-version'])
         tasks.append(t.stop())
 
+    with VM('graal', 'fastdebug'):
+        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        tasks.append(t.stop())
+
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
