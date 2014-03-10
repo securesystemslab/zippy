@@ -105,8 +105,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryItemsNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList items(PDict self) {
-            return new PList(self.__iter__());
+        public Object items(PDict self) {
+            return new PDictView.PDictViewItems(self);
         }
     }
 
