@@ -126,7 +126,7 @@ public class PDict extends PythonBuiltinObject implements PIterable {
         int i = 0;
 
         for (Object key : map.keySet()) {
-            buf.append(key.toString() + " : " + map.get(key));
+            buf.append(key.toString() + ": " + map.get(key));
 
             if (i < length - 1) {
                 buf.append(", ");

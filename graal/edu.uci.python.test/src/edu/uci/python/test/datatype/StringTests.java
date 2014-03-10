@@ -28,7 +28,7 @@ import static edu.uci.python.test.PythonTests.*;
 
 import org.junit.*;
 
-public class StringTest {
+public class StringTests {
 
     @Test
     public void simple() {
@@ -42,7 +42,7 @@ public class StringTest {
     public void staticMakeTrans() {
         String source = "t = str.maketrans('abc', '123')\n" + //
                         "print(t)\n";
-        assertPrints("{98 : 50, 99 : 51, 97 : 49}\n", source);
+        assertPrints("{98: 50, 99: 51, 97: 49}\n", source);
     }
 
     @Test
