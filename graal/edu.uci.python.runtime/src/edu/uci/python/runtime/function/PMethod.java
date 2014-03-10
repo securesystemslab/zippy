@@ -27,6 +27,7 @@ package edu.uci.python.runtime.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PMethod extends PythonBuiltinObject implements PythonCallable {
@@ -58,8 +59,25 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        /**
+         * The following if block is necessary to catch the execution errors and mark that test case
+         * as failed in the unit test.
+         */
+        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+            if (function.getName().equals("_executeTestPart")) {
+                try {
+                    Object[] combined = function.applyKeywordArgs(true, args, keywords);
+                    Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+                    return returnValue;
+                } catch (Exception e) {
+                    return "ZippyExecutionError: " + e;
+                }
+            }
+        }
+
         Object[] combined = function.applyKeywordArgs(true, args, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+
     }
 
     @Override

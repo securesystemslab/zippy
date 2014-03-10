@@ -33,7 +33,6 @@ import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
@@ -54,7 +53,12 @@ public class CustomConsole extends JLineConsole {
     public void execfile(PythonContext context, Source source) {
         setSystemState();
 
-        PythonModule module = context.createMainModule();
+        PythonModule module = context.createMainModule(source.getPath());
+        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
         PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {
@@ -78,12 +82,6 @@ public class CustomConsole extends JLineConsole {
         }
 
         if (PythonOptions.ProfileGeneratorCalls) {
-            if (PythonOptions.ParallelizeGeneratorCalls) {
-                PParallelGenerator.printProfiledTime();
-            } else {
-                PGenerator.printProfiledTime();
-            }
-
             context.printGeneratorProfilingInfo();
         }
 
@@ -96,7 +94,12 @@ public class CustomConsole extends JLineConsole {
     }
 
     public void parseFile(PythonContext context, Source source) {
-        PythonModule module = context.createMainModule();
+        PythonModule module = context.createMainModule(source.getPath());
+        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
         PythonParseResult result = context.getParser().parse(context, module, source, cflags);
 
         if (PythonOptions.PrintAST) {

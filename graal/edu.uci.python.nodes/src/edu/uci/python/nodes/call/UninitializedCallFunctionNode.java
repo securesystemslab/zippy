@@ -54,7 +54,6 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
     public Object execute(VirtualFrame frame) {
         transferToInterpreterAndInvalidate();
         Object calleeObj = callee.execute(frame);
-
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());

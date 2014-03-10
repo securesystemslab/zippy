@@ -59,7 +59,9 @@ public class PythonTypesUtil {
             return (PyObject) value;
         }
 
-        if (value instanceof Integer) {
+        if (value instanceof Boolean) {
+            return Py.newBoolean((boolean) value);
+        } else if (value instanceof Integer) {
             return Py.newInteger((int) value);
         } else if (value instanceof BigInteger) {
             return Py.newLong((BigInteger) value);
@@ -71,8 +73,8 @@ public class PythonTypesUtil {
             return pyComplex;
         } else if (value instanceof String) {
             return Py.newString((String) value);
-        } else if (value instanceof Boolean) {
-            return Py.newBoolean((boolean) value);
+        } else if (value instanceof PNone) {
+            return Py.None;
         } else if (value instanceof PTuple) {
             PTuple tuple = (PTuple) value;
             return new PyTuple(adaptToPyObjects(tuple.getArray()));

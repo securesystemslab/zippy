@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,20 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
 
-import org.python.core.*;
+/**
+ * @author Gulfem
+ */
+package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.standardtype.*;
+/**
+ * @author Gulfem
+ */
 
-public interface PythonParser {
+public final class ZippyTranslationErrorNode extends PNode {
 
-    PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags);
+    public static final String MESSAGE = "ZippyTranslationError";
 
-    PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags);
+    private static ZippyTranslationErrorNode instance = new ZippyTranslationErrorNode();
 
-    PythonParseResult parse(PythonContext context, PythonModule module, String expression);
+    private ZippyTranslationErrorNode() {
+    }
+
+    public static ZippyTranslationErrorNode getInstance() {
+        return instance;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return MESSAGE;
+    }
 
 }

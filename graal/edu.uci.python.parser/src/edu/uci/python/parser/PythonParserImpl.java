@@ -39,8 +39,6 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonParserImpl implements PythonParser {
 
-    private Source scriptSource;
-
     /**
      * Truffle: Parse input program to AST that is ready to interpret itself.
      */
@@ -48,35 +46,32 @@ public class PythonParserImpl implements PythonParser {
     @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags) {
         org.python.antlr.base.mod node;
-        this.scriptSource = source;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
-
-        if (!PythonOptions.PrintFunction) {
-            // enable printing flag for python's builtin function (v3.x) in parser.
-            String print = "from __future__ import print_function \n";
-            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
-            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
-
-            node = ParserFacade.parse(withPrintFlag, CompileMode.exec, filename, cflags);
-        } else {
-            node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
-        }
+        node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         PythonParseResult result = ptt.translate(node);
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
             for (RootNode functionRoot : result.getFunctionRoots()) {
-                new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
+                if (functionRoot instanceof FunctionRootNode) {
+                    new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
+                }
             }
         }
 
         return result;
+    }
+
+    @Override
+    public PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags) {
+        Source source = context.getSourceManager().get(module.getModulePath());
+        return parse(context, module, source, cflags);
     }
 
     @Override
@@ -87,13 +82,7 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(environment, context);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         return ptt.translate(node);
     }
-
-    @Override
-    public Source getSource() {
-        return scriptSource;
-    }
-
 }

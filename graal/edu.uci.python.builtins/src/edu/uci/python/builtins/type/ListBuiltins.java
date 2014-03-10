@@ -50,11 +50,9 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListAppendNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList append(Object self, Object arg) {
-            PList selfList = (PList) self;
-
-            selfList.append(arg);
-            return selfList;
+        public PList append(PList list, Object arg) {
+            list.append(arg);
+            return list;
         }
     }
 
@@ -63,15 +61,15 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListExtendNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList extend(Object self, Object arg) {
-            PList selfList = (PList) self;
+        public PList extend(PList list1, PList list2) {
+            list1.extend(list2);
+            return list1;
+        }
 
-            if (arg instanceof PList) {
-                selfList.extend((PList) arg);
-                return selfList;
-            } else {
-                throw new RuntimeException("invalid arguments for extend()");
-            }
+        @SuppressWarnings("unused")
+        @Specialization
+        public PList extend(PList list1, Object list2) {
+            throw new RuntimeException("invalid arguments for extend()");
         }
     }
 
@@ -80,15 +78,15 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListInsertNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList insert(Object self, Object arg0, Object arg1) {
-            PList selfList = (PList) self;
+        public PList insert(PList list, int index, Object value) {
+            list.insert(index, value);
+            return list;
+        }
 
-            if (arg0 instanceof Integer) {
-                selfList.insert((int) arg0, arg1);
-                return selfList;
-            } else {
-                throw new RuntimeException("invalid arguments for insert()");
-            }
+        @SuppressWarnings("unused")
+        @Specialization
+        public PList insert(PList list, Object i, Object arg1) {
+            throw new RuntimeException("invalid arguments for insert()");
         }
     }
 
@@ -97,11 +95,10 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListRemoveNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList remove(Object self, Object arg) {
-            PList selfList = (PList) self;
-            int index = selfList.index(arg);
-            selfList.delItem(index);
-            return selfList;
+        public PList remove(PList list, Object arg) {
+            int index = list.index(arg);
+            list.delItem(index);
+            return list;
         }
     }
 
@@ -110,17 +107,16 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object pop(Object self, Object arg) {
-            PList selfList = (PList) self;
+        public Object pop(PList list, int index) {
+            Object ret = list.getItem(index);
+            list.delItem(index);
+            return ret;
+        }
 
-            if (arg instanceof Integer) {
-                int index = (int) arg;
-                Object ret = selfList.getItem(index);
-                selfList.delItem(index);
-                return ret;
-            } else {
-                throw new RuntimeException("invalid arguments for pop()");
-            }
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object pop(PList list, Object arg) {
+            throw new RuntimeException("invalid arguments for pop()");
         }
     }
 
@@ -129,9 +125,8 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListIndexNode extends PythonBuiltinNode {
 
         @Specialization
-        public int index(Object self, Object arg) {
-            PList selfList = (PList) self;
-            return selfList.index(arg);
+        public int index(PList list, Object arg) {
+            return list.index(arg);
         }
     }
 
@@ -140,13 +135,12 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListCountNode extends PythonBuiltinNode {
 
         @Specialization
-        public int count(Object self, Object arg) {
-            PList selfList = (PList) self;
+        public int count(PList list, Object arg) {
             int count = 0;
 
             try {
                 while (true) {
-                    if (selfList.__iter__().__next__().equals(arg)) {
+                    if (list.__iter__().__next__().equals(arg)) {
                         count++;
                     }
                 }
@@ -163,10 +157,9 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListSortNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList sort(Object self) {
-            PList selfList = (PList) self;
-            selfList.sort();
-            return selfList;
+        public PList sort(PList list) {
+            list.sort();
+            return list;
         }
     }
 
@@ -175,10 +168,9 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListReverseNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList reverse(Object self) {
-            PList selfList = (PList) self;
-            selfList.reverse();
-            return selfList;
+        public PList reverse(PList list) {
+            list.reverse();
+            return list;
         }
     }
 }

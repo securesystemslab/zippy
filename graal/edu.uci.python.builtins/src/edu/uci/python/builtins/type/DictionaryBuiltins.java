@@ -50,9 +50,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionarySetDefaultNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object setDefalut(Object self, Object arg0, Object arg1) {
-            PDict dict = (PDict) self;
-
+        public Object setDefault(PDict dict, Object arg0, Object arg1) {
             if (dict.getMap().containsKey(arg0)) {
                 return dict.getMap().get(arg0);
             } else {
@@ -67,9 +65,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryPopNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object pop(Object self, Object arg0, Object arg1) {
-            PDict dict = (PDict) self;
-
+        public Object pop(PDict dict, Object arg0, Object arg1) {
             Object retVal = dict.getMap().get(arg0);
             if (retVal != null) {
                 dict.getMap().remove(arg0);
@@ -77,6 +73,20 @@ public final class DictionaryBuiltins extends PythonBuiltins {
             } else {
                 return arg1;
             }
+        }
+    }
+
+    // popitem()
+    @Builtin(name = "popitem", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class PythonDictionaryPopItemNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object popItem(PDict dict) {
+            Object key = dict.__iter__().__next__();
+            dict.delItem(key);
+            Object nextKey = dict.__iter__().__next__();
+            Object nextValue = dict.getItem(nextKey);
+            return new PTuple(new Object[]{nextKey, nextValue});
         }
     }
 
@@ -105,13 +115,11 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryGetNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object get(Object self, Object arg0, Object arg1) {
-            PDict dict = (PDict) self;
-
-            if (dict.getMap().get(arg0) != null) {
-                return dict.getMap().get(arg0);
+        public Object get(PDict dict, Object key, Object defaultValue) {
+            if (dict.getMap().get(key) != null) {
+                return dict.getMap().get(key);
             } else {
-                return arg1;
+                return defaultValue;
             }
         }
     }
@@ -121,8 +129,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryCopyNode extends PythonBuiltinNode {
 
         @Specialization
-        public PDict copy(Object self) {
-            PDict dict = (PDict) self;
+        public PDict copy(PDict dict) {
             return new PDict(dict.getMap());
         }
     }
@@ -132,8 +139,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryClearNode extends PythonBuiltinNode {
 
         @Specialization
-        public PDict copy(Object self) {
-            PDict dict = (PDict) self;
+        public PDict copy(PDict dict) {
             dict.getMap().clear();
             return dict;
         }
@@ -144,8 +150,8 @@ public final class DictionaryBuiltins extends PythonBuiltins {
     public abstract static class PythonDictionaryValuesNode extends PythonBuiltinNode {
 
         @Specialization
-        public PList values(PDict self) {
-            return new PList(self.values());
+        public PList values(PDict dict) {
+            return new PList(dict.values());
         }
     }
 }

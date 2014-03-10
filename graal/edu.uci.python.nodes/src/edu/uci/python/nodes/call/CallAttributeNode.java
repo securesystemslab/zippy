@@ -221,7 +221,11 @@ public abstract class CallAttributeNode extends PNode {
                 read.replace(new ReadSelfArgumentNode());
             } else {
                 int index = read.getIndex();
-                read.replace(new ReadArgumentNode(index - 1));
+                if (read instanceof ReadVarArgsNode) {
+                    read.replace(new ReadVarArgsNode(index - 1));
+                } else {
+                    read.replace(new ReadArgumentNode(index - 1));
+                }
             }
         }
     }

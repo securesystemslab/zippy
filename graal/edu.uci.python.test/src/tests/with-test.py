@@ -5,6 +5,7 @@ a = 5
               
 class Sample:
     def __enter__(self):
+        print("__enter__")
         return self
  
     def __exit__(self, type, value, trace):

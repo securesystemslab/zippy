@@ -122,9 +122,14 @@ public class WithTests {
     }
 
     @Test
-    public void scriptTryTest() {
+    public void scriptWithTest() {
         Path script = Paths.get("with-test.py");
-        assertPrints("type: <type 'exceptions.ZeroDivisionError'>\nvalue: divide by zero\nException has been thrown correctly\na =  5\n", script);
+        assertPrints("__enter__\ntype: <type 'exceptions.ZeroDivisionError'>\nvalue: divide by zero\nException has been thrown correctly\na =  5\n", script);
     }
 
+    @Test
+    public void scriptWithTest2() {
+        Path script = Paths.get("with-test-2.py");
+        assertPrints("(1, 2)\n1 2\n", script);
+    }
 }

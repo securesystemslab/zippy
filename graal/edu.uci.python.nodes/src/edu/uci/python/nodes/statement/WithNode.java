@@ -29,8 +29,10 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
 /**
@@ -41,35 +43,42 @@ import edu.uci.python.runtime.standardtype.*;
 public class WithNode extends StatementNode {
 
     @Child protected PNode withContext;
-    @Child protected PNode asName;
+    @Child protected BlockNode asName;
     @Child protected BlockNode body;
 
     @SuppressWarnings("unused") private final PythonContext context;
 
-    protected WithNode(PythonContext context, PNode withContext, PNode asName, BlockNode body) {
+    protected WithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
         this.context = context;
         this.withContext = adoptChild(withContext);
         this.asName = adoptChild(asName);
         this.body = adoptChild(body);
     }
 
-    public static WithNode create(PythonContext context, PNode withContext, PNode asName, BlockNode body) {
+    public static WithNode create(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
         return new WithNode(context, withContext, asName, body);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
 
-        if (asName != null) {
-            asName.execute(frame);
-        }
-
         RuntimeException exception = null;
 
         PythonObject pythonObj = (PythonObject) this.withContext.execute(frame);
         PythonCallable enterCall = (PythonCallable) pythonObj.getAttribute("__enter__");
-        enterCall.call(frame.pack(), new PNode[0]);
+        Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
 
+        if (asName != null) {
+            PNode[] asNames = asName.getStatements();
+            if (asNames.length == 1) {
+                ((WriteNode) asNames[0]).executeWrite(frame, asNameValue);
+            } else {
+                Object[] asNameValues = ((PTuple) asNameValue).getArray();
+                for (int i = 0; i < asNames.length; i++) {
+                    ((WriteNode) asNames[i]).executeWrite(frame, asNameValues[i]);
+                }
+            }
+        }
         try {
             body.execute(frame);
         } catch (RuntimeException e) {
@@ -88,9 +97,9 @@ public class WithNode extends StatementNode {
                 Object type = ((PyException) exception).type;
                 Object value = ((PyException) exception).value;
                 Object trace = ((PyException) exception).traceback;
-                returnValue = exitCall.call(frame.pack(), new Object[]{null, type, value, trace});
+                returnValue = exitCall.call(frame.pack(), new Object[]{pythonObj, type, value, trace});
             } else if (exception == null) {
-                return exitCall.call(frame.pack(), new PNode[0]);
+                return exitCall.call(frame.pack(), new Object[]{pythonObj});
             } else {
                 throw exception;
             }

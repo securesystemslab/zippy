@@ -55,10 +55,8 @@ public class PProfilingGenerator extends PGenerator {
 
         try {
             Object result = callTarget.call(null, arguments);
-
             iterationEnd = System.nanoTime();
             innerTime += iterationEnd - iterationStart;
-
             return result;
         } catch (StopIterationException e) {
             iterationEnd = System.nanoTime();

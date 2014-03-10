@@ -39,5 +39,4 @@ public class StopIterationNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         throw StopIterationException.INSTANCE;
     }
-
 }

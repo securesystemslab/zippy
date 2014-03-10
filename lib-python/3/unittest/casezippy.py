@@ -8,13 +8,13 @@ import sys
 #import warnings
 #import collections
 
-#from . import result
-import resultzippy
+from . import resultzippy
+#import resultzippy
 #from .util import (strclass, safe_repr, sorted_list_difference,
 #                   unorderable_list_difference, _count_diff_all_purpose,
 #                   _count_diff_hashable)
 
-from utilzippy import (strclass, safe_repr, sorted_list_difference,
+from .utilzippy import (strclass, safe_repr, sorted_list_difference,
                    unorderable_list_difference)
 __unittest = True
 
@@ -104,12 +104,27 @@ def expectedFailure(func):
     return wrapper
 
 
-# class _AssertRaisesBaseContext(object):
+class _AssertRaisesBaseContext(object):
+ 
+    def __init__(self, expected, test_case, callable_obj=None,
+                  expected_regex=None):
+        self.expected = expected
+        self.failureException = test_case.failureException
+        
+        if callable_obj is not None:
+            self.obj_name = str(callable_obj)
+        else:
+            self.obj_name = None
 
-#     def __init__(self, expected, test_case, callable_obj=None,
-#                   expected_regex=None):
-#         self.expected = expected
-#         self.failureException = test_case.failureException
+
+#         if callable_obj is not None:
+#             try:
+#                 self.obj_name = callable_obj
+#             except AttributeError:
+#                 self.obj_name = str(callable_obj)
+#         else:
+#             self.obj_name = None
+        
 #         if callable_obj is not None:
 #             try:
 #                 self.obj_name = callable_obj.__name__
@@ -122,37 +137,40 @@ def expectedFailure(func):
 #         self.expected_regex = expected_regex
 
 
-# class _AssertRaisesContext(_AssertRaisesBaseContext):
-#     """A context manager used to implement TestCase.assertRaises* methods."""
-
-#     def __enter__(self):
-#         return self
-
-#     def __exit__(self, exc_type, exc_value, tb):
-#         if exc_type is None:
-#             try:
-#                 exc_name = self.expected.__name__
-#             except AttributeError:
-#                 exc_name = str(self.expected)
+class _AssertRaisesContext(_AssertRaisesBaseContext):
+    """A context manager used to implement TestCase.assertRaises* methods."""
+   
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, tb):
+        if exc_type is None:
+            try:
+                exc_name = self.expected.__name__
+            except AttributeError:
+                exc_name = str(self.expected)
 #             if self.obj_name:
 #                 raise self.failureException("{0} not raised by {1}"
 #                     .format(exc_name, self.obj_name))
 #             else:
 #                 raise self.failureException("{0} not raised"
 #                     .format(exc_name))
-#         if not issubclass(exc_type, self.expected):
-#             # let unexpected exceptions pass through
-#             return False
-#         # store exception, without traceback, for later retrieval
+            self.failureMessage = "AssertionError: " + exc_name + " is not raised by " + self.obj_name
+            raise self.failureException(self.failureMessage)
+            #raise self.failureException("{0} not raised".format(exc_name))
+        if not issubclass(exc_type, self.expected):
+            # let unexpected exceptions pass through
+            return False
+        # store exception, without traceback, for later retrieval
 #         self.exception = exc_value.with_traceback(None)
 #         if self.expected_regex is None:
 #             return True
-
+   
 #         expected_regex = self.expected_regex
 #         if not expected_regex.search(str(exc_value)):
 #             raise self.failureException('"%s" does not match "%s"' %
 #                      (expected_regex.pattern, str(exc_value)))
-#         return True
+        return True
 
 
 # class _AssertWarnsContext(_AssertRaisesBaseContext):
@@ -284,7 +302,7 @@ class TestCase(object):
         self.addTypeEqualityFunc(set, 'assertSetEqual')
         self.addTypeEqualityFunc(frozenset, 'assertSetEqual')
         self.addTypeEqualityFunc(str, 'assertMultiLineEqual')
-        self.assertionError = None
+        self.failureMessage = None
 
     def addTypeEqualityFunc(self, typeobj, function):
         """Add a type specific assertEqual style function to compare a type.
@@ -372,7 +390,14 @@ class TestCase(object):
 
     def _executeTestPart(self, function, outcome, isTest=False):
         try:
-            function()
+            #function()
+            #changed to return_value = function() to check the return value for zippy translation failures
+            return_value = function()
+            # Catches zippy translation errors
+            if (return_value == "ZippyTranslationError"):
+                outcome.success = False
+                self.failureException = AssertionError("ZippyTranslationError")
+                self.failureMessage = "ZippyTranslationError"
         #except KeyboardInterrupt:
         #    raise
         # except SkipTest as e:
@@ -399,7 +424,7 @@ class TestCase(object):
         except:
             outcome.success = False
             #outcome.errors.append(sys.exc_info())
-        
+                
 
     def run(self, result=None):
         orig_result = result
@@ -427,7 +452,14 @@ class TestCase(object):
             self._outcomeForDoCleanups = outcome
             self._executeTestPart(self.setUp, outcome)
             if outcome.success:
-                self._executeTestPart(testMethod, outcome, isTest=True)
+                #self._executeTestPart(testMethod, outcome, isTest=True)
+                # Catches Zippy execution errors
+                execution_error_message = self._executeTestPart(testMethod, outcome, isTest=True)
+                if (execution_error_message is not None):
+                    if(execution_error_message.startswith("ZippyExecutionError")):
+                        outcome.success = False
+                        self.failureException = AssertionError(execution_error_message)
+                        self.failureMessage = execution_error_message
                 #self._executeTestPart(self.tearDown, outcome)
                 
             #self.doCleanups()
@@ -439,7 +471,13 @@ class TestCase(object):
                 # for exc_info in outcome.errors:
                 #     result.addError(self, exc_info)
                 #for exc_info in outcome.failures:
-                result.addFailure(self, "AssertionError: " + self.assertionError.args[0])
+                if self.failureMessage is None:
+                    assertionMessage = "AssertionError: "
+                else:
+                    assertionMessage = "AssertionError: " + self.failureMessage
+
+                result.addFailure(self, assertionMessage)
+
                 #result.addFailure(self, exc_info)
                 # if outcome.unexpectedSuccess is not None:
                 #     addUnexpectedSuccess = getattr(result, 'addUnexpectedSuccess', None)
@@ -500,23 +538,22 @@ class TestCase(object):
 
     def fail(self, msg=None):
         """Fail immediately, with the given message."""
+        self.failureMessage = msg
         raise self.failureException(msg)
 
     def assertFalse(self, expr, msg=None):
         """Check that the expression is false."""
         if expr:
             msg = self._formatMessage(msg, "%s is not false" % safe_repr(expr))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertTrue(self, expr, msg=None):
         """Check that the expression is true."""
         if not expr:
-            #msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            msg = self._formatMessage(msg, "%s is not true" % safe_repr(expr))
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def _formatMessage(self, msg, standardMsg):
         """Honour the longMessage attribute when generating failure messages.
@@ -532,12 +569,13 @@ class TestCase(object):
             return msg or standardMsg
         if msg is None:
             return standardMsg
-        try:
+        
+#         try:
             # don't switch to '{}' formatting in Python 2.X
             # it changes the way unicode input is handled
-            return '%s : %s' % (standardMsg, msg)
-        except UnicodeDecodeError:
-            return  '%s : %s' % (safe_repr(standardMsg), safe_repr(msg))
+        return '%s : %s' % (standardMsg, msg)
+#         except UnicodeDecodeError:
+            #return  '%s : %s' % (safe_repr(standardMsg), safe_repr(msg))
 
 
     def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
@@ -567,7 +605,17 @@ class TestCase(object):
         if callableObj is None:
             return context
         with context:
-            callableObj(*args, **kwargs)
+#             callableObj(*args, **kwargs)
+#             callableObj(args, kwargs)
+            # When we support argument unpacking, this elif block can be removed
+            if (len(args) == 1):
+                callableObj(args[0])
+            elif (len(args) == 2):
+                callableObj(args[0], args[1])
+            elif (len(args) == 3):
+                callableObj(args[0], args[1], args[2])
+            elif (len(args) == 4):
+                callableObj(args[0], args[1], args[2], args[3])
 
     # def assertWarns(self, expected_warning, callable_obj=None, *args, **kwargs):
     #     """Fail unless a warning of class warnClass is triggered
@@ -631,10 +679,9 @@ class TestCase(object):
         """The default assertEqual implementation, not type specific."""
         if not first == second:
             standardMsg = '%s != %s' % (safe_repr(first), safe_repr(second))
-            #msg = self._formatMessage(msg, standardMsg)
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+            msg = self._formatMessage(msg, standardMsg)
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertEqual(self, first, second, msg=None):
         """Fail if the two objects are unequal as determined by the '=='
@@ -649,10 +696,10 @@ class TestCase(object):
         """
         if not first != second:
             msg = self._formatMessage(msg, '%s == %s' % (safe_repr(first),
-                                                          safe_repr(second)))
-            self.assertionError = self.failureException(msg)
-            raise self.assertionError
-            #raise self.failureException(msg)
+                                                        safe_repr(second)))
+
+            self.failureMessage = msg
+            raise self.failureException(msg)
 
     def assertAlmostEqual(self, first, second, places=None, msg=None,
                           delta=None):
@@ -691,9 +738,8 @@ class TestCase(object):
                                                           safe_repr(second),
                                                           places)
         msg = self._formatMessage(msg, standardMsg)
-        self.assertionError = self.failureException(msg)
-        raise self.assertionError
-        #raise self.failureException(msg)
+        self.failureMessage = msg
+        raise self.failureException(msg)
 
     def assertNotAlmostEqual(self, first, second, places=None, msg=None,
                              delta=None):
@@ -725,9 +771,8 @@ class TestCase(object):
                                                          places)
 
         msg = self._formatMessage(msg, standardMsg)
-        self.assertionError = self.failureException(msg)
-        raise self.assertionError
-        #raise self.failureException(msg)
+        self.failureMessage = msg
+        raise self.failureException(msg)
 
 
     # def assertSequenceEqual(self, seq1, seq2, msg=None, seq_type=None):

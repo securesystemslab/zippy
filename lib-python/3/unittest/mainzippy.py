@@ -4,8 +4,9 @@ import sys
 #import os
 #import types
 
-import loaderzippy
-import runnerzippy
+# import loaderzippy
+# import runnerzippy
+from . import loaderzippy, runnerzippy
 #from . import loader, runner
 #from .signals import installHandler
 

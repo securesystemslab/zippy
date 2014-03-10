@@ -101,10 +101,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         // TODO: type info for operands in type error message.
-        @SuppressWarnings("unused")
         @Generic
         Object doGeneric(Object left, Object right) {
-            throw Py.TypeError("unsupported operand type(s) for +:");
+            throw Py.TypeError("unsupported operand type(s) for +: " + left + " " + right);
         }
     }
 

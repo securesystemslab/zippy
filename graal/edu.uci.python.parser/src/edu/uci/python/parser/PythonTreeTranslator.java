@@ -53,6 +53,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
 public class PythonTreeTranslator extends Visitor {
@@ -63,27 +64,29 @@ public class PythonTreeTranslator extends Visitor {
     private final LoopsBookKeeper loops;
     private final AssignmentTranslator assigns;
     private final PythonParseResult result;
+    private final PythonModule module;
 
-    public PythonTreeTranslator(TranslationEnvironment environment, PythonContext context) {
+    public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module) {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
         this.assigns = new AssignmentTranslator(environment, this);
         this.result = new PythonParseResult(environment.getModule());
+        this.module = module;
     }
 
     public PythonParseResult translate(PythonTree root) {
-        ModuleNode module;
+        ModuleNode moduleNode;
 
         try {
-            module = (ModuleNode) visit(root);
+            moduleNode = (ModuleNode) visit(root);
         } catch (Throwable t) {
             t.printStackTrace();
             throw new RuntimeException("Failed in " + this + " with error " + t);
         }
 
-        result.setModule(module);
+        result.setModule(moduleNode);
         result.setContext(context);
         return result;
     }
@@ -132,12 +135,33 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
+        String name = node.getInternalName();
+        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+            /**
+             * Some unittest test functions might fail in the translation phase in ZipPy. Therefore,
+             * NotCovered is caught here. The result of this test function will be a Fail, and the
+             * rest of the test units will continue.
+             */
+            try {
+                return visitFunctionDefinition(node);
+            } catch (Exception e) {
+                environment.endScope(node);
+                ZippyTranslationErrorNode t = ZippyTranslationErrorNode.getInstance();
+                return environment.findVariable(name).makeWriteNode(t);
+            }
+        } else {
+            return visitFunctionDefinition(node);
+        }
+    }
+
+    private Object visitFunctionDefinition(FunctionDef node) throws Exception {
+        String name = node.getInternalName();
+
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
         List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
 
-        String name = node.getInternalName();
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
 
@@ -186,7 +210,6 @@ public class PythonTreeTranslator extends Visitor {
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
-
         environment.endScope(node);
         return environment.findVariable(name).makeWriteNode(funcDef);
     }
@@ -261,15 +284,39 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     public Arity createArity(String functionName, arguments node) {
-        int numOfArguments = node.getInternalArgs().size();
-        int numOfDefaultArguments = node.getInternalDefaults().size();
-        List<String> parameterIds = new ArrayList<>();
+        boolean takesVarArgs = false;
+        /**
+         * takesKeywordArg is true by default, because in Python every parameter can be passed as a
+         * keyword argument such as foo(a = 20)
+         */
+        boolean takesKeywordArg = true;
+        boolean takesFixedNumOfArgs = true;
 
-        for (expr arg : node.getInternalArgs()) {
-            parameterIds.add(((Name) arg).getInternalId());
+        int numOfArguments = node.getInternalArgs().size();
+        int maxNumOfArgs = numOfArguments;
+
+        if (node.getInternalVararg() != null) {
+            maxNumOfArgs = -1;
+            takesVarArgs = true;
+            takesFixedNumOfArgs = false;
         }
 
-        return new Arity(functionName, numOfArguments - numOfDefaultArguments, numOfArguments, parameterIds);
+        List<String> parameterIds = new ArrayList<>();
+
+        int numOfDefaultArguments = node.getInternalDefaults().size();
+        if (numOfDefaultArguments > 0) {
+            takesFixedNumOfArgs = false;
+            for (expr arg : node.getInternalArgs()) {
+                parameterIds.add(((Name) arg).getInternalId());
+            }
+        }
+
+        if (node.getInternalVararg() != null) {
+            parameterIds.add(node.getInternalVararg());
+        }
+
+        int minNumOfArgs = numOfArguments - numOfDefaultArguments;
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, parameterIds);
     }
 
     public BlockNode visitArgs(arguments node) throws Exception {
@@ -286,6 +333,14 @@ public class PythonTreeTranslator extends Visitor {
             expr arg = node.getInternalArgs().get(i);
             assert arg instanceof Name;
             argumentReads.add((PNode) visit(arg));
+        }
+
+        /**
+         * Varargs handled.
+         */
+
+        if (node.getInternalVararg() != null) {
+            argumentReads.add(environment.getWriteVarArgsToLocal(node.getInternalVararg()));
         }
 
         /**
@@ -351,20 +406,22 @@ public class PythonTreeTranslator extends Visitor {
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName, Integer level) {
+        PythonModule relativeto = level > 0 ? this.module : context.getMainModule();
+
         String importName = aliaz.getInternalName();
         if (importName.equals("*")) {
-            return createSingleImportStarStatement(fromModuleName);
+            return createSingleImportStarStatement(relativeto, fromModuleName);
         }
 
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        PNode importNode = factory.createImportFrom(context, fromModuleName, importName);
+        PNode importNode = factory.createImportFrom(context, relativeto, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportStarStatement(String fromModuleName) {
-        PNode importNode = factory.createImportStar(context, fromModuleName);
+    private PNode createSingleImportStarStatement(PythonModule relativeto, String fromModuleName) {
+        PNode importNode = factory.createImportStar(context, relativeto, fromModuleName);
         return importNode;
     }
 
@@ -387,20 +444,16 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
-        if (node.getInternalModule().compareTo("__future__") == 0) {
-            return null;
-        }
-
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule(), node.getInternalLevel()));
         }
 
         return factory.createBlock(imports);
@@ -890,11 +943,21 @@ public class PythonTreeTranslator extends Visitor {
             }
 
             ExceptHandler except = (ExceptHandler) excepts.get(i);
-            // PNode exceptType = (PNode) visit(except.getInternalType());
-            PNode exceptType = (except.getInternalType() == null) ? null : (PNode) visit(except.getInternalType());
+
+            PNode[] exceptType = null;
+            if (except.getInternalType() != null) {
+                if (except.getInternalType() instanceof Tuple) {
+                    List<PNode> types = walkExprList(((Tuple) except.getInternalType()).getInternalElts());
+                    exceptType = types.toArray(new PNode[types.size()]);
+                } else {
+                    exceptType = new PNode[]{(PNode) visit(except.getInternalType())};
+                }
+            }
+
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
+
             retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
         }
 
@@ -938,20 +1001,23 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitWith(With node) throws Exception {
-
         PNode withContext = (PNode) visit(node.getInternalContext_expr());
-        PNode asName = null;
+        BlockNode asName = null;
         if (node.getInternalOptional_vars() != null) {
-            asName = (PNode) visit(node.getInternalOptional_vars());
-            asName = ((ReadNode) asName).makeWriteNode(withContext);
+            if (node.getInternalOptional_vars() instanceof Tuple) {
+                List<PNode> readNames = walkExprList(((Tuple) node.getInternalOptional_vars()).getInternalElts());
+                List<PNode> asNames = new ArrayList<>();
+                for (PNode read : readNames) {
+                    asNames.add(((ReadNode) read).makeWriteNode(null));
+                }
+                asName = factory.createBlock(asNames);
+            } else {
+                PNode asNameNode = (PNode) visit(node.getInternalOptional_vars());
+                asName = factory.createSingleStatementBlock(((ReadNode) asNameNode).makeWriteNode(null));
+            }
         }
-        environment.beginScope(node, ScopeInfo.ScopeKind.Function);
-        List<PNode> b = visitStatements(node.getInternalBody());
-        BlockNode body = factory.createBlock(b);
-
+        BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         StatementNode retVal = factory.createWithNode(context, withContext, asName, body);
-
-        environment.endScope(node);
         return retVal;
     }
 }

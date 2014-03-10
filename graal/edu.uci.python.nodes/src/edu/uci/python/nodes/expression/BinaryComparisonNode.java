@@ -34,6 +34,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
 
@@ -66,6 +67,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         boolean doPList(PList left, PList right) {
+            return left.equals(right);
+        }
+
+        @Specialization
+        public boolean doPythonClass(PythonClass left, PythonClass right) {
             return left.equals(right);
         }
 
@@ -106,6 +112,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         boolean doString(String left, String right) {
+            return !left.equals(right);
+        }
+
+        @Specialization
+        public boolean doPythonClass(PythonClass left, PythonClass right) {
             return !left.equals(right);
         }
     }
@@ -277,6 +288,12 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @Specialization
         boolean doDouble(double left, double right) {
             return left != right;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean doPNone(String left, PNone right) {
+            return true;
         }
 
         @Generic

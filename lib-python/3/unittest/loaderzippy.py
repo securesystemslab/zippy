@@ -11,9 +11,10 @@ import sys
 
 
 #from . import case, suite, util
-import casezippy
-import suitezippy
-import utilzippy
+from . import casezippy, suitezippy, utilzippy
+# import casezippy
+# import suitezippy
+# import utilzippy
 
 __unittest = True
 

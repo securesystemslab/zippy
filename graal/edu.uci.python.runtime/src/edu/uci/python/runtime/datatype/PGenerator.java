@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.datatype;
 
-import java.io.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -33,7 +31,6 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.profiler.*;
 
 public class PGenerator implements PIterator {
 
@@ -42,14 +39,8 @@ public class PGenerator implements PIterator {
     protected final FrameDescriptor frameDescriptor;
     protected final PArguments arguments;
 
-    // Profiling
-    private static long profiledTime;
-
     public static PGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        if (PythonOptions.ProfileGeneratorCalls) {
-            resetProfiledTime();
-        }
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
@@ -76,24 +67,12 @@ public class PGenerator implements PIterator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        if (PythonOptions.ProfileGeneratorCalls) {
-            long start = System.nanoTime();
-            Object result = callTarget.call(null, arguments);
-            profiledTime += System.nanoTime() - start;
-            Profiler.getInstance().increment(name);
-            return result;
-        } else {
-            return callTarget.call(null, arguments);
-        }
+        return callTarget.call(null, arguments);
     }
 
-    public static void resetProfiledTime() {
-        profiledTime = 0;
-    }
-
-    public static void printProfiledTime() {
-        PrintStream out = System.out;
-        out.printf("generator time: %.3f\n", profiledTime / 1000000000.0);
+    @SuppressWarnings("unused")
+    public Object send(Object value) throws StopIterationException {
+        return callTarget.call(null, arguments);
     }
 
     @Override

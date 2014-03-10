@@ -27,6 +27,7 @@ package edu.uci.python.nodes.argument;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
@@ -38,21 +39,23 @@ public class ReadVarArgsNode extends ReadArgumentNode {
     }
 
     @Override
-    public final Object[] execute(VirtualFrame frame) {
-        return executeObjectArray(frame);
+    public final PTuple execute(VirtualFrame frame) {
+        return executePTuple(frame);
     }
 
     @Override
-    public final Object[] executeObjectArray(VirtualFrame frame) {
+    public final PTuple executePTuple(VirtualFrame frame) {
         PArguments arguments = frame.getArguments(PArguments.class);
+
         if (getIndex() >= arguments.getLength()) {
-            return PArguments.EMPTY_ARGUMENTS_ARRAY;
+            return new PTuple();
         } else {
             Object[] varArgs = new Object[arguments.getLength() - getIndex()];
             for (int i = 0; i < varArgs.length; i++) {
                 varArgs[i] = arguments.getArgument(i + getIndex());
             }
-            return varArgs;
+
+            return new PTuple(varArgs);
         }
     }
 }

@@ -37,6 +37,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonContext {
 
+    private PythonModule mainModule;
     private final PythonModule builtinsModule;
     private final PythonOptions options;
     private final PythonBuiltinsLookup lookup;
@@ -76,10 +77,17 @@ public class PythonContext {
         this.generatorProfilingInfo = new HashMap<>();
     }
 
-    public PythonModule createMainModule() {
-        PythonModule main = new PythonModule("__main__", this);
-        main.setAttribute("__builtins__", getBuiltins());
-        return main;
+    public PythonModule createMainModule(String path) {
+        // PythonModule main = new PythonModule("__main__", this);
+        // main.setAttribute("__builtins__", getBuiltins());
+        // return main;
+        mainModule = new PythonModule(this, "__main__", path);
+        mainModule.setAttribute("__builtins__", getBuiltins());
+        return mainModule;
+    }
+
+    public PythonModule getMainModule() {
+        return mainModule;
     }
 
     public PythonModule getBuiltins() {

@@ -34,11 +34,13 @@ import edu.uci.python.runtime.object.*;
 public class PythonModule extends PythonBasicObject {
 
     private final String name;
+    private final String modulePath;
     private final CyclicAssumption unmodifiedAssumption;
 
-    public PythonModule(String name, PythonContext context) {
+    public PythonModule(PythonContext context, String name, String modulePath) {
         super(context.getModuleClass());
         this.name = name;
+        this.modulePath = modulePath;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
         addDefaultConstants(name);
     }
@@ -68,6 +70,10 @@ public class PythonModule extends PythonBasicObject {
     @Override
     public String toString() {
         return "<module '" + this.getAttribute("__name__") + "'>";
+    }
+
+    public String getModulePath() {
+        return modulePath;
     }
 
 }

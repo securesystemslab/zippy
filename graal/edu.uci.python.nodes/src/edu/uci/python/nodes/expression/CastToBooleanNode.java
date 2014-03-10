@@ -26,12 +26,17 @@ package edu.uci.python.nodes.expression;
 
 import java.math.BigInteger;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class CastToBooleanNode extends UnaryOpNode {
 
@@ -71,6 +76,23 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         @Specialization(guards = "isNone")
         boolean doNone(Object operand) {
             return false;
+        }
+
+        @Specialization
+        boolean doPythonObject(PythonObject object) {
+            Object boolAttribute = object.getAttribute("__bool__");
+            if (boolAttribute != null && boolAttribute instanceof PFunction) {
+                PFunction absFunction = (PFunction) boolAttribute;
+                PMethod method = CallAttributeNode.createPMethodFor(object, absFunction);
+                Object value = method.call(null, null);
+                if (value instanceof Boolean) {
+                    return (Boolean) value;
+                } else {
+                    throw Py.TypeError("__bool__ should return bool, returned " + object);
+                }
+            } else {
+                return true;
+            }
         }
 
         @Specialization

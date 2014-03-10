@@ -36,6 +36,7 @@ import edu.uci.python.runtime.standardtype.*;
 /**
  * @author Gulfem
  * @author zwei
+ * @author myq
  */
 
 public class ImportManager {
@@ -54,6 +55,10 @@ public class ImportManager {
     }
 
     public Object importModule(String moduleName) {
+        return importModule(context.getMainModule(), moduleName);
+    }
+
+    public Object importModule(PythonModule relativeto, String moduleName) {
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
@@ -66,7 +71,7 @@ public class ImportManager {
         if (importedModule != null) {
             return importedModule;
         } else {
-            String path = getPathFromImporterPath(moduleName);
+            String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
 
             if (path != null) {
                 importedModule = tryImporting(path, moduleName);
@@ -84,17 +89,16 @@ public class ImportManager {
     }
 
     private static PyObject importFromJython(String moduleName) {
-        // CheckStyle: stop system..print check
-        System.out.println("[ZipPy] importing from jython runtime " + moduleName);
-        // CheckStyle: resume system..print check
+        if (PythonOptions.TraceImports) {
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] importing from jython runtime " + moduleName);
+            // CheckStyle: resume system..print check
+        }
         return __builtin__.__import__(moduleName);
     }
 
-    private String getPathFromImporterPath(String moduleName) {
-        /**
-         * FIXME zwei: Why this?
-         */
-        String importingModulePath = context.getParser().getSource().getPath();
+    private static String getPathFromImporterPath(String moduleName, String basePath) {
+        String importingModulePath = basePath;
         String filename = moduleName + ".py";
         String path = null;
 
@@ -138,7 +142,6 @@ public class ImportManager {
         if (!isPackage) {
             sourceName = moduleName + ".py";
             sourceFile = new File(dirPath, sourceName);
-
             if (sourceFile.isFile()) {
                 String path = sourceFile.getPath();
                 return path;
@@ -171,17 +174,23 @@ public class ImportManager {
         File file = new File(path);
 
         if (file.exists()) {
+            PythonModule importedModule = new PythonModule(context, moduleName, path);
+            CompilerFlags cflags = CompilerFlags.getCompilerFlags();
+            cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+            cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+            cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+            cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+            cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
+
             Source source = context.getSourceManager().get(path);
-            PythonModule importedModule = new PythonModule(moduleName, context);
-            // CheckStyle: stop system..print check
-            System.out.println("[ZipPy] parsing module " + path);
-            // CheckStyle: resume system..print check
-            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, CompilerFlags.getCompilerFlags());
+            PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source, cflags);
 
             if (parsedModule != null) {
-                // CheckStyle: stop system..print check
-                System.out.println("[ZipPy] parsed module " + path);
-                // CheckStyle: resume system..print check
+                if (PythonOptions.TraceImports) {
+                    // CheckStyle: stop system..print check
+                    System.out.println("[ZipPy] parsed module " + path);
+                    // CheckStyle: resume system..print check
+                }
                 if (PythonOptions.PrintAST) {
                     parsedModule.printAST();
                 }

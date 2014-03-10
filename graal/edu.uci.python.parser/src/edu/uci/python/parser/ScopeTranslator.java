@@ -103,10 +103,14 @@ public class ScopeTranslator extends Visitor {
     public void visitArgs(arguments node, ArgListCompiler ac) throws Exception {
         for (int i = 0; i < node.getInternalArgs().size(); i++) {
             expr arg = node.getInternalArgs().get(i);
-
             if (arg instanceof Name) {
                 this.visitName((Name) arg);
             }
+        }
+
+        // Create a frame slot for var arg
+        if (node.getInternalVararg() != null) {
+            environment.createLocal(node.getInternalVararg());
         }
     }
 
