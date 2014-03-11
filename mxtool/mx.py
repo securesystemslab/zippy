@@ -1032,6 +1032,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
+        self.add_argument('--kill-with-sigquit', action='store_true', dest='killwithsigquit', help='send sigquit first before killing child processes')
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -1463,8 +1464,7 @@ def expandvars_in_property(value):
         abort('Property contains an undefined environment variable: ' + value)
     return result
 
-
-def quit_handler(signum, frame):
+def _send_sigquit():
     p, _ = _currentSubprocess
     if p is not None:
         if get_os() == 'windows':
@@ -1480,6 +1480,9 @@ def abort(codeOrMessage):
     if it is None, the exit status is zero; if it has another type (such as a string),
     the object's value is printed and the exit status is one.
     """
+
+    if _opts.killwithsigquit:
+        _send_sigquit()
 
     # import traceback
     # traceback.print_stack()
@@ -4076,6 +4079,8 @@ def main():
         abort(1)
     signal.signal(signal.SIGTERM, term_handler)
 
+    def quit_handler(signum, frame):
+        _send_sigquit()
     signal.signal(signal.SIGQUIT, quit_handler)
 
     try:
