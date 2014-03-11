@@ -1092,10 +1092,10 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
     return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def _kill_process_group(pid):
+def _kill_process_group(pid, sig=signal.SIGKILL):
     pgid = os.getpgid(pid)
     try:
-        os.killpg(pgid, signal.SIGKILL)
+        os.killpg(pgid, sig)
         return True
     except:
         log('Error killing subprocess ' + str(pgid) + ': ' + str(sys.exc_info()[1]))
@@ -1463,6 +1463,15 @@ def expandvars_in_property(value):
         abort('Property contains an undefined environment variable: ' + value)
     return result
 
+
+def quit_handler(signum, frame):
+    p, _ = _currentSubprocess
+    if p is not None:
+        if get_os() == 'windows':
+            log("mx: implement me! want to send SIGQUIT to my child process")
+        else:
+            _kill_process_group(p.pid, sig=signal.SIGQUIT)
+        time.sleep(0.1)
 
 def abort(codeOrMessage):
     """
@@ -4066,6 +4075,9 @@ def main():
     def term_handler(signum, frame):
         abort(1)
     signal.signal(signal.SIGTERM, term_handler)
+
+    signal.signal(signal.SIGQUIT, quit_handler)
+
     try:
         if opts.timeout != 0:
             def alarm_handler(signum, frame):
