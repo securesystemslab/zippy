@@ -36,6 +36,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
 import socket
+import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
@@ -341,15 +342,49 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
+def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+    def _download_lib():
+        print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
+        download(path, urls)
+
+    def _sha1Cached():
+        with open(sha1path, 'r') as f:
+            return f.readline()[0:40]
+
+    def _writesha1Cached():
+        with open(sha1path, 'w') as f:
+            f.write(_sha1OfFile())
+
+    def _sha1OfFile():
+        with open(path, 'r') as f:
+            return hashlib.sha1(f.read()).hexdigest()
+
+
+    if resolve and mustExist and not exists(path):
+        assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
+        _download_lib()
+
+    if sha1 and not exists(sha1path):
+        _writesha1Cached()
+
+    if sha1 and sha1 != _sha1Cached():
+        _download_lib()
+        if sha1 != _sha1OfFile():
+            abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
+        _writesha1Cached()
+
+    return path
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
+    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
+        self.sha1 = sha1
         self.mustExist = mustExist
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        self.sourceSha1 = sourceSha1
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -375,14 +410,14 @@ class Library(Dependency):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
+        sha1path = path + '.sha1'
+
         includedInJDK = getattr(self, 'includedInJDK', None)
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
-        if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
-            print 'Downloading ' + self.name + ' from ' + str(self.urls)
-            download(path, self.urls)
-        return path
+
+        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, self.mustExist)
+
 
     def get_source_path(self, resolve):
         path = self.sourcePath
@@ -390,10 +425,9 @@ class Library(Dependency):
             return None
         if not isabs(path):
             path = join(self.suite.dir, path)
-        if resolve and len(self.sourceUrls) != 0 and not exists(path):
-            print 'Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls)
-            download(path, self.sourceUrls)
-        return path
+        sha1path = path + '.sha1'
+
+        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
@@ -556,9 +590,11 @@ class Suite:
             path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
+            sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
-            l = Library(self, name, path, mustExist, urls, sourcePath, sourceUrls)
+            sourceSha1 = attrs.pop('sourceSha1', None)
+            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
