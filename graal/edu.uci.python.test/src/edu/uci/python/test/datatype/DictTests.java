@@ -31,6 +31,20 @@ import org.junit.*;
 public class DictTests {
 
     @Test
+    public void empty() {
+        String source = "dd = {}\n" + //
+                        "print(dd)\n";
+        assertPrints("{}\n", source);
+    }
+
+    @Test
+    public void simple() {
+        String source = "dd = {1:2}\n" + //
+                        "print(dd)\n";
+        assertPrints("{1: 2}\n", source);
+    }
+
+    @Test
     public void del() {
         String source = "dd = {1:2, 3:4}\n" + //
                         "del dd[1]\n" + //

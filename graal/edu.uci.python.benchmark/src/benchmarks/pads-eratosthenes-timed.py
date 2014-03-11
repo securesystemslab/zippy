@@ -23,12 +23,16 @@ def FactoredIntegers():
     i = 2
     factorization = {}
     while True:
+        # print('factorization', factorization)
         if i not in factorization:  # prime
             F = {i:1}
             yield i,F
             factorization[2*i] = F
         elif len(factorization[i]) == 1:    # prime power
+            # print(factorization[i])
             p, x = next(iter(factorization[i].items()))
+
+            # print('p, x', p, x)
             F = {p:x+1}
             yield i,F
             factorization[2*i] = F
@@ -63,14 +67,23 @@ def PracticalNumbers():
         if isPracticalFactorization(f):
             yield x
 
-def main():
+def main(n):
     """Test that the first few practical nos are generated correctly."""
-    G = PracticalNumbers()
+    # G = PracticalNumbers()
     # for p in [1,2,4,6,8,12,16,18,20,24,28,30,32,36]:
         # self.assertEqual(p,G.next())
-    nums = []
-    for i in range(10):
-    	nums.append(next(G))
-    print(nums)
+    # nums = []
+    # for i in range(10):
+    # 	nums.append(next(G))
+    # print(nums)
 
-main()
+    count = 0
+    for num in PracticalNumbers():
+        count += 1
+        if count == n:
+            # print(num)
+            break;
+
+# warmup
+for i in range(1000):
+    main(1000)

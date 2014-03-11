@@ -78,6 +78,8 @@ public class GeneratorTranslator {
             read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
         }
 
+        assert NodeUtil.findFirstNodeInstance(root, ReadLocalVariableNode.class) == null;
+
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
             int depth = 0;
             PNode current = yield;

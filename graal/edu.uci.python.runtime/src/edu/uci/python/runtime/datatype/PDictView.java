@@ -45,15 +45,12 @@ public class PDictView {
 
     public static final class PDictViewItems extends PDictView implements PIterable {
 
-        private final int size;
-
         public PDictViewItems(PDict dict) {
             super(dict);
-            this.size = dict.len();
         }
 
         public int len() {
-            return size;
+            return getDict().len();
         }
 
         public Object getMax() {
@@ -72,11 +69,9 @@ public class PDictView {
     public static final class PDictViewItemsIterator implements PIterator {
 
         private final Iterator<Entry<Object, Object>> iterator;
-        @SuppressWarnings("unused") private final int size;
 
         public PDictViewItemsIterator(PDict dict) {
             iterator = dict.getMap().entrySet().iterator();
-            size = dict.len();
         }
 
         @Override

@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.literal;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -38,13 +37,19 @@ public class DictLiteralNode extends LiteralNode {
     @Children final PNode[] keys;
     @Children final PNode[] values;
 
+    public static LiteralNode create(PNode[] keys, PNode[] values) {
+        if (keys.length == 0 && values.length == 0) {
+            return new EmptyDictLiteralNode();
+        } else if (keys.length == 1 && values.length == 1) {
+            return new SimpleDictLiteralNode(keys[0], values[0]);
+        }
+
+        return new DictLiteralNode(keys, values);
+    }
+
     public DictLiteralNode(PNode[] keys, PNode[] values) {
         this.keys = adoptChildren(keys);
         this.values = adoptChildren(values);
-    }
-
-    protected DictLiteralNode(DictLiteralNode node) {
-        this(node.keys, node.values);
     }
 
     @ExplodeLoop
@@ -62,7 +67,7 @@ public class DictLiteralNode extends LiteralNode {
             resolvedValues.add(e.execute(frame));
         }
 
-        Map<Object, Object> map = new ConcurrentHashMap<>();
+        Map<Object, Object> map = new HashMap<>();
         for (int i = 0; i < resolvedKeys.size(); i++) {
             map.put(resolvedKeys.get(i), resolvedValues.get(i));
         }
@@ -79,4 +84,33 @@ public class DictLiteralNode extends LiteralNode {
     public String toString() {
         return "dict";
     }
+
+    public static final class EmptyDictLiteralNode extends LiteralNode {
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return new PDict();
+        }
+    }
+
+    public static final class SimpleDictLiteralNode extends LiteralNode {
+
+        @Child protected PNode key;
+        @Child protected PNode value;
+
+        public SimpleDictLiteralNode(PNode key, PNode value) {
+            this.key = adoptChild(key);
+            this.value = adoptChild(value);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            Map<Object, Object> map = new HashMap<>();
+            final Object k = key.execute(frame);
+            final Object v = value.execute(frame);
+            map.put(k, v);
+            return new PDict(map);
+        }
+    }
+
 }
