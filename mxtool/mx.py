@@ -1465,8 +1465,15 @@ def expandvars_in_property(value):
     return result
 
 def _send_sigquit():
-    p, _ = _currentSubprocess
-    if p is not None:
+    p, args = _currentSubprocess
+
+    def _isJava():
+        if args:
+            name = args[0].split("/")[-1]
+            return name == "java"
+        return False
+
+    if p is not None and _isJava():
         if get_os() == 'windows':
             log("mx: implement me! want to send SIGQUIT to my child process")
         else:
