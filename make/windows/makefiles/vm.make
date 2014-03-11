@@ -49,7 +49,7 @@ CXX_FLAGS=$(CXX_FLAGS) /D "COMPILER1" /D "COMPILER2"
 !endif
 
 !if "$(Variant)" == "graal"
-CPP_FLAGS=$(CPP_FLAGS) /D "GRAAL"
+CXX_FLAGS=$(CXX_FLAGS) /D "GRAAL" /D "COMPILERGRAAL" /D "COMPILER1"
 !endif
 
 !if "$(BUILDARCH)" == "i486"
