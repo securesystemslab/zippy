@@ -24,17 +24,13 @@
  */
 package edu.uci.python.runtime;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.runtime.standardtype.*;
 
 public interface PythonParser {
 
-    PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags);
-
-    PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags);
+    PythonParseResult parse(PythonContext context, PythonModule module, Source source);
 
     PythonParseResult parse(PythonContext context, PythonModule module, String expression);
 
