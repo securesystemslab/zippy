@@ -47,6 +47,7 @@ public class PArguments extends Arguments {
         this.self = self;
         this.declarationFrame = declarationFrame;
         this.arguments = arguments;
+        assert arguments != null;
         this.keywords = keywords;
     }
 
