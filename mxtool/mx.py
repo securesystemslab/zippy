@@ -357,8 +357,13 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     def _sha1OfFile():
         with open(path, 'rb') as f:
-            return hashlib.sha1(f.read()).hexdigest()
-
+            d = hashlib.sha1()
+            while True:
+                buf = f.read(4096)
+                if not buf:
+                    break
+                d.update(buf)
+            return d.hexdigest()
 
     if resolve and mustExist and not exists(path):
         assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
