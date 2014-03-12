@@ -38,12 +38,10 @@
 #include "utilities/accessFlags.hpp"
 #include "utilities/growableArray.hpp"
 
-// A Method* represents a Java method.
+// A Method represents a Java method.
 //
 // Memory layout (each line represents a word). Note that most applications load thousands of methods,
 // so keeping the size of this structure small has a big impact on footprint.
-//
-// We put all oops and method_size first for better gc cache locality.
 //
 // The actual bytecodes are inlined after the end of the Method struct.
 //
@@ -64,17 +62,17 @@
 // | header                                               |
 // | klass                                                |
 // |------------------------------------------------------|
-// | ConstMethod*                   (oop)                 |
+// | ConstMethod*                   (metadata)            |
 // |------------------------------------------------------|
-// | methodData                     (oop)                 |
-// | methodCounters                                       |
+// | MethodData*                    (metadata)            |
+// | MethodCounters                                       |
 // |------------------------------------------------------|
 // | access_flags                                         |
 // | vtable_index                                         |
 // |------------------------------------------------------|
 // | result_index (C++ interpreter only)                  |
 // |------------------------------------------------------|
-// | method_size             |   intrinsic_id|   flags    |
+// | method_size             | intrinsic_id  |   flags    |
 // |------------------------------------------------------|
 // | code                           (pointer)             |
 // | i2i                            (pointer)             |
@@ -350,16 +348,21 @@ class Method : public Metadata {
   }
 
   void set_method_data(MethodData* data)       {
-    _method_data = data;
+    // The store into method must be released. On platforms without
+    // total store order (TSO) the reference may become visible before
+    // the initialization of data otherwise.
+    OrderAccess::release_store_ptr((volatile void *)&_method_data, data);
   }
 
   MethodCounters* method_counters() const {
     return _method_counters;
   }
 
-
   void set_method_counters(MethodCounters* counters) {
-    _method_counters = counters;
+    // The store into method must be released. On platforms without
+    // total store order (TSO) the reference may become visible before
+    // the initialization of data otherwise.
+    OrderAccess::release_store_ptr((volatile void *)&_method_counters, counters);
   }
 
 #ifdef TIERED

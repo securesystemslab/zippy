@@ -53,27 +53,6 @@
 
 // Only bother with this argument setup if dtrace is available
 
-#ifndef USDT2
-HS_DTRACE_PROBE_DECL8(hotspot, compiled__method__load,
-  const char*, int, const char*, int, const char*, int, void*, size_t);
-
-HS_DTRACE_PROBE_DECL6(hotspot, compiled__method__unload,
-  char*, int, char*, int, char*, int);
-
-#define DTRACE_METHOD_UNLOAD_PROBE(method)                                \
-  {                                                                       \
-    Method* m = (method);                                                 \
-    if (m != NULL) {                                                      \
-      Symbol* klass_name = m->klass_name();                               \
-      Symbol* name = m->name();                                           \
-      Symbol* signature = m->signature();                                 \
-      HS_DTRACE_PROBE6(hotspot, compiled__method__unload,                 \
-        klass_name->bytes(), klass_name->utf8_length(),                   \
-        name->bytes(), name->utf8_length(),                               \
-        signature->bytes(), signature->utf8_length());                    \
-    }                                                                     \
-  }
-#else /* USDT2 */
 #define DTRACE_METHOD_UNLOAD_PROBE(method)                                \
   {                                                                       \
     Method* m = (method);                                                 \
@@ -87,7 +66,6 @@ HS_DTRACE_PROBE_DECL6(hotspot, compiled__method__unload,
         (char *) signature->bytes(), signature->utf8_length());                    \
     }                                                                     \
   }
-#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -679,7 +657,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
       NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
-      if (PrintAssembly) {
+      if (PrintAssembly || CompilerOracle::has_option_string(method, "PrintAssembly")) {
         Disassembler::decode(nm);
       }
     }
@@ -1635,16 +1613,6 @@ bool nmethod::can_unload(BoolObjectClosure* is_alive, oop* root, bool unloading_
 void nmethod::post_compiled_method_load_event() {
 
   Method* moop = method();
-#ifndef USDT2
-  HS_DTRACE_PROBE8(hotspot, compiled__method__load,
-      moop->klass_name()->bytes(),
-      moop->klass_name()->utf8_length(),
-      moop->name()->bytes(),
-      moop->name()->utf8_length(),
-      moop->signature()->bytes(),
-      moop->signature()->utf8_length(),
-      insts_begin(), insts_size());
-#else /* USDT2 */
   HOTSPOT_COMPILED_METHOD_LOAD(
       (char *) moop->klass_name()->bytes(),
       moop->klass_name()->utf8_length(),
@@ -1653,7 +1621,6 @@ void nmethod::post_compiled_method_load_event() {
       (char *) moop->signature()->bytes(),
       moop->signature()->utf8_length(),
       insts_begin(), insts_size());
-#endif /* USDT2 */
 
   if (JvmtiExport::should_post_compiled_method_load() ||
       JvmtiExport::should_post_compiled_method_unload()) {
@@ -2306,16 +2273,37 @@ PcDesc* nmethod::find_pc_desc_internal(address pc, bool approximate) {
 }
 
 
-bool nmethod::check_all_dependencies() {
-  bool found_check = false;
-  // wholesale check of all dependencies
-  for (Dependencies::DepStream deps(this); deps.next(); ) {
-    if (deps.check_dependency() != NULL) {
-      found_check = true;
-      NOT_DEBUG(break);
+void nmethod::check_all_dependencies(DepChange& changes) {
+  // Checked dependencies are allocated into this ResourceMark
+  ResourceMark rm;
+
+  // Turn off dependency tracing while actually testing dependencies.
+  NOT_PRODUCT( FlagSetting fs(TraceDependencies, false) );
+
+ GenericHashtable<DependencySignature, ResourceObj>* table = new GenericHashtable<DependencySignature, ResourceObj>(11027);
+  // Iterate over live nmethods and check dependencies of all nmethods that are not
+  // marked for deoptimization. A particular dependency is only checked once.
+  for(nmethod* nm = CodeCache::alive_nmethod(CodeCache::first()); nm != NULL; nm = CodeCache::alive_nmethod(CodeCache::next(nm))) {
+    if (!nm->is_marked_for_deoptimization()) {
+      for (Dependencies::DepStream deps(nm); deps.next(); ) {
+        // Construct abstraction of a dependency.
+        DependencySignature* current_sig = new DependencySignature(deps);
+        // Determine if 'deps' is already checked. table->add() returns
+        // 'true' if the dependency was added (i.e., was not in the hashtable).
+        if (table->add(current_sig)) {
+          if (deps.check_dependency() != NULL) {
+            // Dependency checking failed. Print out information about the failed
+            // dependency and finally fail with an assert. We can fail here, since
+            // dependency checking is never done in a product build.
+            changes.print();
+            nm->print();
+            nm->print_dependencies();
+            assert(false, "Should have been marked for deoptimization");
+          }
+        }
+      }
     }
   }
-  return found_check;  // tell caller if we found anything
 }
 
 bool nmethod::check_dependency_on(DepChange& changes) {

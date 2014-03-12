@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -128,6 +128,11 @@ class KlassClosure : public Closure {
   virtual void do_klass(Klass* k) = 0;
 };
 
+class CLDClosure : public Closure {
+ public:
+  virtual void do_cld(ClassLoaderData* cld) = 0;
+};
+
 class KlassToOopClosure : public KlassClosure {
   OopClosure* _oop_closure;
  public:
@@ -135,7 +140,7 @@ class KlassToOopClosure : public KlassClosure {
   virtual void do_klass(Klass* k);
 };
 
-class CLDToOopClosure {
+class CLDToOopClosure : public CLDClosure {
   OopClosure* _oop_closure;
   KlassToOopClosure _klass_closure;
   bool _must_claim_cld;

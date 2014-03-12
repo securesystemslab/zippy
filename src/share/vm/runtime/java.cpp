@@ -55,6 +55,7 @@
 #include "runtime/memprofiler.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/statSampler.hpp"
+#include "runtime/sweeper.hpp"
 #include "runtime/task.hpp"
 #include "runtime/thread.inline.hpp"
 #include "runtime/timer.hpp"
@@ -99,9 +100,6 @@
 #include "opto/runtime.hpp"
 #endif
 
-#ifndef USDT2
-HS_DTRACE_PROBE_DECL(hotspot, vm__shutdown);
-#endif /* !USDT2 */
 
 #ifndef PRODUCT
 
@@ -220,9 +218,7 @@ AllocStats alloc_stats;
 
 
 // General statistics printing (profiling ...)
-
 void print_statistics() {
-
 #ifdef ASSERT
 
   if (CountRuntimeCalls) {
@@ -320,6 +316,10 @@ void print_statistics() {
     CodeCache::print();
   }
 
+  if (PrintMethodFlushingStatistics) {
+    NMethodSweeper::print();
+  }
+
   if (PrintCodeCache2) {
     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::print_internals();
@@ -385,6 +385,10 @@ void print_statistics() {
   if (PrintCodeCache) {
     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::print();
+  }
+
+  if (PrintMethodFlushingStatistics) {
+    NMethodSweeper::print();
   }
 
 #ifdef COMPILER2
@@ -610,12 +614,8 @@ void vm_exit(int code) {
 
 void notify_vm_shutdown() {
   // For now, just a dtrace probe.
-#ifndef USDT2
-  HS_DTRACE_PROBE(hotspot, vm__shutdown);
-  HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
-#else /* USDT2 */
   HOTSPOT_VM_SHUTDOWN();
-#endif /* USDT2 */
+  HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
 }
 
 void vm_direct_exit(int code) {

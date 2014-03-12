@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -78,10 +78,14 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   // This thread will initialize the compiler runtime.
   bool should_perform_init();
 
-  // The (closed set) of concrete compiler classes. Using an tag like this
-  // avoids a confusing use of macros around the definition of the
-  // 'is_<compiler type>' methods.
-  enum Type { c1, c2, shark, graal };
+  // The (closed set) of concrete compiler classes.
+  enum Type {
+    none,
+    c1,
+    c2,
+    shark,
+    graal
+  };
 
  private:
   Type _type;
@@ -106,8 +110,10 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return true; }
   virtual bool can_compile_method(methodHandle method)  { return true; }
-  bool is_c1   ()                                { return _type == c1; }
-  bool is_c2   ()                                { return _type == c2; }
+
+  // Compiler type queries.
+  bool is_c1()                                   { return _type == c1; }
+  bool is_c2()                                   { return _type == c2; }
   bool is_shark()                                { return _type == shark; }
   bool is_graal()                                { return _type == graal; }
 

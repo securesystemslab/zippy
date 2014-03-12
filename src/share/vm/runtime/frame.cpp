@@ -649,7 +649,7 @@ void frame::interpreter_frame_print_on(outputStream* st) const {
 #endif
 }
 
-// Return whether the frame is in the VM or os indicating a Hotspot problem.
+// Print whether the frame is in the VM or OS indicating a HotSpot problem.
 // Otherwise, it's likely a bug in the native library that the Java code calls,
 // hopefully indicating where to submit bugs.
 void frame::print_C_frame(outputStream* st, char* buf, int buflen, address pc) {
@@ -895,7 +895,7 @@ oop* frame::interpreter_callee_receiver_addr(Symbol* signature) {
 }
 
 
-void frame::oops_interpreted_do(OopClosure* f, CLDToOopClosure* cld_f,
+void frame::oops_interpreted_do(OopClosure* f, CLDClosure* cld_f,
     const RegisterMap* map, bool query_oop_map_cache) {
   assert(is_interpreted_frame(), "Not an interpreted frame");
   assert(map != NULL, "map must be set");
@@ -928,25 +928,14 @@ void frame::oops_interpreted_do(OopClosure* f, CLDToOopClosure* cld_f,
     // klass, and the klass needs to be kept alive while executing. The GCs
     // don't trace through method pointers, so typically in similar situations
     // the mirror or the class loader of the klass are installed as a GC root.
-    // To minimze the overhead of doing that here, we ask the GC to pass down a
+    // To minimize the overhead of doing that here, we ask the GC to pass down a
     // closure that knows how to keep klasses alive given a ClassLoaderData.
     cld_f->do_cld(m->method_holder()->class_loader_data());
   }
 
-#if !defined(PPC) || defined(ZERO)
-  if (m->is_native()) {
-#ifdef CC_INTERP
-    interpreterState istate = get_interpreterState();
-    f->do_oop((oop*)&istate->_oop_temp);
-#else
-    f->do_oop((oop*)( fp() + interpreter_frame_oop_temp_offset ));
-#endif /* CC_INTERP */
+  if (m->is_native() PPC32_ONLY(&& m->is_static())) {
+    f->do_oop(interpreter_frame_temp_oop_addr());
   }
-#else // PPC
-  if (m->is_native() && m->is_static()) {
-    f->do_oop(interpreter_frame_mirror_addr());
-  }
-#endif // PPC
 
   int max_locals = m->is_native() ? m->size_of_parameters() : m->max_locals();
 
@@ -1146,7 +1135,7 @@ void frame::oops_entry_do(OopClosure* f, const RegisterMap* map) {
 }
 
 
-void frame::oops_do_internal(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf, RegisterMap* map, bool use_interpreter_oop_map_cache) {
+void frame::oops_do_internal(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf, RegisterMap* map, bool use_interpreter_oop_map_cache) {
 #ifndef PRODUCT
   // simulate GC crash here to dump java thread in error report
   if (CrashGCForDumpingJavaThread) {

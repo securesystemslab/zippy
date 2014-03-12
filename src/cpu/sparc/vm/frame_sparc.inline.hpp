@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -236,6 +236,10 @@ inline ConstantPoolCache** frame::interpreter_frame_cpoolcache_addr() const {
 
 inline ConstantPoolCache** frame::interpreter_frame_cache_addr() const {
   return (ConstantPoolCache**)sp_addr_at( LcpoolCache->sp_offset_in_saved_window());
+}
+
+inline oop* frame::interpreter_frame_temp_oop_addr() const {
+  return (oop *)(fp() + interpreter_frame_oop_temp_offset);
 }
 #endif // CC_INTERP
 
