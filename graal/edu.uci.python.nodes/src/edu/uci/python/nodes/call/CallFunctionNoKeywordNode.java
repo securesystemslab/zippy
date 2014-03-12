@@ -86,7 +86,7 @@ public class CallFunctionNoKeywordNode extends PNode {
          * unoptimized on-stack invocation that references the transformed genexp. So the modified
          * calling convention crashes...
          */
-        if (function.getName().equals("balance")) {
+        if (function.getName().equals("balance") || function.getName().equals("updateDict")) {
             return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
         }
 

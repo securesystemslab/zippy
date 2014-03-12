@@ -7,6 +7,8 @@
 #
 # 02/24/14 Modified by Wei Zhang
 
+import sys, time
+
 def updateDict(dict, primaryKey, secondKey, val):
 	if primaryKey in dict:
 		dict[primaryKey][secondKey] = val
@@ -84,6 +86,15 @@ def main(n):
             # print(num)
             break;
 
+def measure():
+    print("Start timing...")
+    start = time.time()
+    main(int(sys.argv[1]))
+    duration = "%.3f\n" % (time.time() - start)
+    print("pads-eratosthenes: " + duration)
+
 # warmup
-for i in range(1000):
+for i in range(500):
     main(1000)
+
+measure()

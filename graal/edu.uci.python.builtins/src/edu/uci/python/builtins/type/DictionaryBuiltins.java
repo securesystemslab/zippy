@@ -25,9 +25,7 @@
 package edu.uci.python.builtins.type;
 
 import java.util.*;
-
 import com.oracle.truffle.api.dsl.*;
-
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatype.*;
