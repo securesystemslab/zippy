@@ -717,6 +717,9 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
 
     if vm is None:
         vm = _get_vm()
+        
+    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
+        mx.abort("Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'")
 
     if cwd is None:
         cwd = _vm_cwd
