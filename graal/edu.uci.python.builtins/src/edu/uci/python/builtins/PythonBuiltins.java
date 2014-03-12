@@ -98,7 +98,7 @@ public abstract class PythonBuiltins {
         }
 
         for (int i = 0; i < totalNumOfArgsKeywords; i++) {
-            args.add(new ReadArgumentNode(i));
+            args.add(new BasicReadArgumentNode(i));
         }
 
         if (builtin.takesVariableArguments()) {

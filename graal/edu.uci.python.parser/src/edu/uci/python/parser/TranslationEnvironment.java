@@ -146,7 +146,7 @@ public class TranslationEnvironment {
 
     public PNode getWriteArgumentToLocal(String name) {
         FrameSlot slot = findSlot(name);
-        ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
+        BasicReadArgumentNode right = new BasicReadArgumentNode(slot.getIndex());
         return factory.createWriteLocal(right, slot);
     }
 

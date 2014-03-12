@@ -32,7 +32,7 @@ import edu.uci.python.runtime.sequence.*;
 /**
  * @author Gulfem
  */
-public class ReadVarArgsNode extends ReadArgumentNode {
+public class ReadVarArgsNode extends BasicReadArgumentNode {
 
     public ReadVarArgsNode(int paramIndex) {
         super(paramIndex);

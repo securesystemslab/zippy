@@ -25,8 +25,11 @@
 package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 /**
@@ -35,11 +38,11 @@ import edu.uci.python.runtime.function.*;
  * @author zwei
  * 
  */
-public class ReadArgumentNode extends PNode {
+public class BasicReadArgumentNode extends PNode {
 
     private final int index;
 
-    public ReadArgumentNode(int index) {
+    public BasicReadArgumentNode(int index) {
         this.index = index;
     }
 
@@ -50,7 +53,55 @@ public class ReadArgumentNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
+
+        if (index >= args.getArgumentsLength()) {
+            replace(new OffBoundReadArgumentNode(index));
+        } else {
+            replace(new ReadArgumentNode(index));
+        }
+
         return args.getArgument(index);
+    }
+
+    public static final class ReadArgumentNode extends BasicReadArgumentNode {
+
+        public ReadArgumentNode(int index) {
+            super(index);
+        }
+
+        @Override
+        public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+            return PythonTypesGen.PYTHONTYPES.expectBoolean(execute(frame));
+        }
+
+        @Override
+        public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+            return PythonTypesGen.PYTHONTYPES.expectInteger(execute(frame));
+        }
+
+        @Override
+        public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+            return PythonTypesGen.PYTHONTYPES.expectDouble(execute(frame));
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PArguments args = frame.getArguments(PArguments.class);
+            return args.getArgument(getIndex());
+        }
+
+    }
+
+    public static final class OffBoundReadArgumentNode extends BasicReadArgumentNode {
+
+        public OffBoundReadArgumentNode(int index) {
+            super(index);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return PNone.NONE;
+        }
     }
 
 }
