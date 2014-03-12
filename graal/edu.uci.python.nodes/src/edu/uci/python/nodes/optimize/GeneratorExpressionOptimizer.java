@@ -54,7 +54,7 @@ public class GeneratorExpressionOptimizer {
         PNode body = functionRoot.getBody();
         if (body instanceof GeneratorReturnTargetNode) {
             // Baiout if the current root is a generator root.
-            // return;
+            return;
         }
 
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {

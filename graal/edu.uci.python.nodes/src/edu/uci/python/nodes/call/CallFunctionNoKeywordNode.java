@@ -80,6 +80,16 @@ public class CallFunctionNoKeywordNode extends PNode {
     private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
         Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
 
+        /**
+         * (zwei): This is a temporary hack to black list 'balance' in euler31.<br>
+         * The recursion makes it hard for genexp transformation. Since there might be an
+         * unoptimized on-stack invocation that references the transformed genexp. So the modified
+         * calling convention crashes...
+         */
+        if (function.getName().equals("balance")) {
+            return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+        }
+
         if (PythonOptions.InlineFunctionCalls) {
             return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function, context, globalScopeUnchanged);
         } else {
