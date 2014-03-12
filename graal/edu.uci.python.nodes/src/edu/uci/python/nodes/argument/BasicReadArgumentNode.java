@@ -54,13 +54,13 @@ public class BasicReadArgumentNode extends PNode {
     public Object execute(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
 
-        if (index >= args.getArgumentsLength()) {
+        if (index >= args.getActualArgumentsLength()) {
             replace(new OffBoundReadArgumentNode(index));
+            return PNone.NONE;
         } else {
             replace(new ReadArgumentNode(index));
+            return args.getArgument(index);
         }
-
-        return args.getArgument(index);
     }
 
     public static final class ReadArgumentNode extends BasicReadArgumentNode {
