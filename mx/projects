@@ -479,7 +479,7 @@ project@com.oracle.graal.java@workingSets=Graal,Java
 # graal.baseline
 project@com.oracle.graal.baseline@subDir=graal
 project@com.oracle.graal.baseline@sourceDirs=src
-project@com.oracle.graal.baseline@dependencies=com.oracle.graal.java,com.oracle.graal.lir
+project@com.oracle.graal.baseline@dependencies=com.oracle.graal.java,com.oracle.graal.lir,com.oracle.graal.compiler
 project@com.oracle.graal.baseline@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.baseline@javaCompliance=1.7
 project@com.oracle.graal.baseline@workingSets=Graal,Java
