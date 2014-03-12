@@ -356,7 +356,7 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
             f.write(_sha1OfFile())
 
     def _sha1OfFile():
-        with open(path, 'r') as f:
+        with open(path, 'rb') as f:
             return hashlib.sha1(f.read()).hexdigest()
 
 
@@ -1093,7 +1093,9 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
     return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def _kill_process_group(pid, sig=signal.SIGKILL):
+def _kill_process_group(pid, sig=None):
+    if not sig:
+        sig = signal.SIGKILL
     pgid = os.getpgid(pid)
     try:
         os.killpg(pgid, sig)
@@ -4088,7 +4090,8 @@ def main():
 
     def quit_handler(signum, frame):
         _send_sigquit()
-    signal.signal(signal.SIGQUIT, quit_handler)
+    if get_os() != 'windows':
+        signal.signal(signal.SIGQUIT, quit_handler)
 
     try:
         if opts.timeout != 0:
