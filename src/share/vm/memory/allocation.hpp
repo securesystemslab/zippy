@@ -220,8 +220,11 @@ template <MEMFLAGS F> class CHeapObj ALLOCATION_SUPER_CLASS_SPEC {
 class StackObj ALLOCATION_SUPER_CLASS_SPEC {
  private:
   void* operator new(size_t size) throw();
-  void  operator delete(void* p);
   void* operator new [](size_t size) throw();
+#ifdef __IBMCPP__
+ public:
+#endif
+  void  operator delete(void* p);
   void  operator delete [](void* p);
 };
 
@@ -264,7 +267,7 @@ class ClassLoaderData;
 
 class MetaspaceObj {
  public:
-  bool is_metaspace_object() const;  // more specific test but slower
+  bool is_metaspace_object() const;
   bool is_shared() const;
   void print_address_on(outputStream* st) const;  // nonvirtual address printing
 
@@ -576,8 +579,8 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
   bool allocated_on_res_area() const { return get_allocation_type() == RESOURCE_AREA; }
   bool allocated_on_C_heap()   const { return get_allocation_type() == C_HEAP; }
   bool allocated_on_arena()    const { return get_allocation_type() == ARENA; }
-  ResourceObj(); // default construtor
-  ResourceObj(const ResourceObj& r); // default copy construtor
+  ResourceObj(); // default constructor
+  ResourceObj(const ResourceObj& r); // default copy constructor
   ResourceObj& operator=(const ResourceObj& r); // default copy assignment
   ~ResourceObj();
 #endif // ASSERT

@@ -82,10 +82,13 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/ad_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc
-# include "adfiles/ad_ppc.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc_32
+# include "adfiles/ad_ppc_32.hpp"
 #endif
+#ifdef TARGET_ARCH_MODEL_ppc_64
+# include "adfiles/ad_ppc_64.hpp"
 #endif
+#endif // COMPILER2
 
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
@@ -398,7 +401,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   frame deopt_sender = stub_frame.sender(&dummy_map); // First is the deoptee frame
   deopt_sender = deopt_sender.sender(&dummy_map);     // Now deoptee caller
 
-  // It's possible that the number of paramters at the call site is
+  // It's possible that the number of parameters at the call site is
   // different than number of arguments in the callee when method
   // handles are used.  If the caller is interpreted get the real
   // value so that the proper amount of space can be added to it's
@@ -558,7 +561,7 @@ void Deoptimization::cleanup_deopt_info(JavaThread *thread,
     // popframe condition bit set, we should always clear it now
     thread->clear_popframe_condition();
 #else
-    // C++ interpeter will clear has_pending_popframe when it enters
+    // C++ interpreter will clear has_pending_popframe when it enters
     // with method_resume. For deopt_resume2 we clear it now.
     if (thread->popframe_forcing_deopt_reexecution())
         thread->clear_popframe_condition();
@@ -1291,9 +1294,19 @@ void Deoptimization::load_class_by_index(constantPoolHandle constant_pool, int i
   load_class_by_index(constant_pool, index, THREAD);
   if (HAS_PENDING_EXCEPTION) {
     // Exception happened during classloading. We ignore the exception here, since it
-    // is going to be rethrown since the current activation is going to be deoptimzied and
+    // is going to be rethrown since the current activation is going to be deoptimized and
     // the interpreter will re-execute the bytecode.
     CLEAR_PENDING_EXCEPTION;
+    // Class loading called java code which may have caused a stack
+    // overflow. If the exception was thrown right before the return
+    // to the runtime the stack is no longer guarded. Reguard the
+    // stack otherwise if we return to the uncommon trap blob and the
+    // stack bang causes a stack overflow we crash.
+    assert(THREAD->is_Java_thread(), "only a java thread can be here");
+    JavaThread* thread = (JavaThread*)THREAD;
+    bool guard_pages_enabled = thread->stack_yellow_zone_enabled();
+    if (!guard_pages_enabled) guard_pages_enabled = thread->reguard_stack();
+    assert(guard_pages_enabled, "stack banging in uncommon trap blob may cause crash");
   }
 }
 
@@ -1639,6 +1652,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 #ifdef GRAAL
                                    nm->is_compiled_by_graal() && nm->is_osr_method(),
 #endif
+                                   nm->method(),
                                    //outputs:
                                    this_trap_count,
                                    maybe_prior_trap,
@@ -1684,7 +1698,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       }
 
       // Go back to the compiler if there are too many traps in this method.
-      if (this_trap_count >= (uint)PerMethodTrapLimit) {
+      if (this_trap_count >= per_method_trap_limit(reason)) {
         // If there are too many traps in this method, force a recompile.
         // This will allow the compiler to see the limit overflow, and
         // take corrective action, if possible.
@@ -1776,6 +1790,7 @@ Deoptimization::query_update_method_data(MethodData* trap_mdo,
 #ifdef GRAAL
                                          bool is_osr,
 #endif
+                                         Method* compiled_method,
                                          //outputs:
                                          uint& ret_this_trap_count,
                                          bool& ret_maybe_prior_trap,
@@ -1811,9 +1826,16 @@ Deoptimization::query_update_method_data(MethodData* trap_mdo,
     // Find the profile data for this BCI.  If there isn't one,
     // try to allocate one from the MDO's set of spares.
     // This will let us detect a repeated trap at this point.
-    pdata = trap_mdo->allocate_bci_to_data(trap_bci);
+    pdata = trap_mdo->allocate_bci_to_data(trap_bci, reason_is_speculate(reason) ? compiled_method : NULL);
 
     if (pdata != NULL) {
+      if (reason_is_speculate(reason) && !pdata->is_SpeculativeTrapData()) {
+        if (LogCompilation && xtty != NULL) {
+          ttyLocker ttyl;
+          // no more room for speculative traps in this MDO
+          xtty->elem("speculative_traps_oom");
+        }
+      }
       // Query the trap state of this profile datum.
       int tstate0 = pdata->trap_state();
       if (!trap_state_has_reason(tstate0, per_bc_reason))
@@ -1853,12 +1875,14 @@ Deoptimization::update_method_data_from_interpreter(MethodData* trap_mdo, int tr
   bool ignore_maybe_prior_recompile;
   // Graal uses the total counts to determine if deoptimizations are happening too frequently -> do not adjust total counts
   bool update_total_counts = GRAAL_ONLY(false) NOT_GRAAL(true);
+  assert(!reason_is_speculate(reason), "reason speculate only used by compiler");
   query_update_method_data(trap_mdo, trap_bci,
                            (DeoptReason)reason,
                            update_total_counts,
 #ifdef GRAAL
                            false,
 #endif
+                           NULL,
                            ignore_this_trap_count,
                            ignore_maybe_prior_trap,
                            ignore_maybe_prior_recompile);
@@ -1989,6 +2013,7 @@ const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
   "age" GRAAL_ONLY("|jsr_mismatch"),
   "predicate",
   "loop_limit_check",
+  "speculate_class_check",
   GRAAL_ONLY("aliasing")
 };
 const char* Deoptimization::_trap_action_name[Action_LIMIT] = {

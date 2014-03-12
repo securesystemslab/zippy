@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@
 // This class exposes implementation details of the various
 // collector(s), and we need to be very careful with it. If
 // use of this class grows, we should split it into public
-// and implemenation-private "causes".
+// and implementation-private "causes".
 //
 
 class GCCause : public AllStatic {

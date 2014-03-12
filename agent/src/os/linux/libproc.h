@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,7 +80,7 @@ combination of ptrace and /proc calls.
 *************************************************************************************/
 
 
-#if defined(sparc)  || defined(sparcv9)
+#if defined(sparc) || defined(sparcv9) || defined(ppc64)
 #define user_regs_struct  pt_regs
 #endif
 

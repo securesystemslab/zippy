@@ -759,7 +759,7 @@ char* Universe::preferred_heap_base(size_t heap_size, size_t alignment, NARROW_O
       // the correct no-access prefix.
       // The final value will be set in initialize_heap() below.
       Universe::set_narrow_oop_base((address)UnscaledOopHeapMax);
-#ifdef _WIN64
+#if defined(_WIN64) || defined(AIX)
       if (UseLargePages) {
         // Cannot allocate guard pages for implicit checks in indexed
         // addressing mode when large pages are specified on windows.
@@ -816,6 +816,8 @@ jint Universe::initialize_heap() {
     Universe::_collectedHeap = new GenCollectedHeap(gc_policy);
   }
 
+  ThreadLocalAllocBuffer::set_max_size(Universe::heap()->max_tlab_size());
+
   jint status = Universe::heap()->initialize();
   if (status != JNI_OK) {
     return status;
@@ -839,6 +841,11 @@ jint Universe::initialize_heap() {
       // Can't reserve heap below 32Gb.
       // keep the Universe::narrow_oop_base() set in Universe::reserve_heap()
       Universe::set_narrow_oop_shift(LogMinObjAlignmentInBytes);
+#ifdef AIX
+      // There is no protected page before the heap. This assures all oops
+      // are decoded so that NULL is preserved, so this page will not be accessed.
+      Universe::set_narrow_oop_use_implicit_null_checks(false);
+#endif
       if (verbose) {
         tty->print(", %s: "PTR_FORMAT,
             narrow_oop_mode_to_string(HeapBasedNarrowOop),
@@ -1136,7 +1143,7 @@ bool universe_post_init() {
       SystemDictionary::ProtectionDomain_klass(), m);;
   }
 
-  // The folowing is initializing converter functions for serialization in
+  // The following is initializing converter functions for serialization in
   // JVM.cpp. If we clean up the StrictMath code above we may want to find
   // a better solution for this as well.
   initialize_converter_functions();
@@ -1178,7 +1185,7 @@ void Universe::flush_dependents_on(instanceKlassHandle dependee) {
   if (CodeCache::number_of_nmethods_with_dependencies() == 0) return;
 
   // CodeCache can only be updated by a thread_in_VM and they will all be
-  // stopped dring the safepoint so CodeCache will be safe to update without
+  // stopped during the safepoint so CodeCache will be safe to update without
   // holding the CodeCache_lock.
 
   KlassDepChange changes(dependee);
@@ -1199,7 +1206,7 @@ void Universe::flush_dependents_on(Handle call_site, Handle method_handle) {
   if (CodeCache::number_of_nmethods_with_dependencies() == 0) return;
 
   // CodeCache can only be updated by a thread_in_VM and they will all be
-  // stopped dring the safepoint so CodeCache will be safe to update without
+  // stopped during the safepoint so CodeCache will be safe to update without
   // holding the CodeCache_lock.
 
   CallSiteDepChange changes(call_site(), method_handle());
@@ -1230,7 +1237,7 @@ void Universe::flush_evol_dependents_on(instanceKlassHandle ev_k_h) {
   if (CodeCache::number_of_nmethods_with_dependencies() == 0) return;
 
   // CodeCache can only be updated by a thread_in_VM and they will all be
-  // stopped dring the safepoint so CodeCache will be safe to update without
+  // stopped during the safepoint so CodeCache will be safe to update without
   // holding the CodeCache_lock.
 
   // Compute the dependent nmethods

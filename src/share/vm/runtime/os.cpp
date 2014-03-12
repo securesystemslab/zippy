@@ -236,7 +236,7 @@ static void signal_thread_entry(JavaThread* thread, TRAPS) {
   while (true) {
     int sig;
     {
-      // FIXME : Currently we have not decieded what should be the status
+      // FIXME : Currently we have not decided what should be the status
       //         for this java thread blocked here. Once we decide about
       //         that we should fix this.
       sig = os::signal_wait();
@@ -362,7 +362,7 @@ void os::signal_init() {
       // exceptions anyway, check and abort if this fails.
       if (signal_thread == NULL || signal_thread->osthread() == NULL) {
         vm_exit_during_initialization("java.lang.OutOfMemoryError",
-                                      "unable to create new native thread");
+                                      os::native_thread_creation_failed_msg());
       }
 
       java_lang_Thread::set_thread(thread_oop(), signal_thread);
@@ -583,7 +583,7 @@ void print_neighbor_blocks(void* ptr) {
   ptrdiff_t size = *size_addr_from_base(start_of_prev_block);
   u_char* obj = start_of_prev_block + space_before;
   if (size <= 0 ) {
-    // start is bad; mayhave been confused by OS data inbetween objects
+    // start is bad; may have been confused by OS data in between objects
     // search one more backwards
     start_of_prev_block = find_cushion_backwards(start_of_prev_block);
     size = *size_addr_from_base(start_of_prev_block);
@@ -1011,7 +1011,7 @@ void os::print_location(outputStream* st, intptr_t x, bool verbose) {
   if (Universe::heap()->is_in(addr)) {
     HeapWord* p = Universe::heap()->block_start(addr);
     bool print = false;
-    // If we couldn't find it it just may mean that heap wasn't parseable
+    // If we couldn't find it it just may mean that heap wasn't parsable
     // See if we were just given an oop directly
     if (p != NULL && Universe::heap()->block_is_obj(p)) {
       print = true;
@@ -1081,7 +1081,6 @@ void os::print_location(outputStream* st, intptr_t x, bool verbose) {
 
   }
 
-#ifndef PRODUCT
   // Check if in metaspace.
   if (ClassLoaderDataGraph::contains((address)addr)) {
     // Use addr->print() from the debugger instead (not here)
@@ -1089,7 +1088,6 @@ void os::print_location(outputStream* st, intptr_t x, bool verbose) {
                  " is pointing into metadata", addr);
     return;
   }
-#endif
 
   // Try an OS specific find
   if (os::find(addr, st)) {
@@ -1103,7 +1101,7 @@ void os::print_location(outputStream* st, intptr_t x, bool verbose) {
 // if C stack is walkable beyond current frame. The check for fp() is not
 // necessary on Sparc, but it's harmless.
 bool os::is_first_C_frame(frame* fr) {
-#if defined(IA64) && !defined(_WIN32)
+#if (defined(IA64) && !defined(AIX)) && !defined(_WIN32)
   // On IA64 we have to check if the callers bsp is still valid
   // (i.e. within the register stack bounds).
   // Notice: this only works for threads created by the VM and only if
@@ -1199,7 +1197,7 @@ char* os::format_boot_path(const char* format_string,
                            char fileSep,
                            char pathSep) {
     assert((fileSep == '/' && pathSep == ':') ||
-           (fileSep == '\\' && pathSep == ';'), "unexpected seperator chars");
+           (fileSep == '\\' && pathSep == ';'), "unexpected separator chars");
 
     // Scan the format string to determine the length of the actual
     // boot classpath, and handle platform dependencies as well.
@@ -1264,9 +1262,6 @@ bool os::set_boot_path(char fileSep, char pathSep) {
         "%/lib/jce.jar:"
         "%/lib/charsets.jar:"
         "%/lib/jfr.jar:"
-#ifdef __APPLE__
-        "%/lib/JObjC.jar:"
-#endif
 #ifdef GRAAL
         "%/lib/graal.jar:"
 #endif
@@ -1451,7 +1446,7 @@ void os::trace_page_sizes(const char* str, const size_t region_min_size,
 // >= 2 physical CPU's and >=2GB of memory, with some fuzz
 // because the graphics memory (?) sometimes masks physical memory.
 // If you want to change the definition of a server class machine
-// on some OS or platform, e.g., >=4GB on Windohs platforms,
+// on some OS or platform, e.g., >=4GB on Windows platforms,
 // then you'll have to parameterize this method based on that state,
 // as was done for logical processors here, or replicate and
 // specialize this method for each platform.  (Or fix os to have

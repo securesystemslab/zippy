@@ -22,7 +22,7 @@
 #  
 #
 
-# Sets make macros for making optimized version of Gamma VM
+# Sets make macros for making optimized version of HotSpot VM
 # (This is the "product", not the "release" version.)
 
 # Compiler specific OPT_CFLAGS are passed in from gcc.make, sparcWorks.make
@@ -39,5 +39,8 @@ CFLAGS$(HOTSPARC_GENERIC) += $(OPT_CFLAGS/BYFILE)
 
 # Linker mapfile
 MAPFILE = $(GAMMADIR)/make/bsd/makefiles/mapfile-vers-debug
+ifeq ($(OS_VENDOR), Darwin)
+MAPFILE = $(GAMMADIR)/make/bsd/makefiles/mapfile-vers-darwin-debug
+endif
 
 VERSION = optimized

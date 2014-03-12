@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -280,7 +280,7 @@ bool PSOldGen::expand_by(size_t bytes) {
         "Should be true before post_resize()");
       MemRegion mangle_region(object_space()->end(), virtual_space_high);
       // Note that the object space has not yet been updated to
-      // coincede with the new underlying virtual space.
+      // coincide with the new underlying virtual space.
       SpaceMangler::mangle_region(mangle_region);
     }
     post_resize();
