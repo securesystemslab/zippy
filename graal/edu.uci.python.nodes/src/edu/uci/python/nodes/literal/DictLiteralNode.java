@@ -50,26 +50,18 @@ public class DictLiteralNode extends LiteralNode {
     public DictLiteralNode(PNode[] keys, PNode[] values) {
         this.keys = adoptChildren(keys);
         this.values = adoptChildren(values);
+        assert keys.length == values.length;
     }
 
     @ExplodeLoop
     @Override
     public PDict executePDictionary(VirtualFrame frame) {
-        List<Object> resolvedKeys = new ArrayList<>();
-        for (int i = 0; i < keys.length; i++) {
-            PNode e = keys[i];
-            resolvedKeys.add(e.execute(frame));
-        }
+        final Map<Object, Object> map = new HashMap<>();
 
-        List<Object> resolvedValues = new ArrayList<>();
         for (int i = 0; i < values.length; i++) {
-            PNode e = values[i];
-            resolvedValues.add(e.execute(frame));
-        }
-
-        Map<Object, Object> map = new HashMap<>();
-        for (int i = 0; i < resolvedKeys.size(); i++) {
-            map.put(resolvedKeys.get(i), resolvedValues.get(i));
+            final Object key = keys[i].execute(frame);
+            final Object val = values[i].execute(frame);
+            map.put(key, val);
         }
 
         return new PDict(map);
@@ -105,10 +97,8 @@ public class DictLiteralNode extends LiteralNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Map<Object, Object> map = new HashMap<>();
-            final Object k = key.execute(frame);
-            final Object v = value.execute(frame);
-            map.put(k, v);
+            final Map<Object, Object> map = new HashMap<>();
+            map.put(key.execute(frame), value.execute(frame));
             return new PDict(map);
         }
     }
