@@ -321,7 +321,7 @@ ifeq ($(USE_CLANG), true)
     OPT_CFLAGS/unsafe.o += -O1
   endif
   # Clang 5.0
-  ifeq ($(shell expr $(CC_VER_MAJOR) = 5 \& $(CC_VER_MINOR) = 0), 1)
+  ifeq ($(shell expr $(CC_VER_MAJOR) = 5 \& \( $(CC_VER_MINOR) = 0 \| $(CC_VER_MINOR) = 1 \) ), 1)
     OPT_CFLAGS/loopTransform.o += $(OPT_CFLAGS/NOOPT)
     OPT_CFLAGS/unsafe.o += -O1
     OPT_CFLAGS/graalCompilerToVM.o += -O1

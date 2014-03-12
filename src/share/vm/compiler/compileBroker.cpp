@@ -795,11 +795,6 @@ void CompileBroker::compilation_init() {
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-#if defined(COMPILERGRAAL) && !defined(TIERED)
-  _compilers[0] = graal;
-  c1_count = 0;
-  c2_count = 0;
-#endif // COMPILERGRAAL && !TIERED
 
 #ifdef COMPILER1
   if (c1_count > 0) {
