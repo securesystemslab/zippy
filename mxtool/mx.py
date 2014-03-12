@@ -1469,7 +1469,7 @@ def _send_sigquit():
 
     def _isJava():
         if args:
-            name = args[0].split("/")[-1]
+            name = args[0].split(os.sep)[-1]
             return name == "java"
         return False
 
