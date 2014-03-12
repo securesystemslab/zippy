@@ -369,7 +369,7 @@ class relocInfo VALUE_OBJ_CLASS_SPEC {
   // "immediate" in the prefix header word itself.  This optimization
   // is invisible outside this module.)
 
-  inline friend relocInfo prefix_relocInfo(int datalen = 0);
+  inline friend relocInfo prefix_relocInfo(int datalen);
 
  protected:
   // an immediate relocInfo optimizes a prefix with one 10-bit unsigned value
