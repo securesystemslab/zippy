@@ -679,17 +679,6 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   }
 C2V_END
 
-C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
-
-  // the contract for this method is as follows:
-  // returning null: no deopted leaf graphs
-  // returning array (size > 0): the ids of the deopted leaf graphs
-  // returning array (size == 0): there was an overflow, the compiler needs to clear its cache completely
-
-  oop array = GraalCompiler::instance()->dump_deopted_leaf_graphs(CHECK_NULL);
-  return JNIHandles::make_local(array);
-C2V_END
-
 C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = (Method*) metaspace_method;
   if (!method->has_linenumber_table()) {
@@ -869,7 +858,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"resetCompilationStatistics",      CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",             CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",    CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
-  {CC"getDeoptedLeafGraphIds",          CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",              CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTableStart",      CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
   {CC"getLocalVariableTableLength",     CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},

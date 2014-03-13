@@ -209,21 +209,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // Java frame.  This storage is allocated with the usual system arena.
   assert(deoptee.is_compiled_frame(), "Wrong frame type");
 
-#ifdef GRAAL
-  nmethod* nm = (nmethod*) deoptee.cb();
-  GraalCompiler* compiler = (GraalCompiler*) nm->compiler();
-  for (jlong* p = nm->leaf_graph_ids_begin(); p != nm->leaf_graph_ids_end(); p++) {
-    compiler->deopt_leaf_graph(*p);
-  }
-  if (PrintDeoptimizationDetails) {
-    tty->print("leaf graph ids: ");
-    for (jlong* p = nm->leaf_graph_ids_begin(); p != nm->leaf_graph_ids_end(); p++) {
-      tty->print("%d ", *p);
-    }
-    tty->cr();
-  }
-#endif
-
   GrowableArray<compiledVFrame*>* chunk = new GrowableArray<compiledVFrame*>(10);
   vframe* vf = vframe::new_vframe(&deoptee, &map, thread);
   while (!vf->is_top()) {
