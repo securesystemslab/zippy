@@ -1118,8 +1118,7 @@ void CompileBroker::compile_method_base(methodHandle method,
   assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
   if (comp_level == CompLevel_full_optimization) {
     if (!JavaThread::current()->is_graal_compiling()) {
-      bool blockingCompilation = is_compile_blocking(method, osr_bci) ||
-        CompilationPolicy::can_be_offloaded_to_gpu(method);
+      bool blockingCompilation = is_compile_blocking(method, osr_bci);
       GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
     } else {
       // Can't enqueue this request because there would be no one to service it, so simply return.
