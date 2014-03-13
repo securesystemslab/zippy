@@ -58,9 +58,6 @@ public:
   static void set_policy(CompilationPolicy* policy) { _policy = policy; }
   static CompilationPolicy* policy()                { return _policy; }
 
-  // m is allowed to be offloaded to a gpu
-  static bool can_be_offloaded_to_gpu(methodHandle m);
-
   // Profiling
   elapsedTimer* accumulated_time() { return &_accumulated_time; }
   void print_time() PRODUCT_RETURN;
