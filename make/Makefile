@@ -307,7 +307,7 @@ generic_buildgraal: $(HOTSPOT_SCRIPT) buildshared
 
 # Builds code that can be shared among different build flavors
 buildshared:
-#	python2.7 -u $(GAMMADIR)/mxtool/mx.py build --no-native --export-dir $(SHARED_DIR)
+	python2.7 -u $(GAMMADIR)/mxtool/mx.py build --no-native --export-dir $(SHARED_DIR)
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
@@ -315,11 +315,11 @@ generic_export: $(EXPORT_LIST)
 export_product:
 	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) generic_export
 export_fastdebug:
-	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) generic_export
+	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) EXPORT_SUBDIR=/$(@:export_%=%) generic_export
 export_debug:
-	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) generic_export
+	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) EXPORT_SUBDIR=/$(@:export_%=%) generic_export
 export_optimized:
-	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) generic_export
+	$(MAKE) BUILD_FLAVOR=$(@:export_%=%) EXPORT_SUBDIR=/$(@:export_%=%) generic_export
 
 export_product_jdk::
 	$(MAKE) BUILD_FLAVOR=$(@:export_%_jdk=%) ALT_EXPORT_PATH=$(JDK_IMAGE_DIR) generic_export
