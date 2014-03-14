@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
 public class GeneratorWhileNode extends WhileNode {
@@ -49,7 +50,7 @@ public class GeneratorWhileNode extends WhileNode {
         return PArguments.getGeneratorArguments(frame).isFirstEntry();
     }
 
-    private static void setAsActive(VirtualFrame frame, boolean active) {
+    private static void setActive(VirtualFrame frame, boolean active) {
         PArguments.getGeneratorArguments(frame).setFirstEntry(active);
     }
 
@@ -57,22 +58,24 @@ public class GeneratorWhileNode extends WhileNode {
     public Object execute(VirtualFrame frame) {
         try {
             while (isActive(frame) || condition.executeBoolean(frame)) {
-                setAsActive(frame, true);
+                setActive(frame, true);
                 body.executeVoid(frame);
+                setActive(frame, false);
 
                 if (CompilerDirectives.inInterpreter()) {
                     count++;
                 }
             }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-                count = 0;
-            }
+        } catch (BreakException ex) {
+            setActive(frame, false);
         }
 
-        setAsActive(frame, false);
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
+        assert !isActive(frame);
         return PNone.NONE;
     }
-
 }
