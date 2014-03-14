@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -133,7 +133,7 @@ CallingConvention* FrameMap::c_calling_convention(const BasicTypeArray* signatur
     }
   }
 
-  intptr_t out_preserve = SharedRuntime::c_calling_convention(sig_bt, regs, sizeargs);
+  intptr_t out_preserve = SharedRuntime::c_calling_convention(sig_bt, regs, NULL, sizeargs);
   LIR_OprList* args = new LIR_OprList(signature->length());
   for (i = 0; i < sizeargs;) {
     BasicType t = sig_bt[i];

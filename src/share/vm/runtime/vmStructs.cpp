@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,6 +145,9 @@
 #ifdef TARGET_OS_ARCH_linux_ppc
 # include "vmStructs_linux_ppc.hpp"
 #endif
+#ifdef TARGET_OS_ARCH_aix_ppc
+# include "vmStructs_aix_ppc.hpp"
+#endif
 #ifdef TARGET_OS_ARCH_bsd_x86
 # include "vmStructs_bsd_x86.hpp"
 #endif
@@ -201,10 +204,13 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/adGlobals_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc
-# include "adfiles/adGlobals_ppc.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc_32
+# include "adfiles/adGlobals_ppc_32.hpp"
 #endif
+#ifdef TARGET_ARCH_MODEL_ppc_64
+# include "adfiles/adGlobals_ppc_64.hpp"
 #endif
+#endif // COMPILER2
 
 // Note: the cross-product of (c1, c2, product, nonproduct, ...),
 // (nonstatic, static), and (unchecked, checked) has not been taken.
@@ -245,7 +251,6 @@ typedef TwoOopHashtable<Klass*, mtClass>      KlassTwoOopHashtable;
 typedef Hashtable<Klass*, mtClass>            KlassHashtable;
 typedef HashtableEntry<Klass*, mtClass>       KlassHashtableEntry;
 typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
-typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
 
 //--------------------------------------------------------------------------------
 // VM_STRUCTS
@@ -1214,9 +1219,9 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   c2_nonstatic_field(Block,              _pre_order,               uint)                                                             \
   c2_nonstatic_field(Block,              _dom_depth,               uint)                                                             \
   c2_nonstatic_field(Block,              _idom,                    Block*)                                                           \
-  c2_nonstatic_field(Block,              _freq,                    jfloat)                                                           \
+  c2_nonstatic_field(Block,              _freq,                    jdouble)                                                          \
                                                                                                                                      \
-  c2_nonstatic_field(CFGElement,         _freq,                    jfloat)                                                           \
+  c2_nonstatic_field(CFGElement,         _freq,                    jdouble)                                                          \
                                                                                                                                      \
   c2_nonstatic_field(Block_List,         _cnt,                     uint)                                                             \
                                                                                                                                      \
@@ -1324,11 +1329,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   volatile_nonstatic_field(FreeChunk,          _size,                                        size_t)                                 \
   nonstatic_field(FreeChunk,                   _next,                                        FreeChunk*)                             \
   nonstatic_field(FreeChunk,                   _prev,                                        FreeChunk*)                             \
-  nonstatic_field(FreeList<FreeChunk>,         _size,                                        size_t)                                 \
-  nonstatic_field(FreeList<Metablock>,         _size,                                        size_t)                                 \
-  nonstatic_field(FreeList<FreeChunk>,         _count,                                       ssize_t)                                \
-  nonstatic_field(FreeList<Metablock>,         _count,                                       ssize_t)                                \
-  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)
+  nonstatic_field(AdaptiveFreeList<FreeChunk>, _size,                                        size_t)                                 \
+  nonstatic_field(AdaptiveFreeList<FreeChunk>, _count,                                       ssize_t)
 
 //--------------------------------------------------------------------------------
 // VM_TYPES
@@ -1857,6 +1859,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_c2_type(MemBarNode, MultiNode)                                  \
   declare_c2_type(MemBarAcquireNode, MemBarNode)                          \
   declare_c2_type(MemBarReleaseNode, MemBarNode)                          \
+  declare_c2_type(LoadFenceNode, MemBarNode)                              \
+  declare_c2_type(StoreFenceNode, MemBarNode)                             \
   declare_c2_type(MemBarVolatileNode, MemBarNode)                         \
   declare_c2_type(MemBarCPUOrderNode, MemBarNode)                         \
   declare_c2_type(InitializeNode, MemBarNode)                             \
@@ -1981,15 +1985,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_c2_type(CmpF3Node, CmpFNode)                                    \
   declare_c2_type(CmpDNode, CmpNode)                                      \
   declare_c2_type(CmpD3Node, CmpDNode)                                    \
-  declare_c2_type(MathExactNode, MultiNode)                               \
-  declare_c2_type(MathExactINode, MathExactNode)                          \
-  declare_c2_type(AddExactINode, MathExactINode)                          \
-  declare_c2_type(AddExactLNode, MathExactLNode)                          \
-  declare_c2_type(SubExactINode, MathExactINode)                          \
-  declare_c2_type(SubExactLNode, MathExactLNode)                          \
-  declare_c2_type(NegExactINode, MathExactINode)                          \
-  declare_c2_type(MulExactINode, MathExactINode)                          \
-  declare_c2_type(FlagsProjNode, ProjNode)                                \
   declare_c2_type(BoolNode, Node)                                         \
   declare_c2_type(AbsNode, Node)                                          \
   declare_c2_type(AbsINode, AbsNode)                                      \
@@ -2070,6 +2065,15 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_c2_type(ExtractLNode, ExtractNode)                              \
   declare_c2_type(ExtractFNode, ExtractNode)                              \
   declare_c2_type(ExtractDNode, ExtractNode)                              \
+  declare_c2_type(OverflowNode, CmpNode)                                  \
+  declare_c2_type(OverflowINode, OverflowNode)                            \
+  declare_c2_type(OverflowAddINode, OverflowINode)                        \
+  declare_c2_type(OverflowSubINode, OverflowINode)                        \
+  declare_c2_type(OverflowMulINode, OverflowINode)                        \
+  declare_c2_type(OverflowLNode, OverflowNode)                            \
+  declare_c2_type(OverflowAddLNode, OverflowLNode)                        \
+  declare_c2_type(OverflowSubLNode, OverflowLNode)                        \
+  declare_c2_type(OverflowMulLNode, OverflowLNode)                        \
                                                                           \
   /*********************/                                                 \
   /* Adapter Blob Entries */                                              \
@@ -2198,14 +2202,8 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
                                                                           \
   /* freelist */                                                          \
   declare_toplevel_type(FreeChunk*)                                       \
-  declare_toplevel_type(Metablock*)                                       \
-  declare_toplevel_type(FreeBlockDictionary<FreeChunk>*)                  \
-  declare_toplevel_type(FreeList<FreeChunk>*)                             \
-  declare_toplevel_type(FreeList<FreeChunk>)                              \
-  declare_toplevel_type(FreeBlockDictionary<Metablock>*)                  \
-  declare_toplevel_type(FreeList<Metablock>*)                             \
-  declare_toplevel_type(FreeList<Metablock>)                              \
-  declare_type(MetablockTreeDictionary, FreeBlockDictionary<Metablock>)
+  declare_toplevel_type(AdaptiveFreeList<FreeChunk>*)                     \
+  declare_toplevel_type(AdaptiveFreeList<FreeChunk>)
 
 
 //--------------------------------------------------------------------------------

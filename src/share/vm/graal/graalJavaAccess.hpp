@@ -111,7 +111,6 @@ void graal_compute_offsets();
   start_class(CompilationResult)                                                                                                                               \
     int_field(CompilationResult, frameSize)                                                                                                                    \
     int_field(CompilationResult, customStackAreaOffset)                                                                                                        \
-    oop_field(CompilationResult, leafGraphIds, "[J")                                                                                                           \
     oop_field(CompilationResult, targetCode, "[B")                                                                                                             \
     oop_field(CompilationResult, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")                                                                       \
     int_field(CompilationResult, targetCodeSize)                                                                                                               \

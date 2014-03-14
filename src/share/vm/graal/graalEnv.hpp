@@ -144,7 +144,6 @@ public:
                        CompileTask*              task,
                        int                       compile_id,
                        bool                      has_unsafe_access,
-                       GrowableArray<jlong>*     leaf_graph_ids,
                        Handle                    installed_code,
                        Handle                    speculation_log);
 

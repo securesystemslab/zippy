@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,10 @@
 #endif
 #ifdef TARGET_OS_FAMILY_windows
 # include "jvm_windows.h"
+#endif
+#ifdef TARGET_OS_FAMILY_aix
+# include "jvm_aix.h"
+# include <setjmp.h>
 #endif
 #ifdef TARGET_OS_FAMILY_bsd
 # include "jvm_bsd.h"
@@ -161,6 +165,7 @@ class os: AllStatic {
   static jlong  javaTimeNanos();
   static void   javaTimeNanos_info(jvmtiTimerInfo *info_ptr);
   static void   run_periodic_checks();
+  static bool   supports_monotonic_clock();
 
 
   // Returns the elapsed time in seconds since the vm started.
@@ -395,7 +400,7 @@ class os: AllStatic {
     // was equal.  However, some platforms mask off faulting addresses
     // to the page size, so now we just check that the address is
     // within the page.  This makes the thread argument unnecessary,
-    // but we retain the NULL check to preserve existing behaviour.
+    // but we retain the NULL check to preserve existing behavior.
     if (thread == NULL) return false;
     address page = (address) _mem_serialize_page;
     return addr >= page && addr < (page + os::vm_page_size());
@@ -430,7 +435,10 @@ class os: AllStatic {
   static intx current_thread_id();
   static int current_process_id();
   static int sleep(Thread* thread, jlong ms, bool interruptable);
-  static int naked_sleep();
+  // Short standalone OS sleep suitable for slow path spin loop.
+  // Ignores Thread.interrupt() (so keep it short).
+  // ms = 0, will sleep for the least amount of time allowed by the OS.
+  static void naked_short_sleep(jlong ms);
   static void infinite_sleep(); // never returns, use with CAUTION
   static void yield();        // Yields to all threads with same priority
   enum YieldResult {
@@ -540,7 +548,7 @@ class os: AllStatic {
 
   // Loads .dll/.so and
   // in case of error it checks if .dll/.so was built for the
-  // same architecture as Hotspot is running on
+  // same architecture as HotSpot is running on
   static void* dll_load(const char *name, char *ebuf, int ebuflen);
 
   // lookup symbol in a shared library
@@ -769,6 +777,10 @@ class os: AllStatic {
 #ifdef TARGET_OS_FAMILY_windows
 # include "os_windows.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_aix
+# include "os_aix.hpp"
+# include "os_posix.hpp"
+#endif
 #ifdef TARGET_OS_FAMILY_bsd
 # include "os_posix.hpp"
 # include "os_bsd.hpp"
@@ -797,11 +809,18 @@ class os: AllStatic {
 #ifdef TARGET_OS_ARCH_linux_ppc
 # include "os_linux_ppc.hpp"
 #endif
+#ifdef TARGET_OS_ARCH_aix_ppc
+# include "os_aix_ppc.hpp"
+#endif
 #ifdef TARGET_OS_ARCH_bsd_x86
 # include "os_bsd_x86.hpp"
 #endif
 #ifdef TARGET_OS_ARCH_bsd_zero
 # include "os_bsd_zero.hpp"
+#endif
+
+#ifndef OS_NATIVE_THREAD_CREATION_FAILED_MSG
+#define OS_NATIVE_THREAD_CREATION_FAILED_MSG "unable to create native thread: possibly out of memory or process/resource limits reached"
 #endif
 
  public:
@@ -826,6 +845,9 @@ class os: AllStatic {
   // Hint to the underlying OS that a task switch would not be good.
   // Void return because it's a hint and can fail.
   static void hint_no_preempt();
+  static const char* native_thread_creation_failed_msg() {
+    return OS_NATIVE_THREAD_CREATION_FAILED_MSG;
+  }
 
   // Used at creation if requested by the diagnostic flag PauseAtStartup.
   // Causes the VM to wait until an external stimulus has been applied

@@ -364,24 +364,6 @@ void CodeInstaller::initialize_assumptions(oop compiled_code) {
   }
 }
 
-GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
-  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompiledCode::comp(compiled_code));
-
-  jint length;
-  if (leafGraphArray == NULL) {
-    length = 0;
-  } else {
-    length = leafGraphArray->length();
-  }
-
-  GrowableArray<jlong>* result = new GrowableArray<jlong>(length);
-  for (int i = 0; i < length; i++) {
-    result->append(((jlong*) leafGraphArray->base(T_LONG))[i]);
-  }
-
-  return result;
-}
-
 // constructor used to create a method
 GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log) {
   BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
@@ -407,7 +389,6 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(compiled_code);
 
   GraalEnv::CodeInstallResult result;
   if (compiled_code->is_a(HotSpotCompiledRuntimeStub::klass())) {
@@ -430,7 +411,7 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
       id = CompileBroker::assign_compile_id_unlocked(Thread::current(), method, entry_bci);
     }
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, leaf_graph_ids, installed_code, speculation_log);
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, installed_code, speculation_log);
     cb = nm;
   }
 

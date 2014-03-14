@@ -120,6 +120,7 @@ class Metaspace : public CHeapObj<mtClass> {
   static size_t compressed_class_space_size() {
     return _compressed_class_space_size;
   }
+
   static void set_compressed_class_space_size(size_t size) {
     _compressed_class_space_size = size;
   }
@@ -225,7 +226,7 @@ class Metaspace : public CHeapObj<mtClass> {
   MetaWord* expand_and_allocate(size_t size,
                                 MetadataType mdtype);
 
-  static bool contains(const void *ptr);
+  bool contains(const void* ptr);
   void dump(outputStream* const out) const;
 
   // Free empty virtualspaces

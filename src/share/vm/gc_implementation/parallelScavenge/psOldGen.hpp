@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -187,7 +187,7 @@ class PSOldGen : public CHeapObj<mtGC> {
 
   void space_invariants() PRODUCT_RETURN;
 
-  // Performace Counter support
+  // Performance Counter support
   void update_counters();
 
   // Printing support
