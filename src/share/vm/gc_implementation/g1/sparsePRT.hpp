@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -144,7 +144,7 @@ public:
 
   // Attempts to ensure that the given card_index in the given region is in
   // the sparse table.  If successful (because the card was already
-  // present, or because it was successfullly added) returns "true".
+  // present, or because it was successfully added) returns "true".
   // Otherwise, returns "false" to indicate that the addition would
   // overflow the entry for the region.  The caller must transfer these
   // entries to a larger-capacity representation.
@@ -201,8 +201,7 @@ public:
   bool has_next(size_t& card_index);
 };
 
-// Concurrent accesss to a SparsePRT must be serialized by some external
-// mutex.
+// Concurrent access to a SparsePRT must be serialized by some external mutex.
 
 class SparsePRTIter;
 class SparsePRTCleanupTask;
@@ -248,7 +247,7 @@ public:
 
   // Attempts to ensure that the given card_index in the given region is in
   // the sparse table.  If successful (because the card was already
-  // present, or because it was successfullly added) returns "true".
+  // present, or because it was successfully added) returns "true".
   // Otherwise, returns "false" to indicate that the addition would
   // overflow the entry for the region.  The caller must transfer these
   // entries to a larger-capacity representation.

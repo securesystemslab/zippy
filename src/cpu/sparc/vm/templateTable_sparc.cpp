@@ -2942,7 +2942,6 @@ void TemplateTable::prepare_invoke(int byte_no,
 
 
 void TemplateTable::generate_vtable_call(Register Rrecv, Register Rindex, Register Rret) {
-  Register Rtemp = G4_scratch;
   Register Rcall = Rindex;
   assert_different_registers(Rcall, G5_method, Gargs, Rret);
 
@@ -2951,6 +2950,7 @@ void TemplateTable::generate_vtable_call(Register Rrecv, Register Rindex, Regist
 #ifdef GRAAL
   __ profile_called_method(G5_method, Rtemp);
 #endif
+  __ profile_arguments_type(G5_method, Rcall, Gargs, true);
   __ call_from_interpreter(Rcall, Gargs, Rret);
 }
 
@@ -3025,6 +3025,7 @@ void TemplateTable::invokevfinal_helper(Register Rscratch, Register Rret) {
   __ null_check(O0);
 
   __ profile_final_call(O4);
+  __ profile_arguments_type(G5_method, Rscratch, Gargs, true);
 
   // get return address
   AddressLiteral table(Interpreter::invoke_return_entry_table());
@@ -3054,6 +3055,7 @@ void TemplateTable::invokespecial(int byte_no) {
 
   // do the call
   __ profile_call(O4);
+  __ profile_arguments_type(G5_method, Rscratch, Gargs, false);
   __ call_from_interpreter(Rscratch, Gargs, Rret);
 }
 
@@ -3069,6 +3071,7 @@ void TemplateTable::invokestatic(int byte_no) {
 
   // do the call
   __ profile_call(O4);
+  __ profile_arguments_type(G5_method, Rscratch, Gargs, false);
   __ call_from_interpreter(Rscratch, Gargs, Rret);
 }
 
@@ -3094,6 +3097,7 @@ void TemplateTable::invokeinterface_object_method(Register RKlass,
   // do the call - the index (f2) contains the Method*
   assert_different_registers(G5_method, Gargs, Rcall);
   __ mov(Rindex, G5_method);
+  __ profile_arguments_type(G5_method, Rcall, Gargs, true);
   __ call_from_interpreter(Rcall, Gargs, Rret);
   __ bind(notFinal);
 
@@ -3204,6 +3208,7 @@ void TemplateTable::invokeinterface(int byte_no) {
   __ profile_called_method(G5_method, Rscratch);
 #endif
 
+  __ profile_arguments_type(G5_method, Rcall, Gargs, true);
   __ call_from_interpreter(Rcall, Gargs, Rret);
 }
 
@@ -3233,6 +3238,7 @@ void TemplateTable::invokehandle(int byte_no) {
   // do the call
   __ verify_oop(G4_mtype);
   __ profile_final_call(O4);  // FIXME: profile the LambdaForm also
+  __ profile_arguments_type(G5_method, Rscratch, Gargs, true);
   __ call_from_interpreter(Rscratch, Gargs, Rret);
 }
 
@@ -3269,6 +3275,7 @@ void TemplateTable::invokedynamic(int byte_no) {
 
   // do the call
   __ verify_oop(G4_callsite);
+  __ profile_arguments_type(G5_method, Rscratch, Gargs, false);
   __ call_from_interpreter(Rscratch, Gargs, Rret);
 }
 

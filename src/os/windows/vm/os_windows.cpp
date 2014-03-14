@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -166,12 +166,10 @@ void os::run_periodic_checks() {
   return;
 }
 
-#ifndef _WIN64
 // previous UnhandledExceptionFilter, if there is one
 static LPTOP_LEVEL_EXCEPTION_FILTER prev_uef_handler = NULL;
 
 LONG WINAPI Handle_FLT_Exception(struct _EXCEPTION_POINTERS* exceptionInfo);
-#endif
 void os::init_system_properties_values() {
   /* sysclasspath, java_home, dll_dir */
   {
@@ -630,8 +628,6 @@ void os::free_thread(OSThread* osthread) {
   delete osthread;
 }
 
-
-static int    has_performance_count = 0;
 static jlong first_filetime;
 static jlong initial_performance_count;
 static jlong performance_frequency;
@@ -647,7 +643,7 @@ jlong as_long(LARGE_INTEGER x) {
 
 jlong os::elapsed_counter() {
   LARGE_INTEGER count;
-  if (has_performance_count) {
+  if (win32::_has_performance_count) {
     QueryPerformanceCounter(&count);
     return as_long(count) - initial_performance_count;
   } else {
@@ -659,7 +655,7 @@ jlong os::elapsed_counter() {
 
 
 jlong os::elapsed_frequency() {
-  if (has_performance_count) {
+  if (win32::_has_performance_count) {
     return performance_frequency;
   } else {
    // the FILETIME time is the number of 100-nanosecond intervals since January 1,1601.
@@ -738,15 +734,15 @@ bool os::bind_to_processor(uint processor_id) {
   return false;
 }
 
-static void initialize_performance_counter() {
+void os::win32::initialize_performance_counter() {
   LARGE_INTEGER count;
   if (QueryPerformanceFrequency(&count)) {
-    has_performance_count = 1;
+    win32::_has_performance_count = 1;
     performance_frequency = as_long(count);
     QueryPerformanceCounter(&count);
     initial_performance_count = as_long(count);
   } else {
-    has_performance_count = 0;
+    win32::_has_performance_count = 0;
     FILETIME wt;
     GetSystemTimeAsFileTime(&wt);
     first_filetime = jlong_from(wt.dwHighDateTime, wt.dwLowDateTime);
@@ -841,7 +837,7 @@ jlong os::javaTimeMillis() {
 }
 
 jlong os::javaTimeNanos() {
-  if (!has_performance_count) {
+  if (!win32::_has_performance_count) {
     return javaTimeMillis() * NANOSECS_PER_MILLISEC; // the best we can do.
   } else {
     LARGE_INTEGER current_count;
@@ -854,7 +850,7 @@ jlong os::javaTimeNanos() {
 }
 
 void os::javaTimeNanos_info(jvmtiTimerInfo *info_ptr) {
-  if (!has_performance_count) {
+  if (!win32::_has_performance_count) {
     // javaTimeMillis() doesn't have much percision,
     // but it is not going to wrap -- so all 64 bits
     info_ptr->max_value = ALL_64_BITS;
@@ -1812,32 +1808,30 @@ void os::jvm_path(char *buf, jint buflen) {
   }
 
   buf[0] = '\0';
-  if (Arguments::created_by_gamma_launcher()) {
-     // Support for the gamma launcher. Check for an
-     // JAVA_HOME environment variable
-     // and fix up the path so it looks like
-     // libjvm.so is installed there (append a fake suffix
-     // hotspot/libjvm.so).
-     char* java_home_var = ::getenv("JAVA_HOME");
-     if (java_home_var != NULL && java_home_var[0] != 0) {
+  if (Arguments::sun_java_launcher_is_altjvm()) {
+    // Support for the java launcher's '-XXaltjvm=<path>' option. Check
+    // for a JAVA_HOME environment variable and fix up the path so it
+    // looks like jvm.dll is installed there (append a fake suffix
+    // hotspot/jvm.dll).
+    char* java_home_var = ::getenv("JAVA_HOME");
+    if (java_home_var != NULL && java_home_var[0] != 0) {
+      strncpy(buf, java_home_var, buflen);
 
-        strncpy(buf, java_home_var, buflen);
-
-        // determine if this is a legacy image or modules image
-        // modules image doesn't have "jre" subdirectory
-        size_t len = strlen(buf);
-        char* jrebin_p = buf + len;
-        jio_snprintf(jrebin_p, buflen-len, "\\jre\\bin\\");
-        if (0 != _access(buf, 0)) {
-          jio_snprintf(jrebin_p, buflen-len, "\\bin\\");
-        }
-        len = strlen(buf);
-        jio_snprintf(buf + len, buflen-len, "hotspot\\jvm.dll");
-     }
+      // determine if this is a legacy image or modules image
+      // modules image doesn't have "jre" subdirectory
+      size_t len = strlen(buf);
+      char* jrebin_p = buf + len;
+      jio_snprintf(jrebin_p, buflen-len, "\\jre\\bin\\");
+      if (0 != _access(buf, 0)) {
+        jio_snprintf(jrebin_p, buflen-len, "\\bin\\");
+      }
+      len = strlen(buf);
+      jio_snprintf(buf + len, buflen-len, "hotspot\\jvm.dll");
+    }
   }
 
-  if(buf[0] == '\0') {
-  GetModuleFileName(vm_lib_handle, buf, buflen);
+  if (buf[0] == '\0') {
+    GetModuleFileName(vm_lib_handle, buf, buflen);
   }
   strcpy(saved_jvm_path, buf);
 }
@@ -2253,11 +2247,11 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
   return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-#ifndef  _WIN64
 //-----------------------------------------------------------------------------
 LONG WINAPI Handle_FLT_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
-  // handle exception caused by native method modifying control word
   PCONTEXT ctx = exceptionInfo->ContextRecord;
+#ifndef  _WIN64
+  // handle exception caused by native method modifying control word
   DWORD exception_code = exceptionInfo->ExceptionRecord->ExceptionCode;
 
   switch (exception_code) {
@@ -2283,17 +2277,11 @@ LONG WINAPI Handle_FLT_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
     // UnhandledExceptionFilter.
     return (prev_uef_handler)(exceptionInfo);
   }
-
-  return EXCEPTION_CONTINUE_SEARCH;
-}
-#else //_WIN64
+#else // !_WIN64
 /*
   On Windows, the mxcsr control bits are non-volatile across calls
   See also CR 6192333
-  If EXCEPTION_FLT_* happened after some native method modified
-  mxcsr - it is not a jvm fault.
-  However should we decide to restore of mxcsr after a faulty
-  native method we can uncomment following code
+  */
       jint MxCsr = INITIAL_MXCSR;
         // we can't use StubRoutines::addr_mxcsr_std()
         // because in Win64 mxcsr is not saved there
@@ -2301,10 +2289,10 @@ LONG WINAPI Handle_FLT_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
         ctx->MxCsr = MxCsr;
         return EXCEPTION_CONTINUE_EXECUTION;
       }
+#endif // !_WIN64
 
-*/
-#endif //_WIN64
-
+  return EXCEPTION_CONTINUE_SEARCH;
+}
 
 // Fatal error reporting is single threaded so we can make this a
 // static and preallocated.  If it's more than MAX_PATH silently ignore
@@ -2653,7 +2641,6 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 
       } // switch
     }
-#ifndef _WIN64
     if (((thread->thread_state() == _thread_in_Java) ||
         (thread->thread_state() == _thread_in_native)) &&
         exception_code != EXCEPTION_UNCAUGHT_CXX_EXCEPTION)
@@ -2661,7 +2648,6 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
       LONG result=Handle_FLT_Exception(exceptionInfo);
       if (result==EXCEPTION_CONTINUE_EXECUTION) return result;
     }
-#endif //_WIN64
   }
 
   if (exception_code != EXCEPTION_BREAKPOINT) {
@@ -3509,6 +3495,16 @@ int os::sleep(Thread* thread, jlong ms, bool interruptable) {
   return result;
 }
 
+//
+// Short sleep, direct OS call.
+//
+// ms = 0, means allow others (if any) to run.
+//
+void os::naked_short_sleep(jlong ms) {
+  assert(ms < 1000, "Un-interruptable sleep, short time use only");
+  Sleep(ms);
+}
+
 // Sleep forever; naked call to OS-specific sleep; use with CAUTION
 void os::infinite_sleep() {
   while (true) {    // sleep forever ...
@@ -3696,6 +3692,8 @@ volatile intx os::win32::_os_thread_count    = 0;
 bool   os::win32::_is_nt              = false;
 bool   os::win32::_is_windows_2003    = false;
 bool   os::win32::_is_windows_server  = false;
+
+bool   os::win32::_has_performance_count = 0;
 
 void os::win32::initialize_system_info() {
   SYSTEM_INFO si;

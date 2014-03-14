@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,7 +65,7 @@ void ScavengeRootsTask::do_it(GCTaskManager* manager, uint which) {
     case threads:
     {
       ResourceMark rm;
-      CLDToOopClosure* cld_closure = NULL; // Not needed. All CLDs are already visited.
+      CLDClosure* cld_closure = NULL; // Not needed. All CLDs are already visited.
       Threads::oops_do(&roots_closure, cld_closure, NULL);
     }
     break;
@@ -122,7 +122,7 @@ void ThreadRootsTask::do_it(GCTaskManager* manager, uint which) {
 
   PSPromotionManager* pm = PSPromotionManager::gc_thread_promotion_manager(which);
   PSScavengeRootsClosure roots_closure(pm);
-  CLDToOopClosure* roots_from_clds = NULL;  // Not needed. All CLDs are already visited.
+  CLDClosure* roots_from_clds = NULL;  // Not needed. All CLDs are already visited.
   CodeBlobToOopClosure roots_in_blobs(&roots_closure, /*do_marking=*/ true);
 
   if (_java_thread != NULL)

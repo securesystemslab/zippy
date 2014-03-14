@@ -131,10 +131,8 @@ void G1MarkSweep::mark_sweep_phase1(bool& marked_for_unloading,
   ClassLoaderDataGraph::clear_claimed_marks();
 
   sh->process_strong_roots(true,  // activate StrongRootsScope
-                           false, // not scavenging.
                            SharedHeap::SO_SystemClasses,
                            &GenMarkSweep::follow_root_closure,
-                           &GenMarkSweep::follow_code_root_closure,
                            &GenMarkSweep::follow_klass_closure);
 
   // Process reference objects found during marking
@@ -163,11 +161,8 @@ void G1MarkSweep::mark_sweep_phase1(bool& marked_for_unloading,
   // Prune dead klasses from subklass/sibling/implementor lists.
   Klass::clean_weak_klass_links(&GenMarkSweep::is_alive);
 
-  // Delete entries for dead interned strings.
-  StringTable::unlink(&GenMarkSweep::is_alive);
-
-  // Clean up unreferenced symbols in symbol table.
-  SymbolTable::unlink();
+  // Delete entries for dead interned string and clean up unreferenced symbols in symbol table.
+  G1CollectedHeap::heap()->unlink_string_and_symbol_table(&GenMarkSweep::is_alive);
 
   if (VerifyDuringGC) {
     HandleMark hm;  // handle scope
@@ -180,7 +175,7 @@ void G1MarkSweep::mark_sweep_phase1(bool& marked_for_unloading,
     // any hash values from the mark word. These hash values are
     // used when verifying the dictionaries and so removing them
     // from the mark word can make verification of the dictionaries
-    // fail. At the end of the GC, the orginal mark word values
+    // fail. At the end of the GC, the original mark word values
     // (including hash values) are restored to the appropriate
     // objects.
     if (!VerifySilently) {
@@ -311,10 +306,8 @@ void G1MarkSweep::mark_sweep_phase3() {
   ClassLoaderDataGraph::clear_claimed_marks();
 
   sh->process_strong_roots(true,  // activate StrongRootsScope
-                           false, // not scavenging.
-                           SharedHeap::SO_AllClasses,
+                           SharedHeap::SO_AllClasses | SharedHeap::SO_Strings | SharedHeap::SO_AllCodeCache,
                            &GenMarkSweep::adjust_pointer_closure,
-                           NULL,  // do not touch code cache here
                            &GenMarkSweep::adjust_klass_closure);
 
   assert(GenMarkSweep::ref_processor() == g1h->ref_processor_stw(), "Sanity");
@@ -322,7 +315,7 @@ void G1MarkSweep::mark_sweep_phase3() {
 
   // Now adjust pointers in remaining weak roots.  (All of which should
   // have been cleared if they pointed to non-surviving objects.)
-  g1h->g1_process_weak_roots(&GenMarkSweep::adjust_pointer_closure);
+  sh->process_weak_roots(&GenMarkSweep::adjust_pointer_closure);
 
   GenMarkSweep::adjust_marks();
 

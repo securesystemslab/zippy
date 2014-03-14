@@ -450,7 +450,6 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 CompileTask* task,
                                 int compile_id,
                                 bool has_unsafe_access,
-                                GrowableArray<jlong>* leaf_graph_ids,
                                 Handle installed_code,
                                 Handle speculation_log) {
   GRAAL_EXCEPTION_CONTEXT;
@@ -497,7 +496,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                debug_info, dependencies, code_buffer,
                                frame_words, oop_map_set,
                                handler_table, &implicit_tbl,
-                               compiler, comp_level, leaf_graph_ids, installed_code, speculation_log);
+                               compiler, comp_level, installed_code, speculation_log);
 
     // Free codeBlobs
     //code_buffer->free_blob();

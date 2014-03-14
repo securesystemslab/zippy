@@ -1099,6 +1099,8 @@ def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefault
     return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def _kill_process_group(pid, sig):
+    if not sig:
+        sig = signal.SIGKILL
     pgid = os.getpgid(pid)
     try:
         os.killpg(pgid, sig)
@@ -1276,6 +1278,8 @@ class DuplicateSuppressingStream:
         self.restrictTo = restrictTo
         self.seen = set()
         self.out = out
+        self.currentFilteredLineCount = 0
+        self.currentFilteredTime = None
 
     def isSuppressionCandidate(self, line):
         if self.restrictTo:
@@ -1289,9 +1293,18 @@ class DuplicateSuppressingStream:
     def write(self, line):
         if self.isSuppressionCandidate(line):
             if line in self.seen:
+                self.currentFilteredLineCount += 1
+                if self.currentFilteredTime:
+                    if time.time() - self.currentFilteredTime > 1 * 60:
+                        self.out.write("  Filtered " + str(self.currentFilteredLineCount) + " repeated lines...\n")
+                        self.currentFilteredTime = time.time()
+                else:
+                    self.currentFilteredTime = time.time()
                 return
             self.seen.add(line)
+        self.currentFilteredLineCount = 0
         self.out.write(line)
+        self.currentFilteredTime = None
 
 """
 A JavaCompliance simplifies comparing Java compliance values extracted from a JDK version string.

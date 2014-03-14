@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -58,9 +58,6 @@ public:
   static void set_policy(CompilationPolicy* policy) { _policy = policy; }
   static CompilationPolicy* policy()                { return _policy; }
 
-  // m is allowed to be offloaded to a gpu
-  static bool can_be_offloaded_to_gpu(methodHandle m);
-
   // Profiling
   elapsedTimer* accumulated_time() { return &_accumulated_time; }
   void print_time() PRODUCT_RETURN;
@@ -75,7 +72,7 @@ public:
   // reprofile request
   virtual void reprofile(ScopeDesc* trap_scope, bool is_osr) = 0;
   // delay_compilation(method) can be called by any component of the runtime to notify the policy
-  // that it's recommended to delay the complation of this method.
+  // that it's recommended to delay the compilation of this method.
   virtual void delay_compilation(Method* method) = 0;
   // disable_compilation() is called whenever the runtime decides to disable compilation of the
   // specified method.
