@@ -348,11 +348,6 @@ C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_met
   return CompilerOracle::should_inline(method) || method->force_inline();
 C2V_END
 
-C2V_VMENTRY(jobject, getInstalledCode, (JNIEnv *env, jobject, jlong metaspace_method))
-  nmethod* nm = (asMethod(metaspace_method))->code();
-  return nm == NULL ? NULL : JNIHandles::make_local(THREAD, nm->graal_installed_code());
-C2V_END
-
 C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean resolve))
   ResourceMark rm;
   Handle name = JNIHandles::resolve(jname);
@@ -814,7 +809,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
   {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
   {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
-  {CC"getInstalledCode",                             CC"("METASPACE_METHOD")"HS_INSTALLED_CODE,                        FN_PTR(getInstalledCode)},
   {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
   {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolveConstantInPool)},
   {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolvePossiblyCachedConstantInPool)},
