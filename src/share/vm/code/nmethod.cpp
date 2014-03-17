@@ -1025,6 +1025,7 @@ void nmethod::log_new_nmethod() const {
 void nmethod::print_on(outputStream* st, const char* msg) const {
   if (st != NULL) {
     ttyLocker ttyl;
+    if (CIPrintCompilerName) st->print("%s:", compiler()->name());
     if (WizardMode) {
       CompileTask::print_compilation(st, this, msg, /*short_form:*/ true);
       st->print_cr(" (" INTPTR_FORMAT ")", this);

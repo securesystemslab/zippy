@@ -91,8 +91,8 @@ static int bitset_size(oop bitset) {
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop reference_map = DebugInfo::referenceMap(debug_info);
-  oop register_map = ReferenceMap::registerRefMap(reference_map);
-  oop frame_map = ReferenceMap::frameRefMap(reference_map);
+  oop register_map = HotSpotReferenceMap::registerRefMap(reference_map);
+  oop frame_map = HotSpotReferenceMap::frameRefMap(reference_map);
   oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
@@ -157,6 +157,27 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   return map;
 }
 
+static void record_metadata_reference(oop obj, jlong prim, bool compressed, OopRecorder* oop_recorder) {
+  if (obj->is_a(HotSpotResolvedObjectType::klass())) {
+    Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(obj));
+    if (compressed) {
+      assert(Klass::decode_klass((narrowKlass) prim) == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
+    } else {
+      assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
+    }
+    int index = oop_recorder->find_index(klass);
+    TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
+  } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
+    Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
+    assert(!compressed, err_msg("unexpected compressed method pointer %s @ %p = %p", method->name()->as_C_string(), method, prim));
+    int index = oop_recorder->find_index(method);
+    TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
+  } else {
+    assert(java_lang_String::is_instance(obj),
+        err_msg("unexpected metadata reference (%s) for constant %ld (%p)", obj->klass()->name()->as_C_string(), prim, prim));
+  }
+}
+
 // Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedObjectType.klass()).
 static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder) {
   char kind = Kind::typeChar(Constant::kind(constant));
@@ -165,21 +186,13 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
     oop obj = Constant::object(constant);
     jlong prim = Constant::primitive(constant);
     if (obj != NULL) {
-      if (obj->is_a(HotSpotResolvedObjectType::klass())) {
-        Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(obj));
-        assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
-        int index = oop_recorder->find_index(klass);
-        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
-      } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
-        Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
-        int index = oop_recorder->find_index(method);
-        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
-      } else {
-        assert(java_lang_String::is_instance(obj),
-            err_msg("unexpected annotation type (%s) for constant %ld (%p) of kind %c", obj->klass()->name()->as_C_string(), prim, prim, kind));
-      }
+      record_metadata_reference(obj, prim, false, oop_recorder);
     }
   }
+}
+
+static void record_metadata_in_patch(oop data, OopRecorder* oop_recorder) {
+  record_metadata_reference(MetaspaceData::annotation(data), MetaspaceData::value(data), MetaspaceData::compressed(data), oop_recorder);
 }
 
 ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
@@ -445,8 +458,8 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
   _dataSection = HotSpotCompiledCode::dataSection(compiled_code);
-  guarantee(HotSpotCompiledCode_DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  guarantee(DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+  arrayOop data = (arrayOop) DataSection::data(_dataSection);
   _constants_size = data->length();
   if (_constants_size > 0) {
     _constants_size = align_size_up(_constants_size, _constants->alignment());
@@ -482,30 +495,24 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   // copy the constant data into the newly created CodeBuffer
   address end_data = _constants->start() + _constants_size;
-  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  arrayOop data = (arrayOop) DataSection::data(_dataSection);
   memcpy(_constants->start(), data->base(T_BYTE), data->length());
   _constants->set_end(end_data);
 
-  objArrayOop patches = (objArrayOop) HotSpotCompiledCode_DataSection::patches(_dataSection);
+  objArrayOop patches = (objArrayOop) DataSection::patches(_dataSection);
   for (int i = 0; i < patches->length(); i++) {
     oop patch = patches->obj_at(i);
-    oop constant = HotSpotCompiledCode_HotSpotData::constant(patch);
-    oop kind = Constant::kind(constant);
-    char typeChar = Kind::typeChar(kind);
-    switch (typeChar) {
-      case 'f':
-      case 'j':
-      case 'd':
-        record_metadata_in_constant(constant, _oop_recorder);
-        break;
-      case 'a':
-        Handle obj = Constant::object(constant);
-        jobject value = JNIHandles::make_local(obj());
-        int oop_index = _oop_recorder->find_index(value);
+    oop data = CompilationResult_DataPatch::data(patch);
+    if (data->is_a(MetaspaceData::klass())) {
+      record_metadata_in_patch(data, _oop_recorder);
+    } else if (data->is_a(OopData::klass())) {
+      Handle obj = OopData::object(data);
+      jobject value = JNIHandles::make_local(obj());
+      int oop_index = _oop_recorder->find_index(value);
 
-        address dest = _constants->start() + HotSpotCompiledCode_HotSpotData::offset(patch);
-        _constants->relocate(dest, oop_Relocation::spec(oop_index));
-        break;
+      address dest = _constants->start() + CompilationResult_Site::pcOffset(patch);
+      assert(!OopData::compressed(data), err_msg("unexpected compressed oop in data section"));
+      _constants->relocate(dest, oop_Relocation::spec(oop_index));
     }
   }
 
@@ -777,19 +784,16 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 }
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop inlineData = CompilationResult_DataPatch::inlineData(site);
-  if (inlineData != NULL) {
-    oop kind = Constant::kind(inlineData);
-    char typeChar = Kind::typeChar(kind);
-    switch (typeChar) {
-      case 'f':
-      case 'j':
-      case 'd':
-        record_metadata_in_constant(inlineData, _oop_recorder);
-        break;
-    }
+  oop data = CompilationResult_DataPatch::data(site);
+  if (data->is_a(MetaspaceData::klass())) {
+    record_metadata_in_patch(data, _oop_recorder);
+  } else if (data->is_a(OopData::klass())) {
+    pd_patch_OopData(pc_offset, data);
+  } else if (data->is_a(DataSectionReference::klass())) {
+    pd_patch_DataSectionReference(pc_offset, data);
+  } else {
+    fatal("unknown data patch type");
   }
-  CodeInstaller::pd_site_DataPatch(pc_offset, site);
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
