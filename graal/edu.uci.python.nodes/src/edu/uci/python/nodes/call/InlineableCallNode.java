@@ -183,7 +183,6 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
 
             if (PythonOptions.ProfileFunctionCalls) {
                 Profiler.getInstance().increment(callable.getCallableName());
-                // Profiler.getInstance().increment(function);
             }
 
             return function.call(frame.pack(), args);
