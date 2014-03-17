@@ -300,6 +300,7 @@
   template(com_oracle_graal_hotspot_HotSpotCompiledNmethod,          "com/oracle/graal/hotspot/HotSpotCompiledNmethod")               \
   template(com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,      "com/oracle/graal/hotspot/HotSpotCompiledRuntimeStub")           \
   template(com_oracle_graal_hotspot_HotSpotForeignCallLinkage,       "com/oracle/graal/hotspot/HotSpotForeignCallLinkage")            \
+  template(com_oracle_graal_hotspot_HotSpotReferenceMap,             "com/oracle/graal/hotspot/HotSpotReferenceMap")                  \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_bridge_CompilerToVMImpl,         "com/oracle/graal/hotspot/bridge/CompilerToVMImpl")              \
   template(com_oracle_graal_hotspot_data_DataSection,                "com/oracle/graal/hotspot/data/DataSection")                     \
@@ -342,7 +343,6 @@
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
-  template(com_oracle_graal_api_code_ReferenceMap,                   "com/oracle/graal/api/code/ReferenceMap")                        \
   template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register")                            \
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \

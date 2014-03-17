@@ -91,8 +91,8 @@ static int bitset_size(oop bitset) {
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop reference_map = DebugInfo::referenceMap(debug_info);
-  oop register_map = ReferenceMap::registerRefMap(reference_map);
-  oop frame_map = ReferenceMap::frameRefMap(reference_map);
+  oop register_map = HotSpotReferenceMap::registerRefMap(reference_map);
+  oop frame_map = HotSpotReferenceMap::frameRefMap(reference_map);
   oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {

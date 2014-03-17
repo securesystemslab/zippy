@@ -191,6 +191,7 @@ class Ticks;
   do_klass(HotSpotCompiledNmethod_klass,          com_oracle_graal_hotspot_HotSpotCompiledNmethod,              Opt) \
   do_klass(HotSpotCompiledRuntimeStub_klass,      com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,          Opt) \
   do_klass(HotSpotForeignCallLinkage_klass,       com_oracle_graal_hotspot_HotSpotForeignCallLinkage,           Opt) \
+  do_klass(HotSpotReferenceMap_klass,             com_oracle_graal_hotspot_HotSpotReferenceMap,                 Opt) \
   do_klass(DataSection_klass,                     com_oracle_graal_hotspot_data_DataSection,                    Opt) \
   do_klass(DataSectionReference_klass,            com_oracle_graal_hotspot_data_DataSectionReference,           Opt) \
   do_klass(MetaspaceData_klass,                   com_oracle_graal_hotspot_data_MetaspaceData,                  Opt) \
@@ -212,7 +213,6 @@ class Ticks;
   do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
   do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
-  do_klass(ReferenceMap_klass,                    com_oracle_graal_api_code_ReferenceMap,                       Opt) \
   do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Opt) \
   do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
   do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \
