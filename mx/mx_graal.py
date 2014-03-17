@@ -718,6 +718,9 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     if vm is None:
         vm = _get_vm()
 
+    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
+        mx.abort("Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'")
+
     if cwd is None:
         cwd = _vm_cwd
     elif _vm_cwd is not None and _vm_cwd != cwd:
@@ -1635,6 +1638,38 @@ def _parseVMOptions(optionType):
     valueMap = parser.parse(output.getvalue())
     return valueMap
 
+def findbugs(args):
+    '''run FindBugs against non-test Java projects'''
+    findBugsHome = mx.get_env('FINDBUGS_HOME', None)
+    if findBugsHome:
+        findbugsJar = join(findBugsHome, 'lib', 'findbugs.jar')
+    else:
+        findbugsLib = join(_graal_home, 'lib', 'findbugs-3.0.0')
+        if not exists(findbugsLib):
+            tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
+            try:
+                findbugsDist = join(tmp, 'findbugs.zip')
+                mx.download(findbugsDist, ['http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip'])
+                with zipfile.ZipFile(findbugsDist) as zf:
+                    candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
+                    assert len(candidates) == 1, candidates
+                    libDirInZip = os.path.dirname(candidates[0])
+                    zf.extractall(tmp)
+                shutil.copytree(join(tmp, libDirInZip), findbugsLib)
+            finally:
+                shutil.rmtree(tmp)
+        findbugsJar = join(findbugsLib, 'findbugs.jar')
+    assert exists(findbugsJar)
+    nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
+    outputDirs = [p.output_dir() for p in nonTestProjects]
+    findbugsResults = join(_graal_home, 'findbugs.results')
+    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
+                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+    if exitcode != 0:
+        with open(findbugsResults) as fp:
+            mx.log(fp.read())
+    os.unlink(findbugsResults)
+    return exitcode
 
 def mx_init(suite):
     commands = {
@@ -1643,6 +1678,7 @@ def mx_init(suite):
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
         'clean': [clean, ''],
+        'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -92,7 +92,8 @@ public:
   }
 
   void   remove_useless_nodes(VectorSet &useful); // replace with sentinel
-  void replace_with(NodeHash* nh);
+  void   replace_with(NodeHash* nh);
+  void   check_no_speculative_types(); // Check no speculative part for type nodes in table
 
   Node  *sentinel() { return _sentinel; }
 
@@ -501,6 +502,9 @@ public:
                                         Deoptimization::DeoptReason reason);
 
   void remove_speculative_types();
+  void check_no_speculative_types() {
+    _table.check_no_speculative_types();
+  }
 
 #ifndef PRODUCT
 protected:

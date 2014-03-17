@@ -105,8 +105,6 @@ bool CompilationPolicy::must_be_compiled(methodHandle m, int comp_level) {
 
   if (m->has_compiled_code()) return false;       // already compiled
 
-  if (CompilationPolicy::can_be_offloaded_to_gpu(m)) return true;
-
   if (!can_be_compiled(m, comp_level)) return false;
 
   return !UseInterpreter ||                                              // must compile all methods
@@ -159,42 +157,6 @@ bool CompilationPolicy::can_be_osr_compiled(methodHandle m, int comp_level) {
     result = !m->is_not_osr_compilable(comp_level);
   }
   return (result && can_be_compiled(m, comp_level));
-}
-
-bool CompilationPolicy::can_be_offloaded_to_gpu(methodHandle m) {
-#ifdef GRAAL
-  if (GPUOffload && gpu::initialized_gpus() > 0) {
-    // Check if this method can be off-loaded to GPU.
-    if (m->is_synthetic()) {
-      // A lambda method is a synthetic method.
-      Symbol * klass_name = m->method_holder()->name();
-      Symbol * method_name = m->name();
-      {
-        ResourceMark rm;
-        if (klass_name != NULL) {
-          const char* javaClass = "java/";
-          // Exclude java library classes - for now
-          if (strncmp(klass_name->as_C_string(), javaClass, strlen(javaClass))) {
-            if (method_name != NULL) {
-              const char* lambdaPrefix = "lambda$";
-              char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
-              if (methodPrefix != 0) {
-                if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0)) {
-                  if (TraceGPUInteraction) {
-                    char buf[O_BUFLEN];
-                    tty->print_cr("Selected lambda method %s for GPU offload", m->name_and_sig_as_C_string(buf, O_BUFLEN));
-                  }
-                  return true;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-#endif
-  return false;
 }
 
 bool CompilationPolicy::is_compilation_enabled() {
@@ -275,7 +237,7 @@ void NonTieredCompPolicy::reset_counter_for_invocation_event(methodHandle m) {
 }
 
 void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
-  // Delay next back-branch event but pump up invocation counter to triger
+  // Delay next back-branch event but pump up invocation counter to trigger
   // whole method compilation.
   MethodCounters* mcs = m->method_counters();
   assert(mcs != NULL, "MethodCounters cannot be NULL for profiling");
@@ -293,7 +255,7 @@ void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
 //
 // CounterDecay
 //
-// Interates through invocation counters and decrements them. This
+// Iterates through invocation counters and decrements them. This
 // is done at each safepoint.
 //
 class CounterDecay : public AllStatic {
@@ -363,7 +325,7 @@ void NonTieredCompPolicy::reprofile(ScopeDesc* trap_scope, bool is_osr) {
 }
 
 // This method can be called by any component of the runtime to notify the policy
-// that it's recommended to delay the complation of this method.
+// that it's recommended to delay the compilation of this method.
 void NonTieredCompPolicy::delay_compilation(Method* method) {
   MethodCounters* mcs = method->method_counters();
   if (mcs != NULL) {

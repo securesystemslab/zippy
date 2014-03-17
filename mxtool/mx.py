@@ -349,29 +349,34 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     def _sha1Cached():
         with open(sha1path, 'r') as f:
-            return f.readline()[0:40]
+            return f.read()[0:40]
 
-    def _writesha1Cached():
+    def _writeSha1Cached():
         with open(sha1path, 'w') as f:
             f.write(_sha1OfFile())
 
     def _sha1OfFile():
-        with open(path, 'r') as f:
-            return hashlib.sha1(f.read()).hexdigest()
-
+        with open(path, 'rb') as f:
+            d = hashlib.sha1()
+            while True:
+                buf = f.read(4096)
+                if not buf:
+                    break
+                d.update(buf)
+            return d.hexdigest()
 
     if resolve and mustExist and not exists(path):
         assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
         _download_lib()
 
     if sha1 and not exists(sha1path):
-        _writesha1Cached()
+        _writeSha1Cached()
 
     if sha1 and sha1 != _sha1Cached():
         _download_lib()
         if sha1 != _sha1OfFile():
             abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
-        _writesha1Cached()
+        _writeSha1Cached()
 
     return path
 
@@ -427,7 +432,7 @@ class Library(Dependency):
             path = join(self.suite.dir, path)
         sha1path = path + '.sha1'
 
-        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
+        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
@@ -1093,7 +1098,9 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
     return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def _kill_process_group(pid, sig=signal.SIGKILL):
+def _kill_process_group(pid, sig):
+    if not sig:
+        sig = signal.SIGKILL
     pgid = os.getpgid(pid)
     try:
         os.killpg(pgid, sig)
@@ -1271,6 +1278,8 @@ class DuplicateSuppressingStream:
         self.restrictTo = restrictTo
         self.seen = set()
         self.out = out
+        self.currentFilteredLineCount = 0
+        self.currentFilteredTime = None
 
     def isSuppressionCandidate(self, line):
         if self.restrictTo:
@@ -1284,9 +1293,18 @@ class DuplicateSuppressingStream:
     def write(self, line):
         if self.isSuppressionCandidate(line):
             if line in self.seen:
+                self.currentFilteredLineCount += 1
+                if self.currentFilteredTime:
+                    if time.time() - self.currentFilteredTime > 1 * 60:
+                        self.out.write("  Filtered " + str(self.currentFilteredLineCount) + " repeated lines...\n")
+                        self.currentFilteredTime = time.time()
+                else:
+                    self.currentFilteredTime = time.time()
                 return
             self.seen.add(line)
+        self.currentFilteredLineCount = 0
         self.out.write(line)
+        self.currentFilteredTime = None
 
 """
 A JavaCompliance simplifies comparing Java compliance values extracted from a JDK version string.
@@ -1469,7 +1487,7 @@ def _send_sigquit():
 
     def _isJava():
         if args:
-            name = args[0].split("/")[-1]
+            name = args[0].split(os.sep)[-1]
             return name == "java"
         return False
 
@@ -1498,7 +1516,7 @@ def abort(codeOrMessage):
         if get_os() == 'windows':
             p.kill()
         else:
-            _kill_process_group(p.pid)
+            _kill_process_group(p.pid, signal.SIGKILL)
 
     raise SystemExit(codeOrMessage)
 
@@ -1876,10 +1894,13 @@ def eclipseformat(args):
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
 
     # Maybe an Eclipse installation dir was specified - look for the executable in it
-    if join(args.eclipse_exe, exe_suffix('eclipse')):
+    if isdir(args.eclipse_exe):
         args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        warn("The eclipse-exe was a directory, now using " + args.eclipse_exe)
 
-    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+    if not os.path.isfile(args.eclipse_exe):
+        abort('File does not exist: ' + args.eclipse_exe)
+    if not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
@@ -4088,7 +4109,8 @@ def main():
 
     def quit_handler(signum, frame):
         _send_sigquit()
-    signal.signal(signal.SIGQUIT, quit_handler)
+    if get_os() != 'windows':
+        signal.signal(signal.SIGQUIT, quit_handler)
 
     try:
         if opts.timeout != 0:

@@ -412,7 +412,7 @@ MethodLivenessResult ciMethod::raw_liveness_at_bci(int bci) {
 // information.
 MethodLivenessResult ciMethod::liveness_at_bci(int bci) {
   MethodLivenessResult result = raw_liveness_at_bci(bci);
-  if (CURRENT_ENV->jvmti_can_access_local_variables() || DeoptimizeALot || CompileTheWorld) {
+  if (CURRENT_ENV->should_retain_local_variables() || DeoptimizeALot || CompileTheWorld) {
     // Keep all locals live for the user's edification and amusement.
     result.at_put_range(0, result.size(), true);
   }
@@ -1357,15 +1357,21 @@ ciMethodBlocks  *ciMethod::get_method_blocks() {
 
 #undef FETCH_FLAG_FROM_VM
 
+void ciMethod::dump_name_as_ascii(outputStream* st) {
+  Method* method = get_Method();
+  st->print("%s %s %s",
+            method->klass_name()->as_quoted_ascii(),
+            method->name()->as_quoted_ascii(),
+            method->signature()->as_quoted_ascii());
+}
+
 void ciMethod::dump_replay_data(outputStream* st) {
   ResourceMark rm;
   Method* method = get_Method();
   MethodCounters* mcs = method->method_counters();
-  Klass*  holder = method->method_holder();
-  st->print_cr("ciMethod %s %s %s %d %d %d %d %d",
-               holder->name()->as_quoted_ascii(),
-               method->name()->as_quoted_ascii(),
-               method->signature()->as_quoted_ascii(),
+  st->print("ciMethod ");
+  dump_name_as_ascii(st);
+  st->print_cr(" %d %d %d %d %d",
                mcs == NULL ? 0 : mcs->invocation_counter()->raw_counter(),
                mcs == NULL ? 0 : mcs->backedge_counter()->raw_counter(),
                interpreter_invocation_count(),

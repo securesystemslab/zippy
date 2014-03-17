@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,7 @@
 // destructor.  The constructor adds the oop address on a list
 // off each thread and the destructor removes the oop.  At a potential
 // safepoint, the stack addresses of the local variable oops are trashed
-// with a recognizeable value.  If the local variable is used again, it
+// with a recognizable value.  If the local variable is used again, it
 // will segfault, indicating an unsafe use of that oop.
 // eg:
 //    oop o;    //register &o on list

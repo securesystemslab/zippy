@@ -53,8 +53,6 @@ void GraalCompiler::initialize() {
   AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
-  _deopted_leaf_graph_count = 0;
-
   BufferBlob* buffer_blob = initialize_buffer_blob();
   if (buffer_blob == NULL) {
     // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
@@ -126,47 +124,6 @@ void GraalCompiler::initialize() {
 #endif
     }
   }
-}
-
-void GraalCompiler::deopt_leaf_graph(jlong leaf_graph_id) {
-  assert(leaf_graph_id != -1, "unexpected leaf graph id");
-
-  if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
-    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
-    if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
-      _deopted_leaf_graphs[_deopted_leaf_graph_count++] = leaf_graph_id;
-    }
-  }
-}
-
-oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
-  if (_deopted_leaf_graph_count == 0) {
-    return NULL;
-  }
-  jlong* elements;
-  int length;
-  {
-    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
-    if (_deopted_leaf_graph_count == 0) {
-      return NULL;
-    }
-    if (_deopted_leaf_graph_count == LEAF_GRAPH_ARRAY_SIZE) {
-      length = 0;
-    } else {
-      length = _deopted_leaf_graph_count;
-    }
-    elements = NEW_C_HEAP_ARRAY(jlong, length, mtCompiler);
-    for (int i = 0; i < length; i++) {
-      elements[i] = _deopted_leaf_graphs[i];
-    }
-    _deopted_leaf_graph_count = 0;
-  }
-  typeArrayOop array = oopFactory::new_longArray(length, CHECK_NULL);
-  for (int i = 0; i < length; i++) {
-    array->long_at_put(i, elements[i]);
-  }
-  FREE_C_HEAP_ARRAY(jlong, elements, mtCompiler);
-  return array;
 }
 
 BufferBlob* GraalCompiler::initialize_buffer_blob() {

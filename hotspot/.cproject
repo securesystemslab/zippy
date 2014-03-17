@@ -44,6 +44,7 @@
 									<listOptionValue builtIn="false" value="TARGET_ARCH_MODEL_x86_64=1"/>
 									<listOptionValue builtIn="false" value="GRAAL=1"/>
 									<listOptionValue builtIn="false" value="COMPILER2=1"/>
+									<listOptionValue builtIn="false" value="COMPILERGRAAL=1"/>
 									<listOptionValue builtIn="false" value="GRAALVM=1"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.undef.2137486146" name="Undefined symbols (-U)" superClass="gnu.cpp.compiler.option.preprocessor.undef"/>

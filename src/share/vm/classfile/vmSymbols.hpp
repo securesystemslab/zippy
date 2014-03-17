@@ -296,14 +296,17 @@
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode,             "com/oracle/graal/hotspot/HotSpotCompiledCode")                  \
-  template(com_oracle_graal_hotspot_HotSpotCompiledCode_HotSpotData, "com/oracle/graal/hotspot/HotSpotCompiledCode$HotSpotData")      \
-  template(com_oracle_graal_hotspot_HotSpotCompiledCode_DataSection, "com/oracle/graal/hotspot/HotSpotCompiledCode$DataSection")      \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,     "com/oracle/graal/hotspot/HotSpotCompiledCode$Comment")          \
   template(com_oracle_graal_hotspot_HotSpotCompiledNmethod,          "com/oracle/graal/hotspot/HotSpotCompiledNmethod")               \
   template(com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,      "com/oracle/graal/hotspot/HotSpotCompiledRuntimeStub")           \
   template(com_oracle_graal_hotspot_HotSpotForeignCallLinkage,       "com/oracle/graal/hotspot/HotSpotForeignCallLinkage")            \
+  template(com_oracle_graal_hotspot_HotSpotReferenceMap,             "com/oracle/graal/hotspot/HotSpotReferenceMap")                  \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_bridge_CompilerToVMImpl,         "com/oracle/graal/hotspot/bridge/CompilerToVMImpl")              \
+  template(com_oracle_graal_hotspot_data_DataSection,                "com/oracle/graal/hotspot/data/DataSection")                     \
+  template(com_oracle_graal_hotspot_data_DataSectionReference,       "com/oracle/graal/hotspot/data/DataSectionReference")            \
+  template(com_oracle_graal_hotspot_data_MetaspaceData,              "com/oracle/graal/hotspot/data/MetaspaceData")                   \
+  template(com_oracle_graal_hotspot_data_OopData,                    "com/oracle/graal/hotspot/data/OopData")                         \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotNmethod,             "com/oracle/graal/hotspot/meta/HotSpotNmethod")                  \
@@ -340,7 +343,6 @@
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
-  template(com_oracle_graal_api_code_ReferenceMap,                   "com/oracle/graal/api/code/ReferenceMap")                        \
   template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register")                            \
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
@@ -738,9 +740,9 @@
   do_intrinsic(_addExactI,                java_lang_Math,         addExact_name, int2_int_signature,             F_S)   \
   do_intrinsic(_addExactL,                java_lang_Math,         addExact_name, long2_long_signature,           F_S)   \
   do_intrinsic(_decrementExactI,          java_lang_Math,         decrementExact_name, int_int_signature,        F_S)   \
-  do_intrinsic(_decrementExactL,          java_lang_Math,         decrementExact_name, long2_long_signature,     F_S)   \
+  do_intrinsic(_decrementExactL,          java_lang_Math,         decrementExact_name, long_long_signature,      F_S)   \
   do_intrinsic(_incrementExactI,          java_lang_Math,         incrementExact_name, int_int_signature,        F_S)   \
-  do_intrinsic(_incrementExactL,          java_lang_Math,         incrementExact_name, long2_long_signature,     F_S)   \
+  do_intrinsic(_incrementExactL,          java_lang_Math,         incrementExact_name, long_long_signature,      F_S)   \
   do_intrinsic(_multiplyExactI,           java_lang_Math,         multiplyExact_name, int2_int_signature,        F_S)   \
   do_intrinsic(_multiplyExactL,           java_lang_Math,         multiplyExact_name, long2_long_signature,      F_S)   \
   do_intrinsic(_negateExactI,             java_lang_Math,         negateExact_name, int_int_signature,           F_S)   \
@@ -871,7 +873,7 @@
    do_intrinsic(_cipherBlockChaining_decryptAESCrypt, com_sun_crypto_provider_cipherBlockChaining, decrypt_name, byteArray_int_int_byteArray_int_signature, F_R)   \
    do_name(     encrypt_name,                                      "encrypt")                                           \
    do_name(     decrypt_name,                                      "decrypt")                                           \
-   do_signature(byteArray_int_int_byteArray_int_signature,         "([BII[BI)V")                                        \
+   do_signature(byteArray_int_int_byteArray_int_signature,         "([BII[BI)I")                                        \
                                                                                                                         \
   /* support for java.util.zip */                                                                                       \
   do_class(java_util_zip_CRC32,           "java/util/zip/CRC32")                                                        \

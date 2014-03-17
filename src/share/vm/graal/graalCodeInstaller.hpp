@@ -77,7 +77,8 @@ private:
   ExceptionHandlerTable     _exception_handler_table;
 
   jint pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method);
-  void pd_site_DataPatch(int pc_offset, oop site);
+  void pd_patch_OopData(int pc_offset, oop data);
+  void pd_patch_DataSectionReference(int pc_offset, oop data);
   void pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst);
   void pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination);
   void pd_relocate_JavaMethod(oop method, jint pc_offset);

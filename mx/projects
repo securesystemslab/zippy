@@ -495,7 +495,7 @@ project@com.oracle.graal.java.decompiler@workingSets=Graal
 # graal.java.decompiler.test
 project@com.oracle.graal.java.decompiler.test@subDir=graal
 project@com.oracle.graal.java.decompiler.test@sourceDirs=src
-project@com.oracle.graal.java.decompiler.test@dependencies=com.oracle.graal.printer,com.oracle.graal.runtime
+project@com.oracle.graal.java.decompiler.test@dependencies=JUNIT,com.oracle.graal.printer,com.oracle.graal.runtime
 project@com.oracle.graal.java.decompiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java.decompiler.test@javaCompliance=1.7
 project@com.oracle.graal.java.decompiler.test@workingSets=Graal,Test
