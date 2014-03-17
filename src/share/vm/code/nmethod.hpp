@@ -159,7 +159,6 @@ class nmethod : public CodeBlob {
   int _dependencies_offset;
   int _handler_table_offset;
   int _nul_chk_table_offset;
-  int _leaf_graph_ids_offset;
   int _nmethod_end_offset;
 
   // location in frame (offset for sp) that deopt can store the original
@@ -276,8 +275,7 @@ class nmethod : public CodeBlob {
           ExceptionHandlerTable* handler_table,
           ImplicitExceptionTable* nul_chk_table,
           AbstractCompiler* compiler,
-          int comp_level,
-          GrowableArray<jlong>* leaf_graph_ids
+          int comp_level
 #ifdef GRAAL
           , Handle installed_code,
           Handle speculation_log
@@ -318,8 +316,7 @@ class nmethod : public CodeBlob {
                               ExceptionHandlerTable* handler_table,
                               ImplicitExceptionTable* nul_chk_table,
                               AbstractCompiler* compiler,
-                              int comp_level,
-                              GrowableArray<jlong>* leaf_graph_ids = NULL
+                              int comp_level
 #ifdef GRAAL
                               , Handle installed_code = Handle(),
                               Handle speculation_log = Handle()
@@ -393,9 +390,7 @@ class nmethod : public CodeBlob {
   address handler_table_begin   () const          { return           header_begin() + _handler_table_offset ; }
   address handler_table_end     () const          { return           header_begin() + _nul_chk_table_offset ; }
   address nul_chk_table_begin   () const          { return           header_begin() + _nul_chk_table_offset ; }
-  address nul_chk_table_end     () const          { return           header_begin() + _leaf_graph_ids_offset; }
-  jlong*  leaf_graph_ids_begin  () const          { return  (jlong*)(header_begin() + _leaf_graph_ids_offset); }
-  jlong*  leaf_graph_ids_end    () const          { return  (jlong*)(header_begin() + _nmethod_end_offset)  ; }
+  address nul_chk_table_end     () const          { return           header_begin() + _nmethod_end_offset;    }
 
   // Sizes
   int consts_size       () const                  { return            consts_end       () -            consts_begin       (); }
@@ -715,7 +710,7 @@ public:
 
   // tells if any of this method's dependencies have been invalidated
   // (this is expensive!)
-  bool check_all_dependencies();
+  static void check_all_dependencies(DepChange& changes);
 
   // tells if this compiled method is dependent on the given changes,
   // and the changes have invalidated it

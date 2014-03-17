@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -116,31 +116,8 @@
 
 // Only bother with this argument setup if dtrace is available
 
-#ifndef USDT2
-HS_DTRACE_PROBE_DECL(hotspot, vm__init__begin);
-HS_DTRACE_PROBE_DECL(hotspot, vm__init__end);
-HS_DTRACE_PROBE_DECL5(hotspot, thread__start, char*, intptr_t,
-  intptr_t, intptr_t, bool);
-HS_DTRACE_PROBE_DECL5(hotspot, thread__stop, char*, intptr_t,
-  intptr_t, intptr_t, bool);
-
-#define DTRACE_THREAD_PROBE(probe, javathread)                             \
-  {                                                                        \
-    ResourceMark rm(this);                                                 \
-    int len = 0;                                                           \
-    const char* name = (javathread)->get_thread_name();                    \
-    len = strlen(name);                                                    \
-    HS_DTRACE_PROBE5(hotspot, thread__##probe,                             \
-      name, len,                                                           \
-      java_lang_Thread::thread_id((javathread)->threadObj()),              \
-      (javathread)->osthread()->thread_id(),                               \
-      java_lang_Thread::is_daemon((javathread)->threadObj()));             \
-  }
-
-#else /* USDT2 */
-
-#define HOTSPOT_THREAD_PROBE_start HOTSPOT_THREAD_PROBE_START
-#define HOTSPOT_THREAD_PROBE_stop HOTSPOT_THREAD_PROBE_STOP
+#define HOTSPOT_THREAD_PROBE_start HOTSPOT_THREAD_START
+#define HOTSPOT_THREAD_PROBE_stop HOTSPOT_THREAD_STOP
 
 #define DTRACE_THREAD_PROBE(probe, javathread)                             \
   {                                                                        \
@@ -154,8 +131,6 @@ HS_DTRACE_PROBE_DECL5(hotspot, thread__stop, char*, intptr_t,
       (uintptr_t) (javathread)->osthread()->thread_id(),                               \
       java_lang_Thread::is_daemon((javathread)->threadObj()));             \
   }
-
-#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -316,6 +291,9 @@ void Thread::initialize_thread_local_storage() {
 void Thread::record_stack_base_and_size() {
   set_stack_base(os::current_stack_base());
   set_stack_size(os::current_stack_size());
+  if (is_Java_thread()) {
+    ((JavaThread*) this)->set_stack_overflow_limit();
+  }
   // CR 7190089: on Solaris, primordial thread's stack is adjusted
   // in initialize_thread(). Without the adjustment, stack size is
   // incorrect if stack is set to unlimited (ulimit -s unlimited).
@@ -771,7 +749,7 @@ bool JavaThread::wait_for_ext_suspend_completion(int retries, int delay,
 void JavaThread::record_jump(address target, address instr, const char* file, int line) {
 
   // This should not need to be atomic as the only way for simultaneous
-  // updates is via interrupts. Even then this should be rare or non-existant
+  // updates is via interrupts. Even then this should be rare or non-existent
   // and we don't care that much anyway.
 
   int index = _jmp_ring_index;
@@ -830,7 +808,7 @@ bool Thread::claim_oops_do_par_case(int strong_roots_parity) {
   return false;
 }
 
-void Thread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
+void Thread::oops_do(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf) {
   active_handles()->oops_do(f);
   // Do oop for ThreadShadow
   f->do_oop((oop*)&_pending_exception);
@@ -932,10 +910,10 @@ void Thread::check_for_valid_safepoint_state(bool potential_vm_operation) {
         // Threads_lock is special, since the safepoint synchronization will not start before this is
         // acquired. Hence, a JavaThread cannot be holding it at a safepoint. So is VMOperationRequest_lock,
         // since it is used to transfer control between JavaThreads and the VMThread
-        // Do not *exclude* any locks unless you are absolutly sure it is correct. Ask someone else first!
+        // Do not *exclude* any locks unless you are absolutely sure it is correct. Ask someone else first!
         if ( (cur->allow_vm_block() &&
               cur != Threads_lock &&
-              cur != Compile_lock &&               // Temporary: should not be necessary when we get spearate compilation
+              cur != Compile_lock &&               // Temporary: should not be necessary when we get separate compilation
               cur != VMOperationRequest_lock &&
               cur != VMOperationQueue_lock) ||
               cur->rank() == Mutex::special) {
@@ -1278,7 +1256,7 @@ int WatcherThread::sleep() const {
         time_slept = 0;
         time_before_loop = now;
     } else {
-        // need to recalulate since we might have new tasks in _tasks
+        // need to recalculate since we might have new tasks in _tasks
         time_slept = (int) ((now - time_before_loop) / 1000000);
     }
 
@@ -1693,7 +1671,7 @@ void JavaThread::run() {
   // initialize thread-local alloc buffer related fields
   this->initialize_tlab();
 
-  // used to test validitity of stack trace backs
+  // used to test validity of stack trace backs
   this->record_base_of_stack_pointer();
 
   // Record real stack base and size.
@@ -2777,7 +2755,7 @@ public:
   }
 };
 
-void JavaThread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
+void JavaThread::oops_do(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf) {
   // Verify that the deferred card marks have been flushed.
   assert(deferred_card_mark().is_empty(), "Should be empty during GC");
 
@@ -3307,7 +3285,7 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
 #endif
 }
 
-void CompilerThread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
+void CompilerThread::oops_do(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf) {
   JavaThread::oops_do(f, cld_f, cf);
   if (_scanned_nmethod != NULL && cf != NULL) {
     // Safepoints can occur when the sweeper is scanning an nmethod so
@@ -3363,6 +3341,58 @@ void Threads::threads_do(ThreadClosure* tc) {
   // If CompilerThreads ever become non-JavaThreads, add them here
 }
 
+
+void Threads::initialize_java_lang_classes(JavaThread* main_thread, TRAPS) {
+  TraceTime timer("Initialize java.lang classes", TraceStartupTime);
+
+  if (EagerXrunInit && Arguments::init_libraries_at_startup()) {
+    create_vm_init_libraries();
+  }
+
+  initialize_class(vmSymbols::java_lang_String(), CHECK);
+
+  // Initialize java_lang.System (needed before creating the thread)
+  initialize_class(vmSymbols::java_lang_System(), CHECK);
+  initialize_class(vmSymbols::java_lang_ThreadGroup(), CHECK);
+  Handle thread_group = create_initial_thread_group(CHECK);
+  Universe::set_main_thread_group(thread_group());
+  initialize_class(vmSymbols::java_lang_Thread(), CHECK);
+  oop thread_object = create_initial_thread(thread_group, main_thread, CHECK);
+  main_thread->set_threadObj(thread_object);
+  // Set thread status to running since main thread has
+  // been started and running.
+  java_lang_Thread::set_thread_status(thread_object,
+                                      java_lang_Thread::RUNNABLE);
+
+  // The VM creates & returns objects of this class. Make sure it's initialized.
+  initialize_class(vmSymbols::java_lang_Class(), CHECK);
+
+  // The VM preresolves methods to these classes. Make sure that they get initialized
+  initialize_class(vmSymbols::java_lang_reflect_Method(), CHECK);
+  initialize_class(vmSymbols::java_lang_ref_Finalizer(),  CHECK);
+  call_initializeSystemClass(CHECK);
+
+  // get the Java runtime name after java.lang.System is initialized
+  JDK_Version::set_runtime_name(get_java_runtime_name(THREAD));
+  JDK_Version::set_runtime_version(get_java_runtime_version(THREAD));
+
+  // an instance of OutOfMemory exception has been allocated earlier
+  initialize_class(vmSymbols::java_lang_OutOfMemoryError(), CHECK);
+  initialize_class(vmSymbols::java_lang_NullPointerException(), CHECK);
+  initialize_class(vmSymbols::java_lang_ClassCastException(), CHECK);
+  initialize_class(vmSymbols::java_lang_ArrayStoreException(), CHECK);
+  initialize_class(vmSymbols::java_lang_ArithmeticException(), CHECK);
+  initialize_class(vmSymbols::java_lang_StackOverflowError(), CHECK);
+  initialize_class(vmSymbols::java_lang_IllegalMonitorStateException(), CHECK);
+  initialize_class(vmSymbols::java_lang_IllegalArgumentException(), CHECK);
+}
+
+void Threads::initialize_jsr292_core_classes(TRAPS) {
+  initialize_class(vmSymbols::java_lang_invoke_MethodHandle(), CHECK);
+  initialize_class(vmSymbols::java_lang_invoke_MemberName(), CHECK);
+  initialize_class(vmSymbols::java_lang_invoke_MethodHandleNatives(), CHECK);
+}
+
 jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   extern void JDK_Version_init();
@@ -3382,7 +3412,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize system properties.
   Arguments::init_system_properties();
 
-  // So that JDK version can be used as a discrimintor when parsing arguments
+  // So that JDK version can be used as a discriminator when parsing arguments
   JDK_Version_init();
 
   // Update/Initialize System properties after JDK version number is known
@@ -3401,11 +3431,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     os::pause();
   }
 
-#ifndef USDT2
-  HS_DTRACE_PROBE(hotspot, vm__init__begin);
-#else /* USDT2 */
   HOTSPOT_VM_INIT_BEGIN();
-#endif /* USDT2 */
 
   // Record VM creation timing statistics
   TraceVmCreationTime create_vm_timer;
@@ -3421,7 +3447,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   jint adjust_after_os_result = Arguments::adjust_after_os();
   if (adjust_after_os_result != JNI_OK) return adjust_after_os_result;
 
-  // intialize TLS
+  // initialize TLS
   ThreadLocalStorage::init();
 
   // Bootstrap native memory tracking, so it can start recording memory
@@ -3541,13 +3567,13 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     VMThread::execute(&verify_op);
   }
 
-  EXCEPTION_MARK;
+  Thread* THREAD = Thread::current();
 
   // At this point, the Universe is initialized, but we have not executed
   // any byte code.  Now is a good time (the only time) to dump out the
   // internal state of the JVM for sharing.
   if (DumpSharedSpaces) {
-    MetaspaceShared::preload_and_dump(CHECK_0);
+    MetaspaceShared::preload_and_dump(CHECK_JNI_ERR);
     ShouldNotReachHere();
   }
 
@@ -3558,74 +3584,12 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Notify JVMTI agents that VM has started (JNI is up) - nop if no agents.
   JvmtiExport::post_vm_start();
 
-  {
-    TraceTime timer("Initialize java.lang classes", TraceStartupTime);
+  initialize_java_lang_classes(main_thread, CHECK_JNI_ERR);
 
-    if (EagerXrunInit && Arguments::init_libraries_at_startup()) {
-      create_vm_init_libraries();
-    }
-
-    initialize_class(vmSymbols::java_lang_String(), CHECK_0);
-
-    // Initialize java_lang.System (needed before creating the thread)
-    initialize_class(vmSymbols::java_lang_System(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_ThreadGroup(), CHECK_0);
-    Handle thread_group = create_initial_thread_group(CHECK_0);
-    Universe::set_main_thread_group(thread_group());
-    initialize_class(vmSymbols::java_lang_Thread(), CHECK_0);
-    oop thread_object = create_initial_thread(thread_group, main_thread, CHECK_0);
-    main_thread->set_threadObj(thread_object);
-    // Set thread status to running since main thread has
-    // been started and running.
-    java_lang_Thread::set_thread_status(thread_object,
-                                        java_lang_Thread::RUNNABLE);
-
-    // The VM creates & returns objects of this class. Make sure it's initialized.
-    initialize_class(vmSymbols::java_lang_Class(), CHECK_0);
-
-    // The VM preresolves methods to these classes. Make sure that they get initialized
-    initialize_class(vmSymbols::java_lang_reflect_Method(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_ref_Finalizer(),  CHECK_0);
-    call_initializeSystemClass(CHECK_0);
-
-    // get the Java runtime name after java.lang.System is initialized
-    JDK_Version::set_runtime_name(get_java_runtime_name(THREAD));
-    JDK_Version::set_runtime_version(get_java_runtime_version(THREAD));
-
-    // an instance of OutOfMemory exception has been allocated earlier
-    initialize_class(vmSymbols::java_lang_OutOfMemoryError(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_NullPointerException(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_ClassCastException(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_ArrayStoreException(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_ArithmeticException(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_StackOverflowError(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_IllegalMonitorStateException(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_IllegalArgumentException(), CHECK_0);
-  }
-
-  // See        : bugid 4211085.
-  // Background : the static initializer of java.lang.Compiler tries to read
-  //              property"java.compiler" and read & write property "java.vm.info".
-  //              When a security manager is installed through the command line
-  //              option "-Djava.security.manager", the above properties are not
-  //              readable and the static initializer for java.lang.Compiler fails
-  //              resulting in a NoClassDefFoundError.  This can happen in any
-  //              user code which calls methods in java.lang.Compiler.
-  // Hack :       the hack is to pre-load and initialize this class, so that only
-  //              system domains are on the stack when the properties are read.
-  //              Currently even the AWT code has calls to methods in java.lang.Compiler.
-  //              On the classic VM, java.lang.Compiler is loaded very early to load the JIT.
-  // Future Fix : the best fix is to grant everyone permissions to read "java.compiler" and
-  //              read and write"java.vm.info" in the default policy file. See bugid 4211383
-  //              Once that is done, we should remove this hack.
-  initialize_class(vmSymbols::java_lang_Compiler(), CHECK_0);
-
-  // More hackery - the static initializer of java.lang.Compiler adds the string "nojit" to
-  // the java.vm.info property if no jit gets loaded through java.lang.Compiler (the hotspot
-  // compiler does not get loaded through java.lang.Compiler).  "java -version" with the
-  // hotspot vm says "nojit" all the time which is confusing.  So, we reset it here.
-  // This should also be taken out as soon as 4211383 gets fixed.
-  reset_vm_info_property(CHECK_0);
+  // We need this for ClassDataSharing - the initial vm.info property is set
+  // with the default value of CDS "sharing" which may be reset through
+  // command line options.
+  reset_vm_info_property(CHECK_JNI_ERR);
 
   quicken_jni_functions();
 
@@ -3638,11 +3602,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // debug stuff, that does not work until all basic classes have been initialized.
   set_init_completed();
 
-#ifndef USDT2
-  HS_DTRACE_PROBE(hotspot, vm__init__end);
-#else /* USDT2 */
   HOTSPOT_VM_INIT_END();
-#endif /* USDT2 */
 
   // record VM initialization completion time
 #if INCLUDE_MANAGEMENT
@@ -3654,10 +3614,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Note that we do not use CHECK_0 here since we are inside an EXCEPTION_MARK and
   // set_init_completed has just been called, causing exceptions not to be shortcut
   // anymore. We call vm_exit_during_initialization directly instead.
-  SystemDictionary::compute_java_system_loader(THREAD);
-  if (HAS_PENDING_EXCEPTION) {
-    vm_exit_during_initialization(Handle(THREAD, PENDING_EXCEPTION));
-  }
+  SystemDictionary::compute_java_system_loader(CHECK_JNI_ERR);
 
 #if INCLUDE_ALL_GCS
   // Support for ConcurrentMarkSweep. This should be cleaned up
@@ -3665,12 +3622,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // once things are properly refactored. XXX YSR
   if (UseConcMarkSweepGC || UseG1GC) {
     if (UseConcMarkSweepGC) {
-      ConcurrentMarkSweepThread::makeSurrogateLockerThread(THREAD);
+      ConcurrentMarkSweepThread::makeSurrogateLockerThread(CHECK_JNI_ERR);
     } else {
-      ConcurrentMarkThread::makeSurrogateLockerThread(THREAD);
-    }
-    if (HAS_PENDING_EXCEPTION) {
-      vm_exit_during_initialization(Handle(THREAD, PENDING_EXCEPTION));
+      ConcurrentMarkThread::makeSurrogateLockerThread(CHECK_JNI_ERR);
     }
   }
 #endif // INCLUDE_ALL_GCS
@@ -3709,23 +3663,20 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   }
 
   // initialize compiler(s)
-#if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || defined(GRAALVM)
+#if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || defined(COMPILERGRAAL)
   CompileBroker::compilation_init();
 #endif
 
+  // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
+  // It is done after compilers are initialized, because otherwise compilations of
+  // signature polymorphic MH intrinsics can be missed
+  // (see SystemDictionary::find_method_handle_intrinsic).
   if (EnableInvokeDynamic) {
-    // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
-    // It is done after compilers are initialized, because otherwise compilations of
-    // signature polymorphic MH intrinsics can be missed
-    // (see SystemDictionary::find_method_handle_intrinsic).
-    initialize_class(vmSymbols::java_lang_invoke_MethodHandle(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_invoke_MemberName(), CHECK_0);
-    initialize_class(vmSymbols::java_lang_invoke_MethodHandleNatives(), CHECK_0);
+    initialize_jsr292_core_classes(CHECK_JNI_ERR);
   }
 
 #if INCLUDE_MANAGEMENT
   Management::initialize(THREAD);
-#endif // INCLUDE_MANAGEMENT
 
   if (HAS_PENDING_EXCEPTION) {
     // management agent fails to start possibly due to
@@ -3733,6 +3684,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     // stack trace if appropriate. Simply exit VM.
     vm_exit(1);
   }
+#endif // INCLUDE_MANAGEMENT
 
   if (Arguments::has_profile())       FlatProfiler::engage(main_thread, true);
   if (MemProfiling)                   MemProfiler::engage();
@@ -4233,17 +4185,17 @@ bool Threads::includes(JavaThread* p) {
 // but the garbage collector must provide a safe context for them to run.
 // In particular, these things should never be called when the Threads_lock
 // is held by some other thread. (Note: the Safepoint abstraction also
-// uses the Threads_lock to gurantee this property. It also makes sure that
+// uses the Threads_lock to guarantee this property. It also makes sure that
 // all threads gets blocked when exiting or starting).
 
-void Threads::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
+void Threads::oops_do(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf) {
   ALL_JAVA_THREADS(p) {
     p->oops_do(f, cld_f, cf);
   }
   VMThread::vm_thread()->oops_do(f, cld_f, cf);
 }
 
-void Threads::possibly_parallel_oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
+void Threads::possibly_parallel_oops_do(OopClosure* f, CLDClosure* cld_f, CodeBlobClosure* cf) {
   // Introduce a mechanism allowing parallel threads to claim threads as
   // root groups.  Overhead should be small enough to use all the time,
   // even in sequential code.
@@ -4523,9 +4475,7 @@ void Thread::SpinAcquire (volatile int * adr, const char * LockName) {
         ++ctr ;
         if ((ctr & 0xFFF) == 0 || !os::is_MP()) {
            if (Yields > 5) {
-             // Consider using a simple NakedSleep() instead.
-             // Then SpinAcquire could be called by non-JVM threads
-             Thread::current()->_ParkEvent->park(1) ;
+             os::naked_short_sleep(1);
            } else {
              os::NakedYield() ;
              ++Yields ;

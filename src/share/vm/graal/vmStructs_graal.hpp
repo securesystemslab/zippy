@@ -32,6 +32,7 @@
 #define VM_STRUCTS_GRAAL(nonstatic_field, static_field)                       \
   nonstatic_field(ThreadShadow, _pending_deoptimization, int)                 \
   nonstatic_field(ThreadShadow, _pending_failed_speculation, oop)             \
+  nonstatic_field(MethodData,   _graal_node_count, int)                       \
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
 

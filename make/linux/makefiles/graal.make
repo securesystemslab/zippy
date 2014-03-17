@@ -29,4 +29,7 @@ TYPE = GRAAL
 
 VM_SUBDIR = graal
 
-CFLAGS += -DGRAAL
+# To make a non-tiered Graal build, remove the -DCOMPILER1 below and
+# in vm.make remove COMPILER1_PATHS from Src_Dirs/GRAAL and add
+# COMPILER1_SPECIFIC_FILES to Src_Files_EXCLUDE/GRAAL
+CFLAGS += -DCOMPILERGRAAL -DGRAAL -DCOMPILER1

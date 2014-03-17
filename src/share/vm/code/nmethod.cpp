@@ -53,27 +53,6 @@
 
 // Only bother with this argument setup if dtrace is available
 
-#ifndef USDT2
-HS_DTRACE_PROBE_DECL8(hotspot, compiled__method__load,
-  const char*, int, const char*, int, const char*, int, void*, size_t);
-
-HS_DTRACE_PROBE_DECL6(hotspot, compiled__method__unload,
-  char*, int, char*, int, char*, int);
-
-#define DTRACE_METHOD_UNLOAD_PROBE(method)                                \
-  {                                                                       \
-    Method* m = (method);                                                 \
-    if (m != NULL) {                                                      \
-      Symbol* klass_name = m->klass_name();                               \
-      Symbol* name = m->name();                                           \
-      Symbol* signature = m->signature();                                 \
-      HS_DTRACE_PROBE6(hotspot, compiled__method__unload,                 \
-        klass_name->bytes(), klass_name->utf8_length(),                   \
-        name->bytes(), name->utf8_length(),                               \
-        signature->bytes(), signature->utf8_length());                    \
-    }                                                                     \
-  }
-#else /* USDT2 */
 #define DTRACE_METHOD_UNLOAD_PROBE(method)                                \
   {                                                                       \
     Method* m = (method);                                                 \
@@ -87,7 +66,6 @@ HS_DTRACE_PROBE_DECL6(hotspot, compiled__method__unload,
         (char *) signature->bytes(), signature->utf8_length());                    \
     }                                                                     \
   }
-#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -623,8 +601,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   ExceptionHandlerTable* handler_table,
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
-  int comp_level,
-  GrowableArray<jlong>* leaf_graph_ids
+  int comp_level
 #ifdef GRAAL
   , Handle installed_code,
   Handle speculationLog
@@ -633,7 +610,6 @@ nmethod* nmethod::new_nmethod(methodHandle method,
 {
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");
   code_buffer->finalize_oop_references(method);
-  int leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
   // create nmethod
   nmethod* nm = NULL;
   { MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
@@ -643,8 +619,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
       + round_to(dependencies->size_in_bytes() , oopSize)
       + round_to(handler_table->size_in_bytes(), oopSize)
       + round_to(nul_chk_table->size_in_bytes(), oopSize)
-      + round_to(debug_info->data_size()       , oopSize)
-      + leaf_graph_ids_size;
+      + round_to(debug_info->data_size()       , oopSize);
     nm = new (nmethod_size)
     nmethod(method(), nmethod_size, compile_id, entry_bci, offsets,
             orig_pc_offset, debug_info, dependencies, code_buffer, frame_size,
@@ -652,8 +627,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
             handler_table,
             nul_chk_table,
             compiler,
-            comp_level,
-            leaf_graph_ids
+            comp_level
 #ifdef GRAAL
             , installed_code,
             speculationLog
@@ -679,7 +653,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
       NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
-      if (PrintAssembly) {
+      if (PrintAssembly || CompilerOracle::has_option_string(method, "PrintAssembly")) {
         Disassembler::decode(nm);
       }
     }
@@ -733,8 +707,7 @@ nmethod::nmethod(
     _dependencies_offset     = _scopes_pcs_offset;
     _handler_table_offset    = _dependencies_offset;
     _nul_chk_table_offset    = _handler_table_offset;
-    _leaf_graph_ids_offset   = _nul_chk_table_offset;
-    _nmethod_end_offset      = _leaf_graph_ids_offset;
+    _nmethod_end_offset      = _nul_chk_table_offset;
     _compile_id              = compile_id;
     _comp_level              = CompLevel_none;
     _entry_point             = code_begin()          + offsets->value(CodeOffsets::Entry);
@@ -881,8 +854,7 @@ nmethod::nmethod(
   ExceptionHandlerTable* handler_table,
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
-  int comp_level,
-  GrowableArray<jlong>* leaf_graph_ids
+  int comp_level
 #ifdef GRAAL
   , Handle installed_code,
   Handle speculation_log
@@ -951,8 +923,6 @@ nmethod::nmethod(
       _unwind_handler_offset = -1;
     }
 
-    int leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
-
     _oops_offset             = data_offset();
     _metadata_offset         = _oops_offset          + round_to(code_buffer->total_oop_size(), oopSize);
     _scopes_data_offset      = _metadata_offset      + round_to(code_buffer->total_metadata_size(), wordSize);
@@ -961,8 +931,7 @@ nmethod::nmethod(
     _dependencies_offset     = _scopes_pcs_offset    + adjust_pcs_size(debug_info->pcs_size());
     _handler_table_offset    = _dependencies_offset  + round_to(dependencies->size_in_bytes (), oopSize);
     _nul_chk_table_offset    = _handler_table_offset + round_to(handler_table->size_in_bytes(), oopSize);
-    _leaf_graph_ids_offset   = _nul_chk_table_offset + round_to(nul_chk_table->size_in_bytes(), oopSize);
-    _nmethod_end_offset      = _leaf_graph_ids_offset + leaf_graph_ids_size;
+    _nmethod_end_offset      = _nul_chk_table_offset + round_to(nul_chk_table->size_in_bytes(), oopSize);
 
     _entry_point             = code_begin()          + offsets->value(CodeOffsets::Entry);
     _verified_entry_point    = code_begin()          + offsets->value(CodeOffsets::Verified_Entry);
@@ -985,10 +954,6 @@ nmethod::nmethod(
     // Copy contents of ExceptionHandlerTable to nmethod
     handler_table->copy_to(this);
     nul_chk_table->copy_to(this);
-
-    if (leaf_graph_ids != NULL && leaf_graph_ids_size > 0) {
-      memcpy(leaf_graph_ids_begin(), leaf_graph_ids->adr_at(0), leaf_graph_ids_size);
-    }
 
     // we use the information of entry points to find out if a method is
     // static or non static
@@ -1060,6 +1025,7 @@ void nmethod::log_new_nmethod() const {
 void nmethod::print_on(outputStream* st, const char* msg) const {
   if (st != NULL) {
     ttyLocker ttyl;
+    if (CIPrintCompilerName) st->print("%s:", compiler()->name());
     if (WizardMode) {
       CompileTask::print_compilation(st, this, msg, /*short_form:*/ true);
       st->print_cr(" (" INTPTR_FORMAT ")", this);
@@ -1635,16 +1601,6 @@ bool nmethod::can_unload(BoolObjectClosure* is_alive, oop* root, bool unloading_
 void nmethod::post_compiled_method_load_event() {
 
   Method* moop = method();
-#ifndef USDT2
-  HS_DTRACE_PROBE8(hotspot, compiled__method__load,
-      moop->klass_name()->bytes(),
-      moop->klass_name()->utf8_length(),
-      moop->name()->bytes(),
-      moop->name()->utf8_length(),
-      moop->signature()->bytes(),
-      moop->signature()->utf8_length(),
-      insts_begin(), insts_size());
-#else /* USDT2 */
   HOTSPOT_COMPILED_METHOD_LOAD(
       (char *) moop->klass_name()->bytes(),
       moop->klass_name()->utf8_length(),
@@ -1653,7 +1609,6 @@ void nmethod::post_compiled_method_load_event() {
       (char *) moop->signature()->bytes(),
       moop->signature()->utf8_length(),
       insts_begin(), insts_size());
-#endif /* USDT2 */
 
   if (JvmtiExport::should_post_compiled_method_load() ||
       JvmtiExport::should_post_compiled_method_unload()) {
@@ -2306,16 +2261,37 @@ PcDesc* nmethod::find_pc_desc_internal(address pc, bool approximate) {
 }
 
 
-bool nmethod::check_all_dependencies() {
-  bool found_check = false;
-  // wholesale check of all dependencies
-  for (Dependencies::DepStream deps(this); deps.next(); ) {
-    if (deps.check_dependency() != NULL) {
-      found_check = true;
-      NOT_DEBUG(break);
+void nmethod::check_all_dependencies(DepChange& changes) {
+  // Checked dependencies are allocated into this ResourceMark
+  ResourceMark rm;
+
+  // Turn off dependency tracing while actually testing dependencies.
+  NOT_PRODUCT( FlagSetting fs(TraceDependencies, false) );
+
+ GenericHashtable<DependencySignature, ResourceObj>* table = new GenericHashtable<DependencySignature, ResourceObj>(11027);
+  // Iterate over live nmethods and check dependencies of all nmethods that are not
+  // marked for deoptimization. A particular dependency is only checked once.
+  for(nmethod* nm = CodeCache::alive_nmethod(CodeCache::first()); nm != NULL; nm = CodeCache::alive_nmethod(CodeCache::next(nm))) {
+    if (!nm->is_marked_for_deoptimization()) {
+      for (Dependencies::DepStream deps(nm); deps.next(); ) {
+        // Construct abstraction of a dependency.
+        DependencySignature* current_sig = new DependencySignature(deps);
+        // Determine if 'deps' is already checked. table->add() returns
+        // 'true' if the dependency was added (i.e., was not in the hashtable).
+        if (table->add(current_sig)) {
+          if (deps.check_dependency() != NULL) {
+            // Dependency checking failed. Print out information about the failed
+            // dependency and finally fail with an assert. We can fail here, since
+            // dependency checking is never done in a product build.
+            changes.print();
+            nm->print();
+            nm->print_dependencies();
+            assert(false, "Should have been marked for deoptimization");
+          }
+        }
+      }
     }
   }
-  return found_check;  // tell caller if we found anything
 }
 
 bool nmethod::check_dependency_on(DepChange& changes) {
