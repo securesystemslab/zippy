@@ -59,6 +59,10 @@ public final class FunctionRootNode extends RootNode {
         return functionName;
     }
 
+    public PNode getBody() {
+        return body;
+    }
+
     public InlinedFunctionRootNode getInlinedRootNode() {
         return new InlinedFunctionRootNode(this);
     }

@@ -54,12 +54,7 @@ public class CustomConsole extends JLineConsole {
         setSystemState();
 
         PythonModule module = context.createMainModule(source.getPath());
-        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
-        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
-        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
-        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
-        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
-        PythonParseResult result = context.getParser().parse(context, module, source, cflags);
+        PythonParseResult result = context.getParser().parse(context, module, source);
 
         if (PythonOptions.PrintAST) {
             printBanner("Before Specialization");
@@ -95,12 +90,7 @@ public class CustomConsole extends JLineConsole {
 
     public void parseFile(PythonContext context, Source source) {
         PythonModule module = context.createMainModule(source.getPath());
-        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
-        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
-        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
-        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
-        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
-        PythonParseResult result = context.getParser().parse(context, module, source, cflags);
+        PythonParseResult result = context.getParser().parse(context, module, source);
 
         if (PythonOptions.PrintAST) {
             printBanner("After Parsing");

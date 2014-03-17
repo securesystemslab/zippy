@@ -214,9 +214,9 @@ public abstract class CallAttributeNode extends PNode {
             return;
         }
 
-        List<ReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadArgumentNode.class);
+        List<BasicReadArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, BasicReadArgumentNode.class);
 
-        for (ReadArgumentNode read : argReads) {
+        for (BasicReadArgumentNode read : argReads) {
             if (read.getIndex() == 0) {
                 read.replace(new ReadSelfArgumentNode());
             } else {
@@ -224,7 +224,7 @@ public abstract class CallAttributeNode extends PNode {
                 if (read instanceof ReadVarArgsNode) {
                     read.replace(new ReadVarArgsNode(index - 1));
                 } else {
-                    read.replace(new ReadArgumentNode(index - 1));
+                    read.replace(new BasicReadArgumentNode(index - 1));
                 }
             }
         }

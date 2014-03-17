@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,35 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.argument;
+package edu.uci.python.nodes.access;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.datatype.*;
 
 /**
- * This is the right hand side of Parameters' WriteLocalNode.
+ * Imcomplete delete node. <br>
+ * If the target itself is a special delete node returning None, {@link DeleteNode} does nothing.
  * 
  * @author zwei
  * 
  */
-public class ReadArgumentNode extends PNode {
+@NodeChild(value = "target", type = PNode.class)
+public abstract class DeleteNode extends PNode {
 
-    private final int index;
-
-    public ReadArgumentNode(int index) {
-        this.index = index;
-    }
-
-    public int getIndex() {
-        return index;
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        PArguments args = frame.getArguments(PArguments.class);
-        return args.getArgument(index);
+    @Specialization
+    PNone doNone(PNone none) {
+        return none;
     }
 
 }

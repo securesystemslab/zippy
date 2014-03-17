@@ -49,6 +49,7 @@ import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
+import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
@@ -996,7 +997,14 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * TODO Delete node has not been implemented
          */
-        return null;
+        PNode target = (PNode) visit(node.getInternalTargets().get(0));
+
+        if (target instanceof SubscriptLoadNode) {
+            SubscriptLoadNode load = (SubscriptLoadNode) target;
+            return SubscriptDeleteNodeFactory.create(load.getPrimary(), load.getSlice());
+        } else {
+            return DeleteNodeFactory.create(target);
+        }
     }
 
     @Override

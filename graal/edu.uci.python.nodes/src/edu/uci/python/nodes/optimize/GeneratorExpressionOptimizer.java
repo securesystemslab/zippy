@@ -51,6 +51,12 @@ public class GeneratorExpressionOptimizer {
     }
 
     public void optimize() {
+        PNode body = functionRoot.getBody();
+        if (body instanceof GeneratorReturnTargetNode) {
+            // Baiout if the current root is a generator root.
+            return;
+        }
+
         for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
             if (genExp.isOptimized()) {
                 continue;
@@ -223,7 +229,7 @@ public class GeneratorExpressionOptimizer {
 
         for (int i = 0; i < argumentSlots.size(); i++) {
             FrameSlot slot = argumentSlots.get(i);
-            ReadArgumentNode read = new ReadArgumentNode(i);
+            BasicReadArgumentNode read = new BasicReadArgumentNode(i);
             writes[i] = writeToLocalFrame ? WriteLocalVariableNodeFactory.create(slot, read) : WriteGeneratorFrameVariableNodeFactory.create(slot, read);
         }
 

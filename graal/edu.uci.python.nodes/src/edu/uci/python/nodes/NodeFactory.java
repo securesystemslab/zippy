@@ -192,7 +192,7 @@ public class NodeFactory {
     public PNode createDictLiteral(List<PNode> keys, List<PNode> values) {
         PNode[] convertedKeys = keys.toArray(new PNode[keys.size()]);
         PNode[] convertedValues = values.toArray(new PNode[values.size()]);
-        return new DictLiteralNode(convertedKeys, convertedValues);
+        return DictLiteralNode.create(convertedKeys, convertedValues);
     }
 
     public PNode createTupleLiteral(List<PNode> values) {

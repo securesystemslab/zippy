@@ -22,40 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.argument;
+package edu.uci.python.test.datatype;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
+import org.junit.*;
 
-/**
- * @author Gulfem
- */
-public class ReadVarArgsNode extends BasicReadArgumentNode {
+public class DictTests {
 
-    public ReadVarArgsNode(int paramIndex) {
-        super(paramIndex);
+    @Test
+    public void empty() {
+        String source = "dd = {}\n" + //
+                        "print(dd)\n";
+        assertPrints("{}\n", source);
     }
 
-    @Override
-    public final PTuple execute(VirtualFrame frame) {
-        return executePTuple(frame);
+    @Test
+    public void simple() {
+        String source = "dd = {1:2}\n" + //
+                        "print(dd)\n";
+        assertPrints("{1: 2}\n", source);
     }
 
-    @Override
-    public final PTuple executePTuple(VirtualFrame frame) {
-        PArguments arguments = frame.getArguments(PArguments.class);
+    @Test
+    public void del() {
+        String source = "dd = {1:2, 3:4}\n" + //
+                        "del dd[1]\n" + //
+                        "print(dd)\n";
 
-        if (getIndex() >= arguments.getLength()) {
-            return new PTuple();
-        } else {
-            Object[] varArgs = new Object[arguments.getLength() - getIndex()];
-            for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = arguments.getArgument(i + getIndex());
-            }
-
-            return new PTuple(varArgs);
-        }
+        assertPrints("{3: 4}\n", source);
     }
+
 }

@@ -22,21 +22,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.test.datatype;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
+import org.junit.*;
 
-/**
- * The lastly executed node in a generator. <br>
- * It throws the {@link StopIterationException} to terminate the execution of the generator.
- */
-public class StopIterationNode extends StatementNode {
+public class StringTests {
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        throw StopIterationException.INSTANCE;
+    @Test
+    public void simple() {
+        String source = "a = 'combine'\n" + //
+                        "b = 'x' + 'y'\n" + //
+                        "print(a, b)\n";
+        assertPrints("combine xy\n", source);
     }
+
+    @Test
+    public void staticMakeTrans() {
+        String source = "t = str.maketrans('abc', '123')\n" + //
+                        "print(t)\n";
+        assertPrints("{98: 50, 99: 51, 97: 49}\n", source);
+    }
+
+    @Test
+    public void translate() {
+        String source = "table = {98 : 50, 99 : 51, 97 : 49}\n" + //
+                        "s = 'c b a'\n" + //
+                        "print(s.translate(table))\n";
+        assertPrints("3 2 1\n", source);
+    }
+
+    @Test
+    public void ord() {
+        String source = "print(ord('a'))\n";
+        assertPrints("97\n", source);
+    }
+
+    @Test
+    public void join() {
+        String source = "s = set(str(i) for i in range(3))\n" + //
+                        "print(''.join(s))\n";
+        assertPrints("210\n", source);
+    }
+
+    @Test
+    public void stringToTuple() {
+        String source = "s = \"0123456789\"\n" + //
+                        "print(tuple(s))\n";
+        assertPrints("('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')\n", source);
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,71 +22,67 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.loop;
+package edu.uci.python.runtime.datatype;
 
 import java.util.*;
+import java.util.Map.Entry;
 
-import com.oracle.truffle.api.dsl.*;
-
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class GetIteratorNode extends UnaryOpNode {
+public class PDictView {
 
-    @Specialization
-    public Object doPSequence(PSequence value) {
-        return value.__iter__();
+    private final PDict dict;
+
+    public PDictView(PDict dict) {
+        this.dict = dict;
     }
 
-    @Specialization
-    public Object doPBaseSet(PBaseSet value) {
-        return value.__iter__();
+    protected final PDict getDict() {
+        return dict;
     }
 
-    @Specialization
-    public Object doString(String value) {
-        return new PStringIterator(value);
-    }
+    public static final class PDictViewItems extends PDictView implements PIterable {
 
-    @Specialization
-    public Object doPDictionary(PDict value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPEnumerate(PEnumerate value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public Object doPZip(PZip value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
-        return value;
-    }
-
-    @Specialization
-    public PIterator doPIterable(PIterable value) {
-        return value.__iter__();
-    }
-
-    @Specialization
-    public PIterator doPIterator(PIterator value) {
-        return value;
-    }
-
-    // (zwei): What is the purpose of this?
-    @Specialization
-    public Object doJavaList(Object value) {
-        if (value instanceof List) {
-            return ((List) value).iterator();
+        public PDictViewItems(PDict dict) {
+            super(dict);
         }
 
-        return null;
+        public int len() {
+            return getDict().len();
+        }
+
+        public Object getMax() {
+            throw new UnsupportedOperationException();
+        }
+
+        public Object getMin() {
+            throw new UnsupportedOperationException();
+        }
+
+        public PIterator __iter__() {
+            return new PDictViewItemsIterator(getDict());
+        }
     }
+
+    public static final class PDictViewItemsIterator implements PIterator {
+
+        private final Iterator<Entry<Object, Object>> iterator;
+
+        public PDictViewItemsIterator(PDict dict) {
+            iterator = dict.getMap().entrySet().iterator();
+        }
+
+        @Override
+        public Object __next__() throws StopIterationException {
+            if (iterator.hasNext()) {
+                Entry<Object, Object> entry = iterator.next();
+                return new PTuple(new Object[]{entry.getKey(), entry.getValue()});
+            }
+
+            throw StopIterationException.INSTANCE;
+        }
+    }
+
 }

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -43,10 +44,16 @@ public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
         if (!receiverObject.getObjectLayout().contains(objectLayout)) {
-            respecialize(receiverObject);
-            return receiverObject.getAttribute(attributeId);
+            return getAttributeSlow(receiverObject);
         }
 
         return storageLocation.read(receiverObject);
     }
+
+    @SlowPath
+    private Object getAttributeSlow(PythonBasicObject receiverObject) {
+        respecialize(receiverObject);
+        return receiverObject.getAttribute(attributeId);
+    }
+
 }

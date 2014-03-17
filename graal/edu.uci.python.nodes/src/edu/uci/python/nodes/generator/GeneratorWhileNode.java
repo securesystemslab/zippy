@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,48 +22,64 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class WhileNode extends LoopNode {
+/**
+ * It only catches BreakException without rethrowing it. <br>
+ * Therefore, we have to remove the parent BreakTargetNode if there is one.
+ */
+public class GeneratorWhileNode extends WhileNode {
 
-    @Child protected CastToBooleanNode condition;
+    private int count;
+    @SuppressWarnings("unused") private final int flagSlot;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = adoptChild(condition);
+    public GeneratorWhileNode(CastToBooleanNode condition, StatementNode body, int flagSlot) {
+        super(condition, body);
+        this.flagSlot = flagSlot;
+    }
+
+    /**
+     * Dummish for now.
+     */
+    private static boolean isActive(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).isFirstEntry();
+    }
+
+    private static void setActive(VirtualFrame frame, boolean active) {
+        PArguments.getGeneratorArguments(frame).setFirstEntry(active);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
-
         try {
-            while (condition.executeBoolean(frame)) {
+            while (isActive(frame) || condition.executeBoolean(frame)) {
+                setActive(frame, true);
                 body.executeVoid(frame);
+                setActive(frame, false);
 
                 if (CompilerDirectives.inInterpreter()) {
                     count++;
                 }
             }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        } catch (BreakException ex) {
+            setActive(frame, false);
         }
 
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
+        assert !isActive(frame);
         return PNone.NONE;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

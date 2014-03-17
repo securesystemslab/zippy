@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.literal;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -38,33 +37,31 @@ public class DictLiteralNode extends LiteralNode {
     @Children final PNode[] keys;
     @Children final PNode[] values;
 
+    public static LiteralNode create(PNode[] keys, PNode[] values) {
+        if (keys.length == 0 && values.length == 0) {
+            return new EmptyDictLiteralNode();
+        } else if (keys.length == 1 && values.length == 1) {
+            return new SimpleDictLiteralNode(keys[0], values[0]);
+        }
+
+        return new DictLiteralNode(keys, values);
+    }
+
     public DictLiteralNode(PNode[] keys, PNode[] values) {
         this.keys = adoptChildren(keys);
         this.values = adoptChildren(values);
-    }
-
-    protected DictLiteralNode(DictLiteralNode node) {
-        this(node.keys, node.values);
+        assert keys.length == values.length;
     }
 
     @ExplodeLoop
     @Override
     public PDict executePDictionary(VirtualFrame frame) {
-        List<Object> resolvedKeys = new ArrayList<>();
-        for (int i = 0; i < keys.length; i++) {
-            PNode e = keys[i];
-            resolvedKeys.add(e.execute(frame));
-        }
+        final Map<Object, Object> map = new HashMap<>();
 
-        List<Object> resolvedValues = new ArrayList<>();
         for (int i = 0; i < values.length; i++) {
-            PNode e = values[i];
-            resolvedValues.add(e.execute(frame));
-        }
-
-        Map<Object, Object> map = new ConcurrentHashMap<>();
-        for (int i = 0; i < resolvedKeys.size(); i++) {
-            map.put(resolvedKeys.get(i), resolvedValues.get(i));
+            final Object key = keys[i].execute(frame);
+            final Object val = values[i].execute(frame);
+            map.put(key, val);
         }
 
         return new PDict(map);
@@ -79,4 +76,31 @@ public class DictLiteralNode extends LiteralNode {
     public String toString() {
         return "dict";
     }
+
+    public static final class EmptyDictLiteralNode extends LiteralNode {
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return new PDict();
+        }
+    }
+
+    public static final class SimpleDictLiteralNode extends LiteralNode {
+
+        @Child protected PNode key;
+        @Child protected PNode value;
+
+        public SimpleDictLiteralNode(PNode key, PNode value) {
+            this.key = adoptChild(key);
+            this.value = adoptChild(value);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Map<Object, Object> map = new HashMap<>();
+            map.put(key.execute(frame), value.execute(frame));
+            return new PDict(map);
+        }
+    }
+
 }

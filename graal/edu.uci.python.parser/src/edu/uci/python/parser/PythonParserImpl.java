@@ -40,15 +40,15 @@ import edu.uci.python.runtime.standardtype.*;
 public class PythonParserImpl implements PythonParser {
 
     /**
-     * Truffle: Parse input program to AST that is ready to interpret itself.
+     * Parse input program to AST that is ready to interpret.
      */
 
     @Override
-    public PythonParseResult parse(PythonContext context, PythonModule module, Source source, CompilerFlags cflags) {
+    public PythonParseResult parse(PythonContext context, PythonModule module, Source source) {
         org.python.antlr.base.mod node;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
-        node = ParserFacade.parse(istream, CompileMode.exec, filename, cflags);
+        node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
@@ -69,12 +69,6 @@ public class PythonParserImpl implements PythonParser {
     }
 
     @Override
-    public PythonParseResult parse(PythonContext context, PythonModule module, CompilerFlags cflags) {
-        Source source = context.getSourceManager().get(module.getModulePath());
-        return parse(context, module, source, cflags);
-    }
-
-    @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, String expression) {
         mod node = ParserFacade.parseExpressionOrModule(new StringReader(expression), "<eval>", CompilerFlags.getCompilerFlags());
 
@@ -85,4 +79,15 @@ public class PythonParserImpl implements PythonParser {
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         return ptt.translate(node);
     }
+
+    private static CompilerFlags cookCompilerFlags() {
+        CompilerFlags cflags = CompilerFlags.getCompilerFlags();
+        cflags.setFlag(CodeFlag.CO_FUTURE_ABSOLUTE_IMPORT);
+        cflags.setFlag(CodeFlag.CO_FUTURE_DIVISION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_PRINT_FUNCTION);
+        cflags.setFlag(CodeFlag.CO_FUTURE_UNICODE_LITERALS);
+        cflags.setFlag(CodeFlag.CO_FUTURE_WITH_STATEMENT);
+        return cflags;
+    }
+
 }

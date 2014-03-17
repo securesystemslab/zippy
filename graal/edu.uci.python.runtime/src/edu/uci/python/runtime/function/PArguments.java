@@ -47,6 +47,7 @@ public class PArguments extends Arguments {
         this.self = self;
         this.declarationFrame = declarationFrame;
         this.arguments = arguments;
+        assert arguments != null;
         this.keywords = keywords;
     }
 
@@ -82,8 +83,12 @@ public class PArguments extends Arguments {
         return self;
     }
 
-    public final int getArgumentsLength() {
+    public final int getNominalArgumentsLength() {
         return self != null ? arguments.length + 1 : arguments.length;
+    }
+
+    public final int getActualArgumentsLength() {
+        return arguments.length;
     }
 
     public final Object[] getArgumentsArray() {
@@ -95,10 +100,7 @@ public class PArguments extends Arguments {
     }
 
     public final Object getArgument(int index) {
-        if (index >= arguments.length) {
-            return PNone.NONE;
-        }
-
+        assert index < arguments.length;
         return arguments[index];
     }
 
