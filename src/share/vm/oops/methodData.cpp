@@ -1216,6 +1216,9 @@ void MethodData::init() {
   _highest_comp_level = 0;
   _highest_osr_comp_level = 0;
   _would_profile = true;
+#ifdef GRAAL
+  _graal_node_count = 0;
+#endif
 
   // Initialize flags and trap history.
   _nof_decompiles = 0;

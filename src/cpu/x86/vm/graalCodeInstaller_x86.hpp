@@ -59,68 +59,49 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
   }
 }
 
-inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
-  oop inlineData = CompilationResult_DataPatch::inlineData(site);
+inline bool check_metaspace_data(address pc, oop data) {
+  jlong value = MetaspaceData::value(data);
+  address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
+  if (MetaspaceData::compressed(data)) {
+    assert(*((jint*) operand) == value, err_msg("wrong compressed metaspace pointer: %p != %p", *((jint*) operand), value));
+  } else {
+    assert(*((jlong*) operand) == value, err_msg("wrong metaspace pointer: %p != %p", *((jlong*) operand), value));
+  }
+  return true;
+}
+
+inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
   address pc = _instructions->start() + pc_offset;
 
-  if (inlineData != NULL) {
-    oop kind = Constant::kind(inlineData);
-    char typeChar = Kind::typeChar(kind);
-
-    switch (typeChar) {
-      case 'z':
-      case 'b':
-      case 's':
-      case 'c':
-      case 'i':
-        fatal("int-sized values not expected in DataPatch");
-        break;
-      case 'n': {
-        address operand = Assembler::locate_operand(pc, Assembler::narrow_oop_operand);
-        Handle obj = Constant::object(inlineData);
-
-        jobject value = JNIHandles::make_local(obj());
-        int oop_index = _oop_recorder->find_index(value);
-        _instructions->relocate(pc, oop_Relocation::spec(oop_index), Assembler::narrow_oop_operand);
-        TRACE_graal_3("relocating (narrow oop constant) at %p/%p", pc, operand);
-        break;
-      }
-      case 'f':
-      case 'j':
-      case 'd':
-      case '*': {
-        address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
-        *((jlong*) operand) = Constant::primitive(inlineData);
-        break;
-      }
-      case 'a': {
-        address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
-        Handle obj = Constant::object(inlineData);
-
-        jobject value = JNIHandles::make_local(obj());
-        *((jobject*) operand) = value;
-        _instructions->relocate(pc, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_graal_3("relocating (oop constant) at %p/%p", pc, operand);
-        break;
-      }
-      default:
-        fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
-        break;
-    }
+  Handle obj = OopData::object(data);
+  jobject value = JNIHandles::make_local(obj());
+  if (OopData::compressed(data)) {
+    address operand = Assembler::locate_operand(pc, Assembler::narrow_oop_operand);
+    int oop_index = _oop_recorder->find_index(value);
+    _instructions->relocate(pc, oop_Relocation::spec(oop_index), Assembler::narrow_oop_operand);
+    TRACE_graal_3("relocating (narrow oop constant) at %p/%p", pc, operand);
   } else {
-    oop dataRef = CompilationResult_DataPatch::externalData(site);
-    jint offset = HotSpotCompiledCode_HotSpotData::offset(dataRef);
-    address operand = Assembler::locate_operand(pc, Assembler::disp32_operand);
-    address next_instruction = Assembler::locate_next_instruction(pc);
-    address dest = _constants->start() + offset;
-
-    long disp = dest - next_instruction;
-    assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-    *((jint*) operand) = (jint) disp;
-
-    _instructions->relocate(pc, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-    TRACE_graal_3("relocating at %p/%p with destination at %p (%d)", pc, operand, dest, offset);
+    address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
+    *((jobject*) operand) = value;
+    _instructions->relocate(pc, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+    TRACE_graal_3("relocating (oop constant) at %p/%p", pc, operand);
   }
+}
+
+inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
+  address pc = _instructions->start() + pc_offset;
+  jint offset = DataSectionReference::offset(data);
+
+  address operand = Assembler::locate_operand(pc, Assembler::disp32_operand);
+  address next_instruction = Assembler::locate_next_instruction(pc);
+  address dest = _constants->start() + offset;
+
+  long disp = dest - next_instruction;
+  assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+  *((jint*) operand) = (jint) disp;
+
+  _instructions->relocate(pc, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
+  TRACE_graal_3("relocating at %p/%p with destination at %p (%d)", pc, operand, dest, offset);
 }
 
 inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
@@ -170,10 +151,10 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 #endif
   switch (_next_call_type) {
-    case MARK_INLINE_INVOKE:
+    case INLINE_INVOKE:
       break;
-    case MARK_INVOKEVIRTUAL:
-    case MARK_INVOKEINTERFACE: {
+    case INVOKEVIRTUAL:
+    case INVOKEINTERFACE: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
 
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
@@ -183,7 +164,7 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
                                              Assembler::call32_operand);
       break;
     }
-    case MARK_INVOKESTATIC: {
+    case INVOKESTATIC: {
       assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
 
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
@@ -192,7 +173,7 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
                                              relocInfo::static_call_type, Assembler::call32_operand);
       break;
     }
-    case MARK_INVOKESPECIAL: {
+    case INVOKESPECIAL: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
@@ -216,24 +197,24 @@ static void relocate_poll_near(address pc) {
 
 inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
-    case MARK_POLL_NEAR: {
+    case POLL_NEAR: {
       relocate_poll_near(pc);
       _instructions->relocate(pc, relocInfo::poll_type, Assembler::disp32_operand);
       break;
     }
-    case MARK_POLL_FAR:
+    case POLL_FAR:
       // This is a load from a register so there is no relocatable operand.
       // We just have to ensure that the format is not disp32_operand
       // so that poll_Relocation::fix_relocation_after_move does the right
       // thing (i.e. ignores this relocation record)
       _instructions->relocate(pc, relocInfo::poll_type, Assembler::imm_operand);
       break;
-    case MARK_POLL_RETURN_NEAR: {
+    case POLL_RETURN_NEAR: {
       relocate_poll_near(pc);
       _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::disp32_operand);
       break;
     }
-    case MARK_POLL_RETURN_FAR:
+    case POLL_RETURN_FAR:
       // see comment above for MARK_POLL_FAR
       _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::imm_operand);
       break;
