@@ -1175,7 +1175,7 @@ def igv(args):
         env = os.environ
         proxy = os.environ.get('http_proxy')
         if not (proxy is None) and len(proxy) > 0:
-            if proxy.contains('://'):
+            if '://' in proxy:
                 # Remove the http:// prefix (or any other protocol prefix)
                 proxy = proxy.split('://', 1)[1]
             # Separate proxy server name and port number
