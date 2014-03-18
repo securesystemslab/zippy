@@ -98,24 +98,24 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 #endif
   switch (_next_call_type) {
-    case MARK_INLINE_INVOKE:
+    case INLINE_INVOKE:
       break;
-    case MARK_INVOKEVIRTUAL:
-    case MARK_INVOKEINTERFACE: {
+    case INVOKEVIRTUAL:
+    case INVOKEINTERFACE: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
       _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc));
       break;
     }
-    case MARK_INVOKESTATIC: {
+    case INVOKESTATIC: {
       assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_static_call_stub());
       _instructions->relocate(call->instruction_address(), relocInfo::static_call_type);
       break;
     }
-    case MARK_INVOKESPECIAL: {
+    case INVOKESPECIAL: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
@@ -130,16 +130,16 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
 
 inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
-    case MARK_POLL_NEAR: {
+    case POLL_NEAR: {
       fatal("unimplemented");
     }
-    case MARK_POLL_FAR:
+    case POLL_FAR:
       _instructions->relocate(pc, relocInfo::poll_type);
       break;
-    case MARK_POLL_RETURN_NEAR: {
+    case POLL_RETURN_NEAR: {
       fatal("unimplemented");
     }
-    case MARK_POLL_RETURN_FAR:
+    case POLL_RETURN_FAR:
       _instructions->relocate(pc, relocInfo::poll_return_type);
       break;
     default:

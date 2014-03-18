@@ -469,7 +469,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
 #endif
 
-  _next_call_type = MARK_INVOKE_INVALID;
+  _next_call_type = INVOKE_INVALID;
 }
 
 // perform data and call relocation on the CodeBuffer
@@ -776,7 +776,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
   }
 
-  _next_call_type = MARK_INVOKE_INVALID;
+  _next_call_type = INVOKE_INVALID;
 
   if (debug_info != NULL) {
     _debug_recorder->end_safepoint(next_pc_offset);
@@ -806,33 +806,33 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
     address pc = _instructions->start() + pc_offset;
 
     switch (id) {
-      case MARK_UNVERIFIED_ENTRY:
+      case UNVERIFIED_ENTRY:
         _offsets.set_value(CodeOffsets::Entry, pc_offset);
         break;
-      case MARK_VERIFIED_ENTRY:
+      case VERIFIED_ENTRY:
         _offsets.set_value(CodeOffsets::Verified_Entry, pc_offset);
         break;
-      case MARK_OSR_ENTRY:
+      case OSR_ENTRY:
         _offsets.set_value(CodeOffsets::OSR_Entry, pc_offset);
         break;
-      case MARK_EXCEPTION_HANDLER_ENTRY:
+      case EXCEPTION_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Exceptions, pc_offset);
         break;
-      case MARK_DEOPT_HANDLER_ENTRY:
+      case DEOPT_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
-      case MARK_INVOKEVIRTUAL:
-      case MARK_INVOKEINTERFACE:
-      case MARK_INLINE_INVOKE:
-      case MARK_INVOKESTATIC:
-      case MARK_INVOKESPECIAL:
+      case INVOKEVIRTUAL:
+      case INVOKEINTERFACE:
+      case INLINE_INVOKE:
+      case INVOKESTATIC:
+      case INVOKESPECIAL:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = pc;
         break;
-      case MARK_POLL_NEAR:
-      case MARK_POLL_FAR:
-      case MARK_POLL_RETURN_NEAR:
-      case MARK_POLL_RETURN_FAR:
+      case POLL_NEAR:
+      case POLL_FAR:
+      case POLL_RETURN_NEAR:
+      case POLL_RETURN_FAR:
         pd_relocate_poll(pc, id);
         break;
       default:
