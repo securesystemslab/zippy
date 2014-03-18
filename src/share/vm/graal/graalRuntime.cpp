@@ -539,7 +539,12 @@ JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oopD
   Handle receiverHandle(thread, receiver);
   MutexLockerEx ml(thread->threadObj() == (void*)receiver ? NULL : Threads_lock);
   JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
-  return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
+  if (receiverThread == NULL) {
+    // The other thread may exit during this process, which is ok so return false.
+    return JNI_FALSE;
+  } else {
+    return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
+  }
 JRT_END
 
 // JVM_InitializeGraalRuntime
