@@ -83,6 +83,12 @@ _minVersion = mx.VersionSpec('1.7.0_04')
 
 JDK_UNIX_PERMISSIONS = 0755
 
+def isVMSupported(vm):
+    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
+        # Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'
+        return False
+    return True
+
 def _get_vm():
     """
     Gets the configured VM, presenting a dialogue if there is no currently configured VM.
@@ -568,6 +574,10 @@ def build(args, vm=None):
             if build != 'product':
                 mx.log('only product build of original VM exists')
             continue
+        
+        if not isVMSupported(vm):
+            mx.log('The ' + vm + ' VM is not supported on this platform - skipping')
+            continue
 
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
@@ -718,8 +728,8 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     if vm is None:
         vm = _get_vm()
 
-    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
-        mx.abort("Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'")
+    if not isVMSupported(vm):
+        mx.abort('The ' + vm + ' is not supported on this platform')
 
     if cwd is None:
         cwd = _vm_cwd
@@ -927,6 +937,10 @@ def buildvms(args):
 
     allStart = time.time()
     for v in vms:
+        if not isVMSupported(v):
+            mx.log('The ' + v + ' VM is not supported on this platform - skipping')
+            continue
+
         for vmbuild in builds:
             if v == 'original' and vmbuild != 'product':
                 continue
@@ -1043,6 +1057,9 @@ def _basic_gate_body(args, tasks):
 
         for vmbuild in ['product', 'fastdebug']:
             for theVm in ['client', 'server']:
+                if not isVMSupported(vm):
+                    mx.log('The' + vm + ' VM is not supported on this platform')
+                    continue
                 with VM(theVm, vmbuild):
                     t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
                     dacapo(['pmd'])
