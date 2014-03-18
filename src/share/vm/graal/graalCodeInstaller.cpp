@@ -192,7 +192,7 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
 }
 
 static void record_metadata_in_patch(oop data, OopRecorder* oop_recorder) {
-  record_metadata_reference(MetaspaceData::annotation(data), MetaspaceData::value(data), MetaspaceData::compressed(data), oop_recorder);
+  record_metadata_reference(MetaspaceData::annotation(data), MetaspaceData::value(data), MetaspaceData::compressed(data) != 0, oop_recorder);
 }
 
 ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
