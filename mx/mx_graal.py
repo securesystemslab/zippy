@@ -574,7 +574,7 @@ def build(args, vm=None):
             if build != 'product':
                 mx.log('only product build of original VM exists')
             continue
-        
+
         if not isVMSupported(vm):
             mx.log('The ' + vm + ' VM is not supported on this platform - skipping')
             continue
