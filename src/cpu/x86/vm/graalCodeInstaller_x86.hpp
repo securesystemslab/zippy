@@ -151,10 +151,10 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 #endif
   switch (_next_call_type) {
-    case MARK_INLINE_INVOKE:
+    case INLINE_INVOKE:
       break;
-    case MARK_INVOKEVIRTUAL:
-    case MARK_INVOKEINTERFACE: {
+    case INVOKEVIRTUAL:
+    case INVOKEINTERFACE: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
 
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
@@ -164,7 +164,7 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
                                              Assembler::call32_operand);
       break;
     }
-    case MARK_INVOKESTATIC: {
+    case INVOKESTATIC: {
       assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
 
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
@@ -173,7 +173,7 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
                                              relocInfo::static_call_type, Assembler::call32_operand);
       break;
     }
-    case MARK_INVOKESPECIAL: {
+    case INVOKESPECIAL: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
@@ -197,24 +197,24 @@ static void relocate_poll_near(address pc) {
 
 inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
-    case MARK_POLL_NEAR: {
+    case POLL_NEAR: {
       relocate_poll_near(pc);
       _instructions->relocate(pc, relocInfo::poll_type, Assembler::disp32_operand);
       break;
     }
-    case MARK_POLL_FAR:
+    case POLL_FAR:
       // This is a load from a register so there is no relocatable operand.
       // We just have to ensure that the format is not disp32_operand
       // so that poll_Relocation::fix_relocation_after_move does the right
       // thing (i.e. ignores this relocation record)
       _instructions->relocate(pc, relocInfo::poll_type, Assembler::imm_operand);
       break;
-    case MARK_POLL_RETURN_NEAR: {
+    case POLL_RETURN_NEAR: {
       relocate_poll_near(pc);
       _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::disp32_operand);
       break;
     }
-    case MARK_POLL_RETURN_FAR:
+    case POLL_RETURN_FAR:
       // see comment above for MARK_POLL_FAR
       _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::imm_operand);
       break;

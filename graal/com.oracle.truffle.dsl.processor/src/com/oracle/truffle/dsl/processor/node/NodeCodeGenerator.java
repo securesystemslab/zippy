@@ -214,19 +214,23 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
                 if (method.getModifiers().contains(STATIC)) {
                     builder.type(targetClass.asType());
                 } else {
-                    ActualParameter parameter = null;
+                    ActualParameter firstParameter = null;
                     for (ActualParameter searchParameter : targetMethod.getParameters()) {
                         if (searchParameter.getSpecification().isSignature()) {
-                            parameter = searchParameter;
+                            firstParameter = searchParameter;
                             break;
                         }
                     }
-                    ActualParameter sourceParameter = sourceMethod.findParameter(parameter.getLocalName());
+                    if (firstParameter == null) {
+                        throw new AssertionError();
+                    }
+
+                    ActualParameter sourceParameter = sourceMethod.findParameter(firstParameter.getLocalName());
 
                     if (castedValues && sourceParameter != null) {
-                        builder.string(valueName(sourceParameter, parameter));
+                        builder.string(valueName(sourceParameter, firstParameter));
                     } else {
-                        builder.string(valueName(parameter));
+                        builder.string(valueName(firstParameter));
                     }
                 }
             }
@@ -967,7 +971,7 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
             CodeTreeBuilder builder = method.createBuilder();
             if (node.isPolymorphic() && specialization == null) {
                 // assume next0 exists
-                builder.startIf().string("next0 != null && next0.getCost() == ").staticReference(nodeInfoKind, "MONOMORPHIC").end();
+                builder.startIf().string("next0 != null && next0.getCost() != ").staticReference(nodeInfoKind, "UNINITIALIZED").end();
                 builder.startBlock();
                 builder.startReturn().staticReference(nodeInfoKind, "POLYMORPHIC").end();
                 builder.end();
@@ -2631,6 +2635,9 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
                 }
 
                 CodeExecutableElement superConstructor = createSuperConstructor(clazz, constructor);
+                if (superConstructor == null) {
+                    continue;
+                }
                 CodeTree body = superConstructor.getBodyTree();
                 CodeTreeBuilder builder = superConstructor.createBuilder();
                 builder.tree(body);

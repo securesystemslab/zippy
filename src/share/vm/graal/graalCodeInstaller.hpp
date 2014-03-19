@@ -24,28 +24,30 @@
 #ifndef SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
 #define SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
 
+#include "graal/graalEnv.hpp"
+
 /*
  * This class handles the conversion from a InstalledCode to a CodeBlob or an nmethod.
  */
 class CodeInstaller {
+  friend class VMStructs;
 private:
-  // these need to correspond to Marks.java
   enum MarkId {
-    MARK_VERIFIED_ENTRY             = 1,
-    MARK_UNVERIFIED_ENTRY           = 2,
-    MARK_OSR_ENTRY                  = 3,
-    MARK_EXCEPTION_HANDLER_ENTRY    = 4,
-    MARK_DEOPT_HANDLER_ENTRY        = 5,
-    MARK_INVOKEINTERFACE            = 6,
-    MARK_INVOKEVIRTUAL              = 7,
-    MARK_INVOKESTATIC               = 8,
-    MARK_INVOKESPECIAL              = 9,
-    MARK_INLINE_INVOKE              = 10,
-    MARK_POLL_NEAR                  = 11,
-    MARK_POLL_RETURN_NEAR           = 12,
-    MARK_POLL_FAR                   = 13,
-    MARK_POLL_RETURN_FAR            = 14,
-    MARK_INVOKE_INVALID             = -1
+    VERIFIED_ENTRY             = 1,
+    UNVERIFIED_ENTRY           = 2,
+    OSR_ENTRY                  = 3,
+    EXCEPTION_HANDLER_ENTRY    = 4,
+    DEOPT_HANDLER_ENTRY        = 5,
+    INVOKEINTERFACE            = 6,
+    INVOKEVIRTUAL              = 7,
+    INVOKESTATIC               = 8,
+    INVOKESPECIAL              = 9,
+    INLINE_INVOKE              = 10,
+    POLL_NEAR                  = 11,
+    POLL_RETURN_NEAR           = 12,
+    POLL_FAR                   = 13,
+    POLL_RETURN_FAR            = 14,
+    INVOKE_INVALID             = -1
   };
 
   Arena         _arena;
