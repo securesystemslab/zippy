@@ -40,6 +40,7 @@ import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
+import difflib
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -1930,6 +1931,7 @@ def eclipseformat(args):
             with open(self.path) as fp:
                 content = fp.read()
                 if self.content != content:
+                    self.diff = difflib.unified_diff(self.content.splitlines(1), content.splitlines(1))
                     self.content = content
                     return True
             os.utime(self.path, self.times)
@@ -1967,6 +1969,7 @@ def eclipseformat(args):
                 modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
+
     if len(modified) != 0:
         arcbase = _primary_suite.dir
         if args.backup:
@@ -1975,6 +1978,8 @@ def eclipseformat(args):
         for fi in modified:
             name = os.path.relpath(fi.path, arcbase)
             log(' - {0}'.format(name))
+            log('Changes:')
+            log(''.join(fi.diff))
             if args.backup:
                 arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)
