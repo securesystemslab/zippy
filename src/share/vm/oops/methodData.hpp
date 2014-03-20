@@ -2203,6 +2203,11 @@ private:
   // Does this method contain anything worth profiling?
   bool              _would_profile;
 
+#ifdef GRAAL
+  // Support for HotSpotMethodData.setCompiledGraphSize(int)
+  int               _graal_node_count;
+#endif
+
   // Size of _data array in bytes.  (Excludes header and extra_data fields.)
   int _data_size;
 

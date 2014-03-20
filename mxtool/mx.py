@@ -40,6 +40,7 @@ import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
+import difflib
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -1894,10 +1895,13 @@ def eclipseformat(args):
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
 
     # Maybe an Eclipse installation dir was specified - look for the executable in it
-    if join(args.eclipse_exe, exe_suffix('eclipse')):
+    if isdir(args.eclipse_exe):
         args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        warn("The eclipse-exe was a directory, now using " + args.eclipse_exe)
 
-    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+    if not os.path.isfile(args.eclipse_exe):
+        abort('File does not exist: ' + args.eclipse_exe)
+    if not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
@@ -1927,6 +1931,7 @@ def eclipseformat(args):
             with open(self.path) as fp:
                 content = fp.read()
                 if self.content != content:
+                    self.diff = difflib.unified_diff(self.content.splitlines(1), content.splitlines(1))
                     self.content = content
                     return True
             os.utime(self.path, self.times)
@@ -1964,6 +1969,7 @@ def eclipseformat(args):
                 modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
+
     if len(modified) != 0:
         arcbase = _primary_suite.dir
         if args.backup:
@@ -1972,6 +1978,8 @@ def eclipseformat(args):
         for fi in modified:
             name = os.path.relpath(fi.path, arcbase)
             log(' - {0}'.format(name))
+            log('Changes:')
+            log(''.join(fi.diff))
             if args.backup:
                 arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)

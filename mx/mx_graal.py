@@ -83,6 +83,12 @@ _minVersion = mx.VersionSpec('1.7.0_04')
 
 JDK_UNIX_PERMISSIONS = 0755
 
+def isVMSupported(vm):
+    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
+        # Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'
+        return False
+    return True
+
 def _get_vm():
     """
     Gets the configured VM, presenting a dialogue if there is no currently configured VM.
@@ -569,6 +575,10 @@ def build(args, vm=None):
                 mx.log('only product build of original VM exists')
             continue
 
+        if not isVMSupported(vm):
+            mx.log('The ' + vm + ' VM is not supported on this platform - skipping')
+            continue
+
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             if mx.get_os() != 'windows':
@@ -718,8 +728,8 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     if vm is None:
         vm = _get_vm()
 
-    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
-        mx.abort("Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'")
+    if not isVMSupported(vm):
+        mx.abort('The ' + vm + ' is not supported on this platform')
 
     if cwd is None:
         cwd = _vm_cwd
@@ -927,6 +937,10 @@ def buildvms(args):
 
     allStart = time.time()
     for v in vms:
+        if not isVMSupported(v):
+            mx.log('The ' + v + ' VM is not supported on this platform - skipping')
+            continue
+
         for vmbuild in builds:
             if v == 'original' and vmbuild != 'product':
                 continue
@@ -1043,6 +1057,9 @@ def _basic_gate_body(args, tasks):
 
         for vmbuild in ['product', 'fastdebug']:
             for theVm in ['client', 'server']:
+                if not isVMSupported(theVm):
+                    mx.log('The' + theVm + ' VM is not supported on this platform')
+                    continue
                 with VM(theVm, vmbuild):
                     t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
                     dacapo(['pmd'])
@@ -1175,7 +1192,7 @@ def igv(args):
         env = os.environ
         proxy = os.environ.get('http_proxy')
         if not (proxy is None) and len(proxy) > 0:
-            if proxy.contains('://'):
+            if '://' in proxy:
                 # Remove the http:// prefix (or any other protocol prefix)
                 proxy = proxy.split('://', 1)[1]
             # Separate proxy server name and port number
@@ -1638,6 +1655,38 @@ def _parseVMOptions(optionType):
     valueMap = parser.parse(output.getvalue())
     return valueMap
 
+def findbugs(args):
+    '''run FindBugs against non-test Java projects'''
+    findBugsHome = mx.get_env('FINDBUGS_HOME', None)
+    if findBugsHome:
+        findbugsJar = join(findBugsHome, 'lib', 'findbugs.jar')
+    else:
+        findbugsLib = join(_graal_home, 'lib', 'findbugs-3.0.0')
+        if not exists(findbugsLib):
+            tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
+            try:
+                findbugsDist = join(tmp, 'findbugs.zip')
+                mx.download(findbugsDist, ['http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip'])
+                with zipfile.ZipFile(findbugsDist) as zf:
+                    candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
+                    assert len(candidates) == 1, candidates
+                    libDirInZip = os.path.dirname(candidates[0])
+                    zf.extractall(tmp)
+                shutil.copytree(join(tmp, libDirInZip), findbugsLib)
+            finally:
+                shutil.rmtree(tmp)
+        findbugsJar = join(findbugsLib, 'findbugs.jar')
+    assert exists(findbugsJar)
+    nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
+    outputDirs = [p.output_dir() for p in nonTestProjects]
+    findbugsResults = join(_graal_home, 'findbugs.results')
+    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
+                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+    if exitcode != 0:
+        with open(findbugsResults) as fp:
+            mx.log(fp.read())
+    os.unlink(findbugsResults)
+    return exitcode
 
 def mx_init(suite):
     commands = {
@@ -1646,6 +1695,7 @@ def mx_init(suite):
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
         'clean': [clean, ''],
+        'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
