@@ -329,13 +329,9 @@ C2V_VMENTRY(jlong, getKlassImplementor, (JNIEnv *, jobject, jlong metaspace_klas
   return (jlong) (address) klass->implementor();
 C2V_END
 
-C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
+C2V_VMENTRY(jboolean, methodIsIgnoredBySecurityStackWalk,(JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
-  InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
-  HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
-  HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
-  HotSpotResolvedJavaMethod::set_dontInline(hotspot_method, method->dont_inline());
-  HotSpotResolvedJavaMethod::set_ignoredBySecurityStackWalk(hotspot_method, method->is_ignored_by_security_stack_walk());
+  return method->is_ignored_by_security_stack_walk();
 C2V_END
 
 C2V_VMENTRY(jboolean, canInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
@@ -805,7 +801,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
   {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
   {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
-  {CC"initializeMethod",                             CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
+  {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(methodIsIgnoredBySecurityStackWalk)},
   {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
   {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
   {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},

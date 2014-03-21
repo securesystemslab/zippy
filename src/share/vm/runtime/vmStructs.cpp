@@ -374,6 +374,7 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   nonstatic_field(Method,               _vtable_index,                                 int)                                   \
   nonstatic_field(Method,               _method_size,                                  u2)                                    \
   nonstatic_field(Method,               _intrinsic_id,                                 u1)                                    \
+  nonstatic_field(Method,               _flags,                                        u1)                                    \
   nonproduct_nonstatic_field(Method,    _compiled_invocation_count,                    int)                                   \
   volatile_nonstatic_field(Method,      _code,                                         nmethod*)                              \
   nonstatic_field(Method,               _i2i_entry,                                    address)                               \
