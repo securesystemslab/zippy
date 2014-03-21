@@ -39,7 +39,7 @@ library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
 library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
-library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter.jar
+library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-67ad4ee8beb6.jar
 library@JAVA_ALLOCATION_INSTRUMENTER@sha1=1cd4073f57d7d461a53b0ddc1ea4ee2aa0c60e66
 
 distribution@GRAAL@path=graal.jar
