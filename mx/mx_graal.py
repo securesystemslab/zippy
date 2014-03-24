@@ -647,11 +647,17 @@ def build(args, vm=None):
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
 
             # extract latest release tag for graal
-            tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            try:
+                tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            except:
+                # not a mercurial repository or hg commands are not available.
+                tags = None
+
             if tags:
                 # extract the most recent tag
                 tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
                 env.setdefault('USER_RELEASE_SUFFIX', tag)
+
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
