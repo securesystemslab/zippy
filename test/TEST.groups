@@ -130,9 +130,7 @@ needs_compact3 = \
   gc/arguments/TestG1HeapRegionSize.java \
   gc/metaspace/TestMetaspaceMemoryPool.java \
   runtime/InternalApi/ThreadCpuTimesDeadlock.java \
-  serviceability/threads/TestFalseDeadLock.java \
-  compiler/tiered/NonTieredLevelsTest.java \
-  compiler/tiered/TieredLevelsTest.java
+  serviceability/threads/TestFalseDeadLock.java
 
 # Compact 2 adds full VM tests
 compact2 = \

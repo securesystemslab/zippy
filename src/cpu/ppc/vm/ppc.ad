@@ -1008,11 +1008,7 @@ int MachCallDynamicJavaNode::ret_addr_offset() {
 }
 
 int MachCallRuntimeNode::ret_addr_offset() {
-#if defined(ABI_ELFv2)
-  return 28;
-#else
   return 40;
-#endif
 }
 
 //=============================================================================
@@ -3678,10 +3674,6 @@ encode %{
     MacroAssembler _masm(&cbuf);
     const address start_pc = __ pc();
 
-#if defined(ABI_ELFv2)
-    address entry= !($meth$$method) ? NULL : (address)$meth$$method;
-    __ call_c(entry, relocInfo::runtime_call_type);
-#else
     // The function we're going to call.
     FunctionDescriptor fdtemp;
     const FunctionDescriptor* fd = !($meth$$method) ? &fdtemp : (FunctionDescriptor*)$meth$$method;
@@ -3692,7 +3684,6 @@ encode %{
     // Put entry, env, toc into the constant pool, this needs up to 3 constant
     // pool entries; call_c_using_toc will optimize the call.
     __ call_c_using_toc(fd, relocInfo::runtime_call_type, Rtoc);
-#endif
 
     // Check the ret_addr_offset.
     assert(((MachCallRuntimeNode*)this)->ret_addr_offset() ==  __ last_calls_return_pc() - start_pc,
@@ -3708,25 +3699,20 @@ encode %{
     __ mtctr($src$$Register);
   %}
 
-  // Postalloc expand emitter for runtime leaf calls.
+  // postalloc expand emitter for runtime leaf calls.
   enc_class postalloc_expand_java_to_runtime_call(method meth, iRegLdst toc) %{
-    loadConLNodesTuple loadConLNodes_Entry;
-#if defined(ABI_ELFv2)
-    jlong entry_address = (jlong) this->entry_point();
-    assert(entry_address, "need address here");
-    loadConLNodes_Entry = loadConLNodesTuple_create(C, ra_, n_toc, new (C) immLOper(entry_address),
-                                                    OptoReg::Name(R12_H_num), OptoReg::Name(R12_num));
-#else
     // Get the struct that describes the function we are about to call.
     FunctionDescriptor* fd = (FunctionDescriptor*) this->entry_point();
     assert(fd, "need fd here");
-    jlong entry_address = (jlong) fd->entry();
     // new nodes
+    loadConLNodesTuple loadConLNodes_Entry;
     loadConLNodesTuple loadConLNodes_Env;
     loadConLNodesTuple loadConLNodes_Toc;
+    MachNode         *mtctr = NULL;
+    MachCallLeafNode *call  = NULL;
 
     // Create nodes and operands for loading the entry point.
-    loadConLNodes_Entry = loadConLNodesTuple_create(C, ra_, n_toc, new (C) immLOper(entry_address),
+    loadConLNodes_Entry = loadConLNodesTuple_create(C, ra_, n_toc, new (C) immLOper((jlong) fd->entry()),
                                                     OptoReg::Name(R12_H_num), OptoReg::Name(R12_num));
 
 
@@ -3747,9 +3733,8 @@ encode %{
     // Create nodes and operands for loading the Toc point.
     loadConLNodes_Toc = loadConLNodesTuple_create(C, ra_, n_toc, new (C) immLOper((jlong) fd->toc()),
                                                   OptoReg::Name(R2_H_num), OptoReg::Name(R2_num));
-#endif // ABI_ELFv2
     // mtctr node
-    MachNode *mtctr = new (C) CallLeafDirect_mtctrNode();
+    mtctr = new (C) CallLeafDirect_mtctrNode();
 
     assert(loadConLNodes_Entry._last != NULL, "entry must exist");
     mtctr->add_req(0, loadConLNodes_Entry._last);
@@ -3758,10 +3743,10 @@ encode %{
     mtctr->_opnds[1] = new (C) iRegLdstOper();
 
     // call node
-    MachCallLeafNode *call = new (C) CallLeafDirectNode();
+    call = new (C) CallLeafDirectNode();
 
     call->_opnds[0] = _opnds[0];
-    call->_opnds[1] = new (C) methodOper((intptr_t) entry_address); // May get set later.
+    call->_opnds[1] = new (C) methodOper((intptr_t) fd->entry()); // may get set later
 
     // Make the new call node look like the old one.
     call->_name        = _name;
@@ -3788,10 +3773,8 @@ encode %{
     // These must be reqired edges, as the registers are live up to
     // the call. Else the constants are handled as kills.
     call->add_req(mtctr);
-#if !defined(ABI_ELFv2)
     call->add_req(loadConLNodes_Env._last);
     call->add_req(loadConLNodes_Toc._last);
-#endif
 
     // ...as well as prec
     for (uint i = req(); i < len(); ++i) {
@@ -3804,12 +3787,10 @@ encode %{
     // Insert the new nodes.
     if (loadConLNodes_Entry._large_hi) nodes->push(loadConLNodes_Entry._large_hi);
     if (loadConLNodes_Entry._last)     nodes->push(loadConLNodes_Entry._last);
-#if !defined(ABI_ELFv2)
     if (loadConLNodes_Env._large_hi)   nodes->push(loadConLNodes_Env._large_hi);
     if (loadConLNodes_Env._last)       nodes->push(loadConLNodes_Env._last);
     if (loadConLNodes_Toc._large_hi)   nodes->push(loadConLNodes_Toc._large_hi);
     if (loadConLNodes_Toc._last)       nodes->push(loadConLNodes_Toc._last);
-#endif
     nodes->push(mtctr);
     nodes->push(call);
   %}
@@ -3856,7 +3837,7 @@ frame %{
   // out_preserve_stack_slots for calls to C. Supports the var-args
   // backing area for register parms.
   //
-  varargs_C_out_slots_killed(((frame::abi_reg_args_size - frame::jit_out_preserve_size) / VMRegImpl::stack_slot_size));
+  varargs_C_out_slots_killed(((frame::abi_112_size - frame::jit_out_preserve_size) / VMRegImpl::stack_slot_size));
 
   // The after-PROLOG location of the return address. Location of
   // return address specifies a type (REG or STACK) and a number

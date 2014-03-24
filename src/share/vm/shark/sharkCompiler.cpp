@@ -364,7 +364,3 @@ const char* SharkCompiler::methodname(const char* klass, const char* method) {
   *(dst++) = '\0';
   return buf;
 }
-
-void SharkCompiler::print_timers() {
-  // do nothing
-}

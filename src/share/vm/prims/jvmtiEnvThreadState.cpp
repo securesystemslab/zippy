@@ -190,8 +190,12 @@ void JvmtiEnvThreadState::compare_and_set_current_location(Method* new_method,
 
 
 JvmtiFramePops* JvmtiEnvThreadState::get_frame_pops() {
-  assert(get_thread() == Thread::current() || SafepointSynchronize::is_at_safepoint(),
-         "frame pop data only accessible from same thread or at safepoint");
+#ifdef ASSERT
+  uint32_t debug_bits = 0;
+#endif
+  assert(get_thread() == Thread::current() || JvmtiEnv::is_thread_fully_suspended(get_thread(), false, &debug_bits),
+         "frame pop data only accessible from same thread or while suspended");
+
   if (_frame_pops == NULL) {
     _frame_pops = new JvmtiFramePops();
     assert(_frame_pops != NULL, "_frame_pops != NULL");
@@ -205,32 +209,44 @@ bool JvmtiEnvThreadState::has_frame_pops() {
 }
 
 void JvmtiEnvThreadState::set_frame_pop(int frame_number) {
-  assert(get_thread() == Thread::current() || SafepointSynchronize::is_at_safepoint(),
-         "frame pop data only accessible from same thread or at safepoint");
+#ifdef ASSERT
+  uint32_t debug_bits = 0;
+#endif
+  assert(get_thread() == Thread::current() || JvmtiEnv::is_thread_fully_suspended(get_thread(), false, &debug_bits),
+         "frame pop data only accessible from same thread or while suspended");
   JvmtiFramePop fpop(frame_number);
   JvmtiEventController::set_frame_pop(this, fpop);
 }
 
 
 void JvmtiEnvThreadState::clear_frame_pop(int frame_number) {
-  assert(get_thread() == Thread::current() || SafepointSynchronize::is_at_safepoint(),
-         "frame pop data only accessible from same thread or at safepoint");
+#ifdef ASSERT
+  uint32_t debug_bits = 0;
+#endif
+  assert(get_thread() == Thread::current() || JvmtiEnv::is_thread_fully_suspended(get_thread(), false, &debug_bits),
+         "frame pop data only accessible from same thread or while suspended");
   JvmtiFramePop fpop(frame_number);
   JvmtiEventController::clear_frame_pop(this, fpop);
 }
 
 
 void JvmtiEnvThreadState::clear_to_frame_pop(int frame_number)  {
-  assert(get_thread() == Thread::current() || SafepointSynchronize::is_at_safepoint(),
-         "frame pop data only accessible from same thread or at safepoint");
+#ifdef ASSERT
+  uint32_t debug_bits = 0;
+#endif
+  assert(get_thread() == Thread::current() || JvmtiEnv::is_thread_fully_suspended(get_thread(), false, &debug_bits),
+         "frame pop data only accessible from same thread or while suspended");
   JvmtiFramePop fpop(frame_number);
   JvmtiEventController::clear_to_frame_pop(this, fpop);
 }
 
 
 bool JvmtiEnvThreadState::is_frame_pop(int cur_frame_number) {
-  assert(get_thread() == Thread::current() || SafepointSynchronize::is_at_safepoint(),
-         "frame pop data only accessible from same thread or at safepoint");
+#ifdef ASSERT
+  uint32_t debug_bits = 0;
+#endif
+  assert(get_thread() == Thread::current() || JvmtiEnv::is_thread_fully_suspended(get_thread(), false, &debug_bits),
+         "frame pop data only accessible from same thread or while suspended");
   if (!get_thread()->is_interp_only_mode() || _frame_pops == NULL) {
     return false;
   }

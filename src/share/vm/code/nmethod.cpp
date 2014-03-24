@@ -39,7 +39,6 @@
 #include "prims/jvmtiImpl.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
-#include "utilities/resourceHash.hpp"
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
@@ -2269,11 +2268,7 @@ void nmethod::check_all_dependencies(DepChange& changes) {
   // Turn off dependency tracing while actually testing dependencies.
   NOT_PRODUCT( FlagSetting fs(TraceDependencies, false) );
 
- typedef ResourceHashtable<DependencySignature, int, &DependencySignature::hash,
-                           &DependencySignature::equals, 11027> DepTable;
-
- DepTable* table = new DepTable();
-
+ GenericHashtable<DependencySignature, ResourceObj>* table = new GenericHashtable<DependencySignature, ResourceObj>(11027);
   // Iterate over live nmethods and check dependencies of all nmethods that are not
   // marked for deoptimization. A particular dependency is only checked once.
   for(nmethod* nm = CodeCache::alive_nmethod(CodeCache::first()); nm != NULL; nm = CodeCache::alive_nmethod(CodeCache::next(nm))) {
@@ -2281,10 +2276,9 @@ void nmethod::check_all_dependencies(DepChange& changes) {
       for (Dependencies::DepStream deps(nm); deps.next(); ) {
         // Construct abstraction of a dependency.
         DependencySignature* current_sig = new DependencySignature(deps);
-
-        // Determine if dependency is already checked. table->put(...) returns
-        // 'true' if the dependency is added (i.e., was not in the hashtable).
-        if (table->put(*current_sig, 1)) {
+        // Determine if 'deps' is already checked. table->add() returns
+        // 'true' if the dependency was added (i.e., was not in the hashtable).
+        if (table->add(current_sig)) {
           if (deps.check_dependency() != NULL) {
             // Dependency checking failed. Print out information about the failed
             // dependency and finally fail with an assert. We can fail here, since

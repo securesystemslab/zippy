@@ -87,9 +87,8 @@ void ciMethodData::load_extra_data() {
   DataLayout* dp_dst  = extra_data_base();
   for (;; dp_src = MethodData::next_extra(dp_src), dp_dst = MethodData::next_extra(dp_dst)) {
     assert(dp_src < end_src, "moved past end of extra data");
-    // New traps in the MDO can be added as we translate the copy so
-    // look at the entries in the copy.
-    switch(dp_dst->tag()) {
+    assert(dp_src->tag() == dp_dst->tag(), err_msg("should be same tags %d != %d", dp_src->tag(), dp_dst->tag()));
+    switch(dp_src->tag()) {
     case DataLayout::speculative_trap_data_tag: {
       ciSpeculativeTrapData* data_dst = new ciSpeculativeTrapData(dp_dst);
       SpeculativeTrapData* data_src = new SpeculativeTrapData(dp_src);
@@ -103,7 +102,7 @@ void ciMethodData::load_extra_data() {
       // An empty slot or ArgInfoData entry marks the end of the trap data
       return;
     default:
-      fatal(err_msg("bad tag = %d", dp_dst->tag()));
+      fatal(err_msg("bad tag = %d", dp_src->tag()));
     }
   }
 }

@@ -190,6 +190,12 @@ public:
   void set_header(intptr_t value) {
     _header._bits = value;
   }
+  bool atomic_set_header(intptr_t value) {
+    if (Atomic::cmpxchg_ptr(value, (volatile intptr_t*)&_header._bits, 0) == 0) {
+      return true;
+    }
+    return false;
+  }
   intptr_t header() {
     return _header._bits;
   }
@@ -2137,12 +2143,10 @@ private:
   // Cached hint for bci_to_dp and bci_to_data
   int _hint_di;
 
-  Mutex _extra_data_lock;
-
   MethodData(methodHandle method, int size, TRAPS);
 public:
   static MethodData* allocate(ClassLoaderData* loader_data, methodHandle method, TRAPS);
-  MethodData() : _extra_data_lock(Monitor::leaf, "MDO extra data lock") {}; // For ciMethodData
+  MethodData() {}; // For ciMethodData
 
   bool is_methodData() const volatile { return true; }
   void initialize(bool for_reprofile = false);
@@ -2261,7 +2265,7 @@ private:
   // What is the index of the first data entry?
   int first_di() const { return 0; }
 
-  ProfileData* bci_to_extra_data_helper(int bci, Method* m, DataLayout*& dp, bool concurrent);
+  ProfileData* bci_to_extra_data_helper(int bci, Method* m, DataLayout*& dp);
   // Find or create an extra ProfileData:
   ProfileData* bci_to_extra_data(int bci, Method* m, bool create_if_missing);
 

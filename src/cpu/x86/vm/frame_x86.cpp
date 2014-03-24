@@ -687,7 +687,6 @@ intptr_t* frame::interpreter_frame_tos_at(jint offset) const {
 
 void frame::describe_pd(FrameValues& values, int frame_no) {
   if (is_interpreted_frame()) {
-#ifndef CC_INTERP
     DESCRIBE_FP_OFFSET(interpreter_frame_sender_sp);
     DESCRIBE_FP_OFFSET(interpreter_frame_last_sp);
     DESCRIBE_FP_OFFSET(interpreter_frame_method);
@@ -696,7 +695,6 @@ void frame::describe_pd(FrameValues& values, int frame_no) {
     DESCRIBE_FP_OFFSET(interpreter_frame_locals);
     DESCRIBE_FP_OFFSET(interpreter_frame_bcx);
     DESCRIBE_FP_OFFSET(interpreter_frame_initial_sp);
-#endif
   }
 }
 #endif

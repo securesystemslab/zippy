@@ -55,7 +55,6 @@ inline address Assembler::emit_addr(const address addr) {
   return start;
 }
 
-#if !defined(ABI_ELFv2)
 // Emit a function descriptor with the specified entry point, TOC, and
 // ENV. If the entry point is NULL, the descriptor will point just
 // past the descriptor.
@@ -74,7 +73,6 @@ inline address Assembler::emit_fd(address entry, address toc, address env) {
 
   return (address)fd;
 }
-#endif
 
 // Issue an illegal instruction. 0 is guaranteed to be an illegal instruction.
 inline void Assembler::illtrap() { Assembler::emit_int32(0); }

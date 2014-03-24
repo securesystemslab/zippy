@@ -304,13 +304,10 @@ void GenCollectorPolicy::initialize_flags() {
   }
 
   // Now take the actual NewSize into account. We will silently increase NewSize
-  // if the user specified a smaller or unaligned value.
+  // if the user specified a smaller value.
   smallest_new_size = MAX2(smallest_new_size, (uintx)align_size_down(NewSize, _gen_alignment));
   if (smallest_new_size != NewSize) {
-    // Do not use FLAG_SET_ERGO to update NewSize here, since this will override
-    // if NewSize was set on the command line or not. This information is needed
-    // later when setting the initial and minimum young generation size.
-    NewSize = smallest_new_size;
+    FLAG_SET_ERGO(uintx, NewSize, smallest_new_size);
   }
   _initial_gen0_size = NewSize;
 

@@ -1709,8 +1709,7 @@ void Arguments::set_heap_size() {
       // HeapBaseMinAddress can be greater than default but not less than.
       if (!FLAG_IS_DEFAULT(HeapBaseMinAddress)) {
         if (HeapBaseMinAddress < DefaultHeapBaseMinAddress) {
-          // matches compressed oops printing flags
-          if (PrintCompressedOopsMode || (PrintMiscellaneous && Verbose)) {
+          if (PrintMiscellaneous && Verbose) {  // matches compressed oops printing flags
             jio_fprintf(defaultStream::error_stream(),
                         "HeapBaseMinAddress must be at least " UINTX_FORMAT
                         " (" UINTX_FORMAT "G) which is greater than value given "
@@ -2439,11 +2438,9 @@ bool Arguments::check_vm_args_consistency() {
 
   status &= verify_interval(NmethodSweepFraction, 1, ReservedCodeCacheSize/K, "NmethodSweepFraction");
   status &= verify_interval(NmethodSweepActivity, 0, 2000, "NmethodSweepActivity");
-  status &= verify_interval(CodeCacheMinBlockLength, 1, 100, "CodeCacheMinBlockLength");
-  status &= verify_interval(CodeCacheSegmentSize, 1, 1024, "CodeCacheSegmentSize");
 
   // TieredCompilation needs at least 2 compiler threads.
-  const int num_min_compiler_threads = (TieredCompilation && (TieredStopAtLevel >= CompLevel_full_optimization)) ? NOT_GRAAL(2) GRAAL_ONLY(1) : 1;
+  const int num_min_compiler_threads = (TieredCompilation) ? NOT_GRAAL(2) GRAAL_ONLY(1) : 1;
   status &=verify_min_value(CICompilerCount, num_min_compiler_threads, "CICompilerCount");
 
   return status;
