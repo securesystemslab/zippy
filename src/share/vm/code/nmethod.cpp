@@ -105,7 +105,6 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
-#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 struct java_nmethod_stats_struct {
@@ -233,7 +232,6 @@ static void note_java_nmethod(nmethod* nm) {
     unknown_java_nmethod_stats.note_nmethod(nm);
   }
 }
-#endif
 
 //---------------------------------------------------------------------------------
 
@@ -536,7 +534,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
                                             code_buffer, frame_size,
                                             basic_lock_owner_sp_offset,
                                             basic_lock_sp_offset, oop_maps);
-    NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
+    if (nm != NULL)  note_java_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -572,7 +570,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
     nm = new (nmethod_size) nmethod(method(), nmethod_size,
                                     &offsets, code_buffer, frame_size);
 
-    NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
+    if (nm != NULL)  note_java_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -652,7 +650,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         // record this nmethod as dependent on this klass
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
-      NOT_PRODUCT(if (nm != NULL)  note_java_nmethod(nm));
+      if (nm != NULL)  note_java_nmethod(nm);
       if (PrintAssembly || CompilerOracle::has_option_string(method, "PrintAssembly")) {
         Disassembler::decode(nm);
       }
@@ -3058,6 +3056,7 @@ void nmethod::print_handler_table() {
 void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
+#endif // PRODUCT
 
 void nmethod::print_statistics() {
   ttyLocker ttyl;
@@ -3078,4 +3077,3 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
-#endif // PRODUCT
