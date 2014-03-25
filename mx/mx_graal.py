@@ -790,7 +790,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line: len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
+def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAllVMArgs=True):
     """
     Partitions a command line into a leading sequence of HotSpot VM options and the rest.
     """
@@ -811,7 +811,10 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
                 remainder = args[i:]
                 return vmArgs, remainder
 
-    return args, []
+    if defaultAllVMArgs:
+        return args, []
+    else:
+        return [], args
 
 def _run_tests(args, harness, annotations, testfile):
 
