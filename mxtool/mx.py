@@ -2867,20 +2867,41 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if not exists(settingsDir):
             os.mkdir(settingsDir)
 
+        # collect the defaults from mxtool
+        defaultEclipseSettingsDir = join(dirname(__file__), 'eclipse-settings')
+        esdict = {}
+        if exists(defaultEclipseSettingsDir):
+            for name in os.listdir(defaultEclipseSettingsDir):
+                if isfile(join(defaultEclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(defaultEclipseSettingsDir, name))
+
+        # check for suite overrides
         eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
-                if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
-                    continue
-                path = join(eclipseSettingsDir, name)
-                if isfile(path):
-                    with open(join(eclipseSettingsDir, name)) as f:
-                        content = f.read()
-                    content = content.replace('${javaCompliance}', str(p.javaCompliance))
-                    if len(p.annotation_processors()) > 0:
-                        content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
-                    update_file(join(settingsDir, name), content)
-                    files.append(join(settingsDir, name))
+                if isfile(join(eclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(eclipseSettingsDir, name))
+
+        # check for project overrides
+        projectSettingsDir = join(p.dir, 'eclipse-settings')
+        if exists(projectSettingsDir):
+            for name in os.listdir(projectSettingsDir):
+                if isfile(join(projectSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(projectSettingsDir, name))
+
+        # copy a possibly modified file to the project's .settings directory
+        for name, path in esdict.iteritems():
+            # ignore this file altogether if this project has no annotation processors
+            if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
+                continue
+
+            with open(path) as f:
+                content = f.read()
+            content = content.replace('${javaCompliance}', str(p.javaCompliance))
+            if len(p.annotation_processors()) > 0:
+                content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
+            update_file(join(settingsDir, name), content)
+            files.append(join(settingsDir, name))
 
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
