@@ -1148,6 +1148,11 @@ def gate(args, gate_body=_basic_gate_body):
             t.abort('Checkstyle warnings were found')
         tasks.append(t.stop())
 
+        t = Task('FindBugs')
+        if findbugs([]) != 0:
+            t.abort('FindBugs warnings were found')
+        tasks.append(t.stop())
+
         if exists('jacoco.exec'):
             os.unlink('jacoco.exec')
 
