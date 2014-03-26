@@ -61,7 +61,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, deps):
+    def __init__(self, suite, name, path, deps, exclDeps):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -69,6 +69,11 @@ class Distribution:
             self.path = join(suite.dir, self.path)
         self.deps = deps
         self.update_listeners = set()
+        self.exclDeps = exclDeps
+
+    def sorted_deps(self, includeLibs=False):
+        excl = [dependency(d) for d in self.exclDeps]
+        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
@@ -614,7 +619,8 @@ class Suite:
         for name, attrs in distsMap.iteritems():
             path = attrs.pop('path')
             deps = pop_list(attrs, 'dependencies')
-            d = Distribution(self, name, path, deps)
+            exclDeps = pop_list(attrs, 'excludeDependencies')
+            d = Distribution(self, name, path, deps, exclDeps)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -2128,7 +2134,7 @@ def archive(args):
 
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
-                for dep in sorted_deps(d.deps, includeLibs=True):
+                for dep in d.sorted_deps(includeLibs=True):
                     if dep.isLibrary():
                         l = dep
                         # merge library jar into distribution jar
@@ -2747,7 +2753,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
     projToDist = dict()
     for dist in _dists.values():
-        distDeps = sorted_deps(dist.deps)
+        distDeps = dist.sorted_deps()
         for p in distDeps:
             projToDist[p.name] = (dist, [dep.name for dep in distDeps])
 
