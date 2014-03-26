@@ -1712,12 +1712,41 @@ def findbugs(args):
     os.unlink(findbugsResults)
     return exitcode
 
+def checkheaders(args):
+    """check Java source headers against any required pattern"""
+    failures = {}
+    for p in mx.projects():
+        if p.native:
+            continue
+
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+        dom = xml.dom.minidom.parse(csConfig)
+        for module in dom.getElementsByTagName('module'):
+            if module.getAttribute('name') == 'RegexpHeader':
+                for prop in module.getElementsByTagName('property'):
+                    if prop.getAttribute('name') == 'header':
+                        value = prop.getAttribute('value')
+                        matcher = re.compile(value, re.MULTILINE)
+                        for sourceDir in p.source_dirs():
+                            for root, _, files in os.walk(sourceDir):
+                                for name in files:
+                                    if name.endswith('.java') and name != 'package-info.java':
+                                        f = join(root, name)
+                                        with open(f) as fp:
+                                            content = fp.read()
+                                        if not matcher.match(content):
+                                            failures[f] = csConfig
+    for n, v in failures.iteritems():
+        mx.log('{}: header does not match RegexpHeader defined in {}'.format(n, v))
+    return len(failures)
+
 def mx_init(suite):
     commands = {
         'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
+        'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
