@@ -122,7 +122,7 @@ class Project(Dependency):
         jdk = java(self.javaCompliance)
         if jdk is None and self.javaCompliance < java().javaCompliance:
             abort('Cannot find ' + str(self.javaCompliance) + ' JDK required by ' + name + '. ' +
-                  'Specify it with --extra-java-homes option or EXTRA_JAVA_HOMES environment variable.')  
+                  'Specify it with --extra-java-homes option or EXTRA_JAVA_HOMES environment variable.')
 
         # Create directories for projects that don't yet exist
         if not exists(d):
@@ -1410,7 +1410,7 @@ class JavaConfig:
 
     def __hash__(self):
         return hash(self.jdk)
-    
+
     def __cmp__(self, other):
         if isinstance(other, JavaConfig):
             return cmp(self.javaCompliance, other.javaCompliance)
@@ -3263,10 +3263,10 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
 
         jdk = java(p.javaCompliance)
 
-        if not jdk:        
+        if not jdk:
             log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
             continue
-        
+
         jdks.add(jdk)
 
         out = XMLDoc()
