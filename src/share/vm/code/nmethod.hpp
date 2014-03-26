@@ -694,7 +694,7 @@ public:
 
   // Prints a comment for one native instruction (reloc info, pc desc)
   void print_code_comment_on(outputStream* st, int column, address begin, address end);
-  static void print_statistics()                  PRODUCT_RETURN;
+  static void print_statistics();
 
   // Compiler task identification.  Note that all OSR methods
   // are numbered in an independent sequence if CICountOSR is true,

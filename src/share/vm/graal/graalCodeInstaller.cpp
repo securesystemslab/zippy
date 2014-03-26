@@ -513,6 +513,8 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       address dest = _constants->start() + CompilationResult_Site::pcOffset(patch);
       assert(!OopData::compressed(data), err_msg("unexpected compressed oop in data section"));
       _constants->relocate(dest, oop_Relocation::spec(oop_index));
+    } else {
+      ShouldNotReachHere();
     }
   }
 

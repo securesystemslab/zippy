@@ -79,7 +79,8 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.VersionSpec('1.7.0_04')
+# @CallerSensitive introduced in 7u25
+_minVersion = mx.VersionSpec('1.7.0_25')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -647,11 +648,17 @@ def build(args, vm=None):
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
 
             # extract latest release tag for graal
-            tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            try:
+                tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            except:
+                # not a mercurial repository or hg commands are not available.
+                tags = None
+
             if tags:
                 # extract the most recent tag
                 tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
                 env.setdefault('USER_RELEASE_SUFFIX', tag)
+
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
@@ -784,7 +791,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line: len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
+def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAllVMArgs=True):
     """
     Partitions a command line into a leading sequence of HotSpot VM options and the rest.
     """
@@ -805,7 +812,10 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
                 remainder = args[i:]
                 return vmArgs, remainder
 
-    return args, []
+    if defaultAllVMArgs:
+        return args, []
+    else:
+        return [], args
 
 def _run_tests(args, harness, annotations, testfile):
 
@@ -1137,6 +1147,11 @@ def gate(args, gate_body=_basic_gate_body):
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
+        tasks.append(t.stop())
+
+        t = Task('FindBugs')
+        if findbugs([]) != 0:
+            t.abort('FindBugs warnings were found')
         tasks.append(t.stop())
 
         if exists('jacoco.exec'):

@@ -288,10 +288,11 @@
   NOT_LP64(  do_alias(intptr_signature,               int_signature)  )                           \
   LP64_ONLY( do_alias(intptr_signature,               long_signature) )                           \
   template(selectAlternative_signature, "(ZLjava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodHandle;)Ljava/lang/invoke/MethodHandle;") \
-                                                                                                                                       \
-  /* Support for Graal */                                                                                                              \
-  template(java_util_BitSet,	                                       "java/util/BitSet")                                               \
-  /* graal.hotspot */                                                                                                                  \
+                                                                                                                                      \
+  /* Support for Graal */                                                                                                             \
+  template(com_oracle_graal_compiler_CompilerThread,                 "com/oracle/graal/compiler/CompilerThread")                      \
+  template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
+  /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
@@ -314,7 +315,6 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
-  template(com_oracle_graal_hotspot_CompilerThread,                  "com/oracle/graal/hotspot/CompilerThread")                       \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
