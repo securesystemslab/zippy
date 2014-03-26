@@ -1695,8 +1695,17 @@ def findbugs(args):
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
     outputDirs = [p.output_dir() for p in nonTestProjects]
     findbugsResults = join(_graal_home, 'findbugs.results')
-    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
-                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+    
+    cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml')]
+    for s in mx.suites():
+        filt = join(s.dir, 'findbugsExcludeFilter.xml')
+        if exists(filt):
+            cmd.append('-exclude')
+            cmd.append(filt)
+    if sys.stdout.isatty():
+        cmd.append('-progress')
+    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs 
+    exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
             mx.log(fp.read())
