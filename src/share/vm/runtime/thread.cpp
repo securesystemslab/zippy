@@ -1445,6 +1445,8 @@ void JavaThread::initialize() {
   clear_must_deopt_id();
   set_monitor_chunks(NULL);
   set_next(NULL);
+  set_gpu_exception_bci(0);
+  set_gpu_exception_method(NULL);  
   set_thread_state(_thread_new);
 #if INCLUDE_NMT
   set_recorder(NULL);

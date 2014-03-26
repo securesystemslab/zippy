@@ -23,12 +23,12 @@
  */
 
 #include "precompiled.hpp"
-#include "hsailKernelArguments.hpp"
+#include "hsailArgumentsBase.hpp"
 #include "runtime/javaCalls.hpp"
 
 
 // Get next java argument
-oop HSAILKernelArguments::next_arg(BasicType expectedType) {
+oop HSAILArgumentsBase::next_arg(BasicType expectedType) {
   assert(_index < _args->length(), "out of bounds");
 
   oop arg = ((objArrayOop) (_args))->obj_at(_index++);
@@ -38,7 +38,7 @@ oop HSAILKernelArguments::next_arg(BasicType expectedType) {
   return arg;
 }
 
-void HSAILKernelArguments::do_bool() {
+void HSAILArgumentsBase::do_bool() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_BOOLEAN), "arg type mismatch");
@@ -46,23 +46,21 @@ void HSAILKernelArguments::do_bool() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = Hsail::_okra_push_boolean(_kernel, jValue.z);
-  assert(pushed == true, "arg push failed");
+  pushBool(jValue.z);
 }
 
-void HSAILKernelArguments::do_byte() {
+void HSAILArgumentsBase::do_byte() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_BYTE), "arg type mismatch");
   
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
-  
-  bool pushed = Hsail::_okra_push_byte(_kernel, jValue.b);
-  assert(pushed == true, "arg push failed");
+
+  pushByte(jValue.b);
 }
 
-void HSAILKernelArguments::do_double() {
+void HSAILArgumentsBase::do_double() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_DOUBLE), "arg type mismatch");
@@ -70,13 +68,12 @@ void HSAILKernelArguments::do_double() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_double, _index=%d, value = %e", _index - 1, jValue.d);
+    tty->print_cr("[HSAIL] %s::do_double, _index=%d, value = %e", argsBuilderName(), _index - 1, jValue.d);
   }  
-  bool pushed = Hsail::_okra_push_double(_kernel, jValue.d);
-  assert(pushed == true, "arg push failed");
+  pushDouble(jValue.d);
 }
 
-void HSAILKernelArguments::do_float() {
+void HSAILArgumentsBase::do_float() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_FLOAT), "arg type mismatch");
@@ -84,37 +81,34 @@ void HSAILKernelArguments::do_float() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_float, _index=%d, value = %f", _index - 1, jValue.f);
-  }    
-  bool pushed = Hsail::_okra_push_float(_kernel, jValue.f);
-  assert(pushed == true, "float push failed");
+    tty->print_cr("[HSAIL] %s::do_float, _index=%d, value = %f", argsBuilderName(), _index - 1, jValue.f);
+  }  
+  pushFloat(jValue.f);
 }
 
-void HSAILKernelArguments::do_int() {
-  // The last int is the iteration variable in an IntStream, but we don't pass it
-  // since we use the HSAIL workitemid in place of that int value
+void HSAILArgumentsBase::do_int() {
+  // If the last parameter is an int, it is handled in a special way
+  // For kernel arguments we don't pass it since we use the HSAIL workitemid in place of that int value
+  // For javaCall arguments we pass the actual workitemid
   if (isLastParameter()) {
-    if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] HSAILKernelArguments::not pushing trailing int");
-    }
+    handleFinalIntParameter();
     return;
   }
 
-  // Get the boxed int
+  // not the final int parameter, Get the boxed int
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_INT), "arg type mismatch");
   
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_int, _index=%d, value = %d", _index - 1, jValue.i);
+    tty->print_cr("[HSAIL] %s::do_int, _index=%d, value = %d", argsBuilderName(), _index - 1, jValue.i);
   }    
   
-  bool pushed = Hsail::_okra_push_int(_kernel, jValue.i);
-  assert(pushed == true, "arg push failed");
+  pushInt(jValue.i);
 }
 
-void HSAILKernelArguments::do_long() {
+void HSAILArgumentsBase::do_long() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
   assert(java_lang_boxing_object::is_instance(arg, T_LONG), "arg type mismatch");
@@ -122,56 +116,60 @@ void HSAILKernelArguments::do_long() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_long, _index=%d, value = %d", _index - 1, jValue.j);
+    tty->print_cr("[HSAIL] %s::do_long, _index=%d, value = %d", argsBuilderName(), _index - 1, jValue.j);
   }    
-  
-  bool pushed = Hsail::_okra_push_long(_kernel, jValue.j);
-  assert(pushed == true, "arg push failed");  
+
+  pushLong(jValue.j);
 }
 
-void HSAILKernelArguments::do_array(int begin, int end) {
+void HSAILArgumentsBase::do_array(int begin, int end) {
   oop arg = _args->obj_at(_index++);
-  assert(arg->is_array(), "arg type mismatch");
+  if (arg == NULL) {
+      recordNullObjectParameter();
+  } else {
+      assert(arg->is_array(), "arg type mismatch");
+  }
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_array, _index=%d, 0x%08x, is a %s", _index - 1, (address) arg, arg->klass()->external_name());
+    tty->print_cr("[HSAIL] %s::do_array, _index=%d, 0x%08x, is a %s", argsBuilderName(), _index - 1, (address) arg,
+                  arg == NULL ? "null" : arg->klass()->external_name());
   }
     
-  bool pushed = Hsail::_okra_push_object(_kernel, arg);
-  assert(pushed == true, "arg push failed");  
+  pushObject(arg);
 }
 
-void HSAILKernelArguments::do_object() {
-  
+void HSAILArgumentsBase::do_object() {
   bool isLastParam = isLastParameter();  // determine this before incrementing _index
 
   oop arg = _args->obj_at(_index++);
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] %s::do_object, _index=%d, 0x%08x is a %s", argsBuilderName(), _index - 1, (address) arg,
+                  arg == NULL ? "null" : arg->klass()->external_name());
+  }
+  if (arg == NULL) {
+      recordNullObjectParameter();
+  }
 
   // check if this is last arg in signature
-  // an object as last parameter requires an object stream source array to be passed
+  // an object as last parameter requires special handling
   if (isLastParam) {
     if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] HSAILKernelArguments::trailing object ref should be object source array ref");
+      tty->print_cr("[HSAIL] %s, trailing object ref should be object source array ref", argsBuilderName());
     }
     assert(arg->is_objArray(), "arg type mismatch");
+    handleFinalObjParameter(arg);
+  } else {
+    // not the final parameter, just push
+    pushObject(arg);
   }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, _index=%d, 0x%08x is a %s", _index - 1, (address) arg, arg->klass()->external_name());
-  }
-    
-  bool pushed = Hsail::_okra_push_object(_kernel, arg);
-  assert(pushed == true, "arg push failed");  
 }
 
-void HSAILKernelArguments::do_object(int begin, int end) {
-  if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] HSAILKernelArguments::do_object(int begin, int end), begin=%d, end=%d.", begin, end);
-  }
+void HSAILArgumentsBase::do_object(int begin, int end) {
   do_object();
 }
 
-void HSAILKernelArguments::do_void() {
+void HSAILArgumentsBase::do_void() {
     return;
 }
 
 // TODO implement other do_*
+

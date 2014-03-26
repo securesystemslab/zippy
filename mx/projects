@@ -125,7 +125,7 @@ project@com.oracle.graal.amd64@workingSets=Graal,AMD64
 # graal.ptx
 project@com.oracle.graal.ptx@subDir=graal
 project@com.oracle.graal.ptx@sourceDirs=src
-project@com.oracle.graal.ptx@dependencies=com.oracle.graal.api.code
+project@com.oracle.graal.ptx@dependencies=com.oracle.graal.gpu
 project@com.oracle.graal.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.ptx@javaCompliance=1.8
 project@com.oracle.graal.ptx@workingSets=Graal,PTX
@@ -568,10 +568,17 @@ project@com.oracle.graal.asm.amd64.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64.test@javaCompliance=1.8
 project@com.oracle.graal.asm.amd64.test@workingSets=Graal,Assembler,AMD64,Test
 
+# graal.gpu
+project@com.oracle.graal.gpu@subDir=graal
+project@com.oracle.graal.gpu@sourceDirs=src
+project@com.oracle.graal.gpu@dependencies=com.oracle.graal.api.code,com.oracle.graal.nodes
+project@com.oracle.graal.gpu@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.gpu@javaCompliance=1.8
+
 # graal.hsail
 project@com.oracle.graal.hsail@subDir=graal
 project@com.oracle.graal.hsail@sourceDirs=src
-project@com.oracle.graal.hsail@dependencies=com.oracle.graal.graph
+project@com.oracle.graal.hsail@dependencies=com.oracle.graal.graph,com.oracle.graal.gpu
 project@com.oracle.graal.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hsail@javaCompliance=1.8
 

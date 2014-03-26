@@ -338,7 +338,6 @@
   template(com_oracle_graal_api_code_CompilationResult_Mark,         "com/oracle/graal/api/code/CompilationResult$Mark")              \
   template(com_oracle_graal_api_code_CompilationResult_Infopoint,    "com/oracle/graal/api/code/CompilationResult$Infopoint")         \
   template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
-  template(com_oracle_graal_api_code_ExternalCompilationResult,      "com/oracle/graal/api/code/ExternalCompilationResult")           \
   template(com_oracle_graal_api_code_InfopointReason,                "com/oracle/graal/api/code/InfopointReason")                     \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
@@ -350,6 +349,8 @@
   template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(com_oracle_graal_api_code_SpeculationLog,                 "com/oracle/graal/api/code/SpeculationLog")                      \
+  /* graal.gpu */                                                                                                                     \
+  template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
   /* graal.truffle */                                                                                                                 \
   template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
   template(startCompiler_name,                    "startCompiler")                                                                    \

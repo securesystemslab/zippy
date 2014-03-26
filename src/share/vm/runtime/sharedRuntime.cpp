@@ -1171,7 +1171,6 @@ methodHandle SharedRuntime::find_callee_method(JavaThread* thread, TRAPS) {
     assert(fr.is_entry_frame(), "must be");
     // fr is now pointing to the entry frame.
     callee_method = methodHandle(THREAD, fr.entry_frame_call_wrapper()->callee_method());
-    assert(fr.entry_frame_call_wrapper()->receiver() == NULL || !callee_method->is_static(), "non-null receiver for static call??");
   } else {
     Bytecodes::Code bc;
     CallInfo callinfo;
