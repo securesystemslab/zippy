@@ -34,8 +34,8 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * It only catches BreakException without rethrowing it. <br>
- * Therefore, we have to remove the parent BreakTargetNode if there is one.
+ * It only catches BreakException without rethrowing it. <br>Therefore, we have to remove the parent
+ * BreakTargetNode if there is one.
  */
 public class GeneratorWhileNode extends WhileNode {
 

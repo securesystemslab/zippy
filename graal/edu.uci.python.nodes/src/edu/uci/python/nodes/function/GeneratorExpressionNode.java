@@ -35,7 +35,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorExpressionDefinitionNode extends PNode {
+public class GeneratorExpressionNode extends PNode {
 
     // name = "generator_exp:" + line number of the generator;
     private final String name;
@@ -51,7 +51,7 @@ public class GeneratorExpressionDefinitionNode extends PNode {
     @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionDefinitionNode(String name, PythonContext context, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
+    public GeneratorExpressionNode(String name, PythonContext context, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.name = name;
         this.context = context;
@@ -128,9 +128,9 @@ public class GeneratorExpressionDefinitionNode extends PNode {
         return name;
     }
 
-    public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionDefinitionNode implements PythonCallable {
+    public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionNode implements PythonCallable {
 
-        public CallableGeneratorExpressionDefinition(GeneratorExpressionDefinitionNode prev) {
+        public CallableGeneratorExpressionDefinition(GeneratorExpressionNode prev) {
             super(prev.name, prev.context, prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfGeneratorBlockNode, prev.numOfGeneratorForNode);
         }
 

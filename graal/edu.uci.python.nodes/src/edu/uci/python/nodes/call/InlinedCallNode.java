@@ -90,8 +90,8 @@ public abstract class InlinedCallNode extends CallFunctionNoKeywordNode implemen
          * Update {@link GeneratorExpressionDefinitionNode}'s enclosing frame to the new
          * {@link FrameDescriptor}.
          */
-        if (node instanceof GeneratorExpressionDefinitionNode) {
-            GeneratorExpressionDefinitionNode genexp = (GeneratorExpressionDefinitionNode) node;
+        if (node instanceof GeneratorExpressionNode) {
+            GeneratorExpressionNode genexp = (GeneratorExpressionNode) node;
             genexp.setEnclosingFrameDescriptor(frameDescriptor);
         }
     }

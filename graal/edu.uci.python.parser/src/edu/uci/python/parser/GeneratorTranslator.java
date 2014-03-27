@@ -90,7 +90,7 @@ public class GeneratorTranslator {
             }
         }
 
-        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(true);
             NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
@@ -194,7 +194,7 @@ public class GeneratorTranslator {
             yield.replace(ParallelYieldNode.create(yield.getRhs()));
         }
 
-        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(false);
         }
 

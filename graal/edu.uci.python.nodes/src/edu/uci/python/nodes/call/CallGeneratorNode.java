@@ -130,7 +130,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
          * frame.
          */
         RootNode enclosingRoot = getRootNode();
-        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(false);
         }
 
