@@ -3016,6 +3016,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshF
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output', 'value': consoleOn})
     launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
     launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 'value' : java(p.javaCompliance).jdk})
+    launchOut.element('mapEntry', {'key' : 'EXTRA_JAVA_HOMES', 'value' : _opts.extra_java_homes})
     launchOut.close('mapAttribute')
 
     if refresh:
