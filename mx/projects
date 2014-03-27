@@ -145,7 +145,7 @@ project@com.oracle.graal.sparc@workingSets=Graal,SPARC
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer, com.oracle.graal.baseline
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer,com.oracle.graal.baseline
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
@@ -487,7 +487,7 @@ project@com.oracle.graal.java@workingSets=Graal,Java
 # graal.baseline
 project@com.oracle.graal.baseline@subDir=graal
 project@com.oracle.graal.baseline@sourceDirs=src
-project@com.oracle.graal.baseline@dependencies=com.oracle.graal.java,com.oracle.graal.lir,com.oracle.graal.compiler
+project@com.oracle.graal.baseline@dependencies=com.oracle.graal.compiler,com.oracle.graal.java
 project@com.oracle.graal.baseline@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.baseline@javaCompliance=1.8
 project@com.oracle.graal.baseline@workingSets=Graal,Java
