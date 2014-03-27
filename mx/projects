@@ -54,7 +54,7 @@ com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.hsail
-distribution@GRAAL@excludeDependencies=FINDBUGS
+distribution@GRAAL@excludeLibs=FINDBUGS
 
 # graal.api.runtime
 project@com.oracle.graal.api.runtime@subDir=graal
