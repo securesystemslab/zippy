@@ -946,6 +946,17 @@ class JavaThread: public Thread {
   volatile address _exception_handler_pc;        // PC for handler of exception
   volatile int     _is_method_handle_return;     // true (== 1) if the current exception PC is a MethodHandle call site.
 
+  // Record the method and bci from a gpu kernel exception so
+  // it can be added into the exception stack trace
+  jint    _gpu_exception_bci;
+  Method* _gpu_exception_method;
+ public:
+  void set_gpu_exception_bci(jint bci)           { _gpu_exception_bci = bci; } 
+  jint get_gpu_exception_bci()                   { return _gpu_exception_bci; }
+  void set_gpu_exception_method(Method* method)  { _gpu_exception_method = method; }
+  Method* get_gpu_exception_method()             { return _gpu_exception_method; }
+  
+ private:  
   // support for JNI critical regions
   jint    _jni_active_critical;                  // count of entries into JNI critical region
 

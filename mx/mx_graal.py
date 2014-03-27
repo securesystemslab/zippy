@@ -584,7 +584,7 @@ def build(args, vm=None):
         if not exists(vmDir):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
-            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
         def filterXusage(line):
@@ -1149,6 +1149,11 @@ def gate(args, gate_body=_basic_gate_body):
             t.abort('Checkstyle warnings were found')
         tasks.append(t.stop())
 
+        t = Task('Checkheaders')
+        if checkheaders([]) != 0:
+            t.abort('Checkheaders warnings were found')
+        tasks.append(t.stop())
+
         t = Task('FindBugs')
         if findbugs([]) != 0:
             t.abort('FindBugs warnings were found')
@@ -1695,13 +1700,45 @@ def findbugs(args):
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
     outputDirs = [p.output_dir() for p in nonTestProjects]
     findbugsResults = join(_graal_home, 'findbugs.results')
-    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
-                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+
+    cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
+    if sys.stdout.isatty():
+        cmd.append('-progress')
+    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs
+    exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
             mx.log(fp.read())
     os.unlink(findbugsResults)
     return exitcode
+
+def checkheaders(args):
+    """check Java source headers against any required pattern"""
+    failures = {}
+    for p in mx.projects():
+        if p.native:
+            continue
+
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+        dom = xml.dom.minidom.parse(csConfig)
+        for module in dom.getElementsByTagName('module'):
+            if module.getAttribute('name') == 'RegexpHeader':
+                for prop in module.getElementsByTagName('property'):
+                    if prop.getAttribute('name') == 'header':
+                        value = prop.getAttribute('value')
+                        matcher = re.compile(value, re.MULTILINE)
+                        for sourceDir in p.source_dirs():
+                            for root, _, files in os.walk(sourceDir):
+                                for name in files:
+                                    if name.endswith('.java') and name != 'package-info.java':
+                                        f = join(root, name)
+                                        with open(f) as fp:
+                                            content = fp.read()
+                                        if not matcher.match(content):
+                                            failures[f] = csConfig
+    for n, v in failures.iteritems():
+        mx.log('{}: header does not match RegexpHeader defined in {}'.format(n, v))
+    return len(failures)
 
 def mx_init(suite):
     commands = {
@@ -1709,6 +1746,7 @@ def mx_init(suite):
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
+        'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],

@@ -61,7 +61,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, deps):
+    def __init__(self, suite, name, path, deps, excludedLibs):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -69,6 +69,14 @@ class Distribution:
             self.path = join(suite.dir, self.path)
         self.deps = deps
         self.update_listeners = set()
+        self.excludedLibs = excludedLibs
+
+    def sorted_deps(self, includeLibs=False):
+        try:
+            excl = [library(d) for d in self.excludedLibs]
+        except SystemExit as e:
+            abort('invalid excluded library for {} distribution: {}'.format(self.name, e))
+        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
@@ -614,7 +622,8 @@ class Suite:
         for name, attrs in distsMap.iteritems():
             path = attrs.pop('path')
             deps = pop_list(attrs, 'dependencies')
-            d = Distribution(self, name, path, deps)
+            exclLibs = pop_list(attrs, 'excludeLibs')
+            d = Distribution(self, name, path, deps, exclLibs)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -908,6 +917,8 @@ def library(name, fatalIfMissing=True):
     """
     l = _libs.get(name)
     if l is None and fatalIfMissing:
+        if _projects.get(name):
+            abort(name + ' is a project, not a library')
         abort('library named ' + name + ' not found')
     return l
 
@@ -1526,6 +1537,7 @@ def _send_sigquit():
             _kill_process_group(p.pid, sig=signal.SIGQUIT)
         time.sleep(0.1)
 
+
 def abort(codeOrMessage):
     """
     Aborts the program with a SystemExit exception.
@@ -2128,7 +2140,7 @@ def archive(args):
 
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
-                for dep in sorted_deps(d.deps, includeLibs=True):
+                for dep in d.sorted_deps(includeLibs=True):
                     if dep.isLibrary():
                         l = dep
                         # merge library jar into distribution jar
@@ -2747,7 +2759,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
     projToDist = dict()
     for dist in _dists.values():
-        distDeps = sorted_deps(dist.deps)
+        distDeps = dist.sorted_deps()
         for p in distDeps:
             projToDist[p.name] = (dist, [dep.name for dep in distDeps])
 

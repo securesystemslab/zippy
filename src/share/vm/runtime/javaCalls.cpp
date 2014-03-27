@@ -40,11 +40,13 @@
 #include "runtime/signature.hpp"
 #include "runtime/stubRoutines.hpp"
 #include "runtime/thread.inline.hpp"
+#include "graal/graalJavaAccess.hpp"
+#include "graal/graalCompiler.hpp"
 
 // -----------------------------------------------------
 // Implementation of JavaCallWrapper
 
-JavaCallWrapper::JavaCallWrapper(methodHandle callee_method, Handle receiver, JavaValue* result, TRAPS) {
+JavaCallWrapper::JavaCallWrapper(methodHandle callee_method, JavaValue* result, TRAPS) {
   JavaThread* thread = (JavaThread *)THREAD;
   bool clear_pending_exception = true;
 
@@ -75,10 +77,9 @@ JavaCallWrapper::JavaCallWrapper(methodHandle callee_method, Handle receiver, Ja
   // Make sure to set the oop's after the thread transition - since we can block there. No one is GC'ing
   // the JavaCallWrapper before the entry frame is on the stack.
   _callee_method = callee_method();
-  _receiver = receiver();
 
 #ifdef CHECK_UNHANDLED_OOPS
-  THREAD->allow_unhandled_oop(&_receiver);
+  // THREAD->allow_unhandled_oop(&_receiver);
 #endif // CHECK_UNHANDLED_OOPS
 
   _thread       = (JavaThread *)thread;
@@ -142,7 +143,6 @@ JavaCallWrapper::~JavaCallWrapper() {
 
 
 void JavaCallWrapper::oops_do(OopClosure* f) {
-  f->do_oop((oop*)&_receiver);
   handles()->oops_do(f);
 }
 
@@ -335,14 +335,19 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
 
   CHECK_UNHANDLED_OOPS_ONLY(thread->clear_unhandled_oops();)
 
+#ifdef GRAAL
+  nmethod* nm = args->alternative_target();
+  if (nm == NULL) {
+#endif
   // Verify the arguments
 
   if (CheckJNICalls)  {
     args->verify(method, result->get_type(), thread);
   }
   else debug_only(args->verify(method, result->get_type(), thread));
-
-#ifndef GRAAL
+#ifdef GRAAL
+  }
+#else
   // Ignore call if method is empty
   if (method->is_empty_method()) {
     assert(result->get_type() == T_VOID, "an empty method must return a void value");
@@ -385,9 +390,6 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
   // the call to call_stub, the optimizer produces wrong code.
   intptr_t* result_val_address = (intptr_t*)(result->get_value_addr());
 
-  // Find receiver
-  Handle receiver = (!method->is_static()) ? args->receiver() : Handle();
-
   // When we reenter Java, we need to reenable the yellow zone which
   // might already be disabled when we are in VM.
   if (thread->stack_yellow_zone_disabled()) {
@@ -406,11 +408,15 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
   }
 
 #ifdef GRAAL
-  nmethod* nm = args->alternative_target();
   if (nm != NULL) {
     if (nm->is_alive()) {
       ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->verified_entry_point());
+      oop graalInstalledCode = nm->graal_installed_code();
+      if (graalInstalledCode != NULL && HotSpotNmethod::isExternal(graalInstalledCode)) {
+        entry_point = GraalCompiler::instance()->get_external_deopt_i2c_entry();
+      } else {
       entry_point = method->adapter()->get_i2c_entry();
+      }
     } else {
       THROW(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException());
     }
@@ -418,7 +424,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
 #endif
   
   // do call
-  { JavaCallWrapper link(method, receiver, result, CHECK);
+  { JavaCallWrapper link(method, result, CHECK);
     { HandleMark hm(thread);  // HandleMark used by HandleMarkCleaner
 
       StubRoutines::call_stub()(
