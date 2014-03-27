@@ -584,7 +584,7 @@ def build(args, vm=None):
         if not exists(vmDir):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
-            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
         def filterXusage(line):
