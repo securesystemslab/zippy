@@ -98,7 +98,7 @@ void GraalCompiler::initialize() {
 
     if (UseCompiler) {
       _external_deopt_i2c_entry = create_external_deopt_i2c();
-      bool bootstrap = COMPILERGRAAL_PRESENT(BootstrapGraal) NOT_COMPILERGRAAL(false);
+      bool bootstrap = COMPILERGRAAL_PRESENT(TieredCompilation ? false : BootstrapGraal) NOT_COMPILERGRAAL(false);
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
