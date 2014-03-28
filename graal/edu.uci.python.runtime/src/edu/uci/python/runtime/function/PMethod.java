@@ -63,7 +63,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
          * The following if block is necessary to catch the execution errors and mark that test case
          * as failed in the unit test.
          */
-        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+        if (PythonOptions.CatchZippyExceptionForUnitTesting) {
             if (function.getName().equals("_executeTestPart")) {
                 try {
                     Object[] combined = function.applyKeywordArgs(true, args, keywords);

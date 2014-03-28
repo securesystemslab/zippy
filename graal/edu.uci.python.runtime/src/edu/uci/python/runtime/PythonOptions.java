@@ -77,7 +77,7 @@ public class PythonOptions {
         }
     }
 
-    public static final boolean catchZippyExceptionForUnitTesting = false;
+    public static final boolean CatchZippyExceptionForUnitTesting = false;
 
     private PrintStream standardOut = System.out;
 

@@ -137,7 +137,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         String name = node.getInternalName();
-        if (PythonOptions.catchZippyExceptionForUnitTesting) {
+        if (PythonOptions.CatchZippyExceptionForUnitTesting) {
             /**
              * Some unittest test functions might fail in the translation phase in ZipPy. Therefore,
              * NotCovered is caught here. The result of this test function will be a Fail, and the

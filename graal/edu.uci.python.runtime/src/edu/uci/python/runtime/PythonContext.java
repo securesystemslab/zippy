@@ -78,9 +78,6 @@ public class PythonContext {
     }
 
     public PythonModule createMainModule(String path) {
-        // PythonModule main = new PythonModule("__main__", this);
-        // main.setAttribute("__builtins__", getBuiltins());
-        // return main;
         mainModule = new PythonModule(this, "__main__", path);
         mainModule.setAttribute("__builtins__", getBuiltins());
         return mainModule;
