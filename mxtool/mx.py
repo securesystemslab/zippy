@@ -1949,14 +1949,19 @@ def eclipseformat(args):
         projects = [project(name) for name in args.projects.split(',')]
 
     class Batch:
-        def __init__(self, settingsFile, javaCompliance):
-            self.path = settingsFile
+        def __init__(self, settingsDir, javaCompliance):
+            self.path = join(settingsDir, 'org.eclipse.jdt.core.prefs')
             self.javaCompliance = javaCompliance
             self.javafiles = list()
+            with open(join(settingsDir, 'org.eclipse.jdt.ui.prefs')) as fp:
+                jdtUiPrefs = fp.read()
+            self.removeTrailingWhitespace = 'sp_cleanup.remove_trailing_whitespaces_all=true' in jdtUiPrefs
+            if self.removeTrailingWhitespace:
+                assert 'sp_cleanup.remove_trailing_whitespaces=true' in jdtUiPrefs and 'sp_cleanup.remove_trailing_whitespaces_ignore_empty=false' in jdtUiPrefs
 
         def settings(self):
             with open(self.path) as fp:
-                return fp.read() + java(self.javaCompliance).java
+                return fp.read() + java(self.javaCompliance).java + str(self.removeTrailingWhitespace)
 
     class FileInfo:
         def __init__(self, path):
@@ -1965,13 +1970,25 @@ def eclipseformat(args):
                 self.content = fp.read()
             self.times = (os.path.getatime(path), os.path.getmtime(path))
 
-        def update(self):
+        def update(self, removeTrailingWhitespace):
             with open(self.path) as fp:
                 content = fp.read()
+
+            if self.content != content:
+                # Only apply *after* formatting to match the order in which the IDE does it
+                if removeTrailingWhitespace:
+                    content, n = re.subn(r'[ \t]+$', '', content, flags=re.MULTILINE)
+                    if n != 0 and self.content == content:
+                        # undo on-disk changes made by the Eclipse formatter
+                        with open(self.path, 'w') as fp:
+                            fp.write(content)
+
                 if self.content != content:
                     self.diff = difflib.unified_diff(self.content.splitlines(1), content.splitlines(1))
                     self.content = content
                     return True
+
+            # reset access and modification time of file
             os.utime(self.path, self.times)
 
     modified = list()
@@ -1981,7 +1998,7 @@ def eclipseformat(args):
             continue
         sourceDirs = p.source_dirs()
 
-        batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'), p.javaCompliance)
+        batch = Batch(join(p.dir, '.settings'), p.javaCompliance)
 
         if not exists(batch.path):
             if _opts.verbose:
@@ -2010,7 +2027,7 @@ def eclipseformat(args):
             '-config', batch.path]
             + [f.path for f in batch.javafiles])
         for fi in batch.javafiles:
-            if fi.update():
+            if fi.update(batch.removeTrailingWhitespace):
                 modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
