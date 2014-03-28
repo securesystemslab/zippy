@@ -1001,34 +1001,34 @@ def _basic_gate_body(args, tasks):
 
     with VM('graal', 'fastdebug'):
         t = Task('BootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-version'])
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'fastdebug'):
-        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        t = Task('BootstrapWithSystemAssertionsNoCoop:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-XX:-UseCompressedOops', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithImmutableCode:product')
-        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
@@ -1037,11 +1037,7 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
-        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
-                # DaCapo eclipse doesn't run under JDK8
-                continue
-
+        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild) + sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
