@@ -914,7 +914,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
         _implicit_div0_throws++;
 #endif
 #ifdef GRAAL
-        if (nm->is_compiled_by_graal()) {
+        if (nm->is_compiled_by_graal() && nm->pc_desc_at(pc) != NULL) {
           target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
         } else {
 #endif
