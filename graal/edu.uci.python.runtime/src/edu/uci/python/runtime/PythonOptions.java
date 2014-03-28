@@ -62,8 +62,6 @@ public class PythonOptions {
 
     public static boolean OptimizeGeneratorExpressions = true;
 
-    public static boolean UseSimpleGeneratorInlining = false;
-
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
 
@@ -73,7 +71,6 @@ public class PythonOptions {
         if (ParallelizeGeneratorCalls) {
             InlineGeneratorCalls = false;
             OptimizeGeneratorExpressions = false;
-            UseSimpleGeneratorInlining = false;
         }
     }
 
