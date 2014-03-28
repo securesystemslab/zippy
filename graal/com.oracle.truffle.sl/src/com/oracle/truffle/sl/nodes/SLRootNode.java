@@ -73,8 +73,19 @@ public final class SLRootNode extends RootNode {
         return inlineImmediatly;
     }
 
-    public SLExpressionNode inline() {
-        return NodeUtil.cloneNode(uninitializedBody);
+    @Override
+    public RootNode inline() {
+        return new SLRootNode(getFrameDescriptor().shallowCopy(), NodeUtil.cloneNode(uninitializedBody), name, inlineImmediatly);
+    }
+
+    @Override
+    public int getInlineNodeCount() {
+        return NodeUtil.countNodes(uninitializedBody);
+    }
+
+    @Override
+    public boolean isInlinable() {
+        return true;
     }
 
     public Node getUninitializedBody() {

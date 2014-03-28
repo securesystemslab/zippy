@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,48 +22,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.nodes;
+package com.oracle.truffle.api.dsl;
 
-import com.oracle.truffle.api.*;
+import java.util.*;
+
+import com.oracle.truffle.api.nodes.*;
 
 /**
- * Denotes a call node that can inline the tree of its associated call target.
- * 
- * @see InlinedCallSite
+ * Thrown by the generated code of Truffle-DSL if no compatible Specialization could be found for
+ * the provided values.
  */
-public interface InlinableCallSite {
+public final class UnsupportedSpecializationException extends RuntimeException {
+
+    private static final long serialVersionUID = -2122892028296836269L;
+
+    private final Node node;
+    private final Object[] suppliedValues;
+
+    public UnsupportedSpecializationException(Node node, Object... suppliedValues) {
+        super("Unexpected values provided for " + node + ": " + Arrays.toString(suppliedValues));
+        this.node = node;
+        this.suppliedValues = suppliedValues;
+    }
 
     /**
-     * Returns the number of calls since the last reset of the call count.
-     * 
-     * @return the current call count.
+     * Returns the {@link Node} that caused the this {@link UnsupportedSpecializationException}.
      */
-    int getCallCount();
+    public Node getNode() {
+        return node;
+    }
 
     /**
-     * Resets the call count to 0.
+     * Returns the dynamic values that were supplied to the node.
      */
-    void resetCallCount();
+    public Object[] getSuppliedValues() {
+        return suppliedValues;
+    }
 
-    /**
-     * Returns the tree that would be inlined by a call to {@link #inline(FrameFactory)}.
-     * 
-     * @return the node tree to be inlined.
-     */
-    Node getInlineTree();
-
-    /**
-     * Returns the call target associated with this call site.
-     * 
-     * @return the inlinable {@link CallTarget}.
-     */
-    CallTarget getCallTarget();
-
-    /**
-     * Instructs the call node to inline the associated call target.
-     * 
-     * @param factory Frame factory for creating new virtual frames for inlined calls.
-     * @return {@code true} if call target was inlined; {@code false} otherwise.
-     */
-    boolean inline(FrameFactory factory);
 }

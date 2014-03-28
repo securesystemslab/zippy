@@ -73,7 +73,7 @@ class TruffleInliningImpl implements TruffleInlining {
             if (!policy.isWorthInlining(inlinableCallSite)) {
                 break;
             }
-            if (inlinableCallSite.getCallSite().inline(target)) {
+            if (inlinableCallSite.getCallSite().inline()) {
                 if (TraceTruffleInlining.getValue()) {
                     printCallSiteInfo(policy, inlinableCallSite, "inlined");
                 }
@@ -84,7 +84,7 @@ class TruffleInliningImpl implements TruffleInlining {
 
         if (inlined) {
             for (InlinableCallSiteInfo callSite : inlinableCallSites) {
-                callSite.getCallSite().resetCallCount();
+                CallNode.internalResetCallCount(callSite.getCallSite());
             }
             // zwei
             if (TrufflePrintInlinedAST.getValue()) {
@@ -119,7 +119,7 @@ class TruffleInliningImpl implements TruffleInlining {
         private final int callerInvocationCount;
 
         public InliningPolicy(OptimizedCallTarget caller) {
-            this.callerNodeCount = NodeUtil.countNodes(caller.getRootNode());
+            this.callerNodeCount = NodeUtil.countNodes(caller.getRootNode(), null, true);
             this.callerInvocationCount = caller.getCompilationProfile().getOriginalInvokeCounter();
         }
 
@@ -175,15 +175,17 @@ class TruffleInliningImpl implements TruffleInlining {
 
     private static final class InlinableCallSiteInfo {
 
-        private final InlinableCallSite callSite;
+        private final CallNode callSite;
         private final int callCount;
         private final int nodeCount;
         private final int recursiveDepth;
 
-        public InlinableCallSiteInfo(InlinableCallSite callSite) {
+        public InlinableCallSiteInfo(CallNode callSite) {
+            assert callSite.isInlinable();
             this.callSite = callSite;
-            this.callCount = callSite.getCallCount();
-            this.nodeCount = NodeUtil.countNodes(callSite.getInlineTree());
+            this.callCount = CallNode.internalGetCallCount(callSite);
+            RootCallTarget target = (RootCallTarget) callSite.getCallTarget();
+            this.nodeCount = target.getRootNode().getInlineNodeCount();
             this.recursiveDepth = calculateRecursiveDepth();
         }
 
@@ -193,21 +195,23 @@ class TruffleInliningImpl implements TruffleInlining {
 
         private int calculateRecursiveDepth() {
             int depth = 0;
-            Node parent = ((Node) callSite).getParent();
-            while (!(parent instanceof RootNode)) {
-                assert parent != null;
-                if (parent instanceof InlinedCallSite && ((InlinedCallSite) parent).getCallTarget() == callSite.getCallTarget()) {
-                    depth++;
+
+            Node parent = callSite.getParent();
+            while (parent != null) {
+                if (parent instanceof RootNode) {
+                    RootNode root = ((RootNode) parent);
+                    if (root.getCallTarget() == callSite.getCallTarget()) {
+                        depth++;
+                    }
+                    parent = root.getParentInlinedCall();
+                } else {
+                    parent = parent.getParent();
                 }
-                parent = parent.getParent();
-            }
-            if (((RootNode) parent).getCallTarget() == callSite.getCallTarget()) {
-                depth++;
             }
             return depth;
         }
 
-        public InlinableCallSite getCallSite() {
+        public CallNode getCallSite() {
             return callSite;
         }
 
@@ -226,8 +230,15 @@ class TruffleInliningImpl implements TruffleInlining {
 
             @Override
             public boolean visit(Node node) {
-                if (node instanceof InlinableCallSite) {
-                    inlinableCallSites.add(new InlinableCallSiteInfo((InlinableCallSite) node));
+                if (node instanceof CallNode) {
+                    CallNode callNode = (CallNode) node;
+                    if (!callNode.isInlined()) {
+                        if (callNode.isInlinable()) {
+                            inlinableCallSites.add(new InlinableCallSiteInfo(callNode));
+                        }
+                    } else {
+                        callNode.getInlinedRoot().accept(this);
+                    }
                 }
                 return true;
             }

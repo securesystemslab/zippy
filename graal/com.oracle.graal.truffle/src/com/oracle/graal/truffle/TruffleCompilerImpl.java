@@ -168,7 +168,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         }
 
         if (TraceTruffleCompilation.getValue()) {
-            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode());
+            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode(), null, true);
             byte[] code = compiledMethod.getCode();
             OUT.printf("[truffle] optimized %-50s %x |Nodes %7d |Time %5.0f(%4.0f+%-4.0f)ms |Nodes %5d/%5d |CodeSize %d\n", compilable.getRootNode(), compilable.hashCode(), nodeCountTruffle,
                             (timeCompilationFinished - timeCompilationStarted) / 1e6, (timePartialEvaluationFinished - timeCompilationStarted) / 1e6,
@@ -186,22 +186,27 @@ public class TruffleCompilerImpl implements TruffleCompiler {
     private class InlineTreeVisitor implements NodeVisitor {
 
         public boolean visit(Node node) {
-            if (node instanceof InlinedCallSite) {
-                InlinedCallSite inlinedCallSite = (InlinedCallSite) node;
-                int indent = this.indent(node);
-                for (int i = 0; i < indent; ++i) {
-                    OUT.print("   ");
+            if (node instanceof CallNode) {
+                CallNode callNode = (CallNode) node;
+                if (callNode.isInlined()) {
+                    int indent = this.indent(node);
+                    for (int i = 0; i < indent; ++i) {
+                        OUT.print("   ");
+                    }
+                    OUT.println(callNode.getCallTarget());
+                    callNode.getInlinedRoot().accept(this);
                 }
-                OUT.println(inlinedCallSite.getCallTarget());
             }
             return true;
         }
 
         private int indent(Node n) {
             if (n instanceof RootNode) {
+                CallNode inlinedParent = ((RootNode) n).getParentInlinedCall();
+                if (inlinedParent != null) {
+                    return indent(inlinedParent) + 1;
+                }
                 return 0;
-            } else if (n instanceof InlinedCallSite) {
-                return indent(n.getParent()) + 1;
             } else {
                 return indent(n.getParent());
             }
