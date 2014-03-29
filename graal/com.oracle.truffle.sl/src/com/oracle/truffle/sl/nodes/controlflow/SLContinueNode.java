@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,16 @@
 package com.oracle.truffle.sl.nodes.controlflow;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.*;
 
+/**
+ * Implementation of the SL continue statement. We need to unwind an unknown number of interpreter
+ * frames that are between this {@link SLContinueNode} and the {@link SLWhileNode} of the loop we
+ * are continuing. This is done by throwing an {@link SLContinueException exception} that is caught
+ * by the {@link SLWhileNode#executeVoid loop node}.
+ */
+@NodeInfo(shortName = "continue")
 public final class SLContinueNode extends SLStatementNode {
 
     @Override

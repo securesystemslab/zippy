@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,11 @@ package com.oracle.truffle.sl.nodes.controlflow;
 
 import com.oracle.truffle.api.nodes.*;
 
+/**
+ * Exception thrown by the {@link SLReturnNode return statement} and caught by the
+ * {@link SLFunctionBodyNode function body}. The exception transports the return value in its
+ * {@link #result} field.
+ */
 public final class SLReturnException extends ControlFlowException {
 
     private static final long serialVersionUID = 4073191346281369231L;

@@ -169,7 +169,7 @@ public class GraphPrintVisitor {
         }
     }
 
-    public void printToNetwork() {
+    public void printToNetwork(boolean ignoreErrors) {
         try {
             Transformer tr = TransformerFactory.newInstance().newTransformer();
             tr.setOutputProperty(OutputKeys.METHOD, "xml");
@@ -178,7 +178,9 @@ public class GraphPrintVisitor {
             BufferedOutputStream stream = new BufferedOutputStream(socket.getOutputStream(), 0x4000);
             tr.transform(new DOMSource(dom), new StreamResult(stream));
         } catch (TransformerException | IOException e) {
-            e.printStackTrace();
+            if (!ignoreErrors) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -341,6 +343,12 @@ public class GraphPrintVisitor {
         LinkedHashMap<String, Node> nodes = new LinkedHashMap<>();
         NodeClass nodeClass = NodeClass.get(node.getClass());
 
+        if (node instanceof CallNode) {
+            RootNode inlinedRoot = ((CallNode) node).getInlinedRoot();
+            if (inlinedRoot != null) {
+                nodes.put("inlinedRoot", inlinedRoot);
+            }
+        }
         for (NodeField field : nodeClass.getFields()) {
             NodeFieldKind kind = field.getKind();
             if (kind == NodeFieldKind.CHILD || kind == NodeFieldKind.CHILDREN) {

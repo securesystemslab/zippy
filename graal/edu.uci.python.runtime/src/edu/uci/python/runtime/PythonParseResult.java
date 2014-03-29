@@ -98,11 +98,11 @@ public class PythonParseResult {
     }
 
     public void visualizeToNetwork() {
-        new GraphPrintVisitor().beginGraph("module").visit(rootNode).printToNetwork();
+        new GraphPrintVisitor().beginGraph("module").visit(rootNode).printToNetwork(true);
 
         for (String functionName : functions.keySet()) {
             RootNode root = functions.get(functionName);
-            new GraphPrintVisitor().beginGraph(functionName).visit(root).printToNetwork();
+            new GraphPrintVisitor().beginGraph(functionName).visit(root).printToNetwork(true);
         }
     }
 }

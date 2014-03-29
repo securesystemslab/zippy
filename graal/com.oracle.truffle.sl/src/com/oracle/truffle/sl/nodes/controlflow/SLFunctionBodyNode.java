@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,38 +24,61 @@ package com.oracle.truffle.sl.nodes.controlflow;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 import com.oracle.truffle.sl.nodes.*;
 import com.oracle.truffle.sl.runtime.*;
 
+/**
+ * The body of a user-defined SL function. This is the node references by a {@link SLRootNode} for
+ * user-defined functions. It handles the return value of a function: the {@link SLReturnNode return
+ * statement} throws an {@link SLReturnException exception} with the return value. This node catches
+ * the exception. If the method ends without an explicit {@code return}, return the
+ * {@link SLNull#SINGLETON default null value}.
+ */
+@NodeInfo(shortName = "body")
 public class SLFunctionBodyNode extends SLExpressionNode {
 
-    @Child private SLStatementNode body;
+    /** The body of the function. */
+    @Child private SLStatementNode bodyNode;
 
-    private FrameDescriptor frameDescriptor;
+    /**
+     * Profiling information, collected by the interpreter, capturing whether the function had an
+     * {@link SLReturnNode explicit return statement}. This allows the compiler to generate better
+     * code.
+     */
+    private final BranchProfile exceptionTaken = new BranchProfile();
+    private final BranchProfile nullTaken = new BranchProfile();
 
-    public SLFunctionBodyNode(FrameDescriptor frameDescriptor, SLStatementNode body) {
-        this.frameDescriptor = frameDescriptor;
-        this.body = adoptChild(body);
+    public SLFunctionBodyNode(SLStatementNode bodyNode) {
+        /*
+         * It is a Truffle requirement to call adoptChild(), which performs all the necessary steps
+         * to add the new child to the node tree.
+         */
+        this.bodyNode = adoptChild(bodyNode);
     }
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
         try {
-            body.executeVoid(frame);
+            /* Execute the function body. */
+            bodyNode.executeVoid(frame);
+
         } catch (SLReturnException ex) {
+            /*
+             * In the interpreter, record profiling information that the function has an explicit
+             * return.
+             */
+            exceptionTaken.enter();
+            /* The exception transports the actual return value. */
             return ex.getResult();
         }
-        return SLNull.INSTANCE;
-    }
 
-    @Override
-    public Node copy() {
-        SLFunctionBodyNode copy = (SLFunctionBodyNode) super.copy();
-        copy.frameDescriptor = frameDescriptor.shallowCopy();
-        return copy;
-    }
-
-    public FrameDescriptor getFrameDescriptor() {
-        return frameDescriptor;
+        /*
+         * In the interpreter, record profiling information that the function ends without an
+         * explicit return.
+         */
+        nullTaken.enter();
+        /* Return the default null value. */
+        return SLNull.SINGLETON;
     }
 }

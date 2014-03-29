@@ -105,12 +105,12 @@ import com.oracle.graal.word.*;
  * <p>
  * The generated graph includes a reference to the {@link HotSpotNmethod} for the kernel. There must
  * be another reference to the same {@link HotSpotNmethod} object to ensure that the nmethod is not
- * unloaded by the next full GC.
+ * unloaded by the next full GC. Currently, these extra "keep-alive" references are maintained by
+ * {@link PTXHotSpotBackend}.
  * <p>
- * TODO: Only the memory for objects passed as parameters is pinned. Surely the memory for other
- * objects accessed in the kernel reachable from the parameter objects needs to be pinned as well?
- * <p>
- * TODO: Objects references within kernels are currently completely hidden from GC.
+ * The PTX runtime code called by the wrapper blocks GC while the kernel is executing (cf
+ * GetPrimitiveArrayCritical/ReleasePrimitiveArrayCritical JNI functions). This ensures objects can
+ * be safely passed to kernels but should be replaced with a lighter weight mechanism at some point.
  */
 public class PTXWrapperBuilder extends GraphKit {
 
@@ -253,11 +253,7 @@ public class PTXWrapperBuilder extends GraphKit {
         ForeignCallNode result = append(new ForeignCallNode(providers.getForeignCalls(), CALL_KERNEL, launchArgsArray));
         result.setDeoptimizationState(fs);
 
-        ConstantNode isObjectResultArg = ConstantNode.forBoolean(returnKind == Kind.Object, getGraph());
-        InvokeNode handlePendingException = createInvoke(getClass(), "handlePendingException", args.get(Thread), isObjectResultArg);
-        handlePendingException.setStateAfter(fs);
         InvokeNode getObjectResult = null;
-
         ValueNode returnValue;
         switch (returnKind) {
             case Void:
@@ -354,19 +350,6 @@ public class PTXWrapperBuilder extends GraphKit {
             DeoptimizeNode.deopt(InvalidateRecompile, RuntimeConstraint);
         }
         return start;
-    }
-
-    /**
-     * Snippet invoked upon return from the kernel to handle any pending exceptions.
-     */
-    @Snippet
-    private static void handlePendingException(Word thread, boolean isObjectResult) {
-        if (clearPendingException(thread)) {
-            if (isObjectResult) {
-                getAndClearObjectResult(thread);
-            }
-            DeoptimizeNode.deopt(DeoptimizationAction.None, RuntimeConstraint);
-        }
     }
 
     /**

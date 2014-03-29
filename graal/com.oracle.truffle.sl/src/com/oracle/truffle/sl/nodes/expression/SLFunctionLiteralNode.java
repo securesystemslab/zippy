@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,10 +22,19 @@
  */
 package com.oracle.truffle.sl.nodes.expression;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.*;
 import com.oracle.truffle.sl.runtime.*;
 
+/**
+ * Constant literal for a {@link SLFunction function} value, created when a function name occurs as
+ * a literal in SL source code. Note that function redefinition can change the {@link CallTarget
+ * call target} that is executed when calling the function, but the {@link SLFunction} for a name
+ * never changes. This is guaranteed by the {@link SLFunctionRegistry}.
+ */
+@NodeInfo(shortName = "func")
 public final class SLFunctionLiteralNode extends SLExpressionNode {
 
     private final SLFunction value;

@@ -40,6 +40,7 @@
 #include "gc_implementation/g1/heapRegion.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/vmStructs.hpp"
+#include "runtime/gpu.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {
@@ -555,6 +556,14 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
   set_int("graalCountersSize", (jint) GraalCounterSize);
 
+  //------------------------------------------------------------------------------------------------
+
+  set_long("libraryLoadAddress", (jlong) os::dll_load);
+  set_long("functionLookupAddress", (jlong) os::dll_lookup);
+  #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
+  set_long("rtldDefault", (jlong) RTLD_DEFAULT);
+  #endif
+
 #undef set_boolean
 #undef set_int
 #undef set_long
@@ -821,6 +830,14 @@ C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
 
+C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
+#if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux) || defined(TARGET_OS_FAMILY_windows)
+  return gpu::probe_gpus(env);
+#else
+  return env->NewStringUTF("");
+#endif
+C2V_END
+
 C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_method, int entry_bci))
   HandleMark hm;
   ResourceMark rm;
@@ -897,6 +914,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
   {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
+  {CC"getGPUs",                       CC"()"STRING,                                                     FN_PTR(getGPUs)},
   {CC"allocateCompileId",             CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
   {CC"isMature",                      CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
 };
