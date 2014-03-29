@@ -42,6 +42,10 @@ public class DispatchCallNode extends PNode {
         this.dispatchNode = adoptChild(dispatch);
     }
 
+    public static DispatchCallNode create(PNode callee, PNode[] arguments) {
+        return new DispatchCallNode(callee, arguments, new DispatchNode.UninitializedDispatchNode());
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         PythonCallable callee;

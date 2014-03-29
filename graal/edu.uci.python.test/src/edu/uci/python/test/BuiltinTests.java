@@ -41,7 +41,7 @@ public class BuiltinTests {
     }
 
     @Test
-    public void builtin_call() {
+    public void builtinCall() {
         Path script = Paths.get("builtin_call_test.py");
         assertPrints("42\n", script);
     }

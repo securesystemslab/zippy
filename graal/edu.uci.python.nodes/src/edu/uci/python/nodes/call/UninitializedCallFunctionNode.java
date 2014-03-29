@@ -59,9 +59,9 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
 
             if (keywords.length == 0) {
-                CallFunctionNoKeywordNode callFunction = CallFunctionNoKeywordNode.create(callee, arguments, callable, getContext());
-                replace(callFunction);
-                return callFunction.executeCall(frame, callable);
+                DispatchCallNode callNode = DispatchCallNode.create(callee, arguments);
+                replace(callNode);
+                return callNode.execute(frame);
             } else {
                 CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
                 replace(callFunction);

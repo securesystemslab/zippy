@@ -40,7 +40,7 @@ public class GeneratorExpressionNode extends PNode {
     // name = "generator_exp:" + line number of the generator;
     private final String name;
     protected final PythonContext context;
-    private final CallTarget callTarget;
+    private final RootCallTarget callTarget;
     private final CallTarget parallelCallTarget;
     private final FrameDescriptor frameDescriptor;
     private final boolean needsDeclarationFrame;
@@ -51,7 +51,7 @@ public class GeneratorExpressionNode extends PNode {
     @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionNode(String name, PythonContext context, CallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
+    public GeneratorExpressionNode(String name, PythonContext context, RootCallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.name = name;
         this.context = context;
@@ -67,7 +67,7 @@ public class GeneratorExpressionNode extends PNode {
         return name;
     }
 
-    public CallTarget getCallTarget() {
+    public RootCallTarget getCallTarget() {
         return callTarget;
     }
 

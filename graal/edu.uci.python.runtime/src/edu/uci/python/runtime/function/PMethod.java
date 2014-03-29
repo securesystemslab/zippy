@@ -34,7 +34,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PFunction function;
     private PythonObject self;
-    private final CallTarget callTarget;
+    private final RootCallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
         this.self = self;
@@ -81,7 +81,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     @Override
-    public CallTarget getCallTarget() {
+    public RootCallTarget getCallTarget() {
         return callTarget;
     }
 
