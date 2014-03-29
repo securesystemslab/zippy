@@ -39,7 +39,6 @@ import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorNode extends CallFunctionCachedNode implements InlinableCallSite {

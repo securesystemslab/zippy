@@ -57,6 +57,8 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
+    public static final int CallSiteInlineCacheMax = 2;
+
     // Generators
     public static boolean InlineGeneratorCalls = true;
 

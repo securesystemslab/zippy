@@ -29,26 +29,38 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class DispatchNode extends Node {
 
-    protected static final int INLINE_CACHE_SIZE = 2;
+    private static DispatchNode create(PythonCallable callee, UninitializedDispatchNode next) {
+        if (callee instanceof PFunction) {
+            return new DispatchFunctionNode((PFunction) callee, next);
+        } else if (callee instanceof PBuiltinFunction) {
+            return new DispatchBuiltinNode((PBuiltinFunction) callee, next);
+        }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonCallable callee, PArguments arguments);
+        throw new UnsupportedOperationException("Unsupported callee type " + callee);
+    }
 
-    public static final class DirectDispatchNode extends DispatchNode {
+    protected abstract Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments);
 
-        protected final PythonCallable cachedCallee;
+    public static final class DispatchFunctionNode extends DispatchNode {
+
+        protected final PFunction cachedCallee;
         protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
+        private final MaterializedFrame declarationFrame;
 
         @Child protected CallNode callNode;
         @Child protected DispatchNode nextNode;
 
-        public DirectDispatchNode(PythonCallable callee, DispatchNode next) {
+        public DispatchFunctionNode(PFunction callee, DispatchNode next) {
             cachedCallee = callee;
             cachedCallTarget = callee.getCallTarget();
+            declarationFrame = callee.getDeclarationFrame();
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
             callNode = adoptChild(CallNode.create(cachedCallTarget));
@@ -56,11 +68,13 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, PArguments arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
             if (this.cachedCallee == callee) {
                 try {
                     cachedCallTargetStable.check();
-                    return callNode.call(frame.pack(), arguments);
+
+                    PArguments arg = new PArguments(null, declarationFrame, arguments);
+                    return callNode.call(frame.pack(), arg);
                 } catch (InvalidAssumptionException ex) {
                     /*
                      * Remove ourselfs from the polymorphic inline cache, so that we fail the check
@@ -72,22 +86,60 @@ public abstract class DispatchNode extends Node {
                      */
                 }
             }
+
             return nextNode.executeCall(frame, callee, arguments);
         }
+    }
+
+    public static final class DispatchBuiltinNode extends DispatchNode {
+
+        protected final PBuiltinFunction cachedCallee;
+        protected final CallTarget cachedCallTarget;
+        protected final Assumption cachedCallTargetStable;
+
+        @Child protected CallNode callNode;
+        @Child protected DispatchNode nextNode;
+
+        public DispatchBuiltinNode(PBuiltinFunction callee, DispatchNode next) {
+            cachedCallee = callee;
+            cachedCallTarget = callee.getCallTarget();
+            // TODO: replace holder for now.
+            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
+            callNode = adoptChild(CallNode.create(cachedCallTarget));
+            nextNode = adoptChild(next);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+            if (this.cachedCallee == callee) {
+                try {
+                    cachedCallTargetStable.check();
+
+                    PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (InvalidAssumptionException ex) {
+                    replace(nextNode);
+                }
+            }
+
+            return nextNode.executeCall(frame, callee, arguments);
+        }
+
     }
 
     public static final class GenericDispatchNode extends DispatchNode {
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, PArguments arguments) {
-            return callee.getCallTarget().call(frame.pack(), arguments);
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+            return callee.call(frame.pack(), arguments);
         }
+
     }
 
     public static final class UninitializedDispatchNode extends DispatchNode {
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, PArguments arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             DispatchNode current = this;
@@ -98,9 +150,9 @@ public abstract class DispatchNode extends Node {
             }
 
             DispatchNode specialized;
-            if (depth < INLINE_CACHE_SIZE) {
-                DispatchNode next = new UninitializedDispatchNode();
-                DispatchNode direct = new DirectDispatchNode(callee, next);
+            if (depth < PythonOptions.CallSiteInlineCacheMax) {
+                UninitializedDispatchNode next = new UninitializedDispatchNode();
+                DispatchNode direct = create(callee, next);
                 specialized = replace(direct);
             } else {
                 DispatchNode generic = new GenericDispatchNode();
