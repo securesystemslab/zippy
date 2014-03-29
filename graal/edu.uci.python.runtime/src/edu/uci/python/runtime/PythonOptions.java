@@ -60,9 +60,9 @@ public class PythonOptions {
     public static final int CallSiteInlineCacheMax = 2;
 
     // Generators
-    public static boolean InlineGeneratorCalls = true;
+    public static boolean InlineGeneratorCalls = false;
 
-    public static boolean OptimizeGeneratorExpressions = true;
+    public static boolean OptimizeGeneratorExpressions = false;
 
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
