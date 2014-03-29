@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -59,25 +60,34 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        /**
-         * The following if block is necessary to catch the execution errors and mark that test case
-         * as failed in the unit test.
-         */
         if (PythonOptions.CatchZippyExceptionForUnitTesting) {
-            if (function.getName().equals("_executeTestPart")) {
-                try {
-                    Object[] combined = function.applyKeywordArgs(true, args, keywords);
-                    Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
-                    return returnValue;
-                } catch (Exception e) {
-                    return "ZippyExecutionError: " + e;
-                }
+            return slowPathCallForUnitTest(caller, args, keywords);
+        }
+
+        Object[] combined = function.applyKeywordArgs(true, args, keywords);
+        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+    }
+
+    /**
+     * TODO: Remove this...
+     * <p>
+     * The following if block is necessary to catch the execution errors and mark that test case as
+     * failed in the unit test.
+     */
+    @SlowPath
+    private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        if (function.getName().equals("_executeTestPart")) {
+            try {
+                Object[] combined = function.applyKeywordArgs(true, args, keywords);
+                Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+                return returnValue;
+            } catch (Exception e) {
+                return "ZippyExecutionError: " + e;
             }
         }
 
         Object[] combined = function.applyKeywordArgs(true, args, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
-
     }
 
     @Override
