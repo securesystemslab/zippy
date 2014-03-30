@@ -79,7 +79,8 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.VersionSpec('1.7.0_04')
+# @CallerSensitive introduced in 7u25
+_minVersion = mx.VersionSpec('1.7.0_25')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -583,7 +584,7 @@ def build(args, vm=None):
         if not exists(vmDir):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
-            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
         def filterXusage(line):
@@ -647,11 +648,17 @@ def build(args, vm=None):
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
 
             # extract latest release tag for graal
-            tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            try:
+                tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
+            except:
+                # not a mercurial repository or hg commands are not available.
+                tags = None
+
             if tags:
                 # extract the most recent tag
                 tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
                 env.setdefault('USER_RELEASE_SUFFIX', tag)
+
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
@@ -784,7 +791,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line: len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
+def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAllVMArgs=True):
     """
     Partitions a command line into a leading sequence of HotSpot VM options and the rest.
     """
@@ -805,7 +812,10 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
                 remainder = args[i:]
                 return vmArgs, remainder
 
-    return args, []
+    if defaultAllVMArgs:
+        return args, []
+    else:
+        return [], args
 
 def _run_tests(args, harness, annotations, testfile):
 
@@ -991,34 +1001,34 @@ def _basic_gate_body(args, tasks):
 
     with VM('graal', 'fastdebug'):
         t = Task('BootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-version'])
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'fastdebug'):
-        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        t = Task('BootstrapWithSystemAssertionsNoCoop:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-XX:-UseCompressedOops', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithImmutableCode:product')
-        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
@@ -1027,11 +1037,7 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
-        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
-                # DaCapo eclipse doesn't run under JDK8
-                continue
-
+        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild) + sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
@@ -1137,6 +1143,16 @@ def gate(args, gate_body=_basic_gate_body):
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
+        tasks.append(t.stop())
+
+        t = Task('Checkheaders')
+        if checkheaders([]) != 0:
+            t.abort('Checkheaders warnings were found')
+        tasks.append(t.stop())
+
+        t = Task('FindBugs')
+        if findbugs([]) != 0:
+            t.abort('FindBugs warnings were found')
         tasks.append(t.stop())
 
         if exists('jacoco.exec'):
@@ -1680,13 +1696,45 @@ def findbugs(args):
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
     outputDirs = [p.output_dir() for p in nonTestProjects]
     findbugsResults = join(_graal_home, 'findbugs.results')
-    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
-                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+
+    cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
+    if sys.stdout.isatty():
+        cmd.append('-progress')
+    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
             mx.log(fp.read())
     os.unlink(findbugsResults)
     return exitcode
+
+def checkheaders(args):
+    """check Java source headers against any required pattern"""
+    failures = {}
+    for p in mx.projects():
+        if p.native:
+            continue
+
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+        dom = xml.dom.minidom.parse(csConfig)
+        for module in dom.getElementsByTagName('module'):
+            if module.getAttribute('name') == 'RegexpHeader':
+                for prop in module.getElementsByTagName('property'):
+                    if prop.getAttribute('name') == 'header':
+                        value = prop.getAttribute('value')
+                        matcher = re.compile(value, re.MULTILINE)
+                        for sourceDir in p.source_dirs():
+                            for root, _, files in os.walk(sourceDir):
+                                for name in files:
+                                    if name.endswith('.java') and name != 'package-info.java':
+                                        f = join(root, name)
+                                        with open(f) as fp:
+                                            content = fp.read()
+                                        if not matcher.match(content):
+                                            failures[f] = csConfig
+    for n, v in failures.iteritems():
+        mx.log('{}: header does not match RegexpHeader defined in {}'.format(n, v))
+    return len(failures)
 
 def mx_init(suite):
     commands = {
@@ -1694,6 +1742,7 @@ def mx_init(suite):
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
+        'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],

@@ -32,6 +32,7 @@
 #include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/compilationPolicy.hpp"
+#include "runtime/globals_extension.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
 
@@ -97,7 +98,12 @@ void GraalCompiler::initialize() {
     VMToCompiler::finalizeOptions(CITime || CITimeEach);
 
     if (UseCompiler) {
-      bool bootstrap = COMPILERGRAAL_PRESENT(BootstrapGraal) NOT_COMPILERGRAAL(false);
+      _external_deopt_i2c_entry = create_external_deopt_i2c();
+#ifdef COMPILERGRAAL
+      bool bootstrap = FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal;
+#else
+      bool bootstrap = false;
+#endif
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
@@ -125,6 +131,34 @@ void GraalCompiler::initialize() {
     }
   }
 }
+
+address GraalCompiler::create_external_deopt_i2c() {
+  ResourceMark rm;
+  BufferBlob* buffer = BufferBlob::create("externalDeopt", 1*K);
+  CodeBuffer cb(buffer);
+  short buffer_locs[20];
+  cb.insts()->initialize_shared_locs((relocInfo*)buffer_locs, sizeof(buffer_locs)/sizeof(relocInfo));
+  MacroAssembler masm(&cb);
+
+  int total_args_passed = 5;
+
+  BasicType* sig_bt = NEW_RESOURCE_ARRAY(BasicType, total_args_passed);
+  VMRegPair* regs   = NEW_RESOURCE_ARRAY(VMRegPair, total_args_passed);
+  int i = 0;
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_LONG;
+  sig_bt[i++] = T_VOID; // long stakes 2 slots
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_OBJECT;
+
+  int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, false);
+
+  SharedRuntime::gen_i2c_adapter(&masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
+  masm.flush();
+
+  return AdapterBlob::create(&cb)->content_begin();
+}
+
 
 BufferBlob* GraalCompiler::initialize_buffer_blob() {
   JavaThread* THREAD = JavaThread::current();

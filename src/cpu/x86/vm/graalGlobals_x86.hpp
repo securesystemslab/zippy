@@ -45,7 +45,7 @@ define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
 define_pd_global(uintx,MetaspaceSize,                12*M );
 define_pd_global(bool, NeverActAsServerClassMachine, false);
-define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
+define_pd_global(uint64_t,MaxRAM,                    128ULL*G);
 define_pd_global(bool, CICompileOSR,                 true );
 define_pd_global(bool, ProfileTraps,                 true );
 define_pd_global(bool, UseOnStackReplacement,        true );
@@ -57,7 +57,7 @@ define_pd_global(intx, CodeCacheExpansionSize,       64*K );
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);
 define_pd_global(uintx, CodeCacheMinimumUseSpace,    400*K);
 define_pd_global(intx, TypeProfileWidth,             8);
-define_pd_global(intx, MethodProfileWidth,           4);
+define_pd_global(intx, MethodProfileWidth,           0);
 #endif // COMPILERGRAAL
 
 #endif // CPU_X86_VM_GRAALGLOBALS_X86_HPP

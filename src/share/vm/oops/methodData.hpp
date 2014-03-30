@@ -257,6 +257,9 @@ public:
 
   // GC support
   void clean_weak_klass_links(BoolObjectClosure* cl);
+
+  // Redefinition support
+  void clean_weak_method_links();
 };
 
 
@@ -513,6 +516,9 @@ public:
 
   // GC support
   virtual void clean_weak_klass_links(BoolObjectClosure* is_alive_closure) {}
+
+  // Redefinition support
+  virtual void clean_weak_method_links() {}
 
   // CI translation: ProfileData can represent both MethodDataOop data
   // as well as CIMethodData data. This function is provided for translating
@@ -1429,6 +1435,9 @@ public:
 
   // GC support
   virtual void clean_weak_klass_links(BoolObjectClosure* is_alive_closure);
+
+  // Redefinition support
+  virtual void clean_weak_method_links();
 #endif
 
 #ifndef PRODUCT
@@ -2294,6 +2303,10 @@ private:
   void clean_extra_data_helper(DataLayout* dp, int shift, bool reset = false);
   void verify_extra_data_clean(BoolObjectClosure* is_alive);
 
+  // Redefinition support
+  void clean_weak_method_extra_data();
+  void verify_weak_method_extra_data_clean();
+
 public:
   static int header_size() {
     return sizeof(MethodData)/wordSize;
@@ -2572,6 +2585,8 @@ public:
   static bool profile_return_jsr292_only();
 
   void clean_method_data(BoolObjectClosure* is_alive);
+
+  void clean_weak_method_links();
 };
 
 #endif // SHARE_VM_OOPS_METHODDATAOOP_HPP

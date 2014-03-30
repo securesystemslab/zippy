@@ -288,10 +288,11 @@
   NOT_LP64(  do_alias(intptr_signature,               int_signature)  )                           \
   LP64_ONLY( do_alias(intptr_signature,               long_signature) )                           \
   template(selectAlternative_signature, "(ZLjava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodHandle;)Ljava/lang/invoke/MethodHandle;") \
-                                                                                                                                       \
-  /* Support for Graal */                                                                                                              \
-  template(java_util_BitSet,	                                       "java/util/BitSet")                                               \
-  /* graal.hotspot */                                                                                                                  \
+                                                                                                                                      \
+  /* Support for Graal */                                                                                                             \
+  template(com_oracle_graal_compiler_CompilerThread,                 "com/oracle/graal/compiler/CompilerThread")                      \
+  template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
+  /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
@@ -314,7 +315,6 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
-  template(com_oracle_graal_hotspot_CompilerThread,                  "com/oracle/graal/hotspot/CompilerThread")                       \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
@@ -338,7 +338,6 @@
   template(com_oracle_graal_api_code_CompilationResult_Mark,         "com/oracle/graal/api/code/CompilationResult$Mark")              \
   template(com_oracle_graal_api_code_CompilationResult_Infopoint,    "com/oracle/graal/api/code/CompilationResult$Infopoint")         \
   template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
-  template(com_oracle_graal_api_code_ExternalCompilationResult,      "com/oracle/graal/api/code/ExternalCompilationResult")           \
   template(com_oracle_graal_api_code_InfopointReason,                "com/oracle/graal/api/code/InfopointReason")                     \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
@@ -350,6 +349,8 @@
   template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(com_oracle_graal_api_code_SpeculationLog,                 "com/oracle/graal/api/code/SpeculationLog")                      \
+  /* graal.gpu */                                                                                                                     \
+  template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
   /* graal.truffle */                                                                                                                 \
   template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
   template(startCompiler_name,                    "startCompiler")                                                                    \

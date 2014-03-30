@@ -184,6 +184,7 @@ class Ticks;
   do_klass(Long_klass,                                  java_lang_Long,                            Pre                 ) \
                                                                                                                          \
   /* Support for Graal */                                                                                                \
+  do_klass(CompilerThread_klass,                  com_oracle_graal_compiler_CompilerThread,                     Opt) \
   do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                \
   do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Opt) \
@@ -203,7 +204,6 @@ class Ticks;
   do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
   do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Opt) \
   do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Opt) \
-  do_klass(CompilerThread_klass,                  com_oracle_graal_hotspot_CompilerThread,                      Opt) \
   /* graal.api.code */                                                                                               \
   do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
   do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
@@ -222,7 +222,7 @@ class Ticks;
   do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
   do_klass(CompilationResult_Infopoint_klass,     com_oracle_graal_api_code_CompilationResult_Infopoint,        Opt) \
   do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
-  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_api_code_ExternalCompilationResult,          Opt) \
+  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_gpu_ExternalCompilationResult,               Opt) \
   do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Opt) \
   do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \

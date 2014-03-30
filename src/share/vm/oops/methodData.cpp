@@ -426,6 +426,16 @@ void VirtualCallData::clean_weak_klass_links(BoolObjectClosure* is_alive_cl) {
     }
   }
 }
+
+void VirtualCallData::clean_weak_method_links() {
+  ReceiverTypeData::clean_weak_method_links();
+  for (uint row = 0; row < method_row_limit(); row++) {
+    Method* p = method(row);
+    if (p != NULL && !p->on_stack()) {
+      clear_method_row(row);
+    }
+  }
+}
 #endif // GRAAL
 
 #ifndef PRODUCT
@@ -1692,4 +1702,86 @@ void MethodData::clean_method_data(BoolObjectClosure* is_alive) {
 
   clean_extra_data(is_alive);
   verify_extra_data_clean(is_alive);
+}
+
+// Remove SpeculativeTrapData entries that reference a redefined
+// method
+void MethodData::clean_weak_method_extra_data() {
+  DataLayout* dp  = extra_data_base();
+  DataLayout* end = extra_data_limit();
+
+  int shift = 0;
+  for (; dp < end; dp = next_extra(dp)) {
+    switch(dp->tag()) {
+    case DataLayout::speculative_trap_data_tag: {
+      SpeculativeTrapData* data = new SpeculativeTrapData(dp);
+      Method* m = data->method();
+      assert(m != NULL, "should have a method");
+      if (!m->on_stack()) {
+        // "shift" accumulates the number of cells for dead
+        // SpeculativeTrapData entries that have been seen so
+        // far. Following entries must be shifted left by that many
+        // cells to remove the dead SpeculativeTrapData entries.
+        shift += (int)((intptr_t*)next_extra(dp) - (intptr_t*)dp);
+      } else {
+        // Shift this entry left if it follows dead
+        // SpeculativeTrapData entries
+        clean_extra_data_helper(dp, shift);
+      }
+      break;
+    }
+    case DataLayout::bit_data_tag:
+      // Shift this entry left if it follows dead SpeculativeTrapData
+      // entries
+      clean_extra_data_helper(dp, shift);
+      continue;
+    case DataLayout::no_tag:
+    case DataLayout::arg_info_data_tag:
+      // We are at end of the live trap entries. The previous "shift"
+      // cells contain entries that are either dead or were shifted
+      // left. They need to be reset to no_tag
+      clean_extra_data_helper(dp, shift, true);
+      return;
+    default:
+      fatal(err_msg("unexpected tag %d", dp->tag()));
+    }
+  }
+}
+
+// Verify there's no redefined method referenced by a
+// SpeculativeTrapData entry
+void MethodData::verify_weak_method_extra_data_clean() {
+#ifdef ASSERT
+  DataLayout* dp  = extra_data_base();
+  DataLayout* end = extra_data_limit();
+
+  for (; dp < end; dp = next_extra(dp)) {
+    switch(dp->tag()) {
+    case DataLayout::speculative_trap_data_tag: {
+      SpeculativeTrapData* data = new SpeculativeTrapData(dp);
+      Method* m = data->method();
+      assert(m != NULL && m->on_stack(), "Method should exist");
+      break;
+    }
+    case DataLayout::bit_data_tag:
+      continue;
+    case DataLayout::no_tag:
+    case DataLayout::arg_info_data_tag:
+      return;
+    default:
+      fatal(err_msg("unexpected tag %d", dp->tag()));
+    }
+  }
+#endif
+}
+
+void MethodData::clean_weak_method_links() {
+  for (ProfileData* data = first_data();
+       is_valid(data);
+       data = next_data(data)) {
+    data->clean_weak_method_links();
+  }
+
+  clean_weak_method_extra_data();
+  verify_weak_method_extra_data_clean();
 }

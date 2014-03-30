@@ -886,7 +886,10 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           _implicit_null_throws++;
 #endif
 #ifdef GRAAL
-          if (nm->is_compiled_by_graal()) {
+          if (nm->is_compiled_by_graal() && nm->pc_desc_at(pc) != NULL) {
+            // If there's no PcDesc then we'll die way down inside of
+            // deopt instead of just getting normal error reporting,
+            // so only go there if it will succeed.
             target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
           } else {
 #endif
@@ -1168,7 +1171,6 @@ methodHandle SharedRuntime::find_callee_method(JavaThread* thread, TRAPS) {
     assert(fr.is_entry_frame(), "must be");
     // fr is now pointing to the entry frame.
     callee_method = methodHandle(THREAD, fr.entry_frame_call_wrapper()->callee_method());
-    assert(fr.entry_frame_call_wrapper()->receiver() == NULL || !callee_method->is_static(), "non-null receiver for static call??");
   } else {
     Bytecodes::Code bc;
     CallInfo callinfo;
