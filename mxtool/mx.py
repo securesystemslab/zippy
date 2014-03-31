@@ -3676,7 +3676,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
                 windowTitle = ['-windowtitle', p.name + ' javadoc']
             try:
                 log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
-                run([java(p.javaCompliance).javadoc, memory,
+                run([java().javadoc, memory,
                      '-XDignore.symbol.file',
                      '-classpath', cp,
                      '-quiet',
@@ -3767,15 +3767,13 @@ def _fix_overview_summary(path, topLink):
 <div class="subTitle">
 <div class="block">""", """</div>
 </div>
-<p>See: <a href="#overview_description">Description</a></p>
+<p>See: <a href="#overview.description">Description</a></p>
 </div>""")
 
-    chunk2 = Chunk(content, """<div class="footer"><a name="overview_description">
+    chunk2 = Chunk(content, """<div class="contentContainer"><a name="overview.description">
 <!--   -->
 </a>
-<div class="subTitle">
 <div class="block">""", """</div>
-</div>
 </div>
 <!-- ======= START OF BOTTOM NAVBAR ====== -->""")
 
@@ -3802,10 +3800,10 @@ def _fix_package_summary(path):
         content = fp.read()
 
     chunk1 = Chunk(content, """<div class="header">
-<h1 title="Package" class="title">Package""", """<p>See:&nbsp;<a href="#package_description">Description</a></p>
+<h1 title="Package" class="title">Package""", """<p>See:&nbsp;<a href="#package.description">Description</a></p>
 </div>""")
 
-    chunk2 = Chunk(content, """<a name="package_description">
+    chunk2 = Chunk(content, """<a name="package.description">
 <!--   -->
 </a>""", """</div>
 </div>
