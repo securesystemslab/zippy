@@ -49,7 +49,16 @@ public class TruffleExpansionLogger {
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         Object targetReceiver = null;
         if (!Modifier.isStatic(sourceMethod.getModifiers())) {
-            targetReceiver = callTarget.arguments().first().asConstant().asObject();
+            /**
+             * zwei: This is a work around to avoid {@link NullPointException} when {@link firstArg}
+             * is not a constant.
+             */
+            // targetReceiver = callTarget.arguments().first().asConstant().asObject();
+            NodeInputList<ValueNode> args = callTarget.arguments();
+            ValueNode firstArg = args.first();
+            Constant cst = firstArg.asConstant();
+            targetReceiver = cst == null ? cst : cst.asObject();
+
         }
 
         ExpansionTree parent = callToParentTree.get(callTarget);

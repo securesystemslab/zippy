@@ -76,6 +76,15 @@ library@ASM_TREE@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-tree/4.0/asm
 library@ASM_UTIL@path=lib/asm-util-4.0.jar
 library@ASM_UTIL@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-util/4.0/asm-util-4.0.jar
 
+library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
+library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
+
+library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
+library@JYTHON@urls=http://mirrors.ibiblio.org/maven2/org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
+
+library@DISRUPTOR@path=lib/disruptor-3.2.0.jar
+library@DISRUPTOR@urls=http://repo1.maven.org/maven2/com/lmax/disruptor/3.2.0/disruptor-3.2.0.jar
+
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
@@ -741,6 +750,63 @@ project@com.oracle.graal.truffle.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.hotspot.amd64@javaCompliance=1.7
 project@com.oracle.graal.truffle.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
 project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
+
+# python.runtime
+project@edu.uci.python.runtime@subDir=graal
+project@edu.uci.python.runtime@sourceDirs=src
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR
+project@edu.uci.python.runtime@javaCompliance=1.7
+project@edu.uci.python.runtime@workingSets=Truffle,Python
+
+# python.nodes
+project@edu.uci.python.nodes@subDir=graal
+project@edu.uci.python.nodes@sourceDirs=src
+project@edu.uci.python.nodes@dependencies=edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.nodes@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.nodes@javaCompliance=1.7
+project@edu.uci.python.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
+project@edu.uci.python.nodes@workingSets=Truffle,Python
+
+# python.parser
+project@edu.uci.python.parser@subDir=graal
+project@edu.uci.python.parser@sourceDirs=src
+project@edu.uci.python.parser@dependencies=edu.uci.python.nodes,JYTHON
+project@edu.uci.python.parser@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.parser@javaCompliance=1.7
+project@edu.uci.python.parser@workingSets=Truffle,Python
+
+# python.shell
+project@edu.uci.python.shell@subDir=graal
+project@edu.uci.python.shell@sourceDirs=src
+project@edu.uci.python.shell@dependencies=JLINE09,edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.parser,edu.uci.python.builtins,JYTHON
+project@edu.uci.python.shell@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.shell@javaCompliance=1.7
+project@edu.uci.python.shell@workingSets=Truffle,Python
+
+# python.benchmark
+project@edu.uci.python.benchmark@subDir=graal
+project@edu.uci.python.benchmark@sourceDirs=src
+project@edu.uci.python.benchmark@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,JUNIT
+project@edu.uci.python.benchmark@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.benchmark@javaCompliance=1.7
+project@edu.uci.python.benchmark@workingSets=Truffle,Python
+
+# python.test
+project@edu.uci.python.test@subDir=graal
+project@edu.uci.python.test@sourceDirs=src
+project@edu.uci.python.test@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.shell,JUNIT
+project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.test@javaCompliance=1.7
+project@edu.uci.python.test@workingSets=Truffle,Python
+
+# python.builtins
+project@edu.uci.python.builtins@subDir=graal
+project@edu.uci.python.builtins@sourceDirs=src
+project@edu.uci.python.builtins@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.builtins@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.builtins@javaCompliance=1.7
+project@edu.uci.python.builtins@annotationProcessors=com.oracle.truffle.dsl.processor
+project@edu.uci.python.builtins@workingSets=Truffle,Python
 
 # truffle.ruby.runtime
 project@com.oracle.truffle.ruby.runtime@subDir=graal

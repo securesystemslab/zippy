@@ -24,7 +24,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, mx_graal, os, sys, StringIO, subprocess
+import re, mx, mx_graal, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 
 gc = 'UseSerialGC'
@@ -95,6 +95,78 @@ dacapoScalaGateBuildLevels = {
     'scalaxb':    ['product', 'fastdebug', 'debug'],
     'specs':      ['product', 'fastdebug', 'debug'],
     'tmt':        ['product', 'fastdebug', 'debug'],
+}
+
+pythonTestBenchmarks = {
+    'binarytrees3'  : '12',
+    'fannkuchredux3': '9',
+    'fasta3'        : '250000',
+    'mandelbrot3'   : '600',
+    'meteor3'       : '2098',
+    'nbody3'        : '100000',
+    'spectralnorm3' : '500',
+    'richards3'     : '5',
+    'bm-ai'         : '0',
+}
+
+python2MicroBenchmarks = {
+    'arith-binop'           : '0',
+    'for-range2'            : '0',
+    'function-call2'        : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '0',
+    'list-iterating'        : '0',
+    #'builtin-len'          : '0',
+    #'builtin-len-tuple'    : '0',
+    #'math-sqrt'            : '0',
+    'generator'             : '0',
+    'generator-expression'  : '0',
+    'genexp-builtin-call'   : '0',
+}
+
+pythonMicroBenchmarks = {
+    'arith-binop'           : '0',
+    'for-range'             : '0',
+    'function-call'         : '0',
+    'list-comp'             : '0',
+    'list-indexing'         : '-InlineBuiltinFunctionCalls:false',
+    'list-iterating'        : '0',
+    'builtin-len'           : '0',
+    'builtin-len-tuple'     : '0',
+    'math-sqrt'             : '0',
+    'generator'             : '0',
+    'generator-expression'  : '0',
+    'genexp-builtin-call'   : '0',
+}
+
+pythonBenchmarks = {
+    'binarytrees3t'   : '19',
+    'fannkuchredux3t' : '11',
+    'fasta3t'         : '25000000',
+    'mandelbrot3t'    : '4000',
+    'meteor3t'        : '2098',
+    'nbody3t'         : '5000000',
+    'spectralnorm3t'  : '5500',
+    'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
+    'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
+    'pads-eratosthenes-timed' : '100000',
+}
+
+python2Benchmarks = {
+    'binarytrees2t'   : '19',
+    'fannkuchredux2t' : '11',
+    'fasta3t'         : '25000000',
+    'mandelbrot2t'    : '4000',
+    'meteor3t'        : '2098',
+    'nbody2t'         : '5000000',
+    'spectralnorm2t'  : '5500',
+    'pidigits-timed'  : '0',
+    'euler31-timed'   : '200',
+    'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
+    #'pads-eratosthenes-timed' : '100000',
 }
 
 specjvm2008Names = [
@@ -263,6 +335,73 @@ def getBootstraps():
     tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig, methodMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
 
+def getPythonTestBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonTestBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getPython2MicroBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = python2MicroBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getPythonMicroBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonMicroBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getPythonBenchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getPython2Benchmarks(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = python2Benchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
+def getSuccessErrorMatcher():
+    score = re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE)
+    error = re.compile(r"Exception")
+    success = score #re.compile(r"^Score \(version \d\): (?:[0-9]+(?:\.[0-9]+)?)", re.MULTILINE)
+    matcher = ValuesMatcher(score, {'group' : 'Python', 'name' : '<benchmark>', 'score' : '<score>'})
+    return success, error, matcher
+
 class CTWMode:
     Full, NoInline, NoComplex = range(3)
 
@@ -410,8 +549,28 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-            if mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+  
+            # if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+            #     mx.abort("Benchmark failed (non-zero retcode)")
+            # zippy
+            result = -1
+            if vm == 'cpython2':
+                result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'cpython':
+                result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'jython':
+                result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
+            elif vm == 'pypy':
+                result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'pypy3':
+                result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
+            else:
+                result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+
+            if result != 0:         
                 mx.abort("Benchmark failed (non-zero retcode)")
+            # wait for subprocess to finish
+            time.sleep(.5)
             mx.log(endDelim)
             output = tee.output.getvalue()
 
@@ -432,6 +591,6 @@ class Test:
                     group[name] = score
 
         if not passed:
-            mx.abort("Benchmark failed (not passed)")
+           mx.abort("Benchmark failed (not passed)")
 
         return groups

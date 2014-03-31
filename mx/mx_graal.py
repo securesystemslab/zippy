@@ -1253,6 +1253,52 @@ def bench(args):
     if 'ctw-nocomplex' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
+    # Python
+    if 'pythontest' in args:
+        benchmarks += sanitycheck.getPythonTestBenchmarks(vm)    
+
+    if 'python' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+
+    if 'cpython2' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'cpython2'
+
+    if 'cpython' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'cpython'
+
+    if 'jython' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'jython'
+
+    if 'pypy' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'pypy'
+
+    if 'pypy3' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'pypy3'
+
+    if 'python-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+
+    if 'cpython-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'cpython'
+
+    if 'jython-micro' in args:
+        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
+        vm = 'jython'
+
+    if 'pypy-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'pypy'
+
+    if 'pypy3-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'pypy3'
+
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})
@@ -1476,6 +1522,22 @@ def ruby(args):
     vmArgs, rubyArgs = _extract_VM_args(args, useDoubleDash=True)
     vm(vmArgs + ['-cp', rubyShellCp(), rubyShellClass()] + rubyArgs)
 
+def pythonShellCp():
+    return mx.classpath("edu.uci.python.shell");
+
+def pythonShellClass():
+    return "edu.uci.python.shell.Shell";
+
+def python(args):
+    """run a Python program or shell
+    
+    VM args should have a @ prefix."""
+    
+    vmArgs = [a[1:] for a in args if a[0] == '@']
+    pythonArgs = [a for a in args if a[0] != '@']
+
+    vm(vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1628,6 +1690,7 @@ def mx_init(suite):
         'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'shortunittest' : [shortunittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
+        'python' : [python, '[Python args|@VM options]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
         'vmg': [vmg, '[-options] class [args...]'],

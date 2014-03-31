@@ -227,6 +227,13 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         } else {
             logOptimizing(this);
             performInlining();
+
+            // zwei
+            if (TrufflePrintCompilingAST.getValue()) {
+                OUT.println(" ------------- " + getRootNode() + " ------------- ");
+                NodeUtil.printCompactTree(OUT, getRootNode());
+            }
+
             this.installedCodeTask = compiler.compile(this);
             if (!TruffleBackgroundCompilation.getValue()) {
                 return receiveInstalledCode();
