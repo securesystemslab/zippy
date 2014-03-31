@@ -313,7 +313,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             if (kind == Kind.Object) {
                 value = frameState.xpop();
                 // astore and astore_<n> may be used to store a returnAddress (jsr)
-                assert value.kind() == Kind.Object || value.kind() == Kind.Int;
+                assert value.getKind() == Kind.Object || value.getKind() == Kind.Int;
             } else {
                 value = frameState.pop(kind);
             }
@@ -767,15 +767,15 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             ValueNode b = mirror ? x : y;
 
             CompareNode condition;
-            assert !a.kind().isNumericFloat();
+            assert !a.getKind().isNumericFloat();
             if (cond == Condition.EQ || cond == Condition.NE) {
-                if (a.kind() == Kind.Object) {
+                if (a.getKind() == Kind.Object) {
                     condition = new ObjectEqualsNode(a, b);
                 } else {
                     condition = new IntegerEqualsNode(a, b);
                 }
             } else {
-                assert a.kind() != Kind.Object && !cond.isUnsigned();
+                assert a.getKind() != Kind.Object && !cond.isUnsigned();
                 condition = new IntegerLessThanNode(a, b);
             }
             condition = currentGraph.unique(condition);
@@ -1113,7 +1113,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
         private void genInvokeInterface(JavaMethod target) {
             if (target instanceof ResolvedJavaMethod) {
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(true), target.getSignature().getParameterCount(true));
-                genInvokeIndirect(InvokeKind.Interface, (ResolvedJavaMethod) target, args);
+                appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args);
             } else {
                 handleUnresolvedInvoke(target, InvokeKind.Interface);
             }
@@ -1148,7 +1148,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 }
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(hasReceiver), target.getSignature().getParameterCount(hasReceiver));
                 if (hasReceiver) {
-                    genInvokeIndirect(InvokeKind.Virtual, (ResolvedJavaMethod) target, args);
+                    appendInvoke(InvokeKind.Virtual, (ResolvedJavaMethod) target, args);
                 } else {
                     appendInvoke(InvokeKind.Static, (ResolvedJavaMethod) target, args);
                 }
@@ -1163,45 +1163,10 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 assert target != null;
                 assert target.getSignature() != null;
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(true), target.getSignature().getParameterCount(true));
-                invokeDirect((ResolvedJavaMethod) target, args);
+                appendInvoke(InvokeKind.Special, (ResolvedJavaMethod) target, args);
             } else {
                 handleUnresolvedInvoke(target, InvokeKind.Special);
             }
-        }
-
-        private void genInvokeIndirect(InvokeKind invokeKind, ResolvedJavaMethod target, ValueNode[] args) {
-            ValueNode receiver = args[0];
-            // attempt to devirtualize the call
-            ResolvedJavaType klass = target.getDeclaringClass();
-
-            // 0. check for trivial cases
-            if (target.canBeStaticallyBound()) {
-                // check for trivial cases (e.g. final methods, nonvirtual methods)
-                invokeDirect(target, args);
-                return;
-            }
-            // 1. check if the exact type of the receiver can be determined
-            ResolvedJavaType exact = klass.asExactType();
-            if (exact == null && receiver.stamp() instanceof ObjectStamp) {
-                ObjectStamp receiverStamp = (ObjectStamp) receiver.stamp();
-                if (receiverStamp.isExactType()) {
-                    exact = receiverStamp.type();
-                }
-            }
-            if (exact != null) {
-                // either the holder class is exact, or the receiver object has an exact type
-                ResolvedJavaMethod exactMethod = exact.resolveMethod(target);
-                if (exactMethod != null) {
-                    invokeDirect(exactMethod, args);
-                    return;
-                }
-            }
-            // devirtualization failed, produce an actual invokevirtual
-            appendInvoke(invokeKind, target, args);
-        }
-
-        private void invokeDirect(ResolvedJavaMethod target, ValueNode[] args) {
-            appendInvoke(InvokeKind.Special, target, args);
         }
 
         private void appendInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args) {
@@ -1696,7 +1661,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             if (Modifier.isSynchronized(method.getModifiers())) {
                 MonitorExitNode monitorExit = genMonitorExit(methodSynchronizedObject, returnValue);
                 if (returnValue != null) {
-                    frameState.push(returnValue.kind(), returnValue);
+                    frameState.push(returnValue.getKind(), returnValue);
                 }
                 monitorExit.setStateAfter(frameState.create(bci));
                 assert !frameState.rethrowException();
@@ -1857,11 +1822,11 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 Debug.log(String.format("|   state [nr locals = %d, stack depth = %d, method = %s]", frameState.localsSize(), frameState.stackSize(), method));
                 for (int i = 0; i < frameState.localsSize(); ++i) {
                     ValueNode value = frameState.localAt(i);
-                    Debug.log(String.format("|   local[%d] = %-8s : %s", i, value == null ? "bogus" : value.kind().getJavaName(), value));
+                    Debug.log(String.format("|   local[%d] = %-8s : %s", i, value == null ? "bogus" : value.getKind().getJavaName(), value));
                 }
                 for (int i = 0; i < frameState.stackSize(); ++i) {
                     ValueNode value = frameState.stackAt(i);
-                    Debug.log(String.format("|   stack[%d] = %-8s : %s", i, value == null ? "bogus" : value.kind().getJavaName(), value));
+                    Debug.log(String.format("|   stack[%d] = %-8s : %s", i, value == null ? "bogus" : value.getKind().getJavaName(), value));
                 }
             }
         }
@@ -2098,7 +2063,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 if (!currentBlock.jsrScope.isEmpty()) {
                     sb.append(' ').append(currentBlock.jsrScope);
                 }
-                Debug.log(sb.toString());
+                Debug.log("%s", sb);
             }
         }
 

@@ -39,8 +39,8 @@ public class AssertNode extends StatementNode {
     @Child protected PNode message;
 
     public AssertNode(CastToBooleanNode condition, PNode message) {
-        this.condition = adoptChild(condition);
-        this.message = adoptChild(message);
+        this.condition = condition;
+        this.message = message;
     }
 
     @Override

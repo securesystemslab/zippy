@@ -45,7 +45,7 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         assert generator instanceof PGeneratorFunction || generator instanceof CallableGeneratorExpressionDefinition;
         this.generator = generator;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        this.generatorRoot = adoptChild(prepareBody(generatorRoot.getInlinedRootNode()));
+        this.generatorRoot = prepareBody(generatorRoot.getInlinedRootNode());
     }
 
     @Override

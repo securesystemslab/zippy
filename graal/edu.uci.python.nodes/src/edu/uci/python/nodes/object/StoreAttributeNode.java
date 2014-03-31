@@ -41,8 +41,8 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
 
     public StoreAttributeNode(String name, PNode primary, PNode rhs) {
         this.attributeId = name;
-        this.primary = adoptChild(primary);
-        this.rhs = adoptChild(rhs);
+        this.primary = primary;
+        this.rhs = rhs;
     }
 
     public String getAttributeId() {

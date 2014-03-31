@@ -35,7 +35,7 @@ public class FrameSwappingNode extends PNode {
     @Child protected PNode child;
 
     public FrameSwappingNode(PNode child) {
-        this.child = adoptChild(child);
+        this.child = child;
     }
 
     @Override

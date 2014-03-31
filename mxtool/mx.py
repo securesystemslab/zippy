@@ -40,6 +40,7 @@ import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
+import difflib
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -1929,6 +1930,7 @@ def eclipseformat(args):
             with open(self.path) as fp:
                 content = fp.read()
                 if self.content != content:
+                    self.diff = difflib.unified_diff(self.content.splitlines(1), content.splitlines(1))
                     self.content = content
                     return True
             os.utime(self.path, self.times)
@@ -1966,6 +1968,7 @@ def eclipseformat(args):
                 modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
+
     if len(modified) != 0:
         arcbase = _primary_suite.dir
         if args.backup:
@@ -1974,6 +1977,8 @@ def eclipseformat(args):
         for fi in modified:
             name = os.path.relpath(fi.path, arcbase)
             log(' - {0}'.format(name))
+            log('Changes:')
+            log(''.join(fi.diff))
             if args.backup:
                 arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)
@@ -2861,20 +2866,41 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if not exists(settingsDir):
             os.mkdir(settingsDir)
 
+        # collect the defaults from mxtool
+        defaultEclipseSettingsDir = join(dirname(__file__), 'eclipse-settings')
+        esdict = {}
+        if exists(defaultEclipseSettingsDir):
+            for name in os.listdir(defaultEclipseSettingsDir):
+                if isfile(join(defaultEclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(defaultEclipseSettingsDir, name))
+
+        # check for suite overrides
         eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
-                if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
-                    continue
-                path = join(eclipseSettingsDir, name)
-                if isfile(path):
-                    with open(join(eclipseSettingsDir, name)) as f:
-                        content = f.read()
-                    content = content.replace('${javaCompliance}', str(p.javaCompliance))
-                    if len(p.annotation_processors()) > 0:
-                        content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
-                    update_file(join(settingsDir, name), content)
-                    files.append(join(settingsDir, name))
+                if isfile(join(eclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(eclipseSettingsDir, name))
+
+        # check for project overrides
+        projectSettingsDir = join(p.dir, 'eclipse-settings')
+        if exists(projectSettingsDir):
+            for name in os.listdir(projectSettingsDir):
+                if isfile(join(projectSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(projectSettingsDir, name))
+
+        # copy a possibly modified file to the project's .settings directory
+        for name, path in esdict.iteritems():
+            # ignore this file altogether if this project has no annotation processors
+            if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
+                continue
+
+            with open(path) as f:
+                content = f.read()
+            content = content.replace('${javaCompliance}', str(p.javaCompliance))
+            if len(p.annotation_processors()) > 0:
+                content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
+            update_file(join(settingsDir, name), content)
+            files.append(join(settingsDir, name))
 
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()

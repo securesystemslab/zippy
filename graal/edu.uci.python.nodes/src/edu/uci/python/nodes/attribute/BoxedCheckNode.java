@@ -93,7 +93,7 @@ public abstract class BoxedCheckNode extends Node {
                 classCheckNodes[i] = new ObjectLayoutCheckNode(current);
             }
 
-            this.classChecks = adoptChildren(classCheckNodes);
+            this.classChecks = classCheckNodes;
         }
 
         @Override

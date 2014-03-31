@@ -47,7 +47,7 @@ public final class FunctionRootNode extends RootNode {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
-        this.body = adoptChild(body);
+        this.body = body;
         this.uninitializedBody = NodeUtil.cloneNode(body);
     }
 
@@ -97,7 +97,7 @@ public final class FunctionRootNode extends RootNode {
 
         protected InlinedFunctionRootNode(FunctionRootNode node) {
             this.functionName = node.functionName;
-            this.body = adoptChild(NodeUtil.cloneNode(node.uninitializedBody));
+            this.body = NodeUtil.cloneNode(node.uninitializedBody);
         }
 
         @Override

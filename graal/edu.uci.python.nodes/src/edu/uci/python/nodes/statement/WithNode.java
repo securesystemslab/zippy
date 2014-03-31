@@ -50,9 +50,9 @@ public class WithNode extends StatementNode {
 
     protected WithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
         this.context = context;
-        this.withContext = adoptChild(withContext);
-        this.asName = adoptChild(asName);
-        this.body = adoptChild(body);
+        this.withContext = withContext;
+        this.asName = asName;
+        this.body = body;
     }
 
     public static WithNode create(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
@@ -69,7 +69,7 @@ public class WithNode extends StatementNode {
         Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
 
         if (asName != null) {
-            PNode[] asNames = asName.getStatements();
+            PNode[] asNames = insert(asName.getStatements());
             if (asNames.length == 1) {
                 ((WriteNode) asNames[0]).executeWrite(frame, asNameValue);
             } else {

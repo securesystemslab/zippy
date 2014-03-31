@@ -79,7 +79,7 @@ public final class TruffleCache {
         List<Object> key = new ArrayList<>(arguments.size() + 1);
         key.add(method);
         for (ValueNode v : arguments) {
-            if (v.kind() == Kind.Object) {
+            if (v.getKind() == Kind.Object) {
                 key.add(v.stamp());
             }
         }
@@ -117,7 +117,7 @@ public final class TruffleCache {
 
         lastUsed.put(key, counter++);
         cache.put(key, markerGraph);
-        try (Scope s = Debug.scope("TruffleCache", new Object[]{providers.getMetaAccess(), method})) {
+        try (Scope s = Debug.scope("TruffleCache", providers.getMetaAccess(), method)) {
 
             final StructuredGraph graph = new StructuredGraph(method);
             final PhaseContext phaseContext = new PhaseContext(providers, new Assumptions(false));
@@ -125,7 +125,7 @@ public final class TruffleCache {
             new GraphBuilderPhase.Instance(phaseContext.getMetaAccess(), config, optimisticOptimizations).apply(graph);
 
             for (ParameterNode param : graph.getNodes(ParameterNode.class)) {
-                if (param.kind() == Kind.Object) {
+                if (param.getKind() == Kind.Object) {
                     ValueNode actualArgument = arguments.get(param.index());
                     param.setStamp(param.stamp().join(actualArgument.stamp()));
                 }

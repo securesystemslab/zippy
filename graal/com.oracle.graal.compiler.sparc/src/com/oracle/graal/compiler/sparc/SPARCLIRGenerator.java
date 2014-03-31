@@ -132,6 +132,11 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
+    public void emitData(AllocatableValue dst, byte[] data) {
+        throw GraalInternalError.unimplemented();
+    }
+
+    @Override
     public SPARCAddressValue emitAddress(Value base, long displacement, Value index, int scale) {
         AllocatableValue baseRegister;
         long finalDisp = displacement;
@@ -941,7 +946,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitNullCheck(ValueNode v, DeoptimizingNode deopting) {
-        assert v.kind() == Kind.Object;
+        assert v.getKind() == Kind.Object;
         append(new NullCheckOp(load(operand(v)), state(deopting)));
     }
 

@@ -33,8 +33,8 @@ public class TryFinallyNode extends StatementNode {
     @Child protected BlockNode finalbody;
 
     public TryFinallyNode(BlockNode body, BlockNode finalbody) {
-        this.body = adoptChild(body);
-        this.finalbody = adoptChild(finalbody);
+        this.body = body;
+        this.finalbody = finalbody;
     }
 
     @Override

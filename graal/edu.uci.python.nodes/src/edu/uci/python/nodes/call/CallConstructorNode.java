@@ -37,8 +37,8 @@ public class CallConstructorNode extends PNode {
     @Children private final PNode[] arguments;
 
     public CallConstructorNode(PNode targetClass, PNode[] arguments) {
-        this.targetClass = adoptChild(targetClass);
-        this.arguments = adoptChildren(arguments);
+        this.targetClass = targetClass;
+        this.arguments = arguments;
     }
 
     @Override

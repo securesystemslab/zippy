@@ -42,8 +42,8 @@ public class CallFunctionNoKeywordNode extends PNode {
     @Children protected final PNode[] arguments;
 
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
-        this.callee = adoptChild(callee);
-        this.arguments = adoptChildren(arguments);
+        this.callee = callee;
+        this.arguments = arguments;
     }
 
     public PNode[] getArguments() {

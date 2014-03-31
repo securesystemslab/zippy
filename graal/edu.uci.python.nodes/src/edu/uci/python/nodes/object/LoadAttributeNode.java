@@ -39,7 +39,7 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
     public LoadAttributeNode(String name, PNode primary) {
         this.attributeId = name;
-        this.primary = adoptChild(primary);
+        this.primary = primary;
     }
 
     public String getAttributeId() {

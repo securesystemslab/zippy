@@ -35,7 +35,7 @@ public class ContinueTargetNode extends StatementNode {
     @Child protected BlockNode child;
 
     public ContinueTargetNode(BlockNode child) {
-        this.child = adoptChild(child);
+        this.child = child;
     }
 
     @Override

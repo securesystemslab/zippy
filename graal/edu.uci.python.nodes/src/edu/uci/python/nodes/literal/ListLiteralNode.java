@@ -38,7 +38,7 @@ public abstract class ListLiteralNode extends LiteralNode {
     @Children protected final PNode[] values;
 
     public ListLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+        this.values = values;
     }
 
     @ExplodeLoop

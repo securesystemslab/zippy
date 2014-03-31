@@ -37,7 +37,7 @@ public class WhileNode extends LoopNode {
 
     public WhileNode(CastToBooleanNode condition, StatementNode body) {
         super(body);
-        this.condition = adoptChild(condition);
+        this.condition = condition;
     }
 
     @Override

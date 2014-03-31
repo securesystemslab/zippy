@@ -44,8 +44,8 @@ public class ClassDefinitionNode extends StatementNode {
 
     public ClassDefinitionNode(String name, PNode superClass, FunctionDefinitionNode definitionFunction) {
         this.name = name;
-        this.superClass = adoptChild(superClass);
-        this.definitionFunction = adoptChild(definitionFunction);
+        this.superClass = superClass;
+        this.definitionFunction = definitionFunction;
     }
 
     @Override

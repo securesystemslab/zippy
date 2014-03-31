@@ -136,7 +136,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
+                toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
             }
             return toBoolean.executeBoolean(value);
         }
@@ -151,7 +151,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = adoptChild(YesNodeFactory.create(EMPTYNODE));
+                toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
             }
             return toBoolean.executeBoolean(value);
         }
@@ -315,6 +315,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             PythonParseResult parsed = parser.parse(getContext(), new PythonModule(getContext(), "<eval>", null), expression);
             RootNode root = parsed.getModuleRoot();
             VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, null, root.getFrameDescriptor());
+            Truffle.getRuntime().createCallTarget(root);
             return root.execute(frame);
         }
 

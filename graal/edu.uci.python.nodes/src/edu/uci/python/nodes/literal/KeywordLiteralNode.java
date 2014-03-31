@@ -37,7 +37,7 @@ public class KeywordLiteralNode extends LiteralNode {
 
     public KeywordLiteralNode(PNode value, String name) {
         this.name = name;
-        this.value = adoptChild(value);
+        this.value = value;
     }
 
     @Override

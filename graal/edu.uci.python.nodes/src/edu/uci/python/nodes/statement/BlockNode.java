@@ -39,7 +39,7 @@ public class BlockNode extends StatementNode {
     @Children protected final PNode[] statements;
 
     public BlockNode(PNode[] statements) {
-        this.statements = adoptChildren(statements);
+        this.statements = statements;
     }
 
     public final PNode[] getStatements() {

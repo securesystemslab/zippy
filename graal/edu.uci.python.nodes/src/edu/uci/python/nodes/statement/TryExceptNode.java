@@ -36,22 +36,21 @@ import edu.uci.python.runtime.*;
 public abstract class TryExceptNode extends StatementNode {
 
     @Child protected BlockNode body;
-
     @Child protected BlockNode orelse;
 
-    @Child protected PNode[] exceptType;
+    @Children final PNode[] exceptType;
     @Child protected PNode exceptName;
     @Child protected BlockNode exceptBody;
 
     protected final PythonContext context;
 
     protected TryExceptNode(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
-        this.body = adoptChild(body);
-        this.orelse = adoptChild(orelse);
+        this.body = body;
+        this.orelse = orelse;
 
-        this.exceptName = adoptChild(exceptName);
-        this.exceptType = adoptChildren(exceptType);
-        this.exceptBody = adoptChild(exceptBody);
+        this.exceptName = exceptName;
+        this.exceptType = exceptType;
+        this.exceptBody = exceptBody;
 
         this.context = context;
     }

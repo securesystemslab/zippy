@@ -35,8 +35,8 @@ public class ReturnTargetNode extends StatementNode {
     @Child protected PNode returnValue;
 
     public ReturnTargetNode(PNode body, PNode returnValue) {
-        this.body = adoptChild(body);
-        this.returnValue = adoptChild(returnValue);
+        this.body = body;
+        this.returnValue = returnValue;
     }
 
     protected ReturnTargetNode(ReturnTargetNode prev) {

@@ -37,9 +37,9 @@ public class DispatchCallNode extends PNode {
     @Child protected DispatchNode dispatchNode;
 
     public DispatchCallNode(PNode callee, PNode[] arguments, DispatchNode dispatch) {
-        this.calleeNode = adoptChild(callee);
-        this.argumentNodes = adoptChildren(arguments);
-        this.dispatchNode = adoptChild(dispatch);
+        this.calleeNode = callee;
+        this.argumentNodes = arguments;
+        this.dispatchNode = dispatch;
     }
 
     public static DispatchCallNode create(PNode callee, PNode[] arguments) {

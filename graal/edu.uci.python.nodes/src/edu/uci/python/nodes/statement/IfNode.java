@@ -37,9 +37,9 @@ public class IfNode extends StatementNode {
     @Child protected PNode orelse;
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
-        this.condition = adoptChild(condition);
-        this.then = adoptChild(then);
-        this.orelse = adoptChild(orelse);
+        this.condition = condition;
+        this.then = then;
+        this.orelse = orelse;
     }
 
     @Override

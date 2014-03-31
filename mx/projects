@@ -38,6 +38,10 @@ library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim
 library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
 library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
 
+library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
+library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-67ad4ee8beb6.jar
+library@JAVA_ALLOCATION_INSTRUMENTER@sha1=1cd4073f57d7d461a53b0ddc1ea4ee2aa0c60e66
+
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
 library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
 
@@ -528,7 +532,7 @@ project@com.oracle.graal.test@workingSets=Graal,Test
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime,com.oracle.graal.baseline
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime,com.oracle.graal.baseline,JAVA_ALLOCATION_INSTRUMENTER
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 project@com.oracle.graal.compiler.test@workingSets=Graal,Test

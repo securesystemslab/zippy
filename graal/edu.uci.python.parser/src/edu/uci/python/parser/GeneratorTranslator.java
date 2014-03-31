@@ -52,6 +52,7 @@ public class GeneratorTranslator {
     }
 
     public RootCallTarget translate() {
+        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(root);
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -114,7 +115,7 @@ public class GeneratorTranslator {
             }
         }
 
-        return Truffle.getRuntime().createCallTarget(root);
+        return callTarget;
     }
 
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
