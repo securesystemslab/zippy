@@ -1140,11 +1140,6 @@ def gate(args, gate_body=_basic_gate_body):
         build(['--no-native', '--force-javac'])
         tasks.append(t.stop())
 
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
-        tasks.append(t.stop())
-
         t = Task('Checkheaders')
         if checkheaders([]) != 0:
             t.abort('Checkheaders warnings were found')
