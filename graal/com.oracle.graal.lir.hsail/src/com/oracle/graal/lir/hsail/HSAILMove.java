@@ -146,7 +146,7 @@ public class HSAILMove {
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
             if (state != null) {
-                // crb.recordImplicitException(masm.codeBuffer.position(), state);
+                // crb.recordImplicitException(masm.position(), state);
                 throw new InternalError("NYI");
             }
             emitMemAccess(masm);
@@ -237,13 +237,6 @@ public class HSAILMove {
                         throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to object ref");
                     }
                     break;
-                case NarrowOop:
-                    if (input.isNull()) {
-                        masm.emitStoreImmediate(kind, 0L, address.toAddress());
-                    } else {
-                        throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to object ref");
-                    }
-                    break;
                 default:
                     throw GraalInternalError.shouldNotReachHere();
             }
@@ -305,7 +298,7 @@ public class HSAILMove {
             encodePointer(masm, scratch, base, shift, alignment, testForNull);
             if (state != null) {
                 throw new InternalError("NYI");
-                // crb.recordImplicitException(masm.codeBuffer.position(), state);
+                // crb.recordImplicitException(masm.position(), state);
             }
             masm.emitStore(scratch, address.toAddress(), "u32");
         }

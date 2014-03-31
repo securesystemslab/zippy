@@ -73,6 +73,7 @@ ProjectCreatorIncludesPRIVATE=\
         -ignorePath arm \
         -ignorePath ppc \
         -ignorePath zero \
+        -ignorePath aix \
         -hidePath .hg
 
 
@@ -182,8 +183,9 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 # Graal compiler specific options
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
+ -define_graal COMPILER1 \
+ -define_graal COMPILERGRAAL \
  -define_graal GRAAL \
- $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=graal) \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 
 ##################################################
@@ -191,6 +193,7 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ##################################################
 #NOTE! This list must be kept in sync with GENERATED_NAMES in adlc.make.
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
+ -define_compiler2 COMPILER1 \
  -define_compiler2 COMPILER2 \
  -define_compiler2 GRAAL \
  -ignorePath_compiler2 graal/generated \
@@ -205,8 +208,7 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -additionalFile_compiler2 ad_$(Platform_arch_model)_peephole.cpp \
  -additionalFile_compiler2 ad_$(Platform_arch_model)_pipeline.cpp \
  -additionalFile_compiler2 adGlobals_$(Platform_arch_model).hpp \
- -additionalFile_compiler2 dfa_$(Platform_arch_model).cpp \
- $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=compiler2)
+ -additionalFile_compiler2 dfa_$(Platform_arch_model).cpp
 
 # Add in the jvmti (JSR-163) options
 # NOTE: do not pull in jvmtiEnvRecommended.cpp.  This file is generated

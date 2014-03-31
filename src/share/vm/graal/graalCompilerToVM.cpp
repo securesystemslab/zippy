@@ -43,11 +43,6 @@
 #include "runtime/gpu.hpp"
 
 
-Method* getMethodFromHotSpotMethod(oop hotspot_method) {
-  assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotResolvedJavaMethod::klass()), "sanity");
-  return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
-}
-
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
 #define C2V_VMENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL c2v_ ## name signature { \
@@ -61,379 +56,6 @@ Method* getMethodFromHotSpotMethod(oop hotspot_method) {
   TRACE_graal_3("CompilerToVM::" #name); \
 
 #define C2V_END }
-
-C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
-  methodHandle method = asMethod(metaspace_method);
-  ResourceMark rm;
-
-  int code_size = method->code_size();
-  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
-
-  guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
-  // iterate over all bytecodes and replace non-Java bytecodes
-
-  for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
-    Bytecodes::Code code = s.code();
-    Bytecodes::Code raw_code = s.raw_code();
-    int bci = s.bci();
-    int len = s.instruction_size();
-
-    // Restore original byte code.
-    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
-    if (len > 1) {
-      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
-    }
-
-    if (len > 1) {
-      // Restore the big-endian constant pool indexes.
-      // Cf. Rewriter::scan_method
-      switch (code) {
-        case Bytecodes::_getstatic:
-        case Bytecodes::_putstatic:
-        case Bytecodes::_getfield:
-        case Bytecodes::_putfield:
-        case Bytecodes::_invokevirtual:
-        case Bytecodes::_invokespecial:
-        case Bytecodes::_invokestatic:
-        case Bytecodes::_invokeinterface:
-        case Bytecodes::_invokehandle: {
-          int cp_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
-          break;
-        }
-
-        case Bytecodes::_invokedynamic:
-          int cp_index = Bytes::get_native_u4((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u4((address) &reconstituted_code[bci + 1], (u4) cp_index);
-          break;
-      }
-
-      // Not all ldc byte code are rewritten.
-      switch (raw_code) {
-        case Bytecodes::_fast_aldc: {
-          int cpc_index = reconstituted_code[bci + 1] & 0xff;
-          int cp_index = method->constants()->object_to_cp_index(cpc_index);
-          assert(cp_index < method->constants()->length(), "sanity check");
-          reconstituted_code[bci + 1] = (jbyte) cp_index;
-          break;
-        }
-
-        case Bytecodes::_fast_aldc_w: {
-          int cpc_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
-          int cp_index = method->constants()->object_to_cp_index(cpc_index);
-          assert(cp_index < method->constants()->length(), "sanity check");
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
-          break;
-        }
-      }
-    }
-  }
-
-  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
-
-  return result;
-C2V_END
-
-C2V_VMENTRY(jlong, exceptionTableStart, (JNIEnv *, jobject, jlong metaspace_method))
-  ResourceMark rm;
-  methodHandle method = asMethod(metaspace_method);
-  assert(method->exception_table_length() != 0, "should be handled in Java code");
-  return (jlong) (address) method->exception_table_start();
-C2V_END
-
-C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_method))
-
-  // Analyze the method to see if monitors are used properly.
-  methodHandle method(THREAD, asMethod(metaspace_method));
-  assert(method->has_monitor_bytecodes(), "should have checked this");
-
-  // Check to see if a previous compilation computed the monitor-matching analysis.
-  if (method->guaranteed_monitor_matching()) {
-    return true;
-  }
-
-  {
-    EXCEPTION_MARK;
-    ResourceMark rm(THREAD);
-    GeneratePairingInfo gpi(method);
-    gpi.compute_map(CATCH);
-    if (!gpi.monitor_safe()) {
-      return false;
-    }
-    method->set_guaranteed_monitor_matching();
-  }
-  return true;
-C2V_END
-
-C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle, jint slot))
-  oop java_class = JNIHandles::resolve(holder_handle);
-  Klass* holder = java_lang_Class::as_Klass(java_class);
-  methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
-  return (jlong) (address) method();
-}
-
-C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
-  methodHandle method = asMethod(metaspace_method);
-  KlassHandle holder = method->method_holder();
-  assert(!holder->is_interface(), "should be handled in Java code");
-  ResourceMark rm;
-  MutexLocker locker(Compile_lock);
-  Method* ucm = Dependencies::find_unique_concrete_method(holder(), method());
-  return (jlong) (address) ucm;
-C2V_END
-
-C2V_VMENTRY(jlong, getKlassImplementor, (JNIEnv *, jobject, jlong metaspace_klass))
-  InstanceKlass* klass = (InstanceKlass*) asKlass(metaspace_klass);
-  return (jlong) (address) klass->implementor();
-C2V_END
-
-C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
-  methodHandle method = asMethod(metaspace_method);
-  InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
-  HotSpotResolvedJavaMethod::set_exceptionHandlerCount(hotspot_method, method->exception_table_length());
-  HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
-  HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
-  HotSpotResolvedJavaMethod::set_dontInline(hotspot_method, method->dont_inline());
-  HotSpotResolvedJavaMethod::set_ignoredBySecurityStackWalk(hotspot_method, method->is_ignored_by_security_stack_walk());
-C2V_END
-
-C2V_VMENTRY(jboolean, canInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
-  methodHandle method = asMethod(metaspace_method);
-  return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method) && !method->dont_inline();
-C2V_END
-
-C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
-  methodHandle method = asMethod(metaspace_method);
-  return CompilerOracle::should_inline(method) || method->force_inline();
-C2V_END
-
-C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_method))
-  nmethod* code = (asMethod(metaspace_method))->code();
-  return code == NULL ? 0 : code->insts_size();
-C2V_END
-
-C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean eagerResolve))
-  ResourceMark rm;
-  Handle name = JNIHandles::resolve(jname);
-  Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
-  assert(class_name != NULL, "name to symbol creation failed");
-  assert(class_name->size() > 1, "primitive types should be handled in Java code");
-
-  Klass* resolved_klass = NULL;
-  Handle class_loader;
-  Handle protection_domain;
-  if (JNIHandles::resolve(accessing_class) != NULL) {
-    Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
-    class_loader = accessing_klass->class_loader();
-    protection_domain = accessing_klass->protection_domain();
-  }
-
-  if (eagerResolve) {
-    resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);
-  } else {
-    resolved_klass = SystemDictionary::resolve_or_null(class_name, class_loader, protection_domain, THREAD);
-  }
-
-  return (jlong) (address) resolved_klass;
-C2V_END
-
-C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
-  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
-  oop result = NULL;
-  constantTag tag = cp->tag_at(index);
-  switch (tag.value()) {
-  case JVM_CONSTANT_String:
-      result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
-      break;
-  case JVM_CONSTANT_MethodHandle:
-  case JVM_CONSTANT_MethodHandleInError:
-  case JVM_CONSTANT_MethodType:
-  case JVM_CONSTANT_MethodTypeInError:
-      result = cp->resolve_constant_at(index, CHECK_NULL);
-      break;
-  default:
-    fatal(err_msg_res("unknown constant pool tag %s at cpi %d in %s", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string()));
-  }
-  return JNIHandles::make_local(THREAD, result);
-C2V_END
-
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
-  Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  index = GraalCompiler::to_cp_index(index, bc);
-  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
-  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
-  return JNIHandles::make_local(THREAD, appendix_oop);
-C2V_END
-
-C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
-  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
-  instanceKlassHandle pool_holder(cp->pool_holder());
-
-  Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  int cp_index = GraalCompiler::to_cp_index(index, bc);
-
-  methodHandle method = GraalEnv::get_method_by_index(cp, cp_index, bc, pool_holder);
-  if (!method.is_null()) {
-    Handle holder = VMToCompiler::createResolvedJavaType(method->method_holder()->java_mirror(), CHECK_NULL);
-    return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
-  } else {
-    // Get the method's name and signature.
-    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(cp_index), CHECK_NULL);
-    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(cp_index), CHECK_NULL);
-    Handle type;
-    if (bc != Bytecodes::_invokedynamic) {
-      int holder_index = cp->klass_ref_index_at(cp_index);
-      type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
-    } else {
-      type = Handle(SystemDictionary::MethodHandle_klass()->java_mirror());
-    }
-    return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
-  }
-C2V_END
-
-C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
-  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
-  Handle result = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, result());
-C2V_END
-
-C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte op))
-  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
-  Bytecodes::Code bc = (Bytecodes::Code) (((int) op) & 0xFF);
-  if (bc != Bytecodes::_checkcast && bc != Bytecodes::_instanceof && bc != Bytecodes::_new && bc != Bytecodes::_anewarray
-      && bc != Bytecodes::_multianewarray && bc != Bytecodes::_ldc && bc != Bytecodes::_ldc_w && bc != Bytecodes::_ldc2_w)
-  {
-    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index(index, bc));
-  }
-  constantTag tag = cp->tag_at(index);
-  if (tag.is_field_or_method()) {
-    index = cp->uncached_klass_ref_index_at(index);
-    tag = cp->tag_at(index);
-  }
-
-  if (tag.is_unresolved_klass() || tag.is_klass()) {
-    Klass* klass = cp->klass_at(index, CHECK);
-    if (klass->oop_is_instance()) {
-      InstanceKlass::cast(klass)->initialize(CHECK);
-    }
-  }
-C2V_END
-
-C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
-  ResourceMark rm;
-
-  int cp_index = GraalCompiler::to_cp_index_u2(index);
-  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
-
-  int nt_index = cp->name_and_type_ref_index_at(cp_index);
-  int sig_index = cp->signature_ref_index_at(nt_index);
-  Symbol* signature = cp->symbol_at(sig_index);
-  int name_index = cp->name_ref_index_at(nt_index);
-  Symbol* name = cp->symbol_at(name_index);
-  int holder_index = cp->klass_ref_index_at(cp_index);
-  Handle holder = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
-  instanceKlassHandle holder_klass;
-
-  Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
-  int offset = -1;
-  AccessFlags flags;
-  if (holder->klass() == SystemDictionary::HotSpotResolvedObjectType_klass()) {
-    fieldDescriptor result;
-    LinkResolver::resolve_field_access(result, cp, cp_index, Bytecodes::java_code(code), true, false, Thread::current());
-
-    if (HAS_PENDING_EXCEPTION) {
-      CLEAR_PENDING_EXCEPTION;
-    } else {
-      offset = result.offset();
-      flags = result.access_flags();
-      holder_klass = result.field_holder();
-      holder = VMToCompiler::createResolvedJavaType(holder_klass->java_mirror(), CHECK_NULL);
-    }
-  }
-
-  Handle type = GraalCompiler::get_JavaTypeFromSignature(signature, cp->pool_holder(), CHECK_NULL);
-  Handle field_handle = GraalCompiler::get_JavaField(offset, flags.as_int(), name, holder, type, THREAD);
-
-  return JNIHandles::make_local(THREAD, field_handle());
-C2V_END
-
-C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
-  assert(JNIHandles::resolve(resolved_type) != NULL, "");
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(resolved_type));
-  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
-  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
-  Method* method = klass->lookup_method(name_symbol, signature_symbol);
-  if (method == NULL) {
-    if (TraceGraal >= 3) {
-      ResourceMark rm;
-      tty->print_cr("Could not resolve method %s %s on klass %s", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->name()->as_C_string());
-    }
-    return 0;
-  }
-  return (jlong) (address) method;
-C2V_END
-
-C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
-  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(hotspot_klass));
-  assert(klass != NULL, "method must not be called for primitive types");
-  return Dependencies::find_finalizable_subclass(klass) != NULL;
-C2V_END
-
-C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
-  ResourceMark rm;
-
-  instanceKlassHandle k = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass));
-  GrowableArray<Handle> fields(k->java_fields_count());
-
-  for (AllFieldStream fs(k()); !fs.done(); fs.next()) {
-    if (!fs.access_flags().is_static()) {
-      Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, THREAD);
-      int flags = fs.access_flags().as_int();
-      bool internal = fs.access_flags().is_internal();
-      Handle name = java_lang_String::create_from_symbol(fs.name(), THREAD);
-      Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, THREAD);
-      fields.append(field());
-    }
-  }
-  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::HotSpotResolvedJavaField_klass(), fields.length(), CHECK_NULL);
-  for (int i = 0; i < fields.length(); ++i) {
-    field_array->obj_at_put(i, fields.at(i)());
-  }
-  return JNIHandles::make_local(THREAD, field_array());
-C2V_END
-
-C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jobject klass))
-  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(klass)));
-  Method* clinit = k->class_initializer();
-  return (jlong) (address) clinit;
-C2V_END
-
-C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
-  address target_addr = (address) addr;
-  if (target_addr != 0x0) {
-    int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
-    int64_t off_high = (int64_t)target_addr - ((int64_t)CodeCache::high_bound() + sizeof(int));
-    return MAX2(ABS(off_low), ABS(off_high));
-  }
-  return -1;
-C2V_END
-
-
-// helpers used to set fields in the HotSpotVMConfig object
-jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
-  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
-  if (id == NULL) {
-    fatal(err_msg("field not found: %s (%s)", name, sig));
-  }
-  return id;
-}
-
-C2V_VMENTRY(void, doNotInlineOrCompile,(JNIEnv *, jobject,  jlong metaspace_method))
-  methodHandle method = asMethod(metaspace_method);
-  method->set_not_c1_compilable();
-  method->set_not_c2_compilable();
-  method->set_dont_inline(true);
-C2V_END
 
 extern "C" {
 extern VMStructEntry* gHotSpotVMStructs;
@@ -463,6 +85,15 @@ extern VMLongConstantEntry* gHotSpotVMLongConstants;
 extern uint64_t gHotSpotVMLongConstantEntryNameOffset;
 extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
 extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
+}
+
+// helpers used to set fields in the HotSpotVMConfig object
+static jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
+  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
+  if (id == NULL) {
+    fatal(err_msg("field not found: %s (%s)", name, sig));
+  }
+  return id;
 }
 
 C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
@@ -573,6 +204,301 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #undef set_int
 #undef set_long
 
+C2V_END
+
+C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
+  methodHandle method = asMethod(metaspace_method);
+  ResourceMark rm;
+
+  int code_size = method->code_size();
+  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
+
+  guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
+  // iterate over all bytecodes and replace non-Java bytecodes
+
+  for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
+    Bytecodes::Code code = s.code();
+    Bytecodes::Code raw_code = s.raw_code();
+    int bci = s.bci();
+    int len = s.instruction_size();
+
+    // Restore original byte code.
+    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
+    if (len > 1) {
+      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
+    }
+
+    if (len > 1) {
+      // Restore the big-endian constant pool indexes.
+      // Cf. Rewriter::scan_method
+      switch (code) {
+        case Bytecodes::_getstatic:
+        case Bytecodes::_putstatic:
+        case Bytecodes::_getfield:
+        case Bytecodes::_putfield:
+        case Bytecodes::_invokevirtual:
+        case Bytecodes::_invokespecial:
+        case Bytecodes::_invokestatic:
+        case Bytecodes::_invokeinterface:
+        case Bytecodes::_invokehandle: {
+          int cp_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          break;
+        }
+
+        case Bytecodes::_invokedynamic:
+          int cp_index = Bytes::get_native_u4((address) &reconstituted_code[bci + 1]);
+          Bytes::put_Java_u4((address) &reconstituted_code[bci + 1], (u4) cp_index);
+          break;
+      }
+
+      // Not all ldc byte code are rewritten.
+      switch (raw_code) {
+        case Bytecodes::_fast_aldc: {
+          int cpc_index = reconstituted_code[bci + 1] & 0xff;
+          int cp_index = method->constants()->object_to_cp_index(cpc_index);
+          assert(cp_index < method->constants()->length(), "sanity check");
+          reconstituted_code[bci + 1] = (jbyte) cp_index;
+          break;
+        }
+
+        case Bytecodes::_fast_aldc_w: {
+          int cpc_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          int cp_index = method->constants()->object_to_cp_index(cpc_index);
+          assert(cp_index < method->constants()->length(), "sanity check");
+          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          break;
+        }
+      }
+    }
+  }
+
+  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
+
+  return result;
+C2V_END
+
+C2V_VMENTRY(jint, exceptionTableLength, (JNIEnv *, jobject, jlong metaspace_method))
+  ResourceMark rm;
+  methodHandle method = asMethod(metaspace_method);
+  return method->exception_table_length();
+C2V_END
+
+C2V_VMENTRY(jlong, exceptionTableStart, (JNIEnv *, jobject, jlong metaspace_method))
+  ResourceMark rm;
+  methodHandle method = asMethod(metaspace_method);
+  assert(method->exception_table_length() != 0, "should be handled in Java code");
+  return (jlong) (address) method->exception_table_start();
+C2V_END
+
+C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jlong metaspace_method))
+  // Analyze the method to see if monitors are used properly.
+  methodHandle method(THREAD, asMethod(metaspace_method));
+  {
+    EXCEPTION_MARK;
+    ResourceMark rm(THREAD);
+    GeneratePairingInfo gpi(method);
+    gpi.compute_map(CATCH);
+    if (!gpi.monitor_safe()) {
+      return false;
+    }
+    method->set_guaranteed_monitor_matching();
+  }
+  return true;
+C2V_END
+
+C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle, jint slot))
+  oop java_class = JNIHandles::resolve(holder_handle);
+  Klass* holder = java_lang_Class::as_Klass(java_class);
+  methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
+  return (jlong) (address) method();
+}
+
+C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  KlassHandle holder = method->method_holder();
+  assert(!holder->is_interface(), "should be handled in Java code");
+  ResourceMark rm;
+  MutexLocker locker(Compile_lock);
+  Method* ucm = Dependencies::find_unique_concrete_method(holder(), method());
+  return (jlong) (address) ucm;
+C2V_END
+
+C2V_VMENTRY(jlong, getKlassImplementor, (JNIEnv *, jobject, jlong metaspace_klass))
+  InstanceKlass* klass = (InstanceKlass*) asKlass(metaspace_klass);
+  return (jlong) (address) klass->implementor();
+C2V_END
+
+C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
+  methodHandle method = asMethod(metaspace_method);
+  InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
+  HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
+  HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
+  HotSpotResolvedJavaMethod::set_dontInline(hotspot_method, method->dont_inline());
+  HotSpotResolvedJavaMethod::set_ignoredBySecurityStackWalk(hotspot_method, method->is_ignored_by_security_stack_walk());
+C2V_END
+
+C2V_VMENTRY(jboolean, canInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  return !method->is_not_compilable() && !CompilerOracle::should_not_inline(method) && !method->dont_inline();
+C2V_END
+
+C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  return CompilerOracle::should_inline(method) || method->force_inline();
+C2V_END
+
+C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean resolve))
+  ResourceMark rm;
+  Handle name = JNIHandles::resolve(jname);
+  Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
+  assert(class_name != NULL, "name to symbol creation failed");
+  assert(class_name->size() > 1, "primitive types should be handled in Java code");
+
+  Klass* resolved_klass = NULL;
+  Handle class_loader;
+  Handle protection_domain;
+  if (JNIHandles::resolve(accessing_class) != NULL) {
+    Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
+    class_loader = accessing_klass->class_loader();
+    protection_domain = accessing_klass->protection_domain();
+  }
+
+  if (resolve) {
+    resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);
+  } else {
+    resolved_klass = SystemDictionary::resolve_or_null(class_name, class_loader, protection_domain, THREAD);
+  }
+
+  return (jlong) (address) resolved_klass;
+C2V_END
+
+C2V_VMENTRY(jobject, resolveConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
+  oop result = cp->resolve_constant_at(index, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, result);
+C2V_END
+
+C2V_VMENTRY(jobject, resolvePossiblyCachedConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
+  oop result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, result);
+C2V_END
+
+C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  return cp->name_and_type_ref_index_at(index);
+C2V_END
+
+C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  return (jlong) (address) cp->name_ref_at(index);
+C2V_END
+
+C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  return (jlong) (address) cp->signature_ref_at(index);
+C2V_END
+
+C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  return cp->klass_ref_index_at(index);
+C2V_END
+
+C2V_VMENTRY(jlong, constantPoolKlassAt, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
+  return (jlong) (address) cp->klass_at(index, THREAD);
+C2V_END
+
+C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  KlassHandle loading_klass(cp->pool_holder());
+  bool is_accessible = false;
+  KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
+  if (klass.is_null()) {
+    // We have to lock the cpool to keep the oop from being resolved
+    // while we are accessing it.
+    MonitorLockerEx ml(cp->lock());
+    constantTag tag = cp->tag_at(index);
+    if (tag.is_klass()) {
+      // The klass has been inserted into the constant pool
+      // very recently.
+      return (jlong) CompilerToVM::tag_pointer(cp->resolved_klass_at(index));
+    } else if (tag.is_symbol()) {
+      return (jlong) CompilerToVM::tag_pointer(cp->symbol_at(index));
+    } else {
+      assert(cp->tag_at(index).is_unresolved_klass(), "wrong tag");
+      return (jlong) CompilerToVM::tag_pointer(cp->unresolved_klass_at(index));
+    }
+  }
+  return (jlong) CompilerToVM::tag_pointer(klass());
+C2V_END
+
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
+  return JNIHandles::make_local(THREAD, appendix_oop);
+C2V_END
+
+C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  instanceKlassHandle pool_holder(cp->pool_holder());
+  Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
+  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
+  return (jlong) (address) method();
+C2V_END
+
+C2V_VMENTRY(jint, constantPoolRemapInstructionOperandFromCache, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
+  return cp->remap_instruction_operand_from_cache(index);
+C2V_END
+
+C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
+  ResourceMark rm;
+  constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
+  Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
+  fieldDescriptor result;
+  LinkResolver::resolve_field_access(result, cp, index, Bytecodes::java_code(code), true, false, CHECK_0);
+  typeArrayOop info = (typeArrayOop) JNIHandles::resolve(info_handle);
+  assert(info != NULL && info->length() == 2, "must be");
+  info->long_at_put(0, (jlong) result.access_flags().as_int());
+  info->long_at_put(1, (jlong) result.offset());
+  return (jlong) (address) result.field_holder();
+C2V_END
+
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass, jstring name, jstring signature))
+  Klass* klass = (Klass*) metaspace_klass;
+  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
+  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
+  return (jlong) (address) klass->lookup_method(name_symbol, signature_symbol);
+C2V_END
+
+C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
+  Klass* klass = (Klass*) metaspace_klass;
+  assert(klass != NULL, "method must not be called for primitive types");
+  return Dependencies::find_finalizable_subclass(klass) != NULL;
+C2V_END
+
+C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jlong metaspace_klass))
+  InstanceKlass* klass = (InstanceKlass*) metaspace_klass;
+  return (jlong) (address) klass->class_initializer();
+C2V_END
+
+C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
+  address target_addr = (address) addr;
+  if (target_addr != 0x0) {
+    int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
+    int64_t off_high = (int64_t)target_addr - ((int64_t)CodeCache::high_bound() + sizeof(int));
+    return MAX2(ABS(off_low), ABS(off_high));
+  }
+  return -1;
+C2V_END
+
+C2V_VMENTRY(void, doNotInlineOrCompile,(JNIEnv *, jobject,  jlong metaspace_method))
+  methodHandle method = asMethod(metaspace_method);
+  method->set_not_c1_compilable();
+  method->set_not_c2_compilable();
+  method->set_dont_inline(true);
 C2V_END
 
 C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code, jobject installed_code, jobject speculation_log))
@@ -728,19 +654,8 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   }
 C2V_END
 
-C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
-
-  // the contract for this method is as follows:
-  // returning null: no deopted leaf graphs
-  // returning array (size > 0): the ids of the deopted leaf graphs
-  // returning array (size == 0): there was an overflow, the compiler needs to clear its cache completely
-
-  oop array = GraalCompiler::instance()->dump_deopted_leaf_graphs(CHECK_NULL);
-  return JNIHandles::make_local(array);
-C2V_END
-
-C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot_method))
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace_method))
+  Method* method = (Method*) metaspace_method;
   if (!method->has_linenumber_table()) {
     return NULL;
   }
@@ -766,18 +681,18 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot
   return result;
 C2V_END
 
-C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   if (!method->has_localvariable_table()) {
     return 0;
   }
   return (jlong) (address) method->localvariable_table_start();
 C2V_END
 
-C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jlong metaspace_method))
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   return method->localvariable_table_length();
 C2V_END
 
@@ -843,10 +758,10 @@ C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
 #endif
 C2V_END
 
-C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jobject hotspot_method, int entry_bci))
+C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci))
   HandleMark hm;
   ResourceMark rm;
-  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  Method* method = (Method*) metaspace_method;
   return CompileBroker::assign_compile_id_unlocked(THREAD, method, entry_bci);
 C2V_END
 
@@ -854,6 +769,11 @@ C2V_END
 C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_data))
   MethodData* mdo = asMethodData(metaspace_method_data);
   return mdo != NULL && mdo->is_mature();
+C2V_END
+
+C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci, int comp_level))
+  Method* method = asMethod(metaspace_method);
+  return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
 C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -867,9 +787,7 @@ C2V_END
 #define OBJECT                "Ljava/lang/Object;"
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
-#define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
-#define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
@@ -877,51 +795,57 @@ C2V_END
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
 #define METASPACE_CONSTANT_POOL "J"
+#define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"exceptionTableStart",           CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
-  {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
-  {CC"findUniqueConcreteMethod",      CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
-  {CC"getKlassImplementor",           CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
-  {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
-  {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
-  {CC"doNotInlineOrCompile",          CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"canInlineMethod",               CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
-  {CC"shouldInlineMethod",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
-  {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
-  {CC"lookupType",                    CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
-  {CC"lookupConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupConstantInPool)},
-  {CC"lookupAppendixInPool",          CC"("METASPACE_CONSTANT_POOL"IB)"OBJECT,                          FN_PTR(lookupAppendixInPool)},
-  {CC"lookupMethodInPool",            CC"("METASPACE_CONSTANT_POOL"IB)"METHOD,                          FN_PTR(lookupMethodInPool)},
-  {CC"lookupTypeInPool",              CC"("METASPACE_CONSTANT_POOL"I)"TYPE,                             FN_PTR(lookupTypeInPool)},
-  {CC"lookupReferencedTypeInPool",    CC"("METASPACE_CONSTANT_POOL"IB)V",                               FN_PTR(lookupReferencedTypeInPool)},
-  {CC"lookupFieldInPool",             CC"("METASPACE_CONSTANT_POOL"IB)"FIELD,                           FN_PTR(lookupFieldInPool)},
-  {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METASPACE_METHOD,           FN_PTR(resolveMethod)},
-  {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
-  {CC"getClassInitializer",           CC"("HS_RESOLVED_TYPE")"METASPACE_METHOD,                         FN_PTR(getClassInitializer)},
-  {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
-  {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getMetaspaceMethod",            CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
-  {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE SPECULATION_LOG")I",      FN_PTR(installCode0)},
-  {CC"notifyCompilationStatistics",   CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
-  {CC"printCompilationStatistics",    CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
-  {CC"resetCompilationStatistics",    CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
-  {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
-  {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
-  {CC"getLocalVariableTableStart",    CC"("HS_RESOLVED_METHOD")J",                                      FN_PTR(getLocalVariableTableStart)},
-  {CC"getLocalVariableTableLength",   CC"("HS_RESOLVED_METHOD")I",                                      FN_PTR(getLocalVariableTableLength)},
-  {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
-  {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
-  {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
-  {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
-  {CC"collectCounters",               CC"()[J",                                                         FN_PTR(collectCounters)},
-  {CC"getGPUs",                       CC"()"STRING,                                                     FN_PTR(getGPUs)},
-  {CC"allocateCompileId",             CC"("HS_RESOLVED_METHOD"I)I",                                     FN_PTR(allocateCompileId)},
-  {CC"isMature",                      CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
+  {CC"initializeBytecode",                           CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
+  {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
+  {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                        FN_PTR(exceptionTableLength)},
+  {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
+  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
+  {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
+  {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
+  {CC"initializeMethod",                             CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
+  {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
+  {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
+  {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
+  {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
+  {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolveConstantInPool)},
+  {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolvePossiblyCachedConstantInPool)},
+  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupNameRefInPool)},
+  {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupNameAndTypeRefIndexInPool)},
+  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupSignatureRefInPool)},
+  {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupKlassRefIndexInPool)},
+  {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(constantPoolKlassAt)},
+  {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(lookupKlassInPool)},
+  {CC"lookupAppendixInPool",                         CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupAppendixInPool)},
+  {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                FN_PTR(lookupMethodInPool)},
+  {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(constantPoolRemapInstructionOperandFromCache)},
+  {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,               FN_PTR(resolveField)},
+  {CC"resolveMethod",                                CC"("METASPACE_KLASS STRING STRING")"METASPACE_METHOD,            FN_PTR(resolveMethod)},
+  {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                          FN_PTR(getClassInitializer)},
+  {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                         FN_PTR(hasFinalizableSubclass)},
+  {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
+  {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
+  {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
+  {CC"installCode0",                                 CC"("HS_COMPILED_CODE HS_INSTALLED_CODE SPECULATION_LOG")I",      FN_PTR(installCode0)},
+  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
+  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
+  {CC"resetCompilationStatistics",                   CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
+  {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
+  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
+  {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
+  {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
+  {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
+  {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
+  {CC"invalidateInstalledCode",                      CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
+  {CC"readUnsafeUncompressedPointer",                CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
+  {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
+  {CC"collectCounters",                              CC"()[J",                                                         FN_PTR(collectCounters)},
+  {CC"getGPUs",                                      CC"()"STRING,                                                     FN_PTR(getGPUs)},
+  {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
+  {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
+  {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
 };
 
 int CompilerToVM_methods_count() {

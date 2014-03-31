@@ -27,7 +27,6 @@ package com.oracle.truffle.api.nodes;
 import java.util.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.frame.*;
 
 /**
@@ -37,14 +36,13 @@ import com.oracle.truffle.api.frame.*;
  */
 public abstract class RootNode extends Node {
 
-    private CallTarget callTarget;
+    private RootCallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
 
     /*
-     * Internal field to keep reference to the inlined call node. The inlined parent should not be
-     * the same as the Node parent to keep the same tree hierarchy if inlined vs not inlined.
+     * Internal set to keep back-references to the call-sites.
      */
-    @CompilationFinal private List<CallNode> parentInlinedCalls = new ArrayList<>();
+    private final Set<CallNode> cachedCallNodes = Collections.newSetFromMap(new WeakHashMap<CallNode, Boolean>());
 
     protected RootNode() {
         this(null, null);
@@ -64,36 +62,24 @@ public abstract class RootNode extends Node {
     }
 
     /**
-     * @deprecated Not required anymore. Do not use.
+     * Creates a split {@link RootNode} based on the current {@link RootNode}. This method should
+     * return an AST that was never executed and must not be shared with other {@link RootNode} or
+     * {@link CallTarget} instances. This method is intended to be overridden by a subclass.
+     * 
+     * @return the split {@link RootNode}
      */
-    @Deprecated
-    public RootNode inline() {
-        if (!isInlinable()) {
-            throw new UnsupportedOperationException("Inlining is not enabled.");
-        }
-        return split();
-    }
-
-    /**
-     * @deprecated Not required anymore. Do not use.
-     */
-    @Deprecated
-    public int getInlineNodeCount() {
-        return 0;
-    }
-
-    /**
-     * @deprecated Not required anymore. Do not use.
-     */
-    @Deprecated
-    public boolean isInlinable() {
-        return true;
-    }
-
     public RootNode split() {
-        return NodeUtil.cloneNode(this);
+        throw new UnsupportedOperationException();
     }
 
+    /**
+     * Returns <code>true</code> if this {@link RootNode} can be split. A {@link RootNode} can be
+     * split inside of a {@link CallTarget} that is invoked using a {@link CallNode}. If this method
+     * returns <code>true</code> a proper implementation of {@link #split()} must also be provided.
+     * This method is intended to be overridden by a subclass.
+     * 
+     * @return <code>true</code> if splittable else <code>false</code>.
+     */
     public boolean isSplittable() {
         return false;
     }
@@ -102,12 +88,9 @@ public abstract class RootNode extends Node {
      * Reports the execution count of a loop that is a child of this node. The optimization
      * heuristics can use the loop count to guide compilation and inlining.
      */
-    public void reportLoopCount(int count) {
-        List<CallTarget> callTargets = NodeUtil.findOutermostCallTargets(this);
-        for (CallTarget target : callTargets) {
-            if (target instanceof LoopCountReceiver) {
-                ((LoopCountReceiver) target).reportLoopCount(count);
-            }
+    public final void reportLoopCount(int count) {
+        if (getCallTarget() instanceof LoopCountReceiver) {
+            ((LoopCountReceiver) getCallTarget()).reportLoopCount(count);
         }
     }
 
@@ -119,7 +102,7 @@ public abstract class RootNode extends Node {
      */
     public abstract Object execute(VirtualFrame frame);
 
-    public CallTarget getCallTarget() {
+    public final RootCallTarget getCallTarget() {
         return callTarget;
     }
 
@@ -127,24 +110,30 @@ public abstract class RootNode extends Node {
         return frameDescriptor;
     }
 
-    public void setCallTarget(CallTarget callTarget) {
+    public final void setCallTarget(RootCallTarget callTarget) {
         this.callTarget = callTarget;
     }
 
     /* Internal API. Do not use. */
-    void addParentInlinedCall(CallNode inlinedParent) {
-        this.parentInlinedCalls.add(inlinedParent);
+    final void addCachedCallNode(CallNode callSite) {
+        this.cachedCallNodes.add(callSite);
     }
 
-    public final List<CallNode> getParentInlinedCalls() {
-        return Collections.unmodifiableList(parentInlinedCalls);
+    /* Internal API. Do not use. */
+    final void removeCachedCallNode(CallNode callSite) {
+        this.cachedCallNodes.remove(callSite);
     }
 
     /**
-     * @deprecated use {@link #getParentInlinedCalls()} instead.
+     * Returns a {@link Set} of {@link CallNode} nodes which are created to invoke this RootNode.
+     * This method does not make any guarantees to contain all the {@link CallNode} nodes that are
+     * invoking this method. Due to its weak nature the elements returned by this method may change
+     * with each consecutive call.
+     * 
+     * @return a set of {@link CallNode} nodes
      */
-    @Deprecated
-    public final CallNode getParentInlinedCall() {
-        return parentInlinedCalls.isEmpty() ? null : parentInlinedCalls.get(0);
+    public final Set<CallNode> getCachedCallNodes() {
+        return Collections.unmodifiableSet(cachedCallNodes);
     }
+
 }

@@ -41,55 +41,32 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
   }
 }
 
-inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
-  oop inlineData = CompilationResult_DataPatch::inlineData(site);
-  address pc = _instructions->start() + pc_offset;
-
-  if (inlineData != NULL) {
-    oop kind = Constant::kind(inlineData);
-    char typeChar = Kind::typeChar(kind);
-
-    switch (typeChar) {
-      case 'z':
-      case 'b':
-      case 's':
-      case 'c':
-      case 'i':
-        fatal("int-sized values not expected in DataPatch");
-        break;
-      case 'f':
-      case 'j':
-      case 'd': {
-        NativeMovConstReg* move = nativeMovConstReg_at(pc);
-        uint64_t value = Constant::primitive(inlineData);
-        move->set_data(value);
-        break;
-      }
-      case 'a': {
-        NativeMovConstReg* move = nativeMovConstReg_at(pc);
-        Handle obj = Constant::object(inlineData);
-        jobject value = JNIHandles::make_local(obj());
-        move->set_data((intptr_t) value);
-
-        // We need two relocations:  one on the sethi and one on the add.
-        int oop_index = _oop_recorder->find_index(value);
-        RelocationHolder rspec = oop_Relocation::spec(oop_index);
-        _instructions->relocate(pc + NativeMovConstReg::sethi_offset, rspec);
-        _instructions->relocate(pc + NativeMovConstReg::add_offset, rspec);
-        break;
-      }
-      default:
-        fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
-        break;
-    }
+inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
+  if (OopData::compressed(obj)) {
+    fatal("unimplemented: narrow oop relocation");
   } else {
-    oop dataRef = CompilationResult_DataPatch::externalData(site);
-    jint offset = HotSpotCompiledCode_HotSpotData::offset(dataRef);
+    address pc = _instructions->start() + pc_offset;
+    Handle obj = OopData::object(data);
+    jobject value = JNIHandles::make_local(obj());
 
-    NativeMovRegMem* load = nativeMovRegMem_at(pc);
-    int disp = _constants_size + pc_offset - offset - BytesPerInstWord;
-    load->set_offset(-disp);
+    NativeMovConstReg* move = nativeMovConstReg_at(pc);
+    move->set_data((intptr_t) value);
+
+    // We need two relocations:  one on the sethi and one on the add.
+    int oop_index = _oop_recorder->find_index(value);
+    RelocationHolder rspec = oop_Relocation::spec(oop_index);
+    _instructions->relocate(pc + NativeMovConstReg::sethi_offset, rspec);
+    _instructions->relocate(pc + NativeMovConstReg::add_offset, rspec);
   }
+}
+
+inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
+  address pc = _instructions->start() + pc_offset;
+  jint offset = DataSectionReference::offset(data);
+
+  NativeMovRegMem* load = nativeMovRegMem_at(pc);
+  int disp = _constants_size + pc_offset - offset - BytesPerInstWord;
+  load->set_offset(-disp);
 }
 
 inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
@@ -121,24 +98,24 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 #endif
   switch (_next_call_type) {
-    case MARK_INLINE_INVOKE:
+    case INLINE_INVOKE:
       break;
-    case MARK_INVOKEVIRTUAL:
-    case MARK_INVOKEINTERFACE: {
+    case INVOKEVIRTUAL:
+    case INVOKEINTERFACE: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
       _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc));
       break;
     }
-    case MARK_INVOKESTATIC: {
+    case INVOKESTATIC: {
       assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_static_call_stub());
       _instructions->relocate(call->instruction_address(), relocInfo::static_call_type);
       break;
     }
-    case MARK_INVOKESPECIAL: {
+    case INVOKESPECIAL: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
@@ -153,16 +130,16 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
 
 inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
-    case MARK_POLL_NEAR: {
+    case POLL_NEAR: {
       fatal("unimplemented");
     }
-    case MARK_POLL_FAR:
+    case POLL_FAR:
       _instructions->relocate(pc, relocInfo::poll_type);
       break;
-    case MARK_POLL_RETURN_NEAR: {
+    case POLL_RETURN_NEAR: {
       fatal("unimplemented");
     }
-    case MARK_POLL_RETURN_FAR:
+    case POLL_RETURN_FAR:
       _instructions->relocate(pc, relocInfo::poll_return_type);
       break;
     default:

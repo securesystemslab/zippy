@@ -29,8 +29,8 @@ import com.oracle.graal.api.code.CompilationResult.Mark;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.truffle.*;
@@ -43,7 +43,7 @@ import com.oracle.truffle.api.frame.*;
  */
 public abstract class OptimizedCallTargetInstrumentation extends CompilationResultBuilder {
 
-    public OptimizedCallTargetInstrumentation(CodeCacheProvider codeCache, ForeignCallsProvider foreignCalls, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext,
+    public OptimizedCallTargetInstrumentation(CodeCacheProvider codeCache, ForeignCallsProvider foreignCalls, FrameMap frameMap, Assembler asm, FrameContext frameContext,
                     CompilationResult compilationResult) {
         super(codeCache, foreignCalls, frameMap, asm, frameContext, compilationResult);
     }
@@ -51,10 +51,9 @@ public abstract class OptimizedCallTargetInstrumentation extends CompilationResu
     @Override
     public Mark recordMark(Object id) {
         Mark mark = super.recordMark(id);
-        if (Integer.valueOf(Marks.MARK_VERIFIED_ENTRY).equals(id)) {
-            HotSpotVMConfig config = HotSpotGraalRuntime.runtime().getConfig();
+        if (MarkId.getEnum((int) id) == MarkId.VERIFIED_ENTRY) {
             HotSpotRegistersProvider registers = HotSpotGraalRuntime.runtime().getHostProviders().getRegisters();
-            injectTailCallCode(config, registers);
+            injectTailCallCode(HotSpotGraalRuntime.runtime().getConfig(), registers);
         }
         return mark;
     }

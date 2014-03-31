@@ -112,17 +112,15 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
         // are not used (yet).
         final int modifiers = reflectionField.getModifiers();
         final long offset = Modifier.isStatic(modifiers) ? unsafe.staticFieldOffset(reflectionField) : unsafe.objectFieldOffset(reflectionField);
-        final boolean internal = false;
 
         ResolvedJavaType holder = HotSpotResolvedObjectType.fromClass(fieldHolder);
         ResolvedJavaType type = HotSpotResolvedObjectType.fromClass(fieldType);
 
         if (offset != -1) {
             HotSpotResolvedObjectType resolved = (HotSpotResolvedObjectType) holder;
-            return resolved.createField(name, type, offset, modifiers, internal);
+            return resolved.createField(name, type, offset, modifiers);
         } else {
-            // TODO this cast will not succeed
-            return (ResolvedJavaField) new HotSpotUnresolvedField(holder, name, type);
+            throw GraalInternalError.shouldNotReachHere("unresolved field " + reflectionField);
         }
     }
 
@@ -301,7 +299,7 @@ public class HotSpotMetaAccessProvider implements MetaAccessProvider {
                     ResolvedJavaType elementType = lookupJavaType.getComponentType();
                     Kind elementKind = elementType.getKind();
                     final int headerSize = HotSpotGraalRuntime.getArrayBaseOffset(elementKind);
-                    int sizeOfElement = HotSpotGraalRuntime.runtime().getTarget().arch.getSizeInBytes(elementKind);
+                    int sizeOfElement = HotSpotGraalRuntime.runtime().getTarget().getSizeInBytes(elementKind);
                     int alignment = HotSpotGraalRuntime.runtime().getTarget().wordSize;
                     int log2ElementSize = CodeUtil.log2(sizeOfElement);
                     return NewObjectSnippets.computeArrayAllocationSize(length, alignment, headerSize, log2ElementSize);

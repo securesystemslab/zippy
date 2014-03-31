@@ -718,6 +718,9 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     if vm is None:
         vm = _get_vm()
 
+    if 'client' in vm and len(platform.mac_ver()[0]) != 0:
+        mx.abort("Client VM not supported: java launcher on Mac OS X translates '-client' to '-server'")
+
     if cwd is None:
         cwd = _vm_cwd
     elif _vm_cwd is not None and _vm_cwd != cwd:
@@ -977,6 +980,11 @@ def _basic_gate_body(args, tasks):
         vm(['-esa', '-version'])
         tasks.append(t.stop())
 
+    with VM('graal', 'fastdebug'):
+        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        tasks.append(t.stop())
+
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
@@ -1163,6 +1171,18 @@ def longtests(args):
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
+        # When the http_proxy environment variable is set, convert it to the proxy settings that ant needs
+        env = os.environ
+        proxy = os.environ.get('http_proxy')
+        if not (proxy is None) and len(proxy) > 0:
+            if '://' in proxy:
+                # Remove the http:// prefix (or any other protocol prefix)
+                proxy = proxy.split('://', 1)[1]
+            # Separate proxy server name and port number
+            proxyName, proxyPort = proxy.split(':', 1)
+            proxyEnv = '-DproxyHost="' + proxyName + '" -DproxyPort=' + proxyPort
+            env['ANT_OPTS'] = proxyEnv
+
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         nbplatform = join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')
 
@@ -1179,7 +1199,31 @@ def igv(args):
 
         if not exists(nbplatform):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
-        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
+
+def c1visualizer(args):
+    """run the Cl Compiler Visualizer"""
+    libpath = join(_graal_home, 'lib')
+    if mx.get_os() == 'windows':
+        executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer.exe')
+    else:
+        executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
+
+    archive = join(libpath, 'c1visualizer.zip')
+    if not exists(executable):
+        if not exists(archive):
+            mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer.zip'])
+        zf = zipfile.ZipFile(archive, 'r')
+        zf.extractall(libpath)
+
+    if not exists(executable):
+        mx.abort('C1Visualizer binary does not exist: ' + executable)
+
+    if mx.get_os() != 'windows':
+        # Make sure that execution is allowed. The zip file does not always specfiy that correctly
+        os.chmod(executable, 0777)
+
+    mx.run([executable])
 
 def bench(args):
     """run benchmarks and parse their output for results
@@ -1371,6 +1415,7 @@ def jmh(args):
         mx.run_java(
            ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
             "-f", "1",
+            "-v", "EXTRA" if mx._opts.verbose else "NORMAL",
             "-i", "10", "-wi", "10",
             "--jvm", exe,
             "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
@@ -1510,17 +1555,6 @@ def trufflejar(args=None):
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
-
-def rubyShellCp():
-    return mx.classpath("com.oracle.truffle.ruby.shell")
-
-def rubyShellClass():
-    return "com.oracle.truffle.ruby.shell.Shell"
-
-def ruby(args):
-    """run a Ruby program or shell"""
-    vmArgs, rubyArgs = _extract_VM_args(args, useDoubleDash=True)
-    vm(vmArgs + ['-cp', rubyShellCp(), rubyShellClass()] + rubyArgs)
 
 def pythonShellCp():
     return mx.classpath("edu.uci.python.shell");
@@ -1666,13 +1700,47 @@ def _parseVMOptions(optionType):
     valueMap = parser.parse(output.getvalue())
     return valueMap
 
+def findbugs(args):
+    '''run FindBugs against non-test Java projects'''
+    findBugsHome = mx.get_env('FINDBUGS_HOME', None)
+    if findBugsHome:
+        findbugsJar = join(findBugsHome, 'lib', 'findbugs.jar')
+    else:
+        findbugsLib = join(_graal_home, 'lib', 'findbugs-3.0.0')
+        if not exists(findbugsLib):
+            tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
+            try:
+                findbugsDist = join(tmp, 'findbugs.zip')
+                mx.download(findbugsDist, ['http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip'])
+                with zipfile.ZipFile(findbugsDist) as zf:
+                    candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
+                    assert len(candidates) == 1, candidates
+                    libDirInZip = os.path.dirname(candidates[0])
+                    zf.extractall(tmp)
+                shutil.copytree(join(tmp, libDirInZip), findbugsLib)
+            finally:
+                shutil.rmtree(tmp)
+        findbugsJar = join(findbugsLib, 'findbugs.jar')
+    assert exists(findbugsJar)
+    nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
+    outputDirs = [p.output_dir() for p in nonTestProjects]
+    findbugsResults = join(_graal_home, 'findbugs.results')
+    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
+                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+    if exitcode != 0:
+        with open(findbugsResults) as fp:
+            mx.log(fp.read())
+    os.unlink(findbugsResults)
+    return exitcode
 
 def mx_init(suite):
     commands = {
         'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
+        'c1visualizer' : [c1visualizer, ''],
         'clean': [clean, ''],
+        'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
@@ -1698,8 +1766,7 @@ def mx_init(suite):
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
         'sl' : [sl, '[SL args|@VM options]'],
-        'trufflejar' : [trufflejar, ''],
-        'ruby' : [ruby, '[Ruby args|@VM options]']
+        'trufflejar' : [trufflejar, '']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

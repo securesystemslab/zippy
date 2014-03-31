@@ -29,7 +29,6 @@ import java.lang.annotation.*;
 import java.util.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.NodeInfo.Kind;
 
 /**
  * Abstract base class for all Truffle nodes.
@@ -80,6 +79,22 @@ public abstract class Node implements Cloneable {
             }
         }
         this.sourceSection = section;
+    }
+
+    /**
+     * Returns a rough estimate for the cost of this {@link Node}. This estimate can be used by
+     * runtime systems or guest languages to implement heuristics based on Truffle ASTs. This method
+     * is intended to be overridden by subclasses. The default implementation returns the value of
+     * {@link NodeInfo#cost()} of the {@link NodeInfo} annotation declared at the subclass. If no
+     * {@link NodeInfo} annotation is declared the method returns {@link NodeCost#MONOMORPHIC} as a
+     * default value.
+     */
+    public NodeCost getCost() {
+        NodeInfo info = getClass().getAnnotation(NodeInfo.class);
+        if (info != null) {
+            return info.cost();
+        }
+        return NodeCost.MONOMORPHIC;
     }
 
     /**
@@ -171,7 +186,7 @@ public abstract class Node implements Cloneable {
      * @param reason a description of the reason for the replacement
      * @return the new node
      */
-    public final <T extends Node> T replace(T newNode, String reason) {
+    public final <T extends Node> T replace(T newNode, CharSequence reason) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         if (this.getParent() == null) {
             throw new IllegalStateException("This node cannot be replaced, because it does not yet have a parent.");
@@ -245,9 +260,10 @@ public abstract class Node implements Cloneable {
         return false;
     }
 
-    private void reportReplace(Node oldNode, Node newNode, String reason) {
-        Collection<CallTarget> targets = NodeUtil.findOutermostCallTargets(this);
-        for (CallTarget target : targets) {
+    private void reportReplace(Node oldNode, Node newNode, CharSequence reason) {
+        RootNode rootNode = getRootNode();
+        if (rootNode != null) {
+            CallTarget target = rootNode.getCallTarget();
             if (target instanceof ReplaceObserver) {
                 ((ReplaceObserver) target).nodeReplaced(oldNode, newNode, reason);
             }
@@ -261,68 +277,61 @@ public abstract class Node implements Cloneable {
      * @param newNode the replacement node
      * @param reason the reason the replace supplied
      */
-    protected void onReplace(Node newNode, String reason) {
+    protected void onReplace(Node newNode, CharSequence reason) {
         if (TruffleOptions.TraceRewrites) {
             traceRewrite(newNode, reason);
         }
     }
 
-    private void traceRewrite(Node newNode, String reason) {
-        Class<? extends Node> from = getClass();
-        Class<? extends Node> to = newNode.getClass();
+    private void traceRewrite(Node newNode, CharSequence reason) {
 
-        if (TruffleOptions.TraceRewritesFilterFromKind != null) {
-            if (filterByKind(from, TruffleOptions.TraceRewritesFilterFromKind)) {
+        if (TruffleOptions.TraceRewritesFilterFromCost != null) {
+            if (filterByKind(this, TruffleOptions.TraceRewritesFilterFromCost)) {
                 return;
             }
         }
 
-        if (TruffleOptions.TraceRewritesFilterToKind != null) {
-            if (filterByKind(to, TruffleOptions.TraceRewritesFilterToKind)) {
+        if (TruffleOptions.TraceRewritesFilterToCost != null) {
+            if (filterByKind(newNode, TruffleOptions.TraceRewritesFilterToCost)) {
                 return;
             }
         }
 
         String filter = TruffleOptions.TraceRewritesFilterClass;
+        Class<? extends Node> from = getClass();
+        Class<? extends Node> to = newNode.getClass();
         if (filter != null && (filterByContainsClassName(from, filter) || filterByContainsClassName(to, filter))) {
             return;
         }
 
         PrintStream out = System.out;
-        out.printf("[truffle]   rewrite %-50s |From %-40s |To %-40s |Reason %s.%n", this.toString(), formatNodeInfo(from), formatNodeInfo(to), reason);
+        out.printf("[truffle]   rewrite %-50s |From %-40s |To %-40s |Reason %s.%n", this.toString(), formatNodeInfo(this), formatNodeInfo(newNode), reason);
     }
 
-    private static String formatNodeInfo(Class<? extends Node> clazz) {
-        NodeInfo nodeInfo = clazz.getAnnotation(NodeInfo.class);
-        String kind = "?";
-        if (nodeInfo != null) {
-            switch (nodeInfo.kind()) {
-                case GENERIC:
-                    kind = "G";
-                    break;
-                case SPECIALIZED:
-                    kind = "S";
-                    break;
-                case UNINITIALIZED:
-                    kind = "U";
-                    break;
-                case POLYMORPHIC:
-                    kind = "P";
-                    break;
-                default:
-                    kind = "?";
-                    break;
-            }
+    private static String formatNodeInfo(Node node) {
+        String cost = "?";
+        switch (node.getCost()) {
+            case NONE:
+                cost = "G";
+                break;
+            case MONOMORPHIC:
+                cost = "M";
+                break;
+            case POLYMORPHIC:
+                cost = "P";
+                break;
+            case MEGAMORPHIC:
+                cost = "G";
+                break;
+            default:
+                cost = "?";
+                break;
         }
-        return kind + " " + clazz.getSimpleName();
+        return cost + " " + node.getClass().getSimpleName();
     }
 
-    private static boolean filterByKind(Class<?> clazz, Kind kind) {
-        NodeInfo info = clazz.getAnnotation(NodeInfo.class);
-        if (info != null) {
-            return info.kind() != kind;
-        }
-        return true;
+    private static boolean filterByKind(Node node, NodeCost cost) {
+        return node.getCost() == cost;
     }
 
     private static boolean filterByContainsClassName(Class<? extends Node> from, String filter) {

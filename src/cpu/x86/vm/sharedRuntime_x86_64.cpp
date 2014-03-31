@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -642,7 +642,7 @@ static void range_check(MacroAssembler* masm, Register pc_reg, Register temp_reg
   __ bind(L_fail);
 }
 
-static void gen_i2c_adapter(MacroAssembler *masm,
+void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
                             int total_args_passed,
                             int comp_args_on_stack,
                             const BasicType *sig_bt,
@@ -903,7 +903,9 @@ AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm
 
 int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
                                          VMRegPair *regs,
+                                         VMRegPair *regs2,
                                          int total_args_passed) {
+  assert(regs2 == NULL, "not needed on x86");
 // We return the amount of VMRegImpl stack slots we need to reserve for all
 // the arguments NOT counting out_preserve_stack_slots.
 
@@ -1895,7 +1897,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   // Now figure out where the args must be stored and how much stack space
   // they require.
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
 
   // Compute framesize for the wrapper.  We need to handlize all oops in
   // incoming registers
@@ -2799,7 +2801,7 @@ nmethod *SharedRuntime::generate_dtrace_nmethod(MacroAssembler *masm,
   // the 1st six register arguments). It's weird see int_stk_helper.
 
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
 
   // Calculate the total number of stack slots we will need.
 
@@ -3368,7 +3370,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ jmp(cont);
 
   int reexecute_offset = __ pc() - start;
-#ifdef GRAALVM
+#if defined(COMPILERGRAAL) && !defined(COMPILER1)
   // Graal does not use this kind of deoptimization
   __ should_not_reach_here();
 #endif

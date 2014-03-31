@@ -185,7 +185,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                             boolean improvedStamp = tryInferStamp(valueNode);
                             Constant constant = valueNode.stamp().asConstant();
                             if (constant != null && !(node instanceof ConstantNode)) {
-                                performReplacement(valueNode, ConstantNode.forConstant(constant, context.getMetaAccess(), valueNode.graph()));
+                                performReplacement(valueNode, ConstantNode.forConstant(valueNode.stamp(), constant, context.getMetaAccess(), valueNode.graph()));
                             } else if (improvedStamp) {
                                 // the improved stamp may enable additional canonicalization
                                 tryCanonicalize(valueNode, nodeClass);
@@ -294,7 +294,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                     FixedNode fixed = (FixedNode) node;
                     if (canonical instanceof ControlSinkNode) {
                         // case 7
-                        fixed.predecessor().replaceFirstSuccessor(fixed, canonical);
+                        fixed.replaceAtPredecessor(canonical);
                         GraphUtil.killCFG(fixed);
                         return true;
                     } else {

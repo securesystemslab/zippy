@@ -511,46 +511,6 @@ public final class NodeUtil {
         return null;
     }
 
-    public static List<CallTarget> findOutermostCallTargets(Node node) {
-        RootNode root = node.getRootNode();
-        if (root == null) {
-            return Collections.emptyList();
-        }
-        List<CallTarget> roots = new ArrayList<>();
-        roots.add(root.getCallTarget());
-        for (CallNode callNode : root.getParentInlinedCalls()) {
-            roots.addAll(findOutermostCallTargets(callNode));
-        }
-        return roots;
-    }
-
-    /**
-     * Returns the outermost not inlined {@link RootNode} which is a parent of this node.
-     * 
-     * @see RootNode#getParentInlinedCalls()
-     * @param node to search
-     * @return the outermost {@link RootNode}
-     * @deprecated use {@link #findOutermostCallTargets(Node)}
-     */
-    @Deprecated
-    public static RootNode findOutermostRootNode(Node node) {
-        Node parent = node;
-        while (parent != null) {
-            if (parent instanceof RootNode) {
-                RootNode root = (RootNode) parent;
-                Node next = root.getParentInlinedCall();
-                if (next != null) {
-                    parent = next;
-                } else {
-                    return root;
-                }
-            } else {
-                parent = parent.getParent();
-            }
-        }
-        return null;
-    }
-
     public static <T> T findParent(Node start, Class<T> clazz) {
         Node parent = start.getParent();
         if (parent == null) {
@@ -674,44 +634,85 @@ public final class NodeUtil {
         return countNodes(root, null, false);
     }
 
-    public static int countNodes(Node root, Class<?> clazz, boolean countInlinedCallNodes) {
-        NodeCountVisitor nodeCount = new NodeCountVisitor(root, clazz, countInlinedCallNodes);
+    public static int countNodes(Node root, NodeCountFilter filter) {
+        return countNodes(root, filter, false);
+    }
+
+    public static int countNodes(Node root, NodeCountFilter filter, boolean visitInlinedCallNodes) {
+        NodeCountVisitor nodeCount = new NodeCountVisitor(filter, visitInlinedCallNodes);
         root.accept(nodeCount);
         return nodeCount.nodeCount;
     }
 
+    public interface NodeCountFilter {
+
+        boolean isCounted(Node node);
+
+    }
+
     private static final class NodeCountVisitor implements NodeVisitor {
 
-        private Node root;
-        private boolean inspectInlinedCalls;
+        private final boolean visitInlinedCallNodes;
         int nodeCount;
-        private final Class<?> clazz;
+        private final NodeCountFilter filter;
 
-        private NodeCountVisitor(Node root, Class<?> clazz, boolean inspectInlinedCalls) {
-            this.root = root;
-            this.clazz = clazz;
-            this.inspectInlinedCalls = inspectInlinedCalls;
+        private NodeCountVisitor(NodeCountFilter filter, boolean visitInlinedCallNodes) {
+            this.filter = filter;
+            this.visitInlinedCallNodes = visitInlinedCallNodes;
         }
 
         @Override
         public boolean visit(Node node) {
-            if (node instanceof RootNode && node != root) {
-                return false;
-            }
-
-            if (clazz == null || clazz.isInstance(node)) {
+            if (filter == null || filter.isCounted(node)) {
                 nodeCount++;
             }
 
-            if (inspectInlinedCalls && node instanceof CallNode) {
+            if (visitInlinedCallNodes && node instanceof CallNode) {
                 CallNode call = (CallNode) node;
                 if (call.isInlined()) {
-                    call.getInlinedRoot().getChildren().iterator().next().accept(this);
+                    Node target = ((RootCallTarget) call.getCurrentCallTarget()).getRootNode();
+                    if (target != null) {
+                        target.accept(this);
+                    }
                 }
             }
 
             return true;
         }
+
+    }
+
+    public static void printInliningTree(final PrintStream stream, RootNode root) {
+        printRootNode(stream, 0, root);
+        root.accept(new NodeVisitor() {
+            int depth = 1;
+
+            public boolean visit(Node node) {
+                if (node instanceof CallNode) {
+                    CallNode callNode = ((CallNode) node);
+                    RootNode inlinedRoot = callNode.getCurrentRootNode();
+                    if (inlinedRoot != null && callNode.isInlined()) {
+                        depth++;
+                        printRootNode(stream, depth * 2, inlinedRoot);
+                        inlinedRoot.accept(this);
+                        depth--;
+                    }
+                }
+                return true;
+            }
+        });
+    }
+
+    private static void printRootNode(PrintStream stream, int indent, RootNode root) {
+        for (int i = 0; i < indent; i++) {
+            stream.print(" ");
+        }
+        stream.print(root.toString());
+        stream.print(" (");
+        stream.print(countNodes(root));
+        stream.print("/");
+        stream.print(countNodes(root, null, true));
+        stream.println(")");
     }
 
     public static String printCompactTreeToString(Node node) {

@@ -51,10 +51,12 @@ import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSpotLIRGenerator {
 
     private final HotSpotVMConfig config;
+    private final Object stub;
 
-    public SPARCHotSpotLIRGenerator(StructuredGraph graph, HotSpotProviders providers, HotSpotVMConfig config, FrameMap frameMap, CallingConvention cc, LIR lir) {
+    public SPARCHotSpotLIRGenerator(StructuredGraph graph, Object stub, HotSpotProviders providers, HotSpotVMConfig config, FrameMap frameMap, CallingConvention cc, LIR lir) {
         super(graph, providers, frameMap, cc, lir);
         this.config = config;
+        this.stub = stub;
     }
 
     @Override
@@ -72,7 +74,6 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
     @SuppressWarnings("hiding")
     @Override
     protected DebugInfoBuilder createDebugInfoBuilder(NodeMap<Value> nodeOperands) {
-        assert config.basicLockSize == 8;
         HotSpotLockStack lockStack = new HotSpotLockStack(frameMap, Kind.Long);
         return new HotSpotDebugInfoBuilder(nodeOperands, lockStack);
     }
@@ -85,14 +86,11 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
     @Override
     protected boolean needOnlyOopMaps() {
         // Stubs only need oop maps
-        return graph.start() instanceof StubStartNode;
+        return stub != null;
     }
 
     Stub getStub() {
-        if (graph.start() instanceof StubStartNode) {
-            return ((StubStartNode) graph.start()).getStub();
-        }
-        return null;
+        return (Stub) stub;
     }
 
     @Override
@@ -100,7 +98,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
         Variable result;
 
         if (linkage.canDeoptimize()) {
-            assert info != null;
+            assert info != null || getStub() != null;
             HotSpotRegistersProvider registers = getProviders().getRegisters();
             Register thread = registers.getThreadRegister();
             Register stackPointer = registers.getStackPointerRegister();
@@ -243,7 +241,7 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
     @Override
     public Variable emitLoad(Kind kind, Value address, Access access) {
         SPARCAddressValue loadAddress = asAddressValue(address);
-        Variable result = newVariable(kind);
+        Variable result = newVariable(kind.getStackKind());
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -91,6 +91,7 @@ protected:
   static elapsedTimer _t_macroEliminate;
   static elapsedTimer _t_macroExpand;
   static elapsedTimer _t_peephole;
+  static elapsedTimer _t_postalloc_expand;
   static elapsedTimer _t_codeGeneration;
   static elapsedTimer _t_registerMethod;
   static elapsedTimer _t_temporaryTimer1;

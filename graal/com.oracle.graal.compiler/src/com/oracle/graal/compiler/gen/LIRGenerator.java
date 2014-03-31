@@ -35,7 +35,6 @@ import java.util.Map.Entry;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
-import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
@@ -43,7 +42,6 @@ import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.StandardOp.LabelOp;
-import com.oracle.graal.lir.StandardOp.MoveOp;
 import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
@@ -59,7 +57,7 @@ import com.oracle.graal.phases.util.*;
 /**
  * This class traverses the HIR instructions and generates LIR instructions from them.
  */
-public abstract class LIRGenerator implements LIRGeneratorTool {
+public abstract class LIRGenerator implements LIRGeneratorTool, LIRTypeTool {
 
     public static class Options {
         // @formatter:off
@@ -74,7 +72,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public final NodeMap<Value> nodeOperands;
     public final LIR lir;
 
-    protected final StructuredGraph graph;
     private final Providers providers;
     protected final CallingConvention cc;
 
@@ -174,7 +171,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public abstract boolean canStoreConstant(Constant c, boolean isCompressed);
 
     public LIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        this.graph = graph;
         this.providers = providers;
         this.frameMap = frameMap;
         this.cc = cc;
@@ -183,40 +179,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
         this.traceLevel = Options.TraceLIRGeneratorLevel.getValue();
         this.printIRWithLIR = Options.PrintIRWithLIR.getValue();
-    }
-
-    /**
-     * Returns a value for a interval definition, which can be used for re-materialization.
-     * 
-     * @param op An instruction which defines a value
-     * @param operand The destination operand of the instruction
-     * @param interval The interval for this defined value.
-     * @return Returns the value which is moved to the instruction and which can be reused at all
-     *         reload-locations in case the interval of this instruction is spilled. Currently this
-     *         can only be a {@link Constant}.
-     */
-    public Constant getMaterializedValue(LIRInstruction op, Value operand, Interval interval) {
-        if (op instanceof MoveOp) {
-            MoveOp move = (MoveOp) op;
-            if (move.getInput() instanceof Constant) {
-                /*
-                 * Check if the interval has any uses which would accept an stack location (priority
-                 * == ShouldHaveRegister). Rematerialization of such intervals can result in a
-                 * degradation, because rematerialization always inserts a constant load, even if
-                 * the value is not needed in a register.
-                 */
-                Interval.UsePosList usePosList = interval.usePosList();
-                int numUsePos = usePosList.size();
-                for (int useIdx = 0; useIdx < numUsePos; useIdx++) {
-                    Interval.RegisterPriority priority = usePosList.registerPriority(useIdx);
-                    if (priority == Interval.RegisterPriority.ShouldHaveRegister) {
-                        return null;
-                    }
-                }
-                return (Constant) move.getInput();
-            }
-        }
-        return null;
     }
 
     /**
@@ -254,10 +216,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     @Override
     public ForeignCallsProvider getForeignCalls() {
         return providers.getForeignCalls();
-    }
-
-    public StructuredGraph getGraph() {
-        return graph;
     }
 
     /**
@@ -338,13 +296,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
      */
     @Override
     public Variable newVariable(PlatformKind platformKind) {
-        PlatformKind stackKind;
-        if (platformKind instanceof Kind) {
-            stackKind = ((Kind) platformKind).getStackKind();
-        } else {
-            stackKind = platformKind;
-        }
-        return new Variable(stackKind, lir.nextVariable());
+        return new Variable(platformKind, lir.nextVariable());
     }
 
     @Override
@@ -389,7 +341,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     public LabelRef getLIRBlock(FixedNode b) {
-        Block result = lir.cfg.blockFor(b);
+        Block result = lir.getControlFlowGraph().blockFor(b);
         int suxIndex = currentBlock.getSuccessors().indexOf(result);
         assert suxIndex != -1 : "Block not in successor list of current block";
 
@@ -457,7 +409,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         lir.lir(currentBlock).add(op);
     }
 
-    public void doBlock(Block block) {
+    public void doBlock(Block block, StructuredGraph graph, BlockMap<List<ScheduledNode>> blockMap) {
         if (printIRWithLIR) {
             TTY.print(block.toString());
         }
@@ -474,14 +426,14 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             TTY.println("BEGIN Generating LIR for block B" + block.getId());
         }
 
-        if (block == lir.cfg.getStartBlock()) {
+        if (block == lir.getControlFlowGraph().getStartBlock()) {
             assert block.getPredecessorCount() == 0;
-            emitPrologue();
+            emitPrologue(graph);
         } else {
             assert block.getPredecessorCount() > 0;
         }
 
-        List<ScheduledNode> nodes = lir.nodesFor(block);
+        List<ScheduledNode> nodes = blockMap.get(block);
         for (int i = 0; i < nodes.size(); i++) {
             Node instr = nodes.get(i);
             if (traceLevel >= 3) {
@@ -570,7 +522,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
     }
 
-    protected void emitPrologue() {
+    protected void emitPrologue(StructuredGraph graph) {
         CallingConvention incomingArguments = cc;
 
         Value[] params = new Value[incomingArguments.getArgumentCount()];
@@ -1016,6 +968,36 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             default:
                 throw new IllegalArgumentException(kind.toString());
         }
+    }
+
+    /**
+     * Default implementation: Return the Java stack kind for each stamp.
+     */
+    public PlatformKind getPlatformKind(Stamp stamp) {
+        return stamp.getPlatformKind(this);
+    }
+
+    public PlatformKind getIntegerKind(int bits, boolean unsigned) {
+        if (bits > 32) {
+            return Kind.Long;
+        } else {
+            return Kind.Int;
+        }
+    }
+
+    public PlatformKind getFloatingKind(int bits) {
+        switch (bits) {
+            case 32:
+                return Kind.Float;
+            case 64:
+                return Kind.Double;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    public PlatformKind getObjectKind() {
+        return Kind.Object;
     }
 
     public abstract void emitBitCount(Variable result, Value operand);

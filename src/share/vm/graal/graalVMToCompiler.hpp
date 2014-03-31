@@ -74,24 +74,6 @@ public:
 
   // public abstract void compileTheWorld();
   static void compileTheWorld();
-
-  // public abstract JavaField createJavaField(JavaType holder, String name, JavaType type, int flags, int offset);
-  static oop createJavaField(Handle holder, Handle name, Handle type, int index, int flags, jboolean internal, TRAPS);
-
-  // public abstract JavaMethod createUnresolvedJavaMethod(String name, String signature, JavaType holder);
-  static oop createUnresolvedJavaMethod(Handle name, Handle signature, Handle holder, TRAPS);
-
-  // public abstract JavaMethod createResolvedJavaMethod(JavaType holder, long metaspaceMethod);
-  static oop createResolvedJavaMethod(Handle holder, Method* method, TRAPS);
-
-  // public abstract JavaType createUnresolvedJavaType(String name);
-  static oop createUnresolvedJavaType(Handle name, TRAPS);
-
-  // public abstract ResolvedJavaType createResolvedJavaType(Class javaMirror);
-  static oop createResolvedJavaType(Handle java_mirror, TRAPS);
-
-  // public abstract JavaType createPrimitiveJavaType(int basicType);
-  static oop createPrimitiveJavaType(int basicType, TRAPS);
 };
 
 inline void check_pending_exception(const char* message, bool dump_core = false) {

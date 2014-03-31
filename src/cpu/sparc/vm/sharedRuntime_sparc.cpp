@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1006,6 +1006,15 @@ void AdapterGenerator::gen_i2c_adapter(
   __ delayed()->nop();
 }
 
+void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
+                                    int total_args_passed,
+                                    int comp_args_on_stack,
+                                    const BasicType *sig_bt,
+                                    const VMRegPair *regs) {
+  AdapterGenerator agen(masm);
+  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+}
+
 // ---------------------------------------------------------------
 AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm,
                                                             int total_args_passed,
@@ -1016,9 +1025,7 @@ AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm
                                                             AdapterFingerPrint* fingerprint) {
   address i2c_entry = __ pc();
 
-  AdapterGenerator agen(masm);
-
-  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+  gen_i2c_adapter(masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
 
 
   // -------------------------------------------------------------------------
@@ -1063,7 +1070,7 @@ AdapterHandlerEntry* SharedRuntime::generate_i2c2i_adapters(MacroAssembler *masm
   }
 
   address c2i_entry = __ pc();
-
+  AdapterGenerator agen(masm);
   agen.gen_c2i_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, L_skip_fixup);
 
   __ flush();
@@ -1106,7 +1113,9 @@ static VMReg int_stk_helper( int i ) {
 
 int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
                                          VMRegPair *regs,
+                                         VMRegPair *regs2,
                                          int total_args_passed) {
+    assert(regs2 == NULL, "not needed on sparc");
 
     // Return the number of VMReg stack_slots needed for the args.
     // This value does not include an abi space (like register window
@@ -2109,7 +2118,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   // the 1st six register arguments). It's weird see int_stk_helper.
   //
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
 
   if (is_critical_native) {
     // Critical natives may have to call out so they need a save area
@@ -2856,7 +2865,7 @@ nmethod *SharedRuntime::generate_dtrace_nmethod(
   // the 1st six register arguments). It's weird see int_stk_helper.
   //
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
 
   // Calculate the total number of stack slots we will need.
 

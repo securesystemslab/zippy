@@ -57,9 +57,6 @@ public enum Kind implements PlatformKind {
     /** The Object kind, also used for arrays. */
     Object('a', "Object", false, null, null),
 
-    /** The narrow oop kind. */
-    NarrowOop('n', "NarrowOop", false, null, null),
-
     /** The void float kind. */
     Void('v', "void", false, java.lang.Void.TYPE, java.lang.Void.class),
 
@@ -129,12 +126,30 @@ public enum Kind implements PlatformKind {
     }
 
     /**
+     * Checks whether this type is a Java primitive type representing an unsigned number.
+     * 
+     * @return {@code true} if the kind is {@link #Boolean} or {@link #Char}.
+     */
+    public boolean isUnsigned() {
+        return this == Kind.Boolean || this == Kind.Char;
+    }
+
+    /**
      * Checks whether this type is a Java primitive type representing a floating point number.
      * 
      * @return {@code true} if this is {@link #Float} or {@link #Double}.
      */
     public boolean isNumericFloat() {
         return this == Kind.Float || this == Kind.Double;
+    }
+
+    /**
+     * Checks whether this represent an Object of some sort.
+     * 
+     * @return {@code true} if this is {@link #Object}.
+     */
+    public boolean isObject() {
+        return this == Kind.Object;
     }
 
     /**

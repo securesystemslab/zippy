@@ -31,13 +31,13 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
-#if !defined(COMPILER1) && !defined(COMPILER2)
+#ifdef COMPILERGRAAL
 define_pd_global(bool, BackgroundCompilation,        true );
 define_pd_global(bool, UseTLAB,                      true );
 define_pd_global(bool, ResizeTLAB,                   true );
 define_pd_global(bool, InlineIntrinsics,             true );
 define_pd_global(bool, PreferInterpreterNativeStubs, false);
-define_pd_global(bool, TieredCompilation,            false);
+define_pd_global(bool, TieredCompilation,            trueInTiered);
 define_pd_global(intx, BackEdgeThreshold,            100000);
 
 define_pd_global(intx, OnStackReplacePercentage,     933  );
@@ -58,6 +58,6 @@ define_pd_global(uintx,CodeCacheMinBlockLength,      4);
 define_pd_global(uintx, CodeCacheMinimumUseSpace,    400*K);
 define_pd_global(intx, TypeProfileWidth,             8);
 define_pd_global(intx, MethodProfileWidth,           4);
-#endif
+#endif // COMPILERGRAAL
 
 #endif // CPU_X86_VM_GRAALGLOBALS_X86_HPP

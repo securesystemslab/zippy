@@ -461,12 +461,11 @@ bool java_lang_String::equals(oop str1, oop str2) {
   return true;
 }
 
-void java_lang_String::print(Handle java_string, outputStream* st) {
-  oop          obj    = java_string();
-  assert(obj->klass() == SystemDictionary::String_klass(), "must be java_string");
-  typeArrayOop value  = java_lang_String::value(obj);
-  int          offset = java_lang_String::offset(obj);
-  int          length = java_lang_String::length(obj);
+void java_lang_String::print(oop java_string, outputStream* st) {
+  assert(java_string->klass() == SystemDictionary::String_klass(), "must be java_string");
+  typeArrayOop value  = java_lang_String::value(java_string);
+  int          offset = java_lang_String::offset(java_string);
+  int          length = java_lang_String::length(java_string);
 
   int end = MIN2(length, 100);
   if (value == NULL) {
@@ -3285,7 +3284,7 @@ void JavaClasses::compute_offsets() {
     sun_reflect_ConstantPool::compute_offsets();
     sun_reflect_UnsafeStaticFieldAccessorImpl::compute_offsets();
   }
-  if (JDK_Version::is_jdk18x_version())
+  if (JDK_Version::is_gte_jdk18x_version())
     java_lang_reflect_Parameter::compute_offsets();
 
   // generated interpreter code wants to know about the offsets we just computed:

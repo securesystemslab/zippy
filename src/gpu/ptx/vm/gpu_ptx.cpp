@@ -234,12 +234,17 @@ GPU_ENTRY(jboolean, Ptx::initialize, (JNIEnv *env, jclass))
     tty->print_cr("[CUDA] Failed to query unified addressing mode of device: %d", _cu_device);
     return false;
   }
-
-  if (TraceGPUInteraction) {
-    tty->print_cr("[CUDA] Device %d %s unified addressing support", _cu_device,
-                  ((unified_addressing == 0) ? "does not have" : "has"));
+  /* The CUDA driver runtime interaction and generated code as implemented requires
+     that the device supports Unified Addressing.
+  */
+  if (unified_addressing == 0) {
+    tty->print_cr("[CUDA] CUDA device %d does NOT have required Unified Addressing support.", _cu_device);
+    return false;
   }
 
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Device %d has Unified Addressing support", _cu_device);
+  }
 
   /* Get device name */
   char device_name[256];
@@ -461,6 +466,7 @@ class PtxCall: StackObj {
   bool check(int status, const char *action) {
     if (status != GRAAL_CUDA_SUCCESS) {
       Thread* THREAD = _thread;
+      ResourceMark rm(THREAD);
       char* message = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, O_BUFLEN + 1);
       jio_snprintf(message, O_BUFLEN, "[CUDA] *** Error (status=%d): %s", status, action);
       if (TraceGPUInteraction) {
@@ -662,6 +668,7 @@ static void printKernelArguments(JavaThread* thread, address buffer) {
   for (vframeStream vfst(thread); !vfst.at_end(); vfst.next()) {
     Method* m = vfst.method();
     if (m != NULL) {
+      ResourceMark rm;
       stringStream st(O_BUFLEN);
       st.print("[CUDA] Call: %s.%s(", m->method_holder()->name()->as_C_string(), m->name()->as_C_string());
       KernelArgumentsPrinter kap(m, buffer, &st);

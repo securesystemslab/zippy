@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,6 +68,7 @@
                                                                               \
   declare_type(G1CollectedHeap, SharedHeap)                                   \
                                                                               \
+  declare_type(G1OffsetTableContigSpace, ContiguousSpace)                     \
   declare_type(HeapRegion, ContiguousSpace)                                   \
   declare_toplevel_type(HeapRegionSeq)                                        \
   declare_toplevel_type(HeapRegionSetBase)                                    \

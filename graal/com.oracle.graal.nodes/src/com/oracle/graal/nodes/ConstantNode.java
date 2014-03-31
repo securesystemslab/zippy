@@ -151,12 +151,35 @@ public final class ConstantNode extends FloatingNode implements LIRLowerable {
         }
     }
 
+    public static ConstantNode forConstant(Stamp stamp, Constant constant, MetaAccessProvider metaAccess, StructuredGraph graph) {
+        if (stamp instanceof PrimitiveStamp) {
+            return forPrimitive(stamp, constant, graph);
+        } else {
+            ConstantNode ret = forConstant(constant, metaAccess, graph);
+            assert ret.stamp().isCompatible(stamp);
+            return ret;
+        }
+    }
+
     /**
-     * Returns a node for a primitive constant.
+     * Returns a node for a Java primitive.
      */
     public static ConstantNode forPrimitive(Constant constant, StructuredGraph graph) {
         assert constant.getKind() != Kind.Object;
         return forConstant(constant, null, graph);
+    }
+
+    /**
+     * Returns a node for a primitive of a given type.
+     */
+    public static ConstantNode forPrimitive(Stamp stamp, Constant constant, StructuredGraph graph) {
+        if (stamp instanceof IntegerStamp) {
+            assert constant.getKind().isNumericInteger() && stamp.getStackKind() == constant.getKind().getStackKind();
+            return forIntegerStamp(stamp, constant.asLong(), graph);
+        } else {
+            assert constant.getKind().isNumericFloat() && stamp.getStackKind() == constant.getKind();
+            return forPrimitive(constant, graph);
+        }
     }
 
     /**
@@ -255,6 +278,33 @@ public final class ConstantNode extends FloatingNode implements LIRLowerable {
         return graph.unique(node);
     }
 
+    /**
+     * Returns a node for a constant integer that's not directly representable as Java primitive
+     * (e.g. short).
+     */
+    public static ConstantNode forIntegerBits(int bits, boolean unsigned, long value, StructuredGraph graph) {
+        Constant constant = Constant.forPrimitiveInt(bits, value);
+        long bounds;
+        if (unsigned) {
+            bounds = ZeroExtendNode.zeroExtend(value, bits);
+        } else {
+            bounds = SignExtendNode.signExtend(value, bits);
+        }
+        return unique(graph, new ConstantNode(constant, StampFactory.forInteger(bits, unsigned, bounds, bounds)));
+    }
+
+    /**
+     * Returns a node for a constant integer that's compatible to a given stamp.
+     */
+    public static ConstantNode forIntegerStamp(Stamp stamp, long value, StructuredGraph graph) {
+        if (stamp instanceof IntegerStamp) {
+            IntegerStamp intStamp = (IntegerStamp) stamp;
+            return forIntegerBits(intStamp.getBits(), intStamp.isUnsigned(), value, graph);
+        } else {
+            return forIntegerKind(stamp.getStackKind(), value, graph);
+        }
+    }
+
     public static ConstantNode forIntegerKind(Kind kind, long value, StructuredGraph graph) {
         switch (kind) {
             case Byte:
@@ -277,6 +327,13 @@ public final class ConstantNode extends FloatingNode implements LIRLowerable {
             default:
                 throw GraalInternalError.shouldNotReachHere("unknown kind " + kind);
         }
+    }
+
+    /**
+     * Returns a node for a constant double that's compatible to a given stamp.
+     */
+    public static ConstantNode forFloatingStamp(Stamp stamp, double value, StructuredGraph graph) {
+        return forFloatingKind(stamp.getStackKind(), value, graph);
     }
 
     public static ConstantNode defaultForKind(Kind kind, StructuredGraph graph) {

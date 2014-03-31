@@ -38,7 +38,6 @@ public class StampFactory {
     private static final Stamp dependencyStamp = new GenericStamp(GenericStampType.Dependency);
     private static final Stamp extensionStamp = new GenericStamp(GenericStampType.Extension);
     private static final Stamp conditionStamp = new GenericStamp(GenericStampType.Condition);
-    private static final Stamp voidStamp = new GenericStamp(GenericStampType.Void);
     private static final Stamp nodeIntrinsicStamp = new ObjectStamp(null, false, false, false);
     private static final Stamp positiveInt = forInteger(Kind.Int, 0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE);
 
@@ -46,31 +45,53 @@ public class StampFactory {
         stampCache[kind.ordinal()] = stamp;
     }
 
-    static {
-        setCache(Kind.Boolean, new IntegerStamp(Kind.Boolean));
-        setCache(Kind.Byte, new IntegerStamp(Kind.Byte));
-        setCache(Kind.Short, new IntegerStamp(Kind.Short));
-        setCache(Kind.Char, new IntegerStamp(Kind.Char));
-        setCache(Kind.Int, new IntegerStamp(Kind.Int));
-        setCache(Kind.Long, new IntegerStamp(Kind.Long));
+    private static void setIntCache(Kind kind) {
+        int bits = kind.getStackKind().getBitCount();
+        long mask;
+        if (kind.isUnsigned()) {
+            mask = IntegerStamp.defaultMask(kind.getBitCount());
+        } else {
+            mask = IntegerStamp.defaultMask(bits);
+        }
+        setCache(kind, new IntegerStamp(bits, false, kind.getMinValue(), kind.getMaxValue(), 0, mask));
+    }
 
-        setCache(Kind.Float, new FloatStamp(Kind.Float));
-        setCache(Kind.Double, new FloatStamp(Kind.Double));
+    private static void setFloatCache(Kind kind) {
+        setCache(kind, new FloatStamp(kind.getBitCount()));
+    }
+
+    static {
+        setIntCache(Kind.Boolean);
+        setIntCache(Kind.Byte);
+        setIntCache(Kind.Short);
+        setIntCache(Kind.Char);
+        setIntCache(Kind.Int);
+        setIntCache(Kind.Long);
+
+        setFloatCache(Kind.Float);
+        setFloatCache(Kind.Double);
 
         setCache(Kind.Object, objectStamp);
-        setCache(Kind.Void, voidStamp);
+        setCache(Kind.Void, VoidStamp.getInstance());
         for (Kind k : Kind.values()) {
             illegalStampCache[k.ordinal()] = new IllegalStamp(k);
         }
     }
 
+    /**
+     * Return a stamp for a Java kind, as it would be represented on the bytecode stack.
+     */
     public static Stamp forKind(Kind kind) {
         assert stampCache[kind.ordinal()] != null : "unexpected forKind(" + kind + ")";
         return stampCache[kind.ordinal()];
     }
 
+    /**
+     * Return the stamp for the {@code void} type. This will return a singleton instance than can be
+     * compared using {@code ==}.
+     */
     public static Stamp forVoid() {
-        return voidStamp;
+        return VoidStamp.getInstance();
     }
 
     /**
@@ -106,13 +127,21 @@ public class StampFactory {
     }
 
     public static IntegerStamp forInteger(Kind kind, long lowerBound, long upperBound, long downMask, long upMask) {
-        return new IntegerStamp(kind, lowerBound, upperBound, downMask, upMask);
+        return new IntegerStamp(kind.getBitCount(), kind.isUnsigned(), lowerBound, upperBound, downMask, upMask);
     }
 
     public static IntegerStamp forInteger(Kind kind, long lowerBound, long upperBound) {
-        long defaultMask = IntegerStamp.defaultMask(kind);
+        return forInteger(kind.getBitCount(), kind.isUnsigned(), lowerBound, upperBound);
+    }
+
+    public static IntegerStamp forInteger(int bits, boolean unsigned) {
+        return new IntegerStamp(bits, unsigned, IntegerStamp.defaultMinValue(bits, unsigned), IntegerStamp.defaultMaxValue(bits, unsigned), 0, IntegerStamp.defaultMask(bits));
+    }
+
+    public static IntegerStamp forInteger(int bits, boolean unsigned, long lowerBound, long upperBound) {
+        long defaultMask = IntegerStamp.defaultMask(bits);
         if (lowerBound == upperBound) {
-            return new IntegerStamp(kind, lowerBound, lowerBound, lowerBound & defaultMask, lowerBound & defaultMask);
+            return new IntegerStamp(bits, unsigned, lowerBound, lowerBound, lowerBound & defaultMask, lowerBound & defaultMask);
         }
         final long downMask;
         final long upMask;
@@ -136,11 +165,12 @@ public class StampFactory {
                 downMask = lowerBound & ~(-1L >>> (lowerBoundLeadingOnes + sameBitCount)) | ~(-1L >>> lowerBoundLeadingOnes);
             }
         }
-        return forInteger(kind, lowerBound, upperBound, downMask & defaultMask, upMask & defaultMask);
+        return new IntegerStamp(bits, unsigned, lowerBound, upperBound, downMask & defaultMask, upMask & defaultMask);
     }
 
     public static FloatStamp forFloat(Kind kind, double lowerBound, double upperBound, boolean nonNaN) {
-        return new FloatStamp(kind, lowerBound, upperBound, nonNaN);
+        assert kind.isNumericFloat();
+        return new FloatStamp(kind.getBitCount(), lowerBound, upperBound, nonNaN);
     }
 
     public static Stamp forConstant(Constant value) {
@@ -152,7 +182,7 @@ public class StampFactory {
             case Short:
             case Int:
             case Long:
-                long mask = value.asLong() & IntegerStamp.defaultMask(kind);
+                long mask = value.asLong() & IntegerStamp.defaultMask(kind.getBitCount());
                 return forInteger(kind.getStackKind(), value.asLong(), value.asLong(), mask, mask);
             case Float:
                 return forFloat(kind, value.asFloat(), value.asFloat(), !Float.isNaN(value.asFloat()));
@@ -210,7 +240,7 @@ public class StampFactory {
         assert type.getKind() == Kind.Object;
         ResolvedJavaType exact = type.asExactType();
         if (exact != null) {
-            assert !exactType || type == exact;
+            assert !exactType || type.equals(exact);
             return new ObjectStamp(exact, true, nonNull, false);
         } else {
             return new ObjectStamp(type, exactType, nonNull, false);

@@ -36,6 +36,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
 import socket
+import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
@@ -341,15 +342,54 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
+def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+    def _download_lib():
+        print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
+        download(path, urls)
+
+    def _sha1Cached():
+        with open(sha1path, 'r') as f:
+            return f.read()[0:40]
+
+    def _writeSha1Cached():
+        with open(sha1path, 'w') as f:
+            f.write(_sha1OfFile())
+
+    def _sha1OfFile():
+        with open(path, 'rb') as f:
+            d = hashlib.sha1()
+            while True:
+                buf = f.read(4096)
+                if not buf:
+                    break
+                d.update(buf)
+            return d.hexdigest()
+
+    if resolve and mustExist and not exists(path):
+        assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
+        _download_lib()
+
+    if sha1 and not exists(sha1path):
+        _writeSha1Cached()
+
+    if sha1 and sha1 != _sha1Cached():
+        _download_lib()
+        if sha1 != _sha1OfFile():
+            abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
+        _writeSha1Cached()
+
+    return path
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
+    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
+        self.sha1 = sha1
         self.mustExist = mustExist
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        self.sourceSha1 = sourceSha1
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -375,14 +415,14 @@ class Library(Dependency):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
+        sha1path = path + '.sha1'
+
         includedInJDK = getattr(self, 'includedInJDK', None)
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
-        if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
-            print 'Downloading ' + self.name + ' from ' + str(self.urls)
-            download(path, self.urls)
-        return path
+
+        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, self.mustExist)
+
 
     def get_source_path(self, resolve):
         path = self.sourcePath
@@ -390,10 +430,9 @@ class Library(Dependency):
             return None
         if not isabs(path):
             path = join(self.suite.dir, path)
-        if resolve and len(self.sourceUrls) != 0 and not exists(path):
-            print 'Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls)
-            download(path, self.sourceUrls)
-        return path
+        sha1path = path + '.sha1'
+
+        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
@@ -556,9 +595,11 @@ class Suite:
             path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
+            sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
-            l = Library(self, name, path, mustExist, urls, sourcePath, sourceUrls)
+            sourceSha1 = attrs.pop('sourceSha1', None)
+            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -996,6 +1037,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
+        self.add_argument('--kill-with-sigquit', action='store_true', dest='killwithsigquit', help='send sigquit first before killing child processes')
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -1056,10 +1098,12 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
     return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def _kill_process_group(pid):
+def _kill_process_group(pid, sig):
+    if not sig:
+        sig = signal.SIGKILL
     pgid = os.getpgid(pid)
     try:
-        os.killpg(pgid, signal.SIGKILL)
+        os.killpg(pgid, sig)
         return True
     except:
         log('Error killing subprocess ' + str(pgid) + ': ' + str(sys.exc_info()[1]))
@@ -1233,6 +1277,8 @@ class DuplicateSuppressingStream:
         self.restrictTo = restrictTo
         self.seen = set()
         self.out = out
+        self.currentFilteredLineCount = 0
+        self.currentFilteredTime = None
 
     def isSuppressionCandidate(self, line):
         if self.restrictTo:
@@ -1246,9 +1292,18 @@ class DuplicateSuppressingStream:
     def write(self, line):
         if self.isSuppressionCandidate(line):
             if line in self.seen:
+                self.currentFilteredLineCount += 1
+                if self.currentFilteredTime:
+                    if time.time() - self.currentFilteredTime > 1 * 60:
+                        self.out.write("  Filtered " + str(self.currentFilteredLineCount) + " repeated lines...\n")
+                        self.currentFilteredTime = time.time()
+                else:
+                    self.currentFilteredTime = time.time()
                 return
             self.seen.add(line)
+        self.currentFilteredLineCount = 0
         self.out.write(line)
+        self.currentFilteredTime = None
 
 """
 A JavaCompliance simplifies comparing Java compliance values extracted from a JDK version string.
@@ -1426,6 +1481,21 @@ def expandvars_in_property(value):
         abort('Property contains an undefined environment variable: ' + value)
     return result
 
+def _send_sigquit():
+    p, args = _currentSubprocess
+
+    def _isJava():
+        if args:
+            name = args[0].split(os.sep)[-1]
+            return name == "java"
+        return False
+
+    if p is not None and _isJava():
+        if get_os() == 'windows':
+            log("mx: implement me! want to send SIGQUIT to my child process")
+        else:
+            _kill_process_group(p.pid, sig=signal.SIGQUIT)
+        time.sleep(0.1)
 
 def abort(codeOrMessage):
     """
@@ -1435,6 +1505,9 @@ def abort(codeOrMessage):
     the object's value is printed and the exit status is one.
     """
 
+    if _opts.killwithsigquit:
+        _send_sigquit()
+
     # import traceback
     # traceback.print_stack()
     p, _ = _currentSubprocess
@@ -1442,7 +1515,7 @@ def abort(codeOrMessage):
         if get_os() == 'windows':
             p.kill()
         else:
-            _kill_process_group(p.pid)
+            _kill_process_group(p.pid, signal.SIGKILL)
 
     raise SystemExit(codeOrMessage)
 
@@ -1820,10 +1893,13 @@ def eclipseformat(args):
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
 
     # Maybe an Eclipse installation dir was specified - look for the executable in it
-    if join(args.eclipse_exe, exe_suffix('eclipse')):
+    if isdir(args.eclipse_exe):
         args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        warn("The eclipse-exe was a directory, now using " + args.eclipse_exe)
 
-    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+    if not os.path.isfile(args.eclipse_exe):
+        abort('File does not exist: ' + args.eclipse_exe)
+    if not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
@@ -2066,6 +2142,8 @@ def archive(args):
                 shutil.rmtree(services)
                 # Atomic on Unix
                 shutil.move(tmp, d.path)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(d.path, 0o666 & ~currentUmask)
                 archives.append(d.path)
                 # print time.time(), 'move:', tmp, '->', d.path
                 d.notify_updated()
@@ -2091,6 +2169,8 @@ def archive(args):
                 # Atomic on Unix
                 jarFile = join(p.dir, p.name + '.jar')
                 shutil.move(tmp, jarFile)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(jarFile, 0o666 & ~currentUmask)
                 archives.append(jarFile)
             finally:
                 if exists(tmp):
@@ -2838,6 +2918,8 @@ def _zip_files(files, baseDir, zipPath):
         os.close(fd)
         # Atomic on Unix
         shutil.move(tmp, zipPath)
+        # Correct the permissions on the temporary file which is created with restrictive permissions
+        os.chmod(zipPath, 0o666 & ~currentUmask)
     finally:
         if exists(tmp):
             os.remove(tmp)
@@ -4023,6 +4105,12 @@ def main():
     def term_handler(signum, frame):
         abort(1)
     signal.signal(signal.SIGTERM, term_handler)
+
+    def quit_handler(signum, frame):
+        _send_sigquit()
+    if get_os() != 'windows':
+        signal.signal(signal.SIGQUIT, quit_handler)
+
     try:
         if opts.timeout != 0:
             def alarm_handler(signum, frame):
@@ -4038,8 +4126,14 @@ def main():
 
 version = VersionSpec("1.0")
 
+currentUmask = None
+
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
     sys.modules['mx'] = sys.modules.pop('__main__')
+
+    # Capture the current umask since there's no way to query it without mutating it.
+    currentUmask = os.umask(0)
+    os.umask(currentUmask)
 
     main()

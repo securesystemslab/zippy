@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -226,6 +226,7 @@ class IdealKit: public StackObj {
               Node* val,
               BasicType bt,
               int adr_idx,
+              MemNode::MemOrd mo,
               bool require_atomic_access = false);
 
   // Store a card mark ordered after store_oop

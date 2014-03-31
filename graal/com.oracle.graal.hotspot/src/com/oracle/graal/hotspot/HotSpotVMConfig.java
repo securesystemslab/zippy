@@ -60,7 +60,18 @@ public class HotSpotVMConfig extends CompilerObject {
     }
 
     HotSpotVMConfig(CompilerToVM compilerToVm) {
+        /** These fields are set in {@link CompilerToVM#initializeConfiguration}. */
+        gHotSpotVMStructs = 0;
+        gHotSpotVMTypes = 0;
+        gHotSpotVMIntConstants = 0;
+        gHotSpotVMLongConstants = 0;
+
         compilerToVm.initializeConfiguration(this);
+
+        assert gHotSpotVMStructs != 0;
+        assert gHotSpotVMTypes != 0;
+        assert gHotSpotVMIntConstants != 0;
+        assert gHotSpotVMLongConstants != 0;
 
         // Fill the VM fields hash map.
         HashMap<String, VMFields.Field> vmFields = new HashMap<>();
@@ -289,17 +300,17 @@ public class HotSpotVMConfig extends CompilerObject {
 
             public String getTypeName() {
                 long typeNameAddress = unsafe.getAddress(entryAddress + gHotSpotVMStructEntryTypeNameOffset);
-                return readCStringAsString(typeNameAddress);
+                return readCString(typeNameAddress);
             }
 
             public String getFieldName() {
                 long fieldNameAddress = unsafe.getAddress(entryAddress + gHotSpotVMStructEntryFieldNameOffset);
-                return readCStringAsString(fieldNameAddress);
+                return readCString(fieldNameAddress);
             }
 
             public String getTypeString() {
                 long typeStringAddress = unsafe.getAddress(entryAddress + gHotSpotVMStructEntryTypeStringOffset);
-                return readCStringAsString(typeStringAddress);
+                return readCString(typeStringAddress);
             }
 
             public boolean isStatic() {
@@ -405,12 +416,12 @@ public class HotSpotVMConfig extends CompilerObject {
 
             public String getTypeName() {
                 long typeNameAddress = unsafe.getAddress(entryAddress + gHotSpotVMTypeEntryTypeNameOffset);
-                return readCStringAsString(typeNameAddress);
+                return readCString(typeNameAddress);
             }
 
             public String getSuperclassName() {
                 long superclassNameAddress = unsafe.getAddress(entryAddress + gHotSpotVMTypeEntrySuperclassNameOffset);
-                return readCStringAsString(superclassNameAddress);
+                return readCString(superclassNameAddress);
             }
 
             public boolean isOopType() {
@@ -451,7 +462,7 @@ public class HotSpotVMConfig extends CompilerObject {
 
         public String getName() {
             long nameAddress = unsafe.getAddress(address + nameOffset);
-            return readCStringAsString(nameAddress);
+            return readCString(nameAddress);
         }
 
         public abstract long getValue();
@@ -646,12 +657,12 @@ public class HotSpotVMConfig extends CompilerObject {
 
             public String getType() {
                 long typeAddress = unsafe.getAddress(entryAddress + typeOffset);
-                return readCStringAsString(typeAddress);
+                return readCString(typeAddress);
             }
 
             public String getName() {
                 long nameAddress = unsafe.getAddress(entryAddress + nameOffset);
-                return readCStringAsString(nameAddress);
+                return readCString(nameAddress);
             }
 
             public long getAddr() {
@@ -670,7 +681,7 @@ public class HotSpotVMConfig extends CompilerObject {
                         return Double.valueOf(unsafe.getDouble(getAddr()));
                     case "ccstr":
                     case "ccstrlist":
-                        return readCStringAsString(getAddr());
+                        return readCString(getAddr());
                     default:
                         throw GraalInternalError.shouldNotReachHere(getType());
                 }
@@ -683,24 +694,6 @@ public class HotSpotVMConfig extends CompilerObject {
         }
     }
 
-    /**
-     * Read a null-terminated C string from memory and convert it to a Java String.
-     */
-    private static String readCStringAsString(long address) {
-        if (address == 0) {
-            return null;
-        }
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0;; i++) {
-            char c = (char) unsafe.getByte(address + i);
-            if (c == 0) {
-                break;
-            }
-            sb.append(c);
-        }
-        return sb.toString();
-    }
-
     // os information, register layout, code generation, ...
     @HotSpotVMConstant(name = "ASSERT") @Stable public boolean cAssertions;
     public final boolean windowsOs = System.getProperty("os.name", "").startsWith("Windows");
@@ -708,7 +701,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "CodeEntryAlignment") @Stable public int codeEntryAlignment;
     @HotSpotVMFlag(name = "VerifyOops") @Stable public boolean verifyOops;
     @HotSpotVMFlag(name = "CITime") @Stable public boolean ciTime;
-    @HotSpotVMFlag(name = "CITimeEach", optional = true) @Stable public boolean ciTimeEach;
+    @HotSpotVMFlag(name = "CITimeEach") @Stable public boolean ciTimeEach;
     @HotSpotVMFlag(name = "CompileThreshold") @Stable public long compileThreshold;
     @HotSpotVMFlag(name = "CompileTheWorld") @Stable public boolean compileTheWorld;
     @HotSpotVMFlag(name = "CompileTheWorldStartAt") @Stable public int compileTheWorldStartAt;
@@ -716,15 +709,17 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "DontCompileHugeMethods") @Stable public boolean dontCompileHugeMethods;
     @HotSpotVMFlag(name = "HugeMethodLimit") @Stable public int hugeMethodLimit;
     @HotSpotVMFlag(name = "PrintCompilation") @Stable public boolean printCompilation;
+    @HotSpotVMFlag(name = "CIPrintCompilerName") @Stable public boolean printCompilerName;
     @HotSpotVMFlag(name = "PrintInlining") @Stable public boolean printInlining;
     @HotSpotVMFlag(name = "GraalUseFastLocking") @Stable public boolean useFastLocking;
     @HotSpotVMFlag(name = "ForceUnreachable") @Stable public boolean forceUnreachable;
     @HotSpotVMFlag(name = "GPUOffload") @Stable public boolean gpuOffload;
+    @HotSpotVMFlag(name = "TieredCompilation") @Stable public boolean tieredCompilation;
 
     @HotSpotVMFlag(name = "UseTLAB") @Stable public boolean useTLAB;
     @HotSpotVMFlag(name = "UseBiasedLocking") @Stable public boolean useBiasedLocking;
     @HotSpotVMFlag(name = "UsePopCountInstruction") @Stable public boolean usePopCountInstruction;
-    @HotSpotVMFlag(name = "UseCountLeadingZerosInstruction", optional = true) @Stable public boolean useCountLeadingZerosInstruction;
+    @HotSpotVMFlag(name = "UseCountLeadingZerosInstruction", archs = {"amd64"}) @Stable public boolean useCountLeadingZerosInstruction;
     @HotSpotVMFlag(name = "UseAESIntrinsics") @Stable public boolean useAESIntrinsics;
     @HotSpotVMFlag(name = "UseCRC32Intrinsics") @Stable public boolean useCRC32Intrinsics;
     @HotSpotVMFlag(name = "UseG1GC") @Stable public boolean useG1GC;
@@ -806,6 +801,43 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "Klass::_secondary_super_cache", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int secondarySuperCacheOffset;
     @HotSpotVMField(name = "Klass::_secondary_supers", type = "Array<Klass*>*", get = HotSpotVMField.Type.OFFSET) @Stable public int secondarySupersOffset;
 
+    /**
+     * The offset of the _java_mirror field (of type {@link Class}) in a Klass.
+     */
+    @HotSpotVMField(name = "Klass::_java_mirror", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int classMirrorOffset;
+
+    @HotSpotVMField(name = "Klass::_super", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int klassSuperKlassOffset;
+    @HotSpotVMField(name = "Klass::_modifier_flags", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassModifierFlagsOffset;
+    @HotSpotVMField(name = "Klass::_access_flags", type = "AccessFlags", get = HotSpotVMField.Type.OFFSET) @Stable public int klassAccessFlagsOffset;
+    @HotSpotVMField(name = "Klass::_layout_helper", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassLayoutHelperOffset;
+    @HotSpotVMField(name = "Klass::_layout_helper", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassInstanceSizeOffset;
+
+    @HotSpotVMConstant(name = "Klass::_lh_neutral_value") @Stable public int klassLayoutHelperNeutralValue;
+    @HotSpotVMConstant(name = "Klass::_lh_instance_slow_path_bit") @Stable public int klassLayoutHelperInstanceSlowPathBit;
+    @HotSpotVMConstant(name = "Klass::_lh_log2_element_size_shift") @Stable public int layoutHelperLog2ElementSizeShift;
+    @HotSpotVMConstant(name = "Klass::_lh_log2_element_size_mask") @Stable public int layoutHelperLog2ElementSizeMask;
+    @HotSpotVMConstant(name = "Klass::_lh_element_type_shift") @Stable public int layoutHelperElementTypeShift;
+    @HotSpotVMConstant(name = "Klass::_lh_element_type_mask") @Stable public int layoutHelperElementTypeMask;
+    @HotSpotVMConstant(name = "Klass::_lh_header_size_shift") @Stable public int layoutHelperHeaderSizeShift;
+    @HotSpotVMConstant(name = "Klass::_lh_header_size_mask") @Stable public int layoutHelperHeaderSizeMask;
+    @HotSpotVMConstant(name = "Klass::_lh_array_tag_shift") @Stable public int layoutHelperArrayTagShift;
+    @HotSpotVMConstant(name = "Klass::_lh_array_tag_type_value") @Stable public int layoutHelperArrayTagTypeValue;
+    @HotSpotVMConstant(name = "Klass::_lh_array_tag_obj_value") @Stable public int layoutHelperArrayTagObjectValue;
+
+    /**
+     * This filters out the bit that differentiates a type array from an object array.
+     */
+    public int layoutHelperElementTypePrimitiveInPlace() {
+        return (layoutHelperArrayTagTypeValue & ~layoutHelperArrayTagObjectValue) << layoutHelperArrayTagShift;
+    }
+
+    /**
+     * Bit pattern in the klass layout helper that can be used to identify arrays.
+     */
+    public final int arrayKlassLayoutHelperIdentifier = 0x80000000;
+
+    @HotSpotVMField(name = "ArrayKlass::_component_mirror", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayKlassComponentMirrorOffset;
+
     @HotSpotVMType(name = "vtableEntry", get = HotSpotVMType.Type.SIZE) @Stable public int vtableEntrySize;
     @HotSpotVMField(name = "vtableEntry::_method", type = "Method*", get = HotSpotVMField.Type.OFFSET) @Stable public int vtableEntryMethodOffset;
     @Stable public int instanceKlassVtableStartOffset;
@@ -817,17 +849,33 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMField(name = "Array<int>::_length", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayU1LengthOffset;
     @HotSpotVMField(name = "Array<u1>::_data", type = "", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayU1DataOffset;
+    @HotSpotVMField(name = "Array<u2>::_data", type = "", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayU2DataOffset;
     @HotSpotVMField(name = "Array<Klass*>::_length", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int metaspaceArrayLengthOffset;
     @HotSpotVMField(name = "Array<Klass*>::_data[0]", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int metaspaceArrayBaseOffset;
 
     @HotSpotVMField(name = "InstanceKlass::_source_file_name_index", type = "u2", get = HotSpotVMField.Type.OFFSET) @Stable public int klassSourceFileNameIndexOffset;
     @HotSpotVMField(name = "InstanceKlass::_init_state", type = "u1", get = HotSpotVMField.Type.OFFSET) @Stable public int klassStateOffset;
     @HotSpotVMField(name = "InstanceKlass::_constants", type = "ConstantPool*", get = HotSpotVMField.Type.OFFSET) @Stable public int instanceKlassConstantsOffset;
+    @HotSpotVMField(name = "InstanceKlass::_fields", type = "Array<u2>*", get = HotSpotVMField.Type.OFFSET) @Stable public int instanceKlassFieldsOffset;
 
     @HotSpotVMConstant(name = "InstanceKlass::linked") @Stable public int klassStateLinked;
     @HotSpotVMConstant(name = "InstanceKlass::fully_initialized") @Stable public int klassStateFullyInitialized;
 
     @HotSpotVMField(name = "ObjArrayKlass::_element_klass", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayClassElementOffset;
+
+    @HotSpotVMConstant(name = "FieldInfo::access_flags_offset") @Stable public int fieldInfoAccessFlagsOffset;
+    @HotSpotVMConstant(name = "FieldInfo::name_index_offset") @Stable public int fieldInfoNameIndexOffset;
+    @HotSpotVMConstant(name = "FieldInfo::signature_index_offset") @Stable public int fieldInfoSignatureIndexOffset;
+    @HotSpotVMConstant(name = "FieldInfo::initval_index_offset") @Stable public int fieldInfoInitvalIndexOffset;
+    @HotSpotVMConstant(name = "FieldInfo::low_packed_offset") @Stable public int fieldInfoLowPackedOffset;
+    @HotSpotVMConstant(name = "FieldInfo::high_packed_offset") @Stable public int fieldInfoHighPackedOffset;
+    @HotSpotVMConstant(name = "FieldInfo::field_slots") @Stable public int fieldInfoFieldSlots;
+
+    @HotSpotVMConstant(name = "FIELDINFO_TAG_SIZE") @Stable public int fieldInfoTagSize;
+
+    @HotSpotVMConstant(name = "JVM_ACC_FIELD_INTERNAL") @Stable public int jvmAccFieldInternal;
+    @HotSpotVMConstant(name = "JVM_ACC_FIELD_STABLE") @Stable public int jvmAccFieldStable;
+    @HotSpotVMConstant(name = "JVM_ACC_FIELD_HAS_GENERIC_SIGNATURE") @Stable public int jvmAccFieldHasGenericSignature;
 
     @HotSpotVMField(name = "Thread::_tlab", type = "ThreadLocalAllocBuffer", get = HotSpotVMField.Type.OFFSET) @Stable public int threadTlabOffset;
 
@@ -909,6 +957,8 @@ public class HotSpotVMConfig extends CompilerObject {
         return javaThreadAnchorOffset + javaFrameAnchorFlagsOffset;
     }
 
+    @HotSpotVMConstant(name = "frame::arg_reg_save_area_bytes", archs = {"amd64"}) @Stable public int runtimeCallStackSize;
+
     @HotSpotVMField(name = "PtrQueue::_active", type = "bool", get = HotSpotVMField.Type.OFFSET) @Stable public int ptrQueueActiveOffset;
     @HotSpotVMField(name = "PtrQueue::_buf", type = "void**", get = HotSpotVMField.Type.OFFSET) @Stable public int ptrQueueBufferOffset;
     @HotSpotVMField(name = "PtrQueue::_index", type = "size_t", get = HotSpotVMField.Type.OFFSET) @Stable public int ptrQueueIndexOffset;
@@ -974,6 +1024,9 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "Method::_intrinsic_id", type = "u1", get = HotSpotVMField.Type.OFFSET) @Stable public int methodIntrinsicIdOffset;
     @HotSpotVMField(name = "Method::_vtable_index", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int methodVtableIndexOffset;
 
+    @HotSpotVMConstant(name = "JVM_ACC_MONITOR_MATCH") @Stable public int jvmAccMonitorMatch;
+    @HotSpotVMConstant(name = "JVM_ACC_HAS_MONITOR_BYTECODES") @Stable public int jvmAccHasMonitorBytecodes;
+
     /**
      * Value of Method::extra_stack_entries().
      */
@@ -987,7 +1040,9 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "ConstMethod::_max_stack", type = "u2", get = HotSpotVMField.Type.OFFSET) @Stable public int constMethodMaxStackOffset;
     @HotSpotVMField(name = "ConstMethod::_max_locals", type = "u2", get = HotSpotVMField.Type.OFFSET) @Stable public int methodMaxLocalsOffset;
 
+    @HotSpotVMConstant(name = "ConstMethod::_has_linenumber_table") @Stable public int constMethodHasLineNumberTable;
     @HotSpotVMConstant(name = "ConstMethod::_has_localvariable_table") @Stable public int constMethodHasLocalVariableTable;
+    @HotSpotVMConstant(name = "ConstMethod::_has_exception_table") @Stable public int constMethodHasExceptionTable;
 
     @HotSpotVMType(name = "ExceptionTableElement", get = HotSpotVMType.Type.SIZE) @Stable public int exceptionTableElementSize;
     @HotSpotVMField(name = "ExceptionTableElement::start_pc", type = "u2", get = HotSpotVMField.Type.OFFSET) @Stable public int exceptionTableElementStartPcOffset;
@@ -1007,6 +1062,8 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "ConstantPool::_tags", type = "Array<u1>*", get = HotSpotVMField.Type.OFFSET) @Stable public int constantPoolTagsOffset;
     @HotSpotVMField(name = "ConstantPool::_pool_holder", type = "InstanceKlass*", get = HotSpotVMField.Type.OFFSET) @Stable public int constantPoolHolderOffset;
     @HotSpotVMField(name = "ConstantPool::_length", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int constantPoolLengthOffset;
+
+    @HotSpotVMConstant(name = "ConstantPool::CPCACHE_INDEX_TAG") @Stable public int constantPoolCpCacheIndexTag;
 
     @HotSpotVMConstant(name = "JVM_CONSTANT_Utf8") @Stable public int jvmConstantUtf8;
     @HotSpotVMConstant(name = "JVM_CONSTANT_Integer") @Stable public int jvmConstantInteger;
@@ -1028,8 +1085,13 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMConstant(name = "HeapWordSize") @Stable public int heapWordSize;
 
+    @HotSpotVMType(name = "Symbol*", get = HotSpotVMType.Type.SIZE) @Stable public int symbolPointerSize;
     @HotSpotVMField(name = "Symbol::_length", type = "unsigned short", get = HotSpotVMField.Type.OFFSET) @Stable public int symbolLengthOffset;
     @HotSpotVMField(name = "Symbol::_body[0]", type = "jbyte", get = HotSpotVMField.Type.OFFSET) @Stable public int symbolBodyOffset;
+
+    @HotSpotVMField(name = "vmSymbols::_symbols[0]", type = "Symbol*", get = HotSpotVMField.Type.ADDRESS) @Stable public long vmSymbolsSymbols;
+    @HotSpotVMConstant(name = "vmSymbols::FIRST_SID") @Stable public int vmSymbolsFirstSID;
+    @HotSpotVMConstant(name = "vmSymbols::SID_LIMIT") @Stable public int vmSymbolsSIDLimit;
 
     @HotSpotVMConstant(name = "JVM_ACC_HAS_FINALIZER") @Stable public int klassHasFinalizerFlag;
 
@@ -1118,52 +1180,23 @@ public class HotSpotVMConfig extends CompilerObject {
         return javaThreadSatbMarkQueueOffset + ptrQueueBufferOffset;
     }
 
-    /**
-     * The offset of the _java_mirror field (of type {@link Class}) in a Klass.
-     */
-    @HotSpotVMField(name = "Klass::_java_mirror", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int classMirrorOffset;
-
-    @HotSpotVMConstant(name = "frame::arg_reg_save_area_bytes", archs = {"amd64"}) @Stable public int runtimeCallStackSize;
-
-    @HotSpotVMField(name = "Klass::_super", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int klassSuperKlassOffset;
-    @HotSpotVMField(name = "Klass::_modifier_flags", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassModifierFlagsOffset;
-    @HotSpotVMField(name = "Klass::_access_flags", type = "AccessFlags", get = HotSpotVMField.Type.OFFSET) @Stable public int klassAccessFlagsOffset;
-    @HotSpotVMField(name = "Klass::_layout_helper", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassLayoutHelperOffset;
-    @HotSpotVMField(name = "Klass::_layout_helper", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int klassInstanceSizeOffset;
-
-    @HotSpotVMConstant(name = "Klass::_lh_neutral_value") @Stable public int klassLayoutHelperNeutralValue;
-    @HotSpotVMConstant(name = "Klass::_lh_instance_slow_path_bit") @Stable public int klassLayoutHelperInstanceSlowPathBit;
-    @HotSpotVMConstant(name = "Klass::_lh_log2_element_size_shift") @Stable public int layoutHelperLog2ElementSizeShift;
-    @HotSpotVMConstant(name = "Klass::_lh_log2_element_size_mask") @Stable public int layoutHelperLog2ElementSizeMask;
-    @HotSpotVMConstant(name = "Klass::_lh_element_type_shift") @Stable public int layoutHelperElementTypeShift;
-    @HotSpotVMConstant(name = "Klass::_lh_element_type_mask") @Stable public int layoutHelperElementTypeMask;
-    @HotSpotVMConstant(name = "Klass::_lh_header_size_shift") @Stable public int layoutHelperHeaderSizeShift;
-    @HotSpotVMConstant(name = "Klass::_lh_header_size_mask") @Stable public int layoutHelperHeaderSizeMask;
-    @HotSpotVMConstant(name = "Klass::_lh_array_tag_shift") @Stable public int layoutHelperArrayTagShift;
-    @HotSpotVMConstant(name = "Klass::_lh_array_tag_type_value") @Stable public int layoutHelperArrayTagTypeValue;
-    @HotSpotVMConstant(name = "Klass::_lh_array_tag_obj_value") @Stable public int layoutHelperArrayTagObjectValue;
-
-    /**
-     * This filters out the bit that differentiates a type array from an object array.
-     */
-    public int layoutHelperElementTypePrimitiveInPlace() {
-        return (layoutHelperArrayTagTypeValue & ~layoutHelperArrayTagObjectValue) << layoutHelperArrayTagShift;
-    }
-
-    @HotSpotVMField(name = "ArrayKlass::_component_mirror", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int arrayKlassComponentMirrorOffset;
-
     @HotSpotVMField(name = "java_lang_Class::_klass_offset", type = "int", get = HotSpotVMField.Type.VALUE) @Stable public int klassOffset;
     @HotSpotVMField(name = "java_lang_Class::_array_klass_offset", type = "int", get = HotSpotVMField.Type.VALUE) @Stable public int arrayKlassOffset;
 
     @HotSpotVMField(name = "Method::_method_data", type = "MethodData*", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataOffset;
     @HotSpotVMField(name = "Method::_from_compiled_entry", type = "address", get = HotSpotVMField.Type.OFFSET) @Stable public int methodCompiledEntryOffset;
+    @HotSpotVMField(name = "Method::_code", type = "nmethod*", get = HotSpotVMField.Type.OFFSET) @Stable public int methodCodeOffset;
 
     @HotSpotVMField(name = "MethodData::_size", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataSize;
     @HotSpotVMField(name = "MethodData::_data_size", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataDataSize;
     @HotSpotVMField(name = "MethodData::_data[0]", type = "intptr_t", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataOopDataOffset;
     @HotSpotVMField(name = "MethodData::_trap_hist._array[0]", type = "u1", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataOopTrapHistoryOffset;
+    @HotSpotVMField(name = "MethodData::_graal_node_count", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int methodDataGraalNodeCountOffset;
 
     @HotSpotVMField(name = "nmethod::_verified_entry_point", type = "address", get = HotSpotVMField.Type.OFFSET) @Stable public int nmethodEntryOffset;
+    @HotSpotVMField(name = "nmethod::_comp_level", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int nmethodCompLevelOffset;
+
+    @HotSpotVMConstant(name = "CompLevel_full_optimization") @Stable public int compilationLevelFullOptimization;
 
     @HotSpotVMType(name = "BasicLock", get = HotSpotVMType.Type.SIZE) @Stable public int basicLockSize;
     @HotSpotVMField(name = "BasicLock::_displaced_header", type = "markOop", get = HotSpotVMField.Type.OFFSET) @Stable public int basicLockDisplacedHeaderOffset;
@@ -1385,6 +1418,25 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMConstant(name = "GraalEnv::dependencies_failed") @Stable public int codeInstallResultDependenciesFailed;
     @HotSpotVMConstant(name = "GraalEnv::cache_full") @Stable public int codeInstallResultCacheFull;
     @HotSpotVMConstant(name = "GraalEnv::code_too_large") @Stable public int codeInstallResultCodeTooLarge;
+
+    @HotSpotVMConstant(name = "CompilerToVM::KLASS_TAG") @Stable public int compilerToVMKlassTag;
+    @HotSpotVMConstant(name = "CompilerToVM::SYMBOL_TAG") @Stable public int compilerToVMSymbolTag;
+
+    @HotSpotVMConstant(name = "CodeInstaller::VERIFIED_ENTRY") @Stable public int codeInstallerMarkIdVerifiedEntry;
+    @HotSpotVMConstant(name = "CodeInstaller::UNVERIFIED_ENTRY") @Stable public int codeInstallerMarkIdUnverifiedEntry;
+    @HotSpotVMConstant(name = "CodeInstaller::OSR_ENTRY") @Stable public int codeInstallerMarkIdOsrEntry;
+    @HotSpotVMConstant(name = "CodeInstaller::EXCEPTION_HANDLER_ENTRY") @Stable public int codeInstallerMarkIdExceptionHandlerEntry;
+    @HotSpotVMConstant(name = "CodeInstaller::DEOPT_HANDLER_ENTRY") @Stable public int codeInstallerMarkIdDeoptHandlerEntry;
+    @HotSpotVMConstant(name = "CodeInstaller::INVOKEINTERFACE") @Stable public int codeInstallerMarkIdInvokeinterface;
+    @HotSpotVMConstant(name = "CodeInstaller::INVOKEVIRTUAL") @Stable public int codeInstallerMarkIdInvokevirtual;
+    @HotSpotVMConstant(name = "CodeInstaller::INVOKESTATIC") @Stable public int codeInstallerMarkIdInvokestatic;
+    @HotSpotVMConstant(name = "CodeInstaller::INVOKESPECIAL") @Stable public int codeInstallerMarkIdInvokespecial;
+    @HotSpotVMConstant(name = "CodeInstaller::INLINE_INVOKE") @Stable public int codeInstallerMarkIdInlineInvoke;
+    @HotSpotVMConstant(name = "CodeInstaller::POLL_NEAR") @Stable public int codeInstallerMarkIdPollNear;
+    @HotSpotVMConstant(name = "CodeInstaller::POLL_RETURN_NEAR") @Stable public int codeInstallerMarkIdPollReturnNear;
+    @HotSpotVMConstant(name = "CodeInstaller::POLL_FAR") @Stable public int codeInstallerMarkIdPollFar;
+    @HotSpotVMConstant(name = "CodeInstaller::POLL_RETURN_FAR") @Stable public int codeInstallerMarkIdPollReturnFar;
+    @HotSpotVMConstant(name = "CodeInstaller::INVOKE_INVALID") @Stable public int codeInstallerMarkIdInvokeInvalid;
 
     public boolean check() {
         for (Field f : getClass().getDeclaredFields()) {

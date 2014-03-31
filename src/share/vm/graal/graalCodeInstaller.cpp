@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,11 @@
 # include "vmreg_ppc.inline.hpp"
 #endif
 
+Method* getMethodFromHotSpotMethod(oop hotspot_method) {
+  assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotResolvedJavaMethod::klass()), "sanity");
+  return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
+}
+
 // convert Graal register indices (as used in oop maps) to HotSpot registers
 VMReg get_hotspot_reg(jint graal_reg) {
   if (graal_reg < RegisterImpl::number_of_registers) {
@@ -86,8 +91,8 @@ static int bitset_size(oop bitset) {
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop reference_map = DebugInfo::referenceMap(debug_info);
-  oop register_map = ReferenceMap::registerRefMap(reference_map);
-  oop frame_map = ReferenceMap::frameRefMap(reference_map);
+  oop register_map = HotSpotReferenceMap::registerRefMap(reference_map);
+  oop frame_map = HotSpotReferenceMap::frameRefMap(reference_map);
   oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
@@ -152,6 +157,27 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   return map;
 }
 
+static void record_metadata_reference(oop obj, jlong prim, bool compressed, OopRecorder* oop_recorder) {
+  if (obj->is_a(HotSpotResolvedObjectType::klass())) {
+    Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(obj));
+    if (compressed) {
+      assert(Klass::decode_klass((narrowKlass) prim) == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
+    } else {
+      assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
+    }
+    int index = oop_recorder->find_index(klass);
+    TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
+  } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
+    Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
+    assert(!compressed, err_msg("unexpected compressed method pointer %s @ %p = %p", method->name()->as_C_string(), method, prim));
+    int index = oop_recorder->find_index(method);
+    TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
+  } else {
+    assert(java_lang_String::is_instance(obj),
+        err_msg("unexpected metadata reference (%s) for constant %ld (%p)", obj->klass()->name()->as_C_string(), prim, prim));
+  }
+}
+
 // Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedObjectType.klass()).
 static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder) {
   char kind = Kind::typeChar(Constant::kind(constant));
@@ -160,21 +186,13 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
     oop obj = Constant::object(constant);
     jlong prim = Constant::primitive(constant);
     if (obj != NULL) {
-      if (obj->is_a(HotSpotResolvedObjectType::klass())) {
-        Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(obj));
-        assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
-        int index = oop_recorder->find_index(klass);
-        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
-      } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
-        Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
-        int index = oop_recorder->find_index(method);
-        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
-      } else {
-        assert(java_lang_String::is_instance(obj),
-            err_msg("unexpected annotation type (%s) for constant %ld (%p) of kind %c", obj->klass()->name()->as_C_string(), prim, prim, kind));
-      }
+      record_metadata_reference(obj, prim, false, oop_recorder);
     }
   }
+}
+
+static void record_metadata_in_patch(oop data, OopRecorder* oop_recorder) {
+  record_metadata_reference(MetaspaceData::annotation(data), MetaspaceData::value(data), MetaspaceData::compressed(data) != 0, oop_recorder);
 }
 
 ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
@@ -359,24 +377,6 @@ void CodeInstaller::initialize_assumptions(oop compiled_code) {
   }
 }
 
-GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
-  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompiledCode::comp(compiled_code));
-
-  jint length;
-  if (leafGraphArray == NULL) {
-    length = 0;
-  } else {
-    length = leafGraphArray->length();
-  }
-
-  GrowableArray<jlong>* result = new GrowableArray<jlong>(length);
-  for (int i = 0; i < length; i++) {
-    result->append(((jlong*) leafGraphArray->base(T_LONG))[i]);
-  }
-
-  return result;
-}
-
 // constructor used to create a method
 GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log) {
   BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
@@ -402,7 +402,6 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(compiled_code);
 
   GraalEnv::CodeInstallResult result;
   if (compiled_code->is_a(HotSpotCompiledRuntimeStub::klass())) {
@@ -425,7 +424,7 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
       id = CompileBroker::assign_compile_id_unlocked(Thread::current(), method, entry_bci);
     }
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, leaf_graph_ids, installed_code, speculation_log);
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, installed_code, speculation_log);
     cb = nm;
   }
 
@@ -459,8 +458,8 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
   _dataSection = HotSpotCompiledCode::dataSection(compiled_code);
-  guarantee(HotSpotCompiledCode_DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  guarantee(DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+  arrayOop data = (arrayOop) DataSection::data(_dataSection);
   _constants_size = data->length();
   if (_constants_size > 0) {
     _constants_size = align_size_up(_constants_size, _constants->alignment());
@@ -470,7 +469,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
 #endif
 
-  _next_call_type = MARK_INVOKE_INVALID;
+  _next_call_type = INVOKE_INVALID;
 }
 
 // perform data and call relocation on the CodeBuffer
@@ -496,30 +495,24 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   // copy the constant data into the newly created CodeBuffer
   address end_data = _constants->start() + _constants_size;
-  arrayOop data = (arrayOop) HotSpotCompiledCode_DataSection::data(_dataSection);
+  arrayOop data = (arrayOop) DataSection::data(_dataSection);
   memcpy(_constants->start(), data->base(T_BYTE), data->length());
   _constants->set_end(end_data);
 
-  objArrayOop patches = (objArrayOop) HotSpotCompiledCode_DataSection::patches(_dataSection);
+  objArrayOop patches = (objArrayOop) DataSection::patches(_dataSection);
   for (int i = 0; i < patches->length(); i++) {
     oop patch = patches->obj_at(i);
-    oop constant = HotSpotCompiledCode_HotSpotData::constant(patch);
-    oop kind = Constant::kind(constant);
-    char typeChar = Kind::typeChar(kind);
-    switch (typeChar) {
-      case 'f':
-      case 'j':
-      case 'd':
-        record_metadata_in_constant(constant, _oop_recorder);
-        break;
-      case 'a':
-        Handle obj = Constant::object(constant);
-        jobject value = JNIHandles::make_local(obj());
-        int oop_index = _oop_recorder->find_index(value);
+    oop data = CompilationResult_DataPatch::data(patch);
+    if (data->is_a(MetaspaceData::klass())) {
+      record_metadata_in_patch(data, _oop_recorder);
+    } else if (data->is_a(OopData::klass())) {
+      Handle obj = OopData::object(data);
+      jobject value = JNIHandles::make_local(obj());
+      int oop_index = _oop_recorder->find_index(value);
 
-        address dest = _constants->start() + HotSpotCompiledCode_HotSpotData::offset(patch);
-        _constants->relocate(dest, oop_Relocation::spec(oop_index));
-        break;
+      address dest = _constants->start() + CompilationResult_Site::pcOffset(patch);
+      assert(!OopData::compressed(data), err_msg("unexpected compressed oop in data section"));
+      _constants->relocate(dest, oop_Relocation::spec(oop_index));
     }
   }
 
@@ -783,7 +776,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
   }
 
-  _next_call_type = MARK_INVOKE_INVALID;
+  _next_call_type = INVOKE_INVALID;
 
   if (debug_info != NULL) {
     _debug_recorder->end_safepoint(next_pc_offset);
@@ -791,24 +784,20 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 }
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop inlineData = CompilationResult_DataPatch::inlineData(site);
-  if (inlineData != NULL) {
-    oop kind = Constant::kind(inlineData);
-    char typeChar = Kind::typeChar(kind);
-    switch (typeChar) {
-      case 'f':
-      case 'j':
-      case 'd':
-        record_metadata_in_constant(inlineData, _oop_recorder);
-        break;
-    }
+  oop data = CompilationResult_DataPatch::data(site);
+  if (data->is_a(MetaspaceData::klass())) {
+    record_metadata_in_patch(data, _oop_recorder);
+  } else if (data->is_a(OopData::klass())) {
+    pd_patch_OopData(pc_offset, data);
+  } else if (data->is_a(DataSectionReference::klass())) {
+    pd_patch_DataSectionReference(pc_offset, data);
+  } else {
+    fatal("unknown data patch type");
   }
-  CodeInstaller::pd_site_DataPatch(pc_offset, site);
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop id_obj = CompilationResult_Mark::id(site);
-  arrayOop references = (arrayOop) CompilationResult_Mark::references(site);
 
   if (id_obj != NULL) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
@@ -817,33 +806,33 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
     address pc = _instructions->start() + pc_offset;
 
     switch (id) {
-      case MARK_UNVERIFIED_ENTRY:
+      case UNVERIFIED_ENTRY:
         _offsets.set_value(CodeOffsets::Entry, pc_offset);
         break;
-      case MARK_VERIFIED_ENTRY:
+      case VERIFIED_ENTRY:
         _offsets.set_value(CodeOffsets::Verified_Entry, pc_offset);
         break;
-      case MARK_OSR_ENTRY:
+      case OSR_ENTRY:
         _offsets.set_value(CodeOffsets::OSR_Entry, pc_offset);
         break;
-      case MARK_EXCEPTION_HANDLER_ENTRY:
+      case EXCEPTION_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Exceptions, pc_offset);
         break;
-      case MARK_DEOPT_HANDLER_ENTRY:
+      case DEOPT_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
-      case MARK_INVOKEVIRTUAL:
-      case MARK_INVOKEINTERFACE:
-      case MARK_INLINE_INVOKE:
-      case MARK_INVOKESTATIC:
-      case MARK_INVOKESPECIAL:
+      case INVOKEVIRTUAL:
+      case INVOKEINTERFACE:
+      case INLINE_INVOKE:
+      case INVOKESTATIC:
+      case INVOKESPECIAL:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = pc;
         break;
-      case MARK_POLL_NEAR:
-      case MARK_POLL_FAR:
-      case MARK_POLL_RETURN_NEAR:
-      case MARK_POLL_RETURN_FAR:
+      case POLL_NEAR:
+      case POLL_FAR:
+      case POLL_RETURN_NEAR:
+      case POLL_RETURN_FAR:
         pd_relocate_poll(pc, id);
         break;
       default:

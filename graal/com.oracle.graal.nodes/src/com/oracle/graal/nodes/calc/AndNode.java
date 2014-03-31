@@ -30,10 +30,10 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "&")
-public final class AndNode extends BitLogicNode implements Canonicalizable {
+public final class AndNode extends BitLogicNode implements Canonicalizable, NarrowableArithmeticNode {
 
-    public AndNode(Kind kind, ValueNode x, ValueNode y) {
-        super(kind, x, y);
+    public AndNode(Stamp stamp, ValueNode x, ValueNode y) {
+        super(stamp, x, y);
     }
 
     @Override
@@ -44,7 +44,7 @@ public final class AndNode extends BitLogicNode implements Canonicalizable {
     @Override
     public Constant evalConst(Constant... inputs) {
         assert inputs.length == 2;
-        return Constant.forIntegerKind(kind(), inputs[0].asLong() & inputs[1].asLong(), null);
+        return Constant.forPrimitiveInt(PrimitiveStamp.getBits(stamp()), inputs[0].asLong() & inputs[1].asLong());
     }
 
     @Override
@@ -53,29 +53,27 @@ public final class AndNode extends BitLogicNode implements Canonicalizable {
             return x();
         }
         if (x().isConstant() && !y().isConstant()) {
-            return graph().unique(new AndNode(kind(), y(), x()));
+            return graph().unique(new AndNode(stamp(), y(), x()));
         }
         if (x().isConstant()) {
-            return ConstantNode.forPrimitive(evalConst(x().asConstant(), y().asConstant()), graph());
+            return ConstantNode.forPrimitive(stamp(), evalConst(x().asConstant(), y().asConstant()), graph());
         } else if (y().isConstant()) {
-            if (kind() == Kind.Int) {
-                int c = y().asConstant().asInt();
-                if (c == -1) {
+            long rawY = y().asConstant().asLong();
+            long mask = IntegerStamp.defaultMask(PrimitiveStamp.getBits(stamp()));
+            if ((rawY & mask) == mask) {
+                return x();
+            }
+            if ((rawY & mask) == 0) {
+                return ConstantNode.forIntegerStamp(stamp(), 0, graph());
+            }
+            if (x().stamp() instanceof IntegerStamp) {
+                IntegerStamp xStamp = (IntegerStamp) x().stamp();
+                if (((xStamp.upMask() | xStamp.downMask()) & ~rawY) == 0) {
+                    // No bits are set which are outside the mask, so the mask will have no effect.
                     return x();
-                }
-                if (c == 0) {
-                    return ConstantNode.forInt(0, graph());
-                }
-            } else {
-                assert kind() == Kind.Long;
-                long c = y().asConstant().asLong();
-                if (c == -1) {
-                    return x();
-                }
-                if (c == 0) {
-                    return ConstantNode.forLong(0, graph());
                 }
             }
+
             return BinaryNode.reassociate(this, ValueNode.isConstantPredicate());
         }
         return this;

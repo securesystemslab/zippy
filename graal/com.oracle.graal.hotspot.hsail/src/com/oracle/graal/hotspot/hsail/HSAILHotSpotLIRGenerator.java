@@ -132,7 +132,7 @@ public class HSAILHotSpotLIRGenerator extends HSAILLIRGenerator {
     @Override
     public Variable emitLoad(Kind kind, Value address, Access access) {
         HSAILAddressValue loadAddress = asAddressValue(address);
-        Variable result = newVariable(kind);
+        Variable result = newVariable(kind.getStackKind());
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);
@@ -162,7 +162,7 @@ public class HSAILHotSpotLIRGenerator extends HSAILLIRGenerator {
             if (canStoreConstant(c, isCompressed)) {
                 if (isCompressed) {
                     if ((c.getKind() == Kind.Object) && c.isNull()) {
-                        append(new StoreConstantOp(Kind.NarrowOop, storeAddress, c, state));
+                        append(new StoreConstantOp(Kind.Int, storeAddress, Constant.forInt(0), state));
                     } else {
                         throw GraalInternalError.shouldNotReachHere("can't handle: " + access);
                     }

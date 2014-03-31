@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008, 2009, 2010, 2011 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -220,7 +220,7 @@ int CppInterpreter::native_entry(Method* method, intptr_t UNUSED, TRAPS) {
     }
     InvocationCounter *counter = mcs->invocation_counter();
     counter->increment();
-    if (counter->reached_InvocationLimit()) {
+    if (counter->reached_InvocationLimit(mcs->backedge_counter())) {
       CALL_VM_NOCHECK(
         InterpreterRuntime::frequency_counter_overflow(thread, NULL));
       if (HAS_PENDING_EXCEPTION)

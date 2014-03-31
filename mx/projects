@@ -7,6 +7,7 @@ library@JDK_TOOLS@optional=true
 
 library@JUNIT@path=lib/junit-4.8.jar
 library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.8/junit-4.8.jar
+library@JUNIT@sha1=4150c00c5706306ef0f8f1410e70c8ff12757922
 library@JUNIT@eclipse.container=org.eclipse.jdt.junit.JUNIT_CONTAINER/4
 
 library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
@@ -17,12 +18,15 @@ library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
 library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
+library@JACOCOAGENT@sha1=9e2c835289356d86afbf31840f05a0f9007c4e44
 
 library@JACOCOREPORT@path=lib/jacocoreport.jar
 library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
+library@JACOCOREPORT@sha1=32fb5ba2f12d86c4feb74bcefc17a4e6fad8a323
 
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
+library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
 library@OKRA@path=lib/okra-1.8.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8.jar
@@ -33,48 +37,6 @@ library@OKRA_WITH_SIM@path=lib/okra-1.8-with-sim.jar
 library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim.jar
 library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
 library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
-
-library@JRUBYPARSER@path=lib/jrubyparser-0.5.0.jar
-library@JRUBYPARSER@urls=http://repo1.maven.org/maven2/org/jruby/jrubyparser/0.5.0/jrubyparser-0.5.0.jar
-
-library@JLINE@path=lib/jline-2.11.jar
-library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.11/jline-2.11.jar
-
-library@JRUBYSTDLIB@path=lib/jruby-stdlib-1.7.4.jar
-library@JRUBYSTDLIB@urls=http://repo1.maven.org/maven2/org/jruby/jruby-stdlib/1.7.4/jruby-stdlib-1.7.4.jar
-
-library@JNR_POSIX@path=lib/jnr-posix-3.0.1.jar
-library@JNR_POSIX@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-posix/3.0.1/jnr-posix-3.0.1.jar
-
-library@JNR_CONSTANTS@path=lib/jnr-constants-0.8.5.jar
-library@JNR_CONSTANTS@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.8.5/jnr-constants-0.8.5.jar
-
-library@JNR_FFI@path=lib/jnr-ffi-1.0.10.jar
-library@JNR_FFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/1.0.10/jnr-ffi-1.0.10.jar
-
-library@JFFI@path=lib/jffi-1.2.7.jar
-library@JFFI@urls=http://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.7/jffi-1.2.7.jar
-
-library@JFFI_NATIVE@path=lib/jffi-1.2.7-native.jar
-library@JFFI_NATIVE@urls=http://search.maven.org/remotecontent?filepath=com/github/jnr/jffi/1.2.7/jffi-1.2.7-native.jar
-
-library@JNR_X86ASM@path=lib/jnr-x86asm-1.0.2.jar
-library@JNR_X86ASM@urls=http://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.jar
-
-library@ASM@path=lib/asm-4.0.jar
-library@ASM@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm/4.0/asm-4.0.jar
-
-library@ASM_ANALYSIS@path=lib/asm-analysis-4.0.jar
-library@ASM_ANALYSIS@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/4.0/asm-analysis-4.0.jar
-
-library@ASM_COMMONS@path=lib/asm-commons-4.0.jar
-library@ASM_COMMONS@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-commons/4.0/asm-commons-4.0.jar
-
-library@ASM_TREE@path=lib/asm-tree-4.0.jar
-library@ASM_TREE@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-tree/4.0/asm-tree-4.0.jar
-
-library@ASM_UTIL@path=lib/asm-util-4.0.jar
-library@ASM_UTIL@urls=http://repo1.maven.org/maven2/org/ow2/asm/asm-util/4.0/asm-util-4.0.jar
 
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
 library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
@@ -389,7 +351,7 @@ project@com.oracle.graal.replacements.test@workingSets=Graal,Replacements,Test
 # graal.replacements.verifier
 project@com.oracle.graal.replacements.verifier@subDir=graal
 project@com.oracle.graal.replacements.verifier@sourceDirs=src
-project@com.oracle.graal.replacements.verifier@dependencies=com.oracle.graal.api.replacements
+project@com.oracle.graal.replacements.verifier@dependencies=com.oracle.graal.api.replacements,com.oracle.graal.graph
 project@com.oracle.graal.replacements.verifier@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.verifier@javaCompliance=1.7
 project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
@@ -400,6 +362,7 @@ project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
+project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
 
 # graal.nodes.test
@@ -522,6 +485,14 @@ project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 project@com.oracle.graal.java@workingSets=Graal,Java
 
+# graal.baseline
+project@com.oracle.graal.baseline@subDir=graal
+project@com.oracle.graal.baseline@sourceDirs=src
+project@com.oracle.graal.baseline@dependencies=com.oracle.graal.java,com.oracle.graal.lir
+project@com.oracle.graal.baseline@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.baseline@javaCompliance=1.7
+project@com.oracle.graal.baseline@workingSets=Graal,Java
+
 # graal.java.decompiler
 project@com.oracle.graal.java.decompiler@subDir=graal
 project@com.oracle.graal.java.decompiler@sourceDirs=src
@@ -533,7 +504,7 @@ project@com.oracle.graal.java.decompiler@workingSets=Graal
 # graal.java.decompiler.test
 project@com.oracle.graal.java.decompiler.test@subDir=graal
 project@com.oracle.graal.java.decompiler.test@sourceDirs=src
-project@com.oracle.graal.java.decompiler.test@dependencies=com.oracle.graal.printer,com.oracle.graal.runtime
+project@com.oracle.graal.java.decompiler.test@dependencies=JUNIT,com.oracle.graal.printer,com.oracle.graal.runtime
 project@com.oracle.graal.java.decompiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java.decompiler.test@javaCompliance=1.7
 project@com.oracle.graal.java.decompiler.test@workingSets=Graal,Test
@@ -557,7 +528,7 @@ project@com.oracle.graal.test@workingSets=Graal,Test
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.printer,com.oracle.graal.runtime,com.oracle.graal.baseline
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 project@com.oracle.graal.compiler.test@workingSets=Graal,Test
@@ -807,43 +778,3 @@ project@edu.uci.python.builtins@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.builtins@javaCompliance=1.7
 project@edu.uci.python.builtins@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python.builtins@workingSets=Truffle,Python
-
-# truffle.ruby.runtime
-project@com.oracle.truffle.ruby.runtime@subDir=graal
-project@com.oracle.truffle.ruby.runtime@sourceDirs=src
-project@com.oracle.truffle.ruby.runtime@dependencies=JRUBYSTDLIB,JNR_POSIX,JNR_CONSTANTS,JNR_FFI,JFFI,JFFI_NATIVE,JNR_X86ASM,ASM,ASM_ANALYSIS,ASM_COMMONS,ASM_TREE,ASM_UTIL,com.oracle.truffle.api
-project@com.oracle.truffle.ruby.runtime@javaCompliance=1.7
-project@com.oracle.truffle.ruby.runtime@workingSets=Truffle,Ruby
-
-# truffle.ruby.nodes
-project@com.oracle.truffle.ruby.nodes@subDir=graal
-project@com.oracle.truffle.ruby.nodes@sourceDirs=src
-project@com.oracle.truffle.ruby.nodes@dependencies=com.oracle.truffle.ruby.runtime,com.oracle.truffle.api.dsl
-project@com.oracle.truffle.ruby.nodes@checkstyle=com.oracle.truffle.ruby.runtime
-project@com.oracle.truffle.ruby.nodes@javaCompliance=1.7
-project@com.oracle.truffle.ruby.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
-project@com.oracle.truffle.ruby.nodes@workingSets=Truffle,Ruby
-
-# truffle.ruby.parser
-project@com.oracle.truffle.ruby.parser@subDir=graal
-project@com.oracle.truffle.ruby.parser@sourceDirs=src
-project@com.oracle.truffle.ruby.parser@dependencies=JRUBYPARSER,com.oracle.truffle.ruby.nodes
-project@com.oracle.truffle.ruby.parser@checkstyle=com.oracle.truffle.ruby.runtime
-project@com.oracle.truffle.ruby.parser@javaCompliance=1.7
-project@com.oracle.truffle.ruby.parser@workingSets=Truffle,Ruby
-
-# truffle.ruby.shell
-project@com.oracle.truffle.ruby.shell@subDir=graal
-project@com.oracle.truffle.ruby.shell@sourceDirs=src
-project@com.oracle.truffle.ruby.shell@dependencies=JLINE,com.oracle.truffle.ruby.parser
-project@com.oracle.truffle.ruby.shell@checkstyle=com.oracle.truffle.ruby.runtime
-project@com.oracle.truffle.ruby.shell@javaCompliance=1.7
-project@com.oracle.truffle.ruby.shell@workingSets=Truffle,Ruby
-
-# truffle.ruby.test
-project@com.oracle.truffle.ruby.test@subDir=graal
-project@com.oracle.truffle.ruby.test@sourceDirs=src
-project@com.oracle.truffle.ruby.test@dependencies=com.oracle.truffle.ruby.parser,JUNIT
-project@com.oracle.truffle.ruby.test@checkstyle=com.oracle.truffle.ruby.runtime
-project@com.oracle.truffle.ruby.test@javaCompliance=1.7
-project@com.oracle.truffle.ruby.test@workingSets=Truffle,Ruby,Test

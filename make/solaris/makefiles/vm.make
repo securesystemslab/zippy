@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2014, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -211,15 +211,21 @@ Src_Dirs/COMPILER2 := $(CORE_PATHS) $(COMPILER2_PATHS) $(GRAAL_PATHS)
 Src_Dirs/TIERED    := $(CORE_PATHS) $(COMPILER1_PATHS) $(COMPILER2_PATHS) $(GRAAL_PATHS)
 Src_Dirs/ZERO      := $(CORE_PATHS)
 Src_Dirs/SHARK     := $(CORE_PATHS) $(SHARK_PATHS)
-Src_Dirs/GRAAL     := $(CORE_PATHS) $(GRAAL_PATHS)
+Src_Dirs/GRAAL     := $(CORE_PATHS) $(COMPILER1_PATHS) $(GRAAL_PATHS)
 Src_Dirs := $(Src_Dirs/$(TYPE))
 
 COMPILER2_SPECIFIC_FILES := opto libadt bcEscapeAnalyzer.cpp c2_\* runtime_\*
 COMPILER1_SPECIFIC_FILES := c1_\*
 SHARK_SPECIFIC_FILES     := shark
 ZERO_SPECIFIC_FILES      := zero
-GRAAL_SPECIFIC_FILES     := graal
-GRAAL_SPECIFIC_GPU_FILES  := gpu\* ptx\* hsail\*
+
+ifneq ($(INCLUDE_GRAAL), true)
+  GRAAL_SPECIFIC_FILES   := graal\* 
+  GRAAL_SPECIFIC_GPU_FILES  := gpu\* ptx\* hsail\*
+else
+  GRAAL_SPECIFIC_FILES   :=
+  GRAAL_SPECIFIC_GPU_FILES   :=
+endif
 
 # Always exclude these.
 Src_Files_EXCLUDE := dtrace jsig.c jvmtiEnvRecommended.cpp jvmtiEnvStub.cpp
@@ -231,7 +237,7 @@ Src_Files_EXCLUDE/COMPILER2 := $(COMPILER1_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES
 Src_Files_EXCLUDE/TIERED    := $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) $(GRAAL_SPECIFIC_FILES) $(GRAAL_SPECIFIC_GPU_FILES)
 Src_Files_EXCLUDE/ZERO      := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) $(GRAAL_SPECIFIC_FILES) $(GRAAL_SPECIFIC_GPU_FILES) ciTypeFlow.cpp
 Src_Files_EXCLUDE/SHARK     := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES) $(GRAAL_SPECIFIC_FILES) $(GRAAL_SPECIFIC_GPU_FILES)
-Src_Files_EXCLUDE/GRAAL     := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) ciTypeFlow.cpp
+Src_Files_EXCLUDE/GRAAL     := $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) ciTypeFlow.cpp
 
 Src_Files_EXCLUDE +=  $(Src_Files_EXCLUDE/$(TYPE))
 

@@ -27,6 +27,27 @@
 #include "prims/jni.h"
 #include "runtime/javaCalls.hpp"
 
+class CompilerToVM {
+public:
+  /**
+   * Tag bits used by lookupKlassInPool to distinguish the types in Java.
+   */
+  enum Tags {
+    KLASS_TAG = 0x0,
+    SYMBOL_TAG = 0x1
+  };
+
+  static intptr_t tag_pointer(Klass* klass) {
+    return ((intptr_t) klass) | KLASS_TAG;
+  }
+
+  static intptr_t tag_pointer(Symbol* symbol) {
+    return ((intptr_t) symbol) | SYMBOL_TAG;
+  }
+
+  // nothing here - no need to define the jni method implementations in a header file
+};
+
 extern JNINativeMethod CompilerToVM_methods[];
 int CompilerToVM_methods_count();
 
@@ -41,11 +62,6 @@ inline MethodData* asMethodData(jlong metaspaceMethodData) {
 inline Klass* asKlass(jlong metaspaceKlass) {
   return (Klass*) (address) metaspaceKlass;
 }
-
-/**
- * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
- */
-Method* getMethodFromHotSpotMethod(oop hotspot_method);
 
 class JavaArgumentUnboxer : public SignatureIterator {
  protected:
@@ -88,7 +104,5 @@ class JavaArgumentUnboxer : public SignatureIterator {
   inline void do_array(int begin, int end)  { if (!is_return_type()) _jca->push_oop(next_arg(T_OBJECT)); }
   inline void do_void()                     { }
 };
-
-// nothing here - no need to define the jni method implementations in a header file
 
 #endif // SHARE_VM_GRAAL_GRAAL_COMPILER_TO_VM_HPP

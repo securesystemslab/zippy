@@ -202,7 +202,7 @@ public class WordTypeRewriterPhase extends Phase {
 
             case NOT:
                 assert arguments.size() == 1;
-                replace(invoke, graph.unique(new XorNode(wordKind, arguments.get(0), ConstantNode.forIntegerKind(wordKind, -1, graph))));
+                replace(invoke, graph.unique(new XorNode(StampFactory.forKind(wordKind), arguments.get(0), ConstantNode.forIntegerKind(wordKind, -1, graph))));
                 break;
 
             case READ: {
@@ -301,14 +301,14 @@ public class WordTypeRewriterPhase extends Phase {
 
         if (toKind == Kind.Int) {
             assert value.kind() == Kind.Long;
-            return graph.unique(new ConvertNode(Kind.Long, Kind.Int, value));
+            return graph.unique(new NarrowNode(value, 32));
         } else {
             assert toKind == Kind.Long;
             assert value.kind().getStackKind() == Kind.Int;
             if (unsigned) {
-                return graph.unique(new ReinterpretNode(Kind.Long, value));
+                return graph.unique(new ZeroExtendNode(value, 64));
             } else {
-                return graph.unique(new ConvertNode(Kind.Int, Kind.Long, value));
+                return graph.unique(new SignExtendNode(value, 64));
             }
         }
     }
@@ -320,8 +320,8 @@ public class WordTypeRewriterPhase extends Phase {
      */
     private static ValueNode createBinaryNodeInstance(Class<? extends ValueNode> nodeClass, Kind kind, ValueNode left, ValueNode right) {
         try {
-            Constructor<? extends ValueNode> constructor = nodeClass.getConstructor(Kind.class, ValueNode.class, ValueNode.class);
-            return constructor.newInstance(kind, left, right);
+            Constructor<? extends ValueNode> constructor = nodeClass.getConstructor(Stamp.class, ValueNode.class, ValueNode.class);
+            return constructor.newInstance(StampFactory.forKind(kind), left, right);
         } catch (Throwable ex) {
             throw new GraalInternalError(ex).addContext(nodeClass.getName());
         }
@@ -370,7 +370,7 @@ public class WordTypeRewriterPhase extends Phase {
     }
 
     protected ValueNode readOp(StructuredGraph graph, ValueNode base, Invoke invoke, LocationNode location, Kind readKind, BarrierType barrierType, boolean compressible) {
-        ReadNode read = graph.add(new ReadNode(base, location, StampFactory.forKind(readKind), barrierType, compressible));
+        ReadNode read = graph.add(new ReadNode(base, location, StampFactory.forKind(readKind.getStackKind()), barrierType, compressible));
         graph.addBeforeFixed(invoke.asNode(), read);
         /*
          * The read must not float outside its block otherwise it may float above an explicit zero
