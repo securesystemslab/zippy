@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.runtime.datatype.*;
 
 public class IfNode extends StatementNode {
@@ -36,18 +37,24 @@ public class IfNode extends StatementNode {
     @Child protected PNode then;
     @Child protected PNode orelse;
 
+    public long thenCounter = 0;
+    public long elseCounter = 0;
+
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = adoptChild(condition);
         this.then = adoptChild(then);
         this.orelse = adoptChild(orelse);
+        NodeProfiler.getInstance().addIfNode(this);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
             then.executeVoid(frame);
+            thenCounter++;
         } else {
             orelse.executeVoid(frame);
+            elseCounter++;
         }
 
         return PNone.NONE;

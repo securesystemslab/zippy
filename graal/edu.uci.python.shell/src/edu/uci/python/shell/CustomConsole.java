@@ -24,15 +24,22 @@
  */
 package edu.uci.python.shell;
 
+import java.util.*;
+
 import org.python.core.*;
 import org.python.util.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
+
 import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
@@ -80,6 +87,10 @@ public class CustomConsole extends JLineConsole {
             context.printGeneratorProfilingInfo();
         }
 
+        if (PythonOptions.ProfileNodes) {
+            printProfilerResults();
+        }
+
         if (PythonOptions.ProfileFunctionCalls) {
             printBanner("Function Invocation Count Results");
             Profiler.getInstance().printProfilerResults();
@@ -103,4 +114,129 @@ public class CustomConsole extends JLineConsole {
         System.out.println("============= " + phase + " ============= ");
         // CheckStyle: resume system..print check
     }
+
+    // "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char) + "10 space" +
+// "CALL SITES"(11 char)
+    public static void printProfilerResults() {
+        List<ProfilerNode> profiledNodes = ProfilerNode.getProfiledNodes();
+        if (PythonOptions.SortProfilerCounts) {
+            sortTheProfilerList(profiledNodes);
+        }
+
+        // CheckStyle: stop system..print check
+        System.out.format("%-23s", "FUNCTION NAME");
+        System.out.format("%-27s", "INVOCATION COUNTS");
+        if (PythonOptions.ProfileCallSites) {
+            System.out.format("%-11s%n", "CALL SITES");
+            System.out.println("=============          =================          ==========");
+        } else {
+            System.out.println();
+            System.out.println("=============          =================");
+        }
+        // CheckStyle: resume system..print check
+
+        for (int i = 0; i < profiledNodes.size(); i++) {
+            ProfilerNode profilerNode = profiledNodes.get(i);
+            Node profiledNode = profilerNode.getProfiledNode();
+            if (profiledNode instanceof RootNode) {
+                printInvocationCountOfRootNode((RootNode) profiledNode, profilerNode.getProfilerResult());
+            }
+        }
+    }
+
+    private static void printInvocationCountOfRootNode(RootNode profiledRootNode, long profilerResult) {
+        if (profilerResult > 0) {
+            String functionName = null;
+
+            if (profiledRootNode instanceof FunctionRootNode) {
+                FunctionRootNode functionRootNode = (FunctionRootNode) profiledRootNode;
+                functionName = functionRootNode.getFunctionName();
+            } else if (profiledRootNode instanceof BuiltinFunctionRootNode) {
+                /**
+                 * For better performance and specialization in builtins, we do create a different
+                 * PBuiltinFunction, and BuiltinFrunctionRootNode, and CallTarget for the same
+                 * builtin function. For ex, abs might appear multiple times in this list with
+                 * different invocation counts.
+                 */
+                BuiltinFunctionRootNode builtinFunctionRootNode = (BuiltinFunctionRootNode) profiledRootNode;
+                functionName = builtinFunctionRootNode.getFunctionName();
+            } else {
+                throw new RuntimeException("Unknown root node type " + profiledRootNode + " " + profiledRootNode.getClass());
+            }
+
+            printInvocationCount(functionName, profilerResult);
+
+            if (PythonOptions.ProfileCallSites) {
+                printCallSitesOfInvocation(profiledRootNode, functionName);
+            }
+
+            System.out.println();
+        } else if (profilerResult < 0) {
+            throw new RuntimeException("Profiler result can't be less than 0: " + profilerResult + " for " + profiledRootNode);
+        }
+    }
+
+    private static void printInvocationCount(String functionName, long invocationCount) {
+        // CheckStyle: stop system..print check
+        System.out.format("%-23s", functionName);
+        System.out.format("%17s", invocationCount);
+        // CheckStyle: resume system..print check
+    }
+
+    private static void printCallSitesOfInvocation(RootNode calleeRootNode, String calleefunctionName) {
+        List<CallSiteProfilerNode> profiledCallSites = CallSiteProfilerNode.getProfiledCallSites();
+        int index = 0;
+
+        for (int i = 0; i < profiledCallSites.size(); i++) {
+            CallSiteProfilerNode profiledCallSite = profiledCallSites.get(i);
+
+            if (profiledCallSite.getProfilerResult() > 0) {
+                if (profiledCallSite.doesCallRootNode(calleeRootNode)) {
+                    if (index == 0) {
+                        System.out.format("%" + 10 + "s", "");
+                    } else {
+                        System.out.format("%" + 50 + "s", "");
+                    }
+                    /**
+                     * TODO getRootNode is not visible
+                     */
+                    // System.out.println("[" + getRootName(profiledCallSite.getRootNode()) + " -> "
+// + calleefunctionName + "] (" + profiledCallSite.getInvocationCounterOfRootNode(calleeRootNode) +
+// ")");
+                    index++;
+                }
+            }
+        }
+    }
+
+    private static String getRootName(RootNode rootNode) {
+        String rootName = null;
+
+        if (rootNode instanceof FunctionRootNode) {
+            FunctionRootNode functionRootNode = (FunctionRootNode) rootNode;
+            rootName = functionRootNode.getFunctionName();
+        } else if (rootNode instanceof BuiltinFunctionRootNode) {
+            BuiltinFunctionRootNode builtinFunctionRootNode = (BuiltinFunctionRootNode) rootNode;
+            rootName = builtinFunctionRootNode.getFunctionName();
+        } else if (rootNode instanceof ModuleNode) {
+            rootName = "module";
+        } else {
+            throw new RuntimeException("Unknown root node type " + rootNode + " " + rootNode.getClass());
+        }
+
+        return rootName;
+    }
+
+    private static void sortTheProfilerList(List<ProfilerNode> list) {
+        if (!list.isEmpty()) {
+            Collections.sort(list, new Comparator<ProfilerNode>() {
+                @Override
+                public int compare(ProfilerNode p1, ProfilerNode p2) {
+                    // Descending order
+                    return Long.compare(p2.getProfilerResult(), p1.getProfilerResult());
+                }
+            });
+        }
+    }
+
 }

@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -38,13 +39,17 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
+    public long forCounter = 0;
+
     public ForNode(PNode target, PNode body) {
         super(body);
         this.target = adoptChild(target);
+        NodeProfiler.getInstance().addForNode(this);
     }
 
     protected ForNode(ForNode previous) {
         this(previous.target, previous.body);
+        NodeProfiler.getInstance().deleteForNode(previous);
     }
 
     @Specialization(order = 0)
@@ -58,6 +63,7 @@ public abstract class ForNode extends LoopNode {
             rvn.setValue(i);
             target.execute(frame);
             body.executeVoid(frame);
+            forCounter++;
         }
 
         return PNone.NONE;
@@ -66,12 +72,12 @@ public abstract class ForNode extends LoopNode {
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
         final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
         try {
             while (true) {
                 rvn.setValue(iterator.__next__());
                 target.execute(frame);
                 body.executeVoid(frame);
+                forCounter++;
             }
         } catch (StopIterationException e) {
             // fall through
@@ -79,5 +85,4 @@ public abstract class ForNode extends LoopNode {
 
         return PNone.NONE;
     }
-
 }

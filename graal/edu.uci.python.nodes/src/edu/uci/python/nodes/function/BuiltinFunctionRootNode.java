@@ -27,6 +27,9 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.runtime.*;
+
 /**
  * @author Gulfem
  * @author zwei
@@ -38,10 +41,15 @@ public class BuiltinFunctionRootNode extends RootNode {
     @Child protected PythonBuiltinNode builtinNode;
     private final PythonBuiltinNode uninitialized;
 
+    @Child private ProfilerNode profiler;
+
     public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
         this.functionName = functionName;
         this.builtinNode = adoptChild(builtinNode);
         this.uninitialized = NodeUtil.cloneNode(builtinNode);
+        if (PythonOptions.ProfileNodes) {
+            this.profiler = adoptChild(new ProfilerNode(this));
+        }
     }
 
     @Override
@@ -51,7 +59,16 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return builtinNode.execute(frame);
+        if (PythonOptions.ProfileNodes) {
+            profiler.execute(frame);
+            return builtinNode.execute(frame);
+        } else {
+            return builtinNode.execute(frame);
+        }
+    }
+
+    public String getFunctionName() {
+        return functionName;
     }
 
     @Override

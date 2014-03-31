@@ -396,6 +396,7 @@ public abstract class Node implements Cloneable {
      * @return the {@link RootNode} or {@code null} if there is none.
      */
     protected final RootNode getRootNode() {
+        // protected final RootNode getRootNode() {
         Node rootNode = this;
         while (rootNode.getParent() != null) {
             assert !(rootNode instanceof RootNode) : "root node must not have a parent";

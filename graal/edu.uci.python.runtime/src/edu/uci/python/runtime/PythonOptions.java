@@ -60,14 +60,14 @@ public class PythonOptions {
     // Generators
     public static boolean InlineGeneratorCalls = true;
 
-    public static boolean OptimizeGeneratorExpressions = true;
+    public static boolean OptimizeGeneratorExpressions = false;
 
     public static boolean UseSimpleGeneratorInlining = false;
 
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
 
-    public static final boolean ProfileGeneratorCalls = true;
+    public static final boolean ProfileGeneratorCalls = false;
 
     static {
         if (ParallelizeGeneratorCalls) {
@@ -78,9 +78,15 @@ public class PythonOptions {
     }
 
     // Profiling
-    public static final boolean ProfileFunctionCalls = true;
+    public static final boolean ProfileNodes = false;
 
-    public static final boolean catchZippyExceptionForUnitTesting = false;
+    public static final boolean ProfileCallSites = false;
+
+    public static final boolean SortProfilerCounts = false;
+
+    public static final boolean ProfileFunctionCalls = false;
+
+    public static final boolean catchZippyExceptionForUnitTesting = true;
 
     private PrintStream standardOut = System.out;
 

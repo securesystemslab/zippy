@@ -65,6 +65,8 @@ public class PGenerator implements PIterator {
         return frameDescriptor;
     }
 
+    static int index = 0;
+
     @Override
     public Object __next__() throws StopIterationException {
         return callTarget.call(null, arguments);

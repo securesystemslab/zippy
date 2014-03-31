@@ -26,6 +26,7 @@ package edu.uci.python.nodes.call;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -34,6 +35,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -47,10 +49,15 @@ public abstract class CallFunctionNode extends PNode {
     @Children protected final KeywordLiteralNode[] keywords;
     private final PythonContext context;
 
+    @Child private CallSiteProfilerNode callSiteProfiler;
+
     public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         this.arguments = adoptChildren(arguments);
         this.keywords = adoptChildren(keywords);
         this.context = context;
+        if (PythonOptions.ProfileCallSites) {
+            this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));
+        }
     }
 
     protected CallFunctionNode(CallFunctionNode node) {
@@ -76,6 +83,10 @@ public abstract class CallFunctionNode extends PNode {
             Profiler.getInstance().increment(callee.getCallableName());
         }
 
+        if (PythonOptions.ProfileCallSites) {
+            callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callee.getCallTarget()).getRootNode());
+        }
+
         return callee.call(frame.pack(), args, kwords);
     }
 
@@ -96,11 +107,14 @@ public abstract class CallFunctionNode extends PNode {
                 Profiler.getInstance().increment(callMethod.getCallableName());
             }
 
+            if (PythonOptions.ProfileCallSites) {
+                callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callMethod.getCallTarget()).getRootNode());
+            }
+
             if (keywords.length == 0) {
                 return callMethod.call(frame.pack(), args);
             } else {
                 return callMethod.call(frame.pack(), args, kwords);
-
             }
         } else {
             throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");

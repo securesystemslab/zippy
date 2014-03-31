@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
@@ -42,9 +43,14 @@ public class CallFunctionNoKeywordNode extends PNode {
     @Child protected PNode callee;
     @Children protected final PNode[] arguments;
 
+    @Child protected CallSiteProfilerNode callSiteProfiler;
+
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
         this.callee = adoptChild(callee);
         this.arguments = adoptChildren(arguments);
+        if (PythonOptions.ProfileCallSites) {
+            this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));
+        }
     }
 
     public PNode[] getArguments() {
@@ -140,13 +146,24 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     public Object executeCall(VirtualFrame frame, PythonCallable callable) {
-        final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
-
         if (PythonOptions.ProfileFunctionCalls) {
             Profiler.getInstance().increment(callable.getCallableName());
         }
 
+        if (PythonOptions.ProfileCallSites) {
+            callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callable.getCallTarget()).getRootNode());
+        }
+
+        final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
         return callable.call(frame.pack(), args);
+    }
+
+    public RootNode getRootNodeOfCallNode() {
+        return super.getRootNode();
+    }
+
+    public long getProfilerResult() {
+        return callSiteProfiler.getProfilerResult();
     }
 
     @SlowPath

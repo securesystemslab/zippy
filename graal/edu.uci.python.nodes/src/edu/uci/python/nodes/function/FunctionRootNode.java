@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.runtime.*;
 
 /**
@@ -43,12 +44,17 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
+    @Child private ProfilerNode profiler;
+
     public FunctionRootNode(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
         this.body = adoptChild(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
+        if (PythonOptions.ProfileNodes) {
+            this.profiler = adoptChild(new ProfilerNode(this));
+        }
     }
 
     public PythonContext getContext() {
@@ -82,7 +88,12 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
+        if (PythonOptions.ProfileNodes) {
+            profiler.execute(frame);
+            return body.execute(frame);
+        } else {
+            return body.execute(frame);
+        }
     }
 
     @Override

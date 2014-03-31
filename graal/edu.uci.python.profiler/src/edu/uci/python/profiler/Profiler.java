@@ -25,7 +25,6 @@ public class Profiler {
     public void printProfilerResults() {
         Map<String, Long> sorted = sortByValue(invocationCounts);
         Iterator<Entry<String, Long>> it = sorted.entrySet().iterator();
-        // Iterator<Entry<String, Integer>> it = invocationCounts.entrySet().iterator();
 
         while (it.hasNext()) {
             Entry<String, Long> pairs = it.next();
@@ -34,7 +33,6 @@ public class Profiler {
             // CheckStyle: resume system..print check
             it.remove();
         }
-
     }
 
     public static Map<String, Long> sortByValue(Map<String, Long> map) {
