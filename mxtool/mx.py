@@ -1866,9 +1866,10 @@ def build(args, parser=None):
         toBeDeleted = [argfileName]
         try:
             if not jdtJar:
+                mainJava = java()
                 if not args.error_prone:
                     log('Compiling Java sources for {0} with javac...'.format(p.name))
-                    javacCmd = [jdk.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
+                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     if jdk.debug_port is not None:
                         javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
                     javacCmd += processorArgs
@@ -1880,12 +1881,12 @@ def build(args, parser=None):
                 else:
                     log('Compiling Java sources for {0} with javac (with error-prone)...'.format(p.name))
                     javaArgs = ['-Xmx1g']
-                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir]
+                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     javacArgs += processorArgs
                     javacArgs += ['@' + argfile.name]
                     if not args.warnAPI:
                         javacArgs.append('-XDignore.symbol.file')
-                    run_java(javaArgs + ['-cp', os.pathsep.join([jdk.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs, javaConfig=jdk)
+                    run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
 
