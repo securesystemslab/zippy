@@ -26,17 +26,27 @@
 #define GPU_HSAIL_HPP
 
 class Hsail {
-  friend class gpu;
 
- protected:
-  static bool probe_linkage();
-  static bool initialize_gpu();
-  static unsigned int total_cores();
-  static void* generate_kernel(unsigned char *code, int code_len, const char *name);
-  static bool execute_kernel_void_1d(address kernel, int dimX, jobject args, methodHandle& mh);
+private:
+
+  static JNINativeMethod HSAIL_methods[];
+
+  // static native boolean initialize();
+  JNIEXPORT static jboolean initialize(JNIEnv *env, jclass);
+
+  // static native long generateKernel(byte[] targetCode, String name);
+  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+
+  // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args);
+
   static void register_heap();
 
 public:
+
+  // Registers the implementations for the native methods in HSAILHotSpotBackend
+  static bool register_natives(JNIEnv* env);
+
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
   typedef unsigned long long CUdeviceptr;
 #else
@@ -57,8 +67,6 @@ private:
   typedef bool (*okra_clearargs_func_t)(void*);
   typedef bool (*okra_register_heap_func_t)(void*, size_t);
 
-  static bool probe_linkage_internal(bool isRequired);
-  
 public:
   static okra_create_context_func_t             _okra_create_context;
   static okra_create_kernel_func_t              _okra_create_kernel;

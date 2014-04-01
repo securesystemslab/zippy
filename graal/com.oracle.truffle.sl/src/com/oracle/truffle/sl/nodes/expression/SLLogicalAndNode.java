@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,28 +23,42 @@
 package com.oracle.truffle.sl.nodes.expression;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.*;
 
+/**
+ * This class declares specializations similar to the extensively documented {@link SLAddNode}. It
+ * uses one additional feature of the Truffle DSL: {@link ShortCircuit}.
+ * <p>
+ * Logical operations in SL use short circuit evaluation: if the evaluation of the left operand
+ * already decides the result of the operation, the right operand must not be executed. This is
+ * expressed in the Truffle DSL via a method annotated with {@link ShortCircuit}, which returns
+ * whether a child needs to be executed based on the result of already executed children.
+ */
+@NodeInfo(shortName = "&&")
 @SuppressWarnings("unused")
 public abstract class SLLogicalAndNode extends SLBinaryNode {
 
+    /**
+     * This method is called after the left child was evaluated, but before the right child is
+     * evaluated. The right child is only evaluated when the return value is {code true}.
+     */
     @ShortCircuit("rightNode")
-    public boolean needsRightNode(boolean left) {
+    protected boolean needsRightNode(boolean left) {
         return left;
     }
 
+    /**
+     * Similar to {@link #needsRightNode(boolean)}, but for generic cases where the type of the left
+     * child is not known.
+     */
     @ShortCircuit("rightNode")
-    public boolean needsRightNode(Object left) {
+    protected boolean needsRightNode(Object left) {
         return left instanceof Boolean && needsRightNode(((Boolean) left).booleanValue());
     }
 
     @Specialization
-    public boolean doBoolean(boolean left, boolean hasRight, boolean right) {
+    protected boolean doBoolean(boolean left, boolean hasRight, boolean right) {
         return left && right;
-    }
-
-    @Generic
-    public Object doGeneric(Object left, boolean hasRight, Object right) {
-        throw new RuntimeException("operation not defined for type " + left.getClass().getSimpleName());
     }
 }

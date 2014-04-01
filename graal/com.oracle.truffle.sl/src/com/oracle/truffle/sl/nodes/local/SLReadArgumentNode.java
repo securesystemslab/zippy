@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,32 @@
  */
 package com.oracle.truffle.sl.nodes.local;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.utilities.*;
 import com.oracle.truffle.sl.nodes.*;
+import com.oracle.truffle.sl.parser.*;
 import com.oracle.truffle.sl.runtime.*;
 
+/**
+ * Reads a function argument. Arguments are passed in as a {@link SLArguments} object, which
+ * encapsulates an {@link SLArguments#getFromFrame Object[] array}. Language-defined subclasses of
+ * {@link Arguments} are the standard Truffle way to pass values between function.
+ * <p>
+ * Arguments are not type-specialized. To ensure that repeated accesses within a method are
+ * specialized and can, e.g., accessed without unboxing, all arguments are loaded into local
+ * variables {@link SLNodeFactory#addFormalParameter in the method prologue}.
+ */
 public class SLReadArgumentNode extends SLExpressionNode {
 
+    /** The argument number, i.e., the index into the array of arguments. */
     private final int index;
 
-    private final BranchProfile outOfBounds = new BranchProfile();
+    /**
+     * Profiling information, collected by the interpreter, capturing whether the function was
+     * called with fewer actual arguments than formal arguments.
+     */
+    private final BranchProfile outOfBoundsTaken = new BranchProfile();
 
     public SLReadArgumentNode(int index) {
         this.index = index;
@@ -43,8 +59,10 @@ public class SLReadArgumentNode extends SLExpressionNode {
         if (index < args.length) {
             return args[index];
         } else {
-            outOfBounds.enter();
-            return SLNull.INSTANCE;
+            /* In the interpreter, record profiling information that the branch was used. */
+            outOfBoundsTaken.enter();
+            /* Use the default null value. */
+            return SLNull.SINGLETON;
         }
     }
 }

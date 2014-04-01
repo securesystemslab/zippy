@@ -1,7 +1,11 @@
-function main() {  
+function loop(n) {
   i = 0;  
-  while (i < 1000) {  
+  while (i < n) {  
     i = i + 1;  
   }  
-  print(i);  
+  return i;
+}  
+
+function main() {
+  println(loop(1000));  
 }  

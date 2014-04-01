@@ -166,7 +166,7 @@ python2Benchmarks = {
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
+    #'pads-eratosthenes-timed' : '100000',
 }
 
 specjvm2008Names = [

@@ -29,6 +29,7 @@ import java.util.*;
 
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.bridge.*;
+import com.oracle.graal.hotspot.meta.*;
 
 /**
  * Used to access native configuration details.
@@ -839,6 +840,16 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "JavaThread::_vm_result", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int threadObjectResultOffset;
     @HotSpotVMField(name = "JavaThread::_graal_counters[0]", type = "jlong", get = HotSpotVMField.Type.OFFSET, optional = true) @Stable public int graalCountersThreadOffset;
 
+    // The native side (graalCompilerToVM.cpp) sets the rtldDefault if the
+    // platform is NOT Windows (Windows is currently not supported).
+    // AMD64NativeFunctionInterface checks if rtld_default handle is valid.
+    // Using 0 is not possible as it is a valid value for rtldDefault on some platforms.
+    public static final long INVALID_RTLD_DEFAULT_HANDLE = 0xDEADFACE;
+
+    @Stable public long libraryLoadAddress;
+    @Stable public long functionLookupAddress;
+    @Stable public long rtldDefault = INVALID_RTLD_DEFAULT_HANDLE;
+
     /**
      * This field is used to pass exception objects into and out of the runtime system during
      * exception handling for compiled code.
@@ -998,6 +1009,14 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "Symbol::_body[0]", type = "jbyte", get = HotSpotVMField.Type.OFFSET) @Stable public int symbolBodyOffset;
 
     @HotSpotVMConstant(name = "JVM_ACC_HAS_FINALIZER") @Stable public int klassHasFinalizerFlag;
+
+    // Modifier.SYNTHETIC is not public so we get it via vmStructs.
+    @HotSpotVMConstant(name = "JVM_ACC_SYNTHETIC") @Stable public int syntheticFlag;
+
+    /**
+     * @see HotSpotResolvedObjectType#createField
+     */
+    @HotSpotVMConstant(name = "JVM_RECOGNIZED_FIELD_MODIFIERS") @Stable public int recognizedFieldModifiers;
 
     /**
      * Bit pattern that represents a non-oop. Neither the high bits nor the low bits of this value

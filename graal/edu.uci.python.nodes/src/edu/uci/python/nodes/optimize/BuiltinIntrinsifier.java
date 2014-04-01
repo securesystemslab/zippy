@@ -46,7 +46,7 @@ public class BuiltinIntrinsifier {
     @SuppressWarnings("unused") private final Assumption builtinModuleUnchanged;
 
     private final CallBuiltinInlinedNode call;
-    private GeneratorExpressionDefinitionNode genexp;
+    private GeneratorExpressionNode genexp;
 
     public BuiltinIntrinsifier(PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged, CallBuiltinInlinedNode call) {
         this.context = context;
@@ -85,8 +85,8 @@ public class BuiltinIntrinsifier {
         }
 
         PNode arg = call.getArguments()[0];
-        if (arg instanceof GeneratorExpressionDefinitionNode) {
-            genexp = (GeneratorExpressionDefinitionNode) arg;
+        if (arg instanceof GeneratorExpressionNode) {
+            genexp = (GeneratorExpressionNode) arg;
             return true;
         }
 

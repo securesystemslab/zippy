@@ -163,14 +163,12 @@ bool CompilationPolicy::can_be_osr_compiled(methodHandle m, int comp_level) {
 
 bool CompilationPolicy::can_be_offloaded_to_gpu(methodHandle m) {
 #ifdef GRAAL
-  if (GPUOffload) {
-    // Check if this method can be offloaded to GPU.
-    // 1. Offload it to GPU if it is a Lambda method
+  if (GPUOffload && gpu::initialized_gpus() > 0) {
+    // Check if this method can be off-loaded to GPU.
     if (m->is_synthetic()) {
-      // A lambda method is a syntheric method.
+      // A lambda method is a synthetic method.
       Symbol * klass_name = m->method_holder()->name();
       Symbol * method_name = m->name();
-      bool offloadToGPU = false;
       {
         ResourceMark rm;
         if (klass_name != NULL) {
@@ -179,37 +177,19 @@ bool CompilationPolicy::can_be_offloaded_to_gpu(methodHandle m) {
             char* methodPrefix = strstr(method_name->as_C_string(), lambdaPrefix);
             if (methodPrefix != 0) {
               if ((strncmp(lambdaPrefix, methodPrefix, strlen(lambdaPrefix)) == 0)) {
-                offloadToGPU = true;
+                if (TraceGPUInteraction) {
+                  char buf[O_BUFLEN];
+                  tty->print_cr("Selected lambda method %s for GPU offload", m->name_and_sig_as_C_string(buf, O_BUFLEN));
+                }
+                return true;
               }
             }
           }
         }
       }
-      if (offloadToGPU) {
-        // If GPU is available and the necessary linkage is available
-        // return true indicatin that this method must be compiled.
-        if (gpu::is_available() && gpu::has_gpu_linkage()) {
-          if (TraceGPUInteraction) {
-            tty->print("Compiling Lambda method ");
-            m->print_short_name();
-            switch (gpu::get_target_il_type()) {
-            case gpu::PTX :
-              tty->print_cr("to PTX");
-              break;
-            case gpu::HSAIL :
-              tty->print_cr("to HSAIL");
-              break;
-            default :
-              tty->print_cr("to Unknown GPU!!!");
-            }
-          }
-          return true;
-        }
-      }
     }
   }
 #endif
-
   return false;
 }
 

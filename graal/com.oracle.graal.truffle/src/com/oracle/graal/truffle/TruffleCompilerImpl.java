@@ -73,7 +73,6 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
     public static final OptimisticOptimizations Optimizations = OptimisticOptimizations.ALL.remove(OptimisticOptimizations.Optimization.UseExceptionProbability,
                     OptimisticOptimizations.Optimization.RemoveNeverExecutedCode, OptimisticOptimizations.Optimization.UseTypeCheckedInlining, OptimisticOptimizations.Optimization.UseTypeCheckHints);
-    private static final OptimisticOptimizations OptimizationsGraal = OptimisticOptimizations.ALL.remove(OptimisticOptimizations.Optimization.UseExceptionProbability);
 
     public TruffleCompilerImpl() {
         this.runtime = Graal.getRequiredCapability(RuntimeProvider.class);
@@ -168,7 +167,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         }
 
         if (TraceTruffleCompilation.getValue()) {
-            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode());
+            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode(), null, true);
             byte[] code = compiledMethod.getCode();
             OUT.printf("[truffle] optimized %-50s %x |Nodes %7d |Time %5.0f(%4.0f+%-4.0f)ms |Nodes %5d/%5d |CodeSize %d\n", compilable.getRootNode(), compilable.hashCode(), nodeCountTruffle,
                             (timeCompilationFinished - timeCompilationStarted) / 1e6, (timePartialEvaluationFinished - timeCompilationStarted) / 1e6,
@@ -186,22 +185,27 @@ public class TruffleCompilerImpl implements TruffleCompiler {
     private class InlineTreeVisitor implements NodeVisitor {
 
         public boolean visit(Node node) {
-            if (node instanceof InlinedCallSite) {
-                InlinedCallSite inlinedCallSite = (InlinedCallSite) node;
-                int indent = this.indent(node);
-                for (int i = 0; i < indent; ++i) {
-                    OUT.print("   ");
+            if (node instanceof CallNode) {
+                CallNode callNode = (CallNode) node;
+                if (callNode.isInlined()) {
+                    int indent = this.indent(node);
+                    for (int i = 0; i < indent; ++i) {
+                        OUT.print("   ");
+                    }
+                    OUT.println(callNode.getCallTarget());
+                    callNode.getInlinedRoot().accept(this);
                 }
-                OUT.println(inlinedCallSite.getCallTarget());
             }
             return true;
         }
 
         private int indent(Node n) {
             if (n instanceof RootNode) {
+                CallNode inlinedParent = ((RootNode) n).getParentInlinedCall();
+                if (inlinedParent != null) {
+                    return indent(inlinedParent) + 1;
+                }
                 return 0;
-            } else if (n instanceof InlinedCallSite) {
-                return indent(n.getParent()) + 1;
             } else {
                 return indent(n.getParent());
             }
@@ -220,7 +224,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
             CodeCacheProvider codeCache = providers.getCodeCache();
             CallingConvention cc = getCallingConvention(codeCache, Type.JavaCallee, graph.method(), false);
             CompilationResult compilationResult = new CompilationResult(name);
-            result = compileGraph(graph, cc, graph.method(), providers, backend, codeCache.getTarget(), null, createGraphBuilderSuite(), OptimizationsGraal, getProfilingInfo(graph), speculationLog,
+            result = compileGraph(graph, cc, graph.method(), providers, backend, codeCache.getTarget(), null, createGraphBuilderSuite(), Optimizations, getProfilingInfo(graph), speculationLog,
                             suites, false, compilationResult, CompilationResultBuilderFactory.Default);
         } catch (Throwable e) {
             throw Debug.handle(e);

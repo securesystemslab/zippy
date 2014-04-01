@@ -35,7 +35,7 @@ public interface PythonCallable {
 
     void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords);
 
-    CallTarget getCallTarget();
+    RootCallTarget getCallTarget();
 
     FrameDescriptor getFrameDescriptor();
 

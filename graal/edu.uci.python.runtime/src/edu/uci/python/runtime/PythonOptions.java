@@ -57,12 +57,12 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
+    public static final int CallSiteInlineCacheMax = 2;
+
     // Generators
-    public static boolean InlineGeneratorCalls = true;
+    public static boolean InlineGeneratorCalls = false;
 
     public static boolean OptimizeGeneratorExpressions = false;
-
-    public static boolean UseSimpleGeneratorInlining = false;
 
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;
@@ -73,12 +73,11 @@ public class PythonOptions {
         if (ParallelizeGeneratorCalls) {
             InlineGeneratorCalls = false;
             OptimizeGeneratorExpressions = false;
-            UseSimpleGeneratorInlining = false;
         }
     }
 
     // Profiling
-    public static final boolean ProfileNodes = false;
+    public static final boolean ProfileNodes = true;
 
     public static final boolean ProfileCallSites = false;
 
@@ -86,7 +85,7 @@ public class PythonOptions {
 
     public static final boolean ProfileFunctionCalls = false;
 
-    public static final boolean catchZippyExceptionForUnitTesting = true;
+    public static final boolean CatchZippyExceptionForUnitTesting = false;
 
     private PrintStream standardOut = System.out;
 

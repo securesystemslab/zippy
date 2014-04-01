@@ -33,7 +33,7 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
 
     private final PBuiltinFunction function;
     private PythonBuiltinObject self;
-    private final CallTarget callTarget;
+    private final RootCallTarget callTarget;
 
     public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
         this.self = self;
@@ -65,7 +65,7 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
     }
 
     @Override
-    public CallTarget getCallTarget() {
+    public RootCallTarget getCallTarget() {
         return callTarget;
     }
 

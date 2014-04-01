@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,12 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.sl.nodes.*;
 
+/**
+ * Constant literal for a primitive {@code long} value. The unboxed value can be returned when the
+ * parent expects a long value and calls {@link SLLongLiteralNode#executeLong}. In the generic case,
+ * the primitive value is automatically boxed by Java.
+ */
+@NodeInfo(shortName = "const")
 public final class SLLongLiteralNode extends SLExpressionNode {
 
     private final long value;

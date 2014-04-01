@@ -34,7 +34,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.function.GeneratorExpressionDefinitionNode.CallableGeneratorExpressionDefinition;
+import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
@@ -57,7 +57,7 @@ public class GeneratorExpressionOptimizer {
             return;
         }
 
-        for (GeneratorExpressionDefinitionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionNode genExp : NodeUtil.findAllNodeInstances(functionRoot, GeneratorExpressionNode.class)) {
             if (genExp.isOptimized()) {
                 continue;
             }
@@ -73,7 +73,7 @@ public class GeneratorExpressionOptimizer {
         }
     }
 
-    private void transform(GeneratorExpressionDefinitionNode genExp, EscapeAnalyzer escapeAnalyzer) {
+    private void transform(GeneratorExpressionNode genExp, EscapeAnalyzer escapeAnalyzer) {
         if (!escapeAnalyzer.isBoundToLocalFrame()) {
             /**
              * The simplest case in micro bench: generator-expression.
@@ -106,7 +106,7 @@ public class GeneratorExpressionOptimizer {
         }
     }
 
-    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionDefinitionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
+    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
         FrameDescriptor fd = genExp.getFrameDescriptor();
         FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
         PNode[] argReads;
@@ -138,7 +138,7 @@ public class GeneratorExpressionOptimizer {
     /**
      * Assembles nodes that read the arguments to be passed to the transformed generator call.
      */
-    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionDefinitionNode genExp, boolean readFromCargoFrame) {
+    private static PNode[] assembleArgumentReads(List<FrameSlot> genExpParams, GeneratorExpressionNode genExp, boolean readFromCargoFrame) {
         String[] argumentIds = new String[genExpParams.size()];
 
         for (int i = 0; i < argumentIds.length; i++) {

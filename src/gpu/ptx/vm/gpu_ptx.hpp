@@ -87,19 +87,40 @@
 #define GRAAL_CU_CTX_MAP_HOST            0x08
 #define GRAAL_CU_CTX_SCHED_BLOCKING_SYNC 0x04
 
+/**
+ * Support compute capability 3.0 and later
+ */
+
+#define GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION 3.0
+
 class Ptx {
-  friend class gpu;
   friend class PtxCall;
 
- protected:
-  static bool probe_linkage();
-  static bool initialize_gpu();
-  static unsigned int total_cores();
-  static void* get_context();
-  static void* generate_kernel(unsigned char *code, int code_len, const char *name);
-  static bool execute_warp(int dimX, int dimY, int dimZ, address kernel, PTXKernelArguments & ka, JavaValue &ret);
-  static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
+private:
+
+  static JNINativeMethod PTX_methods[];
+
+  // static native boolean initialize();
+  JNIEXPORT static jboolean initialize(JNIEnv* env, jclass);
+
+  // static native long generateKernel(byte[] targetCode, String name);
+  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+
+  // static native long getLaunchKernelAddress();
+  JNIEXPORT static jlong get_execute_kernel_from_vm_address(JNIEnv *env, jclass);
+
+  // static native int getAvailableProcessors0();
+  JNIEXPORT static jint get_total_cores(JNIEnv *env, jobject);
+
+  // Links the CUDA driver library functions
+  static bool link();
+
+  static int ncores(int major, int minor);
+
 public:
+  // Registers the implementations for the native methods in PTXHotSpotBackend
+  static bool register_natives(JNIEnv* env);
+
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
   typedef unsigned long long CUdeviceptr;
 #else

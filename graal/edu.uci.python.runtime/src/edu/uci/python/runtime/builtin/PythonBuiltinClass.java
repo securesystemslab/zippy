@@ -74,7 +74,7 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
     }
 
     @Override
-    public CallTarget getCallTarget() {
+    public RootCallTarget getCallTarget() {
         throw new UnsupportedOperationException();
     }
 

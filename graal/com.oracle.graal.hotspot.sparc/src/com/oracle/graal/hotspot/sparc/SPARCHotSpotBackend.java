@@ -32,6 +32,7 @@ import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.sparc.*;
 import com.oracle.graal.asm.sparc.SPARCAssembler.*;
 import com.oracle.graal.compiler.gen.LIRGenerator;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -219,7 +220,6 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
         } else {
             // No need to emit the stubs for entries back into the method since
             // it has no calls that can cause such "return" entries
-            assert !frameMap.accessesCallerFrame() : lirGen.getGraph();
         }
 
         if (unverifiedStub != null) {
@@ -227,5 +227,10 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
             Register scratch = g3;
             SPARCCall.indirectJmp(crb, masm, scratch, foreignCalls.lookupForeignCall(IC_MISS_HANDLER));
         }
+    }
+
+    @Override
+    public NativeFunctionInterface getNativeFunctionInterface() {
+        throw GraalInternalError.unimplemented("No NativeFunctionInterface of SPARC");
     }
 }

@@ -39,7 +39,6 @@ import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
 public class CallGeneratorNode extends CallFunctionCachedNode implements InlinableCallSite {
@@ -95,10 +94,6 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         assert parent.getParent() != null;
         PNode grandpa = (PNode) parent.getParent();
 
-        if (PythonOptions.UseSimpleGeneratorInlining) {
-            return simpleGeneratorLoopTransformation((ForWithLocalTargetNode) grandpa, factory);
-        }
-
         if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
             transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
             invokeGeneratorExpressionOptimizer();
@@ -130,21 +125,12 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
          * frame.
          */
         RootNode enclosingRoot = getRootNode();
-        for (GeneratorExpressionDefinitionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionDefinitionNode.class)) {
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(false);
         }
 
         PrintStream ps = System.out;
         ps.println("[ZipPy] transformed generator call to " + cached.getCallTarget() + " in " + getRootNode());
-    }
-
-    private boolean simpleGeneratorLoopTransformation(ForWithLocalTargetNode loop, FrameFactory factory) {
-        GetGeneratorArgumentsNode getGenArgs = new GetGeneratorArgumentsNode(callee, arguments, (PGeneratorFunction) cached, globalScopeUnchanged);
-        FrameSlotNode target = ((AdvanceIteratorNode) loop.getTarget()).getTarget();
-        AdvanceInlinedGeneratorNode next = AdvanceInlinedGeneratorNodeFactory.create(factory, cached.getFrameDescriptor(), generatorRoot.getInlinedRootNode(), EMPTYNODE);
-        ForOnInlinedGeneratorNode newFor = new ForOnInlinedGeneratorNode(loop.getBody(), target, getGenArgs, next);
-        loop.replace(newFor);
-        return true;
     }
 
 }

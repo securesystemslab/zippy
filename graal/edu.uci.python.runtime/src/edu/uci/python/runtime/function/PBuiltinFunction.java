@@ -35,16 +35,16 @@ import edu.uci.python.runtime.standardtype.*;
 public class PBuiltinFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
-    private final CallTarget callTarget;
+    private final RootCallTarget callTarget;
     private final Arity arity;
 
-    public PBuiltinFunction(String name, Arity arity, CallTarget callTarget) {
+    public PBuiltinFunction(String name, Arity arity, RootCallTarget callTarget) {
         this.name = name;
         this.arity = arity;
         this.callTarget = callTarget;
     }
 
-    public PBuiltinFunction(String name, CallTarget callTarget) {
+    public PBuiltinFunction(String name, RootCallTarget callTarget) {
         this.name = name;
         this.callTarget = callTarget;
         this.arity = null;
@@ -77,7 +77,7 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     }
 
     @Override
-    public CallTarget getCallTarget() {
+    public RootCallTarget getCallTarget() {
         return callTarget;
     }
 

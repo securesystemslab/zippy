@@ -61,4 +61,5 @@ public class ForTests {
 
         assertPrints("1 2 3 4\n5 6 7 8\n", source);
     }
+
 }

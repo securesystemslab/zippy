@@ -418,14 +418,19 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         return method;
     }
 
+    /**
+     * Gets the mask used to filter out HotSpot internal flags for fields when a {@link Field}
+     * object is created. This is the value of {@code JVM_RECOGNIZED_FIELD_MODIFIERS} in
+     * {@code jvm.h}, <b>not</b> {@link Modifier#fieldModifiers()}.
+     */
+    public static int getReflectionFieldModifiers() {
+        return runtime().getConfig().recognizedFieldModifiers;
+    }
+
     public synchronized ResolvedJavaField createField(String fieldName, JavaType type, long offset, int rawFlags, boolean internal) {
         ResolvedJavaField result = null;
 
-        /*
-         * Filter out flags used internally by HotSpot, to get a canonical id value. When a field is
-         * created from a java.lang.reflect.Field, these flags would not be available anyway.
-         */
-        int flags = rawFlags & fieldModifiers();
+        int flags = rawFlags & getReflectionFieldModifiers();
 
         long id = offset + ((long) flags << 32);
 
