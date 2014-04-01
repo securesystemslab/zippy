@@ -320,6 +320,9 @@ public class Properties implements Serializable, Iterable<Property> {
     }
 
     public void setProperty(String name, String value) {
+        setPropertyInternal(name.intern(), value != null ? value.intern() : null);
+    }
+    private void setPropertyInternal(String name, String value) {
 
         for (int i = 0; i < map.length; i += 2) {
             if (map[i] != null && map[i].equals(name)) {
@@ -353,7 +356,8 @@ public class Properties implements Serializable, Iterable<Property> {
 
     public void add(Properties properties) {
         for (Property p : properties) {
-            setProperty(p.getName(), p.getValue());
+            // Already interned
+            setPropertyInternal(p.getName(), p.getValue());
         }
     }
 

@@ -63,45 +63,13 @@
 
 // Only bother with this argument setup if dtrace is available
 
-#ifndef USDT2
-HS_DTRACE_PROBE_DECL8(hotspot, method__compile__begin,
-  char*, intptr_t, char*, intptr_t, char*, intptr_t, char*, intptr_t);
-HS_DTRACE_PROBE_DECL9(hotspot, method__compile__end,
-  char*, intptr_t, char*, intptr_t, char*, intptr_t, char*, intptr_t, bool);
-
-#define DTRACE_METHOD_COMPILE_BEGIN_PROBE(method, comp_name)             \
-  {                                                                      \
-    Symbol* klass_name = (method)->klass_name();                         \
-    Symbol* name = (method)->name();                                     \
-    Symbol* signature = (method)->signature();                           \
-    HS_DTRACE_PROBE8(hotspot, method__compile__begin,                    \
-      comp_name, strlen(comp_name),                                      \
-      klass_name->bytes(), klass_name->utf8_length(),                    \
-      name->bytes(), name->utf8_length(),                                \
-      signature->bytes(), signature->utf8_length());                     \
-  }
-
-#define DTRACE_METHOD_COMPILE_END_PROBE(method, comp_name, success)      \
-  {                                                                      \
-    Symbol* klass_name = (method)->klass_name();                         \
-    Symbol* name = (method)->name();                                     \
-    Symbol* signature = (method)->signature();                           \
-    HS_DTRACE_PROBE9(hotspot, method__compile__end,                      \
-      comp_name, strlen(comp_name),                                      \
-      klass_name->bytes(), klass_name->utf8_length(),                    \
-      name->bytes(), name->utf8_length(),                                \
-      signature->bytes(), signature->utf8_length(), (success));          \
-  }
-
-#else /* USDT2 */
-
 #define DTRACE_METHOD_COMPILE_BEGIN_PROBE(method, comp_name)             \
   {                                                                      \
     Symbol* klass_name = (method)->klass_name();                         \
     Symbol* name = (method)->name();                                     \
     Symbol* signature = (method)->signature();                           \
     HOTSPOT_METHOD_COMPILE_BEGIN(                                        \
-      comp_name, strlen(comp_name),                                      \
+      (char *) comp_name, strlen(comp_name),                             \
       (char *) klass_name->bytes(), klass_name->utf8_length(),           \
       (char *) name->bytes(), name->utf8_length(),                       \
       (char *) signature->bytes(), signature->utf8_length());            \
@@ -113,12 +81,11 @@ HS_DTRACE_PROBE_DECL9(hotspot, method__compile__end,
     Symbol* name = (method)->name();                                     \
     Symbol* signature = (method)->signature();                           \
     HOTSPOT_METHOD_COMPILE_END(                                          \
-      comp_name, strlen(comp_name),                                      \
+      (char *) comp_name, strlen(comp_name),                             \
       (char *) klass_name->bytes(), klass_name->utf8_length(),           \
       (char *) name->bytes(), name->utf8_length(),                       \
       (char *) signature->bytes(), signature->utf8_length(), (success)); \
   }
-#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -135,9 +102,9 @@ volatile jint CompileBroker::_should_compile_new_jobs = run_compilation;
 // The installed compiler(s)
 AbstractCompiler* CompileBroker::_compilers[2];
 
-// These counters are used for assigning id's to each compilation
-uint CompileBroker::_compilation_id        = 0;
-uint CompileBroker::_osr_compilation_id    = 0;
+// These counters are used to assign an unique ID to each compilation.
+volatile jint CompileBroker::_compilation_id     = 0;
+volatile jint CompileBroker::_osr_compilation_id = 0;
 
 // Debugging information
 int  CompileBroker::_last_compile_type     = no_compile;
@@ -795,23 +762,23 @@ void CompileBroker::compilation_init() {
 #ifdef GRAAL
   GraalCompiler* graal = new GraalCompiler();
 #endif
-#ifdef GRAALVM
-  _compilers[0] = graal;
-  c1_count = 0;
-  c2_count = 0;
-#else // GRAALVM
+
 #ifdef COMPILER1
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
   }
 #endif // COMPILER1
 
+#if defined(COMPILERGRAAL)
+  _compilers[1] = graal;
+  c2_count = 0;
+#endif // COMPILERGRAAL
+
 #ifdef COMPILER2
   if (c2_count > 0) {
     _compilers[1] = new C2Compiler();
   }
 #endif // COMPILER2
-#endif // GRAALVM
 #else // SHARK
   int c1_count = 0;
   int c2_count = 1;
@@ -966,7 +933,7 @@ CompilerThread* CompileBroker::make_compiler_thread(const char* name, CompileQue
 
     if (compiler_thread == NULL || compiler_thread->osthread() == NULL){
       vm_exit_during_initialization("java.lang.OutOfMemoryError",
-                                    "unable to create new native thread");
+                                    os::native_thread_creation_failed_msg());
     }
 
     java_lang_Thread::set_thread(thread_oop(), compiler_thread);
@@ -1009,9 +976,9 @@ CompilerThread* CompileBroker::make_compiler_thread(const char* name, CompileQue
 
 void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler_count) {
   EXCEPTION_MARK;
-#if !defined(ZERO) && !defined(SHARK) && !defined(GRAALVM)
+#if !defined(ZERO) && !defined(SHARK) && !defined(COMPILERGRAAL)
   assert(c2_compiler_count > 0 || c1_compiler_count > 0, "No compilers?");
-#endif // !ZERO && !SHARK && !GRAALVM
+#endif // !ZERO && !SHARK && !COMPILERGRAAL
   // Initialize the compilation queue
   if (c2_compiler_count > 0) {
     _c2_method_queue  = new CompileQueue("C2MethodQueue",  MethodCompileQueue_lock);
@@ -1092,7 +1059,7 @@ void CompileBroker::compile_method_base(methodHandle method,
     if (osr_bci != InvocationEntryBci) {
       tty->print(" osr_bci: %d", osr_bci);
     }
-    tty->print(" comment: %s count: %d", comment, hot_count);
+    tty->print(" level: %d comment: %s count: %d", comp_level, comment, hot_count);
     if (!hot_method.is_null()) {
       tty->print(" hot: ");
       if (hot_method() != method()) {
@@ -1142,15 +1109,24 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (InstanceRefKlass::owns_pending_list_lock(JavaThread::current())) {
     return;
   }
-#ifdef GRAALVM
-  if (!JavaThread::current()->is_graal_compiling()) {
-    bool blockingCompilation = is_compile_blocking(method, osr_bci) ||
-      CompilationPolicy::can_be_offloaded_to_gpu(method);
-    GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
-  } else {
-    // Recursive compile request => ignore.
+
+#if defined(COMPILERGRAAL)
+  // In tiered mode we want to only handle highest tier compiles and
+  // in non-tiered mode the default level should be
+  // CompLevel_full_optimization which equals CompLevel_highest_tier.
+  assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
+  assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
+  if (comp_level == CompLevel_full_optimization) {
+    if (!JavaThread::current()->is_graal_compiling()) {
+      bool blockingCompilation = is_compile_blocking(method, osr_bci);
+      GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
+    } else {
+      // Can't enqueue this request because there would be no one to service it, so simply return.
+    }
+    return;
   }
-#else
+  assert(TieredCompilation, "should only reach here in tiered mode");
+#endif // COMPILERGRAAL
 
   // Outputs from the following MutexLocker block:
   CompileTask* task     = NULL;
@@ -1178,7 +1154,7 @@ void CompileBroker::compile_method_base(methodHandle method,
     // We now know that this compilation is not pending, complete,
     // or prohibited.  Assign a compile_id to this compilation
     // and check to see if it is in our [Start..Stop) range.
-    uint compile_id = assign_compile_id(method, osr_bci);
+    int compile_id = assign_compile_id(method, osr_bci);
     if (compile_id == 0) {
       // The compilation falls outside the allowed range.
       return;
@@ -1235,7 +1211,6 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (blocking) {
     wait_for_completion(task);
   }
-#endif
 }
 
 
@@ -1326,18 +1301,12 @@ nmethod* CompileBroker::compile_method(methodHandle method, int osr_bci,
   // do the compilation
   if (method->is_native()) {
     if (!PreferInterpreterNativeStubs || method->is_method_handle_intrinsic()) {
-      // Acquire our lock.
-      int compile_id;
-      {
-        MutexLocker locker(MethodCompileQueue_lock, THREAD);
-        compile_id = assign_compile_id(method, standard_entry_bci);
-      }
       // To properly handle the appendix argument for out-of-line calls we are using a small trampoline that
       // pops off the appendix argument and jumps to the target (see gen_special_dispatch in SharedRuntime).
       //
       // Since normal compiled-to-compiled calls are not able to handle such a thing we MUST generate an adapter
       // in this case.  If we can't generate one and use it we can not execute the out-of-line method handle calls.
-      (void) AdapterHandlerLibrary::create_native_wrapper(method, compile_id);
+      AdapterHandlerLibrary::create_native_wrapper(method);
     } else {
       return NULL;
     }
@@ -1440,27 +1409,28 @@ bool CompileBroker::compilation_is_prohibited(methodHandle method, int osr_bci, 
   return false;
 }
 
-
-// ------------------------------------------------------------------
-// CompileBroker::assign_compile_id
-//
-// Assign a serialized id number to this compilation request.  If the
-// number falls out of the allowed range, return a 0.  OSR
-// compilations may be numbered separately from regular compilations
-// if certain debugging flags are used.
-uint CompileBroker::assign_compile_id(methodHandle method, int osr_bci) {
-  assert(MethodCompileQueue_lock->owner() == Thread::current(),
-         "must hold the compilation queue lock");
+/**
+ * Generate serialized IDs for compilation requests. If certain debugging flags are used
+ * and the ID is not within the specified range, the method is not compiled and 0 is returned.
+ * The function also allows to generate separate compilation IDs for OSR compilations.
+ */
+int CompileBroker::assign_compile_id(methodHandle method, int osr_bci) {
+#ifdef ASSERT
   bool is_osr = (osr_bci != standard_entry_bci);
-  uint id;
-  if (CICountOSR && is_osr) {
-    id = ++_osr_compilation_id;
-    if ((uint)CIStartOSR <= id && id < (uint)CIStopOSR) {
+  int id;
+  if (method->is_native()) {
+    assert(!is_osr, "can't be osr");
+    // Adapters, native wrappers and method handle intrinsics
+    // should be generated always.
+    return Atomic::add(1, &_compilation_id);
+  } else if (CICountOSR && is_osr) {
+    id = Atomic::add(1, &_osr_compilation_id);
+    if (CIStartOSR <= id && id < CIStopOSR) {
       return id;
     }
   } else {
-    id = ++_compilation_id;
-    if ((uint)CIStart <= id && id < (uint)CIStop) {
+    id = Atomic::add(1, &_compilation_id);
+    if (CIStart <= id && id < CIStop) {
       return id;
     }
   }
@@ -1468,6 +1438,21 @@ uint CompileBroker::assign_compile_id(methodHandle method, int osr_bci) {
   // Method was not in the appropriate compilation range.
   method->set_not_compilable_quietly();
   return 0;
+#else
+  // CICountOSR is a develop flag and set to 'false' by default. In a product built,
+  // only _compilation_id is incremented.
+  return Atomic::add(1, &_compilation_id);
+#endif
+}
+
+
+// ------------------------------------------------------------------
+// CompileBroker::assign_compile_id_unlocked
+//
+// Public wrapper for assign_compile_id that acquires the needed locks
+uint CompileBroker::assign_compile_id_unlocked(Thread* thread, methodHandle method, int osr_bci) {
+  MutexLocker locker(MethodCompileQueue_lock, thread);
+  return assign_compile_id(method, osr_bci);
 }
 
 
@@ -2355,11 +2340,11 @@ void CompileBroker::print_times(bool per_compiler, bool aggregate) {
       nmethods_code_size += stats->_nmethods_code_size;
 
       if (per_compiler) {
-      tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
-          comp->name(), stats->bytes_per_second(),
-          stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
-          stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
-          stats->_nmethods_size, stats->_nmethods_code_size);
+        tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
+                      comp->name(), stats->bytes_per_second(),
+                      stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
+                      stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
+                      stats->_nmethods_size, stats->_nmethods_code_size);
       }
     }
   }

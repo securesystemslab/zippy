@@ -185,7 +185,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                             boolean improvedStamp = tryInferStamp(valueNode);
                             Constant constant = valueNode.stamp().asConstant();
                             if (constant != null && !(node instanceof ConstantNode)) {
-                                performReplacement(valueNode, ConstantNode.forConstant(constant, context.getMetaAccess(), valueNode.graph()));
+                                performReplacement(valueNode, ConstantNode.forConstant(valueNode.stamp(), constant, context.getMetaAccess(), valueNode.graph()));
                             } else if (improvedStamp) {
                                 // the improved stamp may enable additional canonicalization
                                 tryCanonicalize(valueNode, nodeClass);
@@ -273,10 +273,10 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
 // @formatter:on
         private boolean performReplacement(final Node node, Node canonical) {
             if (canonical == node) {
-                Debug.log("Canonicalizer: work on %s", node);
+                Debug.log("Canonicalizer: work on %1s", node);
                 return false;
             } else {
-                Debug.log("Canonicalizer: replacing %s with %s", node, canonical);
+                Debug.log("Canonicalizer: replacing %1s with %1s", node, canonical);
                 METRIC_CANONICALIZED_NODES.increment();
                 StructuredGraph graph = (StructuredGraph) node.graph();
                 if (node instanceof FloatingNode) {
@@ -294,7 +294,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                     FixedNode fixed = (FixedNode) node;
                     if (canonical instanceof ControlSinkNode) {
                         // case 7
-                        fixed.predecessor().replaceFirstSuccessor(fixed, canonical);
+                        fixed.replaceAtPredecessor(canonical);
                         GraphUtil.killCFG(fixed);
                         return true;
                     } else {

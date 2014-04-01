@@ -80,7 +80,7 @@ import com.oracle.truffle.sl.runtime.*;
  * <li>Basic control flow statements: {@link SLBlockNode blocks}, {@link SLIfNode if},
  * {@link SLWhileNode while} with {@link SLBreakNode break} and {@link SLContinueNode continue},
  * {@link SLReturnNode return}.
- * <li>Function calls: {@link SLCallNode calls} are efficiently implemented with
+ * <li>Function calls: {@link SLInvokeNode invocations} are efficiently implemented with
  * {@link SLAbstractDispatchNode polymorphic inline caches}.
  * </ul>
  * 
@@ -183,8 +183,10 @@ public class SLMain {
     }
 
     /**
-     * Dumps the AST of all functions to the IGV visualizer, via a socket connection. IGV can be
-     * started with the mx command "mx igv". Optionally, also prints the ASTs to the console.
+     * When dumpASTToIGV is true: dumps the AST of all functions to the IGV visualizer, via a socket
+     * connection. IGV can be started with the mx command "mx igv".
+     * <p>
+     * When printASTToLog is true: prints the ASTs to the console.
      */
     private static void printScript(String groupName, SLContext context, PrintStream logOutput, boolean printASTToLog, boolean dumpASTToIGV) {
         if (dumpASTToIGV) {

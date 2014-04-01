@@ -26,7 +26,6 @@ package edu.uci.python.nodes.access;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeInfo.Kind;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
@@ -75,7 +74,6 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         return new ReadLocalVariableObjectNode((ReadLocalVariableNode) prev);
     }
 
-    @NodeInfo(kind = Kind.UNINITIALIZED)
     private static final class ReadLocalVariableUninitializedNode extends ReadLocalVariableNode {
 
         ReadLocalVariableUninitializedNode(FrameSlot slot) {
@@ -88,7 +86,6 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadLocalVariableBooleanNode extends ReadLocalVariableNode {
 
         ReadLocalVariableBooleanNode(ReadLocalVariableNode copy) {
@@ -106,7 +103,6 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadLocalVariableIntNode extends ReadLocalVariableNode {
 
         ReadLocalVariableIntNode(ReadLocalVariableNode copy) {
@@ -128,7 +124,6 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadLocalVariableDoubleNode extends ReadLocalVariableNode {
 
         ReadLocalVariableDoubleNode(ReadLocalVariableNode copy) {
@@ -146,7 +141,6 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadLocalVariableObjectNode extends ReadLocalVariableNode {
 
         ReadLocalVariableObjectNode(ReadLocalVariableNode copy) {

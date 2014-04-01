@@ -39,7 +39,7 @@ public class PrintNode extends StatementNode {
     private final PythonContext context;
 
     public PrintNode(PNode[] values, boolean nl, PythonContext context) {
-        this.values = adoptChildren(values);
+        this.values = values;
         this.nl = nl;
         this.context = context;
     }

@@ -102,7 +102,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
         this.config = GraphBuilderConfiguration.getDefault();
         this.config.setSkippedExceptionTypes(skippedExceptionTypes);
-        this.partialEvaluator = new PartialEvaluator(runtime, providers, truffleCache, config);
+        this.partialEvaluator = new PartialEvaluator(providers, truffleCache, config);
 
         if (Debug.isEnabled()) {
             DebugEnvironment.initialize(System.out);
@@ -136,13 +136,13 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
     private InstalledCode compileMethodImpl(final OptimizedCallTarget compilable) {
         final StructuredGraph graph;
-        GraphCache graphCache = runtime.getGraphCache();
-        if (graphCache != null) {
-            graphCache.removeStaleGraphs();
+
+        if (TraceTruffleCompilation.getValue()) {
+            OptimizedCallTarget.logOptimizingStart(compilable);
         }
 
         if (TraceTruffleInliningTree.getValue()) {
-            printInlineTree(compilable.getRootNode());
+            NodeUtil.printInliningTree(OUT, compilable.getRootNode());
         }
 
         long timeCompilationStarted = System.nanoTime();
@@ -167,49 +167,24 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         }
 
         if (TraceTruffleCompilation.getValue()) {
-            int nodeCountTruffle = NodeUtil.countNodes(compilable.getRootNode(), null, true);
             byte[] code = compiledMethod.getCode();
-            OUT.printf("[truffle] optimized %-50s %x |Nodes %7d |Time %5.0f(%4.0f+%-4.0f)ms |Nodes %5d/%5d |CodeSize %d\n", compilable.getRootNode(), compilable.hashCode(), nodeCountTruffle,
-                            (timeCompilationFinished - timeCompilationStarted) / 1e6, (timePartialEvaluationFinished - timeCompilationStarted) / 1e6,
-                            (timeCompilationFinished - timePartialEvaluationFinished) / 1e6, nodeCountPartialEval, nodeCountLowered, code != null ? code.length : 0);
+            Map<String, Object> properties = new LinkedHashMap<>();
+            OptimizedCallTarget.addASTSizeProperty(compilable.getRootNode(), properties);
+            properties.put("Time", String.format("%5.0f(%4.0f+%-4.0f)ms", //
+                            (timeCompilationFinished - timeCompilationStarted) / 1e6, //
+                            (timePartialEvaluationFinished - timeCompilationStarted) / 1e6, //
+                            (timeCompilationFinished - timePartialEvaluationFinished) / 1e6));
+            properties.put("Nodes", String.format("%5d/%5d", nodeCountPartialEval, nodeCountLowered));
+            properties.put("CodeSize", code != null ? code.length : 0);
+            properties.put("Source", formatSourceSection(compilable.getRootNode().getSourceSection()));
+
+            OptimizedCallTarget.logOptimizingDone(compilable, properties);
         }
         return compiledMethod;
     }
 
-    private void printInlineTree(RootNode rootNode) {
-        OUT.println();
-        OUT.println("Inlining tree for: " + rootNode);
-        rootNode.accept(new InlineTreeVisitor());
-    }
-
-    private class InlineTreeVisitor implements NodeVisitor {
-
-        public boolean visit(Node node) {
-            if (node instanceof CallNode) {
-                CallNode callNode = (CallNode) node;
-                if (callNode.isInlined()) {
-                    int indent = this.indent(node);
-                    for (int i = 0; i < indent; ++i) {
-                        OUT.print("   ");
-                    }
-                    OUT.println(callNode.getCallTarget());
-                    callNode.getInlinedRoot().accept(this);
-                }
-            }
-            return true;
-        }
-
-        private int indent(Node n) {
-            if (n instanceof RootNode) {
-                CallNode inlinedParent = ((RootNode) n).getParentInlinedCall();
-                if (inlinedParent != null) {
-                    return indent(inlinedParent) + 1;
-                }
-                return 0;
-            } else {
-                return indent(n.getParent());
-            }
-        }
+    private static String formatSourceSection(SourceSection sourceSection) {
+        return sourceSection != null ? sourceSection.toString() : "n/a";
     }
 
     public InstalledCode compileMethodHelper(StructuredGraph graph, Assumptions assumptions, String name, SpeculationLog speculationLog) {
@@ -224,8 +199,8 @@ public class TruffleCompilerImpl implements TruffleCompiler {
             CodeCacheProvider codeCache = providers.getCodeCache();
             CallingConvention cc = getCallingConvention(codeCache, Type.JavaCallee, graph.method(), false);
             CompilationResult compilationResult = new CompilationResult(name);
-            result = compileGraph(graph, cc, graph.method(), providers, backend, codeCache.getTarget(), null, createGraphBuilderSuite(), Optimizations, getProfilingInfo(graph), speculationLog,
-                            suites, false, compilationResult, CompilationResultBuilderFactory.Default);
+            result = compileGraph(graph, null, cc, graph.method(), providers, backend, codeCache.getTarget(), null, createGraphBuilderSuite(), Optimizations, getProfilingInfo(graph), speculationLog,
+                            suites, compilationResult, CompilationResultBuilderFactory.Default);
         } catch (Throwable e) {
             throw Debug.handle(e);
         }

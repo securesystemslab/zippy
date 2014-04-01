@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,8 +28,6 @@ import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.lang.annotation.*;
 import java.lang.reflect.*;
-import java.util.*;
-import java.util.concurrent.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -38,6 +36,7 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.debug.*;
+import com.oracle.graal.nodes.*;
 
 /**
  * Implementation of {@link JavaMethod} for resolved HotSpot methods.
@@ -54,17 +53,8 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     private final HotSpotResolvedObjectType holder;
     private final HotSpotConstantPool constantPool;
     private final HotSpotSignature signature;
-    private final int codeSize;
-    private/* final */int exceptionHandlerCount;
-    private boolean callerSensitive;
-    private boolean forceInline;
-    private boolean dontInline;
-    private boolean ignoredBySecurityStackWalk;
-    private Boolean hasBalancedMonitors;
-    private Map<Object, Object> compilerStorage;
     private HotSpotMethodData methodData;
     private byte[] code;
-    private CompilationTask currentTask;
     private SpeculationLog speculationLog;
 
     /**
@@ -115,9 +105,6 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
         final int signatureIndex = unsafe.getChar(constMethod + config.constMethodSignatureIndexOffset);
         this.signature = (HotSpotSignature) constantPool.lookupSignature(signatureIndex);
-        this.codeSize = unsafe.getChar(constMethod + config.constMethodCodeSizeOffset);
-
-        runtime().getCompilerToVM().initializeMethod(metaspaceMethod, this);
     }
 
     /**
@@ -131,17 +118,40 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         return unsafe.getAddress(metaspaceMethod + runtime().getConfig().methodConstMethodOffset);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof HotSpotResolvedJavaMethod) {
+            HotSpotResolvedJavaMethod that = (HotSpotResolvedJavaMethod) obj;
+            return that.metaspaceMethod == metaspaceMethod;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) metaspaceMethod;
+    }
+
+    /**
+     * Returns this method's flags ({@code Method::_flags}).
+     * 
+     * @return flags of this method
+     */
+    private int getFlags() {
+        return unsafe.getByte(metaspaceMethod + runtime().getConfig().methodFlagsOffset);
+    }
+
     /**
      * Returns this method's constant method flags ({@code ConstMethod::_flags}).
      * 
      * @return flags of this method's ConstMethod
      */
-    private long getConstMethodFlags() {
+    private int getConstMethodFlags() {
         return unsafe.getChar(getConstMethod() + runtime().getConfig().constMethodFlagsOffset);
     }
 
     @Override
-    public ResolvedJavaType getDeclaringClass() {
+    public HotSpotResolvedObjectType getDeclaringClass() {
         return holder;
     }
 
@@ -162,8 +172,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
      * modifiers as well as the HotSpot internal modifiers.
      */
     public int getAllModifiers() {
-        HotSpotVMConfig config = runtime().getConfig();
-        return unsafe.getInt(metaspaceMethod + config.methodAccessFlagsOffset);
+        return unsafe.getInt(metaspaceMethod + runtime().getConfig().methodAccessFlagsOffset);
     }
 
     @Override
@@ -179,32 +188,34 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public byte[] getCode() {
-        if (codeSize == 0) {
+        if (getCodeSize() == 0) {
             return null;
         }
         if (code == null && holder.isLinked()) {
-            code = runtime().getCompilerToVM().initializeBytecode(metaspaceMethod, new byte[codeSize]);
-            assert code.length == codeSize : "expected: " + codeSize + ", actual: " + code.length;
+            code = runtime().getCompilerToVM().initializeBytecode(metaspaceMethod, new byte[getCodeSize()]);
+            assert code.length == getCodeSize() : "expected: " + getCodeSize() + ", actual: " + code.length;
         }
         return code;
     }
 
     @Override
     public int getCodeSize() {
-        return codeSize;
+        return unsafe.getChar(getConstMethod() + runtime().getConfig().constMethodCodeSizeOffset);
     }
 
     @Override
     public ExceptionHandler[] getExceptionHandlers() {
-        if (exceptionHandlerCount == 0) {
+        final boolean hasExceptionTable = (getConstMethodFlags() & runtime().getConfig().constMethodHasExceptionTable) != 0;
+        if (!hasExceptionTable) {
             return new ExceptionHandler[0];
         }
 
-        ExceptionHandler[] handlers = new ExceptionHandler[exceptionHandlerCount];
         HotSpotVMConfig config = runtime().getConfig();
+        final int exceptionTableLength = runtime().getCompilerToVM().exceptionTableLength(metaspaceMethod);
+        ExceptionHandler[] handlers = new ExceptionHandler[exceptionTableLength];
         long exceptionTableElement = runtime().getCompilerToVM().exceptionTableStart(metaspaceMethod);
 
-        for (int i = 0; i < exceptionHandlerCount; i++) {
+        for (int i = 0; i < exceptionTableLength; i++) {
             final int startPc = unsafe.getChar(exceptionTableElement + config.exceptionTableElementStartPcOffset);
             final int endPc = unsafe.getChar(exceptionTableElement + config.exceptionTableElementEndPcOffset);
             final int handlerPc = unsafe.getChar(exceptionTableElement + config.exceptionTableElementHandlerPcOffset);
@@ -236,37 +247,36 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     }
 
     /**
-     * Returns true if this method has a CallerSensitive annotation.
+     * Returns true if this method has a {@code CallerSensitive} annotation.
      * 
      * @return true if CallerSensitive annotation present, false otherwise
      */
     public boolean isCallerSensitive() {
-        return callerSensitive;
+        return (getFlags() & runtime().getConfig().methodFlagsCallerSensitive) != 0;
     }
 
     /**
-     * Returns true if this method has a ForceInline annotation.
+     * Returns true if this method has a {@code ForceInline} annotation.
      * 
      * @return true if ForceInline annotation present, false otherwise
      */
     public boolean isForceInline() {
-        return forceInline;
+        return (getFlags() & runtime().getConfig().methodFlagsForceInline) != 0;
     }
 
     /**
-     * Returns true if this method has a DontInline annotation.
+     * Returns true if this method has a {@code DontInline} annotation.
      * 
      * @return true if DontInline annotation present, false otherwise
      */
     public boolean isDontInline() {
-        return dontInline;
+        return (getFlags() & runtime().getConfig().methodFlagsDontInline) != 0;
     }
 
     /**
      * Manually adds a DontInline annotation to this method.
      */
-    public void setDontInline() {
-        dontInline = true;
+    public void setNotInlineable() {
         runtime().getCompilerToVM().doNotInlineOrCompile(metaspaceMethod);
     }
 
@@ -277,14 +287,25 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
      * @return true if special method ignored by security stack walks, false otherwise
      */
     public boolean ignoredBySecurityStackWalk() {
-        return ignoredBySecurityStackWalk;
+        return runtime().getCompilerToVM().methodIsIgnoredBySecurityStackWalk(metaspaceMethod);
     }
 
     public boolean hasBalancedMonitors() {
-        if (hasBalancedMonitors == null) {
-            hasBalancedMonitors = runtime().getCompilerToVM().hasBalancedMonitors(metaspaceMethod);
+        HotSpotVMConfig config = runtime().getConfig();
+        final int modifiers = getAllModifiers();
+
+        // Method has no monitorenter/exit bytecodes.
+        if ((modifiers & config.jvmAccHasMonitorBytecodes) == 0) {
+            return false;
         }
-        return hasBalancedMonitors;
+
+        // Check to see if a previous compilation computed the monitor-matching analysis.
+        if ((modifiers & config.jvmAccMonitorMatch) != 0) {
+            return true;
+        }
+
+        // This either happens only once if monitors are balanced or very rarely multiple-times.
+        return runtime().getCompilerToVM().hasBalancedMonitors(metaspaceMethod);
     }
 
     @Override
@@ -319,7 +340,7 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public StackTraceElement asStackTraceElement(int bci) {
-        if (bci < 0 || bci >= codeSize) {
+        if (bci < 0 || bci >= getCodeSize()) {
             // HotSpot code can only construct stack trace elements for valid bcis
             StackTraceElement ste = runtime().getCompilerToVM().getStackTraceElement(metaspaceMethod, 0);
             return new StackTraceElement(ste.getClassName(), ste.getMethodName(), ste.getFileName(), -1);
@@ -351,12 +372,35 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         return signature;
     }
 
-    public int getCompiledCodeSize() {
-        return runtime().getCompilerToVM().getCompiledCodeSize(metaspaceMethod);
+    /**
+     * Gets the value of {@code Method::_code}.
+     * 
+     * @return the value of {@code Method::_code}
+     */
+    private long getCompiledCode() {
+        HotSpotVMConfig config = runtime().getConfig();
+        return unsafe.getAddress(metaspaceMethod + config.methodCodeOffset);
     }
 
+    /**
+     * Returns whether this method has compiled code.
+     * 
+     * @return true if this method has compiled code, false otherwise
+     */
     public boolean hasCompiledCode() {
-        return getCompiledCodeSize() > 0;
+        return getCompiledCode() != 0L;
+    }
+
+    /**
+     * @param level
+     * @return true if the currently installed code was generated at {@code level}.
+     */
+    public boolean hasCompiledCodeAtLevel(int level) {
+        long compiledCode = getCompiledCode();
+        if (compiledCode != 0) {
+            return unsafe.getInt(compiledCode + runtime().getConfig().nmethodCompLevelOffset) == level;
+        }
+        return false;
     }
 
     private static final String TraceMethodDataFilter = System.getProperty("graal.traceMethodDataFilter");
@@ -397,14 +441,6 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     @Override
     public void reprofile() {
         runtime().getCompilerToVM().reprofile(metaspaceMethod);
-    }
-
-    @Override
-    public Map<Object, Object> getCompilerStorage() {
-        if (compilerStorage == null) {
-            compilerStorage = new ConcurrentHashMap<>();
-        }
-        return compilerStorage;
     }
 
     @Override
@@ -485,18 +521,28 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     @Override
     public boolean canBeInlined() {
-        if (dontInline) {
+        if (isDontInline()) {
             return false;
         }
-        return runtime().getCompilerToVM().isMethodCompilable(metaspaceMethod);
+        return runtime().getCompilerToVM().canInlineMethod(metaspaceMethod);
+    }
+
+    @Override
+    public boolean shouldBeInlined() {
+        if (isForceInline()) {
+            return true;
+        }
+        return runtime().getCompilerToVM().shouldInlineMethod(metaspaceMethod);
     }
 
     @Override
     public LineNumberTable getLineNumberTable() {
-        long[] values = runtime().getCompilerToVM().getLineNumberTable(this);
-        if (values == null) {
+        final boolean hasLineNumberTable = (getConstMethodFlags() & runtime().getConfig().constMethodHasLineNumberTable) != 0;
+        if (!hasLineNumberTable) {
             return null;
         }
+
+        long[] values = runtime().getCompilerToVM().getLineNumberTable(metaspaceMethod);
         assert values.length % 2 == 0;
         int[] bci = new int[values.length / 2];
         int[] line = new int[values.length / 2];
@@ -509,24 +555,16 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         return new LineNumberTableImpl(line, bci);
     }
 
-    /**
-     * Returns whether or not this method has a local variable table.
-     * 
-     * @return true if this method has a local variable table
-     */
-    private boolean hasLocalVariableTable() {
-        return (getConstMethodFlags() & runtime().getConfig().constMethodHasLocalVariableTable) != 0;
-    }
-
     @Override
     public LocalVariableTable getLocalVariableTable() {
-        if (!hasLocalVariableTable()) {
+        final boolean hasLocalVariableTable = (getConstMethodFlags() & runtime().getConfig().constMethodHasLocalVariableTable) != 0;
+        if (!hasLocalVariableTable) {
             return null;
         }
 
         HotSpotVMConfig config = runtime().getConfig();
-        long localVariableTableElement = runtime().getCompilerToVM().getLocalVariableTableStart(this);
-        final int localVariableTableLength = runtime().getCompilerToVM().getLocalVariableTableLength(this);
+        long localVariableTableElement = runtime().getCompilerToVM().getLocalVariableTableStart(metaspaceMethod);
+        final int localVariableTableLength = runtime().getCompilerToVM().getLocalVariableTableLength(metaspaceMethod);
         Local[] locals = new Local[localVariableTableLength];
 
         for (int i = 0; i < localVariableTableLength; i++) {
@@ -576,14 +614,6 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     private int getVtableIndex() {
         HotSpotVMConfig config = runtime().getConfig();
         return unsafe.getInt(metaspaceMethod + config.methodVtableIndexOffset);
-    }
-
-    public void setCurrentTask(CompilationTask task) {
-        currentTask = task;
-    }
-
-    public CompilationTask currentTask() {
-        return currentTask;
     }
 
     public SpeculationLog getSpeculationLog() {
@@ -640,6 +670,16 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         }
     }
 
+    /**
+     * Allocates a compile id for this method by asking the VM for one.
+     * 
+     * @param entryBCI entry bci
+     * @return compile id
+     */
+    public int allocateCompileId(int entryBCI) {
+        return runtime().getCompilerToVM().allocateCompileId(metaspaceMethod, entryBCI);
+    }
+
     public boolean tryToQueueForCompilation() {
         // other threads may update certain bits of the access flags field concurrently. So, the
         // loop ensures that this method only returns false when another thread has set the
@@ -677,5 +717,12 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
 
     private long getAccessFlagsAddress() {
         return metaspaceMethod + runtime().getConfig().methodAccessFlagsOffset;
+    }
+
+    public boolean hasCodeAtLevel(int entryBCI, int level) {
+        if (entryBCI == StructuredGraph.INVOCATION_ENTRY_BCI) {
+            return hasCompiledCodeAtLevel(level);
+        }
+        return runtime().getCompilerToVM().hasCompiledCodeForOSR(metaspaceMethod, entryBCI, level);
     }
 }

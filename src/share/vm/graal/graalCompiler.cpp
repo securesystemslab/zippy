@@ -53,8 +53,6 @@ void GraalCompiler::initialize() {
   AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
-  _deopted_leaf_graph_count = 0;
-
   BufferBlob* buffer_blob = initialize_buffer_blob();
   if (buffer_blob == NULL) {
     // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
@@ -99,7 +97,7 @@ void GraalCompiler::initialize() {
     VMToCompiler::finalizeOptions(CITime || CITimeEach);
 
     if (UseCompiler) {
-      bool bootstrap = GRAALVM_ONLY(BootstrapGraal) NOT_GRAALVM(false);
+      bool bootstrap = COMPILERGRAAL_PRESENT(BootstrapGraal) NOT_COMPILERGRAAL(false);
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
@@ -126,47 +124,6 @@ void GraalCompiler::initialize() {
 #endif
     }
   }
-}
-
-void GraalCompiler::deopt_leaf_graph(jlong leaf_graph_id) {
-  assert(leaf_graph_id != -1, "unexpected leaf graph id");
-
-  if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
-    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
-    if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
-      _deopted_leaf_graphs[_deopted_leaf_graph_count++] = leaf_graph_id;
-    }
-  }
-}
-
-oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
-  if (_deopted_leaf_graph_count == 0) {
-    return NULL;
-  }
-  jlong* elements;
-  int length;
-  {
-    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
-    if (_deopted_leaf_graph_count == 0) {
-      return NULL;
-    }
-    if (_deopted_leaf_graph_count == LEAF_GRAPH_ARRAY_SIZE) {
-      length = 0;
-    } else {
-      length = _deopted_leaf_graph_count;
-    }
-    elements = NEW_C_HEAP_ARRAY(jlong, length, mtCompiler);
-    for (int i = 0; i < length; i++) {
-      elements[i] = _deopted_leaf_graphs[i];
-    }
-    _deopted_leaf_graph_count = 0;
-  }
-  typeArrayOop array = oopFactory::new_longArray(length, CHECK_NULL);
-  for (int i = 0; i < length; i++) {
-    array->long_at_put(i, elements[i]);
-  }
-  FREE_C_HEAP_ARRAY(jlong, elements, mtCompiler);
-  return array;
 }
 
 BufferBlob* GraalCompiler::initialize_buffer_blob() {
@@ -209,59 +166,6 @@ void GraalCompiler::exit() {
 // Print compilation timers and statistics
 void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
-}
-
-Handle GraalCompiler::get_JavaTypeFromSignature(Symbol* signature, KlassHandle loading_klass, TRAPS) {
-  BasicType field_type = FieldType::basic_type(signature);
-  // If the field is a pointer type, get the klass of the
-  // field.
-  if (field_type == T_OBJECT || field_type == T_ARRAY) {
-    KlassHandle klass = GraalEnv::get_klass_by_name(loading_klass, signature, false);
-    if (klass.is_null()) {
-      Handle signature_string = java_lang_String::create_from_symbol(signature, CHECK_NH);
-      return VMToCompiler::createUnresolvedJavaType(signature_string, CHECK_NH);
-    } else {
-      return VMToCompiler::createResolvedJavaType(klass->java_mirror(), CHECK_NH);
-    }
-  } else {
-    return VMToCompiler::createPrimitiveJavaType(field_type, CHECK_NH);
-  }
-}
-
-Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
-  bool is_accessible = false;
-
-  KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
-  oop catch_class = NULL;
-  if (klass.is_null()) {
-    Symbol* klass_name = NULL;
-    {
-      // We have to lock the cpool to keep the oop from being resolved
-      // while we are accessing it. But we must release the lock before
-      // calling up into Java.
-      MonitorLockerEx ml(cp->lock());
-      constantTag tag = cp->tag_at(index);
-      if (tag.is_klass()) {
-        // The klass has been inserted into the constant pool
-        // very recently.
-        return VMToCompiler::createResolvedJavaType(cp->resolved_klass_at(index)->java_mirror(), CHECK_NH);
-      } else if (tag.is_symbol()) {
-        klass_name = cp->symbol_at(index);
-      } else {
-        assert(cp->tag_at(index).is_unresolved_klass(), "wrong tag");
-        klass_name = cp->unresolved_klass_at(index);
-      }
-    }
-    Handle klass_name_string = java_lang_String::create_from_symbol(klass_name, CHECK_NH);
-    return VMToCompiler::createUnresolvedJavaType(klass_name_string, CHECK_NH);
-  } else {
-    return VMToCompiler::createResolvedJavaType(klass->java_mirror(), CHECK_NH);
-  }
-}
-
-Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
-  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NH);
-  return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {

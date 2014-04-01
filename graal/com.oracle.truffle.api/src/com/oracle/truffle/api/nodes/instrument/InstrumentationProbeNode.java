@@ -62,7 +62,7 @@ public abstract class InstrumentationProbeNode extends Node implements Instrumen
      */
     protected void internalAppendProbe(InstrumentationProbeNode newProbeNode) {
         if (next == null) {
-            this.next = adoptChild(newProbeNode);
+            this.next = newProbeNode;
         } else {
             next.internalAppendProbe(newProbeNode);
         }
@@ -75,7 +75,7 @@ public abstract class InstrumentationProbeNode extends Node implements Instrumen
             if (oldProbeNode.next == null) {
                 this.next = null;
             } else {
-                this.next = adoptChild(oldProbeNode.next);
+                this.next = oldProbeNode.next;
                 oldProbeNode.next = null;
             }
         } else {
@@ -211,27 +211,35 @@ public abstract class InstrumentationProbeNode extends Node implements Instrumen
         }
 
         public void leave(Node astNode, VirtualFrame frame, boolean result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, byte result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, short result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, int result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, long result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, char result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, float result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, double result) {
+            leave(astNode, frame, (Object) result);
         }
 
         public void leave(Node astNode, VirtualFrame frame, Object result) {
@@ -371,7 +379,7 @@ public abstract class InstrumentationProbeNode extends Node implements Instrumen
                     CompilerDirectives.transferToInterpreter();
                 }
                 if (stepping) {
-                    getContext().getDebugManager().haltedAt(astNode, frame.materialize());
+                    getContext().getDebugContext().getDebugManager().haltedAt(astNode, frame);
                 }
                 if (next != null) {
                     next.internalEnter(astNode, frame);

@@ -319,7 +319,7 @@ static DoNothingClosure do_nothing;
 static void add_derived_oop(oop* base, oop* derived) {
 #ifndef TIERED
   COMPILER1_PRESENT(ShouldNotReachHere();)
-  GRAALVM_ONLY(ShouldNotReachHere();)
+  COMPILERGRAAL_PRESENT(ShouldNotReachHere();)
 #endif // TIERED
 #ifdef COMPILER2
   DerivedPointerTable::add(derived, base);
@@ -381,7 +381,7 @@ void OopMapSet::all_do(const frame *fr, const RegisterMap *reg_map,
     if (!oms.is_done()) {
 #ifndef TIERED
       COMPILER1_PRESENT(ShouldNotReachHere();)
-      GRAALVM_ONLY(ShouldNotReachHere();)
+      COMPILERGRAAL_PRESENT(ShouldNotReachHere();)
 #endif // !TIERED
       // Protect the operation on the derived pointers.  This
       // protects the addition of derived pointers to the shared
@@ -523,7 +523,7 @@ void OopMapSet::update_register_map(const frame *fr, RegisterMap *reg_map) {
 bool OopMap::has_derived_pointer() const {
 #ifndef TIERED
   COMPILER1_PRESENT(return false);
-  GRAALVM_ONLY(return false);
+  COMPILERGRAAL_PRESENT(return false);
 #endif // !TIERED
 #ifdef COMPILER2
   OopMapStream oms((OopMap*)this,OopMapValue::derived_oop_value);

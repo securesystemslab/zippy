@@ -31,6 +31,7 @@ import java.util.*;
 import org.junit.*;
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -63,6 +64,7 @@ public class AttributeCachingTests {
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
         RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
+        Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
         VirtualFrame frame = PythonTests.createVirtualFrame();
@@ -141,6 +143,7 @@ public class AttributeCachingTests {
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
         RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
+        Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
         VirtualFrame frame = PythonTests.createVirtualFrame();

@@ -37,7 +37,7 @@ public abstract class AdvanceIteratorNode extends PNode {
     @Child protected FrameSlotNode target;
 
     public AdvanceIteratorNode(FrameSlotNode target) {
-        this.target = adoptChild(target);
+        this.target = target;
     }
 
     protected AdvanceIteratorNode(AdvanceIteratorNode prev) {

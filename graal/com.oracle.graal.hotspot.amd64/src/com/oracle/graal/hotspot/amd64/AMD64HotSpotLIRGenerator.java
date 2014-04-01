@@ -71,10 +71,14 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
     private final HotSpotVMConfig config;
 
-    protected AMD64HotSpotLIRGenerator(StructuredGraph graph, HotSpotProviders providers, HotSpotVMConfig config, FrameMap frameMap, CallingConvention cc, LIR lir) {
+    private final Object stub;
+
+    protected AMD64HotSpotLIRGenerator(StructuredGraph graph, Object stub, HotSpotProviders providers, HotSpotVMConfig config, FrameMap frameMap, CallingConvention cc, LIR lir) {
         super(graph, providers, frameMap, cc, lir);
         assert config.basicLockSize == 8;
         this.config = config;
+        this.stub = stub;
+        memoryPeephole = new AMD64HotSpotMemoryPeephole(this);
     }
 
     @Override
@@ -154,11 +158,10 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     }
 
     @Override
-    protected void emitPrologue() {
+    protected void emitPrologue(StructuredGraph graph) {
 
         CallingConvention incomingArguments = cc;
 
-        RegisterValue rbpParam = rbp.asValue(Kind.Long);
         Value[] params = new Value[incomingArguments.getArgumentCount() + 1];
         for (int i = 0; i < params.length - 1; i++) {
             params[i] = toStackKind(incomingArguments.getArgument(i));
@@ -169,7 +172,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
                 }
             }
         }
-        params[params.length - 1] = rbpParam;
+        params[params.length - 1] = rbp.asValue(Kind.Long);
 
         emitIncomingValues(params);
 
@@ -178,7 +181,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
         for (ParameterNode param : graph.getNodes(ParameterNode.class)) {
             Value paramValue = params[param.index()];
-            assert paramValue.getKind() == param.kind().getStackKind();
+            assert paramValue.getKind() == param.getKind().getStackKind();
             setResult(param, emitMove(paramValue));
         }
     }
@@ -206,7 +209,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     @Override
     protected boolean needOnlyOopMaps() {
         // Stubs only need oop maps
-        return graph.start() instanceof StubStartNode;
+        return stub != null;
     }
 
     /**
@@ -234,22 +237,18 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     }
 
     Stub getStub() {
-        if (graph.start() instanceof StubStartNode) {
-            return ((StubStartNode) graph.start()).getStub();
-        }
-        return null;
+        return (Stub) stub;
     }
 
     @Override
     public Variable emitForeignCall(ForeignCallLinkage linkage, DeoptimizingNode info, Value... args) {
-        Stub stub = getStub();
         boolean destroysRegisters = linkage.destroysRegisters();
 
         AMD64SaveRegistersOp save = null;
         StackSlot[] savedRegisterLocations = null;
         if (destroysRegisters) {
-            if (stub != null) {
-                if (stub.preservesRegisters()) {
+            if (getStub() != null) {
+                if (getStub().preservesRegisters()) {
                     Register[] savedRegisters = frameMap.registerConfig.getAllocatableRegisters();
                     savedRegisterLocations = new StackSlot[savedRegisters.length];
                     for (int i = 0; i < savedRegisters.length; i++) {
@@ -276,8 +275,8 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         }
 
         if (destroysRegisters) {
-            if (stub != null) {
-                if (stub.preservesRegisters()) {
+            if (getStub() != null) {
+                if (getStub().preservesRegisters()) {
                     assert !calleeSaveInfo.containsKey(currentRuntimeCallInfo);
                     calleeSaveInfo.put(currentRuntimeCallInfo, save);
 
@@ -318,8 +317,8 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     @SuppressWarnings("hiding")
     @Override
     public void visitDirectCompareAndSwap(DirectCompareAndSwapNode x) {
-        Kind kind = x.newValue().kind();
-        assert kind == x.expectedValue().kind();
+        Kind kind = x.newValue().getKind();
+        assert kind == x.expectedValue().getKind();
 
         Value expected = loadNonConst(operand(x.expectedValue()));
         Variable newVal = load(operand(x.newValue()));
@@ -339,7 +338,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         emitMove(rax, expected);
         append(new CompareAndSwapOp(rax, address, rax, newVal));
 
-        Variable result = newVariable(x.kind());
+        Variable result = newVariable(x.getKind());
         emitMove(result, rax);
         setResult(x, result);
     }
@@ -475,8 +474,6 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     protected static Constant compress(Constant c, CompressEncoding encoding) {
         if (c.getKind() == Kind.Long) {
             return Constant.forIntegerKind(Kind.Int, (int) (((c.asLong() - encoding.base) >> encoding.shift) & 0xffffffffL), c.getPrimitiveAnnotation());
-        } else if (c.getKind() == Kind.Object) {
-            return Constant.forNarrowOop(c.asObject());
         } else {
             throw GraalInternalError.shouldNotReachHere();
         }
@@ -485,7 +482,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
     @Override
     public Variable emitLoad(Kind kind, Value address, Access access) {
         AMD64AddressValue loadAddress = asAddressValue(address);
-        Variable result = newVariable(kind);
+        Variable result = newVariable(kind.getStackKind());
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);
@@ -525,8 +522,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
             if (canStoreConstant(c, isCompressed)) {
                 if (isCompressed) {
                     if (c.getKind() == Kind.Object) {
-                        Constant value = c.isNull() ? c : compress(c, config.getOopEncoding());
-                        append(new StoreCompressedConstantOp(kind, storeAddress, value, state));
+                        append(new StoreCompressedConstantOp(kind, storeAddress, c, state));
                     } else if (c.getKind() == Kind.Long) {
                         // It's always a good idea to directly store compressed constants since they
                         // have to be materialized as 64 bits encoded otherwise.
@@ -567,8 +563,8 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
 
     @Override
     public void visitCompareAndSwap(LoweredCompareAndSwapNode node, Value address) {
-        Kind kind = node.getNewValue().kind();
-        assert kind == node.getExpectedValue().kind();
+        Kind kind = node.getNewValue().getKind();
+        assert kind == node.getExpectedValue().getKind();
         Value expected = loadNonConst(operand(node.getExpectedValue()));
         Variable newValue = load(operand(node.getNewValue()));
         AMD64AddressValue addressValue = asAddressValue(address);
@@ -581,7 +577,7 @@ public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSp
         } else {
             append(new CompareAndSwapOp(raxRes, addressValue, raxRes, newValue));
         }
-        Variable result = newVariable(node.kind());
+        Variable result = newVariable(node.getKind());
         append(new CondMoveOp(result, Condition.EQ, load(Constant.TRUE), Constant.FALSE));
         setResult(node, result);
     }

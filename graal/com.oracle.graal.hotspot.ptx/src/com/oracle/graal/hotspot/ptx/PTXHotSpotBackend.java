@@ -37,12 +37,10 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.ptx.*;
 import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.compiler.ptx.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.HotSpotReplacementsImpl.GraphProducer;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
@@ -137,11 +135,20 @@ public class PTXHotSpotBackend extends HotSpotBackend {
             long launchKernel = getLaunchKernelAddress();
             hostForeignCalls.linkForeignCall(hostProviders, CALL_KERNEL, launchKernel, false, NOT_LEAF, NOT_REEXECUTABLE, ANY_LOCATION);
         }
+        /* Add a shutdown hook to destroy CUDA context(s) */
+        Runtime.getRuntime().addShutdownHook(new Thread("PTXShutdown") {
+            @Override
+            public void run() {
+                destroyContext();
+            }
+        });
         super.completeInitialization();
     }
 
+    private static native void destroyContext();
+
     /**
-     * Gets the address of {@code gpu::Ptx::execute_kernel_from_vm()}.
+     * Gets the address of {@code Ptx::execute_kernel_from_vm()}.
      */
     private static native long getLaunchKernelAddress();
 
@@ -155,30 +162,6 @@ public class PTXHotSpotBackend extends HotSpotBackend {
      */
     public boolean isDeviceInitialized() {
         return deviceInitialized;
-    }
-
-    @Override
-    public GraphProducer getGraphProducer() {
-        if (!deviceInitialized) {
-            // GPU could not be initialized so offload is disabled
-            return null;
-        }
-        return new GraphProducer() {
-
-            public StructuredGraph getGraphFor(ResolvedJavaMethod method) {
-                if (canOffloadToGPU(method)) {
-                    ExternalCompilationResult ptxCode = PTXHotSpotBackend.this.compileKernel(method, true);
-                    HotSpotNmethod installedPTXCode = PTXHotSpotBackend.this.installKernel(method, ptxCode);
-                    return new PTXWrapperBuilder(method, installedPTXCode, getRuntime().getHostBackend().getProviders()).getGraph();
-                }
-                return null;
-            }
-
-            private boolean canOffloadToGPU(ResolvedJavaMethod method) {
-                HotSpotVMConfig config = getRuntime().getConfig();
-                return config.gpuOffload && method.getName().contains("lambda$") & method.isSynthetic();
-            }
-        };
     }
 
     /**
@@ -196,8 +179,8 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         PhaseSuite<HighTierContext> graphBuilderSuite = providers.getSuites().getDefaultGraphBuilderSuite();
         graphBuilderSuite.appendPhase(new NonNullParametersPhase());
         Suites suites = providers.getSuites().getDefaultSuites();
-        ExternalCompilationResult ptxCode = compileGraph(graph, cc, method, providers, this, this.getTarget(), null, graphBuilderSuite, OptimisticOptimizations.NONE, getProfilingInfo(graph), null,
-                        suites, true, new ExternalCompilationResult(), CompilationResultBuilderFactory.Default);
+        ExternalCompilationResult ptxCode = compileGraph(graph, null, cc, method, providers, this, this.getTarget(), null, graphBuilderSuite, OptimisticOptimizations.NONE, getProfilingInfo(graph),
+                        null, suites, new ExternalCompilationResult(), CompilationResultBuilderFactory.Default);
         if (makeBinary) {
             try (Scope ds = Debug.scope("GeneratingKernelBinary")) {
                 assert ptxCode.getTargetCode() != null;
@@ -252,24 +235,24 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
         LIRInstruction op;
 
-        void emitDeclarations(Buffer codeBuffer) {
+        void emitDeclarations(Assembler asm) {
             for (Integer i : unsigned8) {
-                codeBuffer.emitString(".reg .u8 %r" + i.intValue() + ";");
+                asm.emitString(".reg .u8 %r" + i.intValue() + ";");
             }
             for (Integer i : signed32) {
-                codeBuffer.emitString(".reg .s32 %r" + i.intValue() + ";");
+                asm.emitString(".reg .s32 %r" + i.intValue() + ";");
             }
             for (Integer i : signed64) {
-                codeBuffer.emitString(".reg .s64 %r" + i.intValue() + ";");
+                asm.emitString(".reg .s64 %r" + i.intValue() + ";");
             }
             for (Integer i : unsigned64) {
-                codeBuffer.emitString(".reg .u64 %r" + i.intValue() + ";");
+                asm.emitString(".reg .u64 %r" + i.intValue() + ";");
             }
             for (Integer i : float32) {
-                codeBuffer.emitString(".reg .f32 %r" + i.intValue() + ";");
+                asm.emitString(".reg .f32 %r" + i.intValue() + ";");
             }
             for (Integer i : float64) {
-                codeBuffer.emitString(".reg .f64 %r" + i.intValue() + ";");
+                asm.emitString(".reg .f64 %r" + i.intValue() + ";");
             }
         }
 
@@ -351,7 +334,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         // - has no incoming arguments passed on the stack
         // - has no instructions with debug info
         FrameMap frameMap = lirGen.frameMap;
-        AbstractAssembler masm = createAssembler(frameMap);
+        Assembler masm = createAssembler(frameMap);
         PTXFrameContext frameContext = new PTXFrameContext();
         CompilationResultBuilder crb = factory.createBuilder(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
         crb.setFrameSize(0);
@@ -359,39 +342,39 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    protected AbstractAssembler createAssembler(FrameMap frameMap) {
+    protected Assembler createAssembler(FrameMap frameMap) {
         return new PTXMacroAssembler(getTarget(), frameMap.registerConfig);
     }
 
     @Override
-    public LIRGenerator newLIRGenerator(StructuredGraph graph, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        return new PTXLIRGenerator(graph, getProviders(), frameMap, cc, lir);
+    public LIRGenerator newLIRGenerator(StructuredGraph graph, Object stub, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        return new PTXHotSpotLIRGenerator(graph, getProviders(), getRuntime().getConfig(), frameMap, cc, lir);
     }
 
-    private static void emitKernelEntry(CompilationResultBuilder crb, LIRGenerator lirGen, ResolvedJavaMethod codeCacheOwner) {
+    private static void emitKernelEntry(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod codeCacheOwner) {
         // Emit PTX kernel entry text based on PTXParameterOp
         // instructions in the start block. Remove the instructions
         // once kernel entry text and directives are emitted to
         // facilitate seemless PTX code generation subsequently.
-        assert codeCacheOwner != null : lirGen.getGraph() + " is not associated with a method";
+        assert codeCacheOwner != null : lir + " is not associated with a method";
         final String name = codeCacheOwner.getName();
-        Buffer codeBuffer = crb.asm.codeBuffer;
+        Assembler asm = crb.asm;
 
         // Emit initial boiler-plate directives.
-        codeBuffer.emitString(".version 3.0");
-        codeBuffer.emitString(".target sm_30");
-        codeBuffer.emitString0(".entry " + name + " (");
-        codeBuffer.emitString("");
+        asm.emitString(".version 3.0");
+        asm.emitString(".target sm_30");
+        asm.emitString0(".entry " + name + " (");
+        asm.emitString("");
 
         // Get the start block
-        Block startBlock = lirGen.lir.cfg.getStartBlock();
+        Block startBlock = lir.getControlFlowGraph().getStartBlock();
         // Keep a list of ParameterOp instructions to delete from the
         // list of instructions in the block.
         ArrayList<LIRInstruction> deleteOps = new ArrayList<>();
 
         // Emit .param arguments to kernel entry based on ParameterOp
         // instruction.
-        for (LIRInstruction op : lirGen.lir.lir(startBlock)) {
+        for (LIRInstruction op : lir.lir(startBlock)) {
             if (op instanceof PTXParameterOp) {
                 op.emitCode(crb);
                 deleteOps.add(op);
@@ -400,24 +383,23 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
         // Delete ParameterOp instructions.
         for (LIRInstruction op : deleteOps) {
-            lirGen.lir.lir(startBlock).remove(op);
+            lir.lir(startBlock).remove(op);
         }
 
         // Start emiting body of the PTX kernel.
-        codeBuffer.emitString0(") {");
-        codeBuffer.emitString("");
+        asm.emitString0(") {");
+        asm.emitString("");
     }
 
     // Emit .reg space declarations
-    private static void emitRegisterDecl(CompilationResultBuilder crb, LIRGenerator lirGen, ResolvedJavaMethod codeCacheOwner) {
+    private static void emitRegisterDecl(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod codeCacheOwner) {
 
-        assert codeCacheOwner != null : lirGen.getGraph() + " is not associated with a method";
+        assert codeCacheOwner != null : lir + " is not associated with a method";
 
-        Buffer codeBuffer = crb.asm.codeBuffer;
         RegisterAnalysis registerAnalysis = new RegisterAnalysis();
 
-        for (Block b : lirGen.lir.codeEmittingOrder()) {
-            for (LIRInstruction op : lirGen.lir.lir(b)) {
+        for (Block b : lir.codeEmittingOrder()) {
+            for (LIRInstruction op : lir.lir(b)) {
                 if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {
@@ -428,48 +410,48 @@ public class PTXHotSpotBackend extends HotSpotBackend {
             }
         }
 
-        registerAnalysis.emitDeclarations(codeBuffer);
+        Assembler asm = crb.asm;
+        registerAnalysis.emitDeclarations(asm);
 
         // emit predicate register declaration
-        int maxPredRegNum = ((PTXLIRGenerator) lirGen).getNextPredRegNumber();
+        int maxPredRegNum = lir.numVariables();
         if (maxPredRegNum > 0) {
-            codeBuffer.emitString(".reg .pred %p<" + maxPredRegNum + ">;");
+            asm.emitString(".reg .pred %p<" + maxPredRegNum + ">;");
         }
     }
 
     @Override
-    public void emitCode(CompilationResultBuilder crb, LIRGenerator lirGen, ResolvedJavaMethod codeCacheOwner) {
-        assert codeCacheOwner != null : lirGen.getGraph() + " is not associated with a method";
-        Buffer codeBuffer = crb.asm.codeBuffer;
+    public void emitCode(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod codeCacheOwner) {
+        assert codeCacheOwner != null : lir + " is not associated with a method";
+        Assembler asm = crb.asm;
+
         // Emit the prologue
-        emitKernelEntry(crb, lirGen, codeCacheOwner);
+        emitKernelEntry(crb, lir, codeCacheOwner);
 
         // Emit register declarations
         try {
-            emitRegisterDecl(crb, lirGen, codeCacheOwner);
+            emitRegisterDecl(crb, lir, codeCacheOwner);
         } catch (GraalInternalError e) {
             e.printStackTrace();
             // TODO : Better error handling needs to be done once
             // all types of parameters are handled.
-            codeBuffer.setPosition(0);
-            codeBuffer.close(false);
+            asm.close(false);
             return;
         }
         // Emit code for the LIR
         try {
-            crb.emit(lirGen.lir);
+            crb.emit(lir);
         } catch (GraalInternalError e) {
             e.printStackTrace();
             // TODO : Better error handling needs to be done once
             // all types of parameters are handled.
-            codeBuffer.setPosition(0);
-            codeBuffer.close(false);
+            asm.close(false);
             return;
         }
 
         // Emit the epilogue
-        codeBuffer.emitString0("}");
-        codeBuffer.emitString("");
+        asm.emitString0("}");
+        asm.emitString("");
     }
 
     /**

@@ -42,14 +42,16 @@ public class AheadOfTimeVerificationPhase extends VerifyPhase<PhaseContext> {
     protected boolean verify(StructuredGraph graph, PhaseContext context) {
         for (ConstantNode node : getConstantNodes(graph)) {
             if (node.recordsUsages() || !node.gatherUsages(graph).isEmpty()) {
-                assert !isObject(node) || isNullReference(node) || isInternedString(node) : "illegal object constant: " + node;
+                if (isObject(node) && !isNullReference(node) && !isInternedString(node)) {
+                    throw new VerificationError("illegal object constant: " + node);
+                }
             }
         }
         return true;
     }
 
     private static boolean isObject(ConstantNode node) {
-        return node.kind() == Kind.Object;
+        return node.getKind() == Kind.Object;
     }
 
     private static boolean isNullReference(ConstantNode node) {

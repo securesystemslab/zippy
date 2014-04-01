@@ -53,4 +53,51 @@ public class BC_i2s extends JTTTest {
         runTest("test", 32768);
     }
 
+    public static int testInt(int a) {
+        return (short) a;
+    }
+
+    @Test
+    public void runI0() throws Throwable {
+        runTest("testInt", -1);
+    }
+
+    @Test
+    public void runI1() throws Throwable {
+        runTest("testInt", 34);
+    }
+
+    @Test
+    public void runI2() throws Throwable {
+        runTest("testInt", 65535);
+    }
+
+    @Test
+    public void runI3() throws Throwable {
+        runTest("testInt", 32768);
+    }
+
+    public static long testLong(int a) {
+        return (short) a;
+    }
+
+    @Test
+    public void runL0() throws Throwable {
+        runTest("testLong", -1);
+    }
+
+    @Test
+    public void runL1() throws Throwable {
+        runTest("testLong", 34);
+    }
+
+    @Test
+    public void runL2() throws Throwable {
+        runTest("testLong", 65535);
+    }
+
+    @Test
+    public void runL3() throws Throwable {
+        runTest("testLong", 32768);
+    }
 }

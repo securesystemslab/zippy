@@ -42,8 +42,10 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.BciBlockMapping.Block;
 import com.oracle.graal.java.BciBlockMapping.ExceptionDispatchBlock;
+import com.oracle.graal.java.BciBlockMapping.LocalLiveness;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
@@ -67,8 +69,8 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
 
     public static final class RuntimeCalls {
 
-        public static final ForeignCallDescriptor CREATE_NULL_POINTER_EXCEPTION = new ForeignCallDescriptor("createNullPointerException", Object.class);
-        public static final ForeignCallDescriptor CREATE_OUT_OF_BOUNDS_EXCEPTION = new ForeignCallDescriptor("createOutOfBoundsException", Object.class, int.class);
+        public static final ForeignCallDescriptor CREATE_NULL_POINTER_EXCEPTION = new ForeignCallDescriptor("createNullPointerException", NullPointerException.class);
+        public static final ForeignCallDescriptor CREATE_OUT_OF_BOUNDS_EXCEPTION = new ForeignCallDescriptor("createOutOfBoundsException", ArrayIndexOutOfBoundsException.class, int.class);
     }
 
     /**
@@ -158,6 +160,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
         }
 
         private Block[] loopHeaders;
+        private LocalLiveness liveness;
 
         /**
          * Gets the current frame state being processed by this builder.
@@ -213,16 +216,6 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             return getName() + " " + MetaUtil.format("%H.%n(%p):%r", method);
         }
 
-        private BciBlockMapping createBlockMap() {
-            BciBlockMapping map = new BciBlockMapping(method);
-            map.build();
-            if (Debug.isDumpEnabled()) {
-                Debug.dump(map, MetaUtil.format("After block building %f %R %H.%n(%P)", method));
-            }
-
-            return map;
-        }
-
         protected void build() {
             if (PrintProfilingInformation.getValue()) {
                 TTY.println("Profiling info for " + MetaUtil.format("%H.%n(%p)", method));
@@ -232,8 +225,9 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             Indent indent = Debug.logAndIndent("build graph for %s", method);
 
             // compute the block map, setup exception handlers and get the entrypoint(s)
-            BciBlockMapping blockMap = createBlockMap();
+            BciBlockMapping blockMap = BciBlockMapping.create(method);
             loopHeaders = blockMap.loopHeaders;
+            liveness = blockMap.liveness;
 
             lastInstr = currentGraph.start();
             if (isSynchronized(method.getModifiers())) {
@@ -242,7 +236,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 methodSynchronizedObject = synchronizedObject(frameState, method);
                 lastInstr = genMonitorEnter(methodSynchronizedObject);
             }
-            frameState.clearNonLiveLocals(blockMap.startBlock.localsLiveIn);
+            frameState.clearNonLiveLocals(blockMap.startBlock, liveness, true);
             ((StateSplit) lastInstr).setStateAfter(frameState.create(0));
 
             if (graphBuilderConfig.eagerInfopointMode()) {
@@ -302,11 +296,11 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             return unwindBlock;
         }
 
-        public BytecodeStream stream() {
+        protected BytecodeStream stream() {
             return stream;
         }
 
-        public int bci() {
+        protected int bci() {
             return stream.currentBCI();
         }
 
@@ -319,19 +313,11 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             if (kind == Kind.Object) {
                 value = frameState.xpop();
                 // astore and astore_<n> may be used to store a returnAddress (jsr)
-                assert value.kind() == Kind.Object || value.kind() == Kind.Int;
+                assert value.getKind() == Kind.Object || value.getKind() == Kind.Int;
             } else {
                 value = frameState.pop(kind);
             }
             frameState.storeLocal(index, value);
-        }
-
-        public static boolean covers(ExceptionHandler handler, int bci) {
-            return handler.getStartBCI() <= bci && bci < handler.getEndBCI();
-        }
-
-        public static boolean isCatchAll(ExceptionHandler handler) {
-            return handler.catchTypeCPI() == 0;
         }
 
         /**
@@ -597,35 +583,35 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             switch (opcode) {
                 case IADD:
                 case LADD:
-                    v = new IntegerAddNode(result, x, y);
+                    v = new IntegerAddNode(StampFactory.forKind(result), x, y);
                     break;
                 case FADD:
                 case DADD:
-                    v = new FloatAddNode(result, x, y, isStrictFP);
+                    v = new FloatAddNode(StampFactory.forKind(result), x, y, isStrictFP);
                     break;
                 case ISUB:
                 case LSUB:
-                    v = new IntegerSubNode(result, x, y);
+                    v = new IntegerSubNode(StampFactory.forKind(result), x, y);
                     break;
                 case FSUB:
                 case DSUB:
-                    v = new FloatSubNode(result, x, y, isStrictFP);
+                    v = new FloatSubNode(StampFactory.forKind(result), x, y, isStrictFP);
                     break;
                 case IMUL:
                 case LMUL:
-                    v = new IntegerMulNode(result, x, y);
+                    v = new IntegerMulNode(StampFactory.forKind(result), x, y);
                     break;
                 case FMUL:
                 case DMUL:
-                    v = new FloatMulNode(result, x, y, isStrictFP);
+                    v = new FloatMulNode(StampFactory.forKind(result), x, y, isStrictFP);
                     break;
                 case FDIV:
                 case DDIV:
-                    v = new FloatDivNode(result, x, y, isStrictFP);
+                    v = new FloatDivNode(StampFactory.forKind(result), x, y, isStrictFP);
                     break;
                 case FREM:
                 case DREM:
-                    v = new FloatRemNode(result, x, y, isStrictFP);
+                    v = new FloatRemNode(StampFactory.forKind(result), x, y, isStrictFP);
                     break;
                 default:
                     throw new GraalInternalError("should not reach");
@@ -640,11 +626,11 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             switch (opcode) {
                 case IDIV:
                 case LDIV:
-                    v = new IntegerDivNode(result, x, y);
+                    v = new IntegerDivNode(StampFactory.forKind(result), x, y);
                     break;
                 case IREM:
                 case LREM:
-                    v = new IntegerRemNode(result, x, y);
+                    v = new IntegerRemNode(StampFactory.forKind(result), x, y);
                     break;
                 default:
                     throw new GraalInternalError("should not reach");
@@ -663,15 +649,15 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             switch (opcode) {
                 case ISHL:
                 case LSHL:
-                    v = new LeftShiftNode(kind, x, s);
+                    v = new LeftShiftNode(StampFactory.forKind(kind), x, s);
                     break;
                 case ISHR:
                 case LSHR:
-                    v = new RightShiftNode(kind, x, s);
+                    v = new RightShiftNode(StampFactory.forKind(kind), x, s);
                     break;
                 case IUSHR:
                 case LUSHR:
-                    v = new UnsignedRightShiftNode(kind, x, s);
+                    v = new UnsignedRightShiftNode(StampFactory.forKind(kind), x, s);
                     break;
                 default:
                     throw new GraalInternalError("should not reach");
@@ -682,19 +668,20 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
         private void genLogicOp(Kind kind, int opcode) {
             ValueNode y = frameState.pop(kind);
             ValueNode x = frameState.pop(kind);
+            Stamp stamp = StampFactory.forKind(kind);
             BitLogicNode v;
             switch (opcode) {
                 case IAND:
                 case LAND:
-                    v = new AndNode(kind, x, y);
+                    v = new AndNode(stamp, x, y);
                     break;
                 case IOR:
                 case LOR:
-                    v = new OrNode(kind, x, y);
+                    v = new OrNode(stamp, x, y);
                     break;
                 case IXOR:
                 case LXOR:
-                    v = new XorNode(kind, x, y);
+                    v = new XorNode(stamp, x, y);
                     break;
                 default:
                     throw new GraalInternalError("should not reach");
@@ -708,9 +695,30 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             frameState.ipush(append(new NormalizeCompareNode(x, y, isUnorderedLess)));
         }
 
-        private void genConvert(Kind from, Kind to) {
+        private void genFloatConvert(FloatConvert op, Kind from, Kind to) {
             ValueNode input = frameState.pop(from.getStackKind());
-            frameState.push(to.getStackKind(), append(new ConvertNode(from, to, input)));
+            frameState.push(to.getStackKind(), append(new FloatConvertNode(op, input)));
+        }
+
+        private void genSignExtend(Kind from, Kind to) {
+            ValueNode input = frameState.pop(from.getStackKind());
+            if (from != from.getStackKind()) {
+                input = append(new NarrowNode(input, from.getBitCount()));
+            }
+            frameState.push(to.getStackKind(), append(new SignExtendNode(input, to.getBitCount())));
+        }
+
+        private void genZeroExtend(Kind from, Kind to) {
+            ValueNode input = frameState.pop(from.getStackKind());
+            if (from != from.getStackKind()) {
+                input = append(new NarrowNode(input, from.getBitCount()));
+            }
+            frameState.push(to.getStackKind(), append(new ZeroExtendNode(input, to.getBitCount())));
+        }
+
+        private void genNarrow(Kind from, Kind to) {
+            ValueNode input = frameState.pop(from.getStackKind());
+            frameState.push(to.getStackKind(), append(new NarrowNode(input, to.getBitCount())));
         }
 
         private void genIncrement() {
@@ -718,7 +726,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             int delta = stream().readIncrement();
             ValueNode x = frameState.loadLocal(index);
             ValueNode y = appendConstant(Constant.forInt(delta));
-            frameState.storeLocal(index, append(new IntegerAddNode(Kind.Int, x, y)));
+            frameState.storeLocal(index, append(new IntegerAddNode(StampFactory.forKind(Kind.Int), x, y)));
         }
 
         private void genGoto() {
@@ -759,15 +767,15 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             ValueNode b = mirror ? x : y;
 
             CompareNode condition;
-            assert !a.kind().isNumericFloat();
+            assert !a.getKind().isNumericFloat();
             if (cond == Condition.EQ || cond == Condition.NE) {
-                if (a.kind() == Kind.Object) {
+                if (a.getKind() == Kind.Object) {
                     condition = new ObjectEqualsNode(a, b);
                 } else {
                     condition = new IntegerEqualsNode(a, b);
                 }
             } else {
-                assert a.kind() != Kind.Object && !cond.isUnsigned();
+                assert a.getKind() != Kind.Object && !cond.isUnsigned();
                 condition = new IntegerLessThanNode(a, b);
             }
             condition = currentGraph.unique(condition);
@@ -815,10 +823,12 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             eagerResolvingForSnippets(cpi, opcode);
             JavaMethod result = constantPool.lookupMethod(cpi, opcode);
             /*
-             * assert !graphBuilderConfig.unresolvedIsError() || ((result instanceof
-             * ResolvedJavaMethod) && ((ResolvedJavaMethod)
-             * result).getDeclaringClass().isInitialized()) : result;
+             * In general, one cannot assume that the declaring class being initialized is useful,
+             * since the actual concrete receiver may be a different class (except for static
+             * calls). Also, interfaces are initialized only under special circumstances, so that
+             * this assertion would often fail for interface calls.
              */
+            assert !graphBuilderConfig.unresolvedIsError() || (result instanceof ResolvedJavaMethod && (opcode != INVOKESTATIC || ((ResolvedJavaMethod) result).getDeclaringClass().isInitialized())) : result;
             return result;
         }
 
@@ -832,7 +842,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
         private Object lookupConstant(int cpi, int opcode) {
             eagerResolvingForSnippets(cpi, opcode);
             Object result = constantPool.lookupConstant(cpi);
-            assert !graphBuilderConfig.eagerResolving() || !(result instanceof JavaType) || (result instanceof ResolvedJavaType);
+            assert !graphBuilderConfig.eagerResolving() || !(result instanceof JavaType) || (result instanceof ResolvedJavaType) : result;
             return result;
         }
 
@@ -950,10 +960,14 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 dims[i] = frameState.ipop();
             }
             if (type instanceof ResolvedJavaType) {
-                frameState.apush(append(new NewMultiArrayNode((ResolvedJavaType) type, dims)));
+                frameState.apush(append(createNewMultiArray((ResolvedJavaType) type, dims)));
             } else {
                 handleUnresolvedNewMultiArray(type, dims);
             }
+        }
+
+        protected NewMultiArrayNode createNewMultiArray(ResolvedJavaType type, ValueNode[] dimensions) {
+            return new NewMultiArrayNode(type, dimensions);
         }
 
         private void genGetField(JavaField field) {
@@ -993,6 +1007,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 trueSucc.setNext(handleException(exception, bci()));
             } else {
                 DeferredForeignCallNode call = currentGraph.add(new DeferredForeignCallNode(CREATE_NULL_POINTER_EXCEPTION));
+                call.setStamp(StampFactory.exactNonNull(metaAccess.lookupJavaType(CREATE_NULL_POINTER_EXCEPTION.getResultType())));
                 call.setStateAfter(frameState.create(bci()));
                 trueSucc.setNext(call);
                 call.setNext(handleException(call, bci()));
@@ -1017,11 +1032,14 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 falseSucc.setNext(handleException(exception, bci()));
             } else {
                 DeferredForeignCallNode call = currentGraph.add(new DeferredForeignCallNode(CREATE_OUT_OF_BOUNDS_EXCEPTION, index));
+                call.setStamp(StampFactory.exactNonNull(metaAccess.lookupJavaType(CREATE_OUT_OF_BOUNDS_EXCEPTION.getResultType())));
                 call.setStateAfter(frameState.create(bci()));
                 falseSucc.setNext(call);
                 call.setNext(handleException(call, bci()));
             }
         }
+
+        private static final DebugMetric EXPLICIT_EXCEPTIONS = Debug.metric("ExplicitExceptions");
 
         protected void emitExplicitExceptions(ValueNode receiver, ValueNode outOfBoundsIndex) {
             assert receiver != null;
@@ -1034,7 +1052,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 ValueNode length = append(new ArrayLengthNode(receiver));
                 emitBoundsCheck(outOfBoundsIndex, length);
             }
-            Debug.metric("ExplicitExceptions").increment();
+            EXPLICIT_EXCEPTIONS.increment();
         }
 
         private void genPutField(JavaField field) {
@@ -1095,7 +1113,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
         private void genInvokeInterface(JavaMethod target) {
             if (target instanceof ResolvedJavaMethod) {
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(true), target.getSignature().getParameterCount(true));
-                genInvokeIndirect(InvokeKind.Interface, (ResolvedJavaMethod) target, args);
+                appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args);
             } else {
                 handleUnresolvedInvoke(target, InvokeKind.Interface);
             }
@@ -1130,7 +1148,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 }
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(hasReceiver), target.getSignature().getParameterCount(hasReceiver));
                 if (hasReceiver) {
-                    genInvokeIndirect(InvokeKind.Virtual, (ResolvedJavaMethod) target, args);
+                    appendInvoke(InvokeKind.Virtual, (ResolvedJavaMethod) target, args);
                 } else {
                     appendInvoke(InvokeKind.Static, (ResolvedJavaMethod) target, args);
                 }
@@ -1145,45 +1163,10 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 assert target != null;
                 assert target.getSignature() != null;
                 ValueNode[] args = frameState.popArguments(target.getSignature().getParameterSlots(true), target.getSignature().getParameterCount(true));
-                invokeDirect((ResolvedJavaMethod) target, args);
+                appendInvoke(InvokeKind.Special, (ResolvedJavaMethod) target, args);
             } else {
                 handleUnresolvedInvoke(target, InvokeKind.Special);
             }
-        }
-
-        private void genInvokeIndirect(InvokeKind invokeKind, ResolvedJavaMethod target, ValueNode[] args) {
-            ValueNode receiver = args[0];
-            // attempt to devirtualize the call
-            ResolvedJavaType klass = target.getDeclaringClass();
-
-            // 0. check for trivial cases
-            if (target.canBeStaticallyBound()) {
-                // check for trivial cases (e.g. final methods, nonvirtual methods)
-                invokeDirect(target, args);
-                return;
-            }
-            // 1. check if the exact type of the receiver can be determined
-            ResolvedJavaType exact = klass.asExactType();
-            if (exact == null && receiver.stamp() instanceof ObjectStamp) {
-                ObjectStamp receiverStamp = (ObjectStamp) receiver.stamp();
-                if (receiverStamp.isExactType()) {
-                    exact = receiverStamp.type();
-                }
-            }
-            if (exact != null) {
-                // either the holder class is exact, or the receiver object has an exact type
-                ResolvedJavaMethod exactMethod = exact.resolveMethod(target);
-                if (exactMethod != null) {
-                    invokeDirect(exactMethod, args);
-                    return;
-                }
-            }
-            // devirtualization failed, produce an actual invokevirtual
-            appendInvoke(invokeKind, target, args);
-        }
-
-        private void invokeDirect(ResolvedJavaMethod target, ValueNode[] args) {
-            appendInvoke(InvokeKind.Special, target, args);
         }
 
         private void appendInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args) {
@@ -1213,7 +1196,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 createInvoke(callTarget, resultType);
             } else {
                 assert bci() == currentBlock.endBci;
-                frameState.clearNonLiveLocals(currentBlock.localsLiveOut);
+                frameState.clearNonLiveLocals(currentBlock, liveness, false);
 
                 InvokeWithExceptionNode invoke = createInvokeWithException(callTarget, resultType);
 
@@ -1529,7 +1512,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 Target target = checkLoopExit(block.firstInstruction, block, state);
                 FixedNode result = target.fixed;
                 block.entryState = target.state == state ? state.copy() : target.state;
-                block.entryState.clearNonLiveLocals(block.localsLiveIn);
+                block.entryState.clearNonLiveLocals(block, liveness, true);
 
                 Debug.log("createTarget %s: first visit, result: %s", block, block.firstInstruction);
                 return result;
@@ -1678,7 +1661,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             if (Modifier.isSynchronized(method.getModifiers())) {
                 MonitorExitNode monitorExit = genMonitorExit(methodSynchronizedObject, returnValue);
                 if (returnValue != null) {
-                    frameState.push(returnValue.kind(), returnValue);
+                    frameState.push(returnValue.getKind(), returnValue);
                 }
                 monitorExit.setStateAfter(frameState.create(bci));
                 assert !frameState.rethrowException();
@@ -1808,7 +1791,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 bci = stream.currentBCI();
 
                 if (bci > block.endBci) {
-                    frameState.clearNonLiveLocals(currentBlock.localsLiveOut);
+                    frameState.clearNonLiveLocals(currentBlock, liveness, false);
                 }
                 if (lastInstr instanceof StateSplit) {
                     if (lastInstr.getClass() == AbstractBeginNode.class) {
@@ -1839,11 +1822,11 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 Debug.log(String.format("|   state [nr locals = %d, stack depth = %d, method = %s]", frameState.localsSize(), frameState.stackSize(), method));
                 for (int i = 0; i < frameState.localsSize(); ++i) {
                     ValueNode value = frameState.localAt(i);
-                    Debug.log(String.format("|   local[%d] = %-8s : %s", i, value == null ? "bogus" : value.kind().getJavaName(), value));
+                    Debug.log(String.format("|   local[%d] = %-8s : %s", i, value == null ? "bogus" : value.getKind().getJavaName(), value));
                 }
                 for (int i = 0; i < frameState.stackSize(); ++i) {
                     ValueNode value = frameState.stackAt(i);
-                    Debug.log(String.format("|   stack[%d] = %-8s : %s", i, value == null ? "bogus" : value.kind().getJavaName(), value));
+                    Debug.log(String.format("|   stack[%d] = %-8s : %s", i, value == null ? "bogus" : value.getKind().getJavaName(), value));
                 }
             }
         }
@@ -1987,21 +1970,21 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             case LOR            : // fall through
             case LXOR           : genLogicOp(Kind.Long, opcode); break;
             case IINC           : genIncrement(); break;
-            case I2L            : genConvert(Kind.Int, Kind.Long); break;
-            case I2F            : genConvert(Kind.Int, Kind.Float); break;
-            case I2D            : genConvert(Kind.Int, Kind.Double); break;
-            case L2I            : genConvert(Kind.Long, Kind.Int); break;
-            case L2F            : genConvert(Kind.Long, Kind.Float); break;
-            case L2D            : genConvert(Kind.Long, Kind.Double); break;
-            case F2I            : genConvert(Kind.Float, Kind.Int); break;
-            case F2L            : genConvert(Kind.Float, Kind.Long); break;
-            case F2D            : genConvert(Kind.Float, Kind.Double); break;
-            case D2I            : genConvert(Kind.Double, Kind.Int); break;
-            case D2L            : genConvert(Kind.Double, Kind.Long); break;
-            case D2F            : genConvert(Kind.Double, Kind.Float); break;
-            case I2B            : genConvert(Kind.Int, Kind.Byte); break;
-            case I2C            : genConvert(Kind.Int, Kind.Char); break;
-            case I2S            : genConvert(Kind.Int, Kind.Short); break;
+            case I2F            : genFloatConvert(FloatConvert.I2F, Kind.Int, Kind.Float); break;
+            case I2D            : genFloatConvert(FloatConvert.I2D, Kind.Int, Kind.Double); break;
+            case L2F            : genFloatConvert(FloatConvert.L2F, Kind.Long, Kind.Float); break;
+            case L2D            : genFloatConvert(FloatConvert.L2D, Kind.Long, Kind.Double); break;
+            case F2I            : genFloatConvert(FloatConvert.F2I, Kind.Float, Kind.Int); break;
+            case F2L            : genFloatConvert(FloatConvert.F2L, Kind.Float, Kind.Long); break;
+            case F2D            : genFloatConvert(FloatConvert.F2D, Kind.Float, Kind.Double); break;
+            case D2I            : genFloatConvert(FloatConvert.D2I, Kind.Double, Kind.Int); break;
+            case D2L            : genFloatConvert(FloatConvert.D2L, Kind.Double, Kind.Long); break;
+            case D2F            : genFloatConvert(FloatConvert.D2F, Kind.Double, Kind.Float); break;
+            case L2I            : genNarrow(Kind.Long, Kind.Int); break;
+            case I2L            : genSignExtend(Kind.Int, Kind.Long); break;
+            case I2B            : genSignExtend(Kind.Byte, Kind.Int); break;
+            case I2S            : genSignExtend(Kind.Short, Kind.Int); break;
+            case I2C            : genZeroExtend(Kind.Char, Kind.Int); break;
             case LCMP           : genCompareOp(Kind.Long, false); break;
             case FCMPL          : genCompareOp(Kind.Float, true); break;
             case FCMPG          : genCompareOp(Kind.Float, false); break;
@@ -2080,7 +2063,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                 if (!currentBlock.jsrScope.isEmpty()) {
                     sb.append(' ').append(currentBlock.jsrScope);
                 }
-                Debug.log(sb.toString());
+                Debug.log("%s", sb);
             }
         }
 

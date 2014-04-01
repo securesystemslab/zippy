@@ -41,7 +41,7 @@ public class ReturnNode extends StatementNode {
         @Child protected PNode right;
 
         public FrameReturnNode(PNode right) {
-            this.right = adoptChild(right);
+            this.right = right;
         }
 
         @Override

@@ -112,6 +112,8 @@ private:
   // static native int getAvailableProcessors0();
   JNIEXPORT static jint get_total_cores(JNIEnv *env, jobject);
 
+  JNIEXPORT static void destroy_ptx_context();
+
   // Links the CUDA driver library functions
   static bool link();
 
@@ -155,12 +157,12 @@ private:
                                               unsigned int, void*, void**, void**);
   typedef int (*cuda_cu_module_get_function_func_t)(void*, void*, const char*);
   typedef int (*cuda_cu_module_load_data_ex_func_t)(void*, void*, unsigned int, void*, void**);
-  typedef int (*cuda_cu_memalloc_func_t)(gpu::Ptx::CUdeviceptr*, size_t);
-  typedef int (*cuda_cu_memfree_func_t)(gpu::Ptx::CUdeviceptr);
-  typedef int (*cuda_cu_memcpy_htod_func_t)(gpu::Ptx::CUdeviceptr, const void*, unsigned int);
-  typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, gpu::Ptx::CUdeviceptr,  unsigned int);
+  typedef int (*cuda_cu_memalloc_func_t)(Ptx::CUdeviceptr*, size_t);
+  typedef int (*cuda_cu_memfree_func_t)(Ptx::CUdeviceptr);
+  typedef int (*cuda_cu_memcpy_htod_func_t)(Ptx::CUdeviceptr, const void*, unsigned int);
+  typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, Ptx::CUdeviceptr,  unsigned int);
   typedef int (*cuda_cu_mem_host_register_func_t)(void*, size_t, unsigned int);
-  typedef int (*cuda_cu_mem_host_get_device_pointer_func_t)(gpu::Ptx::CUdeviceptr*, void*, unsigned int);
+  typedef int (*cuda_cu_mem_host_get_device_pointer_func_t)(Ptx::CUdeviceptr*, void*, unsigned int);
   typedef int (*cuda_cu_mem_host_unregister_func_t)(void*);
 
 public:

@@ -157,6 +157,7 @@ public class OptionProcessor extends AbstractProcessor {
 
             boolean needPrivateFieldAccessor = false;
             int i = 0;
+            Collections.sort(info.options);
             for (OptionInfo option : info.options) {
                 String optionValue;
                 if (option.field.getModifiers().contains(Modifier.PRIVATE)) {
@@ -223,7 +224,7 @@ public class OptionProcessor extends AbstractProcessor {
         }
     }
 
-    static class OptionInfo {
+    static class OptionInfo implements Comparable<OptionInfo> {
 
         final String name;
         final String help;
@@ -237,6 +238,11 @@ public class OptionProcessor extends AbstractProcessor {
             this.type = type;
             this.declaringClass = declaringClass;
             this.field = field;
+        }
+
+        @Override
+        public int compareTo(OptionInfo other) {
+            return name.compareTo(other.name);
         }
 
         @Override
@@ -258,7 +264,7 @@ public class OptionProcessor extends AbstractProcessor {
 
     private static Element topDeclaringType(Element element) {
         Element enclosing = element.getEnclosingElement();
-        if (element == null || enclosing.getKind() == ElementKind.PACKAGE) {
+        if (enclosing == null || enclosing.getKind() == ElementKind.PACKAGE) {
             assert element.getKind() == ElementKind.CLASS || element.getKind() == ElementKind.INTERFACE;
             return element;
         }

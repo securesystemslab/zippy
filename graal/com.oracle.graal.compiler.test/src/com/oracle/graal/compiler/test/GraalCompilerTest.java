@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,6 +39,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
+import com.oracle.graal.baseline.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
@@ -83,10 +84,20 @@ public abstract class GraalCompilerTest extends GraalTest {
     private final Backend backend;
     private final Suites suites;
 
+    private static boolean substitutionsInstalled;
+
+    private void installSubstitutions() {
+        if (!substitutionsInstalled) {
+            this.providers.getReplacements().registerSubstitutions(InjectProfileDataSubstitutions.class);
+            substitutionsInstalled = true;
+        }
+    }
+
     public GraalCompilerTest() {
         this.backend = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend();
         this.providers = getBackend().getProviders();
         this.suites = backend.getSuites().createSuites();
+        installSubstitutions();
     }
 
     /**
@@ -106,6 +117,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         }
         this.providers = backend.getProviders();
         this.suites = backend.getSuites().createSuites();
+        installSubstitutions();
     }
 
     @BeforeClass
@@ -118,7 +130,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     @Before
     public void beforeTest() {
         assert debugScope == null;
-        debugScope = Debug.scope(getClass().getSimpleName());
+        debugScope = Debug.scope(getClass());
     }
 
     @After
@@ -413,13 +425,85 @@ public abstract class GraalCompilerTest extends GraalTest {
         ResolvedJavaMethod javaMethod = getMetaAccess().lookupJavaMethod(method);
         checkArgs(javaMethod, executeArgs);
 
-        InstalledCode compiledMethod = getCode(javaMethod, parse(method));
+        InstalledCode compiledMethod = null;
+        if (UseBaselineCompiler.getValue()) {
+            compiledMethod = getCodeBaseline(javaMethod, method);
+        } else {
+            compiledMethod = getCode(javaMethod, parse(method));
+        }
         try {
             return new Result(compiledMethod.executeVarargs(executeArgs), null);
         } catch (Throwable e) {
             return new Result(null, e);
         } finally {
             after();
+        }
+    }
+
+    protected InstalledCode getCodeBaseline(ResolvedJavaMethod javaMethod, Method method) {
+        return getCodeBaseline(javaMethod, method, false);
+    }
+
+    protected InstalledCode getCodeBaseline(ResolvedJavaMethod javaMethod, Method method, boolean forceCompile) {
+        assert method.getAnnotation(Test.class) == null : "shouldn't parse method with @Test annotation: " + method;
+
+        try (Scope bds = Debug.scope("Baseline")) {
+            Debug.log("getCodeBaseline()");
+        } catch (Throwable e) {
+            throw Debug.handle(e);
+        }
+
+        if (!forceCompile) {
+            InstalledCode cached = cache.get(javaMethod);
+            if (cached != null) {
+                if (cached.isValid()) {
+                    return cached;
+                }
+            }
+        }
+
+        final int id = compilationId.incrementAndGet();
+
+        InstalledCode installedCode = null;
+        try (Scope ds = Debug.scope("Compiling", new DebugDumpScope(String.valueOf(id), true))) {
+            final boolean printCompilation = PrintCompilation.getValue() && !TTY.isSuppressed();
+
+            if (printCompilation) {
+                TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s ...", id, javaMethod.getDeclaringClass().getName(), javaMethod.getName(), javaMethod.getSignature()));
+            }
+            long start = System.currentTimeMillis();
+
+            CompilationResult compResult = compileBaseline(javaMethod);
+
+            if (printCompilation) {
+                TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
+            }
+
+            try (Scope s = Debug.scope("CodeInstall", getCodeCache(), javaMethod)) {
+                installedCode = addMethod(javaMethod, compResult);
+                if (installedCode == null) {
+                    throw new GraalInternalError("Could not install code for " + MetaUtil.format("%H.%n(%p)", javaMethod));
+                }
+            } catch (Throwable e) {
+                throw Debug.handle(e);
+            }
+        } catch (Throwable e) {
+            throw Debug.handle(e);
+        }
+
+        if (!forceCompile) {
+            cache.put(javaMethod, installedCode);
+        }
+        return installedCode;
+    }
+
+    private CompilationResult compileBaseline(ResolvedJavaMethod javaMethod) {
+        try (Scope bds = Debug.scope("CompileBaseline")) {
+            BaselineCompiler baselineCompiler = new BaselineCompiler(GraphBuilderConfiguration.getDefault(), providers.getMetaAccess());
+            baselineCompiler.generate(javaMethod, -1);
+            return null;
+        } catch (Throwable e) {
+            throw Debug.handle(e);
         }
     }
 
@@ -546,7 +630,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         final int id = compilationId.incrementAndGet();
 
         InstalledCode installedCode = null;
-        try (Scope ds = Debug.scope("Compiling", new DebugDumpScope(String.valueOf(id), true))) {
+        try (AllocSpy spy = AllocSpy.open(method); Scope ds = Debug.scope("Compiling", new DebugDumpScope(String.valueOf(id), true))) {
             final boolean printCompilation = PrintCompilation.getValue() && !TTY.isSuppressed();
             if (printCompilation) {
                 TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s ...", id, method.getDeclaringClass().getName(), method.getName(), method.getSignature()));
@@ -577,8 +661,8 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     protected CompilationResult compile(ResolvedJavaMethod method, final StructuredGraph graph) {
         CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-        return compileGraph(graph, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.ALL, getProfilingInfo(graph),
-                        getSpeculationLog(), getSuites(), true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+        return compileGraph(graph, null, cc, method, getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.ALL,
+                        getProfilingInfo(graph), getSpeculationLog(), getSuites(), new CompilationResult(), CompilationResultBuilderFactory.Default);
     }
 
     protected SpeculationLog getSpeculationLog() {
@@ -642,5 +726,28 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     protected Replacements getReplacements() {
         return getProviders().getReplacements();
+    }
+
+    /**
+     * Inject a probability for a branch condition into the profiling information of this test case.
+     * 
+     * @param p the probability that cond is true
+     * @param cond the condition of the branch
+     * @return cond
+     */
+    protected static boolean branchProbability(double p, boolean cond) {
+        return cond;
+    }
+
+    /**
+     * Inject an iteration count for a loop condition into the profiling information of this test
+     * case.
+     * 
+     * @param i the iteration count of the loop
+     * @param cond the condition of the loop
+     * @return cond
+     */
+    protected static boolean iterationCount(double i, boolean cond) {
+        return cond;
     }
 }

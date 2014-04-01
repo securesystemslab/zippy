@@ -35,7 +35,7 @@ public final class BreakTargetNode extends StatementNode {
     @Child protected StatementNode child;
 
     public BreakTargetNode(StatementNode child) {
-        this.child = adoptChild(child);
+        this.child = child;
     }
 
     @Override

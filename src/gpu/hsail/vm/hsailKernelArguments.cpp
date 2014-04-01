@@ -46,7 +46,7 @@ void HSAILKernelArguments::do_bool() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_boolean(_kernel, jValue.z);
+  bool pushed = Hsail::_okra_push_boolean(_kernel, jValue.z);
   assert(pushed == true, "arg push failed");
 }
 
@@ -58,7 +58,7 @@ void HSAILKernelArguments::do_byte() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   
-  bool pushed = gpu::Hsail::_okra_push_byte(_kernel, jValue.b);
+  bool pushed = Hsail::_okra_push_byte(_kernel, jValue.b);
   assert(pushed == true, "arg push failed");
 }
 
@@ -70,9 +70,9 @@ void HSAILKernelArguments::do_double() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::double value = %e", jValue.d);
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_double, _index=%d, value = %e", _index - 1, jValue.d);
   }  
-  bool pushed = gpu::Hsail::_okra_push_double(_kernel, jValue.d);
+  bool pushed = Hsail::_okra_push_double(_kernel, jValue.d);
   assert(pushed == true, "arg push failed");
 }
 
@@ -84,16 +84,16 @@ void HSAILKernelArguments::do_float() {
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::float value = %f", jValue.f);
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_float, _index=%d, value = %f", _index - 1, jValue.f);
   }    
-  bool pushed = gpu::Hsail::_okra_push_float(_kernel, jValue.f);
+  bool pushed = Hsail::_okra_push_float(_kernel, jValue.f);
   assert(pushed == true, "float push failed");
 }
 
 void HSAILKernelArguments::do_int() {
   // The last int is the iteration variable in an IntStream, but we don't pass it
   // since we use the HSAIL workitemid in place of that int value
-  if (_parameter_index == _parameter_count - 1) {
+  if (isLastParameter()) {
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] HSAILKernelArguments::not pushing trailing int");
     }
@@ -106,8 +106,11 @@ void HSAILKernelArguments::do_int() {
   
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_int, _index=%d, value = %d", _index - 1, jValue.i);
+  }    
   
-  bool pushed = gpu::Hsail::_okra_push_int(_kernel, jValue.i);
+  bool pushed = Hsail::_okra_push_int(_kernel, jValue.i);
   assert(pushed == true, "arg push failed");
 }
 
@@ -118,8 +121,11 @@ void HSAILKernelArguments::do_long() {
   
   jvalue jValue;
   java_lang_boxing_object::get_value(arg, &jValue);
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_long, _index=%d, value = %d", _index - 1, jValue.j);
+  }    
   
-  bool pushed = gpu::Hsail::_okra_push_long(_kernel, jValue.j);
+  bool pushed = Hsail::_okra_push_long(_kernel, jValue.j);
   assert(pushed == true, "arg push failed");  
 }
 
@@ -127,22 +133,22 @@ void HSAILKernelArguments::do_array(int begin, int end) {
   oop arg = _args->obj_at(_index++);
   assert(arg->is_array(), "arg type mismatch");
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_array 0x%08x, is a %s", (address) arg, arg->klass()->external_name());
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_array, _index=%d, 0x%08x, is a %s", _index - 1, (address) arg, arg->klass()->external_name());
   }
     
-  bool pushed = gpu::Hsail::_okra_push_object(_kernel, arg);
+  bool pushed = Hsail::_okra_push_object(_kernel, arg);
   assert(pushed == true, "arg push failed");  
 }
 
 void HSAILKernelArguments::do_object() {
-  if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, _parameter_index=%d", _parameter_index);
-  }
+  
+  bool isLastParam = isLastParameter();  // determine this before incrementing _index
+
   oop arg = _args->obj_at(_index++);
 
   // check if this is last arg in signature
   // an object as last parameter requires an object stream source array to be passed
-  if (_parameter_index == _parameter_count - 1) {
+  if (isLastParam) {
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] HSAILKernelArguments::trailing object ref should be object source array ref");
     }
@@ -150,10 +156,10 @@ void HSAILKernelArguments::do_object() {
   }
 
   if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, 0x%08x is a %s", (address) arg, arg->klass()->external_name());
+    tty->print_cr("[HSAIL] HSAILKernelArguments::do_object, _index=%d, 0x%08x is a %s", _index - 1, (address) arg, arg->klass()->external_name());
   }
     
-  bool pushed = gpu::Hsail::_okra_push_object(_kernel, arg);
+  bool pushed = Hsail::_okra_push_object(_kernel, arg);
   assert(pushed == true, "arg push failed");  
 }
 

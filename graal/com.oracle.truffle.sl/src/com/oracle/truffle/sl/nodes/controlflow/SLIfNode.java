@@ -29,7 +29,7 @@ import com.oracle.truffle.api.utilities.*;
 import com.oracle.truffle.sl.nodes.*;
 
 @NodeInfo(shortName = "if")
-public class SLIfNode extends SLStatementNode {
+public final class SLIfNode extends SLStatementNode {
 
     /**
      * The condition of the {@code if}. This in a {@link SLExpressionNode} because we require a
@@ -57,9 +57,9 @@ public class SLIfNode extends SLStatementNode {
          * It is a Truffle requirement to call adoptChild(), which performs all the necessary steps
          * to add the new child to the node tree.
          */
-        this.conditionNode = adoptChild(conditionNode);
-        this.thenPartNode = adoptChild(thenPartNode);
-        this.elsePartNode = adoptChild(elsePartNode);
+        this.conditionNode = conditionNode;
+        this.thenPartNode = thenPartNode;
+        this.elsePartNode = elsePartNode;
     }
 
     @Override

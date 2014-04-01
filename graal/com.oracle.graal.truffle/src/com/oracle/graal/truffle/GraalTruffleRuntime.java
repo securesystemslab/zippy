@@ -48,6 +48,7 @@ import com.oracle.graal.phases.util.*;
 import com.oracle.graal.runtime.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -73,13 +74,18 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
     }
 
     public RootCallTarget createCallTarget(RootNode rootNode) {
-        if (!acceptForCompilation(rootNode)) {
-            return new UnoptimizedCallTarget(rootNode);
-        }
         if (truffleCompiler == null) {
             truffleCompiler = new TruffleCompilerImpl();
         }
-        return new OptimizedCallTarget(rootNode, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue());
+        return new OptimizedCallTarget(rootNode, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue(), acceptForCompilation(rootNode));
+    }
+
+    public CallNode createCallNode(CallTarget target) {
+        if (target instanceof OptimizedCallTarget) {
+            return OptimizedCallNode.create((OptimizedCallTarget) target);
+        } else {
+            return new DefaultCallNode(target);
+        }
     }
 
     @Override
@@ -197,8 +203,8 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
         CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
         Backend backend = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend();
         CompilationResultBuilderFactory factory = getOptimizedCallTargetInstrumentationFactory(backend.getTarget().arch.getName(), javaMethod);
-        return compileGraph(graph, cc, javaMethod, providers, backend, providers.getCodeCache().getTarget(), null, graphBuilderSuite, OptimisticOptimizations.ALL, getProfilingInfo(graph), null,
-                        suites, true, new CompilationResult(), factory);
+        return compileGraph(graph, null, cc, javaMethod, providers, backend, providers.getCodeCache().getTarget(), null, graphBuilderSuite, OptimisticOptimizations.ALL, getProfilingInfo(graph), null,
+                        suites, new CompilationResult(), factory);
     }
 
     private static Providers getGraalProviders() {

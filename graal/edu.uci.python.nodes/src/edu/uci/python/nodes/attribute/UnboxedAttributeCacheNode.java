@@ -38,7 +38,7 @@ public abstract class UnboxedAttributeCacheNode extends AbstractUnboxedAttribute
 
     public UnboxedAttributeCacheNode(PythonContext context, String attributeId, UnboxedCheckNode checkNode, PythonBasicObject storage) {
         super(context, attributeId);
-        this.primaryCheck = adoptChild(checkNode);
+        this.primaryCheck = checkNode;
         this.cachedStorage = storage;
     }
 

@@ -327,7 +327,7 @@ public class BinaryParser implements GraphParser {
         char[] chars = new char[len];
         buffer.asCharBuffer().get(chars);
         buffer.position(buffer.position() + len * 2);
-        return new String(chars);
+        return new String(chars).intern();
     }
 
     private byte[] readBytes() throws IOException {
@@ -355,7 +355,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private String readDoublesToString() throws IOException {
@@ -372,7 +372,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private String readPoolObjectsToString() throws IOException {
@@ -388,7 +388,7 @@ public class BinaryParser implements GraphParser {
             }
         }
         sb.append(']');
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private <T> T readPoolObject(Class<T> klass) throws IOException {
@@ -551,7 +551,7 @@ public class BinaryParser implements GraphParser {
                         throw new IOException("Unknown type");
                 }
             case PROPERTY_SUBGRAPH:
-                InputGraph graph = parseGraph(null);
+                InputGraph graph = parseGraph("");
                 new Group(null).addElement(graph);
                 return graph;
             default:
@@ -780,7 +780,7 @@ public class BinaryParser implements GraphParser {
         for (Edge e : edges) {
             char fromIndex = e.input ? 1 : e.num;
             char toIndex = e.input ? e.num : 0;
-            graph.addEdge(new InputEdge(fromIndex, toIndex, e.from, e.to, e.label));
+            graph.addEdge(InputEdge.createImmutable(fromIndex, toIndex, e.from, e.to, e.label));
         }
     }
     
@@ -837,7 +837,7 @@ public class BinaryParser implements GraphParser {
             m.appendReplacement(sb, result);
         }
         m.appendTail(sb);
-        return sb.toString();
+        return sb.toString().intern();
     }
     
     private static class Edge {
@@ -852,7 +852,7 @@ public class BinaryParser implements GraphParser {
         public Edge(int from, int to, char num, String label, boolean input) {
             this.from = from;
             this.to = to;
-            this.label = label;
+            this.label = label != null ? label.intern() : label;
             this.num = num;
             this.input = input;
         }

@@ -23,6 +23,7 @@
 package com.oracle.graal.test;
 
 import java.lang.reflect.*;
+import java.util.*;
 
 import org.junit.*;
 import org.junit.runner.*;
@@ -47,10 +48,27 @@ public class GraalTest {
                 found = m;
             }
         }
+        if (found == null) {
+            /* Now look for non-public methods (but this does not look in superclasses). */
+            for (Method m : clazz.getDeclaredMethods()) {
+                if (m.getName().equals(methodName)) {
+                    Assert.assertNull(found);
+                    found = m;
+                }
+            }
+        }
         if (found != null) {
             return found;
         } else {
             throw new RuntimeException("method not found: " + methodName);
+        }
+    }
+
+    protected Method getMethod(Class<?> clazz, String methodName, Class<?>[] parameterTypes) {
+        try {
+            return clazz.getMethod(methodName, parameterTypes);
+        } catch (NoSuchMethodException | SecurityException e) {
+            throw new RuntimeException("method not found: " + methodName + "" + Arrays.toString(parameterTypes));
         }
     }
 }

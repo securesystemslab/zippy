@@ -41,9 +41,9 @@ public class IfNode extends StatementNode {
     public long elseCounter = 0;
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
-        this.condition = adoptChild(condition);
-        this.then = adoptChild(then);
-        this.orelse = adoptChild(orelse);
+        this.condition = condition;
+        this.then = then;
+        this.orelse = orelse;
         NodeProfiler.getInstance().addIfNode(this);
     }
 

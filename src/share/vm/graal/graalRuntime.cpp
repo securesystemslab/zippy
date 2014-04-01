@@ -438,13 +438,12 @@ JRT_LEAF(jboolean, GraalRuntime::validate_object(JavaThread* thread, oopDesc* pa
   return (jint)ret;
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oopDesc* where, oopDesc* format, jlong value))
+JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, jlong where, jlong format, jlong value))
   ResourceMark rm;
-  assert(where == NULL || java_lang_String::is_instance(where), "must be");
-  const char *error_msg = where == NULL ? "<internal Graal error>" : java_lang_String::as_utf8_string(where);
+  const char *error_msg = where == 0L ? "<internal Graal error>" : (char*) (address) where;
   char *detail_msg = NULL;
-  if (format != NULL) {
-    const char* buf = java_lang_String::as_utf8_string(format);
+  if (format != 0L) {
+    const char* buf = (char*) (address) format;
     size_t detail_msg_length = strlen(buf) * 2;
     detail_msg = (char *) NEW_RESOURCE_ARRAY(u_char, detail_msg_length);
     jio_snprintf(detail_msg, detail_msg_length, buf, value);
@@ -539,7 +538,12 @@ JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oopD
   Handle receiverHandle(thread, receiver);
   MutexLockerEx ml(thread->threadObj() == (void*)receiver ? NULL : Threads_lock);
   JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
-  return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
+  if (receiverThread == NULL) {
+    // The other thread may exit during this process, which is ok so return false.
+    return JNI_FALSE;
+  } else {
+    return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
+  }
 JRT_END
 
 // JVM_InitializeGraalRuntime

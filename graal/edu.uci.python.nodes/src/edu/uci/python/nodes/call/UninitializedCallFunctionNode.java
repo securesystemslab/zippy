@@ -42,7 +42,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
 
     public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         super(arguments, keywords, context);
-        this.callee = adoptChild(callee);
+        this.callee = callee;
     }
 
     @Override

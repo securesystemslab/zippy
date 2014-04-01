@@ -27,9 +27,9 @@ package com.oracle.truffle.api.nodes;
 import java.io.*;
 import java.lang.annotation.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.NodeInfo.Kind;
 
 /**
  * Abstract base class for all Truffle nodes.
@@ -83,6 +83,22 @@ public abstract class Node implements Cloneable {
     }
 
     /**
+     * Returns a rough estimate for the cost of this {@link Node}. This estimate can be used by
+     * runtime systems or guest languages to implement heuristics based on Truffle ASTs. This method
+     * is intended to be overridden by subclasses. The default implementation returns the value of
+     * {@link NodeInfo#cost()} of the {@link NodeInfo} annotation declared at the subclass. If no
+     * {@link NodeInfo} annotation is declared the method returns {@link NodeCost#MONOMORPHIC} as a
+     * default value.
+     */
+    public NodeCost getCost() {
+        NodeInfo info = getClass().getAnnotation(NodeInfo.class);
+        if (info != null) {
+            return info.cost();
+        }
+        return NodeCost.MONOMORPHIC;
+    }
+
+    /**
      * Clears any previously assigned guest language source code from this node.
      */
     public final void clearSourceSection() {
@@ -118,11 +134,36 @@ public abstract class Node implements Cloneable {
      * @param newChildren the array of new children whose parent should be updated
      * @return the array of new children
      */
-    protected final <T extends Node> T[] adoptChildren(T[] newChildren) {
-        if (newChildren != null) {
-            for (T n : newChildren) {
-                adoptChild(n);
-            }
+    @SuppressWarnings("static-method")
+    @Deprecated
+    protected final <T extends Node> T[] adoptChildren(final T[] newChildren) {
+        return newChildren;
+    }
+
+    /**
+     * Method that updates the link to the parent in the specified new child node to this node.
+     * 
+     * @param newChild the new child whose parent should be updated
+     * @return the new child
+     */
+    @SuppressWarnings("static-method")
+    @Deprecated
+    protected final <T extends Node> T adoptChild(final T newChild) {
+        return newChild;
+    }
+
+    /**
+     * Method that updates the link to the parent in the array of specified new child nodes to this
+     * node.
+     * 
+     * @param newChildren the array of new children whose parent should be updated
+     * @return the array of new children
+     */
+    protected final <T extends Node> T[] insert(final T[] newChildren) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        assert newChildren != null;
+        for (Node newChild : newChildren) {
+            adoptHelper(newChild);
         }
         return newChildren;
     }
@@ -133,14 +174,52 @@ public abstract class Node implements Cloneable {
      * @param newChild the new child whose parent should be updated
      * @return the new child
      */
-    protected final <T extends Node> T adoptChild(T newChild) {
-        if (newChild != null) {
-            if (newChild == this) {
-                throw new IllegalStateException("The parent of a node can never be the node itself.");
-            }
-            ((Node) newChild).parent = this;
-        }
+    protected final <T extends Node> T insert(final T newChild) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        assert newChild != null;
+        adoptHelper(newChild);
         return newChild;
+    }
+
+    public final void adoptChildren() {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        adoptHelper();
+    }
+
+    private void adoptHelper(final Node newChild) {
+        assert newChild != null;
+        if (newChild == this) {
+            throw new IllegalStateException("The parent of a node can never be the node itself.");
+        }
+        newChild.parent = this;
+        newChild.adoptHelper();
+    }
+
+    private void adoptHelper() {
+        Iterable<Node> children = this.getChildren();
+        for (Node child : children) {
+            if (child != null && child.getParent() != this) {
+                this.adoptHelper(child);
+            }
+        }
+    }
+
+    private void adoptUnadoptedHelper(final Node newChild) {
+        assert newChild != null;
+        if (newChild == this) {
+            throw new IllegalStateException("The parent of a node can never be the node itself.");
+        }
+        newChild.parent = this;
+        newChild.adoptUnadoptedHelper();
+    }
+
+    private void adoptUnadoptedHelper() {
+        Iterable<Node> children = this.getChildren();
+        for (Node child : children) {
+            if (child != null && child.getParent() == null) {
+                this.adoptUnadoptedHelper(child);
+            }
+        }
     }
 
     /**
@@ -171,8 +250,29 @@ public abstract class Node implements Cloneable {
      * @param reason a description of the reason for the replacement
      * @return the new node
      */
-    public final <T extends Node> T replace(T newNode, String reason) {
-        CompilerDirectives.transferToInterpreter();
+    public final <T extends Node> T replace(final T newNode, final CharSequence reason) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        atomic(new Runnable() {
+            public void run() {
+                replaceHelper(newNode, reason);
+            }
+        });
+        return newNode;
+    }
+
+    /**
+     * Replaces this node with another node. If there is a source section (see
+     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
+     * 
+     * @param newNode the new node that is the replacement
+     * @return the new node
+     */
+    public final <T extends Node> T replace(T newNode) {
+        return replace(newNode, "");
+    }
+
+    private void replaceHelper(Node newNode, CharSequence reason) {
+        CompilerAsserts.neverPartOfCompilation();
         if (this.getParent() == null) {
             throw new IllegalStateException("This node cannot be replaced, because it does not yet have a parent.");
         }
@@ -180,13 +280,17 @@ public abstract class Node implements Cloneable {
             // Pass on the source section to the new node.
             newNode.assignSourceSection(sourceSection);
         }
-        onReplace(newNode, reason);
-        ((Node) newNode).parent = this.parent;
-        if (!NodeUtil.replaceChild(this.parent, this, newNode)) {
+        // (aw) need to set parent *before* replace, so that (unsynchronized) getRootNode()
+        // will always find the root node
+        newNode.parent = this.parent;
+        if (NodeUtil.replaceChild(this.parent, this, newNode)) {
+            this.parent.adoptHelper(newNode);
+        } else {
             fixupTree();
+            this.parent.adoptUnadoptedHelper(newNode);
         }
-        reportReplace();
-        return newNode;
+        reportReplace(this, newNode, reason);
+        onReplace(newNode, reason);
     }
 
     /**
@@ -199,8 +303,10 @@ public abstract class Node implements Cloneable {
         if (rootNode == null) {
             throw new UnsupportedOperationException("Tree does not have a root node.");
         }
+        @SuppressWarnings("unused")
         int fixCount = rootNode.fixupChildren();
-        assert fixCount != 0 : "sanity check failed: missing @Child[ren] or adoptChild?";
+        // zwei: disabled this assertion.
+        // assert fixCount != 0 : "sanity check failed: missing @Child[ren] or adoptChild?";
         // if nothing had to be fixed, rewrite failed due to node not being a proper child.
     }
 
@@ -219,17 +325,6 @@ public abstract class Node implements Cloneable {
     }
 
     /**
-     * Replaces this node with another node. If there is a source section (see
-     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
-     * 
-     * @param newNode the new node that is the replacement
-     * @return the new node
-     */
-    public final <T extends Node> T replace(T newNode) {
-        return replace(newNode, "");
-    }
-
-    /**
      * Checks if this node is properly adopted by a parent and can be replaced.
      * 
      * @return {@code true} if it is safe to replace this node.
@@ -245,11 +340,12 @@ public abstract class Node implements Cloneable {
         return false;
     }
 
-    private void reportReplace() {
-        RootNode rootNode = NodeUtil.findOutermostRootNode(this);
+    private void reportReplace(Node oldNode, Node newNode, CharSequence reason) {
+        RootNode rootNode = getRootNode();
         if (rootNode != null) {
-            if (rootNode.getCallTarget() instanceof ReplaceObserver) {
-                ((ReplaceObserver) rootNode.getCallTarget()).nodeReplaced();
+            CallTarget target = rootNode.getCallTarget();
+            if (target instanceof ReplaceObserver) {
+                ((ReplaceObserver) target).nodeReplaced(oldNode, newNode, reason);
             }
         }
     }
@@ -261,68 +357,61 @@ public abstract class Node implements Cloneable {
      * @param newNode the replacement node
      * @param reason the reason the replace supplied
      */
-    protected void onReplace(Node newNode, String reason) {
+    protected void onReplace(Node newNode, CharSequence reason) {
         if (TruffleOptions.TraceRewrites) {
             traceRewrite(newNode, reason);
         }
     }
 
-    private void traceRewrite(Node newNode, String reason) {
-        Class<? extends Node> from = getClass();
-        Class<? extends Node> to = newNode.getClass();
+    private void traceRewrite(Node newNode, CharSequence reason) {
 
-        if (TruffleOptions.TraceRewritesFilterFromKind != null) {
-            if (filterByKind(from, TruffleOptions.TraceRewritesFilterFromKind)) {
+        if (TruffleOptions.TraceRewritesFilterFromCost != null) {
+            if (filterByKind(this, TruffleOptions.TraceRewritesFilterFromCost)) {
                 return;
             }
         }
 
-        if (TruffleOptions.TraceRewritesFilterToKind != null) {
-            if (filterByKind(to, TruffleOptions.TraceRewritesFilterToKind)) {
+        if (TruffleOptions.TraceRewritesFilterToCost != null) {
+            if (filterByKind(newNode, TruffleOptions.TraceRewritesFilterToCost)) {
                 return;
             }
         }
 
         String filter = TruffleOptions.TraceRewritesFilterClass;
+        Class<? extends Node> from = getClass();
+        Class<? extends Node> to = newNode.getClass();
         if (filter != null && (filterByContainsClassName(from, filter) || filterByContainsClassName(to, filter))) {
             return;
         }
 
         PrintStream out = System.out;
-        out.printf("[truffle]   rewrite %-50s |From %-40s |To %-40s |Reason %s.%n", this.toString(), formatNodeInfo(from), formatNodeInfo(to), reason);
+        out.printf("[truffle]   rewrite %-50s |From %-40s |To %-40s |Reason %s.%n", this.toString(), formatNodeInfo(this), formatNodeInfo(newNode), reason);
     }
 
-    private static String formatNodeInfo(Class<? extends Node> clazz) {
-        NodeInfo nodeInfo = clazz.getAnnotation(NodeInfo.class);
-        String kind = "?";
-        if (nodeInfo != null) {
-            switch (nodeInfo.kind()) {
-                case GENERIC:
-                    kind = "G";
-                    break;
-                case SPECIALIZED:
-                    kind = "S";
-                    break;
-                case UNINITIALIZED:
-                    kind = "U";
-                    break;
-                case POLYMORPHIC:
-                    kind = "P";
-                    break;
-                default:
-                    kind = "?";
-                    break;
-            }
+    private static String formatNodeInfo(Node node) {
+        String cost = "?";
+        switch (node.getCost()) {
+            case NONE:
+                cost = "G";
+                break;
+            case MONOMORPHIC:
+                cost = "M";
+                break;
+            case POLYMORPHIC:
+                cost = "P";
+                break;
+            case MEGAMORPHIC:
+                cost = "G";
+                break;
+            default:
+                cost = "?";
+                break;
         }
-        return kind + " " + clazz.getSimpleName();
+        return cost + " " + node.getClass().getSimpleName();
     }
 
-    private static boolean filterByKind(Class<?> clazz, Kind kind) {
-        NodeInfo info = clazz.getAnnotation(NodeInfo.class);
-        if (info != null) {
-            return info.kind() != kind;
-        }
-        return true;
+    private static boolean filterByKind(Node node, NodeCost cost) {
+        return node.getCost() == cost;
     }
 
     private static boolean filterByContainsClassName(Class<? extends Node> from, String filter) {
@@ -395,8 +484,7 @@ public abstract class Node implements Cloneable {
      * 
      * @return the {@link RootNode} or {@code null} if there is none.
      */
-    protected final RootNode getRootNode() {
-        // protected final RootNode getRootNode() {
+    public final RootNode getRootNode() {
         Node rootNode = this;
         while (rootNode.getParent() != null) {
             assert !(rootNode instanceof RootNode) : "root node must not have a parent";
@@ -426,5 +514,33 @@ public abstract class Node implements Cloneable {
         }
         sb.append("@").append(Integer.toHexString(hashCode()));
         return sb.toString();
+    }
+
+    public final void atomic(Runnable closure) {
+        RootNode rootNode = getRootNode();
+        if (rootNode != null) {
+            synchronized (rootNode) {
+                closure.run();
+            }
+        } else {
+            closure.run();
+        }
+    }
+
+    public final <T> T atomic(Callable<T> closure) {
+        try {
+            RootNode rootNode = getRootNode();
+            if (rootNode != null) {
+                synchronized (rootNode) {
+                    return closure.call();
+                }
+            } else {
+                return closure.call();
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

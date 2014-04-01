@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.compiler.gen;
 
-import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.api.meta.Value.*;
 import static com.oracle.graal.lir.LIR.*;
@@ -36,12 +35,15 @@ import java.util.Map.Entry;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
-import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.*;
+import com.oracle.graal.lir.StandardOp.BlockEndOp;
+import com.oracle.graal.lir.StandardOp.JumpOp;
+import com.oracle.graal.lir.StandardOp.LabelOp;
+import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -56,7 +58,7 @@ import com.oracle.graal.phases.util.*;
 /**
  * This class traverses the HIR instructions and generates LIR instructions from them.
  */
-public abstract class LIRGenerator implements LIRGeneratorTool {
+public abstract class LIRGenerator implements LIRGeneratorTool, LIRTypeTool {
 
     public static class Options {
         // @formatter:off
@@ -71,7 +73,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public final NodeMap<Value> nodeOperands;
     public final LIR lir;
 
-    protected final StructuredGraph graph;
     private final Providers providers;
     protected final CallingConvention cc;
 
@@ -171,16 +172,9 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public abstract boolean canStoreConstant(Constant c, boolean isCompressed);
 
     public LIRGenerator(StructuredGraph graph, Providers providers, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        this.graph = graph;
         this.providers = providers;
         this.frameMap = frameMap;
-        if (graph.getEntryBCI() == StructuredGraph.INVOCATION_ENTRY_BCI) {
-            this.cc = cc;
-        } else {
-            JavaType[] parameterTypes = new JavaType[]{getMetaAccess().lookupJavaType(long.class)};
-            CallingConvention tmp = frameMap.registerConfig.getCallingConvention(JavaCallee, getMetaAccess().lookupJavaType(void.class), parameterTypes, target(), false);
-            this.cc = new CallingConvention(cc.getStackSize(), cc.getReturn(), tmp.getArgument(0));
-        }
+        this.cc = cc;
         this.nodeOperands = graph.createNodeMap();
         this.lir = lir;
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
@@ -189,37 +183,11 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     /**
-     * Returns a value for a interval definition, which can be used for re-materialization.
-     * 
-     * @param op An instruction which defines a value
-     * @param operand The destination operand of the instruction
-     * @param interval The interval for this defined value.
-     * @return Returns the value which is moved to the instruction and which can be reused at all
-     *         reload-locations in case the interval of this instruction is spilled. Currently this
-     *         can only be a {@link Constant}.
+     * Returns true if the redundant move elimination optimization should be done after register
+     * allocation.
      */
-    public Constant getMaterializedValue(LIRInstruction op, Value operand, Interval interval) {
-        if (op instanceof MoveOp) {
-            MoveOp move = (MoveOp) op;
-            if (move.getInput() instanceof Constant) {
-                /*
-                 * Check if the interval has any uses which would accept an stack location (priority
-                 * == ShouldHaveRegister). Rematerialization of such intervals can result in a
-                 * degradation, because rematerialization always inserts a constant load, even if
-                 * the value is not needed in a register.
-                 */
-                Interval.UsePosList usePosList = interval.usePosList();
-                int numUsePos = usePosList.size();
-                for (int useIdx = 0; useIdx < numUsePos; useIdx++) {
-                    Interval.RegisterPriority priority = usePosList.registerPriority(useIdx);
-                    if (priority == Interval.RegisterPriority.ShouldHaveRegister) {
-                        return null;
-                    }
-                }
-                return (Constant) move.getInput();
-            }
-        }
-        return null;
+    public boolean canEliminateRedundantMoves() {
+        return true;
     }
 
     @SuppressWarnings("hiding")
@@ -251,10 +219,6 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         return providers.getForeignCalls();
     }
 
-    public StructuredGraph getGraph() {
-        return graph;
-    }
-
     /**
      * Determines whether the code being generated makes at least one foreign call.
      */
@@ -264,18 +228,30 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     /**
      * Returns the operand that has been previously initialized by
-     * {@link #setResult(ValueNode, Value)} with the result of an instruction.
+     * {@link #setResult(ValueNode, Value)} with the result of an instruction. It's a code
+     * generation error to ask for the operand of ValueNode that doesn't have one yet.
      * 
      * @param node A node that produces a result value.
      */
     @Override
     public Value operand(ValueNode node) {
+        Value operand = getOperand(node);
+        assert operand != null : String.format("missing operand for %1s", node);
+        return operand;
+    }
+
+    @Override
+    public boolean hasOperand(ValueNode node) {
+        return getOperand(node) != null;
+    }
+
+    private Value getOperand(ValueNode node) {
         if (nodeOperands == null) {
             return null;
         }
         Value operand = nodeOperands.get(node);
         if (operand == null) {
-            return getConstantOperand(node);
+            operand = getConstantOperand(node);
         }
         return operand;
     }
@@ -333,13 +309,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
      */
     @Override
     public Variable newVariable(PlatformKind platformKind) {
-        PlatformKind stackKind;
-        if (platformKind instanceof Kind) {
-            stackKind = ((Kind) platformKind).getStackKind();
-        } else {
-            stackKind = platformKind;
-        }
-        return new Variable(stackKind, lir.nextVariable());
+        return new Variable(platformKind, lir.nextVariable());
     }
 
     @Override
@@ -352,7 +322,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         assert (!isRegister(operand) || !attributes(asRegister(operand)).isAllocatable());
         assert nodeOperands == null || nodeOperands.get(x) == null : "operand cannot be set twice";
         assert operand != null && isLegal(operand) : "operand must be legal";
-        assert operand.getKind().getStackKind() == x.kind() || x.kind() == Kind.Illegal : operand.getKind().getStackKind() + " must match " + x.kind();
+        assert operand.getKind().getStackKind() == x.getKind() || x.getKind() == Kind.Illegal : operand.getKind().getStackKind() + " must match " + x.getKind();
         assert !(x instanceof VirtualObjectNode);
         nodeOperands.set(x, operand);
         return operand;
@@ -384,7 +354,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     public LabelRef getLIRBlock(FixedNode b) {
-        Block result = lir.cfg.blockFor(b);
+        Block result = lir.getControlFlowGraph().blockFor(b);
         int suxIndex = currentBlock.getSuccessors().indexOf(result);
         assert suxIndex != -1 : "Block not in successor list of current block";
 
@@ -398,18 +368,29 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         return false;
     }
 
+    private static FrameState getFrameState(DeoptimizingNode deopt) {
+        if (deopt instanceof DeoptimizingNode.DeoptBefore) {
+            return ((DeoptimizingNode.DeoptBefore) deopt).stateBefore();
+        } else if (deopt instanceof DeoptimizingNode.DeoptDuring) {
+            return ((DeoptimizingNode.DeoptDuring) deopt).stateDuring();
+        } else {
+            assert deopt instanceof DeoptimizingNode.DeoptAfter;
+            return ((DeoptimizingNode.DeoptAfter) deopt).stateAfter();
+        }
+    }
+
     public LIRFrameState state(DeoptimizingNode deopt) {
         if (!deopt.canDeoptimize()) {
             return null;
         }
-        return stateFor(deopt.getDeoptimizationState());
+        return stateFor(getFrameState(deopt));
     }
 
     public LIRFrameState stateWithExceptionEdge(DeoptimizingNode deopt, LabelRef exceptionEdge) {
         if (!deopt.canDeoptimize()) {
             return null;
         }
-        return stateForWithExceptionEdge(deopt.getDeoptimizationState(), exceptionEdge);
+        return stateForWithExceptionEdge(getFrameState(deopt), exceptionEdge);
     }
 
     public LIRFrameState stateFor(FrameState state) {
@@ -452,7 +433,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         lir.lir(currentBlock).add(op);
     }
 
-    public void doBlock(Block block) {
+    public void doBlock(Block block, StructuredGraph graph, BlockMap<List<ScheduledNode>> blockMap) {
         if (printIRWithLIR) {
             TTY.print(block.toString());
         }
@@ -469,31 +450,39 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             TTY.println("BEGIN Generating LIR for block B" + block.getId());
         }
 
-        if (block == lir.cfg.getStartBlock()) {
+        if (block == lir.getControlFlowGraph().getStartBlock()) {
             assert block.getPredecessorCount() == 0;
-            emitPrologue();
+            emitPrologue(graph);
         } else {
             assert block.getPredecessorCount() > 0;
         }
 
-        List<ScheduledNode> nodes = lir.nodesFor(block);
+        List<ScheduledNode> nodes = blockMap.get(block);
+        int instructionsFolded = 0;
         for (int i = 0; i < nodes.size(); i++) {
             Node instr = nodes.get(i);
             if (traceLevel >= 3) {
                 TTY.println("LIRGen for " + instr);
             }
+            if (instructionsFolded > 0) {
+                instructionsFolded--;
+                continue;
+            }
             if (!ConstantNodeRecordsUsages && instr instanceof ConstantNode) {
                 // Loading of constants is done lazily by operand()
             } else if (instr instanceof ValueNode) {
                 ValueNode valueNode = (ValueNode) instr;
-                if (operand(valueNode) == null) {
+                if (!hasOperand(valueNode)) {
                     if (!peephole(valueNode)) {
-                        try {
-                            doRoot((ValueNode) instr);
-                        } catch (GraalInternalError e) {
-                            throw e.addContext(instr);
-                        } catch (Throwable e) {
-                            throw new GraalInternalError(e).addContext(instr);
+                        instructionsFolded = maybeFoldMemory(nodes, i, valueNode);
+                        if (instructionsFolded == 0) {
+                            try {
+                                doRoot((ValueNode) instr);
+                            } catch (GraalInternalError e) {
+                                throw e.addContext(instr);
+                            } catch (Throwable e) {
+                                throw new GraalInternalError(e).addContext(instr);
+                            }
                         }
                     }
                 } else {
@@ -529,6 +518,138 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
     }
 
+    private static final DebugMetric MemoryFoldSuccess = Debug.metric("MemoryFoldSuccess");
+    private static final DebugMetric MemoryFoldFailed = Debug.metric("MemoryFoldFailed");
+    private static final DebugMetric MemoryFoldFailedNonAdjacent = Debug.metric("MemoryFoldedFailedNonAdjacent");
+    private static final DebugMetric MemoryFoldFailedDifferentBlock = Debug.metric("MemoryFoldedFailedDifferentBlock");
+
+    /**
+     * Subclass can provide helper to fold memory operations into other operations.
+     */
+    protected MemoryArithmeticLIRLowerer getMemoryLowerer() {
+        return null;
+    }
+
+    /**
+     * Try to find a sequence of Nodes which can be passed to the backend to look for optimized
+     * instruction sequences using memory. Currently this basically is a read with a single
+     * arithmetic user followed by an possible if use. This should generalized to more generic
+     * pattern matching so that it can be more flexibly used.
+     */
+    private int maybeFoldMemory(List<ScheduledNode> nodes, int i, ValueNode access) {
+        MemoryArithmeticLIRLowerer lowerer = getMemoryLowerer();
+        if (lowerer != null && OptFoldMemory.getValue() && (access instanceof ReadNode || access instanceof FloatingReadNode) && access.usages().count() == 1 && i + 1 < nodes.size()) {
+            try (Scope s = Debug.scope("MaybeFoldMemory", access)) {
+                // This is all bit hacky since it's happening on the linearized schedule. This needs
+                // to be revisited at some point.
+
+                // Find a memory lowerable usage of this operation
+                if (access.usages().first() instanceof MemoryArithmeticLIRLowerable) {
+                    ValueNode operation = (ValueNode) access.usages().first();
+                    if (!nodes.contains(operation)) {
+                        Debug.log("node %1s in different block from %1s", access, operation);
+                        MemoryFoldFailedDifferentBlock.increment();
+                        return 0;
+                    }
+                    ValueNode firstOperation = operation;
+                    if (operation instanceof LogicNode) {
+                        if (operation.usages().count() == 1 && operation.usages().first() instanceof IfNode) {
+                            ValueNode ifNode = (ValueNode) operation.usages().first();
+                            if (!nodes.contains(ifNode)) {
+                                MemoryFoldFailedDifferentBlock.increment();
+                                Debug.log("if node %1s in different block from %1s", ifNode, operation);
+                                try (Indent indent = Debug.logAndIndent("checking operations")) {
+                                    int start = nodes.indexOf(access);
+                                    int end = nodes.indexOf(operation);
+                                    for (int i1 = Math.min(start, end); i1 <= Math.max(start, end); i1++) {
+                                        indent.log("%d: (%d) %1s", i1, nodes.get(i1).usages().count(), nodes.get(i1));
+                                    }
+                                }
+                                return 0;
+                            } else {
+                                operation = ifNode;
+                            }
+                        }
+                    }
+                    if (Debug.isLogEnabled()) {
+                        synchronized ("lock") {  // Hack to ensure the output is grouped.
+                            try (Indent indent = Debug.logAndIndent("checking operations")) {
+                                int start = nodes.indexOf(access);
+                                int end = nodes.indexOf(operation);
+                                for (int i1 = Math.min(start, end); i1 <= Math.max(start, end); i1++) {
+                                    indent.log("%d: (%d) %1s", i1, nodes.get(i1).usages().count(), nodes.get(i1));
+                                }
+                            }
+                        }
+                    }
+                    // Possible lowerable operation in the same block. Check out the dependencies.
+                    int opIndex = nodes.indexOf(operation);
+                    int current = i + 1;
+                    ArrayList<ValueNode> deferred = null;
+                    while (current < opIndex) {
+                        ScheduledNode node = nodes.get(current);
+                        if (node != firstOperation) {
+                            if (node instanceof LocationNode || node instanceof VirtualObjectNode) {
+                                // nothing to do
+                            } else if (node instanceof ConstantNode) {
+                                if (deferred == null) {
+                                    deferred = new ArrayList<>(2);
+                                }
+                                // These nodes are collected and the backend is expended to
+                                // evaluate them before generating the lowered form. This
+                                // basically works around unfriendly scheduling of values which
+                                // are defined in a block but not used there.
+                                deferred.add((ValueNode) node);
+                            } else {
+                                Debug.log("unexpected node %1s", node);
+                                // Unexpected inline node
+                                break;
+                            }
+                        }
+                        current++;
+                    }
+
+                    if (current == opIndex) {
+                        if (lowerer.memoryPeephole((Access) access, (MemoryArithmeticLIRLowerable) operation, deferred)) {
+                            MemoryFoldSuccess.increment();
+                            // if this operation had multiple access inputs, then previous attempts
+                            // would be marked as failures which is wrong. Try to adjust the
+                            // counters to account for this.
+                            for (Node input : operation.inputs()) {
+                                if (input == access) {
+                                    continue;
+                                }
+                                if (input instanceof Access && nodes.contains(input)) {
+                                    MemoryFoldFailedNonAdjacent.add(-1);
+                                }
+                            }
+                            if (deferred != null) {
+                                // Ensure deferred nodes were evaluated
+                                for (ValueNode node : deferred) {
+                                    assert hasOperand(node);
+                                }
+                            }
+                            return opIndex - i;
+                        } else {
+                            // This isn't true failure, it just means there wasn't match for the
+                            // pattern. Usually that means it's just not supported by the backend.
+                            MemoryFoldFailed.increment();
+                            return 0;
+                        }
+                    } else {
+                        MemoryFoldFailedNonAdjacent.increment();
+                    }
+                } else {
+                    // memory usage which isn't considered lowerable. Mostly these are
+                    // uninteresting but it might be worth looking at to ensure that interesting
+                    // nodes are being properly handled.
+                    // Debug.log("usage isn't lowerable %1s", access.usages().first());
+                }
+            }
+        }
+        return 0;
+    }
+
     protected abstract boolean peephole(ValueNode valueNode);
 
     private boolean hasBlockEnd(Block block) {
@@ -547,7 +668,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
         Debug.log("Visiting %s", instr);
         emitNode(instr);
-        Debug.log("Operand for %s = %s", instr, operand(instr));
+        Debug.log("Operand for %s = %s", instr, getOperand(instr));
     }
 
     protected void emitNode(ValueNode node) {
@@ -565,7 +686,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
     }
 
-    protected void emitPrologue() {
+    protected void emitPrologue(StructuredGraph graph) {
         CallingConvention incomingArguments = cc;
 
         Value[] params = new Value[incomingArguments.getArgumentCount()];
@@ -583,7 +704,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
         for (ParameterNode param : graph.getNodes(ParameterNode.class)) {
             Value paramValue = params[param.index()];
-            assert paramValue.getKind() == param.kind().getStackKind();
+            assert paramValue.getKind() == param.getKind().getStackKind();
             setResult(param, emitMove(paramValue));
         }
     }
@@ -596,7 +717,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     public void visitReturn(ReturnNode x) {
         AllocatableValue operand = ILLEGAL;
         if (x.result() != null) {
-            operand = resultOperandFor(x.result().kind());
+            operand = resultOperandFor(x.result().getKind());
             emitMove(operand, operand(x.result()));
         }
         emitReturn(operand);
@@ -637,12 +758,12 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     protected PlatformKind getPhiKind(PhiNode phi) {
-        return phi.kind();
+        return phi.getKind();
     }
 
     private Value operandForPhi(PhiNode phi) {
         assert phi.type() == PhiType.Value : "wrong phi type: " + phi;
-        Value result = operand(phi);
+        Value result = getOperand(phi);
         if (result == null) {
             // allocate a variable for this phi
             Variable newOperand = newVariable(getPhiKind(phi));
@@ -655,37 +776,33 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     @Override
     public void emitIf(IfNode x) {
-        emitBranch(x.condition(), getLIRBlock(x.trueSuccessor()), getLIRBlock(x.falseSuccessor()));
+        emitBranch(x.condition(), getLIRBlock(x.trueSuccessor()), getLIRBlock(x.falseSuccessor()), x.probability(x.trueSuccessor()));
     }
 
-    public void emitBranch(LogicNode node, LabelRef trueSuccessor, LabelRef falseSuccessor) {
+    public void emitBranch(LogicNode node, LabelRef trueSuccessor, LabelRef falseSuccessor, double trueSuccessorProbability) {
         if (node instanceof IsNullNode) {
-            emitNullCheckBranch((IsNullNode) node, trueSuccessor, falseSuccessor);
+            emitNullCheckBranch((IsNullNode) node, trueSuccessor, falseSuccessor, trueSuccessorProbability);
         } else if (node instanceof CompareNode) {
-            emitCompareBranch((CompareNode) node, trueSuccessor, falseSuccessor);
+            emitCompareBranch((CompareNode) node, trueSuccessor, falseSuccessor, trueSuccessorProbability);
         } else if (node instanceof LogicConstantNode) {
             emitConstantBranch(((LogicConstantNode) node).getValue(), trueSuccessor, falseSuccessor);
         } else if (node instanceof IntegerTestNode) {
-            emitIntegerTestBranch((IntegerTestNode) node, trueSuccessor, falseSuccessor);
+            emitIntegerTestBranch((IntegerTestNode) node, trueSuccessor, falseSuccessor, trueSuccessorProbability);
         } else {
             throw GraalInternalError.unimplemented(node.toString());
         }
     }
 
-    private void emitNullCheckBranch(IsNullNode node, LabelRef trueSuccessor, LabelRef falseSuccessor) {
-        emitCompareBranch(operand(node.object()), Constant.NULL_OBJECT, Condition.EQ, false, trueSuccessor, falseSuccessor);
+    private void emitNullCheckBranch(IsNullNode node, LabelRef trueSuccessor, LabelRef falseSuccessor, double trueSuccessorProbability) {
+        emitCompareBranch(operand(node.object()), Constant.NULL_OBJECT, Condition.EQ, false, trueSuccessor, falseSuccessor, trueSuccessorProbability);
     }
 
-    public void emitCompareBranch(CompareNode compare, LabelRef trueSuccessor, LabelRef falseSuccessor) {
-        emitCompareBranch(operand(compare.x()), operand(compare.y()), compare.condition(), compare.unorderedIsTrue(), trueSuccessor, falseSuccessor);
+    public void emitCompareBranch(CompareNode compare, LabelRef trueSuccessor, LabelRef falseSuccessor, double trueSuccessorProbability) {
+        emitCompareBranch(operand(compare.x()), operand(compare.y()), compare.condition(), compare.unorderedIsTrue(), trueSuccessor, falseSuccessor, trueSuccessorProbability);
     }
 
-    public void emitOverflowCheckBranch(LabelRef noOverflowBlock, LabelRef overflowBlock) {
-        emitOverflowCheckBranch(overflowBlock, noOverflowBlock, false);
-    }
-
-    public void emitIntegerTestBranch(IntegerTestNode test, LabelRef trueSuccessor, LabelRef falseSuccessor) {
-        emitIntegerTestBranch(operand(test.x()), operand(test.y()), false, trueSuccessor, falseSuccessor);
+    public void emitIntegerTestBranch(IntegerTestNode test, LabelRef trueSuccessor, LabelRef falseSuccessor, double trueSuccessorProbability) {
+        emitIntegerTestBranch(operand(test.x()), operand(test.y()), trueSuccessor, falseSuccessor, trueSuccessorProbability);
     }
 
     public void emitConstantBranch(boolean value, LabelRef trueSuccessorBlock, LabelRef falseSuccessorBlock) {
@@ -719,11 +836,11 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     public abstract void emitJump(LabelRef label);
 
-    public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination);
+    public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability);
 
-    public abstract void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, boolean negated);
+    public abstract void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, double overflowProbability);
 
-    public abstract void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef trueDestination, LabelRef falseDestination);
+    public abstract void emitIntegerTestBranch(Value left, Value right, LabelRef trueDestination, LabelRef falseDestination, double trueSuccessorProbability);
 
     public abstract Variable emitConditionalMove(Value leftVal, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue);
 
@@ -804,7 +921,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         LIRFrameState state = null;
         if (linkage.canDeoptimize()) {
             if (info != null) {
-                state = stateFor(info.getDeoptimizationState());
+                state = stateFor(getFrameState(info));
             } else {
                 assert needOnlyOopMaps();
                 state = new LIRFrameState(null, null, null);
@@ -851,7 +968,8 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
             Variable value = load(operand(x.value()));
             if (keyCount == 1) {
                 assert defaultTarget != null;
-                emitCompareBranch(load(operand(x.value())), x.keyAt(0), Condition.EQ, false, getLIRBlock(x.keySuccessor(0)), defaultTarget);
+                double probability = x.probability(x.keySuccessor(0));
+                emitCompareBranch(load(operand(x.value())), x.keyAt(0), Condition.EQ, false, getLIRBlock(x.keySuccessor(0)), defaultTarget, probability);
             } else {
                 LabelRef[] keyTargets = new LabelRef[keyCount];
                 Constant[] keyConstants = new Constant[keyCount];
@@ -1016,6 +1134,36 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         }
     }
 
+    /**
+     * Default implementation: Return the Java stack kind for each stamp.
+     */
+    public PlatformKind getPlatformKind(Stamp stamp) {
+        return stamp.getPlatformKind(this);
+    }
+
+    public PlatformKind getIntegerKind(int bits, boolean unsigned) {
+        if (bits > 32) {
+            return Kind.Long;
+        } else {
+            return Kind.Int;
+        }
+    }
+
+    public PlatformKind getFloatingKind(int bits) {
+        switch (bits) {
+            case 32:
+                return Kind.Float;
+            case 64:
+                return Kind.Double;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    public PlatformKind getObjectKind() {
+        return Kind.Object;
+    }
+
     public abstract void emitBitCount(Variable result, Value operand);
 
     public abstract void emitBitScanForward(Variable result, Value operand);
@@ -1024,5 +1172,5 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
 
     public abstract void emitByteSwap(Variable result, Value operand);
 
-    public abstract void emitCharArrayEquals(Variable result, Value array1, Value array2, Value length);
+    public abstract void emitArrayEquals(Kind kind, Variable result, Value array1, Value array2, Value length);
 }

@@ -37,7 +37,7 @@ public abstract class BoxedAttributeCacheNode extends AbstractBoxedAttributeNode
 
     public BoxedAttributeCacheNode(String attributeId, BoxedCheckNode checkNode, PythonBasicObject storage) {
         super(attributeId);
-        this.primaryCheck = adoptChild(checkNode);
+        this.primaryCheck = checkNode;
         this.cachedStorage = storage;
     }
 

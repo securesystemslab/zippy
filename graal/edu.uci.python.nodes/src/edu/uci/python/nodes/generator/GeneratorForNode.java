@@ -45,8 +45,8 @@ public class GeneratorForNode extends LoopNode {
 
     public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
         super(body);
-        this.target = adoptChild(target);
-        this.getIterator = adoptChild(getIterator);
+        this.target = target;
+        this.getIterator = getIterator;
         this.iteratorSlot = iteratorSlot;
     }
 

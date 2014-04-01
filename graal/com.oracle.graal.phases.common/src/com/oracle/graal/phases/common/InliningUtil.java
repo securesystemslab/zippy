@@ -173,7 +173,10 @@ public class InliningUtil {
 
     public static void logInliningDecision(final String msg, final Object... args) {
         try (Scope s = Debug.scope(inliningDecisionsScopeString)) {
-            Debug.log(msg, args);
+            // Can't use log here since we are varargs
+            if (Debug.isLogEnabled()) {
+                Debug.logv(msg, args);
+            }
         }
     }
 
@@ -295,6 +298,8 @@ public class InliningUtil {
          * Try to make the call static bindable to avoid interface and virtual method calls.
          */
         void tryToDevirtualizeInvoke(MetaAccessProvider metaAccess, Assumptions assumptions);
+
+        boolean shouldInline();
     }
 
     public abstract static class AbstractInlineInfo implements InlineInfo {
@@ -316,14 +321,9 @@ public class InliningUtil {
         }
 
         protected static void inline(Invoke invoke, ResolvedJavaMethod concrete, Inlineable inlineable, Assumptions assumptions, boolean receiverNullCheck) {
-            StructuredGraph graph = invoke.asNode().graph();
             if (inlineable instanceof InlineableGraph) {
                 StructuredGraph calleeGraph = ((InlineableGraph) inlineable).getGraph();
                 InliningUtil.inline(invoke, calleeGraph, receiverNullCheck);
-
-                graph.getLeafGraphIds().add(calleeGraph.graphId());
-                // we might at some point cache already-inlined graphs, so add recursively:
-                graph.getLeafGraphIds().addAll(calleeGraph.getLeafGraphIds());
             } else {
                 assert inlineable instanceof InlineableMacroNode;
 
@@ -411,6 +411,10 @@ public class InliningUtil {
             assert index == 0;
             this.inlineableElement = inlineableElement;
         }
+
+        public boolean shouldInline() {
+            return concrete.shouldBeInlined();
+        }
     }
 
     /**
@@ -481,7 +485,7 @@ public class InliningUtil {
         private void createGuard(StructuredGraph graph, MetaAccessProvider metaAccess) {
             ValueNode nonNullReceiver = InliningUtil.nonNullReceiver(invoke);
             ConstantNode typeHub = ConstantNode.forConstant(type.getEncoding(Representation.ObjectHub), metaAccess, graph);
-            LoadHubNode receiverHub = graph.unique(new LoadHubNode(nonNullReceiver, typeHub.kind(), null));
+            LoadHubNode receiverHub = graph.unique(new LoadHubNode(nonNullReceiver, typeHub.getKind(), null));
 
             CompareNode typeCheck = CompareNode.createCompareNode(graph, Condition.EQ, receiverHub, typeHub);
             FixedGuardNode guard = graph.add(new FixedGuardNode(typeCheck, DeoptimizationReason.TypeCheckedInliningViolated, DeoptimizationAction.InvalidateReprofile));
@@ -496,6 +500,10 @@ public class InliningUtil {
         @Override
         public String toString() {
             return "type-checked with type " + type.getName() + " and method " + MetaUtil.format("%H.%n(%p):%r", concrete);
+        }
+
+        public boolean shouldInline() {
+            return concrete.shouldBeInlined();
         }
     }
 
@@ -592,6 +600,15 @@ public class InliningUtil {
             }
         }
 
+        public boolean shouldInline() {
+            for (ResolvedJavaMethod method : concretes) {
+                if (method.shouldBeInlined()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private boolean hasSingleMethod() {
             return concretes.size() == 1 && !shouldFallbackToInvoke();
         }
@@ -610,8 +627,8 @@ public class InliningUtil {
             returnMerge.setStateAfter(invoke.stateAfter());
 
             PhiNode returnValuePhi = null;
-            if (invoke.asNode().kind() != Kind.Void) {
-                returnValuePhi = graph.addWithoutUnique(new PhiNode(invoke.asNode().kind(), returnMerge));
+            if (invoke.asNode().getKind() != Kind.Void) {
+                returnValuePhi = graph.addWithoutUnique(new PhiNode(invoke.asNode().stamp().unrestricted(), returnMerge));
             }
 
             MergeNode exceptionMerge = null;
@@ -624,7 +641,7 @@ public class InliningUtil {
 
                 FixedNode exceptionSux = exceptionEdge.next();
                 graph.addBeforeFixed(exceptionSux, exceptionMerge);
-                exceptionObjectPhi = graph.addWithoutUnique(new PhiNode(Kind.Object, exceptionMerge));
+                exceptionObjectPhi = graph.addWithoutUnique(new PhiNode(StampFactory.forKind(Kind.Object), exceptionMerge));
                 exceptionMerge.setStateAfter(exceptionEdge.stateAfter().duplicateModified(invoke.stateAfter().bci, true, Kind.Object, exceptionObjectPhi));
             }
 
@@ -798,7 +815,7 @@ public class InliningUtil {
 
                 FixedNode lastSucc = successors[concretes.size()];
                 for (int i = concretes.size() - 1; i >= 0; --i) {
-                    LoadMethodNode method = graph.add(new LoadMethodNode(concretes.get(i), hub, constantMethods[i].kind()));
+                    LoadMethodNode method = graph.add(new LoadMethodNode(concretes.get(i), hub, constantMethods[i].getKind()));
                     CompareNode methodCheck = CompareNode.createCompareNode(graph, Condition.EQ, method, constantMethods[i]);
                     IfNode ifNode = graph.add(new IfNode(methodCheck, successors[i], lastSucc, probability[i]));
                     method.setNext(ifNode);
@@ -896,7 +913,7 @@ public class InliningUtil {
             result.asNode().replaceFirstInput(result.callTarget(), callTarget);
             result.setUseForInlining(useForInlining);
 
-            Kind kind = invoke.asNode().kind();
+            Kind kind = invoke.asNode().getKind();
             if (kind != Kind.Void) {
                 FrameState stateAfter = invoke.stateAfter();
                 stateAfter = stateAfter.duplicate(stateAfter.bci);
@@ -1298,7 +1315,9 @@ public class InliningUtil {
         FixedNode invokeNode = invoke.asNode();
         StructuredGraph graph = invokeNode.graph();
         assert inlineGraph.getGuardsStage().ordinal() >= graph.getGuardsStage().ordinal();
-        Kind returnKind = invokeNode.kind();
+        assert !invokeNode.graph().isAfterFloatingReadPhase() : "inline isn't handled correctly after floating reads phase";
+
+        Kind returnKind = invokeNode.getKind();
 
         FrameState stateAfter = invoke.stateAfter();
         assert stateAfter == null || stateAfter.isAlive();
@@ -1413,9 +1432,9 @@ public class InliningUtil {
                     } else {
                         // only handle the outermost frame states
                         if (frameState.outerFrameState() == null) {
-                            assert frameState.bci == FrameState.INVALID_FRAMESTATE_BCI || frameState.method() == inlineGraph.method();
+                            assert frameState.bci == FrameState.INVALID_FRAMESTATE_BCI || frameState.method().equals(inlineGraph.method());
                             if (outerFrameState == null) {
-                                outerFrameState = stateAfter.duplicateModified(invoke.bci(), stateAfter.rethrowException(), invokeNode.kind());
+                                outerFrameState = stateAfter.duplicateModified(invoke.bci(), stateAfter.rethrowException(), invokeNode.getKind());
                                 outerFrameState.setDuringCall(true);
                             }
                             frameState.setOuterFrameState(outerFrameState);
@@ -1470,7 +1489,7 @@ public class InliningUtil {
 
             if (returnNode.result() != null) {
                 if (returnValuePhi == null) {
-                    returnValuePhi = merge.graph().addWithoutUnique(new PhiNode(returnNode.result().kind(), merge));
+                    returnValuePhi = merge.graph().addWithoutUnique(new PhiNode(returnNode.result().stamp().unrestricted(), merge));
                 }
                 returnValuePhi.addInput(returnNode.result());
             }
@@ -1499,7 +1518,7 @@ public class InliningUtil {
         assert !callTarget.isStatic() : callTarget.targetMethod();
         StructuredGraph graph = callTarget.graph();
         ValueNode firstParam = callTarget.arguments().get(0);
-        if (firstParam.kind() == Kind.Object && !ObjectStamp.isObjectNonNull(firstParam)) {
+        if (firstParam.getKind() == Kind.Object && !ObjectStamp.isObjectNonNull(firstParam)) {
             IsNullNode condition = graph.unique(new IsNullNode(firstParam));
             Stamp stamp = firstParam.stamp().join(objectNonNull());
             GuardingPiNode nonNullReceiver = graph.add(new GuardingPiNode(firstParam, condition, true, NullCheckException, InvalidateReprofile, stamp));
@@ -1524,7 +1543,7 @@ public class InliningUtil {
 
     public static FixedWithNextNode inlineMacroNode(Invoke invoke, ResolvedJavaMethod concrete, Class<? extends FixedWithNextNode> macroNodeClass) throws GraalInternalError {
         StructuredGraph graph = invoke.asNode().graph();
-        if (((MethodCallTargetNode) invoke.callTarget()).targetMethod() != concrete) {
+        if (!concrete.equals(((MethodCallTargetNode) invoke.callTarget()).targetMethod())) {
             assert ((MethodCallTargetNode) invoke.callTarget()).invokeKind() != InvokeKind.Static;
             InliningUtil.replaceInvokeCallTarget(invoke, graph, InvokeKind.Special, concrete);
         }

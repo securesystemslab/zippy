@@ -26,10 +26,11 @@
 #define KERNEL_ARGUMENTS_HSAIL_HPP
 
 #include "runtime/gpu.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "runtime/signature.hpp"
 
 class HSAILKernelArguments : public SignatureIterator {
-  friend class gpu::Hsail;
+  friend class Hsail;
 
 public:
 
@@ -62,7 +63,8 @@ private:
     _parameter_count = ArgumentCount(signature).size();
 
     if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] sig:%s  args length=%d", signature->as_C_string(), _length);
+      char buf[O_BUFLEN];
+      tty->print_cr("[HSAIL] sig:%s  args length=%d, _parameter_count=%d", signature->as_C_string(buf, O_BUFLEN), _length, _parameter_count);
     }    
     if (!_is_static) {      
       // First object in args should be 'this'
@@ -71,7 +73,7 @@ private:
       if (TraceGPUInteraction) {
         tty->print_cr("[HSAIL] instance method, this 0x%08x, is a %s", (address) arg, arg->klass()->external_name());
       }
-      bool pushed = gpu::Hsail::_okra_push_object(kernel, arg);
+      bool pushed = Hsail::_okra_push_object(kernel, arg);
       assert(pushed == true, "'this' push failed");
     } else {
       if (TraceGPUInteraction) {
@@ -102,6 +104,11 @@ private:
     /* TODO : To be implemented */
     guarantee(false, "do_short:NYI");
   }
+
+  bool isLastParameter() {
+      return  (_index == (_is_static ?  _parameter_count - 1 : _parameter_count));
+  }
+
 };
 
 #endif  // KERNEL_ARGUMENTS_HPP

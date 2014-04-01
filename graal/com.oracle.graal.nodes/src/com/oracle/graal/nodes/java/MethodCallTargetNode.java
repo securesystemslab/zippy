@@ -126,15 +126,28 @@ public class MethodCallTargetNode extends CallTargetNode implements IterableNode
 
     @Override
     public Node canonical(CanonicalizerTool tool) {
-        if (!isStatic()) {
+        if (invokeKind == InvokeKind.Interface || invokeKind == InvokeKind.Virtual) {
+            // attempt to devirtualize the call
+
+            // check for trivial cases (e.g. final methods, nonvirtual methods)
+            if (targetMethod.canBeStaticallyBound()) {
+                invokeKind = InvokeKind.Special;
+                return this;
+            }
+
+            // check if the exact type of the receiver can be determined
             ValueNode receiver = receiver();
-            if (receiver != null && ObjectStamp.isExactType(receiver) && ObjectStamp.typeOrNull(receiver) != null) {
-                if (invokeKind == InvokeKind.Interface || invokeKind == InvokeKind.Virtual) {
-                    ResolvedJavaMethod method = ObjectStamp.typeOrNull(receiver).resolveMethod(targetMethod);
-                    if (method != null) {
-                        invokeKind = InvokeKind.Special;
-                        targetMethod = method;
-                    }
+            ResolvedJavaType exact = targetMethod.getDeclaringClass().asExactType();
+            if (exact == null && ObjectStamp.isExactType(receiver)) {
+                exact = ObjectStamp.typeOrNull(receiver);
+            }
+            if (exact != null) {
+                // either the holder class is exact, or the receiver object has an exact type
+                ResolvedJavaMethod exactMethod = exact.resolveMethod(targetMethod);
+                if (exactMethod != null) {
+                    invokeKind = InvokeKind.Special;
+                    targetMethod = exactMethod;
+                    return this;
                 }
             }
         }
@@ -160,12 +173,12 @@ public class MethodCallTargetNode extends CallTargetNode implements IterableNode
         if (targetMethod() == null) {
             return "??Invalid!";
         }
-        return targetMethod().getName();
+        return MetaUtil.format("%h.%n", targetMethod());
     }
 
     public static MethodCallTargetNode find(StructuredGraph graph, ResolvedJavaMethod method) {
         for (MethodCallTargetNode target : graph.getNodes(MethodCallTargetNode.class)) {
-            if (target.targetMethod == method) {
+            if (target.targetMethod.equals(method)) {
                 return target;
             }
         }

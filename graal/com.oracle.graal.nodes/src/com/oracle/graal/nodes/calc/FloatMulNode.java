@@ -26,21 +26,24 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "*")
 public final class FloatMulNode extends FloatArithmeticNode implements Canonicalizable {
 
-    public FloatMulNode(Kind kind, ValueNode x, ValueNode y, boolean isStrictFP) {
-        super(kind, x, y, isStrictFP);
+    public FloatMulNode(Stamp stamp, ValueNode x, ValueNode y, boolean isStrictFP) {
+        super(stamp, x, y, isStrictFP);
     }
 
     public Constant evalConst(Constant... inputs) {
         assert inputs.length == 2;
-        if (kind() == Kind.Float) {
+        assert inputs[0].getKind() == inputs[1].getKind();
+        if (inputs[0].getKind() == Kind.Float) {
             return Constant.forFloat(inputs[0].asFloat() * inputs[1].asFloat());
         } else {
-            assert kind() == Kind.Double;
+            assert inputs[0].getKind() == Kind.Double;
             return Constant.forDouble(inputs[0].asDouble() * inputs[1].asDouble());
         }
     }
@@ -48,7 +51,7 @@ public final class FloatMulNode extends FloatArithmeticNode implements Canonical
     @Override
     public Node canonical(CanonicalizerTool tool) {
         if (x().isConstant() && !y().isConstant()) {
-            return graph().unique(new FloatMulNode(kind(), y(), x(), isStrictFP()));
+            return graph().unique(new FloatMulNode(stamp(), y(), x(), isStrictFP()));
         }
         if (x().isConstant()) {
             return ConstantNode.forPrimitive(evalConst(x().asConstant(), y().asConstant()), graph());
@@ -66,5 +69,14 @@ public final class FloatMulNode extends FloatArithmeticNode implements Canonical
             op2 = op;
         }
         gen.setResult(this, gen.emitMul(op1, op2));
+    }
+
+    @Override
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        Value result = gen.emitMulMemory(x(), y(), access);
+        if (result != null) {
+            gen.setResult(this, result);
+        }
+        return result != null;
     }
 }

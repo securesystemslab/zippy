@@ -122,6 +122,20 @@ public final class NodeUtil {
                 return unsafe.getObject(node, offset);
             }
         }
+
+        @Override
+        public int hashCode() {
+            return kind.hashCode() | type.hashCode() | name.hashCode() | ((Long) offset).hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof NodeField) {
+                NodeField other = (NodeField) obj;
+                return offset == other.offset && name.equals(other.name) && type.equals(other.type) && kind.equals(other.kind);
+            }
+            return false;
+        }
     }
 
     /**
@@ -197,6 +211,21 @@ public final class NodeUtil {
 
         public long[] getChildrenOffsets() {
             return childrenOffsets;
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(fields) ^ Arrays.hashCode(childOffsets) ^ Arrays.hashCode(childrenOffsets) ^ ((Long) parentOffset).hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof NodeClass) {
+                NodeClass other = (NodeClass) obj;
+                return Arrays.equals(fields, other.fields) && Arrays.equals(childOffsets, other.childOffsets) && Arrays.equals(childrenOffsets, other.childrenOffsets) &&
+                                parentOffset == other.parentOffset;
+            }
+            return false;
         }
     }
 
@@ -511,31 +540,6 @@ public final class NodeUtil {
         return null;
     }
 
-    /**
-     * Returns the outermost not inlined {@link RootNode} which is a parent of this node.
-     * 
-     * @see RootNode#getParentInlinedCall()
-     * @param node to search
-     * @return the outermost {@link RootNode}
-     */
-    public static RootNode findOutermostRootNode(Node node) {
-        Node parent = node;
-        while (parent != null) {
-            if (parent instanceof RootNode) {
-                RootNode root = (RootNode) parent;
-                Node next = root.getParentInlinedCall();
-                if (next != null) {
-                    parent = next;
-                } else {
-                    return root;
-                }
-            } else {
-                parent = parent.getParent();
-            }
-        }
-        return null;
-    }
-
     public static <T> T findParent(Node start, Class<T> clazz) {
         Node parent = start.getParent();
         if (parent == null) {
@@ -659,44 +663,85 @@ public final class NodeUtil {
         return countNodes(root, null, false);
     }
 
-    public static int countNodes(Node root, Class<?> clazz, boolean countInlinedCallNodes) {
-        NodeCountVisitor nodeCount = new NodeCountVisitor(root, clazz, countInlinedCallNodes);
+    public static int countNodes(Node root, NodeCountFilter filter) {
+        return countNodes(root, filter, false);
+    }
+
+    public static int countNodes(Node root, NodeCountFilter filter, boolean visitInlinedCallNodes) {
+        NodeCountVisitor nodeCount = new NodeCountVisitor(filter, visitInlinedCallNodes);
         root.accept(nodeCount);
         return nodeCount.nodeCount;
     }
 
+    public interface NodeCountFilter {
+
+        boolean isCounted(Node node);
+
+    }
+
     private static final class NodeCountVisitor implements NodeVisitor {
 
-        private Node root;
-        private boolean inspectInlinedCalls;
+        private final boolean visitInlinedCallNodes;
         int nodeCount;
-        private final Class<?> clazz;
+        private final NodeCountFilter filter;
 
-        private NodeCountVisitor(Node root, Class<?> clazz, boolean inspectInlinedCalls) {
-            this.root = root;
-            this.clazz = clazz;
-            this.inspectInlinedCalls = inspectInlinedCalls;
+        private NodeCountVisitor(NodeCountFilter filter, boolean visitInlinedCallNodes) {
+            this.filter = filter;
+            this.visitInlinedCallNodes = visitInlinedCallNodes;
         }
 
         @Override
         public boolean visit(Node node) {
-            if (node instanceof RootNode && node != root) {
-                return false;
-            }
-
-            if (clazz == null || clazz.isInstance(node)) {
+            if (filter == null || filter.isCounted(node)) {
                 nodeCount++;
             }
 
-            if (inspectInlinedCalls && node instanceof CallNode) {
+            if (visitInlinedCallNodes && node instanceof CallNode) {
                 CallNode call = (CallNode) node;
                 if (call.isInlined()) {
-                    call.getInlinedRoot().getChildren().iterator().next().accept(this);
+                    Node target = ((RootCallTarget) call.getCurrentCallTarget()).getRootNode();
+                    if (target != null) {
+                        target.accept(this);
+                    }
                 }
             }
 
             return true;
         }
+
+    }
+
+    public static void printInliningTree(final PrintStream stream, RootNode root) {
+        printRootNode(stream, 0, root);
+        root.accept(new NodeVisitor() {
+            int depth = 1;
+
+            public boolean visit(Node node) {
+                if (node instanceof CallNode) {
+                    CallNode callNode = ((CallNode) node);
+                    RootNode inlinedRoot = callNode.getCurrentRootNode();
+                    if (inlinedRoot != null && callNode.isInlined()) {
+                        depth++;
+                        printRootNode(stream, depth * 2, inlinedRoot);
+                        inlinedRoot.accept(this);
+                        depth--;
+                    }
+                }
+                return true;
+            }
+        });
+    }
+
+    private static void printRootNode(PrintStream stream, int indent, RootNode root) {
+        for (int i = 0; i < indent; i++) {
+            stream.print(" ");
+        }
+        stream.print(root.toString());
+        stream.print(" (");
+        stream.print(countNodes(root));
+        stream.print("/");
+        stream.print(countNodes(root, null, true));
+        stream.println(")");
     }
 
     public static String printCompactTreeToString(Node node) {

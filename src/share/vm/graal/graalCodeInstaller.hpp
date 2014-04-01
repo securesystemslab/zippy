@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,28 +24,30 @@
 #ifndef SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
 #define SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
 
+#include "graal/graalEnv.hpp"
+
 /*
  * This class handles the conversion from a InstalledCode to a CodeBlob or an nmethod.
  */
 class CodeInstaller {
+  friend class VMStructs;
 private:
-  // these need to correspond to Marks.java
   enum MarkId {
-    MARK_VERIFIED_ENTRY             = 1,
-    MARK_UNVERIFIED_ENTRY           = 2,
-    MARK_OSR_ENTRY                  = 3,
-    MARK_EXCEPTION_HANDLER_ENTRY    = 4,
-    MARK_DEOPT_HANDLER_ENTRY        = 5,
-    MARK_INVOKEINTERFACE            = 6,
-    MARK_INVOKEVIRTUAL              = 7,
-    MARK_INVOKESTATIC               = 8,
-    MARK_INVOKESPECIAL              = 9,
-    MARK_INLINE_INVOKE              = 10,
-    MARK_POLL_NEAR                  = 11,
-    MARK_POLL_RETURN_NEAR           = 12,
-    MARK_POLL_FAR                   = 13,
-    MARK_POLL_RETURN_FAR            = 14,
-    MARK_INVOKE_INVALID             = -1
+    VERIFIED_ENTRY             = 1,
+    UNVERIFIED_ENTRY           = 2,
+    OSR_ENTRY                  = 3,
+    EXCEPTION_HANDLER_ENTRY    = 4,
+    DEOPT_HANDLER_ENTRY        = 5,
+    INVOKEINTERFACE            = 6,
+    INVOKEVIRTUAL              = 7,
+    INVOKESTATIC               = 8,
+    INVOKESPECIAL              = 9,
+    INLINE_INVOKE              = 10,
+    POLL_NEAR                  = 11,
+    POLL_RETURN_NEAR           = 12,
+    POLL_FAR                   = 13,
+    POLL_RETURN_FAR            = 14,
+    INVOKE_INVALID             = -1
   };
 
   Arena         _arena;
@@ -77,7 +79,8 @@ private:
   ExceptionHandlerTable     _exception_handler_table;
 
   jint pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method);
-  void pd_site_DataPatch(int pc_offset, oop site);
+  void pd_patch_OopData(int pc_offset, oop data);
+  void pd_patch_DataSectionReference(int pc_offset, oop data);
   void pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst);
   void pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination);
   void pd_relocate_JavaMethod(oop method, jint pc_offset);
@@ -119,6 +122,11 @@ private:
   void process_exception_handlers();
 
 };
+
+/**
+ * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
+ */
+Method* getMethodFromHotSpotMethod(oop hotspot_method);
 
 #ifdef TARGET_ARCH_x86
 # include "graalCodeInstaller_x86.hpp"

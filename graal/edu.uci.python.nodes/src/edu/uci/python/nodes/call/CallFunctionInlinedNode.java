@@ -43,7 +43,7 @@ public class CallFunctionInlinedNode extends InlinedCallNode {
         super(callee, arguments, function.getFrameDescriptor().copy(), frameFactory);
         this.function = function;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        this.functionRoot = adoptChild(prepareBody(functionRoot.getInlinedRootNode()));
+        this.functionRoot = prepareBody(functionRoot.getInlinedRootNode());
     }
 
     @Override

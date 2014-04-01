@@ -79,8 +79,8 @@ public abstract class ValueNode extends ScheduledNode implements StampProvider {
         return false;
     }
 
-    public final Kind kind() {
-        return stamp().kind();
+    public final Kind getKind() {
+        return stamp().getStackKind();
     }
 
     /**
@@ -124,13 +124,6 @@ public abstract class ValueNode extends ScheduledNode implements StampProvider {
             return ((ConstantNode) this).getValue();
         }
         return null;
-    }
-
-    @Override
-    public boolean verify() {
-        assertTrue(kind() != null, "Should have a valid kind");
-        assertTrue(kind() == kind().getStackKind(), "Should have a stack kind : %s", kind());
-        return super.verify();
     }
 
     public ValueNode asNode() {

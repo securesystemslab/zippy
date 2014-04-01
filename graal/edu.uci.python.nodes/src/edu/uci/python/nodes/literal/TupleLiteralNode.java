@@ -35,7 +35,7 @@ public final class TupleLiteralNode extends LiteralNode {
     @Children protected final PNode[] values;
 
     public TupleLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+        this.values = values;
     }
 
     @ExplodeLoop

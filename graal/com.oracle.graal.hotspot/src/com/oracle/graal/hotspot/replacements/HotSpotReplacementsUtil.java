@@ -46,6 +46,9 @@ import com.oracle.graal.word.*;
  */
 public class HotSpotReplacementsUtil {
 
+    // Must be @Fold as the security checks in HotSpotGraalRuntime.runtime()
+    // don't work well inside snippets
+    @Fold
     public static HotSpotVMConfig config() {
         return runtime().getConfig();
     }
@@ -209,6 +212,11 @@ public class HotSpotReplacementsUtil {
     @Fold
     public static int pageSize() {
         return Unsafe.getUnsafe().pageSize();
+    }
+
+    @Fold
+    public static int heapWordSize() {
+        return config().heapWordSize;
     }
 
     public static final LocationIdentity PROTOTYPE_MARK_WORD_LOCATION = new NamedLocationIdentity("PrototypeMarkWord");
@@ -717,15 +725,5 @@ public class HotSpotReplacementsUtil {
         } catch (Exception e) {
             throw new GraalInternalError(e);
         }
-    }
-
-    @Fold
-    public static long dllLoad() {
-        return config().libraryLoadAddress;
-    }
-
-    @Fold
-    public static long dllLookup() {
-        return config().functionLookupAddress;
     }
 }

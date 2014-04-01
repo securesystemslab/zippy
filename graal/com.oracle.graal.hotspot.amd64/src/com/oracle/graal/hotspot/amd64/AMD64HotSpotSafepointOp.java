@@ -24,13 +24,13 @@ package com.oracle.graal.hotspot.amd64;
 
 import static com.oracle.graal.amd64.AMD64.*;
 import static com.oracle.graal.asm.NumUtil.*;
-import static com.oracle.graal.hotspot.bridge.Marks.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
@@ -73,6 +73,7 @@ public class AMD64HotSpotSafepointOp extends AMD64LIRInstruction {
     }
 
     public static void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler asm, HotSpotVMConfig config, boolean atReturn, LIRFrameState state, Register scratch) {
+        assert !atReturn || state == null : "state is unneeded at return";
         if (ImmutableCode.getValue()) {
             Kind hostWordKind = HotSpotGraalRuntime.getHostWordKind();
             int alignment = hostWordKind.getBitCount() / Byte.SIZE;
@@ -80,23 +81,23 @@ public class AMD64HotSpotSafepointOp extends AMD64LIRInstruction {
             // This move will be patched to load the safepoint page from a data segment
             // co-located with the immutable code.
             asm.movq(scratch, (AMD64Address) crb.recordDataReferenceInCode(pollingPageAddress, alignment));
-            final int pos = asm.codeBuffer.position();
-            crb.recordMark(atReturn ? MARK_POLL_RETURN_FAR : MARK_POLL_FAR);
+            final int pos = asm.position();
+            MarkId.recordMark(crb, atReturn ? MarkId.POLL_RETURN_FAR : MarkId.POLL_FAR);
             if (state != null) {
                 crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
             }
             asm.testl(rax, new AMD64Address(scratch));
         } else if (isPollingPageFar(config)) {
             asm.movq(scratch, config.safepointPollingAddress);
-            crb.recordMark(atReturn ? MARK_POLL_RETURN_FAR : MARK_POLL_FAR);
-            final int pos = asm.codeBuffer.position();
+            MarkId.recordMark(crb, atReturn ? MarkId.POLL_RETURN_FAR : MarkId.POLL_FAR);
+            final int pos = asm.position();
             if (state != null) {
                 crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
             }
             asm.testl(rax, new AMD64Address(scratch));
         } else {
-            crb.recordMark(atReturn ? MARK_POLL_RETURN_NEAR : MARK_POLL_NEAR);
-            final int pos = asm.codeBuffer.position();
+            MarkId.recordMark(crb, atReturn ? MarkId.POLL_RETURN_NEAR : MarkId.POLL_NEAR);
+            final int pos = asm.position();
             if (state != null) {
                 crb.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
             }

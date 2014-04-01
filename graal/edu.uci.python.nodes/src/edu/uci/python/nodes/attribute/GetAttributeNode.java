@@ -50,7 +50,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
     public GetAttributeNode(PythonContext context, String attributeId, PNode primary) {
         this.context = context;
         this.attributeId = attributeId;
-        this.primary = adoptChild(primary);
+        this.primary = primary;
     }
 
     public PNode makeWriteNode(PNode rhs) {
@@ -63,7 +63,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractBoxedAttributeNode cache) {
             super(context, attributeId, primary);
-            this.cache = adoptChild(cache);
+            this.cache = cache;
         }
 
         @Override
@@ -149,7 +149,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractUnboxedAttributeNode cache) {
             super(context, attributeId, primary);
-            this.cache = adoptChild(cache);
+            this.cache = cache;
         }
 
         @Override

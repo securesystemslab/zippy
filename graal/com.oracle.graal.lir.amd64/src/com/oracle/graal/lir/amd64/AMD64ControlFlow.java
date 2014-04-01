@@ -61,28 +61,39 @@ public class AMD64ControlFlow {
         protected final LabelRef trueDestination;
         protected final LabelRef falseDestination;
 
-        public BranchOp(Condition condition, LabelRef trueDestination, LabelRef falseDestination) {
-            this(intCond(condition), trueDestination, falseDestination);
+        private final double trueDestinationProbability;
+
+        public BranchOp(Condition condition, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
+            this(intCond(condition), trueDestination, falseDestination, trueDestinationProbability);
         }
 
-        public BranchOp(ConditionFlag condition, LabelRef trueDestination, LabelRef falseDestination) {
+        public BranchOp(ConditionFlag condition, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
             this.condition = condition;
             this.trueDestination = trueDestination;
             this.falseDestination = falseDestination;
+            this.trueDestinationProbability = trueDestinationProbability;
         }
 
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
+            /*
+             * The strategy for emitting jumps is: If either trueDestination or falseDestination is
+             * the successor block, assume the block scheduler did the correct thing and jcc to the
+             * other. Otherwise, we need a jcc followed by a jmp. Use the branch probability to make
+             * sure it is more likely to branch on the jcc (= less likely to execute both the jcc
+             * and the jmp instead of just the jcc). In the case of loops, that means the jcc is the
+             * back-edge.
+             */
             if (crb.isSuccessorEdge(trueDestination)) {
                 jcc(masm, true, falseDestination);
-            } else if (falseDestination.getSourceBlock() == falseDestination.getTargetBlock()) {
+            } else if (crb.isSuccessorEdge(falseDestination)) {
+                jcc(masm, false, trueDestination);
+            } else if (trueDestinationProbability < 0.5) {
                 jcc(masm, true, falseDestination);
                 masm.jmp(trueDestination.label());
             } else {
                 jcc(masm, false, trueDestination);
-                if (!crb.isSuccessorEdge(falseDestination)) {
-                    masm.jmp(falseDestination.label());
-                }
+                masm.jmp(falseDestination.label());
             }
         }
 
@@ -94,8 +105,8 @@ public class AMD64ControlFlow {
     public static class FloatBranchOp extends BranchOp {
         protected boolean unorderedIsTrue;
 
-        public FloatBranchOp(Condition condition, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination) {
-            super(floatCond(condition), trueDestination, falseDestination);
+        public FloatBranchOp(Condition condition, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
+            super(floatCond(condition), trueDestination, falseDestination, trueDestinationProbability);
             this.unorderedIsTrue = unorderedIsTrue;
         }
 
@@ -187,7 +198,6 @@ public class AMD64ControlFlow {
                 masm.movl(idxScratchReg, indexReg);
             }
 
-            Buffer buf = masm.codeBuffer;
             // Compare index against jump table bounds
             int highKey = lowKey + targets.length - 1;
             if (lowKey != 0) {
@@ -204,9 +214,8 @@ public class AMD64ControlFlow {
             }
 
             // Set scratch to address of jump table
-            int leaPos = buf.position();
             masm.leaq(scratchReg, new AMD64Address(AMD64.rip, 0));
-            int afterLea = buf.position();
+            final int afterLea = masm.position();
 
             // Load jump table entry into scratch and jump to it
             masm.movslq(idxScratchReg, new AMD64Address(scratchReg, idxScratchReg, Scale.Times4, 0));
@@ -214,29 +223,29 @@ public class AMD64ControlFlow {
             masm.jmp(scratchReg);
 
             // Inserting padding so that jump table address is 4-byte aligned
-            if ((buf.position() & 0x3) != 0) {
-                masm.nop(4 - (buf.position() & 0x3));
+            if ((masm.position() & 0x3) != 0) {
+                masm.nop(4 - (masm.position() & 0x3));
             }
 
             // Patch LEA instruction above now that we know the position of the jump table
-            int jumpTablePos = buf.position();
-            buf.setPosition(leaPos);
-            masm.leaq(scratchReg, new AMD64Address(AMD64.rip, jumpTablePos - afterLea));
-            buf.setPosition(jumpTablePos);
+            // TODO this is ugly and should be done differently
+            final int jumpTablePos = masm.position();
+            final int leaDisplacementPosition = afterLea - 4;
+            masm.emitInt(jumpTablePos - afterLea, leaDisplacementPosition);
 
             // Emit jump table entries
             for (LabelRef target : targets) {
                 Label label = target.label();
-                int offsetToJumpTableBase = buf.position() - jumpTablePos;
+                int offsetToJumpTableBase = masm.position() - jumpTablePos;
                 if (label.isBound()) {
                     int imm32 = label.position() - jumpTablePos;
-                    buf.emitInt(imm32);
+                    masm.emitInt(imm32);
                 } else {
-                    label.addPatchAt(buf.position());
+                    label.addPatchAt(masm.position());
 
-                    buf.emitByte(0); // pseudo-opcode for jump table entry
-                    buf.emitShort(offsetToJumpTableBase);
-                    buf.emitByte(0); // padding to make jump table entry 4 bytes wide
+                    masm.emitByte(0); // pseudo-opcode for jump table entry
+                    masm.emitShort(offsetToJumpTableBase);
+                    masm.emitByte(0); // padding to make jump table entry 4 bytes wide
                 }
             }
 

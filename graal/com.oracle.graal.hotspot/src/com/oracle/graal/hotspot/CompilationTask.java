@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot;
 
+import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.hotspot.bridge.VMToCompilerImpl.*;
@@ -29,14 +30,16 @@ import static com.oracle.graal.nodes.StructuredGraph.*;
 import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.phases.common.InliningUtil.*;
 
+import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.CompilerThreadFactory.CompilerThread;
+import com.oracle.graal.compiler.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
@@ -51,13 +54,38 @@ import com.oracle.graal.phases.tiers.*;
 
 public class CompilationTask implements Runnable, Comparable {
 
-    public static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
+    private static final long TIMESTAMP_START = System.currentTimeMillis();
+
+    // Keep static finals in a group with withinEnqueue as the last one. CompilationTask can be
+    // called from within it's own clinit so it needs to be careful about accessing state. Once
+    // withinEnqueue is non-null we assume that CompilationTask is fully initialized.
+    private static final AtomicLong uniqueTaskIds = new AtomicLong();
+
+    private static final DebugMetric BAILOUTS = Debug.metric("Bailouts");
+
+    private static final ThreadLocal<Boolean> withinEnqueue = new ThreadLocal<Boolean>() {
 
         @Override
         protected Boolean initialValue() {
             return Boolean.valueOf(Thread.currentThread() instanceof CompilerThread);
         }
     };
+
+    public static final boolean isWithinEnqueue() {
+        // It's possible this can be called before the <clinit> has completed so check for null
+        return withinEnqueue == null || withinEnqueue.get();
+    }
+
+    public static class Enqueueing implements Closeable {
+        public Enqueueing() {
+            assert !withinEnqueue.get();
+            withinEnqueue.set(Boolean.TRUE);
+        }
+
+        public void close() {
+            withinEnqueue.set(Boolean.FALSE);
+        }
+    }
 
     private enum CompilationStatus {
         Queued, Running, Finished
@@ -71,8 +99,6 @@ public class CompilationTask implements Runnable, Comparable {
 
     private StructuredGraph graph;
 
-    private static final AtomicLong uniqueTaskIds = new AtomicLong();
-
     /**
      * A long representing the sequence number of this task. Used for sorting the compile queue.
      */
@@ -84,7 +110,7 @@ public class CompilationTask implements Runnable, Comparable {
         this.backend = backend;
         this.method = method;
         this.entryBCI = entryBCI;
-        this.id = backend.getRuntime().getCompilerToVM().allocateCompileId(method, entryBCI);
+        this.id = method.allocateCompileId(entryBCI);
         this.blocking = blocking;
         this.taskId = uniqueTaskIds.incrementAndGet();
         this.status = new AtomicReference<>(CompilationStatus.Queued);
@@ -107,9 +133,6 @@ public class CompilationTask implements Runnable, Comparable {
         try {
             runCompilation(true);
         } finally {
-            if (method.currentTask() == this) {
-                method.setCurrentTask(null);
-            }
             withinEnqueue.set(Boolean.TRUE);
             status.set(CompilationStatus.Finished);
             synchronized (this) {
@@ -189,11 +212,19 @@ public class CompilationTask implements Runnable, Comparable {
         long previousCompilationTime = CompilationTime.getCurrentValue();
         HotSpotInstalledCode installedCode = null;
         try (TimerCloseable a = CompilationTime.start()) {
-            if (!tryToChangeStatus(CompilationStatus.Queued, CompilationStatus.Running) || method.hasCompiledCode()) {
+            if (!tryToChangeStatus(CompilationStatus.Queued, CompilationStatus.Running)) {
+                return;
+            }
+            boolean isOSR = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
+
+            // If there is already compiled code for this method on our level we simply return.
+            // Graal compiles are always at the highest compile level, even in non-tiered mode so we
+            // only need to check for that value.
+            if (method.hasCodeAtLevel(entryBCI, config.compilationLevelFullOptimization)) {
                 return;
             }
 
-            CompilationStatistics stats = CompilationStatistics.create(method, entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI);
+            CompilationStatistics stats = CompilationStatistics.create(method, isOSR);
             final boolean printCompilation = PrintCompilation.getValue() && !TTY.isSuppressed();
             if (printCompilation) {
                 TTY.println(getMethodDescription() + "...");
@@ -206,9 +237,9 @@ public class CompilationTask implements Runnable, Comparable {
             TTY.Filter filter = new TTY.Filter(PrintFilter.getValue(), method);
             long start = System.currentTimeMillis();
             try (Scope s = Debug.scope("Compiling", new DebugDumpScope(String.valueOf(id), true))) {
-                GraphCache graphCache = backend.getRuntime().getGraphCache();
-                if (graphCache != null) {
-                    graphCache.removeStaleGraphs();
+                Map<ResolvedJavaMethod, StructuredGraph> graphCache = null;
+                if (GraalOptions.CacheGraphs.getValue()) {
+                    graphCache = new HashMap<>();
                 }
 
                 HotSpotProviders providers = backend.getProviders();
@@ -222,11 +253,18 @@ public class CompilationTask implements Runnable, Comparable {
                 }
                 InlinedBytecodes.add(method.getCodeSize());
                 CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
+                if (graph.getEntryBCI() != StructuredGraph.INVOCATION_ENTRY_BCI) {
+                    // for OSR, only a pointer is passed to the method.
+                    JavaType[] parameterTypes = new JavaType[]{providers.getMetaAccess().lookupJavaType(long.class)};
+                    CallingConvention tmp = providers.getCodeCache().getRegisterConfig().getCallingConvention(JavaCallee, providers.getMetaAccess().lookupJavaType(void.class), parameterTypes,
+                                    backend.getTarget(), false);
+                    cc = new CallingConvention(cc.getStackSize(), cc.getReturn(), tmp.getArgument(0));
+                }
                 Suites suites = getSuites(providers);
                 ProfilingInfo profilingInfo = getProfilingInfo();
                 OptimisticOptimizations optimisticOpts = getOptimisticOpts(profilingInfo);
-                result = compileGraph(graph, cc, method, providers, backend, backend.getTarget(), graphCache, getGraphBuilderSuite(providers), optimisticOpts, profilingInfo,
-                                method.getSpeculationLog(), suites, true, new CompilationResult(), CompilationResultBuilderFactory.Default);
+                result = compileGraph(graph, null, cc, method, providers, backend, backend.getTarget(), graphCache, getGraphBuilderSuite(providers), optimisticOpts, profilingInfo,
+                                method.getSpeculationLog(), suites, new CompilationResult(), CompilationResultBuilderFactory.Default);
                 result.setId(getId());
                 result.setEntryBCI(entryBCI);
             } catch (Throwable e) {
@@ -243,10 +281,14 @@ public class CompilationTask implements Runnable, Comparable {
 
             try (TimerCloseable b = CodeInstallationTime.start()) {
                 installedCode = installMethod(result);
+                if (!isOSR) {
+                    ProfilingInfo profile = method.getProfilingInfo();
+                    profile.setCompilerIRSize(StructuredGraph.class, graph.getNodeCount());
+                }
             }
-            stats.finish(method);
+            stats.finish(method, installedCode);
         } catch (BailoutException bailout) {
-            Debug.metric("Bailouts").increment();
+            BAILOUTS.increment();
             if (ExitVMOnBailout.getValue()) {
                 TTY.cachedOut.println(MetaUtil.format("Bailout in %H.%n(%p)", method));
                 bailout.printStackTrace(TTY.cachedOut);
@@ -290,7 +332,24 @@ public class CompilationTask implements Runnable, Comparable {
     private void printCompilation() {
         final boolean isOSR = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
         final int mod = method.getModifiers();
-        TTY.println(String.format("%7d %4d %c%c%c%c%c       %s %s(%d bytes)", 0, id, isOSR ? '%' : ' ', Modifier.isSynchronized(mod) ? 's' : ' ', ' ', ' ', Modifier.isNative(mod) ? 'n' : ' ',
+        String compilerName = "";
+        if (HotSpotCIPrintCompilerName.getValue()) {
+            compilerName = "Graal:";
+        }
+        HotSpotVMConfig config = backend.getRuntime().getConfig();
+        int compLevel = config.compilationLevelFullOptimization;
+        char compLevelChar;
+        if (config.tieredCompilation) {
+            compLevelChar = '-';
+            if (compLevel != -1) {
+                compLevelChar = (char) ('0' + compLevel);
+            }
+        } else {
+            compLevelChar = ' ';
+        }
+        boolean hasExceptionHandlers = method.getExceptionHandlers().length > 0;
+        TTY.println(String.format("%s%7d %4d %c%c%c%c%c%c      %s %s(%d bytes)", compilerName, (System.currentTimeMillis() - TIMESTAMP_START), id, isOSR ? '%' : ' ',
+                        Modifier.isSynchronized(mod) ? 's' : ' ', hasExceptionHandlers ? '!' : ' ', blocking ? 'b' : ' ', Modifier.isNative(mod) ? 'n' : ' ', compLevelChar,
                         MetaUtil.format("%H::%n(%p)", method), isOSR ? "@ " + entryBCI + " " : "", method.getCodeSize()));
     }
 

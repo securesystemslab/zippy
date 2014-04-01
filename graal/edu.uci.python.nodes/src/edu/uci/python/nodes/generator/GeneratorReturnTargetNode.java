@@ -37,7 +37,7 @@ public final class GeneratorReturnTargetNode extends ReturnTargetNode {
 
     public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue) {
         super(body, returnValue);
-        this.parameters = adoptChild(parameters);
+        this.parameters = parameters;
     }
 
     public PNode getParameters() {

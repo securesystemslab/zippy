@@ -41,7 +41,7 @@ public class AddClassAttributeNode extends PNode {
 
     public AddClassAttributeNode(String attributeId, PNode rhs) {
         this.attributeId = attributeId;
-        this.rhs = adoptChild(rhs);
+        this.rhs = rhs;
     }
 
     protected static PythonClass getClass(VirtualFrame frame) {

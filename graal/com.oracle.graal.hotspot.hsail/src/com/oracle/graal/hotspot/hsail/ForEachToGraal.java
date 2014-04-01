@@ -26,13 +26,13 @@ package com.oracle.graal.hotspot.hsail;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 
 import java.lang.reflect.*;
-import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.hsail.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hsail.*;
@@ -41,6 +41,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.util.*;
+import com.oracle.graal.printer.*;
 
 /**
  * Implements compile and dispatch of Java code containing lambda constructs. Currently only used by
@@ -63,10 +64,15 @@ public class ForEachToGraal implements CompileAndDispatch {
     private static HotSpotNmethod getCompiledLambda(Class intConsumerClass) {
         Method acceptMethod = null;
         for (Method m : intConsumerClass.getMethods()) {
-            if (m.getName().equals("accept") && Arrays.equals(new Class[]{int.class}, m.getParameterTypes())) {
+            if (m.getName().equals("accept")) {
                 assert acceptMethod == null : "found more than one implementation of accept(int) in " + intConsumerClass;
                 acceptMethod = m;
             }
+        }
+
+        // Ensure a debug configuration for this thread is initialized
+        if (DebugScope.getConfig() == null) {
+            DebugEnvironment.initialize(System.out);
         }
 
         HSAILHotSpotBackend backend = getHSAILBackend();
@@ -76,13 +82,13 @@ public class ForEachToGraal implements CompileAndDispatch {
         NodeIterable<MethodCallTargetNode> calls = graph.getNodes(MethodCallTargetNode.class);
         assert calls.count() == 1;
         ResolvedJavaMethod lambdaMethod = calls.first().targetMethod();
-        assert lambdaMethod.getName().startsWith("lambda$");
-        Debug.log("target ... " + lambdaMethod);
+        Debug.log("target ... %s", lambdaMethod);
 
         if (lambdaMethod == null) {
             Debug.log("Did not find call in accept()");
             return null;
         }
+        assert lambdaMethod.getName().startsWith("lambda$");
 
         ExternalCompilationResult hsailCode = backend.compileKernel(lambdaMethod, true);
         return backend.installKernel(lambdaMethod, hsailCode);
@@ -109,7 +115,7 @@ public class ForEachToGraal implements CompileAndDispatch {
                 getHSAILBackend().executeKernel(code, jobSize, args);
                 return true;
             } catch (InvalidInstalledCodeException iice) {
-                Debug.log("WARNING: Invalid installed code at exec time." + iice);
+                Debug.log("WARNING: Invalid installed code at exec time: %s", iice);
                 iice.printStackTrace();
                 return false;
             }

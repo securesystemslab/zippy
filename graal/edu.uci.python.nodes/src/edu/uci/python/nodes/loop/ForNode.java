@@ -43,7 +43,7 @@ public abstract class ForNode extends LoopNode {
 
     public ForNode(PNode target, PNode body) {
         super(body);
-        this.target = adoptChild(target);
+        this.target = target;
         NodeProfiler.getInstance().addForNode(this);
     }
 

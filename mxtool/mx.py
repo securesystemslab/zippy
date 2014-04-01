@@ -36,8 +36,11 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
 import socket
+import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
+import pipes
+import difflib
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
@@ -340,15 +343,54 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
+def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+    def _download_lib():
+        print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
+        download(path, urls)
+
+    def _sha1Cached():
+        with open(sha1path, 'r') as f:
+            return f.read()[0:40]
+
+    def _writeSha1Cached():
+        with open(sha1path, 'w') as f:
+            f.write(_sha1OfFile())
+
+    def _sha1OfFile():
+        with open(path, 'rb') as f:
+            d = hashlib.sha1()
+            while True:
+                buf = f.read(4096)
+                if not buf:
+                    break
+                d.update(buf)
+            return d.hexdigest()
+
+    if resolve and mustExist and not exists(path):
+        assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
+        _download_lib()
+
+    if sha1 and not exists(sha1path):
+        _writeSha1Cached()
+
+    if sha1 and sha1 != _sha1Cached():
+        _download_lib()
+        if sha1 != _sha1OfFile():
+            abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
+        _writeSha1Cached()
+
+    return path
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
+    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
+        self.sha1 = sha1
         self.mustExist = mustExist
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        self.sourceSha1 = sourceSha1
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -374,14 +416,14 @@ class Library(Dependency):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
+        sha1path = path + '.sha1'
+
         includedInJDK = getattr(self, 'includedInJDK', None)
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
-        if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
-            print('Downloading ' + self.name + ' from ' + str(self.urls))
-            download(path, self.urls)
-        return path
+
+        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, self.mustExist)
+
 
     def get_source_path(self, resolve):
         path = self.sourcePath
@@ -389,10 +431,9 @@ class Library(Dependency):
             return None
         if not isabs(path):
             path = join(self.suite.dir, path)
-        if resolve and len(self.sourceUrls) != 0 and not exists(path):
-            print('Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls))
-            download(path, self.sourceUrls)
-        return path
+        sha1path = path + '.sha1'
+
+        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
@@ -555,9 +596,11 @@ class Suite:
             path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
+            sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
-            l = Library(self, name, path, mustExist, urls, sourcePath, sourceUrls)
+            sourceSha1 = attrs.pop('sourceSha1', None)
+            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -725,7 +768,7 @@ class XMLDoc(xml.dom.minidom.Document):
         assert self.current == self
         result = self.toprettyxml(indent, newl, encoding="UTF-8")
         if escape:
-            entities = { '"':  "&quot;", "'":  "&apos;", '\n': '&#10;' }
+            entities = {'"':  "&quot;", "'":  "&apos;", '\n': '&#10;'}
             result = xml.sax.saxutils.escape(result, entities)
         if standalone is not None:
             result = result.replace('encoding="UTF-8"?>', 'encoding="UTF-8" standalone="' + str(standalone) + '"?>')
@@ -989,12 +1032,13 @@ class ArgParser(ArgumentParser):
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
         self.add_argument('--cp-sfx', dest='cp_suffix', help='class path suffix', metavar='<arg>')
-        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>', default='-ea -Xss2m -Xmx1g')
+        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>')
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
+        self.add_argument('--kill-with-sigquit', action='store_true', dest='killwithsigquit', help='send sigquit first before killing child processes')
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -1052,13 +1096,15 @@ def java():
     assert _java is not None
     return _java
 
-def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
-    return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
+def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, addDefaultArgs=True):
+    return run(java().format_cmd(args, addDefaultArgs), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def _kill_process_group(pid):
+def _kill_process_group(pid, sig):
+    if not sig:
+        sig = signal.SIGKILL
     pgid = os.getpgid(pid)
     try:
-        os.killpg(pgid, signal.SIGKILL)
+        os.killpg(pgid, sig)
         return True
     except:
         log('Error killing subprocess ' + str(pgid) + ': ' + str(sys.exc_info()[1]))
@@ -1097,7 +1143,7 @@ def _waitWithTimeout(process, args, timeout):
 
 # Makes the current subprocess accessible to the abort() function
 # This is a tuple of the Popen object and args.
-_currentSubprocess = None
+_currentSubprocess = (None, None)
 
 def waitOn(p):
     if get_os() == 'windows':
@@ -1130,7 +1176,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             log('Environment variables:')
             for key in sorted(env.keys()):
                 log('    ' + key + '=' + env[key])
-        log(' '.join(args))
+        log(' '.join(map(pipes.quote, args)))
 
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
@@ -1177,7 +1223,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     except KeyboardInterrupt:
         abort(1)
     finally:
-        _currentSubprocess = None
+        _currentSubprocess = (None, None)
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -1232,6 +1278,8 @@ class DuplicateSuppressingStream:
         self.restrictTo = restrictTo
         self.seen = set()
         self.out = out
+        self.currentFilteredLineCount = 0
+        self.currentFilteredTime = None
 
     def isSuppressionCandidate(self, line):
         if self.restrictTo:
@@ -1245,9 +1293,18 @@ class DuplicateSuppressingStream:
     def write(self, line):
         if self.isSuppressionCandidate(line):
             if line in self.seen:
+                self.currentFilteredLineCount += 1
+                if self.currentFilteredTime:
+                    if time.time() - self.currentFilteredTime > 1 * 60:
+                        self.out.write("  Filtered " + str(self.currentFilteredLineCount) + " repeated lines...\n")
+                        self.currentFilteredTime = time.time()
+                else:
+                    self.currentFilteredTime = time.time()
                 return
             self.seen.add(line)
+        self.currentFilteredLineCount = 0
         self.out.write(line)
+        self.currentFilteredTime = None
 
 """
 A JavaCompliance simplifies comparing Java compliance values extracted from a JDK version string.
@@ -1258,10 +1315,10 @@ class JavaCompliance:
         assert m is not None, 'not a recognized version string: ' + ver
         self.value = int(m.group(1))
 
-    def __str__ (self):
+    def __str__(self):
         return '1.' + str(self.value)
 
-    def __cmp__ (self, other):
+    def __cmp__(self, other):
         if isinstance(other, types.StringType):
             other = JavaCompliance(other)
 
@@ -1308,7 +1365,7 @@ class JavaConfig:
         def delAtAndSplit(s):
             return shlex.split(s.lstrip('@'))
 
-        self.java_args = delAtAndSplit(_opts.java_args)
+        self.java_args = delAtAndSplit(_opts.java_args) if _opts.java_args else []
         self.java_args_pfx = sum(map(delAtAndSplit, _opts.java_args_pfx), [])
         self.java_args_sfx = sum(map(delAtAndSplit, _opts.java_args_sfx), [])
 
@@ -1331,8 +1388,14 @@ class JavaConfig:
         if self.debug_port is not None:
             self.java_args += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(self.debug_port)]
 
-    def format_cmd(self, args):
-        return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
+    def format_cmd(self, args, addDefaultArgs):
+        if addDefaultArgs:
+            return [self.java] + self.processArgs(args)
+        else:
+            return [self.java] + args
+
+    def processArgs(self, args):
+        return self.java_args_pfx + self.java_args + self.java_args_sfx + args
 
     def bootclasspath(self):
         if self._bootclasspath is None:
@@ -1419,6 +1482,21 @@ def expandvars_in_property(value):
         abort('Property contains an undefined environment variable: ' + value)
     return result
 
+def _send_sigquit():
+    p, args = _currentSubprocess
+
+    def _isJava():
+        if args:
+            name = args[0].split(os.sep)[-1]
+            return name == "java"
+        return False
+
+    if p is not None and _isJava():
+        if get_os() == 'windows':
+            log("mx: implement me! want to send SIGQUIT to my child process")
+        else:
+            _kill_process_group(p.pid, sig=signal.SIGQUIT)
+        time.sleep(0.1)
 
 def abort(codeOrMessage):
     """
@@ -1428,15 +1506,17 @@ def abort(codeOrMessage):
     the object's value is printed and the exit status is one.
     """
 
+    if _opts.killwithsigquit:
+        _send_sigquit()
+
     # import traceback
     # traceback.print_stack()
-    currentSubprocess = _currentSubprocess
-    if currentSubprocess is not None:
-        p, _ = currentSubprocess
+    p, _ = _currentSubprocess
+    if p is not None:
         if get_os() == 'windows':
             p.kill()
         else:
-            _kill_process_group(p.pid)
+            _kill_process_group(p.pid, signal.SIGKILL)
 
     raise SystemExit(codeOrMessage)
 
@@ -1463,13 +1543,13 @@ def download(path, urls, verbose=False):
 
     def url_open(url):
         userAgent = 'Mozilla/5.0 (compatible)'
-        headers = { 'User-Agent' : userAgent }
+        headers = {'User-Agent' : userAgent}
         req = urllib2.Request(url, headers=headers)
         return urllib2.urlopen(req)
 
     for url in urls:
         try:
-            if (verbose):
+            if verbose:
                 log('Downloading ' + url + ' to ' + path)
             if url.startswith('zip:') or url.startswith('jar:'):
                 i = url.find('!/')
@@ -1556,6 +1636,7 @@ def build(args, parser=None):
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
+    parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
     parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
 
@@ -1565,12 +1646,16 @@ def build(args, parser=None):
     args = parser.parse_args(args)
 
     jdtJar = None
-    if args.jdt is not None:
-        if args.jdt.endswith('.jar'):
-            jdtJar = args.jdt
-            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
-                # Silently ignore JDT if default location is used but not ecj.jar exists there
+    if not args.javac and args.jdt is not None:
+        if not args.jdt.endswith('.jar'):
+            abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
+        jdtJar = args.jdt
+        if not exists(jdtJar):
+            if os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
+                # Silently ignore JDT if default location is used but does not exist
                 jdtJar = None
+            else:
+                abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
 
     built = set()
 
@@ -1752,7 +1837,7 @@ def build(args, parser=None):
                 if java().debug_port is not None:
                     jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
 
-                jdtArgs += [ '-jar', jdtJar,
+                jdtArgs += ['-jar', jdtJar,
                          '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir]
@@ -1809,10 +1894,13 @@ def eclipseformat(args):
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
 
     # Maybe an Eclipse installation dir was specified - look for the executable in it
-    if join(args.eclipse_exe, exe_suffix('eclipse')):
+    if isdir(args.eclipse_exe):
         args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        warn("The eclipse-exe was a directory, now using " + args.eclipse_exe)
 
-    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+    if not os.path.isfile(args.eclipse_exe):
+        abort('File does not exist: ' + args.eclipse_exe)
+    if not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
@@ -1842,6 +1930,7 @@ def eclipseformat(args):
             with open(self.path) as fp:
                 content = fp.read()
                 if self.content != content:
+                    self.diff = difflib.unified_diff(self.content.splitlines(1), content.splitlines(1))
                     self.content = content
                     return True
             os.utime(self.path, self.times)
@@ -1879,6 +1968,7 @@ def eclipseformat(args):
                 modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
+
     if len(modified) != 0:
         arcbase = _primary_suite.dir
         if args.backup:
@@ -1887,6 +1977,8 @@ def eclipseformat(args):
         for fi in modified:
             name = os.path.relpath(fi.path, arcbase)
             log(' - {0}'.format(name))
+            log('Changes:')
+            log(''.join(fi.diff))
             if args.backup:
                 arcname = name.replace(os.sep, '/')
                 zf.writestr(arcname, fi.content)
@@ -2055,6 +2147,8 @@ def archive(args):
                 shutil.rmtree(services)
                 # Atomic on Unix
                 shutil.move(tmp, d.path)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(d.path, 0o666 & ~currentUmask)
                 archives.append(d.path)
                 # print time.time(), 'move:', tmp, '->', d.path
                 d.notify_updated()
@@ -2080,6 +2174,8 @@ def archive(args):
                 # Atomic on Unix
                 jarFile = join(p.dir, p.name + '.jar')
                 shutil.move(tmp, jarFile)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(jarFile, 0o666 & ~currentUmask)
                 archives.append(jarFile)
             finally:
                 if exists(tmp):
@@ -2271,7 +2367,7 @@ def checkstyle(args):
                     size = 0
                     while i < len(javafilelist):
                         s = len(javafilelist[i]) + 1
-                        if (size + s < 30000):
+                        if size + s < 30000:
                             size += s
                             i += 1
                         else:
@@ -2770,20 +2866,41 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if not exists(settingsDir):
             os.mkdir(settingsDir)
 
+        # collect the defaults from mxtool
+        defaultEclipseSettingsDir = join(dirname(__file__), 'eclipse-settings')
+        esdict = {}
+        if exists(defaultEclipseSettingsDir):
+            for name in os.listdir(defaultEclipseSettingsDir):
+                if isfile(join(defaultEclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(defaultEclipseSettingsDir, name))
+
+        # check for suite overrides
         eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
-                if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
-                    continue
-                path = join(eclipseSettingsDir, name)
-                if isfile(path):
-                    with open(join(eclipseSettingsDir, name)) as f:
-                        content = f.read()
-                    content = content.replace('${javaCompliance}', str(p.javaCompliance))
-                    if len(p.annotation_processors()) > 0:
-                        content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
-                    update_file(join(settingsDir, name), content)
-                    files.append(join(settingsDir, name))
+                if isfile(join(eclipseSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(eclipseSettingsDir, name))
+
+        # check for project overrides
+        projectSettingsDir = join(p.dir, 'eclipse-settings')
+        if exists(projectSettingsDir):
+            for name in os.listdir(projectSettingsDir):
+                if isfile(join(projectSettingsDir, name)):
+                    esdict[name] = os.path.abspath(join(projectSettingsDir, name))
+
+        # copy a possibly modified file to the project's .settings directory
+        for name, path in esdict.iteritems():
+            # ignore this file altogether if this project has no annotation processors
+            if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
+                continue
+
+            with open(path) as f:
+                content = f.read()
+            content = content.replace('${javaCompliance}', str(p.javaCompliance))
+            if len(p.annotation_processors()) > 0:
+                content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
+            update_file(join(settingsDir, name), content)
+            files.append(join(settingsDir, name))
 
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
@@ -2827,6 +2944,8 @@ def _zip_files(files, baseDir, zipPath):
         os.close(fd)
         # Atomic on Unix
         shutil.move(tmp, zipPath)
+        # Correct the permissions on the temporary file which is created with restrictive permissions
+        os.chmod(zipPath, 0o666 & ~currentUmask)
     finally:
         if exists(tmp):
             os.remove(tmp)
@@ -2844,7 +2963,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshF
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output', 'value': consoleOn})
     launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
-    launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 	'value' : java().jdk})
+    launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 'value' : java().jdk})
     launchOut.close('mapAttribute')
 
     if refresh:
@@ -2967,9 +3086,6 @@ def _find_eclipse_wsroot(wsdir):
     else:
         return _find_eclipse_wsroot(split[0])
 
-def _foobar(val):
-    print(val)
-
 def _make_workingset_xml(workingSets):
     wsdoc = XMLDoc()
     wsdoc.open('workingSetManager')
@@ -3048,6 +3164,10 @@ def _copy_workingset_xml(wspath, workingSets):
         if name == 'item':
             if ps.current_ws is None:
                 target.element(name, attributes)
+            elif not attributes.has_key('elementID') and attributes.has_key('factoryID') and attributes.has_key('path') and attributes.has_key('type'):
+                target.element(name, attributes)
+                p_name = attributes['path'][1:] # strip off the leading '/'
+                ps.seen_projects.append(p_name)
             else:
                 p_name = attributes['elementID'][1:]  # strip off the leading '='
                 _workingset_element(target, p_name)
@@ -3105,7 +3225,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.element('description', data='Builds, tests, and runs the project ' + p.name + '.')
         out.element('import', {'file' : 'nbproject/build-impl.xml'})
         out.open('target', {'name' : '-post-compile'})
-        out.open('exec', { 'executable' : sys.executable})
+        out.open('exec', {'executable' : sys.executable})
         out.element('env', {'key' : 'JAVA_HOME', 'value' : java().jdk})
         out.element('arg', {'value' : os.path.abspath(__file__)})
         out.element('arg', {'value' : 'archive'})
@@ -3886,7 +4006,7 @@ def update_commands(suite, new_commands):
 
 def warn(msg):
     if _warn:
-        print('WARNING: ' + msg)
+        print 'WARNING: ' + msg
 
 # Table of commands in alphabetical order.
 # Keys are command names, value are lists: [<function>, <usage msg>, <format args to doc string of function>...]
@@ -4011,6 +4131,12 @@ def main():
     def term_handler(signum, frame):
         abort(1)
     signal.signal(signal.SIGTERM, term_handler)
+
+    def quit_handler(signum, frame):
+        _send_sigquit()
+    if get_os() != 'windows':
+        signal.signal(signal.SIGQUIT, quit_handler)
+
     try:
         if opts.timeout != 0:
             def alarm_handler(signum, frame):
@@ -4026,8 +4152,14 @@ def main():
 
 version = VersionSpec("1.0")
 
+currentUmask = None
+
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
     sys.modules['mx'] = sys.modules.pop('__main__')
+
+    # Capture the current umask since there's no way to query it without mutating it.
+    currentUmask = os.umask(0)
+    os.umask(currentUmask)
 
     main()

@@ -42,7 +42,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
 
     public ComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
         super(frameSlot);
-        this.comprehension = adoptChild(comprehension);
+        this.comprehension = comprehension;
     }
 
     @Override
@@ -150,7 +150,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         public ComprehensionGuardNode(FrameFactory frameFactory, FrameDescriptor frameDescriptor, PNode comprehension) {
             this.frameFactory = frameFactory;
             this.frameDescriptor = frameDescriptor;
-            this.comprehension = adoptChild(comprehension);
+            this.comprehension = comprehension;
         }
 
         @Override

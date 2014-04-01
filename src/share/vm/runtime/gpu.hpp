@@ -32,21 +32,18 @@
 // Defines the interface to the graphics processor(s).
 class gpu : AllStatic {
  private:
-  static int _initialized_gpus;
-
-  // Notifies that a GPU device has been initialized.
-  static void initialized_gpu(const char* name);
+  static int _initialized_gpus;  // number of initialize GPU devices
 
  public:
+
+  // Notification of a GPU device that has been initialized.
+  static void initialized_gpu(const char* name);
 
   // Gets a comma separated list of supported GPU architecture names.
   static jobject probe_gpus(JNIEnv* env);
   
+  // Gets the number of GPU devices that have been initialized.
   static int initialized_gpus() { return _initialized_gpus; }
-
-# include "ptx/vm/gpu_ptx.hpp"
-# include "hsail/vm/gpu_hsail.hpp"
-
 };
 
 #endif // SHARE_VM_RUNTIME_GPU_HPP

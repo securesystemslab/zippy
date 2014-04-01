@@ -26,6 +26,7 @@ import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.Map.Entry;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -60,8 +61,10 @@ public final class TruffleCache {
     private final OptimisticOptimizations optimisticOptimizations;
 
     private final HashMap<List<Object>, StructuredGraph> cache = new HashMap<>();
+    private final HashMap<List<Object>, Long> lastUsed = new HashMap<>();
     private final StructuredGraph markerGraph = new StructuredGraph();
     private final ResolvedJavaType stringBuilderClass;
+    private long counter;
 
     public TruffleCache(Providers providers, GraphBuilderConfiguration config, OptimisticOptimizations optimisticOptimizations) {
         this.providers = providers;
@@ -76,12 +79,13 @@ public final class TruffleCache {
         List<Object> key = new ArrayList<>(arguments.size() + 1);
         key.add(method);
         for (ValueNode v : arguments) {
-            if (v.kind() == Kind.Object) {
+            if (v.getKind() == Kind.Object) {
                 key.add(v.stamp());
             }
         }
         StructuredGraph resultGraph = cache.get(key);
         if (resultGraph != null) {
+            lastUsed.put(key, counter++);
             return resultGraph;
         }
 
@@ -90,8 +94,30 @@ public final class TruffleCache {
             return null;
         }
 
+        if (lastUsed.values().size() >= TruffleCompilerOptions.TruffleMaxCompilationCacheSize.getValue()) {
+            List<Long> lastUsedList = new ArrayList<>();
+            for (long l : lastUsed.values()) {
+                lastUsedList.add(l);
+            }
+            Collections.sort(lastUsedList);
+            long mid = lastUsedList.get(lastUsedList.size() / 2);
+
+            List<List<Object>> toRemoveList = new ArrayList<>();
+            for (Entry<List<Object>, Long> entry : lastUsed.entrySet()) {
+                if (entry.getValue() < mid) {
+                    toRemoveList.add(entry.getKey());
+                }
+            }
+
+            for (List<Object> entry : toRemoveList) {
+                cache.remove(entry);
+                lastUsed.remove(entry);
+            }
+        }
+
+        lastUsed.put(key, counter++);
         cache.put(key, markerGraph);
-        try (Scope s = Debug.scope("TruffleCache", new Object[]{providers.getMetaAccess(), method})) {
+        try (Scope s = Debug.scope("TruffleCache", providers.getMetaAccess(), method)) {
 
             final StructuredGraph graph = new StructuredGraph(method);
             final PhaseContext phaseContext = new PhaseContext(providers, new Assumptions(false));
@@ -99,7 +125,7 @@ public final class TruffleCache {
             new GraphBuilderPhase.Instance(phaseContext.getMetaAccess(), config, optimisticOptimizations).apply(graph);
 
             for (ParameterNode param : graph.getNodes(ParameterNode.class)) {
-                if (param.kind() == Kind.Object) {
+                if (param.getKind() == Kind.Object) {
                     ValueNode actualArgument = arguments.get(param.index());
                     param.setStamp(param.stamp().join(actualArgument.stamp()));
                 }
@@ -221,6 +247,7 @@ public final class TruffleCache {
     private boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
         return (methodCallTargetNode.invokeKind() == InvokeKind.Special || methodCallTargetNode.invokeKind() == InvokeKind.Static) &&
                         !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) && methodCallTargetNode.targetMethod().getAnnotation(ExplodeLoop.class) == null &&
-                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null && methodCallTargetNode.targetMethod().getDeclaringClass() != stringBuilderClass;
+                        methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null &&
+                        !methodCallTargetNode.targetMethod().getDeclaringClass().equals(stringBuilderClass);
     }
 }

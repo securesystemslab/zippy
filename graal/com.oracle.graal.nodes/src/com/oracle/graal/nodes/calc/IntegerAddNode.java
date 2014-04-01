@@ -26,14 +26,15 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "+")
-public class IntegerAddNode extends IntegerArithmeticNode implements Canonicalizable {
+public class IntegerAddNode extends IntegerArithmeticNode implements Canonicalizable, NarrowableArithmeticNode {
 
-    public IntegerAddNode(Kind kind, ValueNode x, ValueNode y) {
-        super(kind, x, y);
+    public IntegerAddNode(Stamp stamp, ValueNode x, ValueNode y) {
+        super(stamp, x, y);
     }
 
     @Override
@@ -44,13 +45,13 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
     @Override
     public Constant evalConst(Constant... inputs) {
         assert inputs.length == 2;
-        return Constant.forIntegerKind(kind(), inputs[0].asLong() + inputs[1].asLong(), null);
+        return Constant.forPrimitiveInt(PrimitiveStamp.getBits(stamp()), inputs[0].asLong() + inputs[1].asLong());
     }
 
     @Override
     public Node canonical(CanonicalizerTool tool) {
         if (x().isConstant() && !y().isConstant()) {
-            return graph().unique(new IntegerAddNode(kind(), y(), x()));
+            return graph().unique(new IntegerAddNode(stamp(), y(), x()));
         }
         if (x() instanceof IntegerSubNode) {
             IntegerSubNode sub = (IntegerSubNode) x();
@@ -78,14 +79,6 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
             if (reassociated != this) {
                 return reassociated;
             }
-            if (c < 0) {
-                if (kind() == Kind.Int) {
-                    return IntegerArithmeticNode.sub(graph(), x(), ConstantNode.forInt((int) -c, graph()));
-                } else {
-                    assert kind() == Kind.Long;
-                    return IntegerArithmeticNode.sub(graph(), x(), ConstantNode.forLong(-c, graph()));
-                }
-            }
         }
         if (x() instanceof NegateNode) {
             return IntegerArithmeticNode.sub(graph(), y(), ((NegateNode) x()).x());
@@ -93,24 +86,6 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
             return IntegerArithmeticNode.sub(graph(), x(), ((NegateNode) y()).x());
         }
         return this;
-    }
-
-    public static boolean isIntegerAddition(ValueNode result, ValueNode a, ValueNode b) {
-        Kind kind = result.kind();
-        if (kind != a.kind() || kind != b.kind() || !kind.isNumericInteger()) {
-            return false;
-        }
-        if (result.isConstant() && a.isConstant() && b.isConstant()) {
-            if (kind.getStackKind() == Kind.Int) {
-                return result.asConstant().asInt() == a.asConstant().asInt() + b.asConstant().asInt();
-            } else if (kind == Kind.Long) {
-                return result.asConstant().asLong() == a.asConstant().asLong() + b.asConstant().asLong();
-            }
-        } else if (result instanceof IntegerAddNode) {
-            IntegerAddNode add = (IntegerAddNode) result;
-            return (add.x() == a && add.y() == b) || (add.y() == a && add.x() == b);
-        }
-        return false;
     }
 
     @Override
@@ -124,5 +99,14 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
             op2 = op;
         }
         gen.setResult(this, gen.emitAdd(op1, op2));
+    }
+
+    @Override
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        Value result = gen.emitAddMemory(x(), y(), access);
+        if (result != null) {
+            gen.setResult(this, result);
+        }
+        return result != null;
     }
 }

@@ -37,7 +37,7 @@ public class SetLiteralNode extends LiteralNode {
     @Children protected final PNode[] values;
 
     public SetLiteralNode(PNode[] values) {
-        this.values = adoptChildren(values);
+        this.values = values;
     }
 
     protected SetLiteralNode(SetLiteralNode node) {

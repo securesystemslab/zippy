@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.calc;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -33,7 +34,7 @@ import com.oracle.graal.nodes.type.*;
  * expression "(x &amp; y) == 0", meaning that it will return true if (and only if) no bit is set in
  * both x and y.
  */
-public class IntegerTestNode extends LogicNode implements Canonicalizable, LIRLowerable {
+public class IntegerTestNode extends LogicNode implements Canonicalizable, LIRLowerable, MemoryArithmeticLIRLowerable {
 
     @Input private ValueNode x;
     @Input private ValueNode y;
@@ -53,7 +54,7 @@ public class IntegerTestNode extends LogicNode implements Canonicalizable, LIRLo
      * @param y the instruction that produces the second input to this instruction
      */
     public IntegerTestNode(ValueNode x, ValueNode y) {
-        assert (x == null && y == null) || x.kind() == y.kind();
+        assert x != null && y != null && x.stamp().isCompatible(y.stamp());
         this.x = x;
         this.y = y;
     }
@@ -75,5 +76,10 @@ public class IntegerTestNode extends LogicNode implements Canonicalizable, LIRLo
             }
         }
         return this;
+    }
+
+    @Override
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        return false;
     }
 }

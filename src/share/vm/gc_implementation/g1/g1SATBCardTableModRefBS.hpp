@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -151,7 +151,7 @@ class G1SATBCardTableLoggingModRefBS: public G1SATBCardTableModRefBS {
       G1SATBCardTableModRefBS::is_a(bsn);
   }
 
-  void write_ref_field_work(void* field, oop new_val);
+  void write_ref_field_work(void* field, oop new_val, bool release = false);
 
   // Can be called from static contexts.
   static void write_ref_field_static(void* field, oop new_val);

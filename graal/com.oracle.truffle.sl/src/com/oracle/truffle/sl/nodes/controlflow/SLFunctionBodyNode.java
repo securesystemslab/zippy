@@ -36,7 +36,7 @@ import com.oracle.truffle.sl.runtime.*;
  * {@link SLNull#SINGLETON default null value}.
  */
 @NodeInfo(shortName = "body")
-public class SLFunctionBodyNode extends SLExpressionNode {
+public final class SLFunctionBodyNode extends SLExpressionNode {
 
     /** The body of the function. */
     @Child private SLStatementNode bodyNode;
@@ -54,7 +54,7 @@ public class SLFunctionBodyNode extends SLExpressionNode {
          * It is a Truffle requirement to call adoptChild(), which performs all the necessary steps
          * to add the new child to the node tree.
          */
-        this.bodyNode = adoptChild(bodyNode);
+        this.bodyNode = bodyNode;
     }
 
     @Override

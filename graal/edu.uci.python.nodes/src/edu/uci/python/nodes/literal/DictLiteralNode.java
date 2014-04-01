@@ -48,8 +48,8 @@ public class DictLiteralNode extends LiteralNode {
     }
 
     public DictLiteralNode(PNode[] keys, PNode[] values) {
-        this.keys = adoptChildren(keys);
-        this.values = adoptChildren(values);
+        this.keys = keys;
+        this.values = values;
         assert keys.length == values.length;
     }
 
@@ -91,8 +91,8 @@ public class DictLiteralNode extends LiteralNode {
         @Child protected PNode value;
 
         public SimpleDictLiteralNode(PNode key, PNode value) {
-            this.key = adoptChild(key);
-            this.value = adoptChild(value);
+            this.key = key;
+            this.value = value;
         }
 
         @Override

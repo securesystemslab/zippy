@@ -41,8 +41,8 @@ public class RaiseNode extends StatementNode {
 
     public RaiseNode(PythonContext context, PNode type, PNode inst) {
         this.context = context;
-        this.type = adoptChild(type);
-        this.inst = adoptChild(inst);
+        this.type = type;
+        this.inst = inst;
     }
 
     @Override

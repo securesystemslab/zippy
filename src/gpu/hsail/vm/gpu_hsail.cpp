@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/gpu.hpp"
+#include "hsail/vm/gpu_hsail.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
@@ -55,29 +56,29 @@
 
 //  public native void executeKernel(HotSpotNmethod kernel, int jobSize, int i, int j, Object[] args) throws InvalidInstalledCodeException;
 
-JNINativeMethod gpu::Hsail::HSAIL_methods[] = {
-  {CC"initialize",       CC"()Z",                               FN_PTR(gpu::Hsail::initialize)},
-  {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(gpu::Hsail::generate_kernel)},
-  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT")Z",  FN_PTR(gpu::Hsail::execute_kernel_void_1d)},
+JNINativeMethod Hsail::HSAIL_methods[] = {
+  {CC"initialize",       CC"()Z",                               FN_PTR(Hsail::initialize)},
+  {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(Hsail::generate_kernel)},
+  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT")Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
 };
 
-void * gpu::Hsail::_device_context = NULL;
+void * Hsail::_device_context = NULL;
 
-gpu::Hsail::okra_create_context_func_t  gpu::Hsail::_okra_create_context;
-gpu::Hsail::okra_create_kernel_func_t   gpu::Hsail::_okra_create_kernel;
-gpu::Hsail::okra_push_object_func_t     gpu::Hsail::_okra_push_object;
-gpu::Hsail::okra_push_boolean_func_t    gpu::Hsail::_okra_push_boolean;
-gpu::Hsail::okra_push_byte_func_t       gpu::Hsail::_okra_push_byte;
-gpu::Hsail::okra_push_double_func_t     gpu::Hsail::_okra_push_double;
-gpu::Hsail::okra_push_float_func_t      gpu::Hsail::_okra_push_float;
-gpu::Hsail::okra_push_int_func_t        gpu::Hsail::_okra_push_int;
-gpu::Hsail::okra_push_long_func_t       gpu::Hsail::_okra_push_long;
-gpu::Hsail::okra_execute_with_range_func_t    gpu::Hsail::_okra_execute_with_range;
-gpu::Hsail::okra_clearargs_func_t       gpu::Hsail::_okra_clearargs;
-gpu::Hsail::okra_register_heap_func_t   gpu::Hsail::_okra_register_heap;
+Hsail::okra_create_context_func_t  Hsail::_okra_create_context;
+Hsail::okra_create_kernel_func_t   Hsail::_okra_create_kernel;
+Hsail::okra_push_object_func_t     Hsail::_okra_push_object;
+Hsail::okra_push_boolean_func_t    Hsail::_okra_push_boolean;
+Hsail::okra_push_byte_func_t       Hsail::_okra_push_byte;
+Hsail::okra_push_double_func_t     Hsail::_okra_push_double;
+Hsail::okra_push_float_func_t      Hsail::_okra_push_float;
+Hsail::okra_push_int_func_t        Hsail::_okra_push_int;
+Hsail::okra_push_long_func_t       Hsail::_okra_push_long;
+Hsail::okra_execute_with_range_func_t    Hsail::_okra_execute_with_range;
+Hsail::okra_clearargs_func_t       Hsail::_okra_clearargs;
+Hsail::okra_register_heap_func_t   Hsail::_okra_register_heap;
 
 
-void gpu::Hsail::register_heap() {
+void Hsail::register_heap() {
   // After the okra functions are set up and the heap is initialized, register the java heap with HSA
   guarantee(Universe::heap() != NULL, "heap should be there by now.");
   if (TraceGPUInteraction) {
@@ -87,7 +88,7 @@ void gpu::Hsail::register_heap() {
   _okra_register_heap(Universe::heap()->base(), Universe::heap()->capacity());
 }
 
-GPU_VMENTRY(jboolean, gpu::Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args_handle))
+GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args_handle))
 
   ResourceMark rm;
   jlong nmethodValue = HotSpotInstalledCode::codeBlob(kernel_handle);
@@ -115,7 +116,7 @@ GPU_VMENTRY(jboolean, gpu::Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, 
   return _okra_execute_with_range(kernel, dimX);
 GPU_END
 
-GPU_ENTRY(jlong, gpu::Hsail::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle))
+GPU_ENTRY(jlong, Hsail::generate_kernel, (JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle))
   guarantee(_okra_create_kernel != NULL, "[HSAIL] Okra not linked");
   ResourceMark rm;
   jsize name_len = env->GetStringLength(name_handle);
@@ -158,7 +159,7 @@ static char const* okra_library_name = NULL;
         return false; \
   } \
 
-GPU_ENTRY(jboolean, gpu::Hsail::initialize, (JNIEnv *env, jclass))
+GPU_ENTRY(jboolean, Hsail::initialize, (JNIEnv *env, jclass))
   if (okra_library_name == NULL) {
     if (TraceGPUInteraction) {
       tty->print_cr("Unsupported HSAIL platform");
@@ -211,7 +212,7 @@ GPU_ENTRY(jboolean, gpu::Hsail::initialize, (JNIEnv *env, jclass))
   return true;
 GPU_END
 
-bool gpu::Hsail::register_natives(JNIEnv* env) {
+bool Hsail::register_natives(JNIEnv* env) {
   jclass klass = env->FindClass("com/oracle/graal/hotspot/hsail/HSAILHotSpotBackend");
   if (klass == NULL) {
     if (TraceGPUInteraction) {

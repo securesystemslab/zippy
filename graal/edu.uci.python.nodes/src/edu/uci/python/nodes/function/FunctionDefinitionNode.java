@@ -49,7 +49,7 @@ public class FunctionDefinitionNode extends PNode {
         this.frameDescriptor = frameDescriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
         this.arity = arity;
-        this.defaults = adoptChild(defaults);
+        this.defaults = defaults;
     }
 
     @Override

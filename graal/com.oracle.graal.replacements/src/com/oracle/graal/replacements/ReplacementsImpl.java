@@ -40,6 +40,7 @@ import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
+import com.oracle.graal.java.GraphBuilderPhase.Instance;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
@@ -99,7 +100,7 @@ public class ReplacementsImpl implements Replacements {
                 FrameStateProcessing frameStateProcessing = method.getAnnotation(Snippet.class).removeAllFrameStates() ? FrameStateProcessing.Removal
                                 : FrameStateProcessing.CollapseFrameForSingleSideEffect;
                 StructuredGraph newGraph = makeGraph(method, recursiveEntry, recursiveEntry, inliningPolicy(method), frameStateProcessing);
-                Debug.metric("SnippetNodeCount[" + method.getName() + "]").add(newGraph.getNodeCount());
+                Debug.metric("SnippetNodeCount[%#s]", method).add(newGraph.getNodeCount());
                 if (!UseSnippetGraphCache) {
                     return newGraph;
                 }
@@ -133,9 +134,10 @@ public class ReplacementsImpl implements Replacements {
         }
         StructuredGraph graph = graphs.get(substitute);
         if (graph == null) {
-            graphs.putIfAbsent(substitute, makeGraph(substitute, original, substitute, inliningPolicy(substitute), FrameStateProcessing.None));
-            graph = graphs.get(substitute);
+            graph = makeGraph(substitute, original, substitute, inliningPolicy(substitute), FrameStateProcessing.None);
             graph.freeze();
+            graphs.putIfAbsent(substitute, graph);
+            graph = graphs.get(substitute);
         }
         assert graph.isFrozen();
         return graph;
@@ -200,7 +202,9 @@ public class ReplacementsImpl implements Replacements {
                     }
                 }
             }
-            if (macroSubstitution != null) {
+            // We don't have per method guards for macro substitutions but at
+            // least respect the defaultGuard if there is one.
+            if (macroSubstitution != null && (defaultGuard == null || defaultGuard.execute())) {
                 String originalName = originalName(substituteMethod, macroSubstitution.value());
                 JavaSignature originalSignature = originalSignature(substituteMethod, macroSubstitution.signature(), macroSubstitution.isStatic());
                 Member originalMethod = originalMethod(classSubstitution, macroSubstitution.optional(), originalName, originalSignature);
@@ -230,7 +234,9 @@ public class ReplacementsImpl implements Replacements {
         } else {
             original = metaAccess.lookupJavaConstructor((Constructor) originalMember);
         }
-        Debug.log("substitution: " + MetaUtil.format("%H.%n(%p) %r", original) + " --> " + MetaUtil.format("%H.%n(%p) %r", substitute));
+        if (Debug.isLogEnabled()) {
+            Debug.log("substitution: %s --> %s", MetaUtil.format("%H.%n(%p) %r", original), MetaUtil.format("%H.%n(%p) %r", substitute));
+        }
 
         registeredMethodSubstitutions.put(original, substitute);
         return original;
@@ -401,7 +407,7 @@ public class ReplacementsImpl implements Replacements {
             final StructuredGraph graph = new StructuredGraph(methodToParse);
             try (Scope s = Debug.scope("buildInitialGraph", graph)) {
                 MetaAccessProvider metaAccess = providers.getMetaAccess();
-                new GraphBuilderPhase.Instance(metaAccess, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
+                createGraphBuilder(metaAccess, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
                 new WordTypeVerificationPhase(metaAccess, target.wordKind).apply(graph);
                 new WordTypeRewriterPhase(metaAccess, target.wordKind).apply(graph);
 
@@ -412,6 +418,10 @@ public class ReplacementsImpl implements Replacements {
                 throw Debug.handle(e);
             }
             return graph;
+        }
+
+        protected Instance createGraphBuilder(MetaAccessProvider metaAccess, GraphBuilderConfiguration graphBuilderConfig, OptimisticOptimizations optimisticOpts) {
+            return new GraphBuilderPhase.Instance(metaAccess, graphBuilderConfig, optimisticOpts);
         }
 
         protected Object beforeInline(@SuppressWarnings("unused") MethodCallTargetNode callTarget, @SuppressWarnings("unused") StructuredGraph callee) {
@@ -449,7 +459,7 @@ public class ReplacementsImpl implements Replacements {
 
                 for (MethodCallTargetNode callTarget : graph.getNodes(MethodCallTargetNode.class)) {
                     ResolvedJavaMethod callee = callTarget.targetMethod();
-                    if (callee == recursiveEntry) {
+                    if (callee.equals(recursiveEntry)) {
                         if (isInlinableSnippet(substitutedMethod)) {
                             final StructuredGraph originalGraph = buildInitialGraph(substitutedMethod);
                             InliningUtil.inline(callTarget.invoke(), originalGraph, true);

@@ -246,6 +246,8 @@ class CompileBroker: AllStatic {
 
   // Compile type Information for print_last_compile() and CompilerCounters
   enum { no_compile, normal_compile, osr_compile, native_compile };
+  static int assign_compile_id (methodHandle method, int osr_bci);
+
 
  private:
   static bool _initialized;
@@ -258,9 +260,8 @@ class CompileBroker: AllStatic {
   static AbstractCompiler* _compilers[2];
 
   // These counters are used for assigning id's to each compilation
-  static uint _compilation_id;
-  static uint _osr_compilation_id;
-  static uint _native_compilation_id;
+  static volatile jint _compilation_id;
+  static volatile jint _osr_compilation_id;
 
   static int  _last_compile_type;
   static int  _last_compile_level;
@@ -385,7 +386,8 @@ class CompileBroker: AllStatic {
                                  int hot_count,
                                  const char* comment, Thread* thread);
 
-  static uint assign_compile_id        (methodHandle method, int osr_bci);
+  // Acquire any needed locks and assign a compile id
+  static uint assign_compile_id_unlocked(Thread* thread, methodHandle method, int osr_bci);
 
   static void compiler_thread_loop();
   static uint get_compilation_id() { return _compilation_id; }

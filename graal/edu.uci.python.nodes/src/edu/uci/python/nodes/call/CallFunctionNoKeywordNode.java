@@ -46,8 +46,9 @@ public class CallFunctionNoKeywordNode extends PNode {
     @Child protected CallSiteProfilerNode callSiteProfiler;
 
     public CallFunctionNoKeywordNode(PNode callee, PNode[] arguments) {
-        this.callee = adoptChild(callee);
-        this.arguments = adoptChildren(arguments);
+        this.callee = callee;
+        this.arguments = arguments;
+
         if (PythonOptions.ProfileCallSites) {
             this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));
         }

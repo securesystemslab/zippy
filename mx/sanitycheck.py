@@ -68,17 +68,17 @@ dacapoGateBuildLevels = {
     'avrora':     ['product', 'fastdebug', 'debug'],
     'batik':      ['product', 'fastdebug', 'debug'],
     'eclipse':    ['product'],
-    'fop':        [           'fastdebug', 'debug'],
+    'fop':        ['fastdebug', 'debug'],
     'h2':         ['product', 'fastdebug', 'debug'],
     'jython':     ['product', 'fastdebug', 'debug'],
     'luindex':    ['product', 'fastdebug', 'debug'],
     'lusearch':   ['product'],
     'pmd':        ['product', 'fastdebug', 'debug'],
-    'sunflow':    [           'fastdebug', 'debug'],
+    'sunflow':    ['fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
     # tradesoap is too unreliable for the gate, often crashing with "java.net.BindException: Address already in use"
-    'tradesoap':  [                               ],
+    'tradesoap':  [],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
@@ -151,7 +151,7 @@ pythonBenchmarks = {
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
+    #'pads-eratosthenes-timed' : '100000',
 }
 
 python2Benchmarks = {
@@ -462,7 +462,7 @@ class Test:
         """
         Run this program as a sanity test.
         """
-        if (vm in self.ignoredVMs):
+        if vm in self.ignoredVMs:
             return True
         if cwd is None:
             cwd = self.defaultCwd
@@ -507,7 +507,7 @@ class Test:
         """
         Run this program as a benchmark.
         """
-        if (vm in self.ignoredVMs):
+        if vm in self.ignoredVMs:
             return {}
         if cwd is None:
             cwd = self.defaultCwd

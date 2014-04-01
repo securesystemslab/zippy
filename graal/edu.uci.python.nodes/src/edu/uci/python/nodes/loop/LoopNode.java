@@ -35,7 +35,7 @@ public abstract class LoopNode extends StatementNode {
     @Child protected PNode body;
 
     public LoopNode(PNode body) {
-        this.body = adoptChild(body);
+        this.body = body;
     }
 
     public PNode getBody() {

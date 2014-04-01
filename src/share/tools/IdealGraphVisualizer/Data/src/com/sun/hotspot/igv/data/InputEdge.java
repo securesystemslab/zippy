@@ -24,6 +24,8 @@
 package com.sun.hotspot.igv.data;
 
 import java.util.Comparator;
+import java.util.WeakHashMap;
+import java.lang.ref.WeakReference;
 
 /**
  *
@@ -32,7 +34,7 @@ import java.util.Comparator;
 public class InputEdge {
 
     public enum State {
-
+        IMMUTABLE,
         SAME,
         NEW,
         DELETED
@@ -61,12 +63,12 @@ public class InputEdge {
             }
     };
 
-    private char toIndex;
-    private char fromIndex;
-    private int from;
-    private int to;
+    private final char toIndex;
+    private final char fromIndex;
+    private final int from;
+    private final int to;
+    private final String label;
     private State state;
-    private String label;
 
     public InputEdge(char toIndex, int from, int to) {
         this((char) 0, toIndex, from, to, null);
@@ -85,11 +87,38 @@ public class InputEdge {
         this.label = label;
     }
 
+    static WeakHashMap<InputEdge, WeakReference<InputEdge>> immutableCache = new WeakHashMap<>();
+
+    public static synchronized InputEdge createImmutable(char fromIndex, char toIndex, int from, int to, String label) {
+        InputEdge edge = new InputEdge(fromIndex, toIndex, from, to, label, State.IMMUTABLE);
+        WeakReference<InputEdge> result = immutableCache.get(edge);
+        if (result != null) {
+            InputEdge edge2 = result.get();
+            if (edge2 != null) {
+                return edge2;
+            }
+        }
+        immutableCache.put(edge, new WeakReference<>(edge));
+        return edge;
+    }
+
+    public InputEdge(char fromIndex, char toIndex, int from, int to, String label, State state) {
+        this.toIndex = toIndex;
+        this.fromIndex = fromIndex;
+        this.from = from;
+        this.to = to;
+        this.state = state;
+        this.label = label;
+    }
+
     public State getState() {
         return state;
     }
 
     public void setState(State x) {
+        if (state == State.IMMUTABLE) {
+            throw new InternalError("Can't change immutable instances");
+        }
         this.state = x;
     }
 
@@ -123,7 +152,12 @@ public class InputEdge {
             return false;
         }
         InputEdge conn2 = (InputEdge) o;
-        return conn2.fromIndex == fromIndex && conn2.toIndex == toIndex && conn2.from == from && conn2.to == to;
+        boolean result = conn2.fromIndex == fromIndex && conn2.toIndex == toIndex && conn2.from == from && conn2.to == to;
+        if (result && (state == State.IMMUTABLE || conn2.state == State.IMMUTABLE)) {
+            // Immutable instances must be exactly the same
+            return conn2.label == label && conn2.state == state;
+        }
+        return result;
     }
 
     @Override

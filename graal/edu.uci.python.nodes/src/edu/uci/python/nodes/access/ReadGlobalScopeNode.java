@@ -51,14 +51,14 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         this.context = context;
         this.globalScope = globalScope;
         PNode primary = new ObjectLiteralNode(globalScope);
-        this.load = adoptChild(new UninitializedLoadAttributeNode(attributeId, primary));
+        this.load = new UninitializedLoadAttributeNode(attributeId, primary);
     }
 
     protected ReadGlobalScopeNode(ReadGlobalScopeNode previous) {
         this.attributeId = previous.attributeId;
         this.context = previous.context;
         this.globalScope = previous.globalScope;
-        this.load = adoptChild(previous.load);
+        this.load = previous.load;
     }
 
     public PNode makeWriteNode(PNode rhs) {

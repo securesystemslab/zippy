@@ -33,7 +33,7 @@ public class ModuleNode extends RootNode {
 
     public ModuleNode(PNode body, FrameDescriptor descriptor) {
         super(null, descriptor);
-        this.body = adoptChild(body);
+        this.body = body;
     }
 
     @Override

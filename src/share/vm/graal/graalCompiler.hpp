@@ -36,9 +36,6 @@ private:
 
   static GraalCompiler* _instance;
 
-  jlong                 _deopted_leaf_graphs[LEAF_GRAPH_ARRAY_SIZE];
-  int                   _deopted_leaf_graph_count;
-
 public:
 
   GraalCompiler();
@@ -65,39 +62,12 @@ public:
 
   void compile_method(methodHandle target, int entry_bci, jboolean blocking);
 
-  void deopt_leaf_graph(jlong leaf_graph_id);
-  oop dump_deopted_leaf_graphs(TRAPS);
-
   // Print compilation timers and statistics
   virtual void print_timers();
-
-  static Handle get_JavaTypeFromSignature(Symbol* signature, KlassHandle accessor, TRAPS);
-  static Handle get_JavaType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
-  static Handle get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS);
 
   void exit();
 
   static BasicType kindToBasicType(jchar ch);
-
-  static int to_cp_index_u2(int index) {
-    // Tag.
-    return index + ConstantPool::CPCACHE_INDEX_TAG;
-  }
-
-  static int to_cp_index(int raw_index, Bytecodes::Code bc) {
-    int cp_index;
-    if (bc == Bytecodes::_invokedynamic) {
-      cp_index = raw_index;
-      assert(ConstantPool::is_invokedynamic_index(cp_index), "not an invokedynamic constant pool index");
-    } else {
-      assert(bc == Bytecodes::_getfield        || bc == Bytecodes::_putfield  ||
-             bc == Bytecodes::_getstatic       || bc == Bytecodes::_putstatic ||
-             bc == Bytecodes::_invokeinterface || bc == Bytecodes::_invokevirtual ||
-             bc == Bytecodes::_invokespecial   || bc == Bytecodes::_invokestatic, err_msg("unexpected invoke opcode: %d %s", bc, Bytecodes::name(bc)));
-      cp_index = to_cp_index_u2(raw_index);
-    }
-    return cp_index;
-  }
 
   static BufferBlob* initialize_buffer_blob();
 };

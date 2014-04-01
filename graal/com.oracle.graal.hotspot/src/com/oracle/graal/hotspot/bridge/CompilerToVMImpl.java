@@ -24,7 +24,6 @@
 package com.oracle.graal.hotspot.bridge;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 
@@ -47,13 +46,13 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native byte[] initializeBytecode(long metaspaceMethod, byte[] code);
 
     @Override
+    public native int exceptionTableLength(long metaspaceMethod);
+
+    @Override
     public native long exceptionTableStart(long metaspaceMethod);
 
     @Override
     public native boolean hasBalancedMonitors(long metaspaceMethod);
-
-    @Override
-    public native boolean isMethodCompilable(long metaspaceMethod);
 
     @Override
     public native long findUniqueConcreteMethod(long metaspaceMethod);
@@ -64,44 +63,51 @@ public class CompilerToVMImpl implements CompilerToVM {
     @Override
     public native long lookupType(String name, Class<?> accessingClass, boolean eagerResolve);
 
-    @Override
-    public native Object lookupConstantInPool(long metaspaceConstantPool, int cpi);
+    public native Object resolveConstantInPool(long metaspaceConstantPool, int cpi);
+
+    public native Object resolvePossiblyCachedConstantInPool(long metaspaceConstantPool, int cpi);
 
     @Override
-    public native JavaMethod lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    public native int lookupNameAndTypeRefIndexInPool(long metaspaceConstantPool, int cpi);
 
     @Override
-    public native JavaType lookupTypeInPool(long metaspaceConstantPool, int cpi);
+    public native long lookupNameRefInPool(long metaspaceConstantPool, int cpi);
 
     @Override
-    public native JavaField lookupFieldInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    public native long lookupSignatureRefInPool(long metaspaceConstantPool, int cpi);
 
     @Override
-    public native void lookupReferencedTypeInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    public native int lookupKlassRefIndexInPool(long metaspaceConstantPool, int cpi);
+
+    public native long constantPoolKlassAt(long metaspaceConstantPool, int cpi);
 
     @Override
-    public native Object lookupAppendixInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    public native long lookupKlassInPool(long metaspaceConstantPool, int cpi);
+
+    @Override
+    public native long lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
+
+    @Override
+    public native long resolveField(long metaspaceConstantPool, int cpi, byte opcode, long[] info);
+
+    public native int constantPoolRemapInstructionOperandFromCache(long metaspaceConstantPool, int cpi);
+
+    @Override
+    public native Object lookupAppendixInPool(long metaspaceConstantPool, int cpi);
 
     @Override
     public native void initializeConfiguration(HotSpotVMConfig config);
 
     @Override
-    public native long resolveMethod(HotSpotResolvedObjectType klass, String name, String signature);
+    public native long resolveMethod(long metaspaceKlass, String name, String signature);
 
     @Override
-    public native boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
+    public native boolean hasFinalizableSubclass(long metaspaceKlass);
+
+    public native boolean methodIsIgnoredBySecurityStackWalk(long metaspaceMethod);
 
     @Override
-    public native void initializeMethod(long metaspaceMethod, HotSpotResolvedJavaMethod method);
-
-    @Override
-    public native HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
-
-    @Override
-    public native long getClassInitializer(HotSpotResolvedObjectType klass);
-
-    @Override
-    public native int getCompiledCodeSize(long metaspaceMethod);
+    public native long getClassInitializer(long metaspaceKlass);
 
     @Override
     public native long getMaxCallTargetOffset(long address);
@@ -117,16 +123,13 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native Object executeCompiledMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode);
 
     @Override
-    public native long[] getDeoptedLeafGraphIds();
+    public native long[] getLineNumberTable(long metaspaceMethod);
 
     @Override
-    public native long[] getLineNumberTable(HotSpotResolvedJavaMethod method);
+    public native long getLocalVariableTableStart(long metaspaceMethod);
 
     @Override
-    public native long getLocalVariableTableStart(HotSpotResolvedJavaMethod method);
-
-    @Override
-    public native int getLocalVariableTableLength(HotSpotResolvedJavaMethod method);
+    public native int getLocalVariableTableLength(long metaspaceMethod);
 
     @Override
     public native String getFileName(HotSpotResolvedJavaType method);
@@ -171,7 +174,14 @@ public class CompilerToVMImpl implements CompilerToVM {
 
     public native boolean isMature(long method);
 
-    public native int allocateCompileId(HotSpotResolvedJavaMethod method, int entryBCI);
+    public native int allocateCompileId(long metaspaceMethod, int entryBCI);
 
     public native String getGPUs();
+
+    public native boolean canInlineMethod(long metaspaceMethod);
+
+    public native boolean shouldInlineMethod(long metaspaceMethod);
+
+    public native boolean hasCompiledCodeForOSR(long metaspaceMethod, int entryBCI, int level);
+
 }

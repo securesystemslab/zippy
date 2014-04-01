@@ -22,50 +22,27 @@
  */
 package com.oracle.graal.nodes.calc;
 
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
-public abstract class IntegerArithmeticNode extends BinaryNode implements ArithmeticLIRLowerable {
+public abstract class IntegerArithmeticNode extends BinaryNode implements ArithmeticLIRLowerable, MemoryArithmeticLIRLowerable {
 
-    public IntegerArithmeticNode(Kind kind, ValueNode x, ValueNode y) {
-        super(kind, x, y);
-        assert kind.isNumericInteger();
+    public IntegerArithmeticNode(Stamp stamp, ValueNode x, ValueNode y) {
+        super(stamp, x, y);
+        assert stamp instanceof IntegerStamp;
     }
 
     public static IntegerAddNode add(StructuredGraph graph, ValueNode v1, ValueNode v2) {
-        assert v1.kind() == v2.kind();
-        switch (v1.kind()) {
-            case Int:
-                return graph.unique(new IntegerAddNode(Kind.Int, v1, v2));
-            case Long:
-                return graph.unique(new IntegerAddNode(Kind.Long, v1, v2));
-            default:
-                throw ValueNodeUtil.shouldNotReachHere();
-        }
+        return graph.unique(new IntegerAddNode(StampTool.add(v1.stamp(), v2.stamp()), v1, v2));
     }
 
     public static IntegerMulNode mul(StructuredGraph graph, ValueNode v1, ValueNode v2) {
-        assert v1.kind() == v2.kind();
-        switch (v1.kind()) {
-            case Int:
-                return graph.unique(new IntegerMulNode(Kind.Int, v1, v2));
-            case Long:
-                return graph.unique(new IntegerMulNode(Kind.Long, v1, v2));
-            default:
-                throw ValueNodeUtil.shouldNotReachHere();
-        }
+        assert v1.stamp().isCompatible(v2.stamp());
+        return graph.unique(new IntegerMulNode(v1.stamp().unrestricted(), v1, v2));
     }
 
     public static IntegerSubNode sub(StructuredGraph graph, ValueNode v1, ValueNode v2) {
-        assert v1.kind() == v2.kind();
-        switch (v1.kind()) {
-            case Int:
-                return graph.unique(new IntegerSubNode(Kind.Int, v1, v2));
-            case Long:
-                return graph.unique(new IntegerSubNode(Kind.Long, v1, v2));
-            default:
-                throw ValueNodeUtil.shouldNotReachHere();
-        }
+        return graph.unique(new IntegerSubNode(StampTool.sub(v1.stamp(), v2.stamp()), v1, v2));
     }
 }

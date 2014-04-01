@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 
 /* TODO (thomaswue/gdub) For high-level optimization purpose the compare node should be a boolean *value* (it is currently only a helper node)
@@ -34,7 +35,7 @@ import com.oracle.graal.nodes.spi.*;
  * Compare should probably be made a value (so that it can be canonicalized for example) and in later stages some Compare usage should be transformed
  * into variants that do not materialize the value (CompareIf, CompareGuard...)
  */
-public abstract class CompareNode extends LogicNode implements Canonicalizable, LIRLowerable {
+public abstract class CompareNode extends LogicNode implements Canonicalizable, LIRLowerable, MemoryArithmeticLIRLowerable {
 
     @Input private ValueNode x;
     @Input private ValueNode y;
@@ -54,7 +55,7 @@ public abstract class CompareNode extends LogicNode implements Canonicalizable, 
      * @param y the instruction that produces the second input to this instruction
      */
     public CompareNode(ValueNode x, ValueNode y) {
-        assert (x == null && y == null) || x.kind() == y.kind();
+        assert x != null && y != null && x.getKind() == y.getKind();
         this.x = x;
         this.y = y;
     }
@@ -136,15 +137,15 @@ public abstract class CompareNode extends LogicNode implements Canonicalizable, 
         if (x() instanceof ConvertNode && y() instanceof ConvertNode) {
             ConvertNode convertX = (ConvertNode) x();
             ConvertNode convertY = (ConvertNode) y();
-            if (convertX.isLossless() && convertY.isLossless() && convertX.getFromKind() == convertY.getFromKind()) {
-                setX(convertX.value());
-                setY(convertY.value());
+            if (convertX.isLossless() && convertY.isLossless() && convertX.getInput().stamp().isCompatible(convertY.getInput().stamp())) {
+                setX(convertX.getInput());
+                setY(convertY.getInput());
             }
         } else if (x() instanceof ConvertNode && y().isConstant()) {
             ConvertNode convertX = (ConvertNode) x();
             ConstantNode newY = canonicalConvertConstant(convertX, y().asConstant());
             if (newY != null) {
-                setX(convertX.value());
+                setX(convertX.getInput());
                 setY(newY);
             }
         } else if (y() instanceof ConvertNode && x().isConstant()) {
@@ -152,7 +153,7 @@ public abstract class CompareNode extends LogicNode implements Canonicalizable, 
             ConstantNode newX = canonicalConvertConstant(convertY, x().asConstant());
             if (newX != null) {
                 setX(newX);
-                setY(convertY.value());
+                setY(convertY.getInput());
             }
         }
         return this;
@@ -160,37 +161,46 @@ public abstract class CompareNode extends LogicNode implements Canonicalizable, 
 
     private static ConstantNode canonicalConvertConstant(ConvertNode convert, Constant constant) {
         if (convert.isLossless()) {
-            assert constant.getKind() == convert.getToKind();
-            Constant reverseConverted = ConvertNode.convert(convert.getToKind(), convert.getFromKind(), constant);
-            if (convert.evalConst(reverseConverted).equals(constant)) {
-                return ConstantNode.forPrimitive(reverseConverted, convert.graph());
+            Constant reverseConverted = convert.reverse(constant);
+            if (convert.convert(reverseConverted).equals(constant)) {
+                return ConstantNode.forPrimitive(convert.getInput().stamp(), reverseConverted, convert.graph());
             }
         }
         return null;
     }
 
     public static CompareNode createCompareNode(StructuredGraph graph, Condition condition, ValueNode x, ValueNode y) {
-        assert x.kind() == y.kind();
+        assert x.getKind() == y.getKind();
         assert condition.isCanonical() : "condition is not canonical: " + condition;
-        assert !x.kind().isNumericFloat();
+        assert !x.getKind().isNumericFloat();
 
         CompareNode comparison;
         if (condition == Condition.EQ) {
-            if (x.kind() == Kind.Object) {
+            if (x.getKind() == Kind.Object) {
                 comparison = new ObjectEqualsNode(x, y);
             } else {
-                assert x.kind().isNumericInteger();
+                assert x.getKind().isNumericInteger();
                 comparison = new IntegerEqualsNode(x, y);
             }
         } else if (condition == Condition.LT) {
-            assert x.kind().isNumericInteger();
+            assert x.getKind().isNumericInteger();
             comparison = new IntegerLessThanNode(x, y);
         } else {
             assert condition == Condition.BT;
-            assert x.kind().isNumericInteger();
+            assert x.getKind().isNumericInteger();
             comparison = new IntegerBelowThanNode(x, y);
         }
 
         return graph.unique(comparison);
+    }
+
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        return false;
+    }
+
+    @Override
+    public boolean verify() {
+        assertTrue(x.stamp().isCompatible(y.stamp()), "stamps not compatible: %s, %s", x.stamp(), y.stamp());
+        return super.verify();
     }
 }

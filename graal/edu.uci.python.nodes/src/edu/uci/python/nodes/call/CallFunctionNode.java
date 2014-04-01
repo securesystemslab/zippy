@@ -52,8 +52,8 @@ public abstract class CallFunctionNode extends PNode {
     @Child private CallSiteProfilerNode callSiteProfiler;
 
     public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
-        this.arguments = adoptChildren(arguments);
-        this.keywords = adoptChildren(keywords);
+        this.arguments = arguments;
+        this.keywords = keywords;
         this.context = context;
         if (PythonOptions.ProfileCallSites) {
             this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));

@@ -81,8 +81,8 @@ public abstract class DispatchNode extends Node {
             declarationFrame = callee.getDeclarationFrame();
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = adoptChild(CallNode.create(cachedCallTarget));
-            nextNode = adoptChild(next);
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
         }
 
         @Override
@@ -125,8 +125,8 @@ public abstract class DispatchNode extends Node {
             declarationFrame = callee.__func__().getDeclarationFrame();
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = adoptChild(CallNode.create(cachedCallTarget));
-            nextNode = adoptChild(next);
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
         }
 
         @Override
@@ -167,8 +167,8 @@ public abstract class DispatchNode extends Node {
             cachedCallTarget = split(callee.getCallTarget());
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = adoptChild(CallNode.create(cachedCallTarget));
-            nextNode = adoptChild(next);
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
         }
 
         @Override
@@ -204,8 +204,8 @@ public abstract class DispatchNode extends Node {
             // TODO: PythonBuiltinClass should return always valid assumption.
             cachedCallTargetStable = callee.getUnmodifiedAssumption();
 
-            callNode = adoptChild(CallNode.create(cachedCallTarget));
-            nextNode = adoptChild(next);
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
         }
 
         @Override
@@ -240,8 +240,8 @@ public abstract class DispatchNode extends Node {
             // TODO: Is is necessary?
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
 
-            callNode = adoptChild(CallNode.create(cachedCallTarget));
-            nextNode = adoptChild(next);
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
         }
 
         @Override

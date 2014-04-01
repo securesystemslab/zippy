@@ -159,7 +159,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
         InvokeNode invoke = graph().add(new InvokeNode(callTarget, bci));
         if (stateAfter() != null) {
             invoke.setStateAfter(stateAfter().duplicate());
-            if (kind() != Kind.Void) {
+            if (getKind() != Kind.Void) {
                 invoke.stateAfter().replaceFirstInput(this, invoke);
             }
         }
@@ -169,7 +169,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
     protected void replaceSnippetInvokes(StructuredGraph snippetGraph) {
         for (MethodCallTargetNode call : snippetGraph.getNodes(MethodCallTargetNode.class)) {
             Invoke invoke = call.invoke();
-            if (call.targetMethod() != getTargetMethod()) {
+            if (!call.targetMethod().equals(getTargetMethod())) {
                 throw new GraalInternalError("unexpected invoke %s in snippet", getClass().getSimpleName());
             }
             assert invoke.stateAfter().bci == FrameState.AFTER_BCI;

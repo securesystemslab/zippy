@@ -46,47 +46,52 @@ import com.oracle.graal.replacements.SnippetTemplate.Arguments;
  */
 public class HotSpotResolvedJavaField extends CompilerObject implements ResolvedJavaField {
 
-    // Must not conflict with any fields flags used by the VM - the assertion in the constructor
-    // checks this assumption
-    private static final int FIELD_INTERNAL_FLAG = 0x80000000;
-
     private static final long serialVersionUID = 7692985878836955683L;
     private final HotSpotResolvedObjectType holder;
     private final String name;
-    private final JavaType type;
+    private JavaType type;
     private final int offset;
-    private Constant constant;
 
     /**
-     * The {@linkplain HotSpotResolvedObjectType#getReflectionFieldModifiers() reflection} modifiers
-     * for this field plus the {@link #FIELD_INTERNAL_FLAG} if it applies.
+     * This value contains all flags as stored in the VM including internal ones.
      */
-    private final int modifiersWithInternal;
+    private final int modifiers;
 
-    public HotSpotResolvedJavaField(HotSpotResolvedObjectType holder, String name, JavaType type, long offset, int modifiers, boolean internal) {
-        assert (modifiers & FIELD_INTERNAL_FLAG) == 0;
-        assert (modifiers & ~getReflectionFieldModifiers()) == 0;
+    public HotSpotResolvedJavaField(HotSpotResolvedObjectType holder, String name, JavaType type, long offset, int modifiers) {
         this.holder = holder;
         this.name = name;
         this.type = type;
         assert offset != -1;
         assert offset == (int) offset : "offset larger than int";
         this.offset = (int) offset;
-        if (internal) {
-            this.modifiersWithInternal = modifiers | FIELD_INTERNAL_FLAG;
-        } else {
-            this.modifiersWithInternal = modifiers;
+        this.modifiers = modifiers;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
         }
+        if (obj instanceof HotSpotResolvedJavaField) {
+            HotSpotResolvedJavaField that = (HotSpotResolvedJavaField) obj;
+            return this.holder.equals(that.holder) && this.name.equals(that.name) && this.type.equals(that.type);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 
     @Override
     public int getModifiers() {
-        return modifiersWithInternal & getReflectionFieldModifiers();
+        return modifiers & getReflectionFieldModifiers();
     }
 
     @Override
     public boolean isInternal() {
-        return (modifiersWithInternal & FIELD_INTERNAL_FLAG) != 0;
+        return (modifiers & runtime().getConfig().jvmAccFieldInternal) != 0;
     }
 
     /**
@@ -126,42 +131,52 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
         return false;
     }
 
-    private static final List<ResolvedJavaField> notEmbeddable = new ArrayList<>();
+    /**
+     * Separate out the static initialization to eliminate cycles between clinit and other locks
+     * that could lead to deadlock. Static code that doesn't call back into type or field machinery
+     * is probably ok but anything else should be made lazy.
+     */
+    static class Embeddable {
 
-    private static void addResolvedToSet(Field field) {
-        MetaAccessProvider metaAccess = runtime().getHostProviders().getMetaAccess();
-        notEmbeddable.add(metaAccess.lookupJavaField(field));
-    }
+        /**
+         * @return Return true if it's ok to embed the value of {@code field}.
+         */
+        public static boolean test(HotSpotResolvedJavaField field) {
+            return !ImmutableCode.getValue() || !fields.contains(field);
+        }
 
-    static {
-        try {
-            addResolvedToSet(Boolean.class.getDeclaredField("TRUE"));
-            addResolvedToSet(Boolean.class.getDeclaredField("FALSE"));
+        private static final List<ResolvedJavaField> fields = new ArrayList<>();
+        static {
+            try {
+                MetaAccessProvider metaAccess = runtime().getHostProviders().getMetaAccess();
+                fields.add(metaAccess.lookupJavaField(Boolean.class.getDeclaredField("TRUE")));
+                fields.add(metaAccess.lookupJavaField(Boolean.class.getDeclaredField("FALSE")));
 
-            Class<?> characterCacheClass = Character.class.getDeclaredClasses()[0];
-            assert "java.lang.Character$CharacterCache".equals(characterCacheClass.getName());
-            addResolvedToSet(characterCacheClass.getDeclaredField("cache"));
+                Class<?> characterCacheClass = Character.class.getDeclaredClasses()[0];
+                assert "java.lang.Character$CharacterCache".equals(characterCacheClass.getName());
+                fields.add(metaAccess.lookupJavaField(characterCacheClass.getDeclaredField("cache")));
 
-            Class<?> byteCacheClass = Byte.class.getDeclaredClasses()[0];
-            assert "java.lang.Byte$ByteCache".equals(byteCacheClass.getName());
-            addResolvedToSet(byteCacheClass.getDeclaredField("cache"));
+                Class<?> byteCacheClass = Byte.class.getDeclaredClasses()[0];
+                assert "java.lang.Byte$ByteCache".equals(byteCacheClass.getName());
+                fields.add(metaAccess.lookupJavaField(byteCacheClass.getDeclaredField("cache")));
 
-            Class<?> shortCacheClass = Short.class.getDeclaredClasses()[0];
-            assert "java.lang.Short$ShortCache".equals(shortCacheClass.getName());
-            addResolvedToSet(shortCacheClass.getDeclaredField("cache"));
+                Class<?> shortCacheClass = Short.class.getDeclaredClasses()[0];
+                assert "java.lang.Short$ShortCache".equals(shortCacheClass.getName());
+                fields.add(metaAccess.lookupJavaField(shortCacheClass.getDeclaredField("cache")));
 
-            Class<?> integerCacheClass = Integer.class.getDeclaredClasses()[0];
-            assert "java.lang.Integer$IntegerCache".equals(integerCacheClass.getName());
-            addResolvedToSet(integerCacheClass.getDeclaredField("cache"));
+                Class<?> integerCacheClass = Integer.class.getDeclaredClasses()[0];
+                assert "java.lang.Integer$IntegerCache".equals(integerCacheClass.getName());
+                fields.add(metaAccess.lookupJavaField(integerCacheClass.getDeclaredField("cache")));
 
-            Class<?> longCacheClass = Long.class.getDeclaredClasses()[0];
-            assert "java.lang.Long$LongCache".equals(longCacheClass.getName());
-            addResolvedToSet(longCacheClass.getDeclaredField("cache"));
+                Class<?> longCacheClass = Long.class.getDeclaredClasses()[0];
+                assert "java.lang.Long$LongCache".equals(longCacheClass.getName());
+                fields.add(metaAccess.lookupJavaField(longCacheClass.getDeclaredField("cache")));
 
-            addResolvedToSet(Throwable.class.getDeclaredField("UNASSIGNED_STACK"));
-            addResolvedToSet(Throwable.class.getDeclaredField("SUPPRESSED_SENTINEL"));
-        } catch (SecurityException | NoSuchFieldException e) {
-            throw new GraalInternalError(e);
+                fields.add(metaAccess.lookupJavaField(Throwable.class.getDeclaredField("UNASSIGNED_STACK")));
+                fields.add(metaAccess.lookupJavaField(Throwable.class.getDeclaredField("SUPPRESSED_SENTINEL")));
+            } catch (SecurityException | NoSuchFieldException e) {
+                throw new GraalInternalError(e);
+            }
         }
     }
 
@@ -169,10 +184,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
      * in AOT mode, some fields should never be embedded even for snippets/replacements.
      */
     private boolean isEmbeddable() {
-        if (ImmutableCode.getValue() && notEmbeddable.contains(this)) {
-            return false;
-        }
-        return true;
+        return Embeddable.test(this);
     }
 
     private static final String SystemClassName = "Ljava/lang/System;";
@@ -188,21 +200,19 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
         assert !ImmutableCode.getValue() || isCalledForSnippets() : receiver;
 
         if (receiver == null) {
-            assert isStatic(modifiersWithInternal);
-            if (constant == null) {
+            assert isStatic(modifiers);
+            if (Modifier.isFinal(getModifiers())) {
                 if (holder.isInitialized() && !holder.getName().equals(SystemClassName) && isEmbeddable()) {
-                    if (Modifier.isFinal(getModifiers())) {
-                        constant = readValue(receiver);
-                    }
+                    return readValue(receiver);
+
                 }
             }
-            return constant;
         } else {
             /*
              * for non-static final fields, we must assume that they are only initialized if they
              * have a non-default value.
              */
-            assert !isStatic(modifiersWithInternal);
+            assert !isStatic(modifiers);
             Object object = receiver.asObject();
 
             // Canonicalization may attempt to process an unsafe read before
@@ -239,7 +249,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
      *         {@code object}'s class
      */
     public boolean isInObject(Object object) {
-        if (isStatic(modifiersWithInternal)) {
+        if (isStatic(modifiers)) {
             return false;
         }
         return getDeclaringClass().isAssignableFrom(HotSpotResolvedObjectType.fromClass(object.getClass()));
@@ -248,13 +258,13 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
     @Override
     public Constant readValue(Constant receiver) {
         if (receiver == null) {
-            assert isStatic(modifiersWithInternal);
+            assert isStatic(modifiers);
             if (holder.isInitialized()) {
                 return runtime().getHostProviders().getConstantReflection().readUnsafeConstant(getKind(), holder.mirror(), offset, getKind() == Kind.Object);
             }
             return null;
         } else {
-            assert !isStatic(modifiersWithInternal);
+            assert !isStatic(modifiers);
             Object object = receiver.asObject();
             assert object != null && isInObject(object);
             return runtime().getHostProviders().getConstantReflection().readUnsafeConstant(getKind(), object, offset, getKind() == Kind.Object);
@@ -296,6 +306,13 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
 
     @Override
     public JavaType getType() {
+        if (!(type instanceof ResolvedJavaType)) {
+            // Don't allow unresolved types to hang around forever
+            ResolvedJavaType resolved = type.resolve(holder);
+            if (resolved != null) {
+                type = resolved;
+            }
+        }
         return type;
     }
 
@@ -310,7 +327,7 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
 
     @Override
     public boolean isSynthetic() {
-        return (runtime().getConfig().syntheticFlag & modifiersWithInternal) != 0;
+        return (runtime().getConfig().syntheticFlag & modifiers) != 0;
     }
 
     /**

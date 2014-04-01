@@ -25,6 +25,7 @@ package com.oracle.graal.compiler.alloc;
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
+
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
@@ -52,16 +53,24 @@ final class LinearScanWalker extends IntervalWalker {
 
     private MoveResolver moveResolver; // for ordering spill moves
 
+    /**
+     * Only 10% of the lists in {@link #spillIntervals} are actually used. But when they are used,
+     * they can grow quite long. The maximum length observed was 45 (all numbers taken from a
+     * bootstrap run of Graal). Therefore, we initialize {@link #spillIntervals} with this marker
+     * value, and allocate a "real" list only on demand in {@link #setUsePos}.
+     */
+    private static final List<Interval> EMPTY_LIST = new ArrayList<>(0);
+
     // accessors mapped to same functions in class LinearScan
     int blockCount() {
         return allocator.blockCount();
     }
 
-    Block blockAt(int idx) {
+    AbstractBlock<?> blockAt(int idx) {
         return allocator.blockAt(idx);
     }
 
-    Block blockOfOpWithId(int opId) {
+    AbstractBlock<?> blockOfOpWithId(int opId) {
         return allocator.blockForId(opId);
     }
 
@@ -69,16 +78,13 @@ final class LinearScanWalker extends IntervalWalker {
         super(allocator, unhandledFixedFirst, unhandledAnyFirst);
 
         // If all allocatable registers are caller saved, then no registers are live across a call
-        // site.
-        // The register allocator can save time not trying to find a register at a call site.
-        HashSet<Register> registers = new HashSet<>(Arrays.asList(allocator.frameMap.registerConfig.getAllocatableRegisters()));
-        registers.removeAll(Arrays.asList(allocator.frameMap.registerConfig.getCallerSaveRegisters()));
-        allocator.callKillsRegisters = registers.size() == 0;
+        // site. The register allocator can save time not trying to find a register at a call site.
+        allocator.callKillsRegisters = allocator.frameMap.registerConfig.areAllAllocatableRegistersCallerSaved();
 
         moveResolver = new MoveResolver(allocator);
         spillIntervals = Util.uncheckedCast(new List[allocator.registers.length]);
         for (int i = 0; i < allocator.registers.length; i++) {
-            spillIntervals[i] = new ArrayList<>(2);
+            spillIntervals[i] = EMPTY_LIST;
         }
         usePos = new int[allocator.registers.length];
         blockPos = new int[allocator.registers.length];
@@ -113,7 +119,12 @@ final class LinearScanWalker extends IntervalWalker {
                     this.usePos[i] = usePos;
                 }
                 if (!onlyProcessUsePos) {
-                    spillIntervals[i].add(interval);
+                    List<Interval> list = spillIntervals[i];
+                    if (list == EMPTY_LIST) {
+                        list = new ArrayList<>(2);
+                        spillIntervals[i] = list;
+                    }
+                    list.add(interval);
                 }
             }
         }
@@ -235,7 +246,7 @@ final class LinearScanWalker extends IntervalWalker {
         // optimized away later in assignRegNums
 
         int opId = (operandId + 1) & ~1;
-        Block opBlock = allocator.blockForId(opId);
+        AbstractBlock<?> opBlock = allocator.blockForId(opId);
         assert opId > 0 && allocator.blockForId(opId - 2) == opBlock : "cannot insert move at block boundary";
 
         // calculate index of instruction inside instruction list of current block
@@ -259,7 +270,7 @@ final class LinearScanWalker extends IntervalWalker {
         moveResolver.addMapping(srcIt, dstIt);
     }
 
-    int findOptimalSplitPos(Block minBlock, Block maxBlock, int maxSplitPos) {
+    int findOptimalSplitPos(AbstractBlock<?> minBlock, AbstractBlock<?> maxBlock, int maxSplitPos) {
         int fromBlockNr = minBlock.getLinearScanNumber();
         int toBlockNr = maxBlock.getLinearScanNumber();
 
@@ -276,7 +287,7 @@ final class LinearScanWalker extends IntervalWalker {
 
         int minLoopDepth = maxBlock.getLoopDepth();
         for (int i = toBlockNr - 1; i >= fromBlockNr; i--) {
-            Block cur = blockAt(i);
+            AbstractBlock<?> cur = blockAt(i);
 
             if (cur.getLoopDepth() < minLoopDepth) {
                 // block with lower loop-depth found . split at the end of this block
@@ -304,13 +315,13 @@ final class LinearScanWalker extends IntervalWalker {
             // beginning of a block, then minSplitPos is also a possible split position.
             // Use the block before as minBlock, because then minBlock.lastLirInstructionId() + 2 ==
             // minSplitPos
-            Block minBlock = allocator.blockForId(minSplitPos - 1);
+            AbstractBlock<?> minBlock = allocator.blockForId(minSplitPos - 1);
 
             // reason for using maxSplitPos - 1: otherwise there would be an assert on failure
             // when an interval ends at the end of the last block of the method
             // (in this case, maxSplitPos == allocator().maxLirOpId() + 2, and there is no
             // block at this opId)
-            Block maxBlock = allocator.blockForId(maxSplitPos - 1);
+            AbstractBlock<?> maxBlock = allocator.blockForId(maxSplitPos - 1);
 
             assert minBlock.getLinearScanNumber() <= maxBlock.getLinearScanNumber() : "invalid order";
             if (minBlock == maxBlock) {
@@ -348,7 +359,7 @@ final class LinearScanWalker extends IntervalWalker {
                             // Desired result: uses tagged as shouldHaveRegister inside a loop cause
                             // a reloading
                             // of the interval (normally, only mustHaveRegister causes a reloading)
-                            Block loopBlock = allocator.blockForId(loopEndPos);
+                            AbstractBlock<?> loopBlock = allocator.blockForId(loopEndPos);
 
                             Debug.log("interval is used in loop that ends in block B%d, so trying to move maxBlock back from B%d to B%d", loopBlock.getId(), maxBlock.getId(), loopBlock.getId());
                             assert loopBlock != minBlock : "loopBlock and minBlock must be different because block boundary is needed between";
@@ -412,8 +423,8 @@ final class LinearScanWalker extends IntervalWalker {
 
             Debug.log("splitting at position %d", optimalSplitPos);
 
-            assert allocator.isBlockBegin(optimalSplitPos) || (optimalSplitPos % 2 == 1) : "split pos must be odd when not on block boundary";
-            assert !allocator.isBlockBegin(optimalSplitPos) || (optimalSplitPos % 2 == 0) : "split pos must be even on block boundary";
+            assert allocator.isBlockBegin(optimalSplitPos) || ((optimalSplitPos & 1) == 1) : "split pos must be odd when not on block boundary";
+            assert !allocator.isBlockBegin(optimalSplitPos) || ((optimalSplitPos & 1) == 0) : "split pos must be even on block boundary";
 
             Interval splitPart = interval.split(optimalSplitPos, allocator);
 
@@ -492,8 +503,8 @@ final class LinearScanWalker extends IntervalWalker {
             }
 
             try (Indent indent2 = Debug.logAndIndent("splitting at position %d", optimalSplitPos)) {
-                assert allocator.isBlockBegin(optimalSplitPos) || (optimalSplitPos % 2 == 1) : "split pos must be odd when not on block boundary";
-                assert !allocator.isBlockBegin(optimalSplitPos) || (optimalSplitPos % 2 == 0) : "split pos must be even on block boundary";
+                assert allocator.isBlockBegin(optimalSplitPos) || ((optimalSplitPos & 1) == 1) : "split pos must be odd when not on block boundary";
+                assert !allocator.isBlockBegin(optimalSplitPos) || ((optimalSplitPos & 1) == 0) : "split pos must be even on block boundary";
 
                 Interval spilledPart = interval.split(optimalSplitPos, allocator);
                 allocator.assignSpillSlot(spilledPart);

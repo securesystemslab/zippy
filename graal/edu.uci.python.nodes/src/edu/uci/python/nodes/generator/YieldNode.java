@@ -35,7 +35,7 @@ public class YieldNode extends StatementNode {
     @Child protected PNode right;
 
     public YieldNode(PNode right) {
-        this.right = adoptChild(right);
+        this.right = right;
     }
 
     public PNode getRhs() {

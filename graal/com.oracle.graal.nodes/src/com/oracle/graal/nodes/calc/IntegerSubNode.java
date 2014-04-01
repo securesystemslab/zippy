@@ -26,14 +26,15 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "-")
-public class IntegerSubNode extends IntegerArithmeticNode implements Canonicalizable {
+public class IntegerSubNode extends IntegerArithmeticNode implements Canonicalizable, NarrowableArithmeticNode {
 
-    public IntegerSubNode(Kind kind, ValueNode x, ValueNode y) {
-        super(kind, x, y);
+    public IntegerSubNode(Stamp stamp, ValueNode x, ValueNode y) {
+        super(stamp, x, y);
     }
 
     @Override
@@ -44,13 +45,13 @@ public class IntegerSubNode extends IntegerArithmeticNode implements Canonicaliz
     @Override
     public Constant evalConst(Constant... inputs) {
         assert inputs.length == 2;
-        return Constant.forIntegerKind(kind(), inputs[0].asLong() - inputs[1].asLong(), null);
+        return Constant.forPrimitiveInt(PrimitiveStamp.getBits(stamp()), inputs[0].asLong() - inputs[1].asLong());
     }
 
     @Override
     public Node canonical(CanonicalizerTool tool) {
         if (x() == y()) {
-            return ConstantNode.forIntegerKind(kind(), 0, graph());
+            return ConstantNode.forIntegerStamp(stamp(), 0, graph());
         }
         if (x() instanceof IntegerAddNode) {
             IntegerAddNode x = (IntegerAddNode) x();
@@ -97,13 +98,10 @@ public class IntegerSubNode extends IntegerArithmeticNode implements Canonicaliz
             if (reassociated != this) {
                 return reassociated;
             }
-            if (c < 0) {
-                if (kind() == Kind.Int) {
-                    return IntegerArithmeticNode.add(graph(), x(), ConstantNode.forInt((int) -c, graph()));
-                } else {
-                    assert kind() == Kind.Long;
-                    return IntegerArithmeticNode.add(graph(), x(), ConstantNode.forLong(-c, graph()));
-                }
+            if (c < 0 || ((IntegerStamp) StampFactory.forKind(y().getKind())).contains(-c)) {
+                // Adding a negative is more friendly to the backend since adds are
+                // commutative, so prefer add when it fits.
+                return IntegerArithmeticNode.add(graph(), x(), ConstantNode.forIntegerStamp(stamp(), -c, graph()));
             }
         } else if (x().isConstant()) {
             long c = x().asConstant().asLong();
@@ -121,5 +119,14 @@ public class IntegerSubNode extends IntegerArithmeticNode implements Canonicaliz
     @Override
     public void generate(ArithmeticLIRGenerator gen) {
         gen.setResult(this, gen.emitSub(gen.operand(x()), gen.operand(y())));
+    }
+
+    @Override
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        Value result = gen.emitSubMemory(x(), y(), access);
+        if (result != null) {
+            gen.setResult(this, result);
+        }
+        return result != null;
     }
 }

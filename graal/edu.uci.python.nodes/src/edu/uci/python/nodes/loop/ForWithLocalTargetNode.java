@@ -40,7 +40,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
     public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body) {
         super(body);
-        this.target = adoptChild(target);
+        this.target = target;
     }
 
     protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {

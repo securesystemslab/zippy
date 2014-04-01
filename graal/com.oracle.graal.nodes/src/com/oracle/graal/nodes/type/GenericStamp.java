@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,17 +23,18 @@
 package com.oracle.graal.nodes.type;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.spi.*;
 
 public final class GenericStamp extends Stamp {
 
     public enum GenericStampType {
-        Dependency, Extension, Condition, Void
+        Dependency, Extension, Condition
     }
 
     private final GenericStampType type;
 
     protected GenericStamp(GenericStampType type) {
-        super(type == GenericStampType.Void ? Kind.Void : Kind.Illegal);
         this.type = type;
     }
 
@@ -42,8 +43,23 @@ public final class GenericStamp extends Stamp {
     }
 
     @Override
+    public Stamp unrestricted() {
+        return this;
+    }
+
+    @Override
+    public Kind getStackKind() {
+        return Kind.Illegal;
+    }
+
+    @Override
+    public PlatformKind getPlatformKind(LIRTypeTool tool) {
+        throw GraalInternalError.shouldNotReachHere(type + " stamp has no value");
+    }
+
+    @Override
     public ResolvedJavaType javaType(MetaAccessProvider metaAccess) {
-        return metaAccess.lookupJavaType(kind().toJavaClass());
+        throw GraalInternalError.shouldNotReachHere(type + " stamp has not Java type");
     }
 
     @Override
@@ -76,6 +92,18 @@ public final class GenericStamp extends Stamp {
             return StampFactory.illegal(Kind.Illegal);
         }
         return this;
+    }
+
+    @Override
+    public boolean isCompatible(Stamp stamp) {
+        if (this == stamp) {
+            return true;
+        }
+        if (stamp instanceof GenericStamp) {
+            GenericStamp other = (GenericStamp) stamp;
+            return type == other.type;
+        }
+        return false;
     }
 
     @Override

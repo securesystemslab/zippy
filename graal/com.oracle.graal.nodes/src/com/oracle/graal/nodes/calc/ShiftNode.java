@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.calc;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 /**
  * The {@code ShiftOp} class represents shift operations.
@@ -37,7 +38,18 @@ public abstract class ShiftNode extends BinaryNode implements ArithmeticLIRLower
      * @param x the first input value
      * @param s the second input value
      */
-    public ShiftNode(Kind kind, ValueNode x, ValueNode s) {
-        super(kind, x, s);
+    public ShiftNode(Stamp stamp, ValueNode x, ValueNode s) {
+        super(stamp, x, s);
+    }
+
+    public int getShiftAmountMask() {
+        int mask;
+        if (getKind() == Kind.Int) {
+            mask = 0x1f;
+        } else {
+            assert getKind() == Kind.Long;
+            mask = 0x3f;
+        }
+        return mask;
     }
 }

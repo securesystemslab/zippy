@@ -34,8 +34,8 @@ public class ElseNode extends StatementNode {
     @Child protected PNode orelse;
 
     public ElseNode(StatementNode then, PNode orelse) {
-        this.then = adoptChild(then);
-        this.orelse = adoptChild(orelse);
+        this.then = then;
+        this.orelse = orelse;
     }
 
     @Override

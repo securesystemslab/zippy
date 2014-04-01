@@ -57,9 +57,6 @@ public enum Kind implements PlatformKind {
     /** The Object kind, also used for arrays. */
     Object('a', "Object", false, null, null),
 
-    /** The narrow oop kind. */
-    NarrowOop('n', "NarrowOop", false, null, null),
-
     /** The void float kind. */
     Void('v', "void", false, java.lang.Void.TYPE, java.lang.Void.class),
 
@@ -72,12 +69,12 @@ public enum Kind implements PlatformKind {
     private final Class primitiveJavaClass;
     private final Class boxedJavaClass;
 
-    private Kind(char typeChar, String javaName, boolean isStackInt, Class primitiveJavaClass, Class boxedJavasClass) {
+    private Kind(char typeChar, String javaName, boolean isStackInt, Class primitiveJavaClass, Class boxedJavaClass) {
         this.typeChar = typeChar;
         this.javaName = javaName;
         this.isStackInt = isStackInt;
         this.primitiveJavaClass = primitiveJavaClass;
-        this.boxedJavaClass = boxedJavasClass;
+        this.boxedJavaClass = boxedJavaClass;
         assert primitiveJavaClass == null || javaName.equals(primitiveJavaClass.getName());
     }
 
@@ -129,12 +126,30 @@ public enum Kind implements PlatformKind {
     }
 
     /**
+     * Checks whether this type is a Java primitive type representing an unsigned number.
+     * 
+     * @return {@code true} if the kind is {@link #Boolean} or {@link #Char}.
+     */
+    public boolean isUnsigned() {
+        return this == Kind.Boolean || this == Kind.Char;
+    }
+
+    /**
      * Checks whether this type is a Java primitive type representing a floating point number.
      * 
      * @return {@code true} if this is {@link #Float} or {@link #Double}.
      */
     public boolean isNumericFloat() {
         return this == Kind.Float || this == Kind.Double;
+    }
+
+    /**
+     * Checks whether this represent an Object of some sort.
+     * 
+     * @return {@code true} if this is {@link #Object}.
+     */
+    public boolean isObject() {
+        return this == Kind.Object;
     }
 
     /**
@@ -255,9 +270,17 @@ public enum Kind implements PlatformKind {
 
     /**
      * Marker interface for types that should be {@linkplain Kind#format(Object) formatted} with
-     * their {@link Object#toString()} value.
+     * their {@link Object#toString()} value. Calling {@link Object#toString()} on other objects
+     * poses a security risk because it can potentially call user code.
      */
     public interface FormatWithToString {
+    }
+
+    /**
+     * Classes for which invoking {@link Object#toString()} does not run user code.
+     */
+    private static boolean isToStringSafe(Class c) {
+        return c == Boolean.class || c == Byte.class || c == Character.class || c == Short.class || c == Integer.class || c == Float.class || c == Long.class || c == Double.class;
     }
 
     /**
@@ -267,7 +290,10 @@ public enum Kind implements PlatformKind {
      * @return a formatted string for {@code value} based on this kind
      */
     public String format(Object value) {
-        if (this == Kind.Object) {
+        if (isPrimitive()) {
+            assert isToStringSafe(value.getClass());
+            return value.toString();
+        } else {
             if (value == null) {
                 return "null";
             } else {
@@ -280,18 +306,20 @@ public enum Kind implements PlatformKind {
                     }
                 } else if (value instanceof JavaType) {
                     return "JavaType:" + MetaUtil.toJavaName((JavaType) value);
-                } else if (value instanceof Enum || value instanceof FormatWithToString || value instanceof Number) {
+                } else if (value instanceof Enum) {
+                    return MetaUtil.getSimpleName(value.getClass(), true) + ":" + ((Enum) value).name();
+                } else if (value instanceof FormatWithToString) {
                     return MetaUtil.getSimpleName(value.getClass(), true) + ":" + String.valueOf(value);
                 } else if (value instanceof Class<?>) {
                     return "Class:" + ((Class<?>) value).getName();
+                } else if (isToStringSafe(value.getClass())) {
+                    return value.toString();
                 } else if (value.getClass().isArray()) {
                     return formatArray(value);
                 } else {
                     return MetaUtil.getSimpleName(value.getClass(), true) + "@" + System.identityHashCode(value);
                 }
             }
-        } else {
-            return value.toString();
         }
     }
 
@@ -366,6 +394,19 @@ public enum Kind implements PlatformKind {
                 return java.lang.Long.MAX_VALUE;
             default:
                 throw new IllegalArgumentException("illegal call to maxValue on " + this);
+        }
+    }
+
+    /**
+     * Number of bytes that are necessary to represent a value of this kind.
+     * 
+     * @return the number of bytes
+     */
+    public int getByteCount() {
+        if (this == Boolean) {
+            return 1;
+        } else {
+            return getBitCount() >> 3;
         }
     }
 

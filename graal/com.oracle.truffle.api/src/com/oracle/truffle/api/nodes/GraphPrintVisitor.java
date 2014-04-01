@@ -214,7 +214,7 @@ public class GraphPrintVisitor {
             setNodeProperty(node, "name", node.getClass().getSimpleName().replaceFirst("Node$", ""));
             NodeInfo nodeInfo = node.getClass().getAnnotation(NodeInfo.class);
             if (nodeInfo != null) {
-                setNodeProperty(node, "kind", nodeInfo.kind());
+                setNodeProperty(node, "cost", nodeInfo.cost());
                 if (!nodeInfo.shortName().isEmpty()) {
                     setNodeProperty(node, "shortName", nodeInfo.shortName());
                 }
@@ -344,8 +344,9 @@ public class GraphPrintVisitor {
         NodeClass nodeClass = NodeClass.get(node.getClass());
 
         if (node instanceof CallNode) {
-            RootNode inlinedRoot = ((CallNode) node).getInlinedRoot();
-            if (inlinedRoot != null) {
+            CallNode callNode = ((CallNode) node);
+            RootNode inlinedRoot = callNode.getCurrentRootNode();
+            if (inlinedRoot != null && callNode.isInlined()) {
                 nodes.put("inlinedRoot", inlinedRoot);
             }
         }

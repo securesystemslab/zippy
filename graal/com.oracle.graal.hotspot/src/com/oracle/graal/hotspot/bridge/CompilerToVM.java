@@ -43,6 +43,8 @@ public interface CompilerToVM {
      */
     byte[] initializeBytecode(long metaspaceMethod, byte[] code);
 
+    int exceptionTableLength(long metaspaceMethod);
+
     long exceptionTableStart(long metaspaceMethod);
 
     /**
@@ -54,20 +56,30 @@ public interface CompilerToVM {
     boolean hasBalancedMonitors(long metaspaceMethod);
 
     /**
-     * Determines if a given metaspace Method object is compilable. A method may not be compilable
-     * for a number of reasons such as:
+     * Determines if a given metaspace Method can be inlined. A method may not be inlinable for a
+     * number of reasons such as:
      * <ul>
-     * <li>a CompileOracle directive may prevent compilation of methods</li>
+     * <li>a CompileOracle directive may prevent inlining or compilation of methods</li>
      * <li>the method may have a bytecode breakpoint set</li>
      * <li>the method may have other bytecode features that require special handling by the VM</li>
      * </ul>
      * 
-     * A non-compilable method should not be inlined.
+     * @param metaspaceMethod the metaspace Method object to query
+     * @return true if the method can be inlined
+     */
+    boolean canInlineMethod(long metaspaceMethod);
+
+    /**
+     * Determines if a given metaspace Method should be inlined at any cost. This could be because:
+     * <ul>
+     * <li>a CompileOracle directive may forces inlining of this methods</li>
+     * <li>an annotation forces inlining of this method</li>
+     * </ul>
      * 
      * @param metaspaceMethod the metaspace Method object to query
-     * @return true if the method is compilable
+     * @return true if the method should be inlined
      */
-    boolean isMethodCompilable(long metaspaceMethod);
+    boolean shouldInlineMethod(long metaspaceMethod);
 
     /**
      * Used to implement {@link ResolvedJavaType#findUniqueConcreteMethod(ResolvedJavaMethod)}.
@@ -87,36 +99,77 @@ public interface CompilerToVM {
     long getKlassImplementor(long metaspaceKlass);
 
     /**
-     * Initializes a {@link HotSpotResolvedJavaMethod} object from a metaspace Method object.
+     * Determines if a given metaspace method is ignored by security stack walks.
      * 
      * @param metaspaceMethod the metaspace Method object
-     * @param method address of a metaspace Method object
+     * @return true if the method is ignored
      */
-    void initializeMethod(long metaspaceMethod, HotSpotResolvedJavaMethod method);
+    boolean methodIsIgnoredBySecurityStackWalk(long metaspaceMethod);
 
     /**
      * Converts a name to a metaspace klass.
      * 
      * @param name a well formed Java type in {@linkplain JavaType#getName() internal} format
      * @param accessingClass the context of resolution (may be null)
-     * @param eagerResolve force resolution to a {@link ResolvedJavaType}. If true, this method will
+     * @param resolve force resolution to a {@link ResolvedJavaType}. If true, this method will
      *            either return a {@link ResolvedJavaType} or throw an exception
      * @return a metaspace klass for {@code name}
-     * @throws LinkageError if {@code eagerResolve == true} and the resolution failed
+     * @throws LinkageError if {@code resolve == true} and the resolution failed
      */
-    long lookupType(String name, Class<?> accessingClass, boolean eagerResolve);
+    long lookupType(String name, Class<?> accessingClass, boolean resolve);
 
-    Object lookupConstantInPool(long metaspaceConstantPool, int cpi);
+    Object resolveConstantInPool(long metaspaceConstantPool, int cpi);
 
-    JavaMethod lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    Object resolvePossiblyCachedConstantInPool(long metaspaceConstantPool, int cpi);
 
-    JavaType lookupTypeInPool(long metaspaceConstantPool, int cpi);
+    int lookupNameAndTypeRefIndexInPool(long metaspaceConstantPool, int cpi);
 
-    JavaField lookupFieldInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    long lookupNameRefInPool(long metaspaceConstantPool, int cpi);
 
-    void lookupReferencedTypeInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    long lookupSignatureRefInPool(long metaspaceConstantPool, int cpi);
 
-    Object lookupAppendixInPool(long metaspaceConstantPool, int cpi, byte opcode);
+    int lookupKlassRefIndexInPool(long metaspaceConstantPool, int cpi);
+
+    long constantPoolKlassAt(long metaspaceConstantPool, int cpi);
+
+    /**
+     * Looks up a class entry in a constant pool.
+     * 
+     * @param metaspaceConstantPool metaspace constant pool pointer
+     * @param cpi constant pool index
+     * @return a metaspace Klass for a resolved method entry, a metaspace Symbol otherwise (with
+     *         tagging)
+     */
+    long lookupKlassInPool(long metaspaceConstantPool, int cpi);
+
+    /**
+     * Looks up a method entry in a constant pool.
+     * 
+     * @param metaspaceConstantPool metaspace constant pool pointer
+     * @param cpi constant pool index
+     * @return a metaspace Method for a resolved method entry, 0 otherwise
+     */
+    long lookupMethodInPool(long metaspaceConstantPool, int cpi, byte opcode);
+
+    /**
+     * Looks up a field entry in a constant pool and attempts to resolve it. The values returned in
+     * {@code info} are:
+     * 
+     * <pre>
+     *     [(int) flags,   // only valid if field is resolved
+     *      (int) offset]  // only valid if field is resolved
+     * </pre>
+     * 
+     * @param metaspaceConstantPool metaspace constant pool pointer
+     * @param cpi constant pool index
+     * @param info an array in which the details of the field are returned
+     * @return true if the field is resolved
+     */
+    long resolveField(long metaspaceConstantPool, int cpi, byte opcode, long[] info);
+
+    int constantPoolRemapInstructionOperandFromCache(long metaspaceConstantPool, int cpi);
+
+    Object lookupAppendixInPool(long metaspaceConstantPool, int cpi);
 
     public enum CodeInstallResult {
         OK("ok"), DEPENDENCIES_FAILED("dependencies failed"), CACHE_FULL("code cache is full"), CODE_TOO_LARGE("code is too large");
@@ -192,21 +245,11 @@ public interface CompilerToVM {
 
     void initializeConfiguration(HotSpotVMConfig config);
 
-    long resolveMethod(HotSpotResolvedObjectType klass, String name, String signature);
+    long resolveMethod(long metaspaceKlass, String name, String signature);
 
-    HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
+    long getClassInitializer(long metaspaceKlass);
 
-    long getClassInitializer(HotSpotResolvedObjectType klass);
-
-    boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
-
-    /**
-     * Gets the compiled code size for a method.
-     * 
-     * @param metaspaceMethod the metaspace Method object to query
-     * @return the compiled code size the method
-     */
-    int getCompiledCodeSize(long metaspaceMethod);
+    boolean hasFinalizableSubclass(long metaspaceKlass);
 
     /**
      * Gets the metaspace Method object corresponding to a given {@link Class} object and slot
@@ -228,13 +271,11 @@ public interface CompilerToVM {
 
     Object executeCompiledMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 
-    long[] getDeoptedLeafGraphIds();
+    long[] getLineNumberTable(long metaspaceMethod);
 
-    long[] getLineNumberTable(HotSpotResolvedJavaMethod method);
+    long getLocalVariableTableStart(long metaspaceMethod);
 
-    long getLocalVariableTableStart(HotSpotResolvedJavaMethod method);
-
-    int getLocalVariableTableLength(HotSpotResolvedJavaMethod method);
+    int getLocalVariableTableLength(long metaspaceMethod);
 
     String getFileName(HotSpotResolvedJavaType method);
 
@@ -263,7 +304,7 @@ public interface CompilerToVM {
     /**
      * Generate a unique id to identify the result of the compile.
      */
-    int allocateCompileId(HotSpotResolvedJavaMethod method, int entryBCI);
+    int allocateCompileId(long metaspaceMethod, int entryBCI);
 
     /**
      * Gets the names of the supported GPU architectures.
@@ -271,4 +312,13 @@ public interface CompilerToVM {
      * @return a comma separated list of names
      */
     String getGPUs();
+
+    /**
+     * 
+     * @param metaspaceMethod the method to check
+     * @param entryBCI
+     * @param level the compilation level
+     * @return true if the {@code metaspaceMethod} has code for {@code level}
+     */
+    boolean hasCompiledCodeForOSR(long metaspaceMethod, int entryBCI, int level);
 }

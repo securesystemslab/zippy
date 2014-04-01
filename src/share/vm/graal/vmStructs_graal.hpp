@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,14 @@
 #define SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP
 
 #include "compiler/abstractCompiler.hpp"
+#include "graal/graalCodeInstaller.hpp"
+#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalEnv.hpp"
 
 #define VM_STRUCTS_GRAAL(nonstatic_field, static_field)                       \
   nonstatic_field(ThreadShadow, _pending_deoptimization, int)                 \
   nonstatic_field(ThreadShadow, _pending_failed_speculation, oop)             \
+  nonstatic_field(MethodData,   _graal_node_count, int)                       \
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
 
@@ -43,5 +46,24 @@
                                                                                                   \
   declare_preprocessor_constant("JVM_ACC_SYNTHETIC", JVM_ACC_SYNTHETIC)                           \
   declare_preprocessor_constant("JVM_RECOGNIZED_FIELD_MODIFIERS", JVM_RECOGNIZED_FIELD_MODIFIERS) \
+                                                                                                  \
+  declare_constant(CompilerToVM::KLASS_TAG)                                                       \
+  declare_constant(CompilerToVM::SYMBOL_TAG)                                                      \
+                                                                                                  \
+  declare_constant(CodeInstaller::VERIFIED_ENTRY)                                                 \
+  declare_constant(CodeInstaller::UNVERIFIED_ENTRY)                                               \
+  declare_constant(CodeInstaller::OSR_ENTRY)                                                      \
+  declare_constant(CodeInstaller::EXCEPTION_HANDLER_ENTRY)                                        \
+  declare_constant(CodeInstaller::DEOPT_HANDLER_ENTRY)                                            \
+  declare_constant(CodeInstaller::INVOKEINTERFACE)                                                \
+  declare_constant(CodeInstaller::INVOKEVIRTUAL)                                                  \
+  declare_constant(CodeInstaller::INVOKESTATIC)                                                   \
+  declare_constant(CodeInstaller::INVOKESPECIAL)                                                  \
+  declare_constant(CodeInstaller::INLINE_INVOKE)                                                  \
+  declare_constant(CodeInstaller::POLL_NEAR)                                                      \
+  declare_constant(CodeInstaller::POLL_RETURN_NEAR)                                               \
+  declare_constant(CodeInstaller::POLL_FAR)                                                       \
+  declare_constant(CodeInstaller::POLL_RETURN_FAR)                                                \
+  declare_constant(CodeInstaller::INVOKE_INVALID)                                                 \
 
 #endif // SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP

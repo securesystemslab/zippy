@@ -26,7 +26,6 @@ package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeInfo.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
@@ -77,7 +76,6 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         return new ReadGeneratorFrameVariableObjectNode((ReadGeneratorFrameVariableNode) prev);
     }
 
-    @NodeInfo(kind = Kind.UNINITIALIZED)
     private static final class ReadGeneratorFrameVariableUninitializedNode extends ReadGeneratorFrameVariableNode {
 
         ReadGeneratorFrameVariableUninitializedNode(FrameSlot slot) {
@@ -91,7 +89,6 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadGeneratorFrameVariableBooleanNode extends ReadGeneratorFrameVariableNode {
 
         ReadGeneratorFrameVariableBooleanNode(ReadGeneratorFrameVariableNode copy) {
@@ -111,7 +108,6 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadGeneratorFrameVariableIntNode extends ReadGeneratorFrameVariableNode {
 
         ReadGeneratorFrameVariableIntNode(ReadGeneratorFrameVariableNode copy) {
@@ -135,7 +131,6 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadGeneratorFrameVariableDoubleNode extends ReadGeneratorFrameVariableNode {
 
         ReadGeneratorFrameVariableDoubleNode(ReadGeneratorFrameVariableNode copy) {
@@ -155,7 +150,6 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         }
     }
 
-    @NodeInfo(kind = Kind.SPECIALIZED)
     private static final class ReadGeneratorFrameVariableObjectNode extends ReadGeneratorFrameVariableNode {
 
         ReadGeneratorFrameVariableObjectNode(ReadGeneratorFrameVariableNode copy) {

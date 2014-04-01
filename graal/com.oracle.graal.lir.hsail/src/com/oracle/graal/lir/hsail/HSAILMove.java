@@ -146,7 +146,7 @@ public class HSAILMove {
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
             if (state != null) {
-                // crb.recordImplicitException(masm.codeBuffer.position(), state);
+                // crb.recordImplicitException(masm.position(), state);
                 throw new InternalError("NYI");
             }
             emitMemAccess(masm);
@@ -197,6 +197,49 @@ public class HSAILMove {
             assert isRegister(input);
             HSAILAddress addr = address.toAddress();
             masm.emitStore(kind, input, addr);
+        }
+    }
+
+    public static class StoreConstantOp extends MemOp {
+
+        protected final Constant input;
+
+        public StoreConstantOp(Kind kind, HSAILAddressValue address, Constant input, LIRFrameState state) {
+            super(kind, address, state);
+            this.input = input;
+        }
+
+        @Override
+        public void emitMemAccess(HSAILAssembler masm) {
+            switch (kind) {
+                case Boolean:
+                case Byte:
+                    masm.emitStoreImmediate(kind, input.asLong() & 0xFF, address.toAddress());
+                    break;
+                case Char:
+                case Short:
+                    masm.emitStoreImmediate(kind, input.asLong() & 0xFFFF, address.toAddress());
+                    break;
+                case Int:
+                case Long:
+                    masm.emitStoreImmediate(kind, input.asLong(), address.toAddress());
+                    break;
+                case Float:
+                    masm.emitStoreImmediate(input.asFloat(), address.toAddress());
+                    break;
+                case Double:
+                    masm.emitStoreImmediate(input.asDouble(), address.toAddress());
+                    break;
+                case Object:
+                    if (input.isNull()) {
+                        masm.emitStoreImmediate(kind, 0L, address.toAddress());
+                    } else {
+                        throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to object ref");
+                    }
+                    break;
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
         }
     }
 
@@ -255,7 +298,7 @@ public class HSAILMove {
             encodePointer(masm, scratch, base, shift, alignment, testForNull);
             if (state != null) {
                 throw new InternalError("NYI");
-                // crb.recordImplicitException(masm.codeBuffer.position(), state);
+                // crb.recordImplicitException(masm.position(), state);
             }
             masm.emitStore(scratch, address.toAddress(), "u32");
         }
