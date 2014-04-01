@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -217,7 +217,6 @@ class MutableNUMASpace : public MutableSpace {
   using MutableSpace::capacity_in_words;
   virtual size_t capacity_in_words(Thread* thr) const;
   virtual size_t tlab_capacity(Thread* thr) const;
-  virtual size_t tlab_used(Thread* thr) const;
   virtual size_t unsafe_max_tlab_alloc(Thread* thr) const;
 
   // Allocation (return NULL if full)

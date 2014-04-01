@@ -612,15 +612,17 @@ void ParNewGenTask::work(uint worker_id) {
   KlassScanClosure klass_scan_closure(&par_scan_state.to_space_root_closure(),
                                       gch->rem_set()->klass_rem_set());
 
-  int so = SharedHeap::SO_AllClasses | SharedHeap::SO_Strings | SharedHeap::SO_ScavengeCodeCache;
+  int so = SharedHeap::SO_AllClasses | SharedHeap::SO_Strings | SharedHeap::SO_CodeCache;
 
   par_scan_state.start_strong_roots();
   gch->gen_process_strong_roots(_gen->level(),
                                 true,  // Process younger gens, if any,
                                        // as strong roots.
                                 false, // no scope; this is parallel code
+                                true,  // is scavenging
                                 SharedHeap::ScanningOption(so),
                                 &par_scan_state.to_space_root_closure(),
+                                true,   // walk *all* scavengable nmethods
                                 &par_scan_state.older_gen_closure(),
                                 &klass_scan_closure);
   par_scan_state.end_strong_roots();
@@ -1069,7 +1071,7 @@ void ParNewGeneration::collect(bool   full,
     size_policy->avg_survived()->sample(from()->used());
   }
 
-  // We need to use a monotonically non-decreasing time in ms
+  // We need to use a monotonically non-deccreasing time in ms
   // or we will see time-warp warnings and os::javaTimeMillis()
   // does not guarantee monotonicity.
   jlong now = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
@@ -1401,7 +1403,7 @@ oop ParNewGeneration::copy_to_survivor_space_with_undo(
 #ifndef PRODUCT
 // It's OK to call this multi-threaded;  the worst thing
 // that can happen is that we'll get a bunch of closely
-// spaced simulated overflows, but that's OK, in fact
+// spaced simulated oveflows, but that's OK, in fact
 // probably good as it would exercise the overflow code
 // under contention.
 bool ParNewGeneration::should_simulate_overflow() {

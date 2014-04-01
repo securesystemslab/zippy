@@ -24,29 +24,19 @@
 
 package sun.jvm.hotspot.jdi;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.sun.jdi.*;
 
 import sun.jvm.hotspot.oops.ArrayKlass;
-import sun.jvm.hotspot.oops.Instance;
 import sun.jvm.hotspot.oops.InstanceKlass;
-import sun.jvm.hotspot.oops.Klass;
 import sun.jvm.hotspot.oops.ObjArrayKlass;
-import sun.jvm.hotspot.oops.Symbol;
 import sun.jvm.hotspot.oops.TypeArrayKlass;
-
-import com.sun.jdi.ArrayReference;
-import com.sun.jdi.ArrayType;
-import com.sun.jdi.ClassLoaderReference;
-import com.sun.jdi.ClassNotLoadedException;
-import com.sun.jdi.InterfaceType;
-import com.sun.jdi.Method;
-import com.sun.jdi.PrimitiveType;
-import com.sun.jdi.ReferenceType;
-import com.sun.jdi.Type;
-import com.sun.jdi.VirtualMachine;
+import sun.jvm.hotspot.oops.Klass;
+import sun.jvm.hotspot.oops.Instance;
+import sun.jvm.hotspot.oops.Symbol;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ArrayTypeImpl extends ReferenceTypeImpl implements ArrayType {
   protected ArrayTypeImpl(VirtualMachine aVm, ArrayKlass aRef) {
@@ -85,8 +75,7 @@ public class ArrayTypeImpl extends ReferenceTypeImpl implements ArrayType {
         }
     }
 
-    @Override
-    void addVisibleMethods(Map<String, Method> methodMap, Set<InterfaceType> handledInterfaces) {
+    void addVisibleMethods(Map methodMap) {
         // arrays don't have methods
     }
 

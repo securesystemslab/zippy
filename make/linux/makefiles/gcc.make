@@ -181,7 +181,6 @@ ARCHFLAG/zero    = $(ZERO_ARCHFLAG)
 ifndef E500V2
 ARCHFLAG/ppc     =  -mcpu=powerpc
 endif
-ARCHFLAG/ppc64   =  -m64
 
 CFLAGS     += $(ARCHFLAG)
 AOUT_FLAGS += $(ARCHFLAG)
@@ -215,7 +214,7 @@ ifeq ($(USE_CLANG), true)
   WARNINGS_ARE_ERRORS += -Wno-return-type -Wno-empty-body
 endif
 
-WARNING_FLAGS = -Wpointer-arith -Wsign-compare -Wundef -Wunused-function -Wunused-value -Wformat=2 -Wno-error=format-nonliteral
+WARNING_FLAGS = -Wpointer-arith -Wsign-compare -Wundef -Wunused-function -Wunused-value
 
 ifeq ($(USE_CLANG),)
   # Since GCC 4.3, -Wconversion has changed its meanings to warn these implicit
@@ -347,7 +346,6 @@ else
   DEBUG_CFLAGS/amd64 = -g
   DEBUG_CFLAGS/arm   = -g
   DEBUG_CFLAGS/ppc   = -g
-  DEBUG_CFLAGS/ppc64 = -g
   DEBUG_CFLAGS += $(DEBUG_CFLAGS/$(BUILDARCH))
   ifeq ($(DEBUG_CFLAGS/$(BUILDARCH)),)
       ifeq ($(USE_CLANG), true)
@@ -363,7 +361,6 @@ else
     FASTDEBUG_CFLAGS/amd64 = -g
     FASTDEBUG_CFLAGS/arm   = -g
     FASTDEBUG_CFLAGS/ppc   = -g
-    FASTDEBUG_CFLAGS/ppc64 = -g
     FASTDEBUG_CFLAGS += $(DEBUG_CFLAGS/$(BUILDARCH))
     ifeq ($(FASTDEBUG_CFLAGS/$(BUILDARCH)),)
       ifeq ($(USE_CLANG), true)
@@ -378,7 +375,6 @@ else
     OPT_CFLAGS/amd64 = -g
     OPT_CFLAGS/arm   = -g
     OPT_CFLAGS/ppc   = -g
-    OPT_CFLAGS/ppc64 = -g
     OPT_CFLAGS += $(OPT_CFLAGS/$(BUILDARCH))
     ifeq ($(OPT_CFLAGS/$(BUILDARCH)),)
       ifeq ($(USE_CLANG), true)

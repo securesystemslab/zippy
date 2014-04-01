@@ -126,7 +126,7 @@ jint GenCollectedHeap::initialize() {
                         (HeapWord*)(heap_rs.base() + heap_rs.size()));
 
   // It is important to do this in a way such that concurrent readers can't
-  // temporarily think something is in the heap.  (Seen this happen in asserts.)
+  // temporarily think somethings in the heap.  (Seen this happen in asserts.)
   _reserved.set_word_size(0);
   _reserved.set_start((HeapWord*)heap_rs.base());
   size_t actual_heap_size = heap_rs.size();
@@ -592,14 +592,23 @@ void GenCollectedHeap::
 gen_process_strong_roots(int level,
                          bool younger_gens_as_roots,
                          bool activate_scope,
+                         bool is_scavenging,
                          SharedHeap::ScanningOption so,
                          OopsInGenClosure* not_older_gens,
+                         bool do_code_roots,
                          OopsInGenClosure* older_gens,
                          KlassClosure* klass_closure) {
   // General strong roots.
 
-  SharedHeap::process_strong_roots(activate_scope, so,
-                                   not_older_gens, klass_closure);
+  if (!do_code_roots) {
+    SharedHeap::process_strong_roots(activate_scope, is_scavenging, so,
+                                     not_older_gens, NULL, klass_closure);
+  } else {
+    bool do_code_marking = (activate_scope || nmethod::oops_do_marking_is_active());
+    CodeBlobToOopClosure code_roots(not_older_gens, /*do_marking=*/ do_code_marking);
+    SharedHeap::process_strong_roots(activate_scope, is_scavenging, so,
+                                     not_older_gens, &code_roots, klass_closure);
+  }
 
   if (younger_gens_as_roots) {
     if (!_gen_process_strong_tasks->is_task_claimed(GCH_PS_younger_gens)) {
@@ -621,8 +630,9 @@ gen_process_strong_roots(int level,
   _gen_process_strong_tasks->all_tasks_completed();
 }
 
-void GenCollectedHeap::gen_process_weak_roots(OopClosure* root_closure) {
-  SharedHeap::process_weak_roots(root_closure);
+void GenCollectedHeap::gen_process_weak_roots(OopClosure* root_closure,
+                                              CodeBlobClosure* code_roots) {
+  SharedHeap::process_weak_roots(root_closure, code_roots);
   // "Local" "weak" refs
   for (int i = 0; i < _n_gens; i++) {
     _gens[i]->ref_processor()->weak_oops_do(root_closure);
@@ -661,6 +671,10 @@ HeapWord** GenCollectedHeap::top_addr() const {
 
 HeapWord** GenCollectedHeap::end_addr() const {
   return _gens[0]->end_addr();
+}
+
+size_t GenCollectedHeap::unsafe_max_alloc() {
+  return _gens[0]->unsafe_max_alloc_nogc();
 }
 
 // public collection interfaces
@@ -918,16 +932,6 @@ size_t GenCollectedHeap::tlab_capacity(Thread* thr) const {
   for (int i = 0; i < _n_gens; i += 1) {
     if (_gens[i]->supports_tlab_allocation()) {
       result += _gens[i]->tlab_capacity();
-    }
-  }
-  return result;
-}
-
-size_t GenCollectedHeap::tlab_used(Thread* thr) const {
-  size_t result = 0;
-  for (int i = 0; i < _n_gens; i += 1) {
-    if (_gens[i]->supports_tlab_allocation()) {
-      result += _gens[i]->tlab_used();
     }
   }
   return result;
@@ -1263,7 +1267,7 @@ class GenTimeOfLastGCClosure: public GenCollectedHeap::GenClosure {
 };
 
 jlong GenCollectedHeap::millis_since_last_gc() {
-  // We need a monotonically non-decreasing time in ms but
+  // We need a monotonically non-deccreasing time in ms but
   // os::javaTimeMillis() does not guarantee monotonicity.
   jlong now = os::javaTimeNanos() / NANOSECS_PER_MILLISEC;
   GenTimeOfLastGCClosure tolgc_cl(now);

@@ -25,7 +25,8 @@
  * @test
  * @bug 8026949
  * @summary Test ensures correct VM output during startup
- * @library /testlibrary
+ * @library ../../testlibrary
+ *
  */
 import com.oracle.java.testlibrary.*;
 

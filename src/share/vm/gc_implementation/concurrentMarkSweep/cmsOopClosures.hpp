@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -258,10 +258,10 @@ class MarkRefsIntoAndScanClosure: public CMSOopsInGenClosure {
   bool take_from_overflow_list();
 };
 
-// In this, the parallel avatar of MarkRefsIntoAndScanClosure, the revisit
+// Tn this, the parallel avatar of MarkRefsIntoAndScanClosure, the revisit
 // stack and the bitMap are shared, so access needs to be suitably
-// synchronized. An OopTaskQueue structure, supporting efficient
-// work stealing, replaces a CMSMarkStack for storing grey objects.
+// sycnhronized. An OopTaskQueue structure, supporting efficient
+// workstealing, replaces a CMSMarkStack for storing grey objects.
 class Par_MarkRefsIntoAndScanClosure: public CMSOopsInGenClosure {
  private:
   MemRegion              _span;

@@ -41,18 +41,32 @@
 #include "gc_implementation/g1/g1CollectedHeap.inline.hpp"
 #endif // INCLUDE_ALL_GCS
 
+#ifndef USDT2
+HS_DTRACE_PROBE_DECL1(hotspot, gc__begin, bool);
+HS_DTRACE_PROBE_DECL(hotspot, gc__end);
+#endif /* !USDT2 */
+
 // The same dtrace probe can't be inserted in two different files, so we
 // have to call it here, so it's only in one file.  Can't create new probes
 // for the other file anymore.   The dtrace probes have to remain stable.
 void VM_GC_Operation::notify_gc_begin(bool full) {
+#ifndef USDT2
+  HS_DTRACE_PROBE1(hotspot, gc__begin, full);
+  HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
+#else /* USDT2 */
   HOTSPOT_GC_BEGIN(
                    full);
-  HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
+#endif /* USDT2 */
 }
 
 void VM_GC_Operation::notify_gc_end() {
-  HOTSPOT_GC_END();
+#ifndef USDT2
+  HS_DTRACE_PROBE(hotspot, gc__end);
   HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
+#else /* USDT2 */
+  HOTSPOT_GC_END(
+);
+#endif /* USDT2 */
 }
 
 void VM_GC_Operation::acquire_pending_list_lock() {
@@ -68,7 +82,7 @@ void VM_GC_Operation::release_and_notify_pending_list_lock() {
 
 // Allocations may fail in several threads at about the same time,
 // resulting in multiple gc requests.  We only want to do one of them.
-// In case a GC locker is active and the need for a GC is already signaled,
+// In case a GC locker is active and the need for a GC is already signalled,
 // we want to skip this GC attempt altogether, without doing a futile
 // safepoint operation.
 bool VM_GC_Operation::skip_operation() const {

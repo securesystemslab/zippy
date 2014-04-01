@@ -61,6 +61,7 @@ bool DefNewGeneration::IsAliveClosure::do_object_b(oop p) {
 DefNewGeneration::KeepAliveClosure::
 KeepAliveClosure(ScanWeakRefClosure* cl) : _cl(cl) {
   GenRemSet* rs = GenCollectedHeap::heap()->rem_set();
+  assert(rs->rs_kind() == GenRemSet::CardTable, "Wrong rem set kind.");
   _rs = (CardTableRS*)rs;
 }
 
@@ -618,14 +619,16 @@ void DefNewGeneration::collect(bool   full,
   assert(gch->no_allocs_since_save_marks(0),
          "save marks have not been newly set.");
 
-  int so = SharedHeap::SO_AllClasses | SharedHeap::SO_Strings | SharedHeap::SO_ScavengeCodeCache;
+  int so = SharedHeap::SO_AllClasses | SharedHeap::SO_Strings | SharedHeap::SO_CodeCache;
 
   gch->gen_process_strong_roots(_level,
                                 true,  // Process younger gens, if any,
                                        // as strong roots.
                                 true,  // activate StrongRootsScope
+                                true,  // is scavenging
                                 SharedHeap::ScanningOption(so),
                                 &fsc_with_no_gc_barrier,
+                                true,   // walk *all* scavengable nmethods
                                 &fsc_with_gc_barrier,
                                 &klass_scan_closure);
 
@@ -664,6 +667,9 @@ void DefNewGeneration::collect(bool   full,
     // for full GC's.
     AdaptiveSizePolicy* size_policy = gch->gen_policy()->size_policy();
     size_policy->reset_gc_overhead_limit_count();
+    if (PrintGC && !PrintGCDetails) {
+      gch->print_heap_change(gch_prev_used);
+    }
     assert(!gch->incremental_collection_failed(), "Should be clear");
   } else {
     assert(_promo_failure_scan_stack.is_empty(), "post condition");
@@ -688,9 +694,6 @@ void DefNewGeneration::collect(bool   full,
 
     // Reset the PromotionFailureALot counters.
     NOT_PRODUCT(Universe::heap()->reset_promotion_should_fail();)
-  }
-  if (PrintGC && !PrintGCDetails) {
-    gch->print_heap_change(gch_prev_used);
   }
   // set new iteration safe limit for the survivor spaces
   from()->set_concurrent_iteration_safe_limit(from()->top());
@@ -1081,10 +1084,6 @@ void DefNewGeneration::gc_prologue(bool full) {
 
 size_t DefNewGeneration::tlab_capacity() const {
   return eden()->capacity();
-}
-
-size_t DefNewGeneration::tlab_used() const {
-  return eden()->used();
 }
 
 size_t DefNewGeneration::unsafe_max_tlab_alloc() const {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,9 +45,6 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "os_windows.inline.hpp"
 #endif
-#ifdef TARGET_OS_FAMILY_aix
-# include "os_aix.inline.hpp"
-#endif
 #ifdef TARGET_OS_FAMILY_bsd
 # include "os_bsd.inline.hpp"
 #endif
@@ -59,7 +56,7 @@
 
 // Here's the Space hierarchy:
 //
-// - Space               -- an abstract base class describing a heap area
+// - Space               -- an asbtract base class describing a heap area
 //   - CompactibleSpace  -- a space supporting compaction
 //     - CompactibleFreeListSpace -- (used for CMS generation)
 //     - ContiguousSpace -- a compactible space in which all free space
@@ -162,7 +159,7 @@ class Space: public CHeapObj<mtGC> {
   // (that is, if the space is contiguous), then this region must contain only
   // such objects: the memregion will be from the bottom of the region to the
   // saved mark.  Otherwise, the "obj_allocated_since_save_marks" method of
-  // the space must distinguish between objects in the region allocated before
+  // the space must distiguish between objects in the region allocated before
   // and after the call to save marks.
   virtual MemRegion used_region_at_save_marks() const {
     return MemRegion(bottom(), saved_mark_word());
@@ -193,7 +190,7 @@ class Space: public CHeapObj<mtGC> {
 
   // Returns true iff the given the space contains the
   // given address as part of an allocated object. For
-  // certain kinds of spaces, this might be a potentially
+  // ceratin kinds of spaces, this might be a potentially
   // expensive operation. To prevent performance problems
   // on account of its inadvertent use in product jvm's,
   // we restrict its use to assertion checks only.
@@ -247,13 +244,13 @@ class Space: public CHeapObj<mtGC> {
   // Return an address indicating the extent of the iteration in the
   // event that the iteration had to return because of finding an
   // uninitialized object in the space, or if the closure "cl"
-  // signaled early termination.
+  // signalled early termination.
   virtual HeapWord* object_iterate_careful(ObjectClosureCareful* cl);
   virtual HeapWord* object_iterate_careful_m(MemRegion mr,
                                              ObjectClosureCareful* cl);
 
   // Create and return a new dirty card to oop closure. Can be
-  // overridden to return the appropriate type of closure
+  // overriden to return the appropriate type of closure
   // depending on the type of space in which the closure will
   // operate. ResourceArea allocated.
   virtual DirtyCardToOopClosure* new_dcto_cl(ExtendedOopClosure* cl,
@@ -477,13 +474,13 @@ public:
   // be one, since compaction must succeed -- we go to the first space of
   // the previous generation if necessary, updating "cp"), reset compact_top
   // and then forward.  In either case, returns the new value of "compact_top".
-  // If the forwarding crosses "cp->threshold", invokes the "cross_threshold"
+  // If the forwarding crosses "cp->threshold", invokes the "cross_threhold"
   // function of the then-current compaction space, and updates "cp->threshold
   // accordingly".
   virtual HeapWord* forward(oop q, size_t size, CompactPoint* cp,
                     HeapWord* compact_top);
 
-  // Return a size with adjustments as required of the space.
+  // Return a size with adjusments as required of the space.
   virtual size_t adjust_object_size_v(size_t size) const { return size; }
 
 protected:
@@ -503,7 +500,7 @@ protected:
 
   // Requires "allowed_deadspace_words > 0", that "q" is the start of a
   // free block of the given "word_len", and that "q", were it an object,
-  // would not move if forwarded.  If the size allows, fill the free
+  // would not move if forwared.  If the size allows, fill the free
   // block with an object, to prevent excessive compaction.  Returns "true"
   // iff the free region was made deadspace, and modifies
   // "allowed_deadspace_words" to reflect the number of available deadspace

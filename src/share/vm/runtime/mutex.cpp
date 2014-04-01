@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -280,6 +280,16 @@ static inline jint MarsagliaXORV (jint x) {
   return x & 0x7FFFFFFF ;
 }
 
+static inline jint MarsagliaXOR (jint * const a) {
+  jint x = *a ;
+  if (x == 0) x = UNS(a)|1 ;
+  x ^= x << 6;
+  x ^= ((unsigned)x) >> 21;
+  x ^= x << 7 ;
+  *a = x ;
+  return x & 0x7FFFFFFF ;
+}
+
 static int Stall (int its) {
   static volatile jint rv = 1 ;
   volatile int OnFrame = 0 ;
@@ -497,7 +507,7 @@ void Monitor::ILock (Thread * Self) {
   _OnDeck = NULL ;
 
   // Note that we current drop the inner lock (clear OnDeck) in the slow-path
-  // epilogue immediately after having acquired the outer lock.
+  // epilog immediately after having acquired the outer lock.
   // But instead we could consider the following optimizations:
   // A. Shift or defer dropping the inner lock until the subsequent IUnlock() operation.
   //    This might avoid potential reacquisition of the inner lock in IUlock().
@@ -921,7 +931,7 @@ void Monitor::lock (Thread * Self) {
 
   check_block_state(Self);
   if (Self->is_Java_thread()) {
-    // Horrible dictu - we suffer through a state transition
+    // Horribile dictu - we suffer through a state transition
     assert(rank() > Mutex::special, "Potential deadlock with special or lesser rank mutex");
     ThreadBlockInVM tbivm ((JavaThread *) Self) ;
     ILock (Self) ;
@@ -953,7 +963,7 @@ void Monitor::lock_without_safepoint_check () {
 }
 
 
-// Returns true if thread succeeds in grabbing the lock, otherwise false.
+// Returns true if thread succeceed [sic] in grabbing the lock, otherwise false.
 
 bool Monitor::try_lock() {
   Thread * const Self = Thread::current();

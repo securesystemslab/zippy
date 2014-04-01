@@ -27,17 +27,19 @@
  * @library /testlibrary /testlibrary/whitebox
  * @build DeoptimizeMethodTest
  * @run main ClassFileInstaller sun.hotspot.WhiteBox
- * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:CompileCommand=compileonly,SimpleTestCase$Helper::* DeoptimizeMethodTest
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:CompileCommand=compileonly,TestCase$Helper::* DeoptimizeMethodTest
  * @summary testing of WB::deoptimizeMethod()
  * @author igor.ignatyev@oracle.com
  */
 public class DeoptimizeMethodTest extends CompilerWhiteBoxTest {
 
     public static void main(String[] args) throws Exception {
-        CompilerWhiteBoxTest.main(DeoptimizeMethodTest::new, args);
+        for (TestCase test : TestCase.values()) {
+            new DeoptimizeMethodTest(test).runTest();
+        }
     }
 
-    private DeoptimizeMethodTest(TestCase testCase) {
+    public DeoptimizeMethodTest(TestCase testCase) {
         super(testCase);
         // to prevent inlining of #method
         WHITE_BOX.testSetDontInlineMethod(method, true);
@@ -51,7 +53,7 @@ public class DeoptimizeMethodTest extends CompilerWhiteBoxTest {
      */
     @Override
     protected void test() throws Exception {
-        if (testCase.isOsr() && CompilerWhiteBoxTest.MODE.startsWith(
+        if (testCase.isOsr && CompilerWhiteBoxTest.MODE.startsWith(
                 "compiled ")) {
           System.err.printf("Warning: %s is not applicable in %s%n",
                 testCase.name(), CompilerWhiteBoxTest.MODE);

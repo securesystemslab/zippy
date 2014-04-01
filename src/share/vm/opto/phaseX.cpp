@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -321,23 +321,6 @@ void NodeHash::remove_useless_nodes(VectorSet &useful) {
       _table[i] = sentinel_node;       // Replace with placeholder
     }
   }
-}
-
-
-void NodeHash::check_no_speculative_types() {
-#ifdef ASSERT
-  uint max = size();
-  Node *sentinel_node = sentinel();
-  for (uint i = 0; i < max; ++i) {
-    Node *n = at(i);
-    if(n != NULL && n != sentinel_node && n->is_Type()) {
-      TypeNode* tn = n->as_Type();
-      const Type* t = tn->type();
-      const Type* t_no_spec = t->remove_speculative();
-      assert(t == t_no_spec, "dead node in hash table or missed node during speculative cleanup");
-    }
-  }
-#endif
 }
 
 #ifndef PRODUCT
@@ -1409,11 +1392,11 @@ void PhaseIterGVN::remove_speculative_types()  {
   assert(UseTypeSpeculation, "speculation is off");
   for (uint i = 0; i < _types.Size(); i++)  {
     const Type* t = _types.fast_lookup(i);
-    if (t != NULL) {
-      _types.map(i, t->remove_speculative());
+    if (t != NULL && t->isa_oopptr()) {
+      const TypeOopPtr* to = t->is_oopptr();
+      _types.map(i, to->remove_speculative());
     }
   }
-  _table.check_no_speculative_types();
 }
 
 //=============================================================================

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -75,7 +75,6 @@ typedef Elf32_Sym       Elf_Sym;
 
 class ElfStringTable;
 class ElfSymbolTable;
-class ElfFuncDescTable;
 
 
 // On Solaris/Linux platforms, libjvm.so does contain all private symbols.
@@ -151,12 +150,9 @@ protected:
   // string tables
   ElfStringTable*              m_string_tables;
 
-  // function descriptors table
-  ElfFuncDescTable*            m_funcDesc_table;
-
   NullDecoder::decoder_status  m_status;
 };
 
-#endif // !_WINDOWS && !__APPLE__
+#endif // _WINDOWS
 
 #endif // SHARE_VM_UTILITIES_ELF_FILE_HPP

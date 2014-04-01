@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -858,7 +858,9 @@ void LIR_Assembler::move_op(LIR_Opr src, LIR_Opr dest, BasicType type, LIR_Patch
 
 void LIR_Assembler::verify_oop_map(CodeEmitInfo* info) {
 #ifndef PRODUCT
-  if (VerifyOops) {
+  if (VerifyOopMaps || VerifyOops) {
+    bool v = VerifyOops;
+    VerifyOops = true;
     OopMapStream s(info->oop_map());
     while (!s.is_done()) {
       OopMapValue v = s.current();
@@ -881,6 +883,7 @@ void LIR_Assembler::verify_oop_map(CodeEmitInfo* info) {
 
       s.next();
     }
+    VerifyOops = v;
   }
 #endif
 }
