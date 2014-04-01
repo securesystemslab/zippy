@@ -27,7 +27,6 @@
 
 #include "runtime/java.hpp"
 #include "runtime/perfData.hpp"
-#include "utilities/debug.hpp"
 #include "utilities/top.hpp"
 
 // Arguments parses the command line and recognizes options
@@ -277,14 +276,14 @@ class Arguments : AllStatic {
   static const char* _java_vendor_url_bug;
 
   // sun.java.launcher, private property to provide information about
-  // java launcher
+  // java/gamma launcher
   static const char* _sun_java_launcher;
 
   // sun.java.launcher.pid, private property
   static int    _sun_java_launcher_pid;
 
-  // was this VM created via the -XXaltjvm=<path> option
-  static bool   _sun_java_launcher_is_altjvm;
+  // was this VM created by the gamma launcher
+  static bool   _created_by_gamma_launcher;
 
   // Option flags
   static bool   _has_profile;
@@ -379,16 +378,11 @@ class Arguments : AllStatic {
   static jint parse_vm_init_args(const JavaVMInitArgs* args);
   static jint parse_each_vm_init_arg(const JavaVMInitArgs* args, SysClassPath* scp_p, bool* scp_assembly_required_p, Flag::Flags origin);
   static jint finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_required);
-  static bool is_bad_option(const JavaVMOption* option, jboolean ignore, const char* option_type);
-
+  static bool is_bad_option(const JavaVMOption* option, jboolean ignore,
+    const char* option_type);
   static bool is_bad_option(const JavaVMOption* option, jboolean ignore) {
     return is_bad_option(option, ignore, NULL);
   }
-
-  static bool is_percentage(uintx val) {
-    return val <= 100;
-  }
-
   static bool verify_interval(uintx val, uintx min,
                               uintx max, const char* name);
   static bool verify_min_value(intx val, intx min, const char* name);
@@ -457,20 +451,11 @@ class Arguments : AllStatic {
   static jint apply_ergo();
   // Adjusts the arguments after the OS have adjusted the arguments
   static jint adjust_after_os();
-
-  // Verifies that the given value will fit as a MinHeapFreeRatio. If not, an error
-  // message is returned in the provided buffer.
-  static bool verify_MinHeapFreeRatio(FormatBuffer<80>& err_msg, uintx min_heap_free_ratio);
-
-  // Verifies that the given value will fit as a MaxHeapFreeRatio. If not, an error
-  // message is returned in the provided buffer.
-  static bool verify_MaxHeapFreeRatio(FormatBuffer<80>& err_msg, uintx max_heap_free_ratio);
-
   // Check for consistency in the selection of the garbage collector.
   static bool check_gc_consistency();
   static void check_deprecated_gcs();
   static void check_deprecated_gc_flags();
-  // Check consistency or otherwise of VM argument settings
+  // Check consistecy or otherwise of VM argument settings
   static bool check_vm_args_consistency();
   // Check stack pages settings
   static bool check_stack_pages();
@@ -513,8 +498,8 @@ class Arguments : AllStatic {
   static const char* sun_java_launcher()    { return _sun_java_launcher; }
   // Was VM created by a Java launcher?
   static bool created_by_java_launcher();
-  // -Dsun.java.launcher.is_altjvm
-  static bool sun_java_launcher_is_altjvm();
+  // Was VM created by the gamma Java launcher?
+  static bool created_by_gamma_launcher();
   // -Dsun.java.launcher.pid
   static int sun_java_launcher_pid()        { return _sun_java_launcher_pid; }
 
@@ -524,7 +509,7 @@ class Arguments : AllStatic {
   // -Xprof
   static bool has_profile()                 { return _has_profile; }
 
-  // -Xms
+  // -Xms, -Xmx
   static uintx min_heap_size()              { return _min_heap_size; }
   static void  set_min_heap_size(uintx v)   { _min_heap_size = v;  }
 

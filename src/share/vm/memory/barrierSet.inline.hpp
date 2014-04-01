@@ -40,11 +40,11 @@ template <class T> void BarrierSet::write_ref_field_pre(T* field, oop new_val) {
   }
 }
 
-void BarrierSet::write_ref_field(void* field, oop new_val, bool release) {
+void BarrierSet::write_ref_field(void* field, oop new_val) {
   if (kind() == CardTableModRef) {
-    ((CardTableModRefBS*)this)->inline_write_ref_field(field, new_val, release);
+    ((CardTableModRefBS*)this)->inline_write_ref_field(field, new_val);
   } else {
-    write_ref_field_work(field, new_val, release);
+    write_ref_field_work(field, new_val);
   }
 }
 

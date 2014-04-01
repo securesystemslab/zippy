@@ -60,7 +60,7 @@ public:
   void read_ref_field(void* field) {}
   void read_prim_field(HeapWord* field, size_t bytes) {}
 protected:
-  virtual void write_ref_field_work(void* field, oop new_val, bool release = false) = 0;
+  virtual void write_ref_field_work(void* field, oop new_val) = 0;
 public:
   void write_prim_field(HeapWord* field, size_t bytes,
                         juint val1, juint val2) {}
@@ -72,7 +72,7 @@ public:
   bool has_read_region_opt() { return false; }
 
 
-  // These operations should assert false unless the corresponding operation
+  // These operations should assert false unless the correponding operation
   // above returns true.
   void read_ref_array(MemRegion mr) {
     assert(false, "can't call");

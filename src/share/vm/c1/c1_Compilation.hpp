@@ -259,9 +259,6 @@ class Compilation: public StackObj {
   }
 
   ciKlass* cha_exact_type(ciType* type);
-
-  // Dump inlining replay data to the stream.
-  void dump_inline_data(outputStream* out) { /* do nothing now */ }
 };
 
 

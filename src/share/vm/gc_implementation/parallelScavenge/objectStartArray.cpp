@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -139,6 +139,11 @@ bool ObjectStartArray::object_starts_in_range(HeapWord* start_addr,
       return true;
     }
   }
-
+  // No object starts in this slice; verify this using
+  // more traditional methods:  Note that no object can
+  // start before the start_addr.
+  assert(end_addr == start_addr ||
+         object_start(end_addr - 1) <= start_addr,
+         "Oops an object does start in this slice?");
   return false;
 }

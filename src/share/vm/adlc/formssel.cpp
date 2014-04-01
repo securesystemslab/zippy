@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,33 +32,31 @@ InstructForm::InstructForm(const char *id, bool ideal_only)
     _localNames(cmpstr, hashstr, Form::arena),
     _effects(cmpstr, hashstr, Form::arena),
     _is_mach_constant(false),
-    _needs_constant_base(false),
     _has_call(false)
 {
       _ftype = Form::INS;
 
-      _matrule              = NULL;
-      _insencode            = NULL;
-      _constant             = NULL;
-      _is_postalloc_expand  = false;
-      _opcode               = NULL;
-      _size                 = NULL;
-      _attribs              = NULL;
-      _predicate            = NULL;
-      _exprule              = NULL;
-      _rewrule              = NULL;
-      _format               = NULL;
-      _peephole             = NULL;
-      _ins_pipe             = NULL;
-      _uniq_idx             = NULL;
-      _num_uniq             = 0;
-      _cisc_spill_operand   = Not_cisc_spillable;// Which operand may cisc-spill
+      _matrule   = NULL;
+      _insencode = NULL;
+      _constant  = NULL;
+      _opcode    = NULL;
+      _size      = NULL;
+      _attribs   = NULL;
+      _predicate = NULL;
+      _exprule   = NULL;
+      _rewrule   = NULL;
+      _format    = NULL;
+      _peephole  = NULL;
+      _ins_pipe  = NULL;
+      _uniq_idx  = NULL;
+      _num_uniq  = 0;
+      _cisc_spill_operand = Not_cisc_spillable;// Which operand may cisc-spill
       _cisc_spill_alternate = NULL;            // possible cisc replacement
-      _cisc_reg_mask_name   = NULL;
-      _is_cisc_alternate    = false;
-      _is_short_branch      = false;
-      _short_branch_form    = NULL;
-      _alignment            = 1;
+      _cisc_reg_mask_name = NULL;
+      _is_cisc_alternate = false;
+      _is_short_branch = false;
+      _short_branch_form = NULL;
+      _alignment = 1;
 }
 
 InstructForm::InstructForm(const char *id, InstructForm *instr, MatchRule *rule)
@@ -66,33 +64,31 @@ InstructForm::InstructForm(const char *id, InstructForm *instr, MatchRule *rule)
     _localNames(instr->_localNames),
     _effects(instr->_effects),
     _is_mach_constant(false),
-    _needs_constant_base(false),
     _has_call(false)
 {
       _ftype = Form::INS;
 
-      _matrule               = rule;
-      _insencode             = instr->_insencode;
-      _constant              = instr->_constant;
-      _is_postalloc_expand   = instr->_is_postalloc_expand;
-      _opcode                = instr->_opcode;
-      _size                  = instr->_size;
-      _attribs               = instr->_attribs;
-      _predicate             = instr->_predicate;
-      _exprule               = instr->_exprule;
-      _rewrule               = instr->_rewrule;
-      _format                = instr->_format;
-      _peephole              = instr->_peephole;
-      _ins_pipe              = instr->_ins_pipe;
-      _uniq_idx              = instr->_uniq_idx;
-      _num_uniq              = instr->_num_uniq;
-      _cisc_spill_operand    = Not_cisc_spillable; // Which operand may cisc-spill
-      _cisc_spill_alternate  = NULL;               // possible cisc replacement
-      _cisc_reg_mask_name    = NULL;
-      _is_cisc_alternate     = false;
-      _is_short_branch       = false;
-      _short_branch_form     = NULL;
-      _alignment             = 1;
+      _matrule   = rule;
+      _insencode = instr->_insencode;
+      _constant  = instr->_constant;
+      _opcode    = instr->_opcode;
+      _size      = instr->_size;
+      _attribs   = instr->_attribs;
+      _predicate = instr->_predicate;
+      _exprule   = instr->_exprule;
+      _rewrule   = instr->_rewrule;
+      _format    = instr->_format;
+      _peephole  = instr->_peephole;
+      _ins_pipe  = instr->_ins_pipe;
+      _uniq_idx  = instr->_uniq_idx;
+      _num_uniq  = instr->_num_uniq;
+      _cisc_spill_operand = Not_cisc_spillable;// Which operand may cisc-spill
+      _cisc_spill_alternate = NULL;            // possible cisc replacement
+      _cisc_reg_mask_name = NULL;
+      _is_cisc_alternate = false;
+      _is_short_branch = false;
+      _short_branch_form = NULL;
+      _alignment = 1;
      // Copy parameters
      const char *name;
      instr->_parameters.reset();
@@ -159,11 +155,6 @@ uint InstructForm::num_defs_or_kills() {
 // This instruction has an expand rule?
 bool InstructForm::expands() const {
   return ( _exprule != NULL );
-}
-
-// This instruction has a late expand rule?
-bool InstructForm::postalloc_expands() const {
-  return _is_postalloc_expand;
 }
 
 // This instruction has a peephole rule?
@@ -648,8 +639,6 @@ bool InstructForm::is_wide_memory_kill(FormDict &globals) const {
   if( strcmp(_matrule->_opType,"MemBarReleaseLock") == 0 ) return true;
   if( strcmp(_matrule->_opType,"MemBarAcquireLock") == 0 ) return true;
   if( strcmp(_matrule->_opType,"MemBarStoreStore") == 0 ) return true;
-  if( strcmp(_matrule->_opType,"StoreFence") == 0 ) return true;
-  if( strcmp(_matrule->_opType,"LoadFence") == 0 ) return true;
 
   return false;
 }
@@ -1280,11 +1269,11 @@ void InstructForm::rep_var_format(FILE *fp, const char *rep_var) {
     return;
   }
   if (strcmp(rep_var, "constantoffset") == 0) {
-    fprintf(fp, "st->print(\"#%%d\", constant_offset_unchecked());\n");
+    fprintf(fp, "st->print(\"#%%d\", constant_offset());\n");
     return;
   }
   if (strcmp(rep_var, "constantaddress") == 0) {
-    fprintf(fp, "st->print(\"constant table base + #%%d\", constant_offset_unchecked());\n");
+    fprintf(fp, "st->print(\"constant table base + #%%d\", constant_offset());\n");
     return;
   }
 
@@ -4056,15 +4045,13 @@ bool MatchRule::is_ideal_fastlock() const {
 bool MatchRule::is_ideal_membar() const {
   if( !_opType ) return false;
   return
-    !strcmp(_opType,"MemBarAcquire") ||
-    !strcmp(_opType,"MemBarRelease") ||
+    !strcmp(_opType,"MemBarAcquire"  ) ||
+    !strcmp(_opType,"MemBarRelease"  ) ||
     !strcmp(_opType,"MemBarAcquireLock") ||
     !strcmp(_opType,"MemBarReleaseLock") ||
-    !strcmp(_opType,"LoadFence" ) ||
-    !strcmp(_opType,"StoreFence") ||
-    !strcmp(_opType,"MemBarVolatile") ||
-    !strcmp(_opType,"MemBarCPUOrder") ||
-    !strcmp(_opType,"MemBarStoreStore");
+    !strcmp(_opType,"MemBarVolatile" ) ||
+    !strcmp(_opType,"MemBarCPUOrder" ) ||
+    !strcmp(_opType,"MemBarStoreStore" );
 }
 
 bool MatchRule::is_ideal_loadPC() const {

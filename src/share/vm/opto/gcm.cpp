@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,13 +50,9 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/ad_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "adfiles/ad_ppc_32.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "adfiles/ad_ppc.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "adfiles/ad_ppc_64.hpp"
-#endif
-
 
 // Portions of code courtesy of Clifford Click
 
@@ -1330,6 +1326,15 @@ void PhaseCFG::global_code_motion() {
   // with suitable memory ops nearby.  Use the memory op to do the NULL check.
   // I can generate a memory op if there is not one nearby.
   if (C->is_method_compilation()) {
+    // Don't do it for natives, adapters, or runtime stubs
+    int allowed_reasons = 0;
+    // ...and don't do it when there have been too many traps, globally.
+    for (int reason = (int)Deoptimization::Reason_none+1;
+         reason < Compile::trapHistLength; reason++) {
+      assert(reason < BitsPerInt, "recode bit map");
+      if (!C->too_many_traps((Deoptimization::DeoptReason) reason))
+        allowed_reasons |= nth_bit(reason);
+    }
     // By reversing the loop direction we get a very minor gain on mpegaudio.
     // Feel free to revert to a forward loop for clarity.
     // for( int i=0; i < (int)matcher._null_check_tests.size(); i+=2 ) {
@@ -1337,7 +1342,7 @@ void PhaseCFG::global_code_motion() {
       Node* proj = _matcher._null_check_tests[i];
       Node* val  = _matcher._null_check_tests[i + 1];
       Block* block = get_block_for_node(proj);
-      implicit_null_check(block, proj, val, C->allowed_deopt_reasons());
+      implicit_null_check(block, proj, val, allowed_reasons);
       // The implicit_null_check will only perform the transformation
       // if the null branch is truly uncommon, *and* it leads to an
       // uncommon trap.  Combined with the too_many_traps guards
@@ -1661,10 +1666,10 @@ void CFGLoop::compute_freq() {
   }
   assert (_members.length() > 0, "no empty loops");
   Block* hd = head();
-  hd->_freq = 1.0;
+  hd->_freq = 1.0f;
   for (int i = 0; i < _members.length(); i++) {
     CFGElement* s = _members.at(i);
-    double freq = s->_freq;
+    float freq = s->_freq;
     if (s->is_block()) {
       Block* b = s->as_Block();
       for (uint j = 0; j < b->_num_succs; j++) {
@@ -1676,7 +1681,7 @@ void CFGLoop::compute_freq() {
       assert(lp->_parent == this, "immediate child");
       for (int k = 0; k < lp->_exits.length(); k++) {
         Block* eb = lp->_exits.at(k).get_target();
-        double prob = lp->_exits.at(k).get_prob();
+        float prob = lp->_exits.at(k).get_prob();
         update_succ_freq(eb, freq * prob);
       }
     }
@@ -1688,7 +1693,7 @@ void CFGLoop::compute_freq() {
   // inner blocks do not get erroneously scaled.
   if (_depth != 0) {
     // Total the exit probabilities for this loop.
-    double exits_sum = 0.0f;
+    float exits_sum = 0.0f;
     for (int i = 0; i < _exits.length(); i++) {
       exits_sum += _exits.at(i).get_prob();
     }
@@ -1935,7 +1940,7 @@ void Block::update_uncommon_branch(Block* ub) {
 //------------------------------update_succ_freq-------------------------------
 // Update the appropriate frequency associated with block 'b', a successor of
 // a block in this loop.
-void CFGLoop::update_succ_freq(Block* b, double freq) {
+void CFGLoop::update_succ_freq(Block* b, float freq) {
   if (b->_loop == this) {
     if (b == head()) {
       // back branch within the loop
@@ -1976,11 +1981,11 @@ bool CFGLoop::in_loop_nest(Block* b) {
 // Scale frequency of loops and blocks by trip counts from outer loops
 // Do a top down traversal of loop tree (visit outer loops first.)
 void CFGLoop::scale_freq() {
-  double loop_freq = _freq * trip_count();
+  float loop_freq = _freq * trip_count();
   _freq = loop_freq;
   for (int i = 0; i < _members.length(); i++) {
     CFGElement* s = _members.at(i);
-    double block_freq = s->_freq * loop_freq;
+    float block_freq = s->_freq * loop_freq;
     if (g_isnan(block_freq) || block_freq < MIN_BLOCK_FREQUENCY)
       block_freq = MIN_BLOCK_FREQUENCY;
     s->_freq = block_freq;
@@ -1993,7 +1998,7 @@ void CFGLoop::scale_freq() {
 }
 
 // Frequency of outer loop
-double CFGLoop::outer_loop_freq() const {
+float CFGLoop::outer_loop_freq() const {
   if (_child != NULL) {
     return _child->_freq;
   }
@@ -2042,7 +2047,7 @@ void CFGLoop::dump() const {
       k = 0;
     }
     Block *blk = _exits.at(i).get_target();
-    double prob = _exits.at(i).get_prob();
+    float prob = _exits.at(i).get_prob();
     tty->print(" ->%d@%d%%", blk->_pre_order, (int)(prob*100));
   }
   tty->print("\n");

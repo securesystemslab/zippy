@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,9 +77,7 @@ int PhaseRegAlloc::reg2offset( OptoReg::Name reg ) const {
   assert( reg <  _matcher._old_SP ||
           (reg >= OptoReg::add(_matcher._old_SP,C->out_preserve_stack_slots()) &&
            reg <  _matcher._in_arg_limit) ||
-          reg >=  OptoReg::add(_matcher._new_SP, C->out_preserve_stack_slots()) ||
-          // Allow return_addr in the out-preserve area.
-          reg == _matcher.return_addr(),
+          reg >=  OptoReg::add(_matcher._new_SP,C->out_preserve_stack_slots()),
           "register allocated in a preserve area" );
   return reg2offset_unchecked( reg );
 }

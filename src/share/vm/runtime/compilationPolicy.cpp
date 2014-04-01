@@ -237,7 +237,7 @@ void NonTieredCompPolicy::reset_counter_for_invocation_event(methodHandle m) {
 }
 
 void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
-  // Delay next back-branch event but pump up invocation counter to trigger
+  // Delay next back-branch event but pump up invocation counter to triger
   // whole method compilation.
   MethodCounters* mcs = m->method_counters();
   assert(mcs != NULL, "MethodCounters cannot be NULL for profiling");
@@ -255,7 +255,7 @@ void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
 //
 // CounterDecay
 //
-// Iterates through invocation counters and decrements them. This
+// Interates through invocation counters and decrements them. This
 // is done at each safepoint.
 //
 class CounterDecay : public AllStatic {
@@ -325,7 +325,7 @@ void NonTieredCompPolicy::reprofile(ScopeDesc* trap_scope, bool is_osr) {
 }
 
 // This method can be called by any component of the runtime to notify the policy
-// that it's recommended to delay the compilation of this method.
+// that it's recommended to delay the complation of this method.
 void NonTieredCompPolicy::delay_compilation(Method* method) {
   MethodCounters* mcs = method->method_counters();
   if (mcs != NULL) {

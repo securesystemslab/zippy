@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,11 +42,8 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/ad_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "adfiles/ad_ppc_32.hpp"
-#endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "adfiles/ad_ppc_64.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "adfiles/ad_ppc.hpp"
 #endif
 
 class Arena;

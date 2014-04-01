@@ -91,6 +91,8 @@ inline int max( int a, int b) { return a > b ? a : b; }
 #define IMPLEMENTATION
 #include <stdlib.h>
 #include <memory.h>
+inline int min( int a, int b) { return a < b ? a : b; }
+inline int max( int a, int b) { return a > b ? a : b; }
 
 #elif defined(_MSC_VER)
 // Microsoft Visual C++

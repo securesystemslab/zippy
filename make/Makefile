@@ -90,11 +90,10 @@ SHARED_DIR=$(OUTPUTDIR)/shared
 # Typical C1/C2 targets made available with this Makefile
 C1_VM_TARGETS=product1 fastdebug1 optimized1 debug1
 C2_VM_TARGETS=product  fastdebug  optimized  debug
-GRAAL_VM_TARGETS=productgraal fastdebuggraal optimizedgraal debuggraal
-CORE_VM_TARGETS=productcore fastdebugcore optimizedcore debugcore
 ZERO_VM_TARGETS=productzero fastdebugzero optimizedzero debugzero
 SHARK_VM_TARGETS=productshark fastdebugshark optimizedshark debugshark
 MINIMAL1_VM_TARGETS=productminimal1 fastdebugminimal1 debugminimal1
+GRAAL_VM_TARGETS=productgraal fastdebuggraal optimizedgraal debuggraal
 
 COMMON_VM_PRODUCT_TARGETS=product product1 docs export_product
 COMMON_VM_FASTDEBUG_TARGETS=fastdebug fastdebug1 docs export_fastdebug
@@ -129,12 +128,6 @@ endif
 
 all_optimized: optimized optimized1 docs export_optimized
 
-allgraal:           all_productgraal all_fastdebuggraal
-all_productgraal:   productgraal docs export_product
-all_fastdebuggraal: fastdebuggraal docs export_fastdebug
-all_debuggraal:     debuggraal docs export_debug
-all_optimizedgraal: optimizedgraal docs export_optimized
-
 allzero:           all_productzero all_fastdebugzero
 all_productzero:   productzero docs export_product
 all_fastdebugzero: fastdebugzero docs export_fastdebug
@@ -147,11 +140,11 @@ all_fastdebugshark: fastdebugshark docs export_fastdebug
 all_debugshark:     debugshark docs export_debug
 all_optimizedshark: optimizedshark docs export_optimized
 
-allcore:           all_productcore all_fastdebugcore
-all_productcore:   productcore docs export_product
-all_fastdebugcore: fastdebugcore docs export_fastdebug
-all_debugcore:     debugcore docs export_debug
-all_optimizedcore: optimizedcore docs export_optimized
+allgraal:           all_productgraal all_fastdebuggraal
+all_productgraal:   productgraal docs export_product
+all_fastdebuggraal: fastdebuggraal docs export_fastdebug
+all_debuggraal:     debuggraal docs export_debug
+all_optimizedgraal: optimizedgraal docs export_optimized
 
 # Do everything
 world:         all create_jdk
@@ -172,10 +165,10 @@ endif
 C1_DIR      =$(OUTPUTDIR)/$(VM_PLATFORM)_compiler1
 C2_DIR      =$(OUTPUTDIR)/$(VM_PLATFORM)_compiler2
 GRAAL_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_graal
-CORE_DIR    =$(OUTPUTDIR)/$(VM_PLATFORM)_core
 MINIMAL1_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_minimal1
 ZERO_DIR    =$(OUTPUTDIR)/$(VM_PLATFORM)_zero
 SHARK_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_shark
+GRAAL_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_graal
 
 # Build variation of hotspot
 $(C1_VM_TARGETS):
@@ -185,10 +178,6 @@ $(C1_VM_TARGETS):
 $(C2_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) BUILD_DIR=$(C2_DIR) BUILD_FLAVOR=$@ VM_TARGET=$@ generic_build2 $(ALT_OUT)
-
-$(CORE_VM_TARGETS):
-	$(CD) $(GAMMADIR)/make; \
-	$(MAKE) BUILD_DIR=$(CORE_DIR) BUILD_FLAVOR=$(@:%core=%) VM_TARGET=$@ generic_buildcore $(ALT_OUT)
 
 $(ZERO_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
@@ -249,20 +238,6 @@ else
 	$(CD) $(OUTPUTDIR); \
 	    $(MAKE) -f $(ABS_OS_MAKEFILE) \
 		      $(MAKE_ARGS) $(VM_TARGET)
-endif
-
-generic_buildcore: $(HOTSPOT_SCRIPT)
-ifeq ($(HS_ARCH),ppc)
-  ifeq ($(ARCH_DATA_MODEL),64)
-	$(MKDIR) -p $(OUTPUTDIR)
-	$(CD) $(OUTPUTDIR); \
-		$(MAKE) -f $(ABS_OS_MAKEFILE) \
-			$(MAKE_ARGS) $(VM_TARGET)
-  else
-	@$(ECHO) "No ($(VM_TARGET)) for ppc ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
-  endif
-else
-	@$(ECHO) "No ($(VM_TARGET)) for $(HS_ARCH)"
 endif
 
 generic_buildzero: $(HOTSPOT_SCRIPT)
@@ -336,7 +311,6 @@ DOCS_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_docs
 C1_BUILD_DIR      =$(C1_DIR)/$(BUILD_FLAVOR)
 C2_BUILD_DIR      =$(C2_DIR)/$(BUILD_FLAVOR)
 GRAAL_BUILD_DIR   =$(GRAAL_DIR)/$(BUILD_FLAVOR)
-CORE_BUILD_DIR    =$(CORE_DIR)/$(BUILD_FLAVOR)
 MINIMAL1_BUILD_DIR=$(MINIMAL1_DIR)/$(BUILD_FLAVOR)
 ZERO_BUILD_DIR    =$(ZERO_DIR)/$(BUILD_FLAVOR)
 SHARK_BUILD_DIR   =$(SHARK_DIR)/$(BUILD_FLAVOR)
@@ -563,28 +537,6 @@ $(EXPORT_SERVER_DIR)/%.dSYM:			$(ZERO_BUILD_DIR)/%.dSYM
 	$(install-dir)
 endif
 
-# Core
-ifeq ($(JVM_VARIANT_CORE), true)
-# Common
-$(EXPORT_LIB_DIR)/%.jar:			$(CORE_BUILD_DIR)/../generated/%.jar
-	$(install-file)
-$(EXPORT_INCLUDE_DIR)/%:			$(CORE_BUILD_DIR)/../generated/jvmtifiles/%
-	$(install-file)
-# Unix
-$(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX):	$(CORE_BUILD_DIR)/%.$(LIBRARY_SUFFIX)
-	$(install-file)
-$(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo:		$(CORE_BUILD_DIR)/%.debuginfo
-	$(install-file)
-$(EXPORT_JRE_LIB_ARCH_DIR)/%.diz:		$(CORE_BUILD_DIR)/%.diz
-	$(install-file)
-$(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):	$(CORE_BUILD_DIR)/%.$(LIBRARY_SUFFIX)
-	$(install-file)
-$(EXPORT_SERVER_DIR)/%.debuginfo:		$(CORE_BUILD_DIR)/%.debuginfo
-	$(install-file)
-$(EXPORT_SERVER_DIR)/%.diz:			$(CORE_BUILD_DIR)/%.diz
-	$(install-file)
-endif
-
 # Shark
 ifeq ($(JVM_VARIANT_ZEROSHARK), true)
 # Common
@@ -657,7 +609,6 @@ clean_build:
 	$(RM) -r $(C1_DIR)
 	$(RM) -r $(C2_DIR)
 	$(RM) -r $(GRAAL_DIR)
-	$(RM) -r $(CORE_DIR)
 	$(RM) -r $(ZERO_DIR)
 	$(RM) -r $(SHARK_DIR)
 	$(RM) -r $(MINIMAL1_DIR)
@@ -684,11 +635,11 @@ $(JDK_IMAGE_DIR)/jre/lib/rt.jar:
 
 
 # Testing the built JVM
-RUN_JVM=JAVA_HOME=$(JDK_IMPORT_PATH) $(JDK_IMPORT_PATH)/bin/java -d$(ARCH_DATA_MODEL) -XXaltjvm=$(ALTJVM_DIR) -Dsun.java.launcher.is_altjvm=true
+RUN_JVM=JAVA_HOME=$(JDK_IMPORT_PATH) $(JDK_IMPORT_PATH)/bin/java -d$(ARCH_DATA_MODEL) -Dsun.java.launcher=gamma
 generic_test:
 	@$(ECHO) "Running with: $(ALTJVM_DIR)"
-	@$(RUN_JVM) -Xinternalversion
-	@$(RUN_JVM) -showversion -help
+	@$(RUN_JVM) -XXaltjvm=$(ALTJVM_DIR) -Xinternalversion
+	@$(RUN_JVM) -XXaltjvm=$(ALTJVM_DIR) -showversion -help
 
 # C2 test targets
 test_product test_optimized test_fastdebug test_debug:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -245,10 +245,6 @@ inline intptr_t* frame::interpreter_frame_tos_address() const {
     assert(last_sp <= (intptr_t*) interpreter_frame_monitor_end(), "bad tos");
     return last_sp;
   }
-}
-
-inline oop* frame::interpreter_frame_temp_oop_addr() const {
-  return (oop *)(fp() + interpreter_frame_oop_temp_offset);
 }
 
 #endif /* CC_INTERP */

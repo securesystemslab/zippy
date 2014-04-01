@@ -24,45 +24,24 @@
 
 package sun.jvm.hotspot.jdi;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.lang.ref.SoftReference;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.*;
+
+import com.sun.jdi.*;
 
 import sun.jvm.hotspot.memory.SystemDictionary;
-import sun.jvm.hotspot.oops.ArrayKlass;
-import sun.jvm.hotspot.oops.DefaultHeapVisitor;
 import sun.jvm.hotspot.oops.Instance;
 import sun.jvm.hotspot.oops.InstanceKlass;
+import sun.jvm.hotspot.oops.ArrayKlass;
 import sun.jvm.hotspot.oops.JVMDIClassStatus;
 import sun.jvm.hotspot.oops.Klass;
+import sun.jvm.hotspot.oops.ObjArray;
 import sun.jvm.hotspot.oops.Oop;
 import sun.jvm.hotspot.oops.Symbol;
+import sun.jvm.hotspot.oops.DefaultHeapVisitor;
 import sun.jvm.hotspot.utilities.Assert;
 
-import com.sun.jdi.AbsentInformationException;
-import com.sun.jdi.ArrayType;
-import com.sun.jdi.ClassLoaderReference;
-import com.sun.jdi.ClassNotLoadedException;
-import com.sun.jdi.ClassNotPreparedException;
-import com.sun.jdi.ClassObjectReference;
-import com.sun.jdi.Field;
-import com.sun.jdi.InterfaceType;
-import com.sun.jdi.Method;
-import com.sun.jdi.ObjectReference;
-import com.sun.jdi.PrimitiveType;
-import com.sun.jdi.ReferenceType;
-import com.sun.jdi.Type;
-import com.sun.jdi.Value;
-import com.sun.jdi.VirtualMachine;
+import java.util.*;
+import java.lang.ref.SoftReference;
 
 public abstract class ReferenceTypeImpl extends TypeImpl
 implements ReferenceType {
@@ -442,8 +421,7 @@ implements ReferenceType {
         }
     }
 
-    abstract void addVisibleMethods(Map<String, Method> methodMap, Set<InterfaceType> seenInterfaces);
-
+    abstract void addVisibleMethods(Map methodMap);
     public final List visibleMethods() throws ClassNotPreparedException {
         checkPrepared();
         /*
@@ -452,8 +430,8 @@ implements ReferenceType {
          * concatenation of name and signature.
          */
         //System.out.println("jj: RTI: Calling addVisibleMethods for:" + this);
-        Map<String, Method> map = new HashMap<String, Method>();
-        addVisibleMethods(map, new HashSet<InterfaceType>());
+        Map map = new HashMap();
+        addVisibleMethods(map);
 
         /*
          * ... but the hash map destroys order. Methods should be
@@ -463,7 +441,7 @@ implements ReferenceType {
          */
         //System.out.println("jj: RTI: Calling allMethods for:" + this);
 
-        List<Method> list = new ArrayList<Method>(allMethods());
+        List list = new ArrayList(allMethods());
         //System.out.println("jj: allMethods = " + jjstr(list));
         //System.out.println("jj: map = " + map.toString());
         //System.out.println("jj: map = " + jjstr(map.values()));

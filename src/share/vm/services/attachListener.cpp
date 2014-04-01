@@ -282,20 +282,6 @@ static jint set_uintx_flag(const char* name, AttachOperation* op, outputStream* 
       return JNI_ERR;
     }
   }
-
-  if (strncmp(name, "MaxHeapFreeRatio", 17) == 0) {
-    FormatBuffer<80> err_msg("");
-    if (!Arguments::verify_MaxHeapFreeRatio(err_msg, value)) {
-      out->print_cr(err_msg.buffer());
-      return JNI_ERR;
-    }
-  } else if (strncmp(name, "MinHeapFreeRatio", 17) == 0) {
-    FormatBuffer<80> err_msg("");
-    if (!Arguments::verify_MinHeapFreeRatio(err_msg, value)) {
-      out->print_cr(err_msg.buffer());
-      return JNI_ERR;
-    }
-  }
   bool res = CommandLineFlags::uintxAtPut((char*)name, &value, Flag::ATTACH_ON_DEMAND);
   if (! res) {
     out->print_cr("setting flag %s failed", name);
@@ -465,39 +451,15 @@ static void attach_listener_thread_entry(JavaThread* thread, TRAPS) {
   }
 }
 
-bool AttachListener::has_init_error(TRAPS) {
-  if (HAS_PENDING_EXCEPTION) {
-    tty->print_cr("Exception in VM (AttachListener::init) : ");
-    java_lang_Throwable::print(PENDING_EXCEPTION, tty);
-    tty->cr();
-
-    CLEAR_PENDING_EXCEPTION;
-
-    return true;
-  } else {
-    return false;
-  }
-}
-
 // Starts the Attach Listener thread
 void AttachListener::init() {
   EXCEPTION_MARK;
-  Klass* k = SystemDictionary::resolve_or_fail(vmSymbols::java_lang_Thread(), true, THREAD);
-  if (has_init_error(THREAD)) {
-    return;
-  }
-
+  Klass* k = SystemDictionary::resolve_or_fail(vmSymbols::java_lang_Thread(), true, CHECK);
   instanceKlassHandle klass (THREAD, k);
-  instanceHandle thread_oop = klass->allocate_instance_handle(THREAD);
-  if (has_init_error(THREAD)) {
-    return;
-  }
+  instanceHandle thread_oop = klass->allocate_instance_handle(CHECK);
 
   const char thread_name[] = "Attach Listener";
-  Handle string = java_lang_String::create_from_str(thread_name, THREAD);
-  if (has_init_error(THREAD)) {
-    return;
-  }
+  Handle string = java_lang_String::create_from_str(thread_name, CHECK);
 
   // Initialize thread_oop to put it into the system threadGroup
   Handle thread_group (THREAD, Universe::system_thread_group());
@@ -510,7 +472,13 @@ void AttachListener::init() {
                        string,
                        THREAD);
 
-  if (has_init_error(THREAD)) {
+  if (HAS_PENDING_EXCEPTION) {
+    tty->print_cr("Exception in VM (AttachListener::init) : ");
+    java_lang_Throwable::print(PENDING_EXCEPTION, tty);
+    tty->cr();
+
+    CLEAR_PENDING_EXCEPTION;
+
     return;
   }
 
@@ -522,7 +490,14 @@ void AttachListener::init() {
                         vmSymbols::thread_void_signature(),
                         thread_oop,             // ARG 1
                         THREAD);
-  if (has_init_error(THREAD)) {
+
+  if (HAS_PENDING_EXCEPTION) {
+    tty->print_cr("Exception in VM (AttachListener::init) : ");
+    java_lang_Throwable::print(PENDING_EXCEPTION, tty);
+    tty->cr();
+
+    CLEAR_PENDING_EXCEPTION;
+
     return;
   }
 
@@ -532,7 +507,7 @@ void AttachListener::init() {
     // Check that thread and osthread were created
     if (listener_thread == NULL || listener_thread->osthread() == NULL) {
       vm_exit_during_initialization("java.lang.OutOfMemoryError",
-                                    os::native_thread_creation_failed_msg());
+                                    "unable to create new native thread");
     }
 
     java_lang_Thread::set_thread(thread_oop(), listener_thread);

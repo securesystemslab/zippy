@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -204,11 +204,10 @@ class AbstractAssembler : public ResourceObj  {
   CodeSection* _code_section;          // section within the code buffer
   OopRecorder* _oop_recorder;          // support for relocInfo::oop_type
 
- public:
   // Code emission & accessing
   address addr_at(int pos) const { return code_section()->start() + pos; }
 
- protected:
+
   // This routine is called with a label is used for an address.
   // Labels and displacements truck in offsets, but target must return a PC.
   address target(Label& L)             { return code_section()->target(L, pc()); }

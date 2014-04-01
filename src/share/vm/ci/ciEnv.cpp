@@ -136,11 +136,6 @@ ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter) {
   _ClassCastException_instance = NULL;
   _the_null_string = NULL;
   _the_min_jint_string = NULL;
-
-  _jvmti_can_hotswap_or_post_breakpoint = false;
-  _jvmti_can_access_local_variables = false;
-  _jvmti_can_post_on_exceptions = false;
-  _jvmti_can_pop_frame = false;
 }
 
 ciEnv::ciEnv(Arena* arena) {
@@ -191,11 +186,6 @@ ciEnv::ciEnv(Arena* arena) {
   _ClassCastException_instance = NULL;
   _the_null_string = NULL;
   _the_min_jint_string = NULL;
-
-  _jvmti_can_hotswap_or_post_breakpoint = false;
-  _jvmti_can_access_local_variables = false;
-  _jvmti_can_post_on_exceptions = false;
-  _jvmti_can_pop_frame = false;
 }
 
 ciEnv::~ciEnv() {
@@ -215,31 +205,6 @@ void ciEnv::cache_jvmti_state() {
   _jvmti_can_hotswap_or_post_breakpoint = JvmtiExport::can_hotswap_or_post_breakpoint();
   _jvmti_can_access_local_variables     = JvmtiExport::can_access_local_variables();
   _jvmti_can_post_on_exceptions         = JvmtiExport::can_post_on_exceptions();
-  _jvmti_can_pop_frame                  = JvmtiExport::can_pop_frame();
-}
-
-bool ciEnv::should_retain_local_variables() const {
-  return _jvmti_can_access_local_variables || _jvmti_can_pop_frame;
-}
-
-bool ciEnv::jvmti_state_changed() const {
-  if (!_jvmti_can_access_local_variables &&
-      JvmtiExport::can_access_local_variables()) {
-    return true;
-  }
-  if (!_jvmti_can_hotswap_or_post_breakpoint &&
-      JvmtiExport::can_hotswap_or_post_breakpoint()) {
-    return true;
-  }
-  if (!_jvmti_can_post_on_exceptions &&
-      JvmtiExport::can_post_on_exceptions()) {
-    return true;
-  }
-  if (!_jvmti_can_pop_frame &&
-      JvmtiExport::can_pop_frame()) {
-    return true;
-  }
-  return false;
 }
 
 // ------------------------------------------------------------------
@@ -975,7 +940,13 @@ void ciEnv::register_method(ciMethod* target,
     No_Safepoint_Verifier nsv;
 
     // Change in Jvmti state may invalidate compilation.
-    if (!failing() && jvmti_state_changed()) {
+    if (!failing() &&
+        ( (!jvmti_can_hotswap_or_post_breakpoint() &&
+           JvmtiExport::can_hotswap_or_post_breakpoint()) ||
+          (!jvmti_can_access_local_variables() &&
+           JvmtiExport::can_access_local_variables()) ||
+          (!jvmti_can_post_on_exceptions() &&
+           JvmtiExport::can_post_on_exceptions()) )) {
       record_failure("Jvmti state change invalidated dependencies");
     }
 
@@ -1176,33 +1147,6 @@ ciInstance* ciEnv::unloaded_ciinstance() {
 
 // Don't change thread state and acquire any locks.
 // Safe to call from VM error reporter.
-
-void ciEnv::dump_compile_data(outputStream* out) {
-  CompileTask* task = this->task();
-  Method* method = task->method();
-  int entry_bci = task->osr_bci();
-  int comp_level = task->comp_level();
-  out->print("compile %s %s %s %d %d",
-                method->klass_name()->as_quoted_ascii(),
-                method->name()->as_quoted_ascii(),
-                method->signature()->as_quoted_ascii(),
-                entry_bci, comp_level);
-  if (compiler_data() != NULL) {
-    if (is_c2_compile(comp_level)) { // C2 or Shark
-#ifdef COMPILER2
-      // Dump C2 inlining data.
-      ((Compile*)compiler_data())->dump_inline_data(out);
-#endif
-    } else if (is_c1_compile(comp_level)) { // C1
-#ifdef COMPILER1
-      // Dump C1 inlining data.
-      ((Compilation*)compiler_data())->dump_inline_data(out);
-#endif
-    }
-  }
-  out->cr();
-}
-
 void ciEnv::dump_replay_data_unsafe(outputStream* out) {
   ResourceMark rm;
 #if INCLUDE_JVMTI
@@ -1216,7 +1160,16 @@ void ciEnv::dump_replay_data_unsafe(outputStream* out) {
   for (int i = 0; i < objects->length(); i++) {
     objects->at(i)->dump_replay_data(out);
   }
-  dump_compile_data(out);
+  CompileTask* task = this->task();
+  Method* method = task->method();
+  int entry_bci = task->osr_bci();
+  int comp_level = task->comp_level();
+  // Klass holder = method->method_holder();
+  out->print_cr("compile %s %s %s %d %d",
+                method->klass_name()->as_quoted_ascii(),
+                method->name()->as_quoted_ascii(),
+                method->signature()->as_quoted_ascii(),
+                entry_bci, comp_level);
   out->flush();
 }
 
@@ -1225,46 +1178,4 @@ void ciEnv::dump_replay_data(outputStream* out) {
     MutexLocker ml(Compile_lock);
     dump_replay_data_unsafe(out);
   )
-}
-
-void ciEnv::dump_replay_data(int compile_id) {
-  static char buffer[O_BUFLEN];
-  int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%p_compid%d.log", os::current_process_id(), compile_id);
-  if (ret > 0) {
-    int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
-    if (fd != -1) {
-      FILE* replay_data_file = os::open(fd, "w");
-      if (replay_data_file != NULL) {
-        fileStream replay_data_stream(replay_data_file, /*need_close=*/true);
-        dump_replay_data(&replay_data_stream);
-        tty->print("# Compiler replay data is saved as: ");
-        tty->print_cr(buffer);
-      } else {
-        tty->print_cr("# Can't open file to dump replay data.");
-      }
-    }
-  }
-}
-
-void ciEnv::dump_inline_data(int compile_id) {
-  static char buffer[O_BUFLEN];
-  int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%p_compid%d.log", os::current_process_id(), compile_id);
-  if (ret > 0) {
-    int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
-    if (fd != -1) {
-      FILE* inline_data_file = os::open(fd, "w");
-      if (inline_data_file != NULL) {
-        fileStream replay_data_stream(inline_data_file, /*need_close=*/true);
-        GUARDED_VM_ENTRY(
-          MutexLocker ml(Compile_lock);
-          dump_compile_data(&replay_data_stream);
-        )
-        replay_data_stream.flush();
-        tty->print("# Compiler inline data is saved as: ");
-        tty->print_cr(buffer);
-      } else {
-        tty->print_cr("# Can't open file to dump inline data.");
-      }
-    }
-  }
 }

@@ -88,10 +88,6 @@ public class JVMState extends VMObject {
     return (int)bciField.getValue(getAddress());
   }
 
-  public int depth() {
-    return (int)depthField.getValue(getAddress());
-  }
-
   public JVMState caller() {
     return create(callerField.getValue(getAddress()));
   }

@@ -115,8 +115,7 @@ G1SATBCardTableLoggingModRefBS(MemRegion whole_heap,
 
 void
 G1SATBCardTableLoggingModRefBS::write_ref_field_work(void* field,
-                                                     oop new_val,
-                                                     bool release) {
+                                                     oop new_val) {
   volatile jbyte* byte = byte_for(field);
   if (*byte == g1_young_gen) {
     return;

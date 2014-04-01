@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -122,7 +122,7 @@ void AdaptiveFreeList<Chunk>::return_chunk_at_head(Chunk* chunk, bool record_ret
 
 template <class Chunk>
 void AdaptiveFreeList<Chunk>::return_chunk_at_tail(Chunk* chunk) {
-  AdaptiveFreeList<Chunk>::return_chunk_at_tail(chunk, true);
+  return_chunk_at_tail(chunk, true);
 }
 
 template <class Chunk>
