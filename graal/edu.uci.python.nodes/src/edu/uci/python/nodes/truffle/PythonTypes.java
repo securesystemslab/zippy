@@ -169,6 +169,9 @@ public class PythonTypes {
         return (PComplex) value;
     }
 
+    /**
+     * zwei: There is a bug when using the @ImplicitCast annotation.
+     */
     // @ImplicitCast
     public String unboxPString(PString value) {
         return value.getValue();
