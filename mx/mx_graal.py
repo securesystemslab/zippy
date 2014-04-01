@@ -403,6 +403,13 @@ def _updateInstalledGraalOptionsFile(jdk):
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
     jdks = _jdksDir()
+
+    m2Install = mx.get_env('MAVEN_INSTALL_GRAAL_JAR', None)
+    if m2Install and m2Install.lower() == 'true':
+        mx.run(['mvn', 'install:install-file', '-q',
+                '-Dfile=' + graalJar, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
+                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar'])
+
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
@@ -1343,7 +1350,7 @@ def jmh(args):
     vmArgs, benchmarks = _extract_VM_args(args)
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
     if not jmhPath or not exists(jmhPath):
-        mx.abort("$JMH_BENCHMARKS not properly definied")
+        mx.abort("$JMH_BENCHMARKS not properly defined: " + str(jmhPath))
 
     def _blackhole(x):
         mx.logv(x[:-1])
