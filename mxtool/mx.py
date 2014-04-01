@@ -3695,13 +3695,17 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
                 windowTitle = ['-windowtitle', p.name + ' javadoc']
             try:
                 log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
+                projectJava = java(p.javaCompliance)
                 run([java().javadoc, memory,
                      '-XDignore.symbol.file',
                      '-classpath', cp,
                      '-quiet',
                      '-d', out,
                      '-overview', overviewFile,
-                     '-sourcepath', sp] +
+                     '-sourcepath', sp,
+                     '-source', str(projectJava.javaCompliance),
+                     '-bootclasspath', projectJava.bootclasspath(),
+                     '-extdirs', projectJava.extdirs()] +
                      links +
                      extraArgs +
                      nowarnAPI +
