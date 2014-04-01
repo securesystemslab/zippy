@@ -1710,7 +1710,7 @@ def checkheaders(args):
         if p.native:
             continue
 
-        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml.disabled')
         dom = xml.dom.minidom.parse(csConfig)
         for module in dom.getElementsByTagName('module'):
             if module.getAttribute('name') == 'RegexpHeader':
