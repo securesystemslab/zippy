@@ -1890,14 +1890,14 @@ def build(args, parser=None):
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
 
-                jdtArgs = [jdk.java, '-Xmx1g']
-                if jdk.debug_port is not None:
-                    jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
+                jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
 
-                jdtArgs += ['-jar', jdtJar,
-                         '-' + compliance,
+                jdtArgs = ['-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir]
+                         '-d', outputDir,
+                         '-bootclasspath', jdk.bootclasspath(),
+                         '-endorseddirs', jdk.endorseddirs(),
+                         '-extdirs', jdk.extdirs()]
                 jdtArgs += processorArgs
 
 
@@ -1922,7 +1922,7 @@ def build(args, parser=None):
                         jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
 
-                run(jdtArgs)
+                run_java(jdtVmArgs + jdtArgs)
         finally:
             for n in toBeDeleted:
                 os.remove(n)
