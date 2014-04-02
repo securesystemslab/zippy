@@ -39,37 +39,53 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-@TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
+@TypeSystem({boolean.class, //
+                int.class, //
+                BigInteger.class, //
+                double.class, //
+                PComplex.class, //
+                char.class, //
+                String.class,
 
-PyObject.class, PString.class, PythonClass.class, PDict.class, PList.class, PTuple.class, PRange.class, PIntArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSequence.class,
-                PSet.class, PFrozenSet.class, PBaseSet.class, PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PDoubleIterator.class, PIntegerIterator.class, PIterator.class,
-                PIterable.class, PythonModule.class, PNone.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, GeneratorArguments.class,
+                PyObject.class, //
+                PString.class, //
+                PythonClass.class, //
+                PDict.class, //
+                PList.class, //
+                PTuple.class, //
+                PRange.class, //
+                PIntArray.class, //
+                PDoubleArray.class, //
+                PCharArray.class, //
+                PArray.class, //
+                PSequence.class, //
+                PSet.class, //
+                PFrozenSet.class, //
+                PBaseSet.class, //
+                PEnumerate.class, //
+                PZip.class, //
+                PSlice.class, //
+                PRangeIterator.class, //
+                PDoubleIterator.class, //
+                PIntegerIterator.class, //
+                PIterator.class, //
+                PIterable.class, //
+                PythonModule.class, //
+                PNone.class, //
+                PythonBuiltinObject.class, //
+                PythonObject.class, //
+                PythonBasicObject.class, //
+                PythonCallable.class, //
+                GeneratorArguments.class, //
                 Object[].class})
 public class PythonTypes {
 
     /**
-     * Type coercion: <br>
-     * Python bool to Python int (Integer).
+     * Type coercion: Python bool to Python int (Integer).
      */
-    @TypeCast
-    public int asInteger(boolean value) {
+    @ImplicitCast
+    public int booleanToInt(boolean value) {
         return value ? 1 : 0;
-    }
-
-    @TypeCheck
-    public boolean isInteger(Object value) {
-        return value instanceof Integer || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public int asInteger(Object value) {
-        if (value instanceof Integer) {
-            return (int) value;
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? 1 : 0;
-        }
-
-        return (int) value;
     }
 
     /**
