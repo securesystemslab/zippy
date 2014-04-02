@@ -74,6 +74,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         return new ReadLocalVariableObjectNode((ReadLocalVariableNode) prev);
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     private static final class ReadLocalVariableUninitializedNode extends ReadLocalVariableNode {
 
         ReadLocalVariableUninitializedNode(FrameSlot slot) {
@@ -86,6 +87,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLocalVariableBooleanNode extends ReadLocalVariableNode {
 
         ReadLocalVariableBooleanNode(ReadLocalVariableNode copy) {
@@ -103,6 +105,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLocalVariableIntNode extends ReadLocalVariableNode {
 
         ReadLocalVariableIntNode(ReadLocalVariableNode copy) {
@@ -124,6 +127,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLocalVariableDoubleNode extends ReadLocalVariableNode {
 
         ReadLocalVariableDoubleNode(ReadLocalVariableNode copy) {
@@ -141,6 +145,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLocalVariableObjectNode extends ReadLocalVariableNode {
 
         ReadLocalVariableObjectNode(ReadLocalVariableNode copy) {
