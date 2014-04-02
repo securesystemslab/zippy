@@ -366,14 +366,6 @@ public class NodeFactory {
         return SubscriptLoadIndexNodeFactory.create(primary, slice);
     }
 
-    public PNode createSubscriptStore(PNode primary, PNode slice, PNode value) {
-        return SubscriptStoreSliceNodeFactory.create(primary, slice, value);
-    }
-
-    public PNode createSubscriptStoreIndex(PNode primary, PNode slice, PNode value) {
-        return SubscriptStoreIndexNodeFactory.create(primary, slice, value);
-    }
-
     public PNode createReadLocal(FrameSlot slot) {
         assert slot != null;
         return ReadLocalVariableNode.create(slot);

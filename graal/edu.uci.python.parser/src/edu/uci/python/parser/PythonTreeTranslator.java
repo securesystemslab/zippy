@@ -558,7 +558,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
-        return ((ReadNode) target).makeWriteNode(binaryOp);
+        ReadNode read = (ReadNode) NodeUtil.cloneNode(target);
+        return read.makeWriteNode(binaryOp);
     }
 
     @Override
@@ -614,14 +615,15 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 1; i < rights.size(); i++) {
             PNode leftOp;
             PNode rightOp;
+            PNode tempVarCloned = (PNode) NodeUtil.cloneNode((Node) tempVar);
 
             if (i == rights.size() - 1) {
-                leftOp = (PNode) tempVar;
+                leftOp = tempVarCloned;
                 rightOp = rights.get(i);
             } else {
-                leftOp = (PNode) tempVar;
+                leftOp = tempVarCloned;
                 tempVar = environment.makeTempLocalVariable();
-                rightOp = (PNode) tempVar;
+                rightOp = tempVarCloned;
                 assignmentToBeLifted = tempVar.makeWriteNode(rights.get(i));
                 assignmentsToBeLifted.add(assignmentToBeLifted);
             }
