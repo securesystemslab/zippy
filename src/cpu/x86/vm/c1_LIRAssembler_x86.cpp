@@ -800,7 +800,13 @@ void LIR_Assembler::const2mem(LIR_Opr src, LIR_Opr dest, BasicType type, CodeEmi
         if (UseCompressedOops && !wide) {
           __ movl(as_Address(addr), (int32_t)NULL_WORD);
         } else {
+#ifdef _LP64
+          __ xorptr(r10, r10);
+          null_check_here = code_offset();
+          __ movptr(as_Address(addr), r10);
+#else
           __ movptr(as_Address(addr), NULL_WORD);
+#endif
         }
       } else {
         if (is_literal_address(addr)) {
