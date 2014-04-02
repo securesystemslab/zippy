@@ -138,7 +138,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 CompilerDirectives.transferToInterpreter();
                 toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
             }
-            return toBoolean.executeBoolean(value);
+            return toBoolean.executeBoolean(null, value);
         }
     }
 
@@ -153,7 +153,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 CompilerDirectives.transferToInterpreter();
                 toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
             }
-            return toBoolean.executeBoolean(value);
+            return toBoolean.executeBoolean(null, value);
         }
 
         @Specialization

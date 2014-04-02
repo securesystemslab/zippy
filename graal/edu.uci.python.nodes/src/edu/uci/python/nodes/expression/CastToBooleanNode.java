@@ -40,7 +40,11 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class CastToBooleanNode extends UnaryOpNode {
 
-    public abstract boolean executeBoolean(Object value);
+    /**
+     * zwei: Added the dummy parameter {@link VirtualFrame} to get around the Truffle DSL code gen
+     * bug.
+     */
+    public abstract boolean executeBoolean(VirtualFrame frame, Object value);
 
     @Override
     public abstract boolean executeBoolean(VirtualFrame frame);
