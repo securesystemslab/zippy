@@ -144,6 +144,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     } catch (StopIterationException e) {
                         // fall through
                     }
+
                     return new PIntArray(intArray);
                 case 'd':
                     store = sequence.getStorage();
@@ -173,4 +174,5 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             throw new RuntimeException("Unexpected argument type for array() ");
         }
     }
+
 }
