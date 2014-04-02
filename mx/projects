@@ -583,7 +583,7 @@ project@com.oracle.graal.gpu@javaCompliance=1.8
 # graal.hsail
 project@com.oracle.graal.hsail@subDir=graal
 project@com.oracle.graal.hsail@sourceDirs=src
-project@com.oracle.graal.hsail@dependencies=com.oracle.graal.graph
+project@com.oracle.graal.hsail@dependencies=com.oracle.graal.api.code
 project@com.oracle.graal.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hsail@javaCompliance=1.8
 
@@ -618,7 +618,7 @@ project@com.oracle.graal.compiler.hsail.test@javaCompliance=1.8
 # graal.asm.hsail
 project@com.oracle.graal.asm.hsail@subDir=graal
 project@com.oracle.graal.asm.hsail@sourceDirs=src
-project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm
+project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm,com.oracle.graal.graph
 project@com.oracle.graal.asm.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.hsail@javaCompliance=1.8
 
