@@ -61,10 +61,11 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, deps, excludedLibs):
+    def __init__(self, suite, name, path, sourcesPath, deps, excludedLibs):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
+        self.sourcesPath = sourcesPath.replace('/', os.sep) if sourcesPath else None
         if not isabs(self.path):
             self.path = join(suite.dir, self.path)
         self.deps = deps
@@ -621,9 +622,10 @@ class Suite:
 
         for name, attrs in distsMap.iteritems():
             path = attrs.pop('path')
+            sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
             exclLibs = pop_list(attrs, 'excludeLibs')
-            d = Distribution(self, name, path, deps, exclLibs)
+            d = Distribution(self, name, path, sourcesPath, deps, exclLibs)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -2168,6 +2170,10 @@ def archive(args):
             dname = name[1:]
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+            if d.sourcesPath:
+                sourcesFd, sourcesTmp = tempfile.mkstemp(suffix='', prefix=basename(d.sourcesPath) + '.', dir=dirname(d.sourcesPath))
+            else:
+                sourcesTmp = None
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
 
             def overwriteCheck(zf, arcname, source):
@@ -2176,12 +2182,14 @@ def archive(args):
 
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
+                szf = zipfile.ZipFile(sourcesTmp, 'w') if sourcesTmp else None
                 for dep in d.sorted_deps(includeLibs=True):
                     if dep.isLibrary():
                         l = dep
                         # merge library jar into distribution jar
                         logv('[' + d.path + ': adding library ' + l.name + ']')
                         lpath = l.get_path(resolve=True)
+                        libSourcePath = l.get_source_path(resolve=True)
                         if lpath:
                             with zipfile.ZipFile(lpath, 'r') as lp:
                                 for arcname in lp.namelist():
@@ -2193,6 +2201,11 @@ def archive(args):
                                     else:
                                         overwriteCheck(zf, arcname, lpath + '!' + arcname)
                                         zf.writestr(arcname, lp.read(arcname))
+                        if szf and libSourcePath:
+                            with zipfile.ZipFile(libSourcePath, 'r') as lp:
+                                for arcname in lp.namelist():
+                                    overwriteCheck(szf, arcname, lpath + '!' + arcname)
+                                    szf.writestr(arcname, lp.read(arcname))
                     else:
                         p = dep
                         # skip a  Java project if its Java compliance level is "higher" than the configured JDK
@@ -2222,6 +2235,16 @@ def archive(args):
                                     arcname = join(relpath, f).replace(os.sep, '/')
                                     overwriteCheck(zf, arcname, join(root, f))
                                     zf.write(join(root, f), arcname)
+                        if szf:
+                            for srcDir in p.source_dirs():
+                                for root, _, files in os.walk(srcDir):
+                                    relpath = root[len(srcDir) + 1:]
+                                    for f in files:
+                                        if f.endswith('.java'):
+                                            arcname = join(relpath, f).replace(os.sep, '/')
+                                            overwriteCheck(szf, arcname, join(root, f))
+                                            szf.write(join(root, f), arcname)
+
                 for f in os.listdir(services):
                     arcname = join('META-INF', 'services', f).replace(os.sep, '/')
                     zf.write(join(services, f), arcname)
@@ -2233,7 +2256,13 @@ def archive(args):
                 # Correct the permissions on the temporary file which is created with restrictive permissions
                 os.chmod(d.path, 0o666 & ~currentUmask)
                 archives.append(d.path)
-                # print time.time(), 'move:', tmp, '->', d.path
+
+                if szf:
+                    szf.close()
+                    os.close(sourcesFd)
+                    shutil.move(sourcesTmp, d.sourcesPath)
+                    os.chmod(d.sourcesPath, 0o666 & ~currentUmask)
+
                 d.notify_updated()
             finally:
                 if exists(tmp):
@@ -3260,7 +3289,7 @@ def _copy_workingset_xml(wspath, workingSets):
                 target.element(name, attributes)
             elif not attributes.has_key('elementID') and attributes.has_key('factoryID') and attributes.has_key('path') and attributes.has_key('type'):
                 target.element(name, attributes)
-                p_name = attributes['path'][1:] # strip off the leading '/'
+                p_name = attributes['path'][1:]  # strip off the leading '/'
                 ps.seen_projects.append(p_name)
             else:
                 p_name = attributes['elementID'][1:]  # strip off the leading '='
