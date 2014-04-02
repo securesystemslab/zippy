@@ -90,7 +90,6 @@ public abstract class DispatchNode extends Node {
             if (this.cachedCallee == callee) {
                 try {
                     cachedCallTargetStable.check();
-
                     PArguments arg = new PArguments(null, declarationFrame, arguments);
                     return callNode.call(frame.pack(), arg);
                 } catch (InvalidAssumptionException ex) {

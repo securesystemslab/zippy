@@ -53,7 +53,7 @@ public final class FunctionRootNode extends RootNode {
         this.body = body;
         this.uninitializedBody = NodeUtil.cloneNode(body);
         if (PythonOptions.ProfileNodes) {
-            this.profiler = adoptChild(new ProfilerNode(this));
+            this.profiler = new ProfilerNode(this);
         }
     }
 

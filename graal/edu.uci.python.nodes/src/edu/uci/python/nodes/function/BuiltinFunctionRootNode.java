@@ -48,7 +48,7 @@ public class BuiltinFunctionRootNode extends RootNode {
         this.builtinNode = builtinNode;
         this.uninitialized = NodeUtil.cloneNode(builtinNode);
         if (PythonOptions.ProfileNodes) {
-            this.profiler = adoptChild(new ProfilerNode(this));
+            this.profiler = new ProfilerNode(this);
         }
     }
 

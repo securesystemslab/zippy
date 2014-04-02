@@ -50,7 +50,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         this.arguments = arguments;
 
         if (PythonOptions.ProfileCallSites) {
-            this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));
+            this.callSiteProfiler = new CallSiteProfilerNode(this);
         }
     }
 
@@ -152,7 +152,7 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
 
         if (PythonOptions.ProfileCallSites) {
-            callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callable.getCallTarget()).getRootNode());
+            callSiteProfiler.executeWithCallableName(frame, callable.getCallTarget().getRootNode());
         }
 
         final Object[] args = CallFunctionNode.executeArguments(frame, arguments);

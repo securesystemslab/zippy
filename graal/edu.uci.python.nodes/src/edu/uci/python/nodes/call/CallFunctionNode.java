@@ -26,7 +26,6 @@ package edu.uci.python.nodes.call;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -56,7 +55,7 @@ public abstract class CallFunctionNode extends PNode {
         this.keywords = keywords;
         this.context = context;
         if (PythonOptions.ProfileCallSites) {
-            this.callSiteProfiler = adoptChild(new CallSiteProfilerNode(this));
+            this.callSiteProfiler = new CallSiteProfilerNode(this);
         }
     }
 
@@ -84,7 +83,7 @@ public abstract class CallFunctionNode extends PNode {
         }
 
         if (PythonOptions.ProfileCallSites) {
-            callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callee.getCallTarget()).getRootNode());
+            callSiteProfiler.executeWithCallableName(frame, callee.getCallTarget().getRootNode());
         }
 
         return callee.call(frame.pack(), args, kwords);
@@ -108,7 +107,7 @@ public abstract class CallFunctionNode extends PNode {
             }
 
             if (PythonOptions.ProfileCallSites) {
-                callSiteProfiler.executeWithCallableName(frame, ((RootCallTarget) callMethod.getCallTarget()).getRootNode());
+                callSiteProfiler.executeWithCallableName(frame, callMethod.getCallTarget().getRootNode());
             }
 
             if (keywords.length == 0) {

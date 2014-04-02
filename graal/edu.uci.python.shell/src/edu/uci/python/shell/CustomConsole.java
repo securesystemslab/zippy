@@ -167,7 +167,7 @@ public class CustomConsole extends JLineConsole {
             printInvocationCount(functionName, profilerResult);
 
             if (PythonOptions.ProfileCallSites) {
-                printCallSitesOfInvocation(profiledRootNode, functionName);
+                printCallSitesOfInvocation(profiledRootNode);
             }
 
             System.out.println();
@@ -183,7 +183,7 @@ public class CustomConsole extends JLineConsole {
         // CheckStyle: resume system..print check
     }
 
-    private static void printCallSitesOfInvocation(RootNode calleeRootNode, String calleefunctionName) {
+    private static void printCallSitesOfInvocation(RootNode calleeRootNode) {
         List<CallSiteProfilerNode> profiledCallSites = CallSiteProfilerNode.getProfiledCallSites();
         int index = 0;
 
@@ -200,9 +200,8 @@ public class CustomConsole extends JLineConsole {
                     /**
                      * TODO getRootNode is not visible
                      */
-                    // System.out.println("[" + getRootName(profiledCallSite.getRootNode()) + " -> "
-// + calleefunctionName + "] (" + profiledCallSite.getInvocationCounterOfRootNode(calleeRootNode) +
-// ")");
+                    System.out.println("[" + getRootName(profiledCallSite.getRootNode()) + " -> " + getRootName(profiledCallSite.getRootNode()) + "] (" +
+                                    profiledCallSite.getInvocationCounterOfRootNode(calleeRootNode) + ")");
                     index++;
                 }
             }
