@@ -1427,9 +1427,7 @@ class JavaConfig:
     def _init_classpaths(self):
         myDir = dirname(__file__)
         javaSource = join(myDir, 'ClasspathDump.java')
-        javaClass = join(myDir, 'ClasspathDump.class')
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([self.javac, '-d', myDir, javaSource])
+        subprocess.check_call([self.javac, '-d', myDir, javaSource])
         self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', myDir, 'ClasspathDump']).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
