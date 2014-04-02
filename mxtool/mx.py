@@ -1380,6 +1380,9 @@ class VersionSpec:
     def __cmp__(self, other):
         return cmp(self.parts, other.parts)
 
+def _filter_non_existant_paths(paths):
+    return os.pathsep.join([path for path in paths.split(os.pathsep) if exists(path)])
+
 """
 A JavaConfig object encapsulates info on how Java commands are run.
 """
@@ -1431,6 +1434,9 @@ class JavaConfig:
         self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', myDir, 'ClasspathDump']).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
+        self._bootclasspath = _filter_non_existant_paths(self._bootclasspath)
+        self._extdirs = _filter_non_existant_paths(self._extdirs)
+        self._endorseddirs = _filter_non_existant_paths(self._endorseddirs)
 
     def __hash__(self):
         return hash(self.jdk)
