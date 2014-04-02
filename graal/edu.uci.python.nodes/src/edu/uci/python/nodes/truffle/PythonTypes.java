@@ -93,31 +93,9 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    @TypeCheck
-    public boolean isBigInteger(Object value) {
-        return value instanceof BigInteger || value instanceof Integer || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(boolean value) {
-        return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(int value) {
+    @ImplicitCast
+    public BigInteger intToBigInteger(int value) {
         return BigInteger.valueOf(value);
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(Object value) {
-        if (value instanceof Integer) {
-            return BigInteger.valueOf((int) value);
-        } else if (value instanceof Boolean) {
-            int intValue = (boolean) value ? 1 : 0;
-            return BigInteger.valueOf(intValue);
-        }
-
-        return (BigInteger) value;
     }
 
     /**
