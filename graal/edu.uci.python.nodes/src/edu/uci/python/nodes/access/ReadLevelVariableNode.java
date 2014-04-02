@@ -76,6 +76,7 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         return new ReadLevelVariableObjectNode((ReadLevelVariableNode) prev);
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     private static final class ReadLevelVariableUninitializedNode extends ReadLevelVariableNode {
 
         ReadLevelVariableUninitializedNode(FrameSlot slot, int level) {
@@ -89,6 +90,7 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLevelVariableBooleanNode extends ReadLevelVariableNode {
 
         ReadLevelVariableBooleanNode(ReadLevelVariableNode copy) {
@@ -108,6 +110,7 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLevelVariableIntNode extends ReadLevelVariableNode {
 
         ReadLevelVariableIntNode(ReadLevelVariableNode copy) {
@@ -127,6 +130,7 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLevelVariableDoubleNode extends ReadLevelVariableNode {
 
         ReadLevelVariableDoubleNode(ReadLevelVariableNode copy) {
@@ -146,6 +150,7 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     private static final class ReadLevelVariableObjectNode extends ReadLevelVariableNode {
 
         ReadLevelVariableObjectNode(ReadLevelVariableNode copy) {

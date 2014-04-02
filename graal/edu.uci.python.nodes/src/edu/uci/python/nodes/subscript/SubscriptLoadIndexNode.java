@@ -113,4 +113,5 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }
+
 }

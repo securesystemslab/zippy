@@ -25,38 +25,30 @@
 package edu.uci.python.nodes.call;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.DispatchNode.UninitializedDispatchNode;
 import edu.uci.python.runtime.function.*;
 
 public class DispatchCallNode extends PNode {
 
-    @Child protected PNode calleeNode;
     @Children protected final PNode[] argumentNodes;
     @Child protected DispatchNode dispatchNode;
 
-    public DispatchCallNode(PNode callee, PNode[] arguments, DispatchNode dispatch) {
-        this.calleeNode = callee;
+    public DispatchCallNode(PNode[] arguments, DispatchNode dispatch) {
         this.argumentNodes = arguments;
         this.dispatchNode = dispatch;
     }
 
-    public static DispatchCallNode create(PNode callee, PNode[] arguments) {
-        return new DispatchCallNode(callee, arguments, new DispatchNode.UninitializedDispatchNode());
+    public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
+        UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(calleeNode);
+        return new DispatchCallNode(argumentNodes, DispatchNode.create(callee, uninitialized));
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonCallable callee;
-        try {
-            callee = calleeNode.executePythonCallable(frame);
-        } catch (UnexpectedResultException e) {
-            throw new UnsupportedOperationException("Call to " + e.getMessage() + " not supported.");
-        }
-
         Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
-        return dispatchNode.executeCall(frame, callee, arguments);
+        return dispatchNode.executeCall(frame, arguments);
     }
 
 }

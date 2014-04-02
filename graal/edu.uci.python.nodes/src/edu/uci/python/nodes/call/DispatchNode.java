@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
@@ -40,12 +41,12 @@ import edu.uci.python.runtime.function.*;
  */
 public abstract class DispatchNode extends Node {
 
-    private static DispatchNode create(PythonCallable callee, UninitializedDispatchNode next) {
+    protected static DispatchNode create(PythonCallable callee, UninitializedDispatchNode next) {
         /**
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchNode();
+            return new GenericDispatchNode(next.calleeNode);
         }
 
         if (callee instanceof PFunction) {
@@ -53,9 +54,9 @@ public abstract class DispatchNode extends Node {
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode((PBuiltinFunction) callee, next);
         } else if (callee instanceof PMethod) {
-            return new DispatchMethodNode((PMethod) callee, next);
+            return new GenericDispatchNode(next.calleeNode);
         } else if (callee instanceof PBuiltinMethod) {
-            return new DispatchBuiltinMethodNode((PBuiltinMethod) callee, next);
+            return new GenericDispatchNode(next.calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
             return new DispatchBuiltinTypeNode((PythonBuiltinClass) callee, next);
         }
@@ -63,7 +64,7 @@ public abstract class DispatchNode extends Node {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments);
+    protected abstract Object executeCall(VirtualFrame frame, Object... arguments);
 
     public static final class DispatchFunctionNode extends DispatchNode {
 
@@ -86,25 +87,16 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            if (this.cachedCallee == callee) {
-                try {
-                    cachedCallTargetStable.check();
-                    PArguments arg = new PArguments(null, declarationFrame, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (InvalidAssumptionException ex) {
-                    /*
-                     * Remove ourselfs from the polymorphic inline cache, so that we fail the check
-                     * only once.
-                     */
-                    replace(nextNode);
-                    /*
-                     * Execute the next node in the chain by falling out of the if block.
-                     */
-                }
-            }
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
 
-            return nextNode.executeCall(frame, callee, arguments);
+                PArguments arg = new PArguments(null, declarationFrame, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, arguments);
+            }
         }
     }
 
@@ -129,26 +121,16 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            if (this.cachedCallee == callee) {
-                try {
-                    cachedCallTargetStable.check();
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
 
-                    PArguments arg = new PArguments(cachedCallee.__self__(), declarationFrame, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (InvalidAssumptionException ex) {
-                    /*
-                     * Remove ourselfs from the polymorphic inline cache, so that we fail the check
-                     * only once.
-                     */
-                    replace(nextNode);
-                    /*
-                     * Execute the next node in the chain by falling out of the if block.
-                     */
-                }
+                PArguments arg = new PArguments(cachedCallee.__self__(), declarationFrame, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, arguments);
             }
-
-            return nextNode.executeCall(frame, callee, arguments);
         }
     }
 
@@ -171,19 +153,16 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            if (this.cachedCallee == callee) {
-                try {
-                    cachedCallTargetStable.check();
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
 
-                    PArguments arg = new PArguments(PNone.NONE, null, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (InvalidAssumptionException ex) {
-                    replace(nextNode);
-                }
+                PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, arguments);
             }
-
-            return nextNode.executeCall(frame, callee, arguments);
         }
     }
 
@@ -208,19 +187,16 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            if (this.cachedCallee == callee) {
-                try {
-                    cachedCallTargetStable.check();
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
 
-                    PArguments arg = new PArguments(PNone.NONE, null, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (InvalidAssumptionException ex) {
-                    replace(nextNode);
-                }
+                PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, arguments);
             }
-
-            return nextNode.executeCall(frame, callee, arguments);
         }
     }
 
@@ -244,35 +220,50 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            if (this.cachedCallee == callee) {
-                try {
-                    cachedCallTargetStable.check();
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
 
-                    PArguments arg = new PArguments(cachedCallee.__self__(), null, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (InvalidAssumptionException ex) {
-                    replace(nextNode);
-                }
+                PArguments arg = new PArguments(cachedCallee.__self__(), null, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, arguments);
             }
-
-            return nextNode.executeCall(frame, callee, arguments);
         }
     }
 
     public static final class GenericDispatchNode extends DispatchNode {
 
-        @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
-            return callee.call(frame.pack(), arguments);
+        @Child protected PNode calleeNode;
+
+        public GenericDispatchNode(PNode callee) {
+            calleeNode = callee;
         }
 
+        @Override
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+            PythonCallable callee;
+            try {
+                callee = calleeNode.executePythonCallable(frame);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+            }
+
+            return callee.call(frame.pack(), arguments);
+        }
     }
 
     public static final class UninitializedDispatchNode extends DispatchNode {
 
+        @Child protected PNode calleeNode;
+
+        public UninitializedDispatchNode(PNode callee) {
+            calleeNode = callee;
+        }
+
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, Object... arguments) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             DispatchNode current = this;
@@ -284,18 +275,24 @@ public abstract class DispatchNode extends Node {
 
             DispatchNode specialized;
             if (depth < PythonOptions.CallSiteInlineCacheMax) {
-                UninitializedDispatchNode next = new UninitializedDispatchNode();
+                PythonCallable callee;
+                try {
+                    callee = calleeNode.executePythonCallable(frame);
+                } catch (UnexpectedResultException e) {
+                    throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                }
+
+                UninitializedDispatchNode next = new UninitializedDispatchNode(calleeNode);
                 DispatchNode direct = create(callee, next);
                 specialized = replace(direct);
             } else {
-                DispatchNode generic = new GenericDispatchNode();
+                DispatchNode generic = new GenericDispatchNode(calleeNode);
                 // TODO: should replace the dispatch node of the parent call node.
                 specialized = replace(generic);
             }
 
-            return specialized.executeCall(frame, callee, arguments);
+            return specialized.executeCall(frame, arguments);
         }
-
     }
 
     /**

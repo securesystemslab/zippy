@@ -286,42 +286,10 @@ public abstract class Node implements Cloneable {
         if (NodeUtil.replaceChild(this.parent, this, newNode)) {
             this.parent.adoptHelper(newNode);
         } else {
-            fixupTree();
             this.parent.adoptUnadoptedHelper(newNode);
         }
         reportReplace(this, newNode, reason);
         onReplace(newNode, reason);
-    }
-
-    /**
-     * Rewrite has failed; the tree is likely inconsistent, so fix any stale parent references.
-     * 
-     * This is a rather expensive operation but rare to occur.
-     */
-    private void fixupTree() {
-        Node rootNode = getRootNode();
-        if (rootNode == null) {
-            throw new UnsupportedOperationException("Tree does not have a root node.");
-        }
-        @SuppressWarnings("unused")
-        int fixCount = rootNode.fixupChildren();
-        // zwei: disabled this assertion.
-        // assert fixCount != 0 : "sanity check failed: missing @Child[ren] or adoptChild?";
-        // if nothing had to be fixed, rewrite failed due to node not being a proper child.
-    }
-
-    private int fixupChildren() {
-        int fixCount = 0;
-        for (Node child : getChildren()) {
-            if (child != null) {
-                if (child.parent != this) {
-                    child.parent = this;
-                    fixCount++;
-                }
-                fixCount += child.fixupChildren();
-            }
-        }
-        return fixCount;
     }
 
     /**
