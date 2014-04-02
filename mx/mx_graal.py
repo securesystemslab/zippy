@@ -406,21 +406,30 @@ def _installGraalJarInJdks(graalDist):
 
     m2Install = mx.get_env('MAVEN_INSTALL_GRAAL_JAR', None)
     if m2Install and m2Install.lower() == 'true':
-        mx.run(['mvn', 'install:install-file', '-q',
-                '-Dfile=' + graalJar, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
-                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar'])
+        cmd = ['mvn', 'install:install-file', '-q',
+               '-Dfile=' + graalJar, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
+               '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar']
+        if graalDist.sourcesPath:
+            cmd = cmd + ['-Dsources=' + graalDist.sourcesPath]
+        mx.run(cmd)
 
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
-                # do a copy and then a move to get atomic updating (on Unix) of graal.jar in the JRE
-                fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
-                shutil.copyfile(graalJar, tmp)
-                os.close(fd)
-                graalJar = join(jreLibDir, 'graal.jar')
-                shutil.move(tmp, graalJar)
-                os.chmod(graalJar, JDK_UNIX_PERMISSIONS)
+                def install(srcJar, dstDir):
+                    # do a copy and then a move to get atomic updating (on Unix)
+                    name = os.path.basename(srcJar)
+                    fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
+                    shutil.copyfile(srcJar, tmp)
+                    os.close(fd)
+                    dstJar = join(dstDir, name)
+                    shutil.move(tmp, dstJar)
+                    os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+
+                install(graalJar, jreLibDir)
+                if graalDist.sourcesPath:
+                    install(graalDist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):

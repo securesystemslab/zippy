@@ -46,6 +46,7 @@ library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-al
 library@JAVA_ALLOCATION_INSTRUMENTER@sha1=64c0a5329fbcb8284640e58d83252e0a3b08c23e
 
 distribution@GRAAL@path=graal.jar
+distribution@GRAAL@sourcesPath=graal.src.zip
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
 com.oracle.graal.hotspot.ptx,\
