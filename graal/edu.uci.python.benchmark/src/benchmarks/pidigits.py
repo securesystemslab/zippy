@@ -30,4 +30,8 @@ def pidigits(length):
                     
 
 if __name__ == '__main__':
-    pidigits(PIDIGITS_LEN)
+    print("Start timing...")
+    start = time.time()
+    pidigits(5000)
+    duration = "%.3f\n" % (time.time() - start)
+    print("pidigits: " + duration)    

@@ -107,6 +107,7 @@ pythonTestBenchmarks = {
     'spectralnorm3' : '500',
     'richards3'     : '5',
     'bm-ai'         : '0',
+    'pidigits'      : '0',
 }
 
 python2MicroBenchmarks = {
