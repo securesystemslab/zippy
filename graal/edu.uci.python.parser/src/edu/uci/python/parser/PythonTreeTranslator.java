@@ -552,13 +552,13 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createDictLiteral(keys, vals);
     }
 
-    // TODO: Translate AugAssign to in-place operations ?
+    // zwei TODO: Translate AugAssign to in-place operations ?
     @Override
     public Object visitAugAssign(AugAssign node) throws Exception {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
-        ReadNode read = (ReadNode) NodeUtil.cloneNode(target);
+        ReadNode read = factory.duplicate(target, ReadNode.class);
         return read.makeWriteNode(binaryOp);
     }
 
@@ -615,15 +615,15 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 1; i < rights.size(); i++) {
             PNode leftOp;
             PNode rightOp;
-            PNode tempVarCloned = (PNode) NodeUtil.cloneNode((Node) tempVar);
+            PNode duplicatedTempVariable = factory.duplicate((Node) tempVar, PNode.class);
 
             if (i == rights.size() - 1) {
-                leftOp = tempVarCloned;
+                leftOp = duplicatedTempVariable;
                 rightOp = rights.get(i);
             } else {
-                leftOp = tempVarCloned;
+                leftOp = duplicatedTempVariable;
                 tempVar = environment.makeTempLocalVariable();
-                rightOp = tempVarCloned;
+                rightOp = duplicatedTempVariable;
                 assignmentToBeLifted = tempVar.makeWriteNode(rights.get(i));
                 assignmentsToBeLifted.add(assignmentToBeLifted);
             }

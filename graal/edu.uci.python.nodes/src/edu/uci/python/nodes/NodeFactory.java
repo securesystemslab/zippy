@@ -71,6 +71,11 @@ public class NodeFactory {
         return factory;
     }
 
+    @SuppressWarnings({"unchecked", "unused"})
+    public <T> T duplicate(Node orig, Class<T> clazz) {
+        return (T) NodeUtil.cloneNode(orig);
+    }
+
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
         BlockNode block = createBlock(body);
         return new ModuleNode(block, fd);
