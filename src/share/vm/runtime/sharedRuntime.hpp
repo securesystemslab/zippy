@@ -186,7 +186,6 @@ class SharedRuntime: AllStatic {
   };
   static void    throw_AbstractMethodError(JavaThread* thread);
   static void    throw_IncompatibleClassChangeError(JavaThread* thread);
-  static void    throw_InvalidInstalledCodeException(JavaThread* thread);
   static void    throw_ArithmeticException(JavaThread* thread);
   static void    throw_NullPointerException(JavaThread* thread);
   static void    throw_NullPointerException_at_call(JavaThread* thread);

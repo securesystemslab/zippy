@@ -89,7 +89,6 @@ class InterpreterRuntime: AllStatic {
   // Exceptions thrown by the interpreter
   static void    throw_AbstractMethodError(JavaThread* thread);
   static void    throw_IncompatibleClassChangeError(JavaThread* thread);
-  static void    throw_InvalidInstalledCodeException(JavaThread* thread);
   static void    throw_StackOverflowError(JavaThread* thread);
   static void    throw_ArrayIndexOutOfBoundsException(JavaThread* thread, char* name, jint index);
   static void    throw_ClassCastException(JavaThread* thread, oopDesc* obj);
