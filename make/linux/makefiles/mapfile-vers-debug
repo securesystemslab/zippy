@@ -223,8 +223,6 @@ SUNWprivate_1.1 {
                 JVM_SetLength;
                 JVM_SetNativeThreadName;
                 JVM_SetPrimitiveArrayElement;
-                # Preserved so that Graal repo can link against a JDK7 libjava.so works
-                JVM_SetProtectionDomain;
                 JVM_SetSockOpt;
                 JVM_SetThreadPriority;
                 JVM_Sleep;
