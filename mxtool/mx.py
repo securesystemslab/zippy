@@ -65,9 +65,8 @@ class Distribution:
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
-        self.sourcesPath = sourcesPath.replace('/', os.sep) if sourcesPath else None
-        if not isabs(self.path):
-            self.path = join(suite.dir, self.path)
+        self.path = _make_absolute(self.path, suite.dir)
+        self.sourcesPath = _make_absolute(sourcesPath.replace('/', os.sep), suite.dir) if sourcesPath else None
         self.deps = deps
         self.update_listeners = set()
         self.excludedLibs = excludedLibs
@@ -359,6 +358,14 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
+def _make_absolute(path, prefix):
+    """
+    Makes 'path' absolute if it isn't already by prefixing 'prefix'
+    """
+    if not isabs(path):
+        return join(prefix, path)
+    return path
+
 def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
     def _download_lib():
         print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
@@ -429,9 +436,7 @@ class Library(Dependency):
 
 
     def get_path(self, resolve):
-        path = self.path
-        if not isabs(path):
-            path = join(self.suite.dir, path)
+        path = _make_absolute(self.path, self.suite.dir)
         sha1path = path + '.sha1'
 
         includedInJDK = getattr(self, 'includedInJDK', None)
@@ -442,11 +447,9 @@ class Library(Dependency):
 
 
     def get_source_path(self, resolve):
-        path = self.sourcePath
-        if path is None:
+        if self.path is None:
             return None
-        if not isabs(path):
-            path = join(self.suite.dir, path)
+        path = _make_absolute(self.path, self.suite.dir)
         sha1path = path + '.sha1'
 
         return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
@@ -2168,25 +2171,43 @@ def archive(args):
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
 
+
+    class Archive:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            if self.path:
+                fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
+                self.tmpFd = fd
+                self.tmpPath = tmp
+                self.zf = zipfile.ZipFile(tmp, 'w')
+            else:
+                self.tmpFd = None
+                self.tmpPath = None
+                self.zf = None
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            if self.zf:
+                self.zf.close()
+                os.close(self.tmpFd)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(self.tmpPath, 0o666 & ~currentUmask)
+                # Atomic on Unix
+                shutil.move(self.tmpPath, self.path)
+
     archives = []
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
-            if d.sourcesPath:
-                sourcesFd, sourcesTmp = tempfile.mkstemp(suffix='', prefix=basename(d.sourcesPath) + '.', dir=dirname(d.sourcesPath))
-            else:
-                sourcesTmp = None
-            services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+            with Archive(d.path) as arc, Archive(d.sourcesPath) as srcArc:
+                services = {}
+                def overwriteCheck(zf, arcname, source):
+                    if arcname in zf.namelist():
+                        log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
 
-            def overwriteCheck(zf, arcname, source):
-                if arcname in zf.namelist():
-                    log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
-
-            try:
-                zf = zipfile.ZipFile(tmp, 'w')
-                szf = zipfile.ZipFile(sourcesTmp, 'w') if sourcesTmp else None
                 for dep in d.sorted_deps(includeLibs=True):
                     if dep.isLibrary():
                         l = dep
@@ -2198,18 +2219,17 @@ def archive(args):
                             with zipfile.ZipFile(lpath, 'r') as lp:
                                 for arcname in lp.namelist():
                                     if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
-                                        f = arcname[len('META-INF/services/'):].replace('/', os.sep)
-                                        with open(join(services, f), 'a') as outfile:
-                                            for line in lp.read(arcname).splitlines():
-                                                outfile.write(line)
+                                        service = arcname[len('META-INF/services/'):]
+                                        assert '/' not in service
+                                        services.setdefault(service, []).extend(lp.read(arcname).splitlines())
                                     else:
-                                        overwriteCheck(zf, arcname, lpath + '!' + arcname)
-                                        zf.writestr(arcname, lp.read(arcname))
-                        if szf and libSourcePath:
+                                        overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
+                                        arc.zf.writestr(arcname, lp.read(arcname))
+                        if srcArc.zf and libSourcePath:
                             with zipfile.ZipFile(libSourcePath, 'r') as lp:
                                 for arcname in lp.namelist():
-                                    overwriteCheck(szf, arcname, lpath + '!' + arcname)
-                                    szf.writestr(arcname, lp.read(arcname))
+                                    overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
+                                    srcArc.zf.writestr(arcname, lp.read(arcname))
                     else:
                         p = dep
                         # skip a  Java project if its Java compliance level is "higher" than the configured JDK
@@ -2223,79 +2243,47 @@ def archive(args):
                         for root, _, files in os.walk(outputDir):
                             relpath = root[len(outputDir) + 1:]
                             if relpath == join('META-INF', 'services'):
-                                for f in files:
-                                    with open(join(services, f), 'a') as outfile:
-                                        with open(join(root, f), 'r') as infile:
-                                            for line in infile:
-                                                outfile.write(line)
+                                for service in files:
+                                    with open(join(root, service), 'r') as fp:
+                                        services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
                             elif relpath == join('META-INF', 'providers'):
-                                for f in files:
-                                    with open(join(root, f), 'r') as infile:
-                                        for line in infile:
-                                            with open(join(services, line.strip()), 'a') as outfile:
-                                                outfile.write(f + '\n')
+                                for provider in files:
+                                    with open(join(root, provider), 'r') as fp:
+                                        for service in fp:
+                                            services.setdefault(service.strip(), []).append(provider)
                             else:
                                 for f in files:
                                     arcname = join(relpath, f).replace(os.sep, '/')
-                                    overwriteCheck(zf, arcname, join(root, f))
-                                    zf.write(join(root, f), arcname)
-                        if szf:
+                                    overwriteCheck(arc.zf, arcname, join(root, f))
+                                    arc.zf.write(join(root, f), arcname)
+                        if srcArc.zf:
                             for srcDir in p.source_dirs():
                                 for root, _, files in os.walk(srcDir):
                                     relpath = root[len(srcDir) + 1:]
                                     for f in files:
                                         if f.endswith('.java'):
                                             arcname = join(relpath, f).replace(os.sep, '/')
-                                            overwriteCheck(szf, arcname, join(root, f))
-                                            szf.write(join(root, f), arcname)
+                                            overwriteCheck(srcArc.zf, arcname, join(root, f))
+                                            srcArc.zf.write(join(root, f), arcname)
 
-                for f in os.listdir(services):
-                    arcname = join('META-INF', 'services', f).replace(os.sep, '/')
-                    zf.write(join(services, f), arcname)
-                zf.close()
-                os.close(fd)
-                shutil.rmtree(services)
-                # Atomic on Unix
-                shutil.move(tmp, d.path)
-                # Correct the permissions on the temporary file which is created with restrictive permissions
-                os.chmod(d.path, 0o666 & ~currentUmask)
-                archives.append(d.path)
+                for service, providers in services.iteritems():
+                    arcname = 'META-INF/services/' + service
+                    arc.zf.writestr(arcname, '\n'.join(providers))
 
-                if szf:
-                    szf.close()
-                    os.close(sourcesFd)
-                    shutil.move(sourcesTmp, d.sourcesPath)
-                    os.chmod(d.sourcesPath, 0o666 & ~currentUmask)
-
-                d.notify_updated()
-            finally:
-                if exists(tmp):
-                    os.remove(tmp)
-                if exists(services):
-                    shutil.rmtree(services)
+            d.notify_updated()
+            archives.append(d.path)
 
         else:
             p = project(name)
             outputDir = p.output_dir()
-            fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
-            try:
-                zf = zipfile.ZipFile(tmp, 'w')
+            with Archive(join(p.dir, p.name + '.jar')) as arc:
                 for root, _, files in os.walk(outputDir):
                     for f in files:
                         relpath = root[len(outputDir) + 1:]
                         arcname = join(relpath, f).replace(os.sep, '/')
-                        zf.write(join(root, f), arcname)
-                zf.close()
-                os.close(fd)
-                # Atomic on Unix
-                jarFile = join(p.dir, p.name + '.jar')
-                shutil.move(tmp, jarFile)
-                # Correct the permissions on the temporary file which is created with restrictive permissions
-                os.chmod(jarFile, 0o666 & ~currentUmask)
-                archives.append(jarFile)
-            finally:
-                if exists(tmp):
-                    os.remove(tmp)
+                        arc.zf.write(join(root, f), arcname)
+                archives.append(arc.path)
+
     return archives
 
 def canonicalizeprojects(args):
@@ -2880,11 +2868,10 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     if not path or (not exists(path) and not dep.mustExist):
                         continue
 
-                    if not isabs(path):
-                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                        # safest to simply use absolute paths.
-                        path = join(p.suite.dir, path)
+                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                    # safest to simply use absolute paths.
+                    path = _make_absolute(path, p.suite.dir)
 
                     attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
 
@@ -3039,11 +3026,10 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                             if dep.mustExist:
                                 path = dep.get_path(resolve=True)
                                 if path:
-                                    if not isabs(path):
-                                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                                        # safest to simply use absolute paths.
-                                        path = join(p.suite.dir, path)
+                                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                                    # safest to simply use absolute paths.
+                                    path = _make_absolute(path, p.suite.dir)
                                     out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
                                     files.append(path)
                     else:
