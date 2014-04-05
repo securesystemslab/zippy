@@ -26,15 +26,20 @@ package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class GlobalVarTest {
+public class GlobalVarTests {
     @Test
     public void simple() {
-        Path script = Paths.get("globalvar_test.py");
-        assertPrints("20\n20\n", script);
+        String source = "x = 10\n" + //
+                        "def foo():\n" + //
+                        "  global x\n" + //
+                        "  x = 20\n" + //
+                        "  print(x)\n" + //
+                        "" + //
+                        "foo()\n" + //
+                        "print(x)\n";
+        assertPrints("20\n20\n", source);
     }
 
 }
