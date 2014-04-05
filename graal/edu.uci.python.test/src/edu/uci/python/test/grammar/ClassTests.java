@@ -121,8 +121,15 @@ public class ClassTests {
 
     @Test
     public void scriptClassTest() {
-        Path script = Paths.get("class_test.py");
-        assertPrints("42\n", script);
+        String source = "class Foo:\n" + //
+                        "  def __init__(self, num):\n" + //
+                        "    self.num = num\n" + //
+                        "\n" + //
+                        "  def showNum(self):\n" + //
+                        "    print(self.num)\n" + //
+                        "foo = Foo(42)\n" + //
+                        "foo.showNum()";
+        assertPrints("42\n", source);
     }
 
     @Test
