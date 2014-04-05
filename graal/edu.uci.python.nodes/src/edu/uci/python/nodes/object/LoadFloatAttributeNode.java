@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -43,9 +44,16 @@ public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
     public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!receiverObject.getObjectLayout().contains(objectLayout)) {
+        if (receiverObject.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(receiverObject);
-            throw new UnexpectedResultException(receiverObject.getAttribute(attributeId));
+            Object value = receiverObject.getAttribute(attributeId);
+
+            if (value instanceof Double) {
+                return (double) value;
+            } else {
+                throw new UnexpectedResultException(value);
+            }
         }
 
         return storageLocation.readDouble(receiverObject);

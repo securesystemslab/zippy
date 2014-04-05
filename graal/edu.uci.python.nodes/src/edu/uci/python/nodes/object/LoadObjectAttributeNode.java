@@ -30,7 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.object.*;
 
-public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
+public final class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
 
     private final ObjectStorageLocation storageLocation;
 
@@ -43,7 +43,7 @@ public class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
     public Object execute(VirtualFrame frame) {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!receiverObject.getObjectLayout().contains(objectLayout)) {
+        if (receiverObject.getObjectLayout() != objectLayout) {
             return getAttributeSlow(receiverObject);
         }
 

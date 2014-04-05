@@ -24,8 +24,6 @@
  */
 package edu.uci.python.test.grammar;
 
-import java.nio.file.*;
-
 import org.junit.*;
 import static edu.uci.python.test.PythonTests.*;
 

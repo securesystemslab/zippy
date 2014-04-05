@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -43,7 +44,8 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
         final PythonBasicObject primaryObj = (PythonBasicObject) primary.execute(frame);
 
-        if (!primaryObj.getObjectLayout().contains(objectLayout)) {
+        if (primaryObj.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(primaryObj);
             Object value = primaryObj.getAttribute(attributeId);
 

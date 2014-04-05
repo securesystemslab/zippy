@@ -140,7 +140,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         return "ReadGlobal: " + attributeId;
     }
 
-    public static class ReadGlobalDirectNode extends ReadGlobalScopeNode {
+    public static final class ReadGlobalDirectNode extends ReadGlobalScopeNode {
 
         public ReadGlobalDirectNode(ReadGlobalScopeNode previous) {
             super(previous);
@@ -152,7 +152,7 @@ public class ReadGlobalScopeNode extends PNode implements ReadNode {
         }
     }
 
-    public static class ReadBuiltinCachedNode extends ReadGlobalScopeNode {
+    public static final class ReadBuiltinCachedNode extends ReadGlobalScopeNode {
 
         private final Assumption globalScopeUnchanged;
         private final Assumption builtinsModuleUnchanged;
