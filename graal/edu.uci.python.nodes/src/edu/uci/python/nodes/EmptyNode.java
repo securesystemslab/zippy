@@ -22,41 +22,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 
-public class BlockNode extends StatementNode {
+public final class EmptyNode extends PNode {
 
-    public static BlockNode getEmptyBlock() {
-        return new BlockNode(new PNode[]{EmptyNode.INSTANCE});
+    public static final EmptyNode INSTANCE = new EmptyNode();
+
+    private EmptyNode() {
     }
 
-    @Children protected final PNode[] statements;
-
-    public BlockNode(PNode[] statements) {
-        this.statements = statements;
-    }
-
-    public final PNode[] getStatements() {
-        return statements;
-    }
-
-    public boolean isEmpty() {
-        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EmptyNode.INSTANCE));
-    }
-
-    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
-            statements[i].executeVoid(frame);
-        }
-
         return PNone.NONE;
     }
 

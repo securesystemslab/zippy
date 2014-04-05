@@ -228,13 +228,4 @@ public abstract class PNode extends Node {
         execute(frame);
     }
 
-    public static final PNode EMPTYNODE = new PNode() {
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            return PNone.NONE;
-        }
-
-    };
-
 }

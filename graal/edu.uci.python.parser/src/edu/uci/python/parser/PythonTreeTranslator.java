@@ -108,10 +108,9 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < stmts.size(); i++) {
             stmt statementObject = stmts.get(i);
             PNode statement = (PNode) visit(statementObject);
-            // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
-            if (statement == null) {
+            if (statement == EmptyNode.INSTANCE) {
                 continue;
             }
 
@@ -713,7 +712,7 @@ public class PythonTreeTranslator extends Visitor {
 
             List<expr> conditions = comp.getInternalIfs();
             if (conditions != null && !conditions.isEmpty()) {
-                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, PNode.EMPTYNODE);
+                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.INSTANCE);
             }
 
             PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(factory.createRuntimeValueNode());
@@ -729,7 +728,7 @@ public class PythonTreeTranslator extends Visitor {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
         if (environment.isInFunctionScope()) {
-            AdvanceIteratorNode next = AdvanceIteratorNodeFactory.create((WriteLocalVariableNode) target, PNode.EMPTYNODE);
+            AdvanceIteratorNode next = AdvanceIteratorNodeFactory.create((WriteLocalVariableNode) target, EmptyNode.INSTANCE);
             return ForWithLocalTargetNodeFactory.create(next, body, getIterator);
         } else {
             return factory.createFor(target, getIterator, body);
@@ -900,7 +899,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGlobal(Global node) throws Exception {
-        return null;
+        return EmptyNode.INSTANCE;
     }
 
     @Override
@@ -926,7 +925,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitPass(Pass node) throws Exception {
-        return null;
+        return EmptyNode.INSTANCE;
     }
 
     @Override
@@ -957,7 +956,7 @@ public class PythonTreeTranslator extends Visitor {
                 }
             }
 
-            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
+            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(EmptyNode.INSTANCE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
 
