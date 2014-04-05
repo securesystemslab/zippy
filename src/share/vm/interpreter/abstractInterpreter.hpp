@@ -82,9 +82,6 @@ class AbstractInterpreter: AllStatic {
     zerolocals_synchronized,                                    // method needs locals initialization & is synchronized
     native,                                                     // native method
     native_synchronized,                                        // native method & is synchronized
-#ifdef GRAAL
-    execute_compiled_method,                                    // direct call to compiled method address
-#endif
     empty,                                                      // empty method (code: _return)
     accessor,                                                   // accessor method (code: _aload_0, _getfield, _(a|i)return)
     abstract,                                                   // abstract method (throws an AbstractMethodException)

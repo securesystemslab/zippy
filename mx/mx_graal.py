@@ -404,15 +404,6 @@ def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
     jdks = _jdksDir()
 
-    m2Install = mx.get_env('MAVEN_INSTALL_GRAAL_JAR', None)
-    if m2Install and m2Install.lower() == 'true':
-        cmd = ['mvn', 'install:install-file', '-q',
-               '-Dfile=' + graalJar, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
-               '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar']
-        if graalDist.sourcesPath:
-            cmd = cmd + ['-Dsources=' + graalDist.sourcesPath]
-        mx.run(cmd)
-
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
@@ -1363,6 +1354,18 @@ def jmh(args):
 
     def _blackhole(x):
         mx.logv(x[:-1])
+
+
+    # (Re)install graal.jar into the local m2 repository since the micros-graal
+    # benchmarks have it as a dependency
+    graalDist = mx.distribution('GRAAL')
+    cmd = ['mvn', 'install:install-file', '-q',
+           '-Dfile=' + graalDist.path, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
+           '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar']
+    if graalDist.sourcesPath:
+        cmd = cmd + ['-Dsources=' + graalDist.sourcesPath]
+    mx.run(cmd)
+
     mx.log("Building benchmarks...")
     mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
 

@@ -1154,9 +1154,6 @@
   do_intrinsic(_Double_valueOf,           java_lang_Double,       valueOf_name, Double_valueOf_signature, F_S)          \
    do_name(     Double_valueOf_signature,                        "(D)Ljava/lang/Double;")                               \
                                                                                                                         \
-  do_intrinsic(_CompilerToVMImpl_executeCompiledMethod,           com_oracle_graal_hotspot_bridge_CompilerToVMImpl, executeCompiledMethod_name, CompilerToVMImpl_executeCompiledMethod_signature, F_SN)\
-   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;)Ljava/lang/Object;")                               \
-   do_name(     executeCompiledMethod_name,                       "executeCompiledMethodIntrinsic")                     \
     /*end*/
 
 

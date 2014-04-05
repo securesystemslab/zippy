@@ -51,7 +51,6 @@ address StubRoutines::_catch_exception_entry                    = NULL;
 address StubRoutines::_forward_exception_entry                  = NULL;
 address StubRoutines::_throw_AbstractMethodError_entry          = NULL;
 address StubRoutines::_throw_IncompatibleClassChangeError_entry = NULL;
-address StubRoutines::_throw_InvalidInstalledCodeException_entry = NULL;
 address StubRoutines::_throw_NullPointerException_at_call_entry = NULL;
 address StubRoutines::_throw_StackOverflowError_entry           = NULL;
 address StubRoutines::_handler_for_unsafe_access_entry          = NULL;

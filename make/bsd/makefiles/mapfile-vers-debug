@@ -221,8 +221,6 @@
                 _JVM_SetLength
                 _JVM_SetNativeThreadName
                 _JVM_SetPrimitiveArrayElement
-                # Preserved so that Graal repo can link against a JDK7 libjava.so works
-                _JVM_SetProtectionDomain
                 _JVM_SetSockOpt
                 _JVM_SetThreadPriority
                 _JVM_Sleep

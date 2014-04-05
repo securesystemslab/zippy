@@ -804,18 +804,6 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   return generate_accessor_entry();
 }
 
-#ifdef GRAAL
-
-// Interpreter stub for calling a compiled method with 3 object arguments
-address InterpreterGenerator::generate_execute_compiled_method_entry() {
-  address entry_point = __ pc();
-
-  __ stop("graal-sparc unimp");
-
-  return entry_point;
-}
-
-#endif
 
 //
 // Interpreter stub for calling a native method. (asm interpreter)

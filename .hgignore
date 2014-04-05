@@ -70,7 +70,7 @@ javadoc/
 .idea/
 ^cscope.out
 ^tags
-graal.src.zip$
+graal.src.zip*
 syntax: glob
 *.bgv
 core.*

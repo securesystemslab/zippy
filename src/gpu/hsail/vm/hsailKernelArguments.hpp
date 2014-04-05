@@ -79,11 +79,13 @@ private:
         assert(pushed == true, "arg push failed");
     }
     virtual void pushTrailingArgs() {
-        // Last argument is the exception info block
-        if (TraceGPUInteraction) {
-            tty->print_cr("[HSAIL] exception block=" PTR_FORMAT, _exceptionHolder);
+        if (UseHSAILDeoptimization) {
+            // Last argument is the exception info block
+            if (TraceGPUInteraction) {
+                tty->print_cr("[HSAIL] exception block=" PTR_FORMAT, _exceptionHolder);
+            }
+            pushObject(_exceptionHolder);
         }
-        pushObject(_exceptionHolder);
     }
 
     // For kernel arguments we don't pass the final int parameter
