@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,38 +34,30 @@ import edu.uci.python.runtime.function.*;
 
 /**
  * This is the right hand side of Parameters' WriteLocalNode.
- * 
+ *
  * @author zwei
- * 
+ *
  */
-public class BasicReadArgumentNode extends PNode {
+public abstract class ReadIndexedArgumentNode extends PNode {
 
-    private final int index;
+    protected final int index;
 
-    public BasicReadArgumentNode(int index) {
+    public ReadIndexedArgumentNode(int index) {
         this.index = index;
     }
 
-    public int getIndex() {
+    public final int getIndex() {
         return index;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        PArguments args = frame.getArguments(PArguments.class);
-
-        if (index >= args.getActualArgumentsLength()) {
-            replace(new OffBoundReadArgumentNode(index));
-            return PNone.NONE;
-        } else {
-            replace(new ReadArgumentNode(index));
-            return args.getArgument(index);
-        }
+    public static ReadIndexedArgumentNode create(int idx) {
+        return new UninitializedReadArgumentNode(idx);
     }
 
-    public static final class ReadArgumentNode extends BasicReadArgumentNode {
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
+    public static final class InBoundReadArgumentNode extends ReadIndexedArgumentNode {
 
-        public ReadArgumentNode(int index) {
+        public InBoundReadArgumentNode(int index) {
             super(index);
         }
 
@@ -87,12 +79,12 @@ public class BasicReadArgumentNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             PArguments args = frame.getArguments(PArguments.class);
-            return args.getArgument(getIndex());
+            return args.getArgument(index);
         }
-
     }
 
-    public static final class OffBoundReadArgumentNode extends BasicReadArgumentNode {
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
+    public static final class OffBoundReadArgumentNode extends ReadIndexedArgumentNode {
 
         public OffBoundReadArgumentNode(int index) {
             super(index);
@@ -101,6 +93,27 @@ public class BasicReadArgumentNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             return PNone.NONE;
+        }
+    }
+
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
+    public static final class UninitializedReadArgumentNode extends ReadIndexedArgumentNode {
+
+        public UninitializedReadArgumentNode(int index) {
+            super(index);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PArguments args = frame.getArguments(PArguments.class);
+
+            if (index >= args.getActualArgumentsLength()) {
+                replace(new OffBoundReadArgumentNode(index));
+                return PNone.NONE;
+            } else {
+                replace(new InBoundReadArgumentNode(index));
+                return args.getArgument(index);
+            }
         }
     }
 
