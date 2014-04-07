@@ -100,6 +100,10 @@ ifneq ($(LP64), 1)
 CXXFLAGS/ostream.o += -D_FILE_OFFSET_BITS=64
 endif # ifneq ($(LP64), 1)
 
+ifeq ($(INCLUDE_GRAAL), true)
+  CXXFLAGS += -DGRAAL_VERSION="\"$(GRAAL_VERSION)\""
+endif
+
 # CFLAGS_WARN holds compiler options to suppress/enable warnings.
 CFLAGS += $(CFLAGS_WARN)
 
