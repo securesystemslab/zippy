@@ -93,31 +93,9 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    @TypeCheck
-    public boolean isBigInteger(Object value) {
-        return value instanceof BigInteger || value instanceof Integer || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(boolean value) {
+    @ImplicitCast
+    public BigInteger booleanToBigInteger(boolean value) {
         return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(int value) {
-        return BigInteger.valueOf(value);
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(Object value) {
-        if (value instanceof Integer) {
-            return BigInteger.valueOf((int) value);
-        } else if (value instanceof Boolean) {
-            int intValue = (boolean) value ? 1 : 0;
-            return BigInteger.valueOf(intValue);
-        }
-
-        return (BigInteger) value;
     }
 
     @ImplicitCast
@@ -130,47 +108,17 @@ public class PythonTypes {
      * Python bool to Python float (double); <br>
      * Python int to float (Integer or BigInteger to double).
      */
-    @TypeCheck
-    public boolean isDouble(Object value) {
-        return value instanceof Double || value instanceof Integer || value instanceof BigInteger || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public double asDouble(boolean value) {
-        return value ? 1.0D : 0.0D;
-    }
-
-    @TypeCast
-    public double asDouble(int value) {
-        return value;
-    }
-
-    @TypeCast
-    public double asDouble(Object value) {
-        if (value instanceof Integer) {
-            Integer integer = (Integer) value;
-            return integer.doubleValue();
-        } else if (value instanceof BigInteger) {
-            BigInteger bigInteger = (BigInteger) value;
-            return bigInteger.doubleValue();
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? 1.0D : 0.0D;
-        }
-
-        return (double) value;
-    }
-
-    // @ImplicitCast
+    @ImplicitCast
     public double booleanToDouble(boolean value) {
         return value ? 1.0D : 0.0D;
     }
 
-    // @ImplicitCast
+    @ImplicitCast
     public double intToDouble(int value) {
         return value;
     }
 
-    // @ImplicitCast
+    @ImplicitCast
     public double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
     }
