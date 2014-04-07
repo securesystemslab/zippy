@@ -264,9 +264,6 @@ class Arguments : AllStatic {
   static SystemProperty *_java_home;
   static SystemProperty *_java_class_path;
   static SystemProperty *_sun_boot_class_path;
-#ifdef GRAAL
-  static SystemProperty *_graal_gpu_isalist;
-#endif
 
   // Meta-index for knowing what packages are in the boot class path
   static char* _meta_index_path;

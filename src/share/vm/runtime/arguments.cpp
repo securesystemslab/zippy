@@ -35,7 +35,6 @@
 #include "prims/jvmtiExport.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/globals_extension.hpp"
-#include "runtime/gpu.hpp"
 #include "runtime/java.hpp"
 #include "services/management.hpp"
 #include "services/memTracker.hpp"
