@@ -201,8 +201,18 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(Constant)                                                                                                                                        \
     oop_field(Constant, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                              \
-    oop_field(Constant, object, "Ljava/lang/Object;")                                                                                                          \
-    long_field(Constant, primitive)                                                                                                                            \
+  end_class                                                                                                                                                    \
+  start_class(PrimitiveConstant)                                                                                                                                        \
+    long_field(PrimitiveConstant, primitive)                                                                                                                            \
+  end_class                                                                                                                                                    \
+  start_class(NullConstant)                                                                                                                                        \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotObjectConstant)                                                                                                                                        \
+    oop_field(HotSpotObjectConstant, object, "Ljava/lang/Object;")                                                                                                          \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotMetaspaceConstant)                                                                                                                                        \
+    long_field(HotSpotMetaspaceConstant, primitive)                                                                                                                            \
+    oop_field(HotSpotMetaspaceConstant, metaspaceObject, "Ljava/lang/Object;")                                                                                                          \
   end_class                                                                                                                                                    \
   start_class(Kind)                                                                                                                                            \
     char_field(Kind, typeChar)                                                                                                                                 \

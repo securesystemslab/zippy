@@ -204,6 +204,8 @@ class Ticks;
   do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
   do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Opt) \
   do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Opt) \
+  do_klass(HotSpotObjectConstant_klass,           com_oracle_graal_hotspot_meta_HotSpotObjectConstant,          Opt) \
+  do_klass(HotSpotMetaspaceConstant_klass,        com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,       Opt) \
   /* graal.api.code */                                                                                               \
   do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
   do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
@@ -231,6 +233,8 @@ class Ticks;
   do_klass(SpeculationLog_klass,                  com_oracle_graal_api_code_SpeculationLog,                     Opt) \
   /* graal.api.meta */                                                                                               \
   do_klass(Constant_klass,                        com_oracle_graal_api_meta_Constant,                           Opt) \
+  do_klass(PrimitiveConstant_klass,               com_oracle_graal_api_meta_PrimitiveConstant,                  Opt) \
+  do_klass(NullConstant_klass,                    com_oracle_graal_api_meta_NullConstant,                       Opt) \
   do_klass(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Opt) \
   do_klass(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Opt) \
   do_klass(JavaMethod_klass,                      com_oracle_graal_api_meta_JavaMethod,                         Opt) \
