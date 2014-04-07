@@ -79,7 +79,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         // Plain PythonObject
         if (!(primaryObj instanceof PythonClass)) {
             assert primaryObj instanceof PythonObject;
-            assumptions.add(primaryObj.getUnmodifiedAssumption());
+            assumptions.add(primaryObj.getStableAssumption());
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
@@ -100,7 +100,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
 
         // class chain lookup
         do {
-            assumptions.add(current.getUnmodifiedAssumption());
+            assumptions.add(current.getStableAssumption());
 
             if (current.isOwnAttribute(attributeId)) {
                 break;

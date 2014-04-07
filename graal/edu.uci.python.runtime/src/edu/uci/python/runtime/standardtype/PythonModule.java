@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,7 +31,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 
-public class PythonModule extends PythonBasicObject {
+public final class PythonModule extends PythonBasicObject {
 
     private final String name;
     private final String modulePath;
@@ -46,7 +46,7 @@ public class PythonModule extends PythonBasicObject {
     }
 
     @Override
-    public Assumption getUnmodifiedAssumption() {
+    public Assumption getStableAssumption() {
         return unmodifiedAssumption.getAssumption();
     }
 
@@ -74,6 +74,11 @@ public class PythonModule extends PythonBasicObject {
 
     public String getModulePath() {
         return modulePath;
+    }
+
+    @Override
+    public void invalidateStableAssumption() {
+        // A module uses a more fine grain stability assumption.
     }
 
 }

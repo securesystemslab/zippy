@@ -113,10 +113,10 @@ public class PythonClass extends PythonObject {
      */
     @Override
     public void setAttribute(String name, Object value) {
-        unmodifiedAssumption.invalidate();
+        stableAssumption.invalidate();
 
         for (PythonClass subClass : subClasses) {
-            subClass.unmodifiedAssumption.invalidate();
+            subClass.stableAssumption.invalidate();
         }
         super.setAttribute(name, value);
     }

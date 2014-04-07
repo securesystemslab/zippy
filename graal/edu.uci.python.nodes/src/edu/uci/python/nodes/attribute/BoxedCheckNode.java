@@ -42,7 +42,7 @@ public abstract class BoxedCheckNode extends Node {
 
         public ObjectLayoutCheckNode(PythonBasicObject pythonObj) {
             cachedLayout = pythonObj.getObjectLayout();
-            unmodifiedAssumption = pythonObj.getUnmodifiedAssumption();
+            unmodifiedAssumption = pythonObj.getStableAssumption();
         }
 
         @Override
@@ -84,7 +84,7 @@ public abstract class BoxedCheckNode extends Node {
         @Children private final ObjectLayoutCheckNode[] classChecks;
 
         public ClassChainCheckNode(PythonObject pythonObj, int depth) {
-            this.objectUnmodifiedAssumption = pythonObj.getUnmodifiedAssumption();
+            this.objectUnmodifiedAssumption = pythonObj.getStableAssumption();
             ObjectLayoutCheckNode[] classCheckNodes = new ObjectLayoutCheckNode[depth];
             PythonClass current;
 

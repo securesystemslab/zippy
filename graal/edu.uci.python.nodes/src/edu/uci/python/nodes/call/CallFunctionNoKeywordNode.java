@@ -78,7 +78,7 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
 
         /**
          * (zwei): This is a temporary hack to black list 'balance' in euler31.<br>
@@ -98,8 +98,8 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-        Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
+        Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getStableAssumption();
 
         if (PythonOptions.InlineBuiltinFunctionCalls) {
             return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), context, globalScopeUnchanged, builtinsModuleUnchanged);
@@ -109,7 +109,7 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
 
         if (PythonOptions.InlineGeneratorCalls) {
             return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);

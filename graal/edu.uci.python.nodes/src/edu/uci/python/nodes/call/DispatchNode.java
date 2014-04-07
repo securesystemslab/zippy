@@ -180,7 +180,7 @@ public abstract class DispatchNode extends Node {
             PythonCallable constructor = callee.lookUpMethod("__init__");
             cachedCallTarget = split(constructor.getCallTarget());
             // TODO: PythonBuiltinClass should return always valid assumption.
-            cachedCallTargetStable = callee.getUnmodifiedAssumption();
+            cachedCallTargetStable = callee.getStableAssumption();
 
             callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
             nextNode = next;

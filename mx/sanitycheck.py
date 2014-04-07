@@ -123,6 +123,7 @@ python2MicroBenchmarks = {
     'generator'             : '0',
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
+    'attribute-access'      : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -138,6 +139,7 @@ pythonMicroBenchmarks = {
     'generator'             : '0',
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
+    'attribute-access'      : '0',
 }
 
 pythonBenchmarks = {

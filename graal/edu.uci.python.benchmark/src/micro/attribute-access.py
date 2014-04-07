@@ -13,31 +13,22 @@ def dostuff(foo):
 		local_a = foo.a + 1 
 		foo.a = local_a % 5
 
-	return local_a
+	return foo.a
 
-# def add(left, right):
-#     return left + right
-
-# def sumitup(iteration):
-# 	total = 0
-# 	for i in range(iteration):
-# 		total = add(total, i)
-
-# 	return total
-
-def measure(num):
+def measure(num, obj):
 	print("Start timing...")
 	start = time.time()
 
 	for i in range(num): # 50000
-	  result = dostuff(Foo(42))
+	  result = dostuff(obj)
 
 	print(result)
 	duration = "%.3f\n" % (time.time() - start)
 	print("attribute-access: " + duration)
 
-# for i in range(10000): # 5000
-	# sumitup(6000) # 1000
+# warm up
+foo = Foo(42)
+for i in range(1000): # 5000
+	dostuff(foo)
 
-#add("a", "b")
-measure(500)
+measure(5000, foo)

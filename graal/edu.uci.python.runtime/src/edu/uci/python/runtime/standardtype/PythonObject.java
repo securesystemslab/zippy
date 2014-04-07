@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -35,34 +35,28 @@ import edu.uci.python.runtime.object.*;
 public class PythonObject extends PythonBasicObject {
 
     /**
-     * Assumption used by attribute call sites or attribute access sites that access attribute
-     * stored in this object.
-     * <p>
-     * The unmodifiedAssumption is invalidated whenever the object itself is modified. <br>
-     * 1. Invalidated by setAttribute slow path here. <br>
-     * 2. Invalidated by StoreObjectAttributeNode... (TODO:)
+     * A PythonObject is stable if its object layout is stable.
      */
-    protected final CyclicAssumption unmodifiedAssumption;
+    protected final CyclicAssumption stableAssumption;
 
     public PythonObject(PythonClass pythonClass) {
         super(pythonClass);
-        unmodifiedAssumption = new CyclicAssumption("unmodified");
+        stableAssumption = new CyclicAssumption("unmodified");
     }
 
     @Override
-    public Assumption getUnmodifiedAssumption() {
-        return unmodifiedAssumption.getAssumption();
+    public Assumption getStableAssumption() {
+        return stableAssumption.getAssumption();
     }
 
     @Override
     public void setAttribute(String name, Object value) {
-        unmodifiedAssumption.invalidate();
         super.setAttribute(name, value);
     }
 
     @Override
     public void deleteAttribute(String name) {
-        unmodifiedAssumption.invalidate();
+        stableAssumption.invalidate();
         super.deleteAttribute(name);
     }
 
@@ -70,4 +64,10 @@ public class PythonObject extends PythonBasicObject {
     public String toString() {
         return "<" + pythonClass.getClassName() + " object at " + hashCode() + ">";
     }
+
+    @Override
+    public void invalidateStableAssumption() {
+        stableAssumption.invalidate();
+    }
+
 }
