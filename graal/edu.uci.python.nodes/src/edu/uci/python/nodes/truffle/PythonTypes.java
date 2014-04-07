@@ -129,41 +129,22 @@ public class PythonTypes {
      * Python int to Python complex (Integer or BigInteger to PComplex); <br>
      * Python float to Python complex (double to PComplex).
      */
-    @TypeCheck
-    public boolean isPComplex(Object value) {
-        return value instanceof PComplex || value instanceof Integer || value instanceof Double || value instanceof BigInteger || value instanceof Boolean;
+    @ImplicitCast
+    public PComplex booleanToPComplex(boolean value) {
+        return value ? new PComplex(1, 0) : new PComplex(0, 0);
     }
 
-    @TypeCast
-    public PComplex asPComplex(Object value) {
-        if (value instanceof Integer) {
-            PComplex complex = new PComplex((Integer) value, 0);
-            return complex;
-        } else if (value instanceof BigInteger) {
-            BigInteger bigInteger = (BigInteger) value;
-            PComplex complex = new PComplex(bigInteger.doubleValue(), 0);
-            return complex;
-        } else if (value instanceof Double) {
-            PComplex complex = new PComplex((Double) value, 0);
-            return complex;
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? new PComplex(1, 0) : new PComplex(0, 0);
-        }
-
-        return (PComplex) value;
-    }
-
-    // @ImplicitCast
+    @ImplicitCast
     public PComplex intToPComplex(int value) {
         return new PComplex(value, 0);
     }
 
-    // @ImplicitCast
+    @ImplicitCast
     public PComplex bigIntegerToPComplex(BigInteger value) {
         return new PComplex(value.doubleValue(), 0);
     }
 
-    // @ImplicitCast
+    @ImplicitCast
     public PComplex doubleToPComplex(double value) {
         return new PComplex(value, 0);
     }
