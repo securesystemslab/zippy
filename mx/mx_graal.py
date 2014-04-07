@@ -1360,18 +1360,11 @@ def jmh(args):
         mx.logv(x[:-1])
 
 
-    # (Re)install graal.jar into the local m2 repository since the micros-graal
-    # benchmarks have it as a dependency
-    graalDist = mx.distribution('GRAAL')
-    cmd = ['mvn', 'install:install-file', '-q',
-           '-Dfile=' + graalDist.path, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
-           '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar']
-    if graalDist.sourcesPath:
-        cmd = cmd + ['-Dsources=' + graalDist.sourcesPath]
-    mx.run(cmd)
-
+    env = os.environ.copy()
+    env['JAVA_HOME'] = _jdk(vmToCheck='server')
+    env['MAVEN_OPTS'] = '-server'
     mx.log("Building benchmarks...")
-    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
+    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
 
     matchedSuites = set()
     numBench = [0]
