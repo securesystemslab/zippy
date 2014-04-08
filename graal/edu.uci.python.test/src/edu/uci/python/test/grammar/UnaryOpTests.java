@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,15 +26,36 @@ package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class ModuleScopeTest {
+public class UnaryOpTests {
+
     @Test
-    public void simple() {
-        Path script = Paths.get("module_scope_test.py");
-        assertPrints("42\n", script);
+    public void plus() {
+        assertPrints("3\n", "print(+3)");
+        assertPrints("37857431053781905\n", "print(+37857431053781905)");
+        assertPrints("3.45\n", "print(+3.45)");
+    }
+
+    @Test
+    public void minus() {
+        assertPrints("-129\n", "print(-129)");
+        assertPrints("-129547839057329057230\n", "print(-129547839057329057230)");
+        assertPrints("-54353.65636\n", "print(-54353.65636)");
+    }
+
+    @Test
+    public void invert() {
+        assertPrints("-346\n", "print(~345)");
+        assertPrints("-3455473924052745730\n", "print(~3455473924052745729)");
+    }
+
+    @Test
+    public void not() {
+        assertPrints("False\n", "print(not 45)");
+        assertPrints("True\n", "print(not 0)");
+        assertPrints("False\n", "print(not 434432432432423423)");
+        assertPrints("False\n", "print(not 1.0)");
     }
 
 }
