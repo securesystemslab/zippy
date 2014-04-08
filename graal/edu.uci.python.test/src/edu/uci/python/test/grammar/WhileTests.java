@@ -26,31 +26,46 @@ package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
-public class IfTest {
+public class WhileTests {
 
     @Test
-    public void basic() {
+    public void test0() {
         String source = "a = 1\n" + //
-                        "b = 2\n" + //
-                        "if a < b:\n" + //
-                        "    print('a < b')\n" + //
-                        "if a:\n" + //
-                        "    print('a is true')\n" + //
-                        "if not b:\n" + //
-                        "    print('b is false')\n" + //
-                        "if not a > b:\n" + //
-                        "    print('not a > b')\n";
-        assertPrints("a < b\na is true\nnot a > b\n", source);
+                        "while a:\n" + //
+                        "  print(a)\n" + //
+                        "  a = a - 1\n";
+        assertPrints("1\n", source);
     }
 
     @Test
-    public void elif() {
-        Path script = Paths.get("if-test.py");
-        assertPrints("31\n", script);
+    public void test1() {
+        String source = "a = 0\n" + //
+                        "b = 5\n" + //
+                        "while a < b:\n" + //
+                        "  print(a, \" < \", b)\n" + //
+                        "  b = b - 1\n";
+        assertPrints("0  <  5\n0  <  4\n0  <  3\n0  <  2\n0  <  1\n", source);
+    }
+
+    @Test
+    public void test2() {
+        String source = "a = 1\n" + //
+                        "while not a:\n" + //
+                        "  print(a)\n" + //
+                        "  a = a - 1\n";
+        assertPrints("", source);
+    }
+
+    @Test
+    public void test3() {
+        String source = "a = 1\n" + //
+                        "b = 5\n" + //
+                        "while not a > b:\n" + //
+                        "  print(a, \" > \", b)\n" + //
+                        "  b = b - 1\n";
+        assertPrints("1  >  5\n1  >  4\n1  >  3\n1  >  2\n1  >  1\n", source);
     }
 
 }
