@@ -39,6 +39,7 @@ public abstract class PythonBasicObject {
 
     @CompilationFinal protected PythonClass pythonClass;
 
+    private boolean usePrivateLayout;
     private ObjectLayout objectLayout;
 
     public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 4;
@@ -62,24 +63,9 @@ public abstract class PythonBasicObject {
     protected Object[] objectStorageLocations = null;
 
     public PythonBasicObject(PythonClass pythonClass) {
-        if (pythonClass != null) {
-            unsafeSetPythonClass(pythonClass);
-        } else {
-            this.pythonClass = null;
-        }
-
-        objectLayout = ObjectLayout.EMPTY;
-    }
-
-    public PythonBasicObject(PythonClass pythonClass, PythonBasicObject module) {
-        if (pythonClass != null) {
-            unsafeSetPythonClass(pythonClass);
-        } else {
-            this.pythonClass = null;
-        }
-
-        this.objectLayout = module.objectLayout;
-        this.objectStorageLocations = module.objectStorageLocations;
+        unsafeSetPythonClass(pythonClass);
+        objectLayout = pythonClass == null ? ObjectLayout.EMPTY : pythonClass.getInstanceObjectLayout();
+        allocateObjectStorageLocations();
     }
 
     public PythonClass getPythonClass() {
@@ -195,6 +181,11 @@ public abstract class PythonBasicObject {
         // Use new Layout
         objectLayout = newLayout;
 
+        // Synchronize instance object layout with the class
+        if (!usePrivateLayout) {
+            pythonClass.updateInstanceObjectLayout(newLayout);
+        }
+
         // Make all primitives as unset
         primitiveSetMap = 0;
 
@@ -255,6 +246,14 @@ public abstract class PythonBasicObject {
                                 storageLocation.getStoredClass().getName());
             }
         }
+    }
+
+    public boolean usePrivateLayout() {
+        return usePrivateLayout;
+    }
+
+    public void switchToPrivateLayout() {
+        usePrivateLayout = true;
     }
 
     public abstract Assumption getStableAssumption();

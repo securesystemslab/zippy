@@ -42,6 +42,7 @@ public final class PythonModule extends PythonBasicObject {
         this.name = name;
         this.modulePath = modulePath;
         unmodifiedAssumption = new CyclicAssumption("unmodified");
+        switchToPrivateLayout();
         addDefaultConstants(name);
     }
 

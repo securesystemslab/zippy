@@ -15,20 +15,19 @@ def dostuff(foo):
 
 	return foo.a
 
-def measure(num, obj):
+def measure(num):
 	print("Start timing...")
 	start = time.time()
 
 	for i in range(num): # 50000
-	  result = dostuff(obj)
+	  result = dostuff(Foo(42))
 
 	print(result)
 	duration = "%.3f\n" % (time.time() - start)
 	print("attribute-access: " + duration)
 
 # warm up
-foo = Foo(42)
-for i in range(1000): # 5000
-	dostuff(foo)
+for i in range(2000):
+	dostuff(Foo(42))
 
-measure(5000, foo)
+measure(5000)

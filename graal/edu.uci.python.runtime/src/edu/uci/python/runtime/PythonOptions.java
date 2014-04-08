@@ -49,7 +49,7 @@ public class PythonOptions {
 
     public static boolean InlineBuiltinFunctionCalls = true;
 
-    public static final boolean CacheAttributeLoads = true;
+    public static final boolean CacheAttributeLoads = false;
 
     public static final boolean UnboxSequenceStorage = true;
 

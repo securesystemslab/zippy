@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -38,14 +38,18 @@ import edu.uci.python.runtime.object.*;
  */
 public class PythonClass extends PythonObject {
 
-    protected final String className;
-
+    private final String className;
     private final PythonContext context;
 
     // TODO: Multiple inheritance and MRO...
     @CompilationFinal private PythonClass superClass;
 
     private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
+
+    /**
+     * Object layout of the instances of this class.
+     */
+    @CompilationFinal private ObjectLayout instanceObjectLayout;
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
@@ -65,6 +69,9 @@ public class PythonClass extends PythonObject {
         } else {
             unsafeSetSuperClass(superClass);
         }
+
+        instanceObjectLayout = ObjectLayout.EMPTY;
+        switchToPrivateLayout();
     }
 
     public PythonClass getSuperClass() {
@@ -133,6 +140,14 @@ public class PythonClass extends PythonObject {
 
     public final Set<PythonClass> getSubClasses() {
         return subClasses;
+    }
+
+    public final ObjectLayout getInstanceObjectLayout() {
+        return instanceObjectLayout;
+    }
+
+    public final void updateInstanceObjectLayout(ObjectLayout newLayout) {
+        this.instanceObjectLayout = newLayout;
     }
 
     @Override

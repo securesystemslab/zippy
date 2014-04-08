@@ -96,7 +96,7 @@ public abstract class CallAttributeNode extends PNode {
 
     @Specialization
     public Object doPythonObject(VirtualFrame frame, PythonObject prim) {
-        Object[] args = doArgumentsWithSelf(frame, prim);
+        Object[] args = doArguments(frame);
         PythonCallable callable = applyMethodDescriptor(prim, (PythonCallable) prim.getAttribute(attributeId));
         return callable.call(frame.pack(), args);
     }
