@@ -76,7 +76,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
     private static PythonModule createModule(String name, PythonContext context, PythonBuiltins... builtins) {
         PythonModule module = new PythonModule(context, name, null);
-        assert module.usePrivateLayout() && module.getObjectLayout() == ObjectLayout.EMPTY;
+        assert module.usePrivateLayout();
 
         for (PythonBuiltins builtin : builtins) {
             addBuiltinsToModule(module, builtin, context);
