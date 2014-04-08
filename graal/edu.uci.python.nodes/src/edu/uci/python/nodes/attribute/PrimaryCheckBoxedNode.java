@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -83,14 +83,14 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         private final Assumption objectUnmodifiedAssumption;
         @Children private final ObjectLayoutCheckNode[] classChecks;
 
-        public ClassChainCheckNode(PythonObject pythonObj, int depth) {
-            this.objectUnmodifiedAssumption = pythonObj.getStableAssumption();
+        public ClassChainCheckNode(PythonBasicObject primaryObj, int depth) {
+            this.objectUnmodifiedAssumption = primaryObj.getStableAssumption();
             ObjectLayoutCheckNode[] classCheckNodes = new ObjectLayoutCheckNode[depth];
-            PythonClass current;
+            PythonClass current = primaryObj.getPythonClass();
 
             for (int i = 0; i < depth; i++) {
-                current = pythonObj.getPythonClass();
                 classCheckNodes[i] = new ObjectLayoutCheckNode(current);
+                current = current.getSuperClass();
             }
 
             this.classChecks = classCheckNodes;
@@ -103,7 +103,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
             PythonClass clazz = pobj.getPythonClass();
 
             for (ObjectLayoutCheckNode checkNode : classChecks) {
-                if (checkNode.accept(frame, clazz)) {
+                if (!checkNode.accept(frame, clazz)) {
                     return false;
                 }
                 clazz = clazz.getSuperClass();

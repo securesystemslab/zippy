@@ -39,6 +39,12 @@ public class AttributeCacheTests {
     }
 
     @Test
+    public void classChainChecks() {
+        Path script = Paths.get("class-chain-check-test.py");
+        assertPrints("do stuff\ndo stuff\n", script);
+    }
+
+    @Test
     public void booleanAttr() {
         String source = "class A:\n" + //
                         "    def __init__(self, bool):" + //
