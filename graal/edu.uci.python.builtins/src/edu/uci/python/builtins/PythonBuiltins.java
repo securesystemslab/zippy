@@ -59,7 +59,15 @@ public abstract class PythonBuiltins {
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isConstructor()) {
-                PythonBuiltinClass builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
+                PythonBuiltinClass builtinClass;
+
+                if (builtin.name().equals("object")) {
+                    // Special case for object constructor.
+                    builtinClass = context.getObjectClass();
+                } else {
+                    builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
+                }
+
                 builtinClass.setAttributeUnsafe("__init__", function);
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {
