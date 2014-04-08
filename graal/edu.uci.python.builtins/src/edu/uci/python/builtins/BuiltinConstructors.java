@@ -55,7 +55,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // bool([x])
     @Builtin(name = "bool", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonBoolNode extends PythonBuiltinNode {
+    public abstract static class BoolNode extends PythonBuiltinNode {
 
         @Specialization
         public boolean bool(int arg) {
@@ -84,7 +84,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // complex([real[, imag]])
     @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isConstructor = true)
-    public abstract static class PythonComplexNode extends PythonBuiltinNode {
+    public abstract static class ComplexNode extends PythonBuiltinNode {
 
         @Specialization
         public PComplex complexFromDoubleDouble(double real, double imaginary) {
@@ -123,7 +123,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // dict(mapping, **kwarg)
     // dict(iterable, **kwarg)
     @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
-    public abstract static class PythonDictionaryNode extends PythonBuiltinNode {
+    public abstract static class DictionaryNode extends PythonBuiltinNode {
 
         protected static boolean emptyArgument(PTuple args) {
             return args.len() == 0;
@@ -179,7 +179,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // enumerate(iterable, start=0)
     @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isConstructor = true)
-    public abstract static class PythonEnumerateNode extends PythonBuiltinNode {
+    public abstract static class EnumerateNode extends PythonBuiltinNode {
         /**
          * TODO enumerate can take a keyword argument start, and currently that's not supported.
          */
@@ -211,7 +211,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // float([x])
     @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonFloatNode extends PythonBuiltinNode {
+    public abstract static class FloatNode extends PythonBuiltinNode {
 
         @Specialization
         public double floatFromInt(int arg) {
@@ -236,7 +236,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // frozenset([iterable])
     @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonFrozenSetNode extends PythonBuiltinNode {
+    public abstract static class FrozenSetNode extends PythonBuiltinNode {
 
         protected static boolean emptyArgument(Object arg) {
             return arg.equals(PNone.NONE);
@@ -280,7 +280,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // int(x=0)
     // int(x, base=10)
     @Builtin(name = "int", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"base"}, isConstructor = true)
-    public abstract static class PythonIntNode extends PythonBuiltinNode {
+    public abstract static class IntNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "noKeywordArg")
@@ -316,7 +316,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // list([iterable])
     @Builtin(name = "list", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonListNode extends PythonBuiltinNode {
+    public abstract static class ListNode extends PythonBuiltinNode {
 
         @Specialization
         public PList listString(String arg) {
@@ -355,7 +355,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // map(function, iterable, ...)
     @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isConstructor = true)
-    public abstract static class PythonMapNode extends PythonBuiltinNode {
+    public abstract static class MapNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
@@ -435,7 +435,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // range(stop)
     // range(start, stop[, step])
     @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isConstructor = true)
-    public abstract static class PythonRangeNode extends PythonBuiltinNode {
+    public abstract static class RangeNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "caseStop")
@@ -488,7 +488,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // set([iterable])
     @Builtin(name = "set", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonSetNode extends PythonBuiltinNode {
+    public abstract static class SetNode extends PythonBuiltinNode {
 
         @Specialization
         public PSet set(String arg) {
@@ -524,7 +524,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // str(object='')
     // str(object=b'', encoding='utf-8', errors='strict')
     @Builtin(name = "str", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"object, encoding, errors"}, isConstructor = true)
-    public abstract static class PythonStrNode extends PythonBuiltinNode {
+    public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
         public String str(Object arg) {
@@ -535,7 +535,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // tuple([iterable])
     @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonTupleNode extends PythonBuiltinNode {
+    public abstract static class TupleNode extends PythonBuiltinNode {
 
         @Specialization(order = 1)
         public PTuple tuple(String arg) {
@@ -561,7 +561,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // zip(*iterables)
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
-    public abstract static class PythonZipNode extends PythonBuiltinNode {
+    public abstract static class ZipNode extends PythonBuiltinNode {
 
         @Specialization
         public PZip zip(PTuple args) {
