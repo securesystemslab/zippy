@@ -36,11 +36,11 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractBoxedAttributeNode extends Node {
+public abstract class AbstractAttributeCacheBoxedNode extends Node {
 
     private final String attributeId;
 
-    public AbstractBoxedAttributeNode(String attributeId) {
+    public AbstractAttributeCacheBoxedNode(String attributeId) {
         this.attributeId = attributeId;
     }
 
@@ -58,7 +58,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractBoxedAttributeNode rewrite(PythonBasicObject primaryObj) {
+    protected AbstractAttributeCacheBoxedNode rewrite(PythonBasicObject primaryObj) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -67,8 +67,8 @@ public abstract class AbstractBoxedAttributeNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
-            AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+            PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
+            AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
             checkAndReplace(newNode);
             return newNode;
         }
@@ -83,8 +83,8 @@ public abstract class AbstractBoxedAttributeNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
-                AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+                PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
+                AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -114,16 +114,16 @@ public abstract class AbstractBoxedAttributeNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        BoxedCheckNode check;
+        PrimaryCheckBoxedNode check;
         if (depth == 0) {
-            check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
+            check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
         } else if (depth == 1) {
-            check = new BoxedCheckNode.PythonClassCheckNode(current, assumptions.get(0), assumptions.get(1));
+            check = new PrimaryCheckBoxedNode.PythonClassCheckNode(current, assumptions.get(0), assumptions.get(1));
         } else {
-            check = new BoxedCheckNode.ClassChainCheckNode(current, depth);
+            check = new PrimaryCheckBoxedNode.ClassChainCheckNode(current, depth);
         }
 
-        AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, current, getOwnValidLocation(current));
+        AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, current, getOwnValidLocation(current));
         checkAndReplace(newNode);
         return newNode;
     }
@@ -140,7 +140,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractBoxedAttributeNode {
+    public static class UninitializedCachedAttributeNode extends AbstractAttributeCacheBoxedNode {
 
         public UninitializedCachedAttributeNode(String attributeId) {
             super(attributeId);

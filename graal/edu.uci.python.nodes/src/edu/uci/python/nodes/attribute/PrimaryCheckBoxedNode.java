@@ -31,11 +31,11 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class BoxedCheckNode extends Node {
+public abstract class PrimaryCheckBoxedNode extends Node {
 
     public abstract boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
-    public static class ObjectLayoutCheckNode extends BoxedCheckNode {
+    public static class ObjectLayoutCheckNode extends PrimaryCheckBoxedNode {
 
         private final ObjectLayout cachedLayout;
         private final Assumption unmodifiedAssumption;
@@ -52,7 +52,7 @@ public abstract class BoxedCheckNode extends Node {
         }
     }
 
-    public static class PythonClassCheckNode extends BoxedCheckNode {
+    public static class PythonClassCheckNode extends PrimaryCheckBoxedNode {
 
         private final PythonClass cachedClass;
         private final Assumption classUnmodifiedAssumption;
@@ -78,7 +78,7 @@ public abstract class BoxedCheckNode extends Node {
         }
     }
 
-    public static class ClassChainCheckNode extends BoxedCheckNode {
+    public static class ClassChainCheckNode extends PrimaryCheckBoxedNode {
 
         private final Assumption objectUnmodifiedAssumption;
         @Children private final ObjectLayoutCheckNode[] classChecks;

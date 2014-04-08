@@ -35,12 +35,12 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractUnboxedAttributeNode extends Node {
+public abstract class AbstractAttributeCacheUnboxedNode extends Node {
 
     private final PythonContext context;
     private final String attributeId;
 
-    public AbstractUnboxedAttributeNode(PythonContext context, String attributeId) {
+    public AbstractAttributeCacheUnboxedNode(PythonContext context, String attributeId) {
         this.context = context;
         this.attributeId = attributeId;
     }
@@ -59,7 +59,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractUnboxedAttributeNode rewrite(Object primaryObj) {
+    protected AbstractAttributeCacheUnboxedNode rewrite(Object primaryObj) {
         PythonBuiltinObject pbObj = null;
 
         try {
@@ -83,14 +83,14 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        UnboxedCheckNode check;
+        PrimaryCheckUnboxedNode check;
         if (primaryObj instanceof PythonBuiltinObject) {
-            check = new UnboxedCheckNode.BuiltinObjectCheckNode((PythonBuiltinObject) primaryObj);
+            check = new PrimaryCheckUnboxedNode.BuiltinObjectCheckNode((PythonBuiltinObject) primaryObj);
         } else {
-            check = new UnboxedCheckNode.PrimitiveCheckNode(primaryObj);
+            check = new PrimaryCheckUnboxedNode.PrimitiveCheckNode(primaryObj);
         }
 
-        UnboxedAttributeCacheNode newNode = UnboxedAttributeCacheNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+        AttributeCacheUnboxedNode newNode = AttributeCacheUnboxedNode.create(context, attributeId, check, current, getOwnValidLocation(current));
 
         if (this.getParent() != null) {
             replace(newNode);
@@ -105,7 +105,7 @@ public abstract class AbstractUnboxedAttributeNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractUnboxedAttributeNode {
+    public static class UninitializedCachedAttributeNode extends AbstractAttributeCacheUnboxedNode {
 
         public UninitializedCachedAttributeNode(PythonContext context, String attributeId) {
             super(context, attributeId);
