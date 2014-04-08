@@ -1349,9 +1349,24 @@ def jmh(args):
     """run the JMH_BENCHMARKS"""
 
     # TODO: add option for `mvn clean package'
-    # TODO: add options to pass through arguments directly to JMH
 
-    vmArgs, benchmarks = _extract_VM_args(args)
+    vmArgs, benchmarksAndJsons = _extract_VM_args(args)
+
+    benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
+    jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
+
+    jmhArgs = {
+        '-f' : '1',
+        '-i' : '10',
+        '-wi' : '10'}
+
+    # e.g. '{"-wi" : 20}'
+    for j in jmhArgJsons:
+        try:
+            jmhArgs.update(json.loads(j))
+        except ValueError as e:
+            mx.abort('error parsing JSON input: {}"\n{}'.format(j, e))
+
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
     if not jmhPath or not exists(jmhPath):
         mx.abort("$JMH_BENCHMARKS not properly defined: " + str(jmhPath))
@@ -1410,15 +1425,13 @@ def jmh(args):
         (pfx, exe, vm, forkedVmArgs, _) = _parseVmArgs(vmArgs)
         if pfx:
             mx.warn("JMH ignores prefix: \"" + pfx + "\"")
-        mx.run_java(
-           ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
-            "-f", "1",
-            "-v", "EXTRA" if mx._opts.verbose else "NORMAL",
-            "-i", "10", "-wi", "10",
-            "--jvm", exe,
-            "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
-            addDefaultArgs=False,
-            cwd=jmhPath)
+        javaArgs = ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
+                    '--jvm', exe,
+                    '--jvmArgs', ' '.join(["-" + vm] + forkedVmArgs)]
+        for k, v in jmhArgs.iteritems():
+            javaArgs.append(k)
+            javaArgs.append(str(v))
+        mx.run_java(javaArgs + regex, addDefaultArgs=False, cwd=jmhPath)
 
 
 def specjvm2008(args):
@@ -1761,7 +1774,7 @@ def mx_init(suite):
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [print_jdkhome, ''],
-        'jmh': [jmh, '[VM options] [filters...]'],
+        'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
