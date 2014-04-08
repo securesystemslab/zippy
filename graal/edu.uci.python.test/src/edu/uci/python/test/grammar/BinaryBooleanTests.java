@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,14 +26,24 @@ package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class BinaryBooleanTests {
+
     @Test
-    public void simple() {
-        Path script = Paths.get("binary_boolean_test.py");
-        assertPrints("----------- and\n0 0 0 9.9292\n----------- or\n1 2 12953285437432947239 2.4343\n", script);
+    public void logicAnd() {
+        assertPrints("0\n", "print(0 and 1)");
+        assertPrints("0\n", "print(2 and 0)");
+        assertPrints("0\n", "print(0 and 12953285437432947239)");
+        assertPrints("9.9292\n", "print(2.4343 and 9.9292)");
     }
+
+    @Test
+    public void logicOr() {
+        assertPrints("1\n", "print(0 or 1)");
+        assertPrints("2\n", "print(2 or 0)");
+        assertPrints("12953285437432947239\n", "print(0 or 12953285437432947239)");
+        assertPrints("2.4343\n", "print(2.4343 or 9.9292)");
+    }
+
 }
