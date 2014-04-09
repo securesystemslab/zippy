@@ -73,4 +73,15 @@ public class AttributeCacheTests {
         assertPrints("True\n", source);
     }
 
+    @Test
+    public void objectAttributeStore() {
+        String source = "class A:\n" + //
+                        "    pass\n" + //
+                        "a = A()\n" + //
+                        "for i in range(3):\n" + //
+                        "    a.attr = int\n" + //
+                        "    print(a.attr)\n";
+        assertPrints("<class 'int'>\n<class 'int'>\n<class 'int'>\n", source);
+    }
+
 }
