@@ -102,7 +102,9 @@ private:
   // extract the fields of the CompilationResult
   void initialize_fields(oop target_method);
   void initialize_assumptions(oop target_method);
-
+  
+  int estimate_stub_entries();
+  
   // perform data and call relocation on the CodeBuffer
   bool initialize_buffer(CodeBuffer& buffer);
 
@@ -120,7 +122,7 @@ private:
   void record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects);
 
   void process_exception_handlers();
-
+  int estimateStubSpace(int static_call_stubs);
 };
 
 /**

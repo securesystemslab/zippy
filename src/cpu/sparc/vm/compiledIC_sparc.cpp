@@ -81,25 +81,26 @@ CompiledIC::CompiledIC(nmethod* nm, NativeCall* call)
 // ----------------------------------------------------------------------------
 
 #define __ _masm.
-void CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf) {
-#ifdef COMPILER2
+void CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf, address mark) {
   // Stub is fixed up when the corresponding call is converted from calling
   // compiled code to calling interpreted code.
   // set (empty), G5
   // jmp -1
 
-  address mark = cbuf.insts_mark();  // Get mark within main instrs section.
+  if (mark == NULL) {
+    mark = cbuf.insts_mark();  // Get mark within main instrs section.
+  }
 
   MacroAssembler _masm(&cbuf);
 
   address base =
-  __ start_a_stub(to_interp_stub_size()*2);
-  if (base == NULL) return;  // CodeBuffer::expand failed.
+  __ start_a_stub(to_interp_stub_size());
+  guarantee(base != NULL, "out of space");
 
   // Static stub relocation stores the instruction address of the call.
   __ relocate(static_stub_Relocation::spec(mark));
 
-  __ set_metadata(NULL, as_Register(Matcher::inline_cache_reg_encode()));
+  __ set_metadata(NULL, G5);
 
   __ set_inst_mark();
   AddressLiteral addrlit(-1);
@@ -107,11 +108,10 @@ void CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf) {
 
   __ delayed()->nop();
 
+  assert(__ pc() - base <= to_interp_stub_size(), "wrong stub size"); 
+
   // Update current stubs pointer and restore code_end.
   __ end_a_stub();
-#else
-  ShouldNotReachHere();
-#endif
 }
 #undef __
 
