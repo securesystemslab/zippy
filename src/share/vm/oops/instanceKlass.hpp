@@ -241,6 +241,10 @@ class InstanceKlass: public Klass {
   Thread*         _init_thread;          // Pointer to current thread doing initialization (to handle recusive initialization)
   int             _vtable_len;           // length of Java vtable (in words)
   int             _itable_len;           // length of Java itable (in words)
+#ifdef GRAAL
+  // com/oracle/graal/graph/NodeClass instance mirroring this class
+  oop             _graal_node_class;
+#endif
   OopMapCache*    volatile _oop_map_cache;   // OopMapCache for all methods in the klass (allocated lazily)
   MemberNameTable* _member_names;        // Member names
   JNIid*          _jni_ids;              // First JNI identifier for static fields in this class
@@ -744,6 +748,16 @@ class InstanceKlass: public Klass {
   // initialization
   void call_class_initializer(TRAPS);
   void set_initialization_state_and_notify(ClassState state, TRAPS);
+
+#ifdef GRAAL
+  // Graal com.oracle.graal.graph.NodeClass mirror
+  oop graal_node_class()           { return _graal_node_class;               }
+  void set_graal_node_class(oop m) { klass_oop_store(&_graal_node_class, m); }
+  oop* adr_graal_node_class()      { return (oop*)&this->_graal_node_class;  }
+
+  // GC support
+  virtual void oops_do(OopClosure* cl);
+#endif
 
   // OopMapCache support
   OopMapCache* oop_map_cache()               { return _oop_map_cache; }

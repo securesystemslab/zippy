@@ -288,6 +288,9 @@ InstanceKlass::InstanceKlass(int vtable_len,
   set_init_state(InstanceKlass::allocated);
   set_init_thread(NULL);
   set_reference_type(rt);
+#ifdef GRAAL
+  set_graal_node_class(NULL);
+#endif
   set_oop_map_cache(NULL);
   set_jni_ids(NULL);
   set_osr_nmethods_head(NULL);
@@ -317,6 +320,12 @@ InstanceKlass::InstanceKlass(int vtable_len,
   set_layout_helper(Klass::instance_layout_helper(0, true));
 }
 
+#ifdef GRAAL
+void InstanceKlass::oops_do(OopClosure* cl) {
+  Klass::oops_do(cl);
+  cl->do_oop(adr_graal_node_class());
+}
+#endif
 
 void InstanceKlass::deallocate_methods(ClassLoaderData* loader_data,
                                        Array<Method*>* methods) {
@@ -2253,6 +2262,10 @@ void InstanceKlass::remove_unshareable_info() {
     unlink_class();
   }
   init_implementor();
+
+#ifdef GRAAL
+  set_graal_node_class(NULL);
+#endif
 
   constants()->remove_unshareable_info();
 
