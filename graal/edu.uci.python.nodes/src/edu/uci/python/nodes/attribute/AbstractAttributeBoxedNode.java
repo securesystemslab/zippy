@@ -156,7 +156,6 @@ public abstract class AbstractAttributeBoxedNode extends Node {
 
             return specialized.getValue(frame, primaryObj);
         }
-
     }
 
     public static final class GenericAttributeReadBoxedNode extends AbstractAttributeBoxedNode {

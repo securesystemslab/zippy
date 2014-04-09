@@ -26,6 +26,7 @@ package edu.uci.python.nodes.attribute;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
@@ -42,9 +43,10 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
         this.cachedStorage = storage;
     }
 
-    public static AttributeDispatchUnboxedNode create(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, StorageLocation location) {
+    public static AttributeDispatchUnboxedNode create(PythonContext context, String attributeId, Object primaryObj, PythonBasicObject storage, StorageLocation location) {
+        PrimaryCheckUnboxedNode check = PrimaryCheckUnboxedNode.create(primaryObj);
         AttributeReadNode read = AttributeReadNode.create(location);
-        return new AttributeDispatchUnboxedNode(context, attributeId, checkNode, read, storage);
+        return new AttributeDispatchUnboxedNode(context, attributeId, check, read, storage);
     }
 
     public AttributeReadNode extractReadNode() {

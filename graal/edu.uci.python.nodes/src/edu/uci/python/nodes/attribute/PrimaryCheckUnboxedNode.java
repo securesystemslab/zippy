@@ -33,6 +33,14 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
 
     public abstract boolean accept(Object primaryObj);
 
+    public static PrimaryCheckUnboxedNode create(Object primaryObj) {
+        if (primaryObj instanceof PythonBuiltinObject) {
+            return new BuiltinObjectCheckNode((PythonBuiltinObject) primaryObj);
+        } else {
+            return new PrimitiveCheckNode(primaryObj);
+        }
+    }
+
     /**
      * Checks if the unboxed primary object is still of the same type as the cached one.
      * <p>
@@ -73,4 +81,5 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
             }
         }
     }
+
 }
