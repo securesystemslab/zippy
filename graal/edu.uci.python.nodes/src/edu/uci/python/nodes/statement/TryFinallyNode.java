@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 public class TryFinallyNode extends StatementNode {
 
     @Child protected BlockNode body;
-
     @Child protected BlockNode finalbody;
 
     public TryFinallyNode(BlockNode body, BlockNode finalbody) {

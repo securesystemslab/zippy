@@ -930,23 +930,22 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitTryExcept(TryExcept node) throws Exception {
-        StatementNode retVal = null;
+        StatementNode tryExceptNode = null;
         List<PNode> b = visitStatements(node.getInternalBody());
         List<PNode> o = visitStatements(node.getInternalOrelse());
+
         BlockNode body = null;
         BlockNode orelse = null;
+        body = factory.createBlock(b);
+        orelse = factory.createBlock(o);
+
         List<excepthandler> excepts = node.getInternalHandlers();
+        ExceptNode[] exceptNodes = new ExceptNode[excepts.size()];
 
         for (int i = 0; i < excepts.size(); i++) {
-            if (i == 0) {
-                body = factory.createBlock(b);
-            } else {
-                body = factory.createSingleStatementBlock(retVal);
-            }
-
             ExceptHandler except = (ExceptHandler) excepts.get(i);
-
             PNode[] exceptType = null;
+
             if (except.getInternalType() != null) {
                 if (except.getInternalType() instanceof Tuple) {
                     List<PNode> types = walkExprList(((Tuple) except.getInternalType()).getInternalElts());
@@ -959,14 +958,12 @@ public class PythonTreeTranslator extends Visitor {
             PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(EmptyNode.INSTANCE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
-
-            retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
+            ExceptNode exceptNode = new ExceptNode(context, exceptBody, exceptType, exceptName);
+            exceptNodes[i] = exceptNode;
         }
 
-        orelse = factory.createBlock(o);
-        body = factory.createSingleStatementBlock(retVal);
-        retVal = TryExceptNode.create(context, body, orelse, null, null, null);
-        return retVal;
+        tryExceptNode = new TryExceptNode(context, body, exceptNodes, orelse);
+        return tryExceptNode;
     }
 
     @Override
