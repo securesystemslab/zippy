@@ -43,7 +43,7 @@ public class ExceptNode extends StatementNode {
     @Children final PNode[] exceptType;
     @Child protected PNode exceptName;
 
-    protected final PythonContext context;
+    private final PythonContext context;
 
     public ExceptNode(PythonContext context, BlockNode body, PNode[] exceptType, PNode exceptName) {
         this.body = body;
@@ -67,7 +67,7 @@ public class ExceptNode extends StatementNode {
         /**
          * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
          * 'Exception'
-         *
+         * 
          * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by zero'
          */
         if (exceptType != null) {

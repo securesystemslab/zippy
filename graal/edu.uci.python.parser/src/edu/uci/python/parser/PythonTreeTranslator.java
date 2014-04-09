@@ -962,7 +962,7 @@ public class PythonTreeTranslator extends Visitor {
             exceptNodes[i] = exceptNode;
         }
 
-        tryExceptNode = new TryExceptNode(context, body, exceptNodes, orelse);
+        tryExceptNode = new TryExceptNode(body, exceptNodes, orelse);
         return tryExceptNode;
     }
 

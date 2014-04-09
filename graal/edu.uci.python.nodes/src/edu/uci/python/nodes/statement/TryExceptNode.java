@@ -28,22 +28,18 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.runtime.*;
-
 public class TryExceptNode extends StatementNode {
 
     @Child protected BlockNode body;
     @Children final ExceptNode[] exceptNodes;
     @Child protected BlockNode orelse;
 
-    protected final PythonContext context;
     private final BranchProfile exceptProfile = new BranchProfile();
 
-    public TryExceptNode(PythonContext context, BlockNode body, ExceptNode[] exceptNodes, BlockNode orelse) {
+    public TryExceptNode(BlockNode body, ExceptNode[] exceptNodes, BlockNode orelse) {
         this.body = body;
         this.exceptNodes = exceptNodes;
         this.orelse = orelse;
-        this.context = context;
     }
 
     @Override

@@ -33,21 +33,21 @@ import edu.uci.python.runtime.datatype.*;
 public class IfNode extends StatementNode {
 
     @Child protected CastToBooleanNode condition;
-    @Child protected PNode thenNode;
-    @Child protected PNode elseNode;
+    @Child protected PNode then;
+    @Child protected PNode orelse;
 
-    public IfNode(CastToBooleanNode condition, PNode thenNode, PNode elseNode) {
+    public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
-        this.thenNode = thenNode;
-        this.elseNode = elseNode;
+        this.then = then;
+        this.orelse = orelse;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
-            thenNode.executeVoid(frame);
+            then.executeVoid(frame);
         } else {
-            elseNode.executeVoid(frame);
+            orelse.executeVoid(frame);
         }
 
         return PNone.NONE;
