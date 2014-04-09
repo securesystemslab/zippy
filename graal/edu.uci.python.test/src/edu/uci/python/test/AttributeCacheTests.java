@@ -63,6 +63,15 @@ public class AttributeCacheTests {
     }
 
     @Test
+    public void cachedModuleAttr() {
+        String source = "import time\n" + //
+                        "for i in range(2):\n" + //
+                        "  time.foo = 42\n" + //
+                        "  print(time.foo)\n";
+        assertPrints("42\n42\n", source);
+    }
+
+    @Test
     public void booleanAttr() {
         String source = "class A:\n" + //
                         "    def __init__(self, bool):" + //

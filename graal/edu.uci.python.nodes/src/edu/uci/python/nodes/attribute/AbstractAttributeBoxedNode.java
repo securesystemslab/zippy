@@ -148,7 +148,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
                 depth++;
             }
 
-            if (depth < PythonOptions.GetAttributeInlineCacheMaxDepth) {
+            if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 specialized = rewrite(primaryObj, this);
             } else {
                 specialized = new GenericAttributeReadBoxedNode(attributeId);
