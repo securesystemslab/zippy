@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.loop;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
@@ -33,6 +34,8 @@ import edu.uci.python.runtime.exception.*;
 public class ContinueTargetNode extends StatementNode {
 
     @Child protected BlockNode child;
+
+    private final BranchProfile continueProfile = new BranchProfile();
 
     public ContinueTargetNode(BlockNode child) {
         this.child = child;
@@ -43,6 +46,7 @@ public class ContinueTargetNode extends StatementNode {
         try {
             return child.execute(frame);
         } catch (ContinueException ex) {
+            continueProfile.enter();
             return PNone.NONE;
         }
     }

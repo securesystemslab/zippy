@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.loop;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
@@ -33,6 +34,8 @@ import edu.uci.python.runtime.exception.*;
 public final class BreakTargetNode extends StatementNode {
 
     @Child protected StatementNode child;
+
+    private final BranchProfile breakProfile = new BranchProfile();
 
     public BreakTargetNode(StatementNode child) {
         this.child = child;
@@ -43,6 +46,7 @@ public final class BreakTargetNode extends StatementNode {
         try {
             return child.execute(frame);
         } catch (BreakException ex) {
+            breakProfile.enter();
             return PNone.NONE;
         }
     }
