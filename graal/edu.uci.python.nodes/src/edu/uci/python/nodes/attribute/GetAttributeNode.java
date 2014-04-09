@@ -59,11 +59,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AttributeReadBoxedNode cache;
+        @Child protected AttributeReadBoxedNode attribute;
 
         public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AttributeReadBoxedNode cache) {
             super(context, attributeId, primary);
-            this.cache = cache;
+            this.attribute = cache;
         }
 
         @Override
@@ -72,7 +72,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getValue(frame, primaryObj);
+                return attribute.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
@@ -85,7 +85,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getIntValue(frame, primaryObj);
+                return attribute.getIntValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -98,7 +98,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getDoubleValue(frame, primaryObj);
+                return attribute.getDoubleValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -111,7 +111,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primary.execute(frame));
-                return cache.getBooleanValue(frame, primaryObj);
+                return attribute.getBooleanValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -132,7 +132,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         public Object execute(VirtualFrame frame) {
             try {
                 PythonObject primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
-                cache.getValue(frame, primaryObj);
+                attribute.getValue(frame, primaryObj);
                 cachedMethod.bind(primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -145,17 +145,17 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     public static class UnboxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AttributeReadUnboxedNode cache;
+        @Child protected AttributeReadUnboxedNode attribute;
 
         public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AttributeReadUnboxedNode cache) {
             super(context, attributeId, primary);
-            this.cache = cache;
+            this.attribute = cache;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                return cache.getValue(frame, primary.execute(frame));
+                return attribute.getValue(frame, primary.execute(frame));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
@@ -165,7 +165,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return cache.getIntValue(frame, primary.execute(frame));
+                return attribute.getIntValue(frame, primary.execute(frame));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -175,7 +175,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return cache.getDoubleValue(frame, primary.execute(frame));
+                return attribute.getDoubleValue(frame, primary.execute(frame));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -185,7 +185,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return cache.getBooleanValue(frame, execute(frame));
+                return attribute.getBooleanValue(frame, execute(frame));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -206,7 +206,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         public Object execute(VirtualFrame frame) {
             Object primaryObj = primary.execute(frame);
             try {
-                cache.getValue(frame, primaryObj);
+                attribute.getValue(frame, primaryObj);
                 cachedMethod.bind(context.boxAsPythonBuiltinObject(primaryObj));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();

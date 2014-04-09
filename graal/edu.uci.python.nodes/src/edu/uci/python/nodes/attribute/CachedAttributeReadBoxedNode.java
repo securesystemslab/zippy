@@ -125,7 +125,7 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(frame, storage));
     }
 
-    public static class CachedObjectAttributeNode extends CachedAttributeReadBoxedNode {
+    public static final class CachedObjectAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final ObjectStorageLocation objLocation;
 
@@ -160,7 +160,7 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
         }
     }
 
-    public static class CachedDoubleAttributeNode extends CachedAttributeReadBoxedNode {
+    public static final class CachedDoubleAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final FloatStorageLocation floatLocation;
 
@@ -180,7 +180,7 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
         }
     }
 
-    public static class CachedBooleanAttributeNode extends CachedAttributeReadBoxedNode {
+    public static final class CachedBooleanAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final IntStorageLocation intLocation;
 

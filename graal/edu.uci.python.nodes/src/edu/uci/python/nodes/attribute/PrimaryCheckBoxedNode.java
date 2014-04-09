@@ -34,33 +34,33 @@ public abstract class PrimaryCheckBoxedNode extends Node {
 
     public abstract boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
-    public static class ObjectLayoutCheckNode extends PrimaryCheckBoxedNode {
+    public static final class ObjectLayoutCheckNode extends PrimaryCheckBoxedNode {
 
         private final ObjectLayout cachedLayout;
-        private final Assumption unmodifiedAssumption;
+        private final Assumption stableAssumption;
 
         public ObjectLayoutCheckNode(PythonBasicObject pythonObj) {
             cachedLayout = pythonObj.getObjectLayout();
-            unmodifiedAssumption = pythonObj.getStableAssumption();
+            stableAssumption = pythonObj.getStableAssumption();
         }
 
         @Override
         public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            unmodifiedAssumption.check();
+            stableAssumption.check();
             return primaryObj.getObjectLayout() == cachedLayout;
         }
     }
 
-    public static class PythonClassCheckNode extends PrimaryCheckBoxedNode {
+    public static final class PythonClassCheckNode extends PrimaryCheckBoxedNode {
 
         private final PythonClass cachedClass;
-        private final Assumption classUnmodifiedAssumption;
-        private final Assumption objectUnmodifiedAssumption;
+        private final Assumption classStableAssumption;
+        private final Assumption objectStableAssumption;
 
         public PythonClassCheckNode(PythonClass superClass, Assumption classUnmodifiedAssumption, Assumption objectUnmodifiedAssumption) {
             this.cachedClass = superClass;
-            this.classUnmodifiedAssumption = classUnmodifiedAssumption;
-            this.objectUnmodifiedAssumption = objectUnmodifiedAssumption;
+            this.classStableAssumption = classUnmodifiedAssumption;
+            this.objectStableAssumption = objectUnmodifiedAssumption;
         }
 
         @Override
@@ -68,8 +68,8 @@ public abstract class PrimaryCheckBoxedNode extends Node {
             PythonObject pobj = (PythonObject) primaryObj;
 
             if (pobj.getPythonClass() == cachedClass) {
-                objectUnmodifiedAssumption.check();
-                classUnmodifiedAssumption.check();
+                objectStableAssumption.check();
+                classStableAssumption.check();
                 return true;
             }
 
@@ -77,13 +77,13 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
     }
 
-    public static class ClassChainCheckNode extends PrimaryCheckBoxedNode {
+    public static final class ClassChainCheckNode extends PrimaryCheckBoxedNode {
 
-        private final Assumption objectUnmodifiedAssumption;
+        private final Assumption objectStableAssumption;
         @Children private final ObjectLayoutCheckNode[] classChecks;
 
         public ClassChainCheckNode(PythonBasicObject primaryObj, int depth) {
-            this.objectUnmodifiedAssumption = primaryObj.getStableAssumption();
+            this.objectStableAssumption = primaryObj.getStableAssumption();
             ObjectLayoutCheckNode[] classCheckNodes = new ObjectLayoutCheckNode[depth];
             PythonClass current = primaryObj.getPythonClass();
 
@@ -97,7 +97,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
 
         @Override
         public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            objectUnmodifiedAssumption.check();
+            objectStableAssumption.check();
             PythonClass clazz = primaryObj.getPythonClass();
 
             for (ObjectLayoutCheckNode checkNode : classChecks) {
@@ -110,4 +110,5 @@ public abstract class PrimaryCheckBoxedNode extends Node {
             return true;
         }
     }
+
 }
