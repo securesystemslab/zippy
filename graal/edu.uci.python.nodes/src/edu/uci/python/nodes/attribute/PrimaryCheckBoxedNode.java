@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.attribute;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.object.*;
@@ -33,7 +32,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PrimaryCheckBoxedNode extends Node {
 
-    public abstract boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException;
+    public abstract boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
     public static class ObjectLayoutCheckNode extends PrimaryCheckBoxedNode {
 
@@ -46,7 +45,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             unmodifiedAssumption.check();
             return primaryObj.getObjectLayout() == cachedLayout;
         }
@@ -65,7 +64,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             PythonObject pobj = (PythonObject) primaryObj;
 
             if (pobj.getPythonClass() == cachedClass) {
@@ -97,12 +96,12 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             objectUnmodifiedAssumption.check();
             PythonClass clazz = primaryObj.getPythonClass();
 
             for (ObjectLayoutCheckNode checkNode : classChecks) {
-                if (!checkNode.accept(frame, clazz)) {
+                if (!checkNode.accept(clazz)) {
                     return false;
                 }
                 clazz = clazz.getSuperClass();

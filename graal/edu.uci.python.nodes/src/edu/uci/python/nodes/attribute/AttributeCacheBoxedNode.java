@@ -62,7 +62,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     @Override
     public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
-            if (primaryCheck.accept(frame, primaryObj)) {
+            if (primaryCheck.accept(primaryObj)) {
                 return getValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
@@ -75,7 +75,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     @Override
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
-            if (primaryCheck.accept(frame, primaryObj)) {
+            if (primaryCheck.accept(primaryObj)) {
                 return getIntValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
@@ -88,7 +88,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     @Override
     public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
-            if (primaryCheck.accept(frame, primaryObj)) {
+            if (primaryCheck.accept(primaryObj)) {
                 return getDoubleValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
@@ -101,7 +101,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     @Override
     public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
-            if (primaryCheck.accept(frame, primaryObj)) {
+            if (primaryCheck.accept(primaryObj)) {
                 return getBooleanValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {

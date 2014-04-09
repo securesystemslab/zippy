@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
@@ -32,7 +31,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PrimaryCheckUnboxedNode extends Node {
 
-    public abstract boolean accept(VirtualFrame frame, Object primaryObj);
+    public abstract boolean accept(Object primaryObj);
 
     /**
      * Checks if the unboxed primary object is still of the same type as the cached one.
@@ -50,7 +49,7 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, Object primaryObj) {
+        public boolean accept(Object primaryObj) {
             return primaryObj.getClass() == cachedClass;
         }
     }
@@ -64,7 +63,7 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, Object primaryObj) {
+        public boolean accept(Object primaryObj) {
             try {
                 PythonBuiltinObject builtinObj = (PythonBuiltinObject) primaryObj;
                 PythonBuiltinClass builtinClass = builtinObj.__class__();
