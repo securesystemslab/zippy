@@ -39,6 +39,24 @@ public class AttributeCacheTests {
     }
 
     @Test
+    public void bimorphicInObjectAttribute() {
+        Path script = Paths.get("getattribute-bimorphic-inobject-test.py");
+        assertPrints("42\n24\n42\n24\n", script);
+    }
+
+    @Test
+    public void bimorphicCachedClassAttribute() {
+        Path script = Paths.get("getattribute-bimorphic-cachedclass-test.py");
+        assertPrints("42\n24\n42\n24\n", script);
+    }
+
+    @Test
+    public void bimorphicInClassAttribute() {
+        Path script = Paths.get("getattribute-bimorphic-inclass-test.py");
+        assertPrints("42\n24\n42\n24\n", script);
+    }
+
+    @Test
     public void classChainChecks() {
         Path script = Paths.get("class-chain-check-test.py");
         assertPrints("do stuff\ndo stuff\n", script);

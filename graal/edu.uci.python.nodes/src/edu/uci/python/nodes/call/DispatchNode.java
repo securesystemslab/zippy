@@ -274,7 +274,7 @@ public abstract class DispatchNode extends Node {
             }
 
             DispatchNode specialized;
-            if (depth < PythonOptions.CallSiteInlineCacheMax) {
+            if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
                 try {
                     callee = calleeNode.executePythonCallable(frame);
