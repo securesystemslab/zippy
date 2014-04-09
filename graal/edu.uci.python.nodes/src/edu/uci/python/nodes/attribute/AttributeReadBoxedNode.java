@@ -33,12 +33,13 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class AttributeReadBoxedNode extends Node {
 
-    private final String attributeId;
+    protected final String attributeId;
 
     public AttributeReadBoxedNode(String attributeId) {
         this.attributeId = attributeId;
@@ -68,7 +69,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             }
 
             PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
+            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -84,7 +85,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
+                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -123,7 +124,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             check = new PrimaryCheckBoxedNode.ClassChainCheckNode(primaryObj, depth);
         }
 
-        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, current, getOwnValidLocation(current), next);
+        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), current, getOwnValidLocation(current), next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -149,9 +150,42 @@ public abstract class AttributeReadBoxedNode extends Node {
         @Override
         public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            return rewrite(primaryObj, this).getValue(frame, primaryObj);
+
+            Node current = this;
+            int depth = 0;
+            AttributeReadBoxedNode specialized;
+
+            if (current.getParent() == null) {
+                specialized = rewrite(primaryObj, this);
+                return specialized.getValue(frame, primaryObj);
+            }
+
+            while (current.getParent() instanceof AttributeReadBoxedNode) {
+                current = current.getParent();
+                depth++;
+            }
+
+            if (depth < PythonOptions.CallSiteInlineCacheMax) {
+                specialized = rewrite(primaryObj, this);
+            } else {
+                specialized = new GenericAttributeReadBoxedNode(attributeId);
+            }
+
+            return specialized.getValue(frame, primaryObj);
         }
 
+    }
+
+    public static final class GenericAttributeReadBoxedNode extends AttributeReadBoxedNode {
+
+        public GenericAttributeReadBoxedNode(String attributeId) {
+            super(attributeId);
+        }
+
+        @Override
+        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+            return primaryObj.getAttribute(attributeId);
+        }
     }
 
 }
