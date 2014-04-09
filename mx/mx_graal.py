@@ -1364,7 +1364,11 @@ def jmh(args):
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
         try:
-            jmhArgs.update(json.loads(j))
+            for n, v in json.loads(j).iteritems():
+                if v is None:
+                    del jmhArgs[n]
+                else:
+                    jmhArgs[n] = v
         except ValueError as e:
             mx.abort('error parsing JSON input: {}"\n{}'.format(j, e))
 
@@ -1431,7 +1435,8 @@ def jmh(args):
                     '--jvmArgs', ' '.join(["-" + vm] + forkedVmArgs)]
         for k, v in jmhArgs.iteritems():
             javaArgs.append(k)
-            javaArgs.append(str(v))
+            if len(str(v)):
+                javaArgs.append(str(v))
         mx.run_java(javaArgs + regex, addDefaultArgs=False, cwd=jmhPath)
 
 
