@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -80,16 +80,16 @@ public class GetAttributeCacheNodeTests {
 
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
-        AbstractUnboxedAttributeNode cache = NodeUtil.findFirstNodeInstance(getMethod, AbstractUnboxedAttributeNode.class);
-        assertTrue(cache instanceof UnboxedAttributeCacheNode.CachedObjectAttributeNode);
+        CachedAttributeReadUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
+        assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getMethod, AbstractUnboxedAttributeNode.class);
-        assertTrue(cache instanceof UnboxedAttributeCacheNode.CachedObjectAttributeNode);
+        cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
+        assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
 
         /**
          * test fall back.
@@ -158,16 +158,16 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
-        AbstractBoxedAttributeNode cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractBoxedAttributeNode.class);
-        assertTrue(cache instanceof BoxedAttributeCacheNode.CachedIntAttributeNode);
+        CachedAttributeReadBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
+        assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractBoxedAttributeNode.class);
-        assertTrue(cache instanceof BoxedAttributeCacheNode.CachedIntAttributeNode);
+        cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
+        assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
 
         /**
          * Test fall back

@@ -105,7 +105,7 @@ pythonTestBenchmarks = {
     'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
-    #'richards3'     : '5',
+    'richards3'     : '3',
     'bm-ai'         : '0',
     'pidigits'      : '0',
 }

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,7 +28,15 @@ import static edu.uci.python.test.PythonTests.*;
 
 import org.junit.*;
 
-public class BuiltinsTests {
+public class BuiltinFunctionTests {
+
+    @Test
+    public void builtinLookup() {
+        String source = "for i in range(5):\n" + //
+                        "    print(abs)\n";
+
+        assertPrints("<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n<built-in function abs>\n", source);
+    }
 
     @Test
     public void allTest() {
@@ -51,6 +59,14 @@ public class BuiltinsTests {
         "x = abs(1 + 2j)\n" + "print(x)\n";
 
         assertPrints("10\n10.25\n2.23606797749979\n", source);
+    }
+
+    @Test
+    public void absNegative() {
+        String source = "val = abs(-42)\n" + //
+                        "print(val)\n";
+
+        assertPrints("42\n", source);
     }
 
     @Test

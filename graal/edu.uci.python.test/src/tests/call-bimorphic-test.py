@@ -1,6 +1,5 @@
 # zwei 12/09/2013
 # bimorphic call to test attribute access inline caching
-import sys
 
 class Task:
 	def doStuff(self):
@@ -14,6 +13,8 @@ class TaskB(Task):
 	def doStuff(self):
 		print("do stuff B")
 
-tasks = [TaskA(), TaskB()]
-for t in tasks:
-	t.doStuff()
+def doCall(tasks):
+	for t in tasks:
+		t.doStuff()
+
+doCall([TaskA(), TaskB()])

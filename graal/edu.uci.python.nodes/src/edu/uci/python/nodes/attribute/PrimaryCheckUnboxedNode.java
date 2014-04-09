@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,23 +24,23 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class UnboxedCheckNode extends Node {
+public abstract class PrimaryCheckUnboxedNode extends Node {
 
-    public abstract boolean accept(VirtualFrame frame, Object primaryObj);
+    public abstract boolean accept(Object primaryObj);
 
     /**
      * Checks if the unboxed primary object is still of the same type as the cached one.
      * <p>
-     * The purpose of {@link UnboxedCheckNode} is to avoid boxing Java primitive types like int,
-     * boolean, double or String.
+     * The purpose of {@link PrimaryCheckUnboxedNode} is to avoid boxing Java primitive types like
+     * int, boolean, double or String.
+     *
      */
-    public static class PrimitiveCheckNode extends UnboxedCheckNode {
+    public static final class PrimitiveCheckNode extends PrimaryCheckUnboxedNode {
 
         protected final Class cachedClass;
 
@@ -49,12 +49,12 @@ public abstract class UnboxedCheckNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, Object primaryObj) {
+        public boolean accept(Object primaryObj) {
             return primaryObj.getClass() == cachedClass;
         }
     }
 
-    public static class BuiltinObjectCheckNode extends UnboxedCheckNode {
+    public static final class BuiltinObjectCheckNode extends PrimaryCheckUnboxedNode {
 
         private final PythonBuiltinClass cachedType;
 
@@ -63,7 +63,7 @@ public abstract class UnboxedCheckNode extends Node {
         }
 
         @Override
-        public boolean accept(VirtualFrame frame, Object primaryObj) {
+        public boolean accept(Object primaryObj) {
             try {
                 PythonBuiltinObject builtinObj = (PythonBuiltinObject) primaryObj;
                 PythonBuiltinClass builtinClass = builtinObj.__class__();

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -36,11 +36,11 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractBoxedAttributeNode extends Node {
+public abstract class AttributeReadBoxedNode extends Node {
 
     private final String attributeId;
 
-    public AbstractBoxedAttributeNode(String attributeId) {
+    public AttributeReadBoxedNode(String attributeId) {
         this.attributeId = attributeId;
     }
 
@@ -58,7 +58,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractBoxedAttributeNode rewrite(PythonBasicObject primaryObj) {
+    protected AttributeReadBoxedNode rewrite(PythonBasicObject primaryObj, AttributeReadBoxedNode next) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -67,8 +67,8 @@ public abstract class AbstractBoxedAttributeNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
-            AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+            PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
+            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -83,8 +83,8 @@ public abstract class AbstractBoxedAttributeNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                BoxedCheckNode check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
-                AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+                PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
+                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -114,16 +114,16 @@ public abstract class AbstractBoxedAttributeNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        BoxedCheckNode check;
+        PrimaryCheckBoxedNode check;
         if (depth == 0) {
-            check = new BoxedCheckNode.ObjectLayoutCheckNode(primaryObj);
+            check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
         } else if (depth == 1) {
-            check = new BoxedCheckNode.PythonClassCheckNode(current, assumptions.get(0), assumptions.get(1));
+            check = new PrimaryCheckBoxedNode.PythonClassCheckNode(current, assumptions.get(0), assumptions.get(1));
         } else {
-            check = new BoxedCheckNode.ClassChainCheckNode(current, depth);
+            check = new PrimaryCheckBoxedNode.ClassChainCheckNode(primaryObj, depth);
         }
 
-        AbstractBoxedAttributeNode newNode = BoxedAttributeCacheNode.create(attributeId, check, current, getOwnValidLocation(current));
+        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, current, getOwnValidLocation(current), next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -140,7 +140,7 @@ public abstract class AbstractBoxedAttributeNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractBoxedAttributeNode {
+    public static class UninitializedCachedAttributeNode extends AttributeReadBoxedNode {
 
         public UninitializedCachedAttributeNode(String attributeId) {
             super(attributeId);
@@ -148,8 +148,10 @@ public abstract class AbstractBoxedAttributeNode extends Node {
 
         @Override
         public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getValue(frame, primaryObj);
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            return rewrite(primaryObj, this).getValue(frame, primaryObj);
         }
+
     }
+
 }
