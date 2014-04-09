@@ -772,6 +772,12 @@ C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metasp
   return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
 C2V_END
 
+C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv *env, jobject))
+  // tty->time_stamp is the time since VM start which should be used
+  // for all HotSpot log output when a timestamp is required.
+  return tty->time_stamp().milliseconds();
+C2V_END
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -842,6 +848,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
   {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
   {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
+  {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
 };
 
 int CompilerToVM_methods_count() {
