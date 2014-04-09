@@ -56,7 +56,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     @Override
     public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
-            return read.getValueUnsafe(frame, cachedStorage);
+            return read.getValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
         }
@@ -65,7 +65,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     @Override
     public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
-            return read.getIntValueUnsafe(frame, cachedStorage);
+            return read.getIntValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
         }
@@ -74,7 +74,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     @Override
     public double getDoubleValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
-            return read.getDoubleValueUnsafe(frame, cachedStorage);
+            return read.getDoubleValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
         }
@@ -83,7 +83,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     @Override
     public boolean getBooleanValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
-            return read.getBooleanValueUnsafe(frame, cachedStorage);
+            return read.getBooleanValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
         }

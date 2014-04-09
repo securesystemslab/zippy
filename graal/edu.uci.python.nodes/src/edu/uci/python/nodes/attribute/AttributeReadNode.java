@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
@@ -47,18 +46,18 @@ public abstract class AttributeReadNode extends Node {
         throw new IllegalStateException();
     }
 
-    public abstract Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage);
+    public abstract Object getValueUnsafe(PythonBasicObject storage);
 
-    public int getIntValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectInteger(getValueUnsafe(frame, storage));
+    public int getIntValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectInteger(getValueUnsafe(storage));
     }
 
-    public double getDoubleValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectDouble(getValueUnsafe(frame, storage));
+    public double getDoubleValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectDouble(getValueUnsafe(storage));
     }
 
-    public boolean getBooleanValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(frame, storage));
+    public boolean getBooleanValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(storage));
     }
 
     public static final class ReadObjectAttributeNode extends AttributeReadNode {
@@ -70,7 +69,7 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonBasicObject storage) {
             return objLocation.read(storage);
         }
     }
@@ -84,12 +83,12 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonBasicObject storage) {
             return intLocation.read(storage);
         }
 
         @Override
-        public int getIntValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
+        public int getIntValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
             return intLocation.readInt(storage);
         }
     }
@@ -103,12 +102,12 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonBasicObject storage) {
             return floatLocation.read(storage);
         }
 
         @Override
-        public double getDoubleValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
+        public double getDoubleValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
             return floatLocation.readDouble(storage);
         }
     }
@@ -122,7 +121,7 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonBasicObject storage) {
             try {
                 return intLocation.readBoolean(storage);
             } catch (UnexpectedResultException e) {
@@ -131,7 +130,7 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public boolean getBooleanValueUnsafe(VirtualFrame frame, PythonBasicObject storage) throws UnexpectedResultException {
+        public boolean getBooleanValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
             return intLocation.readBoolean(storage);
         }
     }

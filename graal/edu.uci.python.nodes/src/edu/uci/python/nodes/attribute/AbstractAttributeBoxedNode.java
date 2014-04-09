@@ -66,7 +66,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), 0, next);
+            AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -79,7 +79,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), 0, next);
+                AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -107,7 +107,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), current, getOwnValidLocation(current), depth, next);
+        AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, getOwnValidLocation(current), depth, next);
         checkAndReplace(newNode);
         return newNode;
     }

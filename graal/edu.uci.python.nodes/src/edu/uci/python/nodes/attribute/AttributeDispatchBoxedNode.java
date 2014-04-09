@@ -31,97 +31,185 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class AttributeDispatchBoxedNode extends AbstractAttributeBoxedNode {
+public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedNode {
 
     @Child protected PrimaryCheckBoxedNode primaryCheck;
     @Child protected AttributeReadNode read;
     @Child protected AbstractAttributeBoxedNode next;
 
-    private final PythonClass primaryType;
-    private final PythonBasicObject cachedStorage;
-
-    public AttributeDispatchBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonClass primaryType, PythonBasicObject storage, AbstractAttributeBoxedNode next) {
+    public AttributeDispatchBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, AbstractAttributeBoxedNode next) {
         super(attributeId);
         this.primaryCheck = checkNode;
         this.read = read;
         this.next = next;
-        this.primaryType = primaryType;
-        this.cachedStorage = storage;
     }
 
-    public static AttributeDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonClass primaryType, PythonBasicObject storageCache, StorageLocation location, int depth,
-                    AbstractAttributeBoxedNode next) {
+    public static AttributeDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonBasicObject storage, StorageLocation location, int depth, AbstractAttributeBoxedNode next) {
         PrimaryCheckBoxedNode check = PrimaryCheckBoxedNode.create(primaryObj, depth);
         AttributeReadNode read = AttributeReadNode.create(location);
-        return new AttributeDispatchBoxedNode(attributeId, check, read, primaryType, storageCache, next);
+
+        if (primaryObj instanceof PythonObject && !(primaryObj instanceof PythonClass)) {
+            if (depth == 0) {
+                assert primaryObj == storage;
+                return new InObjectAttributeDispatchNode(attributeId, check, read, primaryObj.getPythonClass(), next);
+            } else {
+                return new CachedObjectAttributeDispatchNode(attributeId, check, read, primaryObj.getPythonClass(), storage, next);
+            }
+        } else if (primaryObj instanceof PythonClass || primaryObj instanceof PythonModule) {
+            return new CachedClassAttributeDispatchNode(attributeId, check, read, primaryObj, storage, next);
+        }
+
+        throw new IllegalStateException();
     }
 
     public AttributeReadNode extractReadNode() {
         return read;
     }
 
-    private PythonBasicObject getStorage(PythonBasicObject primaryObj) {
-        return cachedStorage == null ? primaryObj : cachedStorage;
-    }
+    abstract boolean dispatchGuard(PythonBasicObject primaryObj);
+
+    abstract PythonBasicObject getStorage(PythonBasicObject primaryObj);
 
     @Override
     public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (primaryType == primaryObj.getPythonClass()) {
+        if (dispatchGuard(primaryObj)) {
             try {
                 if (primaryCheck.accept(primaryObj)) {
-                    return read.getValueUnsafe(frame, getStorage(primaryObj));
+                    return read.getValueUnsafe(getStorage(primaryObj));
                 }
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                rewrite(primaryObj, next).getValue(frame, primaryObj);
+                return rewrite(primaryObj, next).getValue(frame, primaryObj);
             }
         }
+
         return next.getValue(frame, primaryObj);
     }
 
     @Override
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (primaryType == primaryObj.getPythonClass()) {
+        if (dispatchGuard(primaryObj)) {
             try {
                 if (primaryCheck.accept(primaryObj)) {
-                    return read.getIntValueUnsafe(frame, getStorage(primaryObj));
+                    return read.getIntValueUnsafe(getStorage(primaryObj));
                 }
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                rewrite(primaryObj, next).getIntValue(frame, primaryObj);
+                return rewrite(primaryObj, next).getIntValue(frame, primaryObj);
             }
         }
+
         return next.getIntValue(frame, primaryObj);
     }
 
     @Override
     public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (primaryType == primaryObj.getPythonClass()) {
+        if (dispatchGuard(primaryObj)) {
             try {
                 if (primaryCheck.accept(primaryObj)) {
-                    return read.getDoubleValueUnsafe(frame, getStorage(primaryObj));
+                    return read.getDoubleValueUnsafe(getStorage(primaryObj));
                 }
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
+                return rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
             }
         }
+
         return next.getDoubleValue(frame, primaryObj);
     }
 
     @Override
     public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (primaryType == primaryObj.getPythonClass()) {
+        if (dispatchGuard(primaryObj)) {
             try {
                 if (primaryCheck.accept(primaryObj)) {
-                    return read.getBooleanValueUnsafe(frame, getStorage(primaryObj));
+                    return read.getBooleanValueUnsafe(getStorage(primaryObj));
                 }
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);
+                return rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);
             }
         }
+
         return next.getBooleanValue(frame, primaryObj);
+    }
+
+    /**
+     * Primary is an object, attribute is in the object.
+     *
+     */
+    public static final class InObjectAttributeDispatchNode extends AttributeDispatchBoxedNode {
+
+        private final PythonClass cachedClass;
+
+        public InObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonClass cachedClass, AbstractAttributeBoxedNode next) {
+            super(attributeId, checkNode, read, next);
+            this.cachedClass = cachedClass;
+        }
+
+        @Override
+        boolean dispatchGuard(PythonBasicObject primaryObj) {
+            return cachedClass == primaryObj.getPythonClass();
+        }
+
+        @Override
+        PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+            return primaryObj;
+        }
+    }
+
+    /**
+     * Primary is an object, attribute is in its class or the super classes.
+     *
+     */
+    public static final class CachedObjectAttributeDispatchNode extends AttributeDispatchBoxedNode {
+
+        private final PythonClass cachedClass;
+        private final PythonBasicObject cachedStorage;
+
+        public CachedObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
+                        AbstractAttributeBoxedNode next) {
+            super(attributeId, checkNode, read, next);
+            this.cachedClass = primaryObj.getPythonClass();
+            this.cachedStorage = storage;
+        }
+
+        @Override
+        boolean dispatchGuard(PythonBasicObject primaryObj) {
+            return cachedClass == primaryObj.getPythonClass();
+        }
+
+        @Override
+        PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+            return cachedStorage;
+        }
+
+    }
+
+    /**
+     * Primary is a class or a module, attribute is in the primary or one node in its lookup chain.
+     */
+    public static final class CachedClassAttributeDispatchNode extends AttributeDispatchBoxedNode {
+
+        private final PythonBasicObject cachedType;
+        private final PythonBasicObject cachedStorage;
+
+        public CachedClassAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
+                        AbstractAttributeBoxedNode next) {
+            super(attributeId, checkNode, read, next);
+            this.cachedType = primaryObj.getPythonClass();
+            this.cachedStorage = storage;
+        }
+
+        @Override
+        boolean dispatchGuard(PythonBasicObject primaryObj) {
+            return cachedType == primaryObj;
+        }
+
+        @Override
+        PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+            return cachedStorage;
+        }
     }
 
 }
