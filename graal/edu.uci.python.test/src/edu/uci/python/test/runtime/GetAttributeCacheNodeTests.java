@@ -80,16 +80,16 @@ public class GetAttributeCacheNodeTests {
 
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
-        CachedAttributeReadUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
-        assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
+        AttributeDispatchUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
+        assertTrue(cache instanceof AttributeDispatchUnboxedNode.CachedObjectAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
-        assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
+        cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
+        assertTrue(cache instanceof AttributeDispatchUnboxedNode.CachedObjectAttributeNode);
 
         /**
          * test fall back.
@@ -158,16 +158,16 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
-        CachedAttributeReadBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
-        assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
+        AttributeDispatchBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, AttributeDispatchBoxedNode.class);
+        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadIntAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
-        assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
+        cache = NodeUtil.findFirstNodeInstance(getAttr, AttributeDispatchBoxedNode.class);
+        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadIntAttributeNode);
 
         /**
          * Test fall back

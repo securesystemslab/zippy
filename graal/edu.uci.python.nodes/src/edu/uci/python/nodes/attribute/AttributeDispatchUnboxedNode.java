@@ -31,28 +31,28 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
-public abstract class CachedAttributeReadUnboxedNode extends AttributeReadUnboxedNode {
+public abstract class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
 
     @Child protected PrimaryCheckUnboxedNode primaryCheck;
     private final PythonBasicObject cachedStorage;
 
-    public CachedAttributeReadUnboxedNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage) {
+    public AttributeDispatchUnboxedNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage) {
         super(context, attributeId);
         this.primaryCheck = checkNode;
         this.cachedStorage = storage;
     }
 
-    public static AttributeReadUnboxedNode createUninitialized(PythonContext context, String attributeId) {
-        return new AttributeReadUnboxedNode.UninitializedCachedAttributeNode(context, attributeId);
+    public static AbstractAttributeUnboxedNode createUninitialized(PythonContext context, String attributeId) {
+        return new AbstractAttributeUnboxedNode.UninitializedCachedAttributeNode(context, attributeId);
     }
 
-    public static CachedAttributeReadUnboxedNode create(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, StorageLocation location) {
+    public static AttributeDispatchUnboxedNode create(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, StorageLocation location) {
         if (location instanceof IntStorageLocation) {
-            return new CachedAttributeReadUnboxedNode.CachedIntAttributeNode(context, attributeId, checkNode, storage, (IntStorageLocation) location);
+            return new AttributeDispatchUnboxedNode.CachedIntAttributeNode(context, attributeId, checkNode, storage, (IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
-            return new CachedAttributeReadUnboxedNode.CachedDoubleAttributeNode(context, attributeId, checkNode, storage, (FloatStorageLocation) location);
+            return new AttributeDispatchUnboxedNode.CachedDoubleAttributeNode(context, attributeId, checkNode, storage, (FloatStorageLocation) location);
         } else {
-            return new CachedAttributeReadUnboxedNode.CachedObjectAttributeNode(context, attributeId, checkNode, storage, (ObjectStorageLocation) location);
+            return new AttributeDispatchUnboxedNode.CachedObjectAttributeNode(context, attributeId, checkNode, storage, (ObjectStorageLocation) location);
         }
     }
 
@@ -105,7 +105,7 @@ public abstract class CachedAttributeReadUnboxedNode extends AttributeReadUnboxe
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(frame, storage));
     }
 
-    public static final class CachedObjectAttributeNode extends CachedAttributeReadUnboxedNode {
+    public static final class CachedObjectAttributeNode extends AttributeDispatchUnboxedNode {
 
         private final ObjectStorageLocation objLocation;
 
@@ -120,7 +120,7 @@ public abstract class CachedAttributeReadUnboxedNode extends AttributeReadUnboxe
         }
     }
 
-    public static final class CachedIntAttributeNode extends CachedAttributeReadUnboxedNode {
+    public static final class CachedIntAttributeNode extends AttributeDispatchUnboxedNode {
 
         private final IntStorageLocation intLocation;
 
@@ -140,7 +140,7 @@ public abstract class CachedAttributeReadUnboxedNode extends AttributeReadUnboxe
         }
     }
 
-    public static final class CachedDoubleAttributeNode extends CachedAttributeReadUnboxedNode {
+    public static final class CachedDoubleAttributeNode extends AttributeDispatchUnboxedNode {
 
         private final FloatStorageLocation floatLocation;
 
@@ -160,7 +160,7 @@ public abstract class CachedAttributeReadUnboxedNode extends AttributeReadUnboxe
         }
     }
 
-    public static final class CachedBooleanAttributeNode extends CachedAttributeReadUnboxedNode {
+    public static final class CachedBooleanAttributeNode extends AttributeDispatchUnboxedNode {
 
         private final IntStorageLocation intLocation;
 
