@@ -99,8 +99,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         @Override
         public boolean accept(VirtualFrame frame, PythonBasicObject primaryObj) throws InvalidAssumptionException {
             objectUnmodifiedAssumption.check();
-            PythonObject pobj = (PythonObject) primaryObj;
-            PythonClass clazz = pobj.getPythonClass();
+            PythonClass clazz = primaryObj.getPythonClass();
 
             for (ObjectLayoutCheckNode checkNode : classChecks) {
                 if (!checkNode.accept(frame, clazz)) {

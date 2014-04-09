@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -45,21 +45,25 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
         return new AbstractAttributeCacheBoxedNode.UninitializedCachedAttributeNode(attributeId);
     }
 
-    public static AttributeCacheBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, StorageLocation location) {
+    public static AttributeCacheBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storageCache, StorageLocation location) {
         if (location instanceof IntStorageLocation) {
-            return new AttributeCacheBoxedNode.CachedIntAttributeNode(attributeId, checkNode, storage, (IntStorageLocation) location);
+            return new AttributeCacheBoxedNode.CachedIntAttributeNode(attributeId, checkNode, storageCache, (IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
-            return new AttributeCacheBoxedNode.CachedDoubleAttributeNode(attributeId, checkNode, storage, (FloatStorageLocation) location);
+            return new AttributeCacheBoxedNode.CachedDoubleAttributeNode(attributeId, checkNode, storageCache, (FloatStorageLocation) location);
         } else {
-            return new AttributeCacheBoxedNode.CachedObjectAttributeNode(attributeId, checkNode, storage, (ObjectStorageLocation) location);
+            return new AttributeCacheBoxedNode.CachedObjectAttributeNode(attributeId, checkNode, storageCache, (ObjectStorageLocation) location);
         }
+    }
+
+    private PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+        return cachedStorage == null ? primaryObj : cachedStorage;
     }
 
     @Override
     public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
             if (primaryCheck.accept(frame, primaryObj)) {
-                return getValueUnsafe(frame, cachedStorage);
+                return getValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
             // fall through
@@ -72,7 +76,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
             if (primaryCheck.accept(frame, primaryObj)) {
-                return getIntValueUnsafe(frame, cachedStorage);
+                return getIntValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
             // fall through
@@ -85,7 +89,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
             if (primaryCheck.accept(frame, primaryObj)) {
-                return getDoubleValueUnsafe(frame, cachedStorage);
+                return getDoubleValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
             // fall through
@@ -98,7 +102,7 @@ public abstract class AttributeCacheBoxedNode extends AbstractAttributeCacheBoxe
     public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         try {
             if (primaryCheck.accept(frame, primaryObj)) {
-                return getBooleanValueUnsafe(frame, cachedStorage);
+                return getBooleanValueUnsafe(frame, getStorage(primaryObj));
             }
         } catch (InvalidAssumptionException iae) {
             // fall through

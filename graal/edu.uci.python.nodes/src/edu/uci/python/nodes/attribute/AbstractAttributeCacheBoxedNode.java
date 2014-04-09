@@ -68,7 +68,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
             }
 
             PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-            AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+            AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
             checkAndReplace(newNode);
             return newNode;
         }
@@ -84,7 +84,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-                AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, primaryObj, getOwnValidLocation(primaryObj));
+                AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
                 checkAndReplace(newNode);
                 return newNode;
             }
