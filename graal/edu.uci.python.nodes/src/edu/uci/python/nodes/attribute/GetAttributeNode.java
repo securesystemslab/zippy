@@ -119,32 +119,33 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         }
     }
 
+    /**
+     * Do not cache {@link PMethod} in {@link GetAttributeNode}.
+     *
+     */
     public static class BoxedGetMethodNode extends BoxedGetAttributeNode {
 
-        private final PMethod cachedMethod;
-
-        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AttributeReadBoxedNode cache, PMethod cachedMethod) {
+        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AttributeReadBoxedNode cache) {
             super(context, attributeId, primary, cache);
-            this.cachedMethod = cachedMethod;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             PythonObject primaryObj;
-            PFunction function;
+            Object obj;
             try {
                 primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
-                function = (PFunction) attribute.getValue(frame, primaryObj);
+                obj = attribute.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
             }
 
-            if (function == cachedMethod.__func__()) {
-                cachedMethod.bind(primaryObj);
-                return cachedMethod;
+            if (obj instanceof PFunction) {
+                return CallAttributeNode.createPMethodFor(primaryObj, (PFunction) obj);
             } else {
-                return CallAttributeNode.createPMethodFor(primaryObj, function);
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                return bootstrapBoxedOrUnboxed(frame, primaryObj, this);
             }
         }
     }
@@ -252,7 +253,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         if (value instanceof PFunction && !(primaryObj instanceof PythonClass) && !(primaryObj instanceof PythonModule)) {
             value = CallAttributeNode.createPMethodFor((PythonObject) primaryObj, (PFunction) value);
-            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode, (PMethod) value));
+            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode));
         } else {
             current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));
         }
