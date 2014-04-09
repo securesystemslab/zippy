@@ -36,11 +36,11 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractAttributeCacheBoxedNode extends Node {
+public abstract class AttributeReadBoxedNode extends Node {
 
     private final String attributeId;
 
-    public AbstractAttributeCacheBoxedNode(String attributeId) {
+    public AttributeReadBoxedNode(String attributeId) {
         this.attributeId = attributeId;
     }
 
@@ -58,7 +58,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractAttributeCacheBoxedNode rewrite(PythonBasicObject primaryObj) {
+    protected AttributeReadBoxedNode rewrite(PythonBasicObject primaryObj) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -68,7 +68,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
             }
 
             PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-            AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
+            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
             checkAndReplace(newNode);
             return newNode;
         }
@@ -84,7 +84,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-                AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
+                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -123,7 +123,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
             check = new PrimaryCheckBoxedNode.ClassChainCheckNode(primaryObj, depth);
         }
 
-        AbstractAttributeCacheBoxedNode newNode = AttributeCacheBoxedNode.create(attributeId, check, current, getOwnValidLocation(current));
+        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, current, getOwnValidLocation(current));
         checkAndReplace(newNode);
         return newNode;
     }
@@ -140,7 +140,7 @@ public abstract class AbstractAttributeCacheBoxedNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractAttributeCacheBoxedNode {
+    public static class UninitializedCachedAttributeNode extends AttributeReadBoxedNode {
 
         public UninitializedCachedAttributeNode(String attributeId) {
             super(attributeId);

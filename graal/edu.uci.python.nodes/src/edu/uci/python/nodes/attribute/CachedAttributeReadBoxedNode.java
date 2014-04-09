@@ -28,67 +28,87 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
-public abstract class AttributeCacheUnboxedNode extends AbstractAttributeCacheUnboxedNode {
+public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNode {
 
-    @Child protected PrimaryCheckUnboxedNode primaryCheck;
+    @Child protected PrimaryCheckBoxedNode primaryCheck;
     private final PythonBasicObject cachedStorage;
 
-    public AttributeCacheUnboxedNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage) {
-        super(context, attributeId);
+    public CachedAttributeReadBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage) {
+        super(attributeId);
         this.primaryCheck = checkNode;
         this.cachedStorage = storage;
     }
 
-    public static AbstractAttributeCacheUnboxedNode createUninitialized(PythonContext context, String attributeId) {
-        return new AbstractAttributeCacheUnboxedNode.UninitializedCachedAttributeNode(context, attributeId);
+    public static AttributeReadBoxedNode createUninitialized(String attributeId) {
+        return new AttributeReadBoxedNode.UninitializedCachedAttributeNode(attributeId);
     }
 
-    public static AttributeCacheUnboxedNode create(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, StorageLocation location) {
+    public static CachedAttributeReadBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storageCache, StorageLocation location) {
         if (location instanceof IntStorageLocation) {
-            return new AttributeCacheUnboxedNode.CachedIntAttributeNode(context, attributeId, checkNode, storage, (IntStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedIntAttributeNode(attributeId, checkNode, storageCache, (IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
-            return new AttributeCacheUnboxedNode.CachedDoubleAttributeNode(context, attributeId, checkNode, storage, (FloatStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedDoubleAttributeNode(attributeId, checkNode, storageCache, (FloatStorageLocation) location);
         } else {
-            return new AttributeCacheUnboxedNode.CachedObjectAttributeNode(context, attributeId, checkNode, storage, (ObjectStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedObjectAttributeNode(attributeId, checkNode, storageCache, (ObjectStorageLocation) location);
         }
+    }
+
+    private PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+        return cachedStorage == null ? primaryObj : cachedStorage;
     }
 
     @Override
-    public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
-            return getValueUnsafe(frame, cachedStorage);
-        } else {
-            throw new UnexpectedResultException(primaryObj);
+    public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        try {
+            if (primaryCheck.accept(primaryObj)) {
+                return getValueUnsafe(frame, getStorage(primaryObj));
+            }
+        } catch (InvalidAssumptionException iae) {
+            // fall through
         }
+
+        throw new UnexpectedResultException(primaryObj);
     }
 
     @Override
-    public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
-            return getIntValueUnsafe(frame, cachedStorage);
-        } else {
-            throw new UnexpectedResultException(primaryObj);
+    public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        try {
+            if (primaryCheck.accept(primaryObj)) {
+                return getIntValueUnsafe(frame, getStorage(primaryObj));
+            }
+        } catch (InvalidAssumptionException iae) {
+            // fall through
         }
-    }
 
-    public double getDoulbeValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
-            return getDoubleValueUnsafe(frame, cachedStorage);
-        } else {
-            throw new UnexpectedResultException(primaryObj);
-        }
+        throw new UnexpectedResultException(primaryObj);
     }
 
     @Override
-    public boolean getBooleanValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
-            return getBooleanValueUnsafe(frame, cachedStorage);
-        } else {
-            throw new UnexpectedResultException(primaryObj);
+    public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        try {
+            if (primaryCheck.accept(primaryObj)) {
+                return getDoubleValueUnsafe(frame, getStorage(primaryObj));
+            }
+        } catch (InvalidAssumptionException iae) {
+            // fall through
         }
+
+        throw new UnexpectedResultException(primaryObj);
+    }
+
+    @Override
+    public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        try {
+            if (primaryCheck.accept(primaryObj)) {
+                return getBooleanValueUnsafe(frame, getStorage(primaryObj));
+            }
+        } catch (InvalidAssumptionException iae) {
+            // fall through
+        }
+
+        throw new UnexpectedResultException(primaryObj);
     }
 
     public abstract Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage);
@@ -105,27 +125,27 @@ public abstract class AttributeCacheUnboxedNode extends AbstractAttributeCacheUn
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(frame, storage));
     }
 
-    public static class CachedObjectAttributeNode extends AttributeCacheUnboxedNode {
+    public static class CachedObjectAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final ObjectStorageLocation objLocation;
 
-        public CachedObjectAttributeNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, ObjectStorageLocation objLocation) {
-            super(context, attributeId, checkNode, storage);
+        public CachedObjectAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, ObjectStorageLocation objLocation) {
+            super(attributeId, checkNode, storage);
             this.objLocation = objLocation;
         }
 
         @Override
-        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject primaryObj) {
-            return objLocation.read(primaryObj);
+        public Object getValueUnsafe(VirtualFrame frame, PythonBasicObject storage) {
+            return objLocation.read(storage);
         }
     }
 
-    public static class CachedIntAttributeNode extends AttributeCacheUnboxedNode {
+    public static class CachedIntAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final IntStorageLocation intLocation;
 
-        public CachedIntAttributeNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
-            super(context, attributeId, checkNode, storage);
+        public CachedIntAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
+            super(attributeId, checkNode, storage);
             this.intLocation = intLocation;
         }
 
@@ -140,12 +160,12 @@ public abstract class AttributeCacheUnboxedNode extends AbstractAttributeCacheUn
         }
     }
 
-    public static class CachedDoubleAttributeNode extends AttributeCacheUnboxedNode {
+    public static class CachedDoubleAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final FloatStorageLocation floatLocation;
 
-        public CachedDoubleAttributeNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, FloatStorageLocation floatLocation) {
-            super(context, attributeId, checkNode, storage);
+        public CachedDoubleAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, FloatStorageLocation floatLocation) {
+            super(attributeId, checkNode, storage);
             this.floatLocation = floatLocation;
         }
 
@@ -160,12 +180,12 @@ public abstract class AttributeCacheUnboxedNode extends AbstractAttributeCacheUn
         }
     }
 
-    public static class CachedBooleanAttributeNode extends AttributeCacheUnboxedNode {
+    public static class CachedBooleanAttributeNode extends CachedAttributeReadBoxedNode {
 
         private final IntStorageLocation intLocation;
 
-        public CachedBooleanAttributeNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
-            super(context, attributeId, checkNode, storage);
+        public CachedBooleanAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
+            super(attributeId, checkNode, storage);
             this.intLocation = intLocation;
         }
 
@@ -183,4 +203,5 @@ public abstract class AttributeCacheUnboxedNode extends AbstractAttributeCacheUn
             return intLocation.readBoolean(storage);
         }
     }
+
 }

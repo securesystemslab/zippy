@@ -35,12 +35,12 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractAttributeCacheUnboxedNode extends Node {
+public abstract class AttributeReadUnboxedNode extends Node {
 
     private final PythonContext context;
     private final String attributeId;
 
-    public AbstractAttributeCacheUnboxedNode(PythonContext context, String attributeId) {
+    public AttributeReadUnboxedNode(PythonContext context, String attributeId) {
         this.context = context;
         this.attributeId = attributeId;
     }
@@ -59,7 +59,7 @@ public abstract class AbstractAttributeCacheUnboxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractAttributeCacheUnboxedNode rewrite(Object primaryObj) {
+    protected AttributeReadUnboxedNode rewrite(Object primaryObj) {
         PythonBuiltinObject pbObj = null;
 
         try {
@@ -90,7 +90,7 @@ public abstract class AbstractAttributeCacheUnboxedNode extends Node {
             check = new PrimaryCheckUnboxedNode.PrimitiveCheckNode(primaryObj);
         }
 
-        AttributeCacheUnboxedNode newNode = AttributeCacheUnboxedNode.create(context, attributeId, check, current, getOwnValidLocation(current));
+        CachedAttributeReadUnboxedNode newNode = CachedAttributeReadUnboxedNode.create(context, attributeId, check, current, getOwnValidLocation(current));
 
         if (this.getParent() != null) {
             replace(newNode);
@@ -105,7 +105,7 @@ public abstract class AbstractAttributeCacheUnboxedNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractAttributeCacheUnboxedNode {
+    public static class UninitializedCachedAttributeNode extends AttributeReadUnboxedNode {
 
         public UninitializedCachedAttributeNode(PythonContext context, String attributeId) {
             super(context, attributeId);

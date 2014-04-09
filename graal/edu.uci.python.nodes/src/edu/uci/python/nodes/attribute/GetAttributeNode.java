@@ -59,9 +59,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AbstractAttributeCacheBoxedNode cache;
+        @Child protected AttributeReadBoxedNode cache;
 
-        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractAttributeCacheBoxedNode cache) {
+        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AttributeReadBoxedNode cache) {
             super(context, attributeId, primary);
             this.cache = cache;
         }
@@ -123,7 +123,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         private final PMethod cachedMethod;
 
-        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractAttributeCacheBoxedNode cache, PMethod cachedMethod) {
+        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AttributeReadBoxedNode cache, PMethod cachedMethod) {
             super(context, attributeId, primary, cache);
             this.cachedMethod = cachedMethod;
         }
@@ -145,9 +145,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     public static class UnboxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AbstractAttributeCacheUnboxedNode cache;
+        @Child protected AttributeReadUnboxedNode cache;
 
-        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractAttributeCacheUnboxedNode cache) {
+        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AttributeReadUnboxedNode cache) {
             super(context, attributeId, primary);
             this.cache = cache;
         }
@@ -197,7 +197,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         private final PBuiltinMethod cachedMethod;
 
-        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractAttributeCacheUnboxedNode cache, PBuiltinMethod cachedMethod) {
+        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AttributeReadUnboxedNode cache, PBuiltinMethod cachedMethod) {
             super(context, attributeId, primary, cache);
             this.cachedMethod = cachedMethod;
         }
@@ -234,7 +234,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
     }
 
     protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
-        AbstractAttributeCacheBoxedNode cacheNode = new AbstractAttributeCacheBoxedNode.UninitializedCachedAttributeNode(current.attributeId).rewrite(primaryObj);
+        AttributeReadBoxedNode cacheNode = new AttributeReadBoxedNode.UninitializedCachedAttributeNode(current.attributeId).rewrite(primaryObj);
         Object value;
 
         try {
@@ -254,7 +254,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
     }
 
     protected Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
-        AbstractAttributeCacheUnboxedNode cacheNode = new AbstractAttributeCacheUnboxedNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(primaryObj);
+        AttributeReadUnboxedNode cacheNode = new AttributeReadUnboxedNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(primaryObj);
         Object value = null;
 
         try {
