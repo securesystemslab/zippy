@@ -51,9 +51,9 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
         if (primaryObj instanceof PythonObject && !(primaryObj instanceof PythonClass)) {
             if (depth == 0) {
                 assert primaryObj == storage;
-                return new InObjectAttributeDispatchNode(attributeId, check, read, primaryObj.getPythonClass(), next);
+                return new InObjectAttributeDispatchNode(attributeId, check, read, primaryObj, next);
             } else {
-                return new CachedObjectAttributeDispatchNode(attributeId, check, read, primaryObj.getPythonClass(), storage, next);
+                return new CachedObjectAttributeDispatchNode(attributeId, check, read, primaryObj, storage, next);
             }
         } else if (primaryObj instanceof PythonClass || primaryObj instanceof PythonModule) {
             return new CachedClassAttributeDispatchNode(attributeId, check, read, primaryObj, storage, next);
@@ -142,9 +142,9 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
 
         private final PythonClass cachedClass;
 
-        public InObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonClass cachedClass, AbstractAttributeBoxedNode next) {
+        public InObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, AbstractAttributeBoxedNode next) {
             super(attributeId, checkNode, read, next);
-            this.cachedClass = cachedClass;
+            this.cachedClass = primaryObj.getPythonClass();
         }
 
         @Override
@@ -197,8 +197,9 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
         public CachedClassAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
                         AbstractAttributeBoxedNode next) {
             super(attributeId, checkNode, read, next);
-            this.cachedType = primaryObj.getPythonClass();
+            this.cachedType = primaryObj;
             this.cachedStorage = storage;
+            assert primaryObj instanceof PythonClass || primaryObj instanceof PythonModule;
         }
 
         @Override
