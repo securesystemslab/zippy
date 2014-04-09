@@ -69,7 +69,8 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
         }
     }
 
-    public double getDoulbeValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    @Override
+    public double getDoubleValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
             return read.getDoubleValueUnsafe(frame, cachedStorage);
         } else {

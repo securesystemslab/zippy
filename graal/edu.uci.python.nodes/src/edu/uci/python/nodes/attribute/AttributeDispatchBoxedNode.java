@@ -49,10 +49,11 @@ public class AttributeDispatchBoxedNode extends AbstractAttributeBoxedNode {
         this.cachedStorage = storage;
     }
 
-    public static AttributeDispatchBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonClass primaryType, PythonBasicObject storageCache, StorageLocation location,
+    public static AttributeDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonClass primaryType, PythonBasicObject storageCache, StorageLocation location, int depth,
                     AbstractAttributeBoxedNode next) {
+        PrimaryCheckBoxedNode check = PrimaryCheckBoxedNode.create(primaryObj, depth);
         AttributeReadNode read = AttributeReadNode.create(location);
-        return new AttributeDispatchBoxedNode(attributeId, checkNode, read, primaryType, storageCache, next);
+        return new AttributeDispatchBoxedNode(attributeId, check, read, primaryType, storageCache, next);
     }
 
     public AttributeReadNode extractReadNode() {
@@ -75,7 +76,6 @@ public class AttributeDispatchBoxedNode extends AbstractAttributeBoxedNode {
                 rewrite(primaryObj, next).getValue(frame, primaryObj);
             }
         }
-
         return next.getValue(frame, primaryObj);
     }
 

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import java.util.*;
-
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -68,24 +66,20 @@ public abstract class AbstractAttributeBoxedNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-            AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), next);
+            AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), 0, next);
             checkAndReplace(newNode);
             return newNode;
         }
 
         int depth = 0;
         PythonClass current = null;
-        List<Assumption> assumptions = new ArrayList<>();
         // Plain PythonObject
         if (!(primaryObj instanceof PythonClass)) {
             assert primaryObj instanceof PythonObject;
-            assumptions.add(primaryObj.getStableAssumption());
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-                AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), next);
+                AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), null, getOwnValidLocation(primaryObj), 0, next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -101,8 +95,6 @@ public abstract class AbstractAttributeBoxedNode extends Node {
 
         // class chain lookup
         do {
-            assumptions.add(current.getStableAssumption());
-
             if (current.isOwnAttribute(attributeId)) {
                 break;
             }
@@ -115,16 +107,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        PrimaryCheckBoxedNode check;
-        if (depth == 0) {
-            check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-        } else if (depth == 1) {
-            check = new PrimaryCheckBoxedNode.PythonClassCheckNode(current, assumptions.get(0), assumptions.get(1));
-        } else {
-            check = new PrimaryCheckBoxedNode.ClassChainCheckNode(primaryObj, depth);
-        }
-
-        AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, check, primaryObj.getPythonClass(), current, getOwnValidLocation(current), next);
+        AbstractAttributeBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj.getPythonClass(), current, getOwnValidLocation(current), depth, next);
         checkAndReplace(newNode);
         return newNode;
     }
