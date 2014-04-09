@@ -49,10 +49,6 @@ public class AttributeDispatchBoxedNode extends AbstractAttributeBoxedNode {
         this.cachedStorage = storage;
     }
 
-    public static AbstractAttributeBoxedNode createUninitialized(String attributeId) {
-        return new AbstractAttributeBoxedNode.UninitializedCachedAttributeNode(attributeId);
-    }
-
     public static AttributeDispatchBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonClass primaryType, PythonBasicObject storageCache, StorageLocation location,
                     AbstractAttributeBoxedNode next) {
         AttributeReadNode read = AttributeReadNode.create(location);

@@ -81,7 +81,7 @@ public class GetAttributeCacheNodeTests {
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
         AttributeDispatchUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
-        assertTrue(cache instanceof AttributeDispatchUnboxedNode.CachedObjectAttributeNode);
+        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadObjectAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
@@ -89,7 +89,7 @@ public class GetAttributeCacheNodeTests {
 
         // make sure cache node stay unchanged
         cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
-        assertTrue(cache instanceof AttributeDispatchUnboxedNode.CachedObjectAttributeNode);
+        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadObjectAttributeNode);
 
         /**
          * test fall back.
