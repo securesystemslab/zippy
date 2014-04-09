@@ -234,7 +234,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
     }
 
     protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
-        AttributeReadBoxedNode cacheNode = new AttributeReadBoxedNode.UninitializedCachedAttributeNode(current.attributeId).rewrite(primaryObj);
+        AttributeReadBoxedNode cacheNode = new AttributeReadBoxedNode.UninitializedCachedAttributeNode(current.attributeId).rewrite(primaryObj, null);
         Object value;
 
         try {

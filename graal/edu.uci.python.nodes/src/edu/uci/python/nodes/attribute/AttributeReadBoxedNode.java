@@ -58,7 +58,7 @@ public abstract class AttributeReadBoxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AttributeReadBoxedNode rewrite(PythonBasicObject primaryObj) {
+    protected AttributeReadBoxedNode rewrite(PythonBasicObject primaryObj, AttributeReadBoxedNode next) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -68,7 +68,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             }
 
             PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
+            AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -84,7 +84,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 PrimaryCheckBoxedNode check = new PrimaryCheckBoxedNode.ObjectLayoutCheckNode(primaryObj);
-                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj));
+                AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, null, getOwnValidLocation(primaryObj), next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -123,7 +123,7 @@ public abstract class AttributeReadBoxedNode extends Node {
             check = new PrimaryCheckBoxedNode.ClassChainCheckNode(primaryObj, depth);
         }
 
-        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, current, getOwnValidLocation(current));
+        AttributeReadBoxedNode newNode = CachedAttributeReadBoxedNode.create(attributeId, check, current, getOwnValidLocation(current), next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -148,8 +148,10 @@ public abstract class AttributeReadBoxedNode extends Node {
 
         @Override
         public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-            CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getValue(frame, primaryObj);
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            return rewrite(primaryObj, this).getValue(frame, primaryObj);
         }
+
     }
+
 }

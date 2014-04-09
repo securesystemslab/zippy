@@ -34,24 +34,26 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
 
     @Child protected PrimaryCheckBoxedNode primaryCheck;
     private final PythonBasicObject cachedStorage;
+    @Child protected AttributeReadBoxedNode next;
 
-    public CachedAttributeReadBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage) {
+    public CachedAttributeReadBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, AttributeReadBoxedNode next) {
         super(attributeId);
         this.primaryCheck = checkNode;
         this.cachedStorage = storage;
+        this.next = next;
     }
 
     public static AttributeReadBoxedNode createUninitialized(String attributeId) {
         return new AttributeReadBoxedNode.UninitializedCachedAttributeNode(attributeId);
     }
 
-    public static CachedAttributeReadBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storageCache, StorageLocation location) {
+    public static CachedAttributeReadBoxedNode create(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storageCache, StorageLocation location, AttributeReadBoxedNode next) {
         if (location instanceof IntStorageLocation) {
-            return new CachedAttributeReadBoxedNode.CachedIntAttributeNode(attributeId, checkNode, storageCache, (IntStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedIntAttributeNode(attributeId, checkNode, storageCache, (IntStorageLocation) location, next);
         } else if (location instanceof FloatStorageLocation) {
-            return new CachedAttributeReadBoxedNode.CachedDoubleAttributeNode(attributeId, checkNode, storageCache, (FloatStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedDoubleAttributeNode(attributeId, checkNode, storageCache, (FloatStorageLocation) location, next);
         } else {
-            return new CachedAttributeReadBoxedNode.CachedObjectAttributeNode(attributeId, checkNode, storageCache, (ObjectStorageLocation) location);
+            return new CachedAttributeReadBoxedNode.CachedObjectAttributeNode(attributeId, checkNode, storageCache, (ObjectStorageLocation) location, next);
         }
     }
 
@@ -129,8 +131,8 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
 
         private final ObjectStorageLocation objLocation;
 
-        public CachedObjectAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, ObjectStorageLocation objLocation) {
-            super(attributeId, checkNode, storage);
+        public CachedObjectAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, ObjectStorageLocation objLocation, AttributeReadBoxedNode next) {
+            super(attributeId, checkNode, storage, next);
             this.objLocation = objLocation;
         }
 
@@ -144,8 +146,8 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
 
         private final IntStorageLocation intLocation;
 
-        public CachedIntAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
-            super(attributeId, checkNode, storage);
+        public CachedIntAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation, AttributeReadBoxedNode next) {
+            super(attributeId, checkNode, storage, next);
             this.intLocation = intLocation;
         }
 
@@ -164,8 +166,8 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
 
         private final FloatStorageLocation floatLocation;
 
-        public CachedDoubleAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, FloatStorageLocation floatLocation) {
-            super(attributeId, checkNode, storage);
+        public CachedDoubleAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, FloatStorageLocation floatLocation, AttributeReadBoxedNode next) {
+            super(attributeId, checkNode, storage, next);
             this.floatLocation = floatLocation;
         }
 
@@ -184,8 +186,8 @@ public abstract class CachedAttributeReadBoxedNode extends AttributeReadBoxedNod
 
         private final IntStorageLocation intLocation;
 
-        public CachedBooleanAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation) {
-            super(attributeId, checkNode, storage);
+        public CachedBooleanAttributeNode(String attributeId, PrimaryCheckBoxedNode checkNode, PythonBasicObject storage, IntStorageLocation intLocation, AttributeReadBoxedNode next) {
+            super(attributeId, checkNode, storage, next);
             this.intLocation = intLocation;
         }
 

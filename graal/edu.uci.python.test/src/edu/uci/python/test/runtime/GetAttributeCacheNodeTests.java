@@ -80,7 +80,7 @@ public class GetAttributeCacheNodeTests {
 
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
-        AbstractAttributeCacheUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, AbstractAttributeCacheUnboxedNode.class);
+        CachedAttributeReadUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
         assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
 
         // 3rd execute
@@ -88,7 +88,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getMethod, AbstractAttributeCacheUnboxedNode.class);
+        cache = NodeUtil.findFirstNodeInstance(getMethod, CachedAttributeReadUnboxedNode.class);
         assertTrue(cache instanceof CachedAttributeReadUnboxedNode.CachedObjectAttributeNode);
 
         /**
@@ -158,7 +158,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
-        AbstractAttributeCacheBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractAttributeCacheBoxedNode.class);
+        CachedAttributeReadBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
         assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
 
         // 3rd execute
@@ -166,7 +166,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getAttr, AbstractAttributeCacheBoxedNode.class);
+        cache = NodeUtil.findFirstNodeInstance(getAttr, CachedAttributeReadBoxedNode.class);
         assertTrue(cache instanceof CachedAttributeReadBoxedNode.CachedIntAttributeNode);
 
         /**
