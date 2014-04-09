@@ -138,6 +138,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
      * Primary is an object, attribute is in the object.
      *
      */
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     public static final class InObjectAttributeDispatchNode extends AttributeDispatchBoxedNode {
 
         private final PythonClass cachedClass;
@@ -162,6 +163,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
      * Primary is an object, attribute is in its class or the super classes.
      *
      */
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     public static final class CachedObjectAttributeDispatchNode extends AttributeDispatchBoxedNode {
 
         private final PythonClass cachedClass;
@@ -189,6 +191,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractAttributeBoxedN
     /**
      * Primary is a class or a module, attribute is in the primary or one node in its lookup chain.
      */
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
     public static final class CachedClassAttributeDispatchNode extends AttributeDispatchBoxedNode {
 
         private final PythonBasicObject cachedType;

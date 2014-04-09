@@ -124,6 +124,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
         return location;
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static class UninitializedCachedAttributeNode extends AbstractAttributeBoxedNode {
 
         public UninitializedCachedAttributeNode(String attributeId) {
@@ -158,6 +159,7 @@ public abstract class AbstractAttributeBoxedNode extends Node {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericAttributeReadBoxedNode extends AbstractAttributeBoxedNode {
 
         public GenericAttributeReadBoxedNode(String attributeId) {
