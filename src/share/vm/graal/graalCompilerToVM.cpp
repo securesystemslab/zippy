@@ -732,12 +732,6 @@ C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv *env, jobject, jlong metaspace_klass
   return JNIHandles::make_local(klass->java_mirror());
 C2V_END
 
-C2V_VMENTRY(jobject, getNodeClass, (JNIEnv *env, jobject, jobject java_class_handle))
-  oop java_class = JNIHandles::resolve(java_class_handle);
-  InstanceKlass* iklass = (InstanceKlass*) java_lang_Class::as_Klass(java_class);
-  return JNIHandles::make_local(iklass->graal_node_class());
-C2V_END
-
 C2V_VMENTRY(void, setNodeClass, (JNIEnv *env, jobject, jobject java_class_handle, jobject value))
   oop java_class = JNIHandles::resolve(java_class_handle);
   InstanceKlass* iklass = (InstanceKlass*) java_lang_Class::as_Klass(java_class);
@@ -853,7 +847,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",                      CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                     FN_PTR(getJavaMirror)},
-  {CC"getNodeClass",                                 CC"("CLASS")"NODE_CLASS,                                          FN_PTR(getNodeClass)},
   {CC"setNodeClass",                                 CC"("CLASS NODE_CLASS")V",                                        FN_PTR(setNodeClass)},
   {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",                              CC"()[J",                                                         FN_PTR(collectCounters)},

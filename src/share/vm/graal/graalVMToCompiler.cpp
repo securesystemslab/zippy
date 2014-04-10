@@ -144,13 +144,15 @@ void VMToCompiler::shutdownCompiler() {
   }
 }
 
-void VMToCompiler::startCompiler(jboolean bootstrap_enabled) {
+void VMToCompiler::startCompiler(jboolean bootstrap_enabled, jboolean hosted_only) {
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_int(bootstrap_enabled);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::startCompiler_name(), vmSymbols::bool_void_signature(), &args, THREAD);
+  args.push_int(hosted_only);
+  TempNewSymbol bool_bool_void = SymbolTable::new_symbol("(ZZ)V", CHECK);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::startCompiler_name(), bool_bool_void, &args, THREAD);
   check_pending_exception("Error while calling startCompiler");
 }
 
