@@ -1381,8 +1381,8 @@ def jmh(args):
 
 
     env = os.environ.copy()
-    env['JAVA_HOME'] = _jdk(vmToCheck='server')
-    env['MAVEN_OPTS'] = '-server'
+    env['JAVA_HOME'] = _jdk(vmToCheck='graal')
+    env['MAVEN_OPTS'] = '-graal'
     mx.log("Building benchmarks...")
     mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
 
