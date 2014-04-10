@@ -444,6 +444,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
+        if (node.getInternalModule().compareTo("__future__") == 0) {
+            return EmptyNode.INSTANCE;
+        }
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
