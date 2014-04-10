@@ -80,8 +80,8 @@ public class EscapeAnalyzer {
             } else if (current instanceof CallFunctionNode) {
                 PNode calleeNode = ((CallFunctionNode) current).getCallee();
 
-                if (calleeNode instanceof ReadGlobalScopeNode) {
-                    return isBuiltinConstructor(((ReadGlobalScopeNode) calleeNode).getAttributeId()) ? false : true;
+                if (calleeNode instanceof ReadGlobalNode) {
+                    return isBuiltinConstructor(((ReadGlobalNode) calleeNode).getAttributeId()) ? false : true;
                 }
 
                 return true;

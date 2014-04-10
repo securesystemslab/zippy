@@ -54,11 +54,11 @@ public class CallFunctionNoKeywordNode extends PNode {
         /**
          * Any non global scope callable lookup is not optimized.
          */
-        if (!(callee instanceof ReadGlobalScopeNode)) {
+        if (!(callee instanceof ReadGlobalNode)) {
             return new CallFunctionNoKeywordNode(callee, argumentNodes);
         }
 
-        ReadGlobalScopeNode calleeNode = (ReadGlobalScopeNode) callee;
+        ReadGlobalNode calleeNode = (ReadGlobalNode) callee;
 
         if (callable instanceof PGeneratorFunction) {
             return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
@@ -77,8 +77,8 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
     }
 
-    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
+    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalNode calleeNode, PNode[] argumentNodes, PythonContext context) {
+        Assumption globalScopeUnchanged = calleeNode.extractGlobaScope().getStableAssumption();
 
         /**
          * (zwei): This is a temporary hack to black list 'balance' in euler31.<br>
@@ -97,8 +97,8 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
     }
 
-    private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
+    private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function, ReadGlobalNode calleeNode, PNode[] argumentNodes, PythonContext context) {
+        Assumption globalScopeUnchanged = calleeNode.extractGlobaScope().getStableAssumption();
         Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getStableAssumption();
 
         if (PythonOptions.InlineBuiltinFunctionCalls) {
@@ -108,8 +108,8 @@ public class CallFunctionNoKeywordNode extends PNode {
         }
     }
 
-    private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getStableAssumption();
+    private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalNode calleeNode, PNode[] argumentNodes) {
+        Assumption globalScopeUnchanged = calleeNode.extractGlobaScope().getStableAssumption();
 
         if (PythonOptions.InlineGeneratorCalls) {
             return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
