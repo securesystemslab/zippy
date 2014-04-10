@@ -65,7 +65,7 @@ import edu.uci.python.runtime.standardtype.*;
  *               |--- next : UninitializedAttributeDispatchNode
  *
  */
-public abstract class GetAttributeNode extends PNode implements ReadNode {
+public abstract class GetAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final PythonContext context;
     protected final String attributeId;
@@ -77,8 +77,14 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         this.primary = primary;
     }
 
+    @Override
     public PNode makeWriteNode(PNode rhs) {
         return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs);
+    }
+
+    @Override
+    public PNode extractPrimary() {
+        return primary;
     }
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {

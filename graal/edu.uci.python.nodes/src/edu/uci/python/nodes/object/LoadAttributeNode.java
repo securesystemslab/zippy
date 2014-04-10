@@ -31,7 +31,7 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class LoadAttributeNode extends PNode implements ReadNode {
+public abstract class LoadAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final String attributeId;
     @Child protected PNode primary;
@@ -45,7 +45,8 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
         return attributeId;
     }
 
-    public PNode getPrimary() {
+    @Override
+    public PNode extractPrimary() {
         return primary;
     }
 

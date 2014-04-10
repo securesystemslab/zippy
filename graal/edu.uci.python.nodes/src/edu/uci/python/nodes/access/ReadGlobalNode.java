@@ -39,7 +39,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class ReadGlobalNode extends PNode implements ReadNode {
+public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final String attributeId;
     protected final PythonContext context;
@@ -55,8 +55,14 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode {
         return new UninitializedReadGlobalNode(context, globalScope, attributeId);
     }
 
+    @Override
     public PNode makeWriteNode(PNode rhs) {
         return new UninitializedStoreAttributeNode(this.attributeId, new ObjectLiteralNode(globalScope), rhs);
+    }
+
+    @Override
+    public PNode extractPrimary() {
+        return new ObjectLiteralNode(globalScope);
     }
 
     public String getAttributeId() {
