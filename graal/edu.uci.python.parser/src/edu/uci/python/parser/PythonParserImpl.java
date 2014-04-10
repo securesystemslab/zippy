@@ -48,12 +48,22 @@ public class PythonParserImpl implements PythonParser {
         org.python.antlr.base.mod node;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
-        node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
+
+        if (!PythonOptions.PrintFunction) {
+            // enable printing flag for python's builtin function (v3.x) in parser.
+
+            String print = "from __future__ import print_function \n";
+            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
+            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
+
+            node = ParserFacade.parse(withPrintFlag, CompileMode.exec, filename, cookCompilerFlags());
+        } else {
+            node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
+        }
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
-
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module);
         PythonParseResult result = ptt.translate(node);
 
