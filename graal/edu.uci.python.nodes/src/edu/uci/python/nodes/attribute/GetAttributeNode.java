@@ -41,6 +41,30 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
+/*-
+ * @author zwei
+ *
+ * The structure of a GetAttributeNode
+ * -----------------------------------
+ * GetAttributeNode
+ *  |
+ *  |--- primary : PNode
+ *  |
+ *  |--- attribute : AttributeDispatchNode
+ *         |
+ *         |--- check : PrimaryCheckNode
+ *         |
+ *         |--- Read : AttributeReadNode
+ *         |
+ *         |--- next : AttributeDispatchNode
+ *               |
+ *               |--- check : PrimaryCheckNode
+ *               |
+ *               |--- Read : AttributeReadNode
+ *               |
+ *               |--- next : UninitializedAttributeDispatchNode
+ *
+ */
 public abstract class GetAttributeNode extends PNode implements ReadNode {
 
     protected final PythonContext context;
