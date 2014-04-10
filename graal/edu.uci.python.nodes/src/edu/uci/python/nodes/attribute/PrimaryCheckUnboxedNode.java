@@ -30,7 +30,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PrimaryCheckUnboxedNode extends Node {
 
-    public abstract boolean accept(PythonBuiltinObject primaryObj);
+    public abstract boolean accept(Object primaryObj);
 
     public static PrimaryCheckUnboxedNode create(Object primaryObj) {
         if (primaryObj instanceof PythonBuiltinObject) {
@@ -56,7 +56,7 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonBuiltinObject primaryObj) {
+        public boolean accept(Object primaryObj) {
             return primaryObj.getClass() == cachedClass;
         }
     }
@@ -70,7 +70,7 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonBuiltinObject primaryObj) {
+        public boolean accept(Object primaryObj) {
             return cachedClass == primaryObj.getClass();
         }
     }
