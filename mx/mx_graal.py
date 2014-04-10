@@ -1355,11 +1355,7 @@ def jmh(args):
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
 
-    jmhArgs = {
-        '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL',
-        '-f' : '1',
-        '-i' : '10',
-        '-wi' : '10'}
+    jmhArgs = {'-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
 
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
