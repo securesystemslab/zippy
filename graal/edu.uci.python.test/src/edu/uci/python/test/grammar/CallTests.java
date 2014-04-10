@@ -31,6 +31,14 @@ import org.junit.*;
 public class CallTests {
 
     @Test
+    public void singleFunctionCall() {
+        String source = "def foo():\n" + //
+                        "  print(42)\n" + //
+                        "foo()\n";
+        assertPrints("42\n", source);
+    }
+
+    @Test
     public void simple() {
         String source = "def foo():\n" + //
                         "  return 1\n" + //

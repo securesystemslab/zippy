@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,10 +34,11 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 
 /**
  * @author zwei
- * 
+ *
  */
 public abstract class DispatchNode extends Node {
 
@@ -64,7 +65,7 @@ public abstract class DispatchNode extends Node {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, Object... arguments);
+    protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
 
     public static final class DispatchFunctionNode extends DispatchNode {
 
@@ -87,7 +88,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             try {
                 cachedCallTargetStable.check();
 
@@ -95,7 +96,7 @@ public abstract class DispatchNode extends Node {
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
-                return nextNode.executeCall(frame, arguments);
+                return nextNode.executeCall(frame, primaryObj, arguments);
             }
         }
     }
@@ -121,7 +122,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             try {
                 cachedCallTargetStable.check();
 
@@ -129,7 +130,7 @@ public abstract class DispatchNode extends Node {
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
-                return nextNode.executeCall(frame, arguments);
+                return nextNode.executeCall(frame, primaryObj, arguments);
             }
         }
     }
@@ -153,7 +154,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             try {
                 cachedCallTargetStable.check();
 
@@ -161,7 +162,7 @@ public abstract class DispatchNode extends Node {
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
-                return nextNode.executeCall(frame, arguments);
+                return nextNode.executeCall(frame, primaryObj, arguments);
             }
         }
     }
@@ -187,7 +188,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             try {
                 cachedCallTargetStable.check();
 
@@ -195,7 +196,7 @@ public abstract class DispatchNode extends Node {
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
-                return nextNode.executeCall(frame, arguments);
+                return nextNode.executeCall(frame, primaryObj, arguments);
             }
         }
     }
@@ -220,7 +221,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             try {
                 cachedCallTargetStable.check();
 
@@ -228,7 +229,7 @@ public abstract class DispatchNode extends Node {
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
-                return nextNode.executeCall(frame, arguments);
+                return nextNode.executeCall(frame, primaryObj, arguments);
             }
         }
     }
@@ -242,7 +243,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             PythonCallable callee;
             try {
                 callee = calleeNode.executePythonCallable(frame);
@@ -263,7 +264,7 @@ public abstract class DispatchNode extends Node {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             DispatchNode current = this;
@@ -291,7 +292,7 @@ public abstract class DispatchNode extends Node {
                 specialized = replace(generic);
             }
 
-            return specialized.executeCall(frame, arguments);
+            return specialized.executeCall(frame, primaryObj, arguments);
         }
     }
 
