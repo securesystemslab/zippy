@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 
 public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
@@ -47,13 +48,7 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
         if (primaryObj.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(primaryObj);
-            Object value = primaryObj.getAttribute(attributeId);
-
-            if (value instanceof Integer) {
-                return (int) value;
-            } else {
-                throw new UnexpectedResultException(value);
-            }
+            return PythonTypesGen.PYTHONTYPES.expectInteger(primaryObj.getAttribute(attributeId));
         }
 
         return storageLocation.readInt(primaryObj);
