@@ -26,12 +26,11 @@ package edu.uci.python.nodes.attribute;
 
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PrimaryCheckUnboxedNode extends Node {
 
-    public abstract boolean accept(Object primaryObj);
+    public abstract boolean accept(PythonBuiltinObject primaryObj);
 
     public static PrimaryCheckUnboxedNode create(Object primaryObj) {
         if (primaryObj instanceof PythonBuiltinObject) {
@@ -50,35 +49,29 @@ public abstract class PrimaryCheckUnboxedNode extends Node {
      */
     public static final class PrimitiveCheckNode extends PrimaryCheckUnboxedNode {
 
-        protected final Class cachedClass;
+        private final Class cachedClass;
 
         public PrimitiveCheckNode(Object primaryObj) {
             this.cachedClass = primaryObj.getClass();
         }
 
         @Override
-        public boolean accept(Object primaryObj) {
+        public boolean accept(PythonBuiltinObject primaryObj) {
             return primaryObj.getClass() == cachedClass;
         }
     }
 
     public static final class BuiltinObjectCheckNode extends PrimaryCheckUnboxedNode {
 
-        private final PythonBuiltinClass cachedType;
+        private final Class cachedClass;
 
         public BuiltinObjectCheckNode(PythonBuiltinObject primaryObj) {
-            this.cachedType = primaryObj.__class__();
+            this.cachedClass = primaryObj.getClass();
         }
 
         @Override
-        public boolean accept(Object primaryObj) {
-            try {
-                PythonBuiltinObject builtinObj = (PythonBuiltinObject) primaryObj;
-                PythonBuiltinClass builtinClass = builtinObj.__class__();
-                return builtinClass == cachedType;
-            } catch (ClassCastException e) {
-                return false;
-            }
+        public boolean accept(PythonBuiltinObject primaryObj) {
+            return cachedClass == primaryObj.getClass();
         }
     }
 

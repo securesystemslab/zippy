@@ -162,7 +162,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                return attribute.getValue(frame, primary.execute(frame));
+                return attribute.getValue(frame, context.boxAsPythonBuiltinObject(primary.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
@@ -172,7 +172,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getIntValue(frame, primary.execute(frame));
+                return attribute.getIntValue(frame, context.boxAsPythonBuiltinObject(primary.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -182,7 +182,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getDoubleValue(frame, primary.execute(frame));
+                return attribute.getDoubleValue(frame, context.boxAsPythonBuiltinObject(primary.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -192,7 +192,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getBooleanValue(frame, execute(frame));
+                return attribute.getBooleanValue(frame, context.boxAsPythonBuiltinObject(primary.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -211,8 +211,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object primaryObj = primary.execute(frame);
+            PythonBuiltinObject primaryObj;
             try {
+                primaryObj = context.boxAsPythonBuiltinObject(primary.execute(frame));
                 attribute.getValue(frame, primaryObj);
                 cachedMethod.bind(context.boxAsPythonBuiltinObject(primaryObj));
             } catch (UnexpectedResultException e) {
@@ -262,11 +263,18 @@ public abstract class GetAttributeNode extends PNode implements ReadNode {
     }
 
     protected Object unboxedSpecializeAndExecute(VirtualFrame frame, Object primaryObj, GetAttributeNode current) {
-        AbstractAttributeUnboxedNode cacheNode = new AbstractAttributeUnboxedNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(primaryObj);
+        PythonBuiltinObject builtinPrimaryObj;
+        try {
+            builtinPrimaryObj = context.boxAsPythonBuiltinObject(primaryObj);
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
+        AbstractAttributeUnboxedNode cacheNode = new AbstractAttributeUnboxedNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(builtinPrimaryObj);
         Object value = null;
 
         try {
-            value = cacheNode.getValue(frame, primaryObj);
+            value = cacheNode.getValue(frame, builtinPrimaryObj);
         } catch (UnexpectedResultException e) {
             throw new IllegalStateException("Attribute access failed in slow path!");
         }

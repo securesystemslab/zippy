@@ -45,30 +45,22 @@ public abstract class AbstractAttributeUnboxedNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException;
+    public abstract Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException;
 
-    public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
     }
 
-    public double getDoubleValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public double getDoubleValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectDouble(getValue(frame, primaryObj));
     }
 
-    public boolean getBooleanValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public boolean getBooleanValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractAttributeUnboxedNode rewrite(Object primaryObj) {
-        PythonBuiltinObject pbObj = null;
-
-        try {
-            pbObj = context.boxAsPythonBuiltinObject(primaryObj);
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
-        }
-
-        PythonClass current = pbObj.__class__();
+    protected AbstractAttributeUnboxedNode rewrite(PythonBuiltinObject primaryObj) {
+        PythonClass current = primaryObj.__class__();
         assert current != null;
 
         do {
@@ -107,7 +99,7 @@ public abstract class AbstractAttributeUnboxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreter();
             return rewrite(primaryObj).getValue(frame, primaryObj);
         }

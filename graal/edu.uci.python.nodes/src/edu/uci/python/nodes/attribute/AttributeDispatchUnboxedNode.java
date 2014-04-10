@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
 
@@ -54,7 +55,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     }
 
     @Override
-    public Object getValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
             return read.getValueUnsafe(cachedStorage);
         } else {
@@ -63,7 +64,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     }
 
     @Override
-    public int getIntValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
             return read.getIntValueUnsafe(cachedStorage);
         } else {
@@ -72,7 +73,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     }
 
     @Override
-    public double getDoubleValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public double getDoubleValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
             return read.getDoubleValueUnsafe(cachedStorage);
         } else {
@@ -81,7 +82,7 @@ public class AttributeDispatchUnboxedNode extends AbstractAttributeUnboxedNode {
     }
 
     @Override
-    public boolean getBooleanValue(VirtualFrame frame, Object primaryObj) throws UnexpectedResultException {
+    public boolean getBooleanValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         if (primaryCheck.accept(primaryObj)) {
             return read.getBooleanValueUnsafe(cachedStorage);
         } else {
