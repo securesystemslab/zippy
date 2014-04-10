@@ -51,4 +51,32 @@ public class CallTests {
         assertPrints("1\n4\n", source);
     }
 
+    @Test
+    public void classFunction() {
+        String source = "class Foo:\n" + //
+                        "  def __init__(self, num):\n" + //
+                        "    self.num = num\n" + //
+                        "  def func(self):\n" + //
+                        "    print(self.num)\n" + //
+                        "\n" + //
+                        "foo = Foo(42)\n" + //
+                        "Foo.func(foo)\n";
+
+        assertPrints("42\n", source);
+    }
+
+    @Test
+    public void objectMethod() {
+        String source = "class Foo:\n" + //
+                        "  def __init__(self, num):\n" + //
+                        "    self.num = num\n" + //
+                        "  def func(self):\n" + //
+                        "    print(self.num)\n" + //
+                        "\n" + //
+                        "foo = Foo(42)\n" + //
+                        "foo.func()\n";
+
+        assertPrints("42\n", source);
+    }
+
 }

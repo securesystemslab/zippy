@@ -57,6 +57,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
+        addModule("math", createModule("math", context, new MathModuleBuiltins()));
 
         addType(PList.class, createType("list", context, builtinsModule, new ListBuiltins()));
         addType(PString.class, createType("str", context, builtinsModule, new StringBuiltins()));
