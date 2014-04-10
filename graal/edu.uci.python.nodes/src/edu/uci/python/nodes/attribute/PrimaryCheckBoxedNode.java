@@ -65,12 +65,6 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         private final Assumption classStableAssumption;
         private final Assumption objectStableAssumption;
 
-        public PythonClassCheckNode(PythonClass superClass, Assumption classUnmodifiedAssumption, Assumption objectUnmodifiedAssumption) {
-            this.cachedClass = superClass;
-            this.classStableAssumption = classUnmodifiedAssumption;
-            this.objectStableAssumption = objectUnmodifiedAssumption;
-        }
-
         public PythonClassCheckNode(PythonBasicObject primaryObj) {
             this.cachedClass = primaryObj.getPythonClass();
             this.classStableAssumption = cachedClass.getStableAssumption();

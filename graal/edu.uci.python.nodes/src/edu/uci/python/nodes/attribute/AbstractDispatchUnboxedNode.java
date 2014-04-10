@@ -35,12 +35,12 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractAttributeUnboxedNode extends Node {
+public abstract class AbstractDispatchUnboxedNode extends Node {
 
     private final PythonContext context;
     private final String attributeId;
 
-    public AbstractAttributeUnboxedNode(PythonContext context, String attributeId) {
+    public AbstractDispatchUnboxedNode(PythonContext context, String attributeId) {
         this.context = context;
         this.attributeId = attributeId;
     }
@@ -59,7 +59,7 @@ public abstract class AbstractAttributeUnboxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractAttributeUnboxedNode rewrite(PythonBuiltinObject primaryObj) {
+    protected AbstractDispatchUnboxedNode rewrite(PythonBuiltinObject primaryObj) {
         PythonClass current = primaryObj.__class__();
         assert current != null;
 
@@ -92,7 +92,7 @@ public abstract class AbstractAttributeUnboxedNode extends Node {
         return location;
     }
 
-    public static class UninitializedCachedAttributeNode extends AbstractAttributeUnboxedNode {
+    public static class UninitializedCachedAttributeNode extends AbstractDispatchUnboxedNode {
 
         public UninitializedCachedAttributeNode(PythonContext context, String attributeId) {
             super(context, attributeId);
@@ -104,4 +104,5 @@ public abstract class AbstractAttributeUnboxedNode extends Node {
             return rewrite(primaryObj).getValue(frame, primaryObj);
         }
     }
+
 }

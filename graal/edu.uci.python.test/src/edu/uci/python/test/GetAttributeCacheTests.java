@@ -30,7 +30,7 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-public class AttributeCacheTests {
+public class GetAttributeCacheTests {
 
     @Test
     public void bimorphicCallSite() {
