@@ -36,7 +36,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
 
     public static PrimaryCheckBoxedNode create(PythonBasicObject primaryObj, int depth) {
         if (depth == 0) {
-            return new ObjectLayoutCheckNode(primaryObj);
+            return new PythonObjectCheckNode(primaryObj);
         } else if (depth == 1) {
             return new PythonClassCheckNode(primaryObj);
         } else {
@@ -44,20 +44,18 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
     }
 
-    public static final class ObjectLayoutCheckNode extends PrimaryCheckBoxedNode {
+    public static final class PythonObjectCheckNode extends PrimaryCheckBoxedNode {
 
-        private final ObjectLayout cachedLayout;
         private final Assumption stableAssumption;
 
-        public ObjectLayoutCheckNode(PythonBasicObject pythonObj) {
-            cachedLayout = pythonObj.getObjectLayout();
+        public PythonObjectCheckNode(PythonBasicObject pythonObj) {
             stableAssumption = pythonObj.getStableAssumption();
         }
 
         @Override
         public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             stableAssumption.check();
-            return primaryObj.getObjectLayout() == cachedLayout;
+            return true;
         }
     }
 
@@ -96,15 +94,15 @@ public abstract class PrimaryCheckBoxedNode extends Node {
     public static final class ClassChainCheckNode extends PrimaryCheckBoxedNode {
 
         private final Assumption objectStableAssumption;
-        @Children private final ObjectLayoutCheckNode[] classChecks;
+        @Children private final PythonObjectCheckNode[] classChecks;
 
         public ClassChainCheckNode(PythonBasicObject primaryObj, int depth) {
             this.objectStableAssumption = primaryObj.getStableAssumption();
-            ObjectLayoutCheckNode[] classCheckNodes = new ObjectLayoutCheckNode[depth];
+            PythonObjectCheckNode[] classCheckNodes = new PythonObjectCheckNode[depth];
             PythonClass current = primaryObj.getPythonClass();
 
             for (int i = 0; i < depth; i++) {
-                classCheckNodes[i] = new ObjectLayoutCheckNode(current);
+                classCheckNodes[i] = new PythonObjectCheckNode(current);
                 current = current.getSuperClass();
 
                 if (current == null) {
@@ -120,7 +118,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
             objectStableAssumption.check();
             PythonClass clazz = primaryObj.getPythonClass();
 
-            for (ObjectLayoutCheckNode checkNode : classChecks) {
+            for (PythonObjectCheckNode checkNode : classChecks) {
                 if (!checkNode.accept(clazz)) {
                     return false;
                 }
