@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.DispatchNode.UninitializedDispatchNode;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
 
 public class DispatchCallNode extends PNode {
@@ -39,21 +40,32 @@ public class DispatchCallNode extends PNode {
     @SuppressWarnings("unused") private final String calleeName;
     @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
 
-    public DispatchCallNode(PNode[] arguments, DispatchNode dispatch, String calleeName) {
+    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments, DispatchNode dispatch) {
+        this.calleeName = calleeName;
+        this.primaryNode = primary;
         this.argumentNodes = arguments;
         this.dispatchNode = dispatch;
-        this.calleeName = calleeName;
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
         UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(calleeNode);
-        return new DispatchCallNode(argumentNodes, DispatchNode.create(callee, uninitialized), callee.getName());
+        PNode primaryNode;
+
+        if (calleeNode instanceof HasPrimaryNode) {
+            HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
+            primaryNode = hasPrimary.extractPrimary();
+        } else {
+            primaryNode = EmptyNode.INSTANCE;
+        }
+
+        return new DispatchCallNode(callee.getName(), primaryNode, argumentNodes, DispatchNode.create(callee, uninitialized));
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
-        return dispatchNode.executeCall(frame, null, arguments);
+        Object primary = primaryNode.execute(frame);
+        return dispatchNode.executeCall(frame, primary, arguments);
     }
 
 }
