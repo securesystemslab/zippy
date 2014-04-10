@@ -36,16 +36,18 @@ public class DispatchCallNode extends PNode {
     @Child protected PNode primaryNode;
     @Child protected DispatchNode dispatchNode;
 
+    @SuppressWarnings("unused") private final String calleeName;
     @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
 
-    public DispatchCallNode(PNode[] arguments, DispatchNode dispatch) {
+    public DispatchCallNode(PNode[] arguments, DispatchNode dispatch, String calleeName) {
         this.argumentNodes = arguments;
         this.dispatchNode = dispatch;
+        this.calleeName = calleeName;
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
         UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(calleeNode);
-        return new DispatchCallNode(argumentNodes, DispatchNode.create(callee, uninitialized));
+        return new DispatchCallNode(argumentNodes, DispatchNode.create(callee, uninitialized), callee.getName());
     }
 
     @Override
