@@ -3554,6 +3554,193 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
 
+def intellijinit(args, refreshOnly=False):
+    """(re)generate Intellij project configurations"""
+
+    for suite in suites(True):
+        _intellij_suite(args, suite, refreshOnly)
+
+def _intellij_suite(args, suite, refreshOnly=False):
+
+    libraries = set()
+
+    ideaProjectDirectory = join(suite.dir, '.idea')
+
+    if not exists(ideaProjectDirectory):
+        os.mkdir(ideaProjectDirectory)
+    nameFile = join(ideaProjectDirectory, '.name')
+    update_file(nameFile, "Graal")
+    modulesXml = XMLDoc()
+    modulesXml.open('project', attributes={'version': '4'})
+    modulesXml.open('component', attributes={'name': 'ProjectModuleManager'})
+    modulesXml.open('modules')
+
+
+    def _intellij_exclude_if_exists(xml, p, name):
+        path = join(p.dir, name)
+        if exists(path):
+            xml.element('excludeFolder', attributes={'url':'file://$MODULE_DIR$/' + name})
+
+    annotationProcessorProfiles = {}
+
+    def _complianceToIntellijLanguageLevel(compliance):
+        return 'JDK_1_' + str(compliance.value)
+
+    # create the modules (1 module  = 1 Intellij project)
+    for p in suite.projects:
+        if p.native:
+            continue
+
+        if not java(p.javaCompliance):
+            log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
+            continue
+
+        if not exists(p.dir):
+            os.makedirs(p.dir)
+
+        annotationProcessorProfileKey = tuple(p.annotation_processors())
+
+        if not annotationProcessorProfileKey in annotationProcessorProfiles:
+            annotationProcessorProfiles[annotationProcessorProfileKey] = [p]
+        else:
+            annotationProcessorProfiles[annotationProcessorProfileKey].append(p)
+
+        intellijLanguageLevel = _complianceToIntellijLanguageLevel(p.javaCompliance)
+
+        moduleXml = XMLDoc()
+        moduleXml.open('module', attributes={'type': 'JAVA_MODULE', 'version': '4'})
+
+        moduleXml.open('component', attributes={'name': 'NewModuleRootManager', 'LANGUAGE_LEVEL': intellijLanguageLevel, 'inherit-compiler-output': 'false'})
+        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'}) # TODO use p.output_dir() ?
+        moduleXml.element('exclude-output')
+
+        moduleXml.open('content', attributes={'url': 'file://$MODULE_DIR$'})
+        for src in p.srcDirs:
+            srcDir = join(p.dir, src)
+            if not exists(srcDir):
+                os.mkdir(srcDir)
+            moduleXml.element('sourceFolder', attributes={'url':'file://$MODULE_DIR$/' + src, 'isTestSource': 'false'})
+
+        if len(p.annotation_processors()) > 0:
+            genDir = p.source_gen_dir()
+            if not exists(genDir):
+                os.mkdir(genDir)
+            moduleXml.element('sourceFolder', attributes={'url':'file://$MODULE_DIR$/' + os.path.relpath(genDir, p.dir), 'isTestSource': 'false'})
+
+        for name in ['.externalToolBuilders', '.settings', 'nbproject']:
+            _intellij_exclude_if_exists(moduleXml, p, name)
+        moduleXml.close('content')
+
+        moduleXml.element('orderEntry', attributes={'type': 'jdk', 'jdkType': 'JavaSDK', 'jdkName': str(p.javaCompliance)})
+        moduleXml.element('orderEntry', attributes={'type': 'sourceFolder', 'forTests': 'false'})
+
+        deps = p.all_deps([], True, includeAnnotationProcessors=True)
+        for dep in deps:
+            if dep == p:
+                continue
+
+            if dep.isLibrary():
+                if dep.mustExist:
+                    libraries.add(dep)
+                    moduleXml.element('orderEntry', attributes={'type': 'library', 'name': dep.name, 'level': 'project'})
+            else:
+                moduleXml.element('orderEntry', attributes={'type': 'module', 'module-name': dep.name})
+
+        moduleXml.close('component')
+        moduleXml.close('module')
+        moduleFile = join(p.dir, p.name + '.iml')
+        update_file(moduleFile, moduleXml.xml(indent='  ', newl='\n'))
+
+        moduleFilePath = "$PROJECT_DIR$/" + os.path.relpath(moduleFile, suite.dir)
+        modulesXml.element('module', attributes={'fileurl': 'file://' + moduleFilePath, 'filepath': moduleFilePath})
+
+    modulesXml.close('modules')
+    modulesXml.close('component')
+    modulesXml.close('project')
+    moduleXmlFile = join(ideaProjectDirectory, 'modules.xml')
+    update_file(moduleXmlFile, modulesXml.xml(indent='  ', newl='\n'))
+
+    # TODO What about cross-suite dependencies?
+
+    librariesDirectory = join(ideaProjectDirectory, 'libraries')
+
+    if not exists(librariesDirectory):
+        os.mkdir(librariesDirectory)
+
+    # Setup the libraries that were used above
+    # TODO: setup all the libraries from the suite regardless of usage?
+    for library in libraries:
+        libraryXml = XMLDoc()
+
+        libraryXml.open('component', attributes={'name': 'libraryTable'})
+        libraryXml.open('library', attributes={'name': library.name})
+        libraryXml.open('CLASSES')
+        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.path, suite.dir) + '!/'})
+        libraryXml.close('CLASSES')
+        libraryXml.element('JAVADOC')
+        if library.sourcePath:
+            libraryXml.open('SOURCES')
+            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.sourcePath, suite.dir) + '!/'})
+            libraryXml.close('SOURCES')
+        else:
+            libraryXml.element('SOURCES')
+        libraryXml.close('library')
+        libraryXml.close('component')
+
+        libraryFile = join(librariesDirectory, library.name + '.xml')
+        update_file(libraryFile, libraryXml.xml(indent='  ', newl='\n'))
+
+
+
+    # Set annotation processor profiles up, and link them to modules in compiler.xml
+    compilerXml = XMLDoc()
+    compilerXml.open('project', attributes={'version': '4'})
+    compilerXml.open('component', attributes={'name': 'CompilerConfiguration'})
+
+    compilerXml.element('option', attributes={'name': "DEFAULT_COMPILER", 'value': 'Javac'})
+    compilerXml.element('resourceExtensions')
+    compilerXml.open('wildcardResourcePatterns')
+    compilerXml.element('entry', attributes={'name': '!?*.java'})
+    compilerXml.close('wildcardResourcePatterns')
+
+    if annotationProcessorProfiles:
+        compilerXml.open('annotationProcessing')
+        for processors, modules in annotationProcessorProfiles.items():
+            compilerXml.open('profile', attributes={'default': 'false', 'name': '-'.join(processors), 'enabled': 'true'})
+            compilerXml.element('sourceOutputDir', attributes={'name': 'src_gen'})  # TODO use p.source_gen_dir() ?
+            compilerXml.element('outputRelativeToContentRoot', attributes={'value': 'true'})
+            compilerXml.open('processorPath', attributes={'useClasspath': 'false'})
+            for apName in processors:
+                pDep = dependency(apName)
+                for entry in pDep.all_deps([], True):
+                    if entry.isLibrary():
+                        compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.path, suite.dir)})
+                    else:
+                        assert entry.isProject()
+                        compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.output_dir(), suite.dir)})
+            compilerXml.close('processorPath')
+            for module in modules:
+                compilerXml.element('module', attributes={'name': module.name})
+            compilerXml.close('profile')
+        compilerXml.close('annotationProcessing')
+
+    compilerXml.close('component')
+    compilerXml.close('project')
+    compilerFile = join(ideaProjectDirectory, 'compiler.xml')
+    update_file(compilerFile, compilerXml.xml(indent='  ', newl='\n'))
+
+    # Wite misc.xml for global JDK config
+    miscXml = XMLDoc()
+    miscXml.open('project', attributes={'version': '4'})
+    miscXml.element('component', attributes={'name': 'ProjectRootManager', 'version': '2', 'languagelevel': _complianceToIntellijLanguageLevel(java().javaCompliance), 'project-jdk-name': str(java().javaCompliance), 'project-jdk-type': 'JavaSDK'})
+    miscXml.close('project')
+    miscFile = join(ideaProjectDirectory, 'misc.xml')
+    update_file(miscFile, miscXml.xml(indent='  ', newl='\n'))
+
+
+    # TODO look into copyright settings
+    # TODO should add vcs.xml support
+
 def ideclean(args):
     """remove all Eclipse and NetBeans project configurations"""
     def rm(path):
@@ -3563,6 +3750,7 @@ def ideclean(args):
     for s in suites():
         rm(join(s.mxDir, 'eclipse-config.zip'))
         rm(join(s.mxDir, 'netbeans-config.zip'))
+        shutil.rmtree(join(s.dir, '.idea'), ignore_errors=True)
 
     for p in projects():
         if p.native:
@@ -3575,6 +3763,7 @@ def ideclean(args):
         rm(join(p.dir, '.checkstyle'))
         rm(join(p.dir, '.project'))
         rm(join(p.dir, '.factorypath'))
+        rm(join(p.dir, p.name + '.iml'))
         rm(join(p.dir, 'build.xml'))
         rm(join(p.dir, 'eclipse-build.xml'))
         try:
@@ -3587,6 +3776,7 @@ def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    intellijinit(args, refreshOnly=refreshOnly)
     if not refreshOnly:
         fsckprojects([])
 
@@ -4153,6 +4343,7 @@ _commands = {
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
+    'intellijinit': [intellijinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'pylint': [pylint, ''],
