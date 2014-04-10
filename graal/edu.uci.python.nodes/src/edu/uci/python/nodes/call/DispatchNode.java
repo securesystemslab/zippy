@@ -30,10 +30,12 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 
 /**
  * @author zwei
@@ -41,12 +43,14 @@ import edu.uci.python.runtime.function.*;
  */
 public abstract class DispatchNode extends Node {
 
+    protected final String calleeName;
+
     protected static DispatchNode create(PythonCallable callee, UninitializedDispatchNode next) {
         /**
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchNode(next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), next.calleeNode);
         }
 
         if (callee instanceof PFunction) {
@@ -54,9 +58,9 @@ public abstract class DispatchNode extends Node {
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode((PBuiltinFunction) callee, next);
         } else if (callee instanceof PMethod) {
-            return new GenericDispatchNode(next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), next.calleeNode);
         } else if (callee instanceof PBuiltinMethod) {
-            return new GenericDispatchNode(next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), next.calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
             return new DispatchBuiltinTypeNode((PythonBuiltinClass) callee, next);
         }
@@ -64,11 +68,14 @@ public abstract class DispatchNode extends Node {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
+    public DispatchNode(String calleeName) {
+        this.calleeName = calleeName;
+    }
+
     protected abstract Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments);
 
     public static final class DispatchFunctionNode extends DispatchNode {
 
-        protected final PFunction cachedCallee;
         protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
         private final MaterializedFrame declarationFrame;
@@ -77,7 +84,7 @@ public abstract class DispatchNode extends Node {
         @Child protected DispatchNode nextNode;
 
         public DispatchFunctionNode(PFunction callee, DispatchNode next) {
-            cachedCallee = callee;
+            super(callee.getName());
             cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.getDeclarationFrame();
             // TODO: replace holder for now.
@@ -111,6 +118,7 @@ public abstract class DispatchNode extends Node {
         @Child protected DispatchNode nextNode;
 
         public DispatchMethodNode(PMethod callee, DispatchNode next) {
+            super(callee.getName());
             cachedCallee = callee;
             cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.__func__().getDeclarationFrame();
@@ -144,6 +152,7 @@ public abstract class DispatchNode extends Node {
         @Child protected DispatchNode nextNode;
 
         public DispatchBuiltinFunctionNode(PBuiltinFunction callee, DispatchNode next) {
+            super(callee.getName());
             cachedCallee = callee;
             cachedCallTarget = split(callee.getCallTarget());
             // TODO: replace holder for now.
@@ -176,6 +185,7 @@ public abstract class DispatchNode extends Node {
         @Child protected DispatchNode nextNode;
 
         public DispatchBuiltinTypeNode(PythonBuiltinClass callee, DispatchNode next) {
+            super(callee.getName());
             cachedCallee = callee;
             PythonCallable constructor = callee.lookUpMethod("__init__");
             cachedCallTarget = split(constructor.getCallTarget());
@@ -210,6 +220,7 @@ public abstract class DispatchNode extends Node {
         @Child protected DispatchNode nextNode;
 
         public DispatchBuiltinMethodNode(PBuiltinMethod callee, DispatchNode next) {
+            super(callee.getName());
             cachedCallee = callee;
             cachedCallTarget = callee.getCallTarget();
             // TODO: Is is necessary?
@@ -237,7 +248,8 @@ public abstract class DispatchNode extends Node {
 
         @Child protected PNode calleeNode;
 
-        public GenericDispatchNode(PNode callee) {
+        public GenericDispatchNode(String calleeName, PNode callee) {
+            super(calleeName);
             calleeNode = callee;
         }
 
@@ -254,11 +266,38 @@ public abstract class DispatchNode extends Node {
         }
     }
 
+    public static final class GenericDispatchBoxedNode extends DispatchNode {
+
+        public GenericDispatchBoxedNode(String calleeName) {
+            super(calleeName);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
+            PythonBasicObject primaryBoxedObject;
+            try {
+                primaryBoxedObject = PythonTypesGen.PYTHONTYPES.expectPythonBasicObject(primaryObj);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            PythonCallable callee;
+            try {
+                callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primaryBoxedObject.getAttribute(calleeName));
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+            }
+
+            return callee.call(frame.pack(), arguments);
+        }
+    }
+
     public static final class UninitializedDispatchNode extends DispatchNode {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedDispatchNode(PNode callee) {
+        public UninitializedDispatchNode(String calleeName, PNode callee) {
+            super(calleeName);
             calleeNode = callee;
         }
 
@@ -282,11 +321,11 @@ public abstract class DispatchNode extends Node {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                UninitializedDispatchNode next = new UninitializedDispatchNode(calleeNode);
+                UninitializedDispatchNode next = new UninitializedDispatchNode(callee.getName(), calleeNode);
                 DispatchNode direct = create(callee, next);
                 specialized = replace(direct);
             } else {
-                DispatchNode generic = new GenericDispatchNode(calleeNode);
+                DispatchNode generic = new GenericDispatchNode("Unknown", calleeNode);
                 // TODO: should replace the dispatch node of the parent call node.
                 specialized = replace(generic);
             }
@@ -296,7 +335,7 @@ public abstract class DispatchNode extends Node {
     }
 
     /**
-     * Replicate the CallTarget to make each builtin call site uses separate nodes.
+     * Replicate the CallTarget to make each builtin call site uses separate ASTs.
      */
     private static CallTarget split(RootCallTarget callTarget) {
         RootNode rootNode = callTarget.getRootNode();

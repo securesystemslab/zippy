@@ -48,7 +48,7 @@ public class DispatchCallNode extends PNode {
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
-        UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(calleeNode);
+        UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(callee.getName(), calleeNode);
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
