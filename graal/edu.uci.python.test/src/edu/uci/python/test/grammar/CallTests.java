@@ -39,4 +39,16 @@ public class CallTests {
         assertPrints("0\n", source);
     }
 
+    @Test
+    public void defaultArgs() {
+        String source = "foo = 1\n" + //
+                        "def bar(f=foo):\n" + //
+                        "    print(f)\n" + //
+                        "bar()\n" + //
+                        "foo = 2\n" + //
+                        "bar(4)\n";
+
+        assertPrints("1\n4\n", source);
+    }
+
 }
