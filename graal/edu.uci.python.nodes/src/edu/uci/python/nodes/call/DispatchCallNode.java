@@ -36,20 +36,18 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class DispatchCallNode extends PNode {
+public abstract class DispatchCallNode extends PNode {
 
-    @Children protected final PNode[] argumentNodes;
     @Child protected PNode primaryNode;
-    @Child protected CallDispatchNode dispatchNode;
+    @Children protected final PNode[] argumentNodes;
 
     protected final String calleeName;
     @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
 
-    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchNode dispatch) {
+    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments) {
         this.calleeName = calleeName;
         this.primaryNode = primary;
         this.argumentNodes = arguments;
-        this.dispatchNode = dispatch;
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
@@ -62,14 +60,7 @@ public class DispatchCallNode extends PNode {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes, CallDispatchNode.create(callee, calleeNode));
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
-        Object primary = primaryNode.execute(frame);
-        return dispatchNode.executeCall(frame, primary, arguments);
+        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes);
     }
 
     public static final class BoxedCallNode extends DispatchCallNode {
@@ -77,7 +68,7 @@ public class DispatchCallNode extends PNode {
         @Child protected CallDispatchBoxedNode dispatchBoxedNode;
 
         public BoxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch) {
-            super(calleeName, primary, arguments, dispatch);
+            super(calleeName, primary, arguments);
             dispatchBoxedNode = dispatch;
         }
 
@@ -98,8 +89,11 @@ public class DispatchCallNode extends PNode {
 
     public static final class UnboxedCallNode extends DispatchCallNode {
 
+        @Child protected CallDispatchNode dispatchNode;
+
         public UnboxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchNode dispatch) {
-            super(calleeName, primary, arguments, dispatch);
+            super(calleeName, primary, arguments);
+            dispatchNode = dispatch;
         }
 
         @Override
@@ -114,8 +108,8 @@ public class DispatchCallNode extends PNode {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedCallNode(String calleeName, PNode primary, PNode callee, PNode[] arguments, CallDispatchNode dispatch) {
-            super(calleeName, primary, arguments, dispatch);
+        public UninitializedCallNode(String calleeName, PNode primary, PNode callee, PNode[] arguments) {
+            super(calleeName, primary, arguments);
             this.calleeNode = callee;
         }
 
@@ -135,7 +129,7 @@ public class DispatchCallNode extends PNode {
             if (primary instanceof PythonBuiltinClass) {
                 CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
                 replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-                return dispatchNode.executeCall(frame, primary, arguments);
+                return dispatch.executeCall(frame, primary, arguments);
             }
 
             if (primary instanceof PythonModule && (calleeNode instanceof ReadGlobalNode)) {
@@ -150,7 +144,7 @@ public class DispatchCallNode extends PNode {
 
             CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
             replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-            return dispatchNode.executeCall(frame, primary, arguments);
+            return dispatch.executeCall(frame, primary, arguments);
         }
     }
 
