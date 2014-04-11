@@ -50,26 +50,27 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
 
-    protected static CallDispatchBoxedNode create(PythonCallable callee, PNode calleeNode, CallDispatchBoxedNode.UninitializedDispatchNode next) {
+    protected static CallDispatchBoxedNode create(PythonCallable callee, PNode calleeNode) {
+        UninitializedDispatchBoxedNode next = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(callee.getName(), calleeNode);
         /**
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchNode(callee.getName(), calleeNode);
+            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
         }
 
         if (callee instanceof PFunction) {
-            return new DispatchFunctionNode((PFunction) callee, next);
+            return new DispatchFunctionBoxedNode((PFunction) callee, next);
         } else if (callee instanceof PMethod) {
-            return new GenericDispatchNode(callee.getName(), calleeNode);
+            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
-            return new DispatchConstructorNode((PythonBuiltinClass) callee, next);
+            return new DispatchConstructorBoxedNode((PythonBuiltinClass) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
-    public static final class DispatchFunctionNode extends CallDispatchBoxedNode {
+    public static final class DispatchFunctionBoxedNode extends CallDispatchBoxedNode {
 
         protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
@@ -78,7 +79,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        public DispatchFunctionNode(PFunction callee, CallDispatchBoxedNode next) {
+        public DispatchFunctionBoxedNode(PFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.getDeclarationFrame();
@@ -102,7 +103,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchMethodNode extends CallDispatchBoxedNode {
+    public static final class DispatchMethodBoxedNode extends CallDispatchBoxedNode {
 
         protected final PMethod cachedCallee;
         protected final CallTarget cachedCallTarget;
@@ -112,7 +113,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        public DispatchMethodNode(PMethod callee, CallDispatchBoxedNode next) {
+        public DispatchMethodBoxedNode(PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallee = callee;
             cachedCallTarget = callee.getCallTarget();
@@ -137,7 +138,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchConstructorNode extends CallDispatchBoxedNode {
+    public static final class DispatchConstructorBoxedNode extends CallDispatchBoxedNode {
 
         protected final PythonBuiltinClass cachedCallee;
         protected final CallTarget cachedCallTarget;
@@ -146,7 +147,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        public DispatchConstructorNode(PythonBuiltinClass callee, CallDispatchBoxedNode next) {
+        public DispatchConstructorBoxedNode(PythonBuiltinClass callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallee = callee;
             PythonCallable constructor = callee.lookUpMethod("__init__");
@@ -172,11 +173,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class UninitializedDispatchNode extends CallDispatchBoxedNode {
+    public static final class UninitializedDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedDispatchNode(String calleeName, PNode calleeNode) {
+        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode) {
             super(calleeName);
             this.calleeNode = calleeNode;
         }
@@ -201,11 +202,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                UninitializedDispatchNode next = new UninitializedDispatchNode(callee.getName(), calleeNode);
-                CallDispatchNode direct = create(callee, calleeNode, next);
+                CallDispatchNode direct = create(callee, calleeNode);
                 specialized = replace(direct);
             } else {
-                CallDispatchNode generic = new GenericDispatchNode(calleeName, calleeNode);
+                CallDispatchNode generic = new GenericDispatchBoxedNode(calleeName, calleeNode);
                 // TODO: should replace the dispatch node of the parent call node.
                 specialized = replace(generic);
             }
@@ -214,11 +214,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class GenericDispatchNode extends CallDispatchBoxedNode {
+    public static final class GenericDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
 
-        public GenericDispatchNode(String calleeName, PNode calleeNode) {
+        public GenericDispatchBoxedNode(String calleeName, PNode calleeNode) {
             super(calleeName);
             this.calleeNode = calleeNode;
         }

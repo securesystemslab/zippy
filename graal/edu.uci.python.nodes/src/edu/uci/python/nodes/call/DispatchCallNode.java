@@ -30,7 +30,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.call.CallDispatchNode.UninitializedDispatchNode;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -54,7 +53,6 @@ public class DispatchCallNode extends PNode {
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
-        UninitializedDispatchNode uninitialized = new CallDispatchNode.UninitializedDispatchNode(callee.getName(), calleeNode);
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
@@ -64,7 +62,7 @@ public class DispatchCallNode extends PNode {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes, CallDispatchNode.create(callee, uninitialized));
+        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes, CallDispatchNode.create(callee, calleeNode));
     }
 
     @Override
@@ -123,18 +121,19 @@ public class DispatchCallNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
+            CompilerAsserts.neverPartOfCompilation();
+
             Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             Object primary = primaryNode.execute(frame);
             PythonCallable callee;
             try {
                 callee = calleeNode.executePythonCallable(frame);
             } catch (UnexpectedResultException e) {
-                // TODO Auto-generated catch block
                 throw new IllegalStateException();
             }
 
             if (primary instanceof PythonBuiltinClass) {
-                CallDispatchNode dispatch = CallDispatchNode.create(callee, new CallDispatchNode.UninitializedDispatchNode(calleeName, calleeNode));
+                CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
                 replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
                 return dispatchNode.executeCall(frame, primary, arguments);
             }
@@ -143,13 +142,13 @@ public class DispatchCallNode extends PNode {
                 PythonBasicObject primaryObj = (PythonBasicObject) primary;
 
                 if (callee instanceof PFunction) {
-                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode, new CallDispatchBoxedNode.UninitializedDispatchNode(calleeName, calleeNode));
+                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
                     replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
                     return dispatch.executeCall(frame, primaryObj, arguments);
                 }
             }
 
-            CallDispatchNode dispatch = CallDispatchNode.create(callee, new CallDispatchNode.UninitializedDispatchNode(calleeName, calleeNode));
+            CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
             replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
             return dispatchNode.executeCall(frame, primary, arguments);
         }

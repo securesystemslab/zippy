@@ -43,12 +43,13 @@ public abstract class CallDispatchNode extends Node {
 
     protected final String calleeName;
 
-    protected static CallDispatchNode create(PythonCallable callee, UninitializedDispatchNode next) {
+    protected static CallDispatchNode create(PythonCallable callee, PNode calleeNode) {
+        UninitializedDispatchNode next = new CallDispatchNode.UninitializedDispatchNode(callee.getName(), calleeNode);
         /**
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchNode(callee.getName(), next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), calleeNode);
         }
 
         if (callee instanceof PFunction) {
@@ -56,9 +57,9 @@ public abstract class CallDispatchNode extends Node {
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode((PBuiltinFunction) callee, next);
         } else if (callee instanceof PMethod) {
-            return new GenericDispatchNode(callee.getName(), next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), calleeNode);
         } else if (callee instanceof PBuiltinMethod) {
-            return new GenericDispatchNode(callee.getName(), next.calleeNode);
+            return new GenericDispatchNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
             return new DispatchBuiltinTypeNode((PythonBuiltinClass) callee, next);
         }
@@ -268,9 +269,9 @@ public abstract class CallDispatchNode extends Node {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedDispatchNode(String calleeName, PNode callee) {
+        public UninitializedDispatchNode(String calleeName, PNode calleeNode) {
             super(calleeName);
-            calleeNode = callee;
+            this.calleeNode = calleeNode;
         }
 
         @Override
@@ -293,8 +294,7 @@ public abstract class CallDispatchNode extends Node {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                UninitializedDispatchNode next = new UninitializedDispatchNode(callee.getName(), calleeNode);
-                CallDispatchNode direct = create(callee, next);
+                CallDispatchNode direct = create(callee, calleeNode);
                 specialized = replace(direct);
             } else {
                 CallDispatchNode generic = new GenericDispatchNode(calleeName, calleeNode);
