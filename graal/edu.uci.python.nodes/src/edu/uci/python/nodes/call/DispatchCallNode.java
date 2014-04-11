@@ -89,9 +89,9 @@ public abstract class DispatchCallNode extends PNode {
 
     public static final class UnboxedCallNode extends DispatchCallNode {
 
-        @Child protected CallDispatchNode dispatchNode;
+        @Child protected CallDispatchUnboxedNode dispatchNode;
 
-        public UnboxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchNode dispatch) {
+        public UnboxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchUnboxedNode dispatch) {
             super(calleeName, primary, arguments);
             dispatchNode = dispatch;
         }
@@ -127,7 +127,7 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             if (primary instanceof PythonBuiltinClass) {
-                CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
+                CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
                 replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
                 return dispatch.executeCall(frame, primary, arguments);
             }
@@ -140,9 +140,21 @@ public abstract class DispatchCallNode extends PNode {
                     replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
                     return dispatch.executeCall(frame, primaryObj, arguments);
                 }
+            } else if (primary instanceof PythonClass) {
+                PythonBasicObject primaryObj = (PythonBasicObject) primary;
+
+                if (callee instanceof PFunction) {
+                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
+                    replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+                    return dispatch.executeCall(frame, primaryObj, arguments);
+                }
+            } else if (primary instanceof PythonObject && callee instanceof PMethod) {
+                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
+                replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+                return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
             }
 
-            CallDispatchNode dispatch = CallDispatchNode.create(callee, calleeNode);
+            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
             replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
             return dispatch.executeCall(frame, primary, arguments);
         }

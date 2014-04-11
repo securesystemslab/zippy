@@ -43,15 +43,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    @Override
-    protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-        throw new UnsupportedOperationException();
-    }
-
     protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
 
     protected static CallDispatchBoxedNode create(PythonCallable callee, PNode calleeNode) {
-        UninitializedDispatchBoxedNode next = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(callee.getName(), calleeNode);
+        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode);
         /**
          * Treat generator as slow path for now.
          */
@@ -60,7 +55,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new DispatchFunctionBoxedNode((PFunction) callee, next);
+            return new DispatchGlobalFunctionNode((PFunction) callee, next);
         } else if (callee instanceof PMethod) {
             return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
@@ -70,7 +65,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
-    public static final class DispatchFunctionBoxedNode extends CallDispatchBoxedNode {
+    public static final class DispatchGlobalFunctionNode extends CallDispatchBoxedNode {
 
         protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
@@ -79,7 +74,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        public DispatchFunctionBoxedNode(PFunction callee, CallDispatchBoxedNode next) {
+        public DispatchGlobalFunctionNode(PFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.getDeclarationFrame();
@@ -193,7 +188,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 depth++;
             }
 
-            CallDispatchNode specialized;
+            CallDispatchBoxedNode specialized;
             if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
                 try {
@@ -202,10 +197,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                CallDispatchNode direct = create(callee, calleeNode);
+                CallDispatchBoxedNode direct = create(callee, calleeNode);
                 specialized = replace(direct);
             } else {
-                CallDispatchNode generic = new GenericDispatchBoxedNode(calleeName, calleeNode);
+                CallDispatchBoxedNode generic = new GenericDispatchBoxedNode(calleeName, calleeNode);
                 // TODO: should replace the dispatch node of the parent call node.
                 specialized = replace(generic);
             }
