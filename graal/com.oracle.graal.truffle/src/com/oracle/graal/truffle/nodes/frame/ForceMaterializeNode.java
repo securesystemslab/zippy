@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,26 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api;
+package com.oracle.graal.truffle.nodes.frame;
 
-/**
- * Represents the target of a call.
- */
-public abstract class CallTarget {
+import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.type.*;
 
-    public static final Object[] NO_ARGUMENTS = new Object[0];
+public class ForceMaterializeNode extends FixedWithNextNode implements LIRGenLowerable {
 
-    /**
-     * Calls this target as a root method..
-     *
-     * @param arguments passed arguments as an object array
-     * @return the return result of the call
-     */
-    public abstract Object call(Object[] arguments);
+    @Input private ValueNode object;
 
-    public final Object call() {
-        return call(NO_ARGUMENTS);
+    public ForceMaterializeNode(ValueNode object) {
+        super(StampFactory.forVoid());
+        this.object = object;
     }
 
-    public abstract void setNeedsMaterializedFrame();
+    public void generate(NodeLIRBuilder generator) {
+        // nothing to do
+    }
+
+    @NodeIntrinsic
+    public native static void force(Object object);
 }
