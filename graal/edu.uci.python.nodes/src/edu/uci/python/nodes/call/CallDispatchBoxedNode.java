@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -50,7 +49,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
 
-    protected static CallDispatchBoxedNode create(PythonCallable callee, UninitializedDispatchNode next) {
+    protected static CallDispatchBoxedNode create(PythonCallable callee, CallDispatchBoxedNode.UninitializedDispatchNode next) {
         /**
          * Treat generator as slow path for now.
          */
@@ -174,11 +173,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     public static final class UninitializedDispatchNode extends CallDispatchBoxedNode {
 
-        @Child protected PNode calleeNode;
-
-        public UninitializedDispatchNode(String calleeName, PNode callee) {
+        public UninitializedDispatchNode(String calleeName) {
             super(calleeName);
-            calleeNode = callee;
         }
 
         @Override
@@ -196,12 +192,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
                 try {
-                    callee = calleeNode.executePythonCallable(frame);
+                    callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primaryObj.getAttribute(calleeName));
                 } catch (UnexpectedResultException e) {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                UninitializedDispatchNode next = new UninitializedDispatchNode(callee.getName(), calleeNode);
+                UninitializedDispatchNode next = new UninitializedDispatchNode(callee.getName());
                 CallDispatchNode direct = create(callee, next);
                 specialized = replace(direct);
             } else {
