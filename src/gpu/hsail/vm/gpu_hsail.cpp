@@ -488,7 +488,7 @@ static char const* okra_library_name = NULL;
 
 #define LOOKUP_OKRA_FUNCTION(name, alias)  \
   _##alias =                               \
-    CAST_TO_FN_PTR(alias##_func_t, os::dll_lookup(handle, STRINGIFY(name))); \
+    CAST_TO_FN_PTR(alias##_func_t, os::dll_lookup(okra_lib_handle, STRINGIFY(name))); \
   if (_##alias == NULL) {      \
   tty->print_cr("[HSAIL] ***** Error: Failed to lookup %s in %s, wrong version of OKRA?", STRINGIFY(name), okra_library_name); \
         return false; \
@@ -504,22 +504,25 @@ GPU_ENTRY(jboolean, Hsail::initialize, (JNIEnv *env, jclass))
 
   // here we know we have a valid okra_library_name to try to load
   char ebuf[O_BUFLEN];
-  if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] library is %s", okra_library_name);
-  }
-
-  void *handle = os::dll_load(okra_library_name, ebuf, O_BUFLEN);
-  // try alternate location if env variable set
   char *okra_lib_name_from_env_var = getenv("_OKRA_SIM_LIB_PATH_");
-  if ((handle == NULL) && (okra_lib_name_from_env_var != NULL)) {
-    handle = os::dll_load(okra_lib_name_from_env_var, ebuf, O_BUFLEN);
-    if ((handle != NULL) && TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] using _OKRA_SIM_LIB_PATH_=%s", getenv("_OKRA_SIM_LIB_PATH_"));
-    }
+  if (okra_lib_name_from_env_var != NULL) {
+    okra_library_name = okra_lib_name_from_env_var;
   }
-
-  if (handle == NULL) {
-    // Unable to dlopen okra
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] library is %s", okra_library_name);
+  }
+  void *okra_lib_handle = NULL;
+#if defined(LINUX)
+  // Check first if the Okra library is already loaded.
+  // TODO: Figure out how to do this on other OSes.
+  okra_lib_handle = ::dlopen(okra_library_name, RTLD_LAZY | RTLD_NOLOAD);
+#endif
+  // If Okra library is not already loaded, load it here
+  if (okra_lib_handle == NULL) {
+    okra_lib_handle = os::dll_load(okra_library_name, ebuf, O_BUFLEN);
+  }  
+  if (okra_lib_handle == NULL) {
+    // Unable to open Okra library
     if (TraceGPUInteraction) {
       tty->print_cr("[HSAIL] library load failed.");
     }
@@ -528,7 +531,8 @@ GPU_ENTRY(jboolean, Hsail::initialize, (JNIEnv *env, jclass))
   
   guarantee(_okra_create_context == NULL, "cannot repeat GPU initialization");
 
-  // at this point we know handle is valid and we can lookup the functions
+  // at this point we know  okra_lib_handle is valid whether we loaded
+  // here or earlier.  In either case, we can lookup the functions
   LOOKUP_OKRA_FUNCTION(okra_create_context, okra_create_context);
   LOOKUP_OKRA_FUNCTION(okra_create_kernel, okra_create_kernel);
   LOOKUP_OKRA_FUNCTION(okra_push_object, okra_push_object);
