@@ -27,7 +27,7 @@ package edu.uci.python.nodes.call;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.DispatchNode.UninitializedDispatchNode;
+import edu.uci.python.nodes.call.CallDispatchNode.UninitializedDispatchNode;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
 
@@ -35,12 +35,12 @@ public class DispatchCallNode extends PNode {
 
     @Children protected final PNode[] argumentNodes;
     @Child protected PNode primaryNode;
-    @Child protected DispatchNode dispatchNode;
+    @Child protected CallDispatchNode dispatchNode;
 
     @SuppressWarnings("unused") private final String calleeName;
     @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
 
-    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments, DispatchNode dispatch) {
+    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchNode dispatch) {
         this.calleeName = calleeName;
         this.primaryNode = primary;
         this.argumentNodes = arguments;
@@ -48,7 +48,7 @@ public class DispatchCallNode extends PNode {
     }
 
     public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
-        UninitializedDispatchNode uninitialized = new DispatchNode.UninitializedDispatchNode(callee.getName(), calleeNode);
+        UninitializedDispatchNode uninitialized = new CallDispatchNode.UninitializedDispatchNode(callee.getName(), calleeNode);
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
@@ -58,7 +58,7 @@ public class DispatchCallNode extends PNode {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new DispatchCallNode(callee.getName(), primaryNode, argumentNodes, DispatchNode.create(callee, uninitialized));
+        return new DispatchCallNode(callee.getName(), primaryNode, argumentNodes, CallDispatchNode.create(callee, uninitialized));
     }
 
     @Override
