@@ -231,8 +231,8 @@ bool CompiledIC::is_call_to_compiled() const {
   // for calling directly to vep without using the inline cache (i.e., cached_value == NULL)
 #ifdef ASSERT
   CodeBlob* caller = CodeCache::find_blob_unsafe(instruction_address());
-  bool is_c1_method = caller->is_compiled_by_c1();
-  assert( is_c1_method ||
+  bool is_c1_or_graal_method = caller->is_compiled_by_c1() || caller->is_compiled_by_graal();
+  assert( is_c1_or_graal_method ||
          !is_monomorphic ||
          is_optimized() ||
          (cached_metadata() != NULL && cached_metadata()->is_klass()), "sanity check");
