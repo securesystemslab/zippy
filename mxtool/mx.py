@@ -3681,12 +3681,12 @@ def _intellij_suite(args, suite, refreshOnly=False):
         libraryXml.open('component', attributes={'name': 'libraryTable'})
         libraryXml.open('library', attributes={'name': library.name})
         libraryXml.open('CLASSES')
-        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.path, suite.dir) + '!/'})
+        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.get_path(True), suite.dir) + '!/'})
         libraryXml.close('CLASSES')
         libraryXml.element('JAVADOC')
         if library.sourcePath:
             libraryXml.open('SOURCES')
-            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.sourcePath, suite.dir) + '!/'})
+            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.get_source_path(True), suite.dir) + '!/'})
             libraryXml.close('SOURCES')
         else:
             libraryXml.element('SOURCES')
