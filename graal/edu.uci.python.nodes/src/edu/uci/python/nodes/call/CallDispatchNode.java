@@ -309,7 +309,7 @@ public abstract class CallDispatchNode extends Node {
     /**
      * Replicate the CallTarget to make each builtin call site uses separate ASTs.
      */
-    private static CallTarget split(RootCallTarget callTarget) {
+    protected static CallTarget split(RootCallTarget callTarget) {
         RootNode rootNode = callTarget.getRootNode();
         return Truffle.getRuntime().createCallTarget(NodeUtil.cloneNode(rootNode));
     }
