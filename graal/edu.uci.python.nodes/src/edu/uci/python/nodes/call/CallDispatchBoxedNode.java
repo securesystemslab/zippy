@@ -56,6 +56,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         if (callee instanceof PFunction) {
             return new DispatchGlobalFunctionNode((PFunction) callee, next);
+        } else if (callee instanceof PBuiltinFunction) {
+            return new DispatchBuiltinFunctionNode((PBuiltinFunction) callee, next);
         } else if (callee instanceof PMethod) {
             return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
@@ -65,6 +67,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
+    /**
+     * The primary is the global module.
+     *
+     */
     public static final class DispatchGlobalFunctionNode extends CallDispatchBoxedNode {
 
         protected final CallTarget cachedCallTarget;
@@ -98,6 +104,47 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
+    /**
+     * The primary is the global module.
+     *
+     */
+    public static final class DispatchBuiltinFunctionNode extends CallDispatchBoxedNode {
+
+        protected final PBuiltinFunction cachedCallee;
+        protected final CallTarget cachedCallTarget;
+        protected final Assumption cachedCallTargetStable;
+
+        @Child protected CallNode callNode;
+        @Child protected CallDispatchBoxedNode nextNode;
+
+        public DispatchBuiltinFunctionNode(PBuiltinFunction callee, CallDispatchBoxedNode next) {
+            super(callee.getName());
+            cachedCallee = callee;
+            cachedCallTarget = split(callee.getCallTarget());
+            // TODO: replace holder for now.
+            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
+            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            nextNode = next;
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+            try {
+                cachedCallTargetStable.check();
+
+                PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, primaryObj, arguments);
+            }
+        }
+    }
+
+    /**
+     * The primary is a {@link PythonBasicObject}
+     *
+     */
     public static final class DispatchMethodBoxedNode extends CallDispatchBoxedNode {
 
         protected final PMethod cachedCallee;

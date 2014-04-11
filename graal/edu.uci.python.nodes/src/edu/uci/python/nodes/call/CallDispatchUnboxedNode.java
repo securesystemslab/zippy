@@ -54,10 +54,6 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
         if (callee instanceof PFunction) {
             return new DispatchVariableFunctionNode((PFunction) callee, next);
-        } else if (callee instanceof PBuiltinFunction) {
-            return new DispatchBuiltinFunctionNode((PBuiltinFunction) callee, next);
-        } else if (callee instanceof PMethod) {
-            return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PBuiltinMethod) {
             return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
@@ -98,74 +94,6 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 cachedCallTargetStable.check();
 
                 PArguments arg = new PArguments(null, declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
-            }
-        }
-    }
-
-    public static final class DispatchMethodNode extends CallDispatchUnboxedNode {
-
-        protected final PMethod cachedCallee;
-        protected final CallTarget cachedCallTarget;
-        protected final Assumption cachedCallTargetStable;
-        private final MaterializedFrame declarationFrame;
-
-        @Child protected CallNode callNode;
-        @Child protected CallDispatchUnboxedNode nextNode;
-
-        public DispatchMethodNode(PMethod callee, CallDispatchUnboxedNode next) {
-            super(callee.getName());
-            cachedCallee = callee;
-            cachedCallTarget = callee.getCallTarget();
-            declarationFrame = callee.__func__().getDeclarationFrame();
-            // TODO: replace holder for now.
-            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
-            nextNode = next;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
-                PArguments arg = new PArguments(cachedCallee.__self__(), declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
-            }
-        }
-    }
-
-    public static final class DispatchBuiltinFunctionNode extends CallDispatchUnboxedNode {
-
-        protected final PBuiltinFunction cachedCallee;
-        protected final CallTarget cachedCallTarget;
-        protected final Assumption cachedCallTargetStable;
-
-        @Child protected CallNode callNode;
-        @Child protected CallDispatchUnboxedNode nextNode;
-
-        public DispatchBuiltinFunctionNode(PBuiltinFunction callee, CallDispatchUnboxedNode next) {
-            super(callee.getName());
-            cachedCallee = callee;
-            cachedCallTarget = split(callee.getCallTarget());
-            // TODO: replace holder for now.
-            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
-            nextNode = next;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
-                PArguments arg = new PArguments(PNone.NONE, null, arguments);
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);

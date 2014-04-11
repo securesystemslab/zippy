@@ -29,9 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.object.*;
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -113,6 +111,18 @@ public abstract class DispatchCallNode extends PNode {
             this.calleeNode = callee;
         }
 
+        private static boolean isPrimaryBoxed(Object primary, PythonCallable callee) {
+            if (primary instanceof PythonModule) {
+                return true;
+            } else if (primary instanceof PythonClass) {
+                return true;
+            } else if (primary instanceof PythonObject && callee instanceof PMethod) {
+                return true;
+            }
+
+            return false;
+        }
+
         @Override
         public Object execute(VirtualFrame frame) {
             CompilerAsserts.neverPartOfCompilation();
@@ -126,29 +136,7 @@ public abstract class DispatchCallNode extends PNode {
                 throw new IllegalStateException();
             }
 
-            if (primary instanceof PythonBuiltinClass) {
-                CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
-                replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-                return dispatch.executeCall(frame, primary, arguments);
-            }
-
-            if (primary instanceof PythonModule && (calleeNode instanceof ReadGlobalNode)) {
-                PythonBasicObject primaryObj = (PythonBasicObject) primary;
-
-                if (callee instanceof PFunction) {
-                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
-                    replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-                    return dispatch.executeCall(frame, primaryObj, arguments);
-                }
-            } else if (primary instanceof PythonClass) {
-                PythonBasicObject primaryObj = (PythonBasicObject) primary;
-
-                if (callee instanceof PFunction) {
-                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
-                    replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-                    return dispatch.executeCall(frame, primaryObj, arguments);
-                }
-            } else if (primary instanceof PythonObject && callee instanceof PMethod) {
+            if (isPrimaryBoxed(primary, callee)) {
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
                 replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
