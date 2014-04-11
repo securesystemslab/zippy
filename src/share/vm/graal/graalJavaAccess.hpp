@@ -202,17 +202,17 @@ void graal_compute_offsets();
   start_class(Constant)                                                                                                                                        \
     oop_field(Constant, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                              \
   end_class                                                                                                                                                    \
-  start_class(PrimitiveConstant)                                                                                                                                        \
-    long_field(PrimitiveConstant, primitive)                                                                                                                            \
+  start_class(PrimitiveConstant)                                                                                                                               \
+    long_field(PrimitiveConstant, primitive)                                                                                                                   \
   end_class                                                                                                                                                    \
-  start_class(NullConstant)                                                                                                                                        \
+  start_class(NullConstant)                                                                                                                                    \
   end_class                                                                                                                                                    \
-  start_class(HotSpotObjectConstant)                                                                                                                                        \
-    oop_field(HotSpotObjectConstant, object, "Ljava/lang/Object;")                                                                                                          \
+  start_class(HotSpotObjectConstant)                                                                                                                           \
+    oop_field(HotSpotObjectConstant, object, "Ljava/lang/Object;")                                                                                             \
   end_class                                                                                                                                                    \
-  start_class(HotSpotMetaspaceConstant)                                                                                                                                        \
-    long_field(HotSpotMetaspaceConstant, primitive)                                                                                                                            \
-    oop_field(HotSpotMetaspaceConstant, metaspaceObject, "Ljava/lang/Object;")                                                                                                          \
+  start_class(HotSpotMetaspaceConstant)                                                                                                                        \
+    long_field(HotSpotMetaspaceConstant, primitive)                                                                                                            \
+    oop_field(HotSpotMetaspaceConstant, metaspaceObject, "Ljava/lang/Object;")                                                                                 \
   end_class                                                                                                                                                    \
   start_class(Kind)                                                                                                                                            \
     char_field(Kind, typeChar)                                                                                                                                 \
@@ -249,7 +249,16 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(SpeculationLog)                                                                                                                                  \
     oop_field(SpeculationLog, lastFailed, "Ljava/lang/Object;")                                                                                                \
-  end_class
+  end_class                                                                                                                                                    \
+  start_class(HotSpotStackFrameReference)                                                                                                                      \
+    oop_field(HotSpotStackFrameReference, compilerToVM, "Lcom/oracle/graal/hotspot/bridge/CompilerToVM;")                                                      \
+    long_field(HotSpotStackFrameReference, stackPointer)                                                                                                       \
+    int_field(HotSpotStackFrameReference, frameNumber)                                                                                                         \
+    int_field(HotSpotStackFrameReference, bci)                                                                                                                 \
+    long_field(HotSpotStackFrameReference, metaspaceMethod)                                                                                                    \
+    oop_field(HotSpotStackFrameReference, locals, "[Ljava/lang/Object;")                                                                                       \
+    oop_field(HotSpotStackFrameReference, localIsVirtual, "[Z")                                                                                                \
+  end_class                                                                                                                                                    \
   /* end*/
 
 #define START_CLASS(name)                                                                                                                                      \
