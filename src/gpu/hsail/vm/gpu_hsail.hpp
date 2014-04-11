@@ -60,6 +60,7 @@ class Hsail {
    private:
     jint _deopt_occurred;
     jint _deopt_next_index;
+    JavaThread** _donor_threads;
     jboolean * _never_ran_array;
 
    public:
@@ -77,6 +78,7 @@ class Hsail {
     inline jint num_deopts() { return _deopt_next_index; }
     inline jboolean *never_ran_array() { return _never_ran_array; }
     inline void  set_never_ran_array(jboolean *p) { _never_ran_array = p; }
+    inline void  set_donor_threads(JavaThread **threads) { _donor_threads = threads; }
   };
 
 
@@ -91,13 +93,16 @@ private:
   JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
-  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave);
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave,
+                                                   jobject donorThreads, int allocBytesPerWorkitem);
 
-  // static native void setSimulatorSingleThreaded0();
-  JNIEXPORT static void setSimulatorSingleThreaded0(JNIEnv *env, jclass);
+  // static native void getThreadPointers(Object[] donorThreads, long[] threadPointersOut);
+  JNIEXPORT static void get_thread_pointers(JNIEnv *env, jclass, jobject donor_threads_handle, jobject thread_ptrs_handle);
 
+  static void getNewTlabForDonorThread(ThreadLocalAllocBuffer* tlab, size_t tlabMinHsail);
 
-  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oopsSave, TRAPS);
+  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oopsSave,
+                                                  jobject donorThreads, int allocBytesPerWorkitem, TRAPS);
 
   static void register_heap();
 

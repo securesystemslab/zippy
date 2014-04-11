@@ -84,6 +84,7 @@ class GCHeapLog : public EventLogBase<GCMessage> {
 class CollectedHeap : public CHeapObj<mtInternal> {
   friend class VMStructs;
   friend class IsGCActiveMark; // Block structured external access to _is_gc_active
+  friend class Hsail;  // access to allocate_new_tlab
 
 #ifdef ASSERT
   static int       _fire_out_of_memory_count;

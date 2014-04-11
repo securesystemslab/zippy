@@ -59,16 +59,15 @@
 
 #define OBJECT                "Ljava/lang/Object;"
 #define STRING                "Ljava/lang/String;"
+#define JLTHREAD              "Ljava/lang/Thread;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
 #define HS_COMPILED_NMETHOD   "Lcom/oracle/graal/hotspot/HotSpotCompiledNmethod;"
 #define HS_NMETHOD            "Lcom/oracle/graal/hotspot/meta/HotSpotNmethod;"
 
-//  public native void executeKernel(HotSpotNmethod kernel, int jobSize, int i, int j, Object[] args) throws InvalidInstalledCodeException;
-
 JNINativeMethod Hsail::HSAIL_methods[] = {
   {CC"initialize",       CC"()Z",                               FN_PTR(Hsail::initialize)},
   {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(Hsail::generate_kernel)},
-  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["OBJECT")Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
+  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["OBJECT"["JLTHREAD"I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
 };
 
 void * Hsail::_device_context = NULL;
@@ -86,6 +85,43 @@ Hsail::okra_execute_with_range_func_t    Hsail::_okra_execute_with_range;
 Hsail::okra_clearargs_func_t       Hsail::_okra_clearargs;
 Hsail::okra_register_heap_func_t   Hsail::_okra_register_heap;
 
+struct Stats {
+  int _dispatches;
+  int _deopts;
+  int _overflows;
+  bool _changeSeen;
+
+public:
+  Stats() {
+    _dispatches = _deopts = _overflows = 0;
+    _changeSeen = false;
+  }
+
+  void incDeopts() {
+    _deopts++;
+    _changeSeen = true;
+  }
+  void incOverflows() {
+    _overflows++;
+    _changeSeen = true;
+  }
+
+  void finishDispatch() {
+    _dispatches++;
+    if (_changeSeen) {
+      // print();
+      _changeSeen = false;
+    }
+  }
+
+  void print() {
+    tty->print_cr("Disp=%d, Deopts=%d, Ovflows=%d", _dispatches, _deopts, _overflows);
+  }
+
+};
+
+static Stats kernelStats;
+
 
 void Hsail::register_heap() {
   // After the okra functions are set up and the heap is initialized, register the java heap with HSA
@@ -97,7 +133,8 @@ void Hsail::register_heap() {
   _okra_register_heap(Universe::heap()->base(), Universe::heap()->capacity());
 }
 
-GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args_handle, jobject oops_save_handle))
+GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args, jobject oops_save,
+                                                      jobject donor_threads, jint allocBytesPerWorkitem))
 
   ResourceMark rm;
   jlong nmethodValue = HotSpotInstalledCode::codeBlob(kernel_handle);
@@ -113,7 +150,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
 
-  return execute_kernel_void_1d_internal((address) kernel, dimX, args_handle, mh, nm, oops_save_handle, CHECK_0);
+  return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, oops_save, donor_threads, allocBytesPerWorkitem, CHECK_0);
 GPU_END
 
 static void showRanges(jboolean *a, int len) {
@@ -133,10 +170,80 @@ static void showRanges(jboolean *a, int len) {
   }
 }
 
-jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args_handle, methodHandle& mh, nmethod *nm, jobject oops_save_handle, TRAPS) {
+// fill and retire old tlab and get a new one
+// if we can't get one, no problem someone will eventually do a gc
+void Hsail::getNewTlabForDonorThread(ThreadLocalAllocBuffer* tlab, size_t tlabMinHsail) {
+  tlab->clear_before_allocation();    // fill and retire old tlab (will also check for null)
 
+  // get a size for a new tlab that is at least tlabMinHsail.
+  size_t new_tlab_size = tlab->compute_size(tlabMinHsail);
+  if (new_tlab_size == 0) return;
+
+  HeapWord* tlab_start = Universe::heap()->allocate_new_tlab(new_tlab_size);
+  if (tlab_start == NULL) return;
+
+  // ..and clear it if required
+  if (ZeroTLAB) {
+    Copy::zero_to_words(tlab_start, new_tlab_size);
+  }
+  // and init the tlab pointers
+  tlab->fill(tlab_start, tlab_start, new_tlab_size);
+}
+
+static void printTlabInfo (ThreadLocalAllocBuffer* tlab) {
+  HeapWord *start = tlab->start();
+  HeapWord *top = tlab->top();
+  HeapWord *end = tlab->end();
+  // sizes are in bytes
+  size_t tlabFree = tlab->free() * HeapWordSize;
+  size_t tlabUsed = tlab->used() * HeapWordSize;
+  size_t tlabSize = tlabFree + tlabUsed;
+  double freePct = 100.0 * (double) tlabFree/(double) tlabSize;
+  tty->print_cr("(%p, %p, %p), siz=%ld, free=%ld (%f%%)", start, top, end, tlabSize, tlabFree, freePct);
+}
+
+
+
+jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oops_save,
+                                                jobject donor_threads, int allocBytesPerWorkitem, TRAPS) {
   ResourceMark rm(THREAD);
-  objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args_handle);
+  objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
+
+  // TODO: avoid donor thread logic if kernel does not allocate
+  objArrayOop donorThreadObjects = (objArrayOop) JNIHandles::resolve(donor_threads);
+  int numDonorThreads = donorThreadObjects->length();
+  guarantee(numDonorThreads > 0, "need at least one donor thread");
+  JavaThread** donorThreads = NEW_RESOURCE_ARRAY(JavaThread*, numDonorThreads);
+  for (int i = 0; i < numDonorThreads; i++) {
+    donorThreads[i] = java_lang_Thread::thread(donorThreadObjects->obj_at(i));
+  }
+
+
+  // compute tlabMinHsail based on number of workitems, number of donor
+  // threads, allocBytesPerWorkitem rounded up
+  size_t tlabMinHsail = (allocBytesPerWorkitem * dimX + (numDonorThreads - 1)) / numDonorThreads;
+  if (TraceGPUInteraction) {
+    tty->print_cr("computed tlabMinHsail = %d", tlabMinHsail);
+  }
+
+  for (int i = 0; i < numDonorThreads; i++) {
+    JavaThread* donorThread = donorThreads[i];
+    ThreadLocalAllocBuffer* tlab = &donorThread->tlab();
+    if (TraceGPUInteraction) {
+      tty->print("donorThread %d, is %p, tlab at %p -> ", i, donorThread, tlab);
+      printTlabInfo(tlab);
+    }
+
+    // note: this used vs. free limit checking should be based on some
+    // heuristic where we see how much this kernel tends to allocate
+    if ((tlab->end() == NULL) || (tlab->free() * HeapWordSize < tlabMinHsail)) {
+      getNewTlabForDonorThread(tlab, tlabMinHsail);
+      if (TraceGPUInteraction) {
+        tty->print("donorThread %d, refilled tlab, -> ", i);
+        printTlabInfo(tlab);
+      }
+    }
+  }
 
   // Reset the kernel arguments
   _okra_clearargs(kernel);
@@ -146,6 +253,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
     e = new (ResourceObj::C_HEAP, mtInternal) HSAILDeoptimizationInfo();
     e->set_never_ran_array(NEW_C_HEAP_ARRAY(jboolean, dimX, mtInternal));
     memset(e->never_ran_array(), 0, dimX * sizeof(jboolean));
+    e->set_donor_threads(donorThreads);
   }
 
   // This object sets up the kernel arguments
@@ -169,6 +277,25 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
     success = _okra_execute_with_range(kernel, dimX);
   }
 
+  // fix up any tlab tops that overflowed
+  bool anyOverflows = false;
+  for (int i = 0; i < numDonorThreads; i++) {
+    JavaThread * donorThread = donorThreads[i];
+    ThreadLocalAllocBuffer* tlab = &donorThread->tlab();
+    if (tlab->top() > tlab->end()) {
+      anyOverflows = true;
+      long overflowAmount = (long) tlab->top() - (long) tlab->pf_top(); 
+      // tlab->set_top is private this ugly hack gets around that
+      *(long *)((char *)tlab + in_bytes(tlab->top_offset())) = (long) tlab->pf_top();
+      if (TraceGPUInteraction) {
+        tty->print_cr("donorThread %d at %p overflowed by %ld bytes, setting last good top to %p", i, donorThread, overflowAmount, tlab->top());
+      }
+    }
+  }
+  if (anyOverflows) {
+    kernelStats.incOverflows();
+  }
+
   if (UseHSAILDeoptimization) {
     // check if any workitem requested a deopt
     // currently we only support at most one such workitem
@@ -180,10 +307,9 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
         sprintf(msg, "deopt error detected, slot for workitem %d was not empty", -1 * (deoptcode + 1));
         guarantee(deoptcode == 1, msg);
       }
-
+      kernelStats.incDeopts();
       {
         TraceTime t3("handle deoptimizing workitems", TraceGPUInteraction);
-
         if (TraceGPUInteraction) {
           tty->print_cr("deopt happened.");
           HSAILKernelDeoptimization * pdeopt = &e->_deopt_save_states[0];
@@ -194,7 +320,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
         // the hsail frames in oops_save so they get adjusted by any
         // GC. Need to do this before leaving thread_in_vm mode.
         // resolve handle only needed once here (not exiting vm mode)
-        objArrayOop oopsSaveArray = (objArrayOop) JNIHandles::resolve(oops_save_handle);
+        objArrayOop oopsSaveArray = (objArrayOop) JNIHandles::resolve(oops_save);
 
         // since slots are allocated from the beginning, we know how far to look
         assert(e->num_deopts() < MAX_DEOPT_SAVE_STATES_SIZE, "deopt save state overflow");
@@ -228,7 +354,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
 
             // update the hsailFrame from the oopsSaveArray
             // re-resolve the handle
-            oopsSaveArray = (objArrayOop) JNIHandles::resolve(oops_save_handle);
+            oopsSaveArray = (objArrayOop) JNIHandles::resolve(oops_save);
 
             int dregOopMap = hsailFrame->dreg_oops_map();
             for (int bit = 0; bit < 16; bit++) {
@@ -296,7 +422,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
               JavaValue result(T_VOID);
               JavaCallArguments javaArgs;
               // re-resolve the args_handle here
-              objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args_handle);
+              objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args);
               // This object sets up the javaCall arguments
               // the way argsArray is set up, this should work for instance methods as well
               // (the receiver will be the first oop pushed)
@@ -317,10 +443,11 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
         } // end of never-ran handling
       }
     }
-
+    
     FREE_C_HEAP_ARRAY(jboolean, e->never_ran_array(), mtInternal);
     delete e;
   }
+  kernelStats.finishDispatch();
   return success;
 }
 
