@@ -29,10 +29,13 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.CallDispatchNode.UninitializedDispatchNode;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public class DispatchCallNode extends PNode {
 
@@ -61,7 +64,7 @@ public class DispatchCallNode extends PNode {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new DispatchCallNode(callee.getName(), primaryNode, argumentNodes, CallDispatchNode.create(callee, uninitialized));
+        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes, CallDispatchNode.create(callee, uninitialized));
     }
 
     @Override
@@ -73,8 +76,11 @@ public class DispatchCallNode extends PNode {
 
     public static final class BoxedCallNode extends DispatchCallNode {
 
+        @Child protected CallDispatchBoxedNode dispatchBoxedNode;
+
         public BoxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch) {
             super(calleeName, primary, arguments, dispatch);
+            dispatchBoxedNode = dispatch;
         }
 
         @Override
@@ -88,7 +94,7 @@ public class DispatchCallNode extends PNode {
                 throw new IllegalStateException();
             }
 
-            return dispatchNode.executeCall(frame, primary, arguments);
+            return dispatchBoxedNode.executeCall(frame, primary, arguments);
         }
     }
 
@@ -108,29 +114,44 @@ public class DispatchCallNode extends PNode {
 
     public static final class UninitializedCallNode extends DispatchCallNode {
 
-        public UninitializedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchNode dispatch) {
+        @Child protected PNode calleeNode;
+
+        public UninitializedCallNode(String calleeName, PNode primary, PNode callee, PNode[] arguments, CallDispatchNode dispatch) {
             super(calleeName, primary, arguments, dispatch);
+            this.calleeNode = callee;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             Object primary = primaryNode.execute(frame);
-            Object result;
-
-            if (primary instanceof PythonBasicObject) {
-                PythonBasicObject primaryObj = (PythonBasicObject) primary;
-                Object callee = primaryObj.getAttribute(calleeName);
-                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonCallable) callee, new CallDispatchBoxedNode.UninitializedDispatchNode(calleeName));
-                replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
-                result = dispatch.executeCall(frame, primaryObj, arguments);
-            } else {
-// CallDispatchNode.create(callee, new CallDispatchNode.UninitializedDispatchNode(calleeName,
-// callee));
-                result = dispatchNode.executeCall(frame, primary, arguments);
+            PythonCallable callee;
+            try {
+                callee = calleeNode.executePythonCallable(frame);
+            } catch (UnexpectedResultException e) {
+                // TODO Auto-generated catch block
+                throw new IllegalStateException();
             }
 
-            return result;
+            if (primary instanceof PythonBuiltinClass) {
+                CallDispatchNode dispatch = CallDispatchNode.create(callee, new CallDispatchNode.UninitializedDispatchNode(calleeName, calleeNode));
+                replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+                return dispatchNode.executeCall(frame, primary, arguments);
+            }
+
+            if (primary instanceof PythonModule && (calleeNode instanceof ReadGlobalNode)) {
+                PythonBasicObject primaryObj = (PythonBasicObject) primary;
+
+                if (callee instanceof PFunction) {
+                    CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode, new CallDispatchBoxedNode.UninitializedDispatchNode(calleeName, calleeNode));
+                    replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+                    return dispatch.executeCall(frame, primaryObj, arguments);
+                }
+            }
+
+            CallDispatchNode dispatch = CallDispatchNode.create(callee, new CallDispatchNode.UninitializedDispatchNode(calleeName, calleeNode));
+            replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+            return dispatchNode.executeCall(frame, primary, arguments);
         }
     }
 

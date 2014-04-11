@@ -297,7 +297,7 @@ public abstract class CallDispatchNode extends Node {
                 CallDispatchNode direct = create(callee, next);
                 specialized = replace(direct);
             } else {
-                CallDispatchNode generic = new GenericDispatchNode("Unknown", calleeNode);
+                CallDispatchNode generic = new GenericDispatchNode(calleeName, calleeNode);
                 // TODO: should replace the dispatch node of the parent call node.
                 specialized = replace(generic);
             }
@@ -310,6 +310,7 @@ public abstract class CallDispatchNode extends Node {
      * Replicate the CallTarget to make each builtin call site uses separate ASTs.
      */
     protected static CallTarget split(RootCallTarget callTarget) {
+        CompilerAsserts.neverPartOfCompilation();
         RootNode rootNode = callTarget.getRootNode();
         return Truffle.getRuntime().createCallTarget(NodeUtil.cloneNode(rootNode));
     }
