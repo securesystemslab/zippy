@@ -786,12 +786,22 @@ C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv *env, jobject))
   return tty->time_stamp().milliseconds();
 C2V_END
 
+bool matches(jlongArray methods, Method* method) {
+  typeArrayOop methods_oop = (typeArrayOop) JNIHandles::resolve(methods);
+
+  for (int i = 0; i < methods_oop->length(); i++) {
+    if (methods_oop->long_at(i) == (jlong) method) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // public native HotSpotStackFrameReference getNextStackFrame(HotSpotStackFrameReference frame, ResolvedJavaMethod method);
-C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jobject hs_method))
+C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods))
   ResourceMark rm;
 
   if (!thread->has_last_Java_frame()) return NULL;
-  methodHandle method = hs_method == NULL ? NULL : asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hs_method));
   Handle result = InstanceKlass::cast(HotSpotStackFrameReference::klass())->allocate_instance(thread);
   HotSpotStackFrameReference::klass()->initialize(thread);
 
@@ -840,7 +850,7 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
       if (vf->is_compiled_frame()) {
         // compiled method frame
         compiledVFrame* cvf = compiledVFrame::cast(vf);
-        if (method == NULL || cvf->method() == method()) {
+        if (methods == NULL || matches(methods, cvf->method())) {
           GrowableArray<ScopeValue*>* objects = cvf->scope()->objects();
           bool reallocated = false;
           if (objects != NULL) {
@@ -864,23 +874,15 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
 
           locals = cvf->locals();
           HotSpotStackFrameReference::set_bci(result, cvf->bci());
-          if (hs_method == NULL) {
-            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) cvf->method());
-          } else {
-            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) method());
-          }
+          HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) cvf->method());
         }
       } else if (vf->is_interpreted_frame()) {
         // interpreted method frame
         interpretedVFrame* ivf = interpretedVFrame::cast(vf);
-        if (method == NULL || ivf->method() == method()) {
+        if (methods == NULL || matches(methods, ivf->method())) {
           locals = ivf->locals();
           HotSpotStackFrameReference::set_bci(result, ivf->bci());
-          if (hs_method == NULL) {
-            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) ivf->method());
-          } else {
-            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) method());
-          }
+          HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) ivf->method());
           HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
         }
       }
@@ -1031,6 +1033,7 @@ C2V_END
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
+#define RESOLVED_METHOD       "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
@@ -1093,7 +1096,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
   {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
   {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
-  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF HS_RESOLVED_METHOD")"HS_STACK_FRAME_REF,  FN_PTR(getNextStackFrame)},
+  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[J)"HS_STACK_FRAME_REF,                  FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                     FN_PTR(materializeVirtualObjects)},
 };
 
