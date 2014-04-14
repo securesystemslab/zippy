@@ -797,8 +797,7 @@ bool matches(jlongArray methods, Method* method) {
   return false;
 }
 
-// public native HotSpotStackFrameReference getNextStackFrame(HotSpotStackFrameReference frame, ResolvedJavaMethod method);
-C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods))
+C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
   ResourceMark rm;
 
   if (!thread->has_last_Java_frame()) return NULL;
@@ -851,39 +850,47 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
         // compiled method frame
         compiledVFrame* cvf = compiledVFrame::cast(vf);
         if (methods == NULL || matches(methods, cvf->method())) {
-          GrowableArray<ScopeValue*>* objects = cvf->scope()->objects();
-          bool reallocated = false;
-          if (objects != NULL) {
-            reallocated = Deoptimization::realloc_objects(thread, fst.current(), objects, THREAD);
-            if (reallocated) {
-              Deoptimization::reassign_fields(fst.current(), fst.register_map(), objects);
-            }
-
-            GrowableArray<ScopeValue*>* local_values = cvf->scope()->locals();
-            typeArrayHandle array = oopFactory::new_boolArray(local_values->length(), thread);
-            for (int i = 0; i < local_values->length(); i++) {
-              ScopeValue* value = local_values->at(i);
-              if (value->is_object()) {
-                array->bool_at_put(i, true);
-              }
-            }
-            HotSpotStackFrameReference::set_localIsVirtual(result, array());
+          if (initialSkip > 0) {
+            initialSkip --;
           } else {
-            HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
-          }
+            GrowableArray<ScopeValue*>* objects = cvf->scope()->objects();
+            bool reallocated = false;
+            if (objects != NULL) {
+              reallocated = Deoptimization::realloc_objects(thread, fst.current(), objects, THREAD);
+              if (reallocated) {
+                Deoptimization::reassign_fields(fst.current(), fst.register_map(), objects);
+              }
 
-          locals = cvf->locals();
-          HotSpotStackFrameReference::set_bci(result, cvf->bci());
-          HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) cvf->method());
+              GrowableArray<ScopeValue*>* local_values = cvf->scope()->locals();
+              typeArrayHandle array = oopFactory::new_boolArray(local_values->length(), thread);
+              for (int i = 0; i < local_values->length(); i++) {
+                ScopeValue* value = local_values->at(i);
+                if (value->is_object()) {
+                  array->bool_at_put(i, true);
+                }
+              }
+              HotSpotStackFrameReference::set_localIsVirtual(result, array());
+            } else {
+              HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
+            }
+
+            locals = cvf->locals();
+            HotSpotStackFrameReference::set_bci(result, cvf->bci());
+            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) cvf->method());
+          }
         }
       } else if (vf->is_interpreted_frame()) {
         // interpreted method frame
         interpretedVFrame* ivf = interpretedVFrame::cast(vf);
         if (methods == NULL || matches(methods, ivf->method())) {
-          locals = ivf->locals();
-          HotSpotStackFrameReference::set_bci(result, ivf->bci());
-          HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) ivf->method());
-          HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
+          if (initialSkip > 0) {
+            initialSkip --;
+          } else {
+            locals = ivf->locals();
+            HotSpotStackFrameReference::set_bci(result, ivf->bci());
+            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) ivf->method());
+            HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
+          }
         }
       }
 
@@ -1096,7 +1103,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
   {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
   {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
-  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[J)"HS_STACK_FRAME_REF,                  FN_PTR(getNextStackFrame)},
+  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                 FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                     FN_PTR(materializeVirtualObjects)},
 };
 
