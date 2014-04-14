@@ -522,7 +522,7 @@ void Disassembler::decode(nmethod* nm, outputStream* st) {
   nm->method()->method_holder()->name()->print_symbol_on(env.output());
   env.output()->print(".");
   nm->method()->name()->print_symbol_on(env.output());
-  env.output()->print_cr("  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", p, end, ((jlong)(end - p)) * sizeof(unsigned char*));
+  env.output()->print_cr("  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", p, end, ((jlong)(end - p)));
 
   // If there has been profiling, print the buckets.
   if (FlatProfiler::bucket_start_for(p) != NULL) {
