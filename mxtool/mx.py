@@ -36,6 +36,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
 import socket
+import tarfile
 import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
@@ -4270,6 +4271,75 @@ def select_items(items, descriptions=None, allowMultiple=True):
                 return items[indexes[0]]
             return None
 
+def exportlibs(args):
+    """export libraries to an archive file"""
+
+    parser = ArgumentParser(prog='exportlibs')
+    parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
+    parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
+    parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
+    parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
+    parser.add_argument('--include-system-libs', action='store_true', help='include system libraries (i.e., those not downloaded from URLs)')
+    parser.add_argument('extras', nargs=REMAINDER, help='extra files and directories to add to archive', metavar='files...')
+    args = parser.parse_args(args)
+
+    def createArchive(addMethod):
+        entries = {}
+        def add(path, arcname):
+            apath = os.path.abspath(path)
+            if not entries.has_key(arcname):
+                entries[arcname] = apath
+                logv('[adding ' + path + ']')
+                addMethod(path, arcname=arcname)
+            elif entries[arcname] != apath:
+                logv('[warning: ' + apath + ' collides with ' + entries[arcname] + ' as ' + arcname + ']')
+            else:
+                logv('[already added ' + path + ']')
+
+        for lib in _libs.itervalues():
+            if len(lib.urls) != 0 or args.include_system_libs:
+                add(lib.get_path(resolve=True), lib.path)
+        if args.extras:
+            for e in args.extras:
+                if os.path.isdir(e):
+                    for root, _, filenames in os.walk(e):
+                        for name in filenames:
+                            f = join(root, name)
+                            add(f, f)
+                else:
+                    add(e, e)
+
+    if args.arc == 'zip':
+        path = args.base + '.zip'
+        with zipfile.ZipFile(path, 'w') as zf:
+            createArchive(zf.write)
+    else:
+        path = args.base + '.tar'
+        mode = 'w'
+        if args.arc != 'tar':
+            sfx = args.arc[1:]
+            mode = mode + ':' + sfx
+            path = path + '.' + sfx
+        with tarfile.open(path, mode) as tar:
+            createArchive(tar.add)
+    log('created ' + path)
+
+    def digest(enabled, path, factory, suffix):
+        if enabled:
+            d = factory()
+            with open(path, 'rb') as f:
+                while True:
+                    buf = f.read(4096)
+                    if not buf:
+                        break
+                d.update(buf)
+            with open(path + '.' + suffix, 'w') as fp:
+                fp.write(d.hexdigest())
+            log('created ' + path + '.' + suffix)
+
+    digest(args.sha1, path, hashlib.sha1, 'sha1')
+    digest(args.md5, path, hashlib.md5, 'md5')
+
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
@@ -4338,6 +4408,7 @@ _commands = {
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
     'eclipseformat': [eclipseformat, ''],
+    'exportlibs': [exportlibs, ''],
     'findclass': [findclass, ''],
     'fsckprojects': [fsckprojects, ''],
     'help': [help_, '[command]'],
