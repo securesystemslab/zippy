@@ -22,27 +22,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.graal.truffle;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.FrameInstance.*;
 
-public interface FrameInstance {
+public interface MaterializedFrameNotify {
 
-    public static enum FrameAccess {
-        NONE,
-        READ_ONLY,
-        READ_WRITE,
-        MATERIALIZE
-    }
+    FrameAccess getOutsideFrameAccess();
 
-    Frame getFrame(FrameAccess access, boolean slowPath);
-
-    boolean isVirtualFrame();
-
-    DirectCallNode getCallNode();
-
-    CallTarget getCallTarget();
-
-    CallTarget getTargetCallTarget();
+    void setOutsideFrameAccess(FrameAccess outsideFrameAccess);
 }

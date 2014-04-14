@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,33 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes.call;
+package com.oracle.graal.truffle;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.sl.runtime.*;
 
 /**
- * Slow-path code for a call, used when the polymorphic inline cache exceeded its maximum size. Such
- * calls are not optimized any further, e.g., no method inlining is performed.
+ * A call node with a constant {@link CallTarget} that can be optimized by Graal.
  */
-final class SLGenericDispatchNode extends SLAbstractDispatchNode {
+public final class OptimizedIndirectCallNode extends IndirectCallNode implements MaterializedFrameNotify {
 
-    /**
-     * {@link IndirectCallNode} is part of the Truffle API and handles all the steps necessary for
-     * calling a megamorphic call-site. The Graal specific version of this node performs additional
-     * optimizations for the fast access of the SimpleLanguage stack trace.
-     */
-    @Child private IndirectCallNode callNode = Truffle.getRuntime().createIndirectCallNode();
+    @CompilationFinal private FrameAccess outsideFrameAccess = FrameAccess.NONE;
 
     @Override
-    protected Object executeDispatch(VirtualFrame frame, SLFunction function, Object[] arguments) {
-        /*
-         * SL has a quite simple call lookup: just ask the function for the current call target, and
-         * call it.
-         */
-        return callNode.call(frame, function.getCallTarget(), arguments);
+    public Object call(VirtualFrame frame, CallTarget target, Object[] arguments) {
+        return OptimizedDirectCallNode.callProxy(this, target, frame, arguments, false);
+    }
+
+    @Override
+    public FrameAccess getOutsideFrameAccess() {
+        return outsideFrameAccess;
+    }
+
+    @Override
+    public void setOutsideFrameAccess(FrameAccess outsideFrameAccess) {
+        this.outsideFrameAccess = outsideFrameAccess;
     }
 
 }
