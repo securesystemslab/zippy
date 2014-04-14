@@ -228,7 +228,9 @@ bool CompiledIC::is_call_to_compiled() const {
   bool is_monomorphic = (cb != NULL && cb->is_nmethod());
   // Check that the cached_value is a klass for non-optimized monomorphic calls
   // This assertion is invalid for compiler1: a call that does not look optimized (no static stub) can be used
-  // for calling directly to vep without using the inline cache (i.e., cached_value == NULL)
+  // for calling directly to vep without using the inline cache (i.e., cached_value == NULL).
+  // For Graal this occurs because CHA is only used to improve inlining so call sites which could be optimized
+  // virtuals because there are no currently loaded subclasses of a type are left as virtual call sites.
 #ifdef ASSERT
   CodeBlob* caller = CodeCache::find_blob_unsafe(instruction_address());
   bool is_c1_or_graal_method = caller->is_compiled_by_c1() || caller->is_compiled_by_graal();
