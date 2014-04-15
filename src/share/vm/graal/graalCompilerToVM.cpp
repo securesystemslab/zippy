@@ -157,7 +157,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
 
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
@@ -190,6 +189,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
   set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
   set_address("validateObject", GraalRuntime::validate_object);
+
+  set_address("deoptimizationFetchUnrollInfo", Deoptimization::fetch_unroll_info);
+  set_address("deoptimizationUncommonTrap", Deoptimization::uncommon_trap);
+  set_address("deoptimizationUnpackFrames", Deoptimization::unpack_frames);
 
   //------------------------------------------------------------------------------------------------
 
