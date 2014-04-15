@@ -226,8 +226,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 specialized = replace(direct);
             } else {
                 CallDispatchUnboxedNode generic = new GenericDispatchUnboxedNode(calleeName, calleeNode);
-                // TODO: should replace the dispatch node of the parent call node.
-                specialized = replace(generic);
+                specialized = current.replace(generic);
             }
 
             return specialized.executeCall(frame, primaryObj, arguments);

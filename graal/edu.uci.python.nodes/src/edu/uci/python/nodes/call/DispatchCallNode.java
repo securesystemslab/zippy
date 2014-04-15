@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -41,14 +42,16 @@ public abstract class DispatchCallNode extends PNode {
 
     protected final String calleeName;
     @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
+    protected final PythonContext context;
 
-    public DispatchCallNode(String calleeName, PNode primary, PNode[] arguments) {
+    public DispatchCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments) {
+        this.context = context;
         this.calleeName = calleeName;
         this.primaryNode = primary;
         this.argumentNodes = arguments;
     }
 
-    public static DispatchCallNode create(PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
+    public static DispatchCallNode create(PythonContext context, PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
@@ -58,15 +61,15 @@ public abstract class DispatchCallNode extends PNode {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new UninitializedCallNode(callee.getName(), primaryNode, calleeNode, argumentNodes);
+        return new UninitializedCallNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes);
     }
 
     public static final class BoxedCallNode extends DispatchCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchBoxedNode;
 
-        public BoxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch) {
-            super(calleeName, primary, arguments);
+        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch) {
+            super(context, calleeName, primary, arguments);
             dispatchBoxedNode = dispatch;
         }
 
@@ -89,8 +92,8 @@ public abstract class DispatchCallNode extends PNode {
 
         @Child protected CallDispatchUnboxedNode dispatchNode;
 
-        public UnboxedCallNode(String calleeName, PNode primary, PNode[] arguments, CallDispatchUnboxedNode dispatch) {
-            super(calleeName, primary, arguments);
+        public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchUnboxedNode dispatch) {
+            super(context, calleeName, primary, arguments);
             dispatchNode = dispatch;
         }
 
@@ -106,8 +109,8 @@ public abstract class DispatchCallNode extends PNode {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedCallNode(String calleeName, PNode primary, PNode callee, PNode[] arguments) {
-            super(calleeName, primary, arguments);
+        public UninitializedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments) {
+            super(context, calleeName, primary, arguments);
             this.calleeNode = callee;
         }
 
@@ -137,13 +140,13 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             if (isPrimaryBoxed(primary, callee)) {
-                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(callee, calleeNode);
-                replace(new BoxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode);
+                replace(new BoxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch));
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
             }
 
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
-            replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
+            replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch));
             return dispatch.executeCall(frame, primary, arguments);
         }
     }
