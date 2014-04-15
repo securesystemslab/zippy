@@ -73,7 +73,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      */
     public static final class DispatchGlobalFunctionNode extends CallDispatchBoxedNode {
 
-        protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
         private final MaterializedFrame declarationFrame;
 
@@ -82,11 +81,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchGlobalFunctionNode(PFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
-            cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.getDeclarationFrame();
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
         }
 
@@ -111,7 +109,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class DispatchBuiltinFunctionNode extends CallDispatchBoxedNode {
 
         protected final PBuiltinFunction cachedCallee;
-        protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
 
         @Child protected CallNode callNode;
@@ -120,10 +117,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchBuiltinFunctionNode(PBuiltinFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallee = callee;
-            cachedCallTarget = split(callee.getCallTarget());
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
         }
 
@@ -148,7 +144,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class DispatchMethodBoxedNode extends CallDispatchBoxedNode {
 
         protected final PMethod cachedCallee;
-        protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
         private final MaterializedFrame declarationFrame;
 
@@ -158,11 +153,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchMethodBoxedNode(PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             cachedCallee = callee;
-            cachedCallTarget = callee.getCallTarget();
             declarationFrame = callee.__func__().getDeclarationFrame();
             // TODO: replace holder for now.
             cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
         }
 
@@ -183,7 +177,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class DispatchConstructorBoxedNode extends CallDispatchBoxedNode {
 
         protected final PythonBuiltinClass cachedCallee;
-        protected final CallTarget cachedCallTarget;
         protected final Assumption cachedCallTargetStable;
 
         @Child protected CallNode callNode;
@@ -193,11 +186,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             super(callee.getName());
             cachedCallee = callee;
             PythonCallable constructor = callee.lookUpMethod("__init__");
-            cachedCallTarget = split(constructor.getCallTarget());
             // TODO: PythonBuiltinClass should return always valid assumption.
             cachedCallTargetStable = callee.getStableAssumption();
 
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            callNode = Truffle.getRuntime().createCallNode(split(constructor.getCallTarget()));
             nextNode = next;
         }
 
