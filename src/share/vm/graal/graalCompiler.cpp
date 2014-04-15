@@ -101,12 +101,10 @@ void GraalCompiler::initialize() {
       _external_deopt_i2c_entry = create_external_deopt_i2c();
 #ifdef COMPILERGRAAL
       bool bootstrap = FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal;
-      bool hostedOnly = false;
 #else
       bool bootstrap = false;
-      bool hostedOnly = true;
 #endif
-      VMToCompiler::startCompiler(bootstrap, hostedOnly);
+      VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();
       if (bootstrap) {
