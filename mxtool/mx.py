@@ -3617,7 +3617,7 @@ def _intellij_suite(args, suite, refreshOnly=False):
         moduleXml.open('module', attributes={'type': 'JAVA_MODULE', 'version': '4'})
 
         moduleXml.open('component', attributes={'name': 'NewModuleRootManager', 'LANGUAGE_LEVEL': intellijLanguageLevel, 'inherit-compiler-output': 'false'})
-        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'}) # TODO use p.output_dir() ?
+        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'})
         moduleXml.element('exclude-output')
 
         moduleXml.open('content', attributes={'url': 'file://$MODULE_DIR$'})
@@ -4337,9 +4337,9 @@ def exportlibs(args):
                     buf = f.read(4096)
                     if not buf:
                         break
-                d.update(buf)
+                    d.update(buf)
             with open(path + '.' + suffix, 'w') as fp:
-                fp.write(d.hexdigest())
+                print >> fp, d.hexdigest()
             log('created ' + path + '.' + suffix)
 
     digest(args.sha1, path, hashlib.sha1, 'sha1')
