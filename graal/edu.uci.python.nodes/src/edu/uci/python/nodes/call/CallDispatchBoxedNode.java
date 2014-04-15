@@ -35,6 +35,7 @@ import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
@@ -113,11 +114,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
+            nextNode = next;
             Assumption globalStable = primary.getStableAssumption();
             Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
             dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
-            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
-            nextNode = next;
         }
 
         @Override
@@ -135,39 +136,42 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     }
 
     /**
-     * The primary is a {@link PythonBasicObject}
+     * The primary is a {@link PythonObject}
      *
      */
     public static final class DispatchMethodBoxedNode extends CallDispatchBoxedNode {
 
-        protected final PMethod cachedCallee;
-        protected final Assumption cachedCallTargetStable;
-        private final MaterializedFrame declarationFrame;
-
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        public DispatchMethodBoxedNode(PMethod callee, CallDispatchBoxedNode next) {
+        private final PythonClass cachedClass;
+        private final Assumption dispatchStable;
+        private final MaterializedFrame declarationFrame;
+
+        public DispatchMethodBoxedNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
-            cachedCallee = callee;
-            declarationFrame = callee.__func__().getDeclarationFrame();
-            // TODO: replace holder for now.
-            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
             callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
+            cachedClass = primary.getPythonClass();
+            declarationFrame = callee.__func__().getDeclarationFrame();
+            dispatchStable = primary.getStableAssumption();
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
+            if (primaryObj.getPythonClass() == cachedClass) {
+                try {
+                    dispatchStable.check();
 
-                PArguments arg = new PArguments(cachedCallee.__self__(), declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
+                    PArguments arg = new PArguments(primaryObj, declarationFrame, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (InvalidAssumptionException ex) {
+                    replace(nextNode);
+                    return nextNode.executeCall(frame, primaryObj, arguments);
+                }
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 
@@ -183,9 +187,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             super(callee.getName());
             cachedCallee = callee;
             PythonCallable constructor = callee.lookUpMethod("__init__");
-            // TODO: PythonBuiltinClass should return always valid assumption.
             cachedCallTargetStable = callee.getStableAssumption();
-
             callNode = Truffle.getRuntime().createCallNode(split(constructor.getCallTarget()));
             nextNode = next;
         }
