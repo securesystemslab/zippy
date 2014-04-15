@@ -45,6 +45,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
 
+    protected final Object executeCallAndRewrite(CallDispatchBoxedNode next, VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        replace(next);
+        return next.executeCall(frame, primaryObj, arguments);
+    }
+
     protected static CallDispatchBoxedNode create(PythonContext context, PythonBasicObject primary, PythonCallable callee, PNode calleeNode) {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode);
         /**
@@ -55,7 +60,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new DispatchGlobalFunctionNode(primary, (PFunction) callee, next);
+            return new DispatchFunctionNode(primary, (PFunction) callee, next);
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) callee, next);
         } else if (callee instanceof PythonBuiltinClass && primary instanceof PythonModule) {
@@ -68,41 +73,55 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     }
 
     /**
-     * The primary is the global module.
+     * The primary could be:
+     * <p>
+     * 1. The global {@link PythonModule}. <br>
+     * 3. A {@link PythonModule}. <br>
+     * 2. A {@link PythonClass}.
      *
      */
-    public static final class DispatchGlobalFunctionNode extends CallDispatchBoxedNode {
+    public static final class DispatchFunctionNode extends CallDispatchBoxedNode {
 
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
+        private final PythonBasicObject cachedPrimary;
         private final Assumption dispatchStable;
         private final MaterializedFrame declarationFrame;
 
-        public DispatchGlobalFunctionNode(PythonBasicObject primary, PFunction callee, CallDispatchBoxedNode next) {
+        public DispatchFunctionNode(PythonBasicObject primary, PFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
+            cachedPrimary = primary;
             dispatchStable = primary.getStableAssumption();
             declarationFrame = callee.getDeclarationFrame();
+            assert primary instanceof PythonModule || primary instanceof PythonClass;
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
-            try {
-                dispatchStable.check();
+            if (primaryObj == cachedPrimary) {
+                try {
+                    dispatchStable.check();
 
-                PArguments arg = new PArguments(null, declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
+                    PArguments arg = new PArguments(null, declarationFrame, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (InvalidAssumptionException ex) {
+                    return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
+                }
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 
     /**
-     * The primary is the global module.
+     * The primary could be:
+     * <p>
+     * 1. The global {@link PythonModule}. <br>
+     * 2. A built-in {@link PythonModule}. <br>
+     * 3. A built-in {@link PythonBuiltinClass}.
      *
      */
     public static final class DispatchBuiltinFunctionNode extends CallDispatchBoxedNode {
@@ -119,6 +138,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             Assumption globalStable = primary.getStableAssumption();
             Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
             dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+            assert primary instanceof PythonModule || primary instanceof PythonBuiltinClass;
         }
 
         @Override
@@ -129,8 +149,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 PArguments arg = new PArguments(PNone.NONE, null, arguments);
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
+                return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
             }
         }
     }
@@ -160,8 +179,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 PArguments arg = new PArguments(PNone.NONE, null, arguments);
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
+                return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
             }
         }
     }
@@ -197,8 +215,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     PArguments arg = new PArguments(primaryObj, declarationFrame, arguments);
                     return callNode.call(frame.pack(), arg);
                 } catch (InvalidAssumptionException ex) {
-                    replace(nextNode);
-                    return nextNode.executeCall(frame, primaryObj, arguments);
+                    return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }
             }
 
