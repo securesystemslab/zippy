@@ -2859,13 +2859,15 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
 
+        containers = set()
         for dep in p.all_deps([], True):
             if dep == p:
                 continue
 
             if dep.isLibrary():
-                if hasattr(dep, 'eclipse.container'):
+                if hasattr(dep, 'eclipse.container') and getattr(dep, 'eclipse.container') not in containers:
                     out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : getattr(dep, 'eclipse.container')})
+                    containers.add(getattr(dep, 'eclipse.container'))
                 elif hasattr(dep, 'eclipse.project'):
                     out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + getattr(dep, 'eclipse.project')})
                 else:
