@@ -1,4 +1,6 @@
 com.oracle.graal.jtt.loop.Loop03
+com.oracle.graal.jtt.loop.Loop04
+com.oracle.graal.jtt.loop.Loop08
 com.oracle.graal.jtt.bytecode.BC_iadd
 com.oracle.graal.jtt.bytecode.BC_iadd2
 com.oracle.graal.jtt.bytecode.BC_iadd3
