@@ -58,6 +58,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return new DispatchGlobalFunctionNode(primary, (PFunction) callee, next);
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) callee, next);
+        } else if (callee instanceof PythonBuiltinClass && primary instanceof PythonModule) {
+            return new DispatchBuiltinConstructorNode(primary, (PythonBuiltinClass) callee, next);
         } else if (callee instanceof PMethod) {
             return new DispatchMethodBoxedNode(primary, (PMethod) callee, next);
         } else if (callee instanceof PythonBuiltinClass) {
@@ -115,6 +117,37 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
+            nextNode = next;
+            Assumption globalStable = primary.getStableAssumption();
+            Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
+            dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+            try {
+                dispatchStable.check();
+
+                PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                return callNode.call(frame.pack(), arg);
+            } catch (InvalidAssumptionException ex) {
+                replace(nextNode);
+                return nextNode.executeCall(frame, primaryObj, arguments);
+            }
+        }
+    }
+
+    public static final class DispatchBuiltinConstructorNode extends CallDispatchBoxedNode {
+
+        @Child protected CallNode callNode;
+        @Child protected CallDispatchBoxedNode nextNode;
+
+        protected final Assumption dispatchStable;
+
+        public DispatchBuiltinConstructorNode(PythonBasicObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
+            super(callee.getName());
+            PythonCallable constructor = callee.lookUpMethod("__init__");
+            callNode = Truffle.getRuntime().createCallNode(split(constructor.getCallTarget()));
             nextNode = next;
             Assumption globalStable = primary.getStableAssumption();
             Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
