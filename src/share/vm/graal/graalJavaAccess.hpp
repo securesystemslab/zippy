@@ -49,7 +49,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
   start_class(HotSpotResolvedObjectType)                                                                                                                       \
-    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                      \
+    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                       \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaMethod)                                                                                                                       \
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                                                                                           \
@@ -59,8 +59,10 @@ void graal_compute_offsets();
   start_class(HotSpotJavaType)                                                                                                                                 \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \
+  start_class(InstalledCode)                                                                                                                                   \
+    long_field(InstalledCode, address)                                                                                                                         \
+  end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
-    long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
     int_field(HotSpotInstalledCode, size)                                                                                                                      \
     long_field(HotSpotInstalledCode, codeStart)                                                                                                                \
     int_field(HotSpotInstalledCode, codeSize)                                                                                                                  \

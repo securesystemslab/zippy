@@ -1330,7 +1330,7 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
   // Java wrapper is no longer alive. Here we need to clear out this weak
   // reference to the dead object.
   if (_graal_installed_code != NULL) {
-    HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+    InstalledCode::set_address(_graal_installed_code, 0);
     _graal_installed_code = NULL;
   }
 #endif
@@ -1510,8 +1510,8 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
   }
 #ifdef GRAAL
   if (_graal_installed_code != NULL) {
-    // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
-    HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+    // Break the link between nmethod and InstalledCode such that the nmethod can subsequently be flushed safely.
+    InstalledCode::set_address(_graal_installed_code, 0);
   }
 #endif
 

@@ -210,6 +210,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #undef set_boolean
 #undef set_int
 #undef set_long
+#undef set_address
 
 C2V_END
 
@@ -530,15 +531,15 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
     assert(cb == NULL, "should be");
   } else {
     if (!installed_code_handle.is_null()) {
-      assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
-      HotSpotInstalledCode::set_codeBlob(installed_code_handle, (jlong) cb);
+      assert(installed_code_handle->is_a(InstalledCode::klass()), "wrong type");
+      InstalledCode::set_address(installed_code_handle, (jlong) cb);
       oop comp_result = HotSpotCompiledCode::comp(compiled_code_handle);
       if (comp_result->is_a(ExternalCompilationResult::klass())) {
         if (TraceGPUInteraction) {
           tty->print_cr("installCode0: ExternalCompilationResult");
         }
         HotSpotInstalledCode::set_codeStart(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));
-      } else {
+      } else if (installed_code_handle->is_a(HotSpotInstalledCode::klass())) {
         HotSpotInstalledCode::set_size(installed_code_handle, cb->size());
         HotSpotInstalledCode::set_codeStart(installed_code_handle, (jlong) cb->code_begin());
         HotSpotInstalledCode::set_codeSize(installed_code_handle, cb->code_size());
@@ -560,8 +561,10 @@ C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id
     stats->_standard.update(timer, processedBytecodes);
   }
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
-  stats->_nmethods_size += HotSpotInstalledCode::size(installed_code_handle);
-  stats->_nmethods_code_size += HotSpotInstalledCode::codeSize(installed_code_handle);
+  if (installed_code_handle->is_a(HotSpotInstalledCode::klass())) {
+    stats->_nmethods_size += HotSpotInstalledCode::size(installed_code_handle);
+    stats->_nmethods_code_size += HotSpotInstalledCode::codeSize(installed_code_handle);
+  }
 
   if (CITimeEach) {
     methodHandle method = asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
@@ -633,7 +636,7 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   ResourceMark rm;
   HandleMark hm;
 
-  jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
+  jlong nmethodValue = InstalledCode::address(hotspotInstalledCode);
   if (nmethodValue == 0L) {
     THROW_(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
@@ -724,14 +727,14 @@ C2V_END
 
 
 C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspotInstalledCode))
-  jlong nativeMethod = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
+  jlong nativeMethod = InstalledCode::address(hotspotInstalledCode);
   nmethod* m = (nmethod*)nativeMethod;
   if (m != NULL && !m->is_not_entrant()) {
     m->mark_for_deoptimization();
     VM_Deoptimize op;
     VMThread::execute(&op);
   }
-  HotSpotInstalledCode::set_codeBlob(hotspotInstalledCode, 0);
+  InstalledCode::set_address(hotspotInstalledCode, 0);
 C2V_END
 
 C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv *env, jobject, jlong metaspace_klass))
@@ -1046,7 +1049,7 @@ C2V_END
 #define RESOLVED_METHOD       "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
-#define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
+#define INSTALLED_CODE        "Lcom/oracle/graal/api/code/InstalledCode;"
 #define NODE_CLASS            "Lcom/oracle/graal/graph/NodeClass;"
 #define HS_STACK_FRAME_REF    "Lcom/oracle/graal/hotspot/HotSpotStackFrameReference;"
 #define METASPACE_KLASS       "J"
@@ -1086,17 +1089,17 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
   {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                                 CC"("HS_COMPILED_CODE HS_INSTALLED_CODE SPECULATION_LOG")I",      FN_PTR(installCode0)},
-  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"HS_INSTALLED_CODE")V",              FN_PTR(notifyCompilationStatistics)},
+  {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",         FN_PTR(installCode0)},
+  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                 FN_PTR(notifyCompilationStatistics)},
   {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
   {CC"resetCompilationStatistics",                   CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                             FN_PTR(executeCompiledMethodVarargs)},
   {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
   {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
   {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
-  {CC"invalidateInstalledCode",                      CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
+  {CC"invalidateInstalledCode",                      CC"("INSTALLED_CODE")V",                                          FN_PTR(invalidateInstalledCode)},
   {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                     FN_PTR(getJavaMirror)},
   {CC"setNodeClass",                                 CC"("CLASS NODE_CLASS")V",                                        FN_PTR(setNodeClass)},
   {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},

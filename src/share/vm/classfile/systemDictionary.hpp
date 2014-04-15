@@ -227,6 +227,7 @@ class Ticks;
   do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
   do_klass(ExternalCompilationResult_klass,       com_oracle_graal_gpu_ExternalCompilationResult,               Opt) \
   do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Opt) \
+  do_klass(InstalledCode_klass,                   com_oracle_graal_api_code_InstalledCode,                      Opt) \
   do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
   do_klass(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \

@@ -137,7 +137,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
                                                       jobject donor_threads, jint allocBytesPerWorkitem))
 
   ResourceMark rm;
-  jlong nmethodValue = HotSpotInstalledCode::codeBlob(kernel_handle);
+  jlong nmethodValue = InstalledCode::address(kernel_handle);
   if (nmethodValue == 0) {
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
