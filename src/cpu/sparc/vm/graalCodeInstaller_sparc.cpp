@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,14 +21,12 @@
  * questions.
  */
 
-#ifndef CPU_SPARC_VM_CODEINSTALLER_SPARC_HPP
-#define CPU_SPARC_VM_CODEINSTALLER_SPARC_HPP
-
+#include "graal/graalCodeInstaller.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalJavaAccess.hpp"
 
-inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
+jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
   if (inst->is_call() || inst->is_jump()) {
     return pc_offset + NativeCall::instruction_size;
   } else if (inst->is_call_reg()) {
@@ -41,14 +39,13 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
   }
 }
 
-inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
-  if (OopData::compressed(obj)) {
+void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
+  address pc = _instructions->start() + pc_offset;
+  Handle obj = OopData::object(data);
+  jobject value = JNIHandles::make_local(obj());
+  if (OopData::compressed(data)) {
     fatal("unimplemented: narrow oop relocation");
   } else {
-    address pc = _instructions->start() + pc_offset;
-    Handle obj = OopData::object(data);
-    jobject value = JNIHandles::make_local(obj());
-
     NativeMovConstReg* move = nativeMovConstReg_at(pc);
     move->set_data((intptr_t) value);
 
@@ -60,7 +57,7 @@ inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
   }
 }
 
-inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
+void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
   address pc = _instructions->start() + pc_offset;
   jint offset = DataSectionReference::offset(data);
 
@@ -69,11 +66,11 @@ inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data
   load->set_offset(-disp);
 }
 
-inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
+void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
   fatal("CodeInstaller::pd_relocate_CodeBlob - sparc unimp");
 }
 
-inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
+void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
   address pc = (address) inst;
   if (inst->is_call()) {
     NativeCall* call = nativeCall_at(pc);
@@ -89,7 +86,7 @@ inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlon
   TRACE_graal_3("relocating (foreign call) at %p", inst);
 }
 
-inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_offset) {
+void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_offset) {
 #ifdef ASSERT
   Method* method = NULL;
   // we need to check, this might also be an unresolved method
@@ -128,17 +125,17 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
   }
 }
 
-inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
+void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
-    case POLL_NEAR: {
+    case POLL_NEAR:
       fatal("unimplemented");
-    }
+      break;
     case POLL_FAR:
       _instructions->relocate(pc, relocInfo::poll_type);
       break;
-    case POLL_RETURN_NEAR: {
+    case POLL_RETURN_NEAR:
       fatal("unimplemented");
-    }
+      break;
     case POLL_RETURN_FAR:
       _instructions->relocate(pc, relocInfo::poll_return_type);
       break;
@@ -147,5 +144,3 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       break;
   }
 }
-
-#endif // CPU_SPARC_VM_CODEINSTALLER_SPARC_HPP

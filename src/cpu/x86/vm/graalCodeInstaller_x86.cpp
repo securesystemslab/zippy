@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,8 +20,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-#ifndef CPU_X86_VM_CODEINSTALLER_X86_HPP
-#define CPU_X86_VM_CODEINSTALLER_X86_HPP
 
 #include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
@@ -35,7 +33,7 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/vmreg.hpp"
 
-inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
+jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
   if (inst->is_call() || inst->is_jump()) {
     assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size");
     return (pc_offset + NativeCall::instruction_size);
@@ -59,20 +57,8 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
   }
 }
 
-inline bool check_metaspace_data(address pc, oop data) {
-  jlong value = MetaspaceData::value(data);
-  address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
-  if (MetaspaceData::compressed(data)) {
-    assert(*((jint*) operand) == value, err_msg("wrong compressed metaspace pointer: %p != %p", *((jint*) operand), value));
-  } else {
-    assert(*((jlong*) operand) == value, err_msg("wrong metaspace pointer: %p != %p", *((jlong*) operand), value));
-  }
-  return true;
-}
-
-inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
+void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
   address pc = _instructions->start() + pc_offset;
-
   Handle obj = OopData::object(data);
   jobject value = JNIHandles::make_local(obj());
   if (OopData::compressed(data)) {
@@ -88,7 +74,7 @@ inline void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
   }
 }
 
-inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
+void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
   address pc = _instructions->start() + pc_offset;
   jint offset = DataSectionReference::offset(data);
 
@@ -104,7 +90,7 @@ inline void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data
   TRACE_graal_3("relocating at %p/%p with destination at %p (%d)", pc, operand, dest, offset);
 }
 
-inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
+void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {
   if (cb->is_nmethod()) {
     nmethod* nm = (nmethod*) cb;
     nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
@@ -114,7 +100,7 @@ inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction*
   _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
 }
 
-inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
+void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
   address pc = (address) inst;
   if (inst->is_call()) {
     // NOTE: for call without a mov, the offset must fit a 32-bit immediate
@@ -142,7 +128,7 @@ inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlon
   TRACE_graal_3("relocating (foreign call)  at %p", inst);
 }
 
-inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_offset) {
+void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_offset) {
 #ifdef ASSERT
   Method* method = NULL;
   // we need to check, this might also be an unresolved method
@@ -195,7 +181,7 @@ static void relocate_poll_near(address pc) {
 }
 
 
-inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
+void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
   switch (mark) {
     case POLL_NEAR: {
       relocate_poll_near(pc);
@@ -215,7 +201,7 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       break;
     }
     case POLL_RETURN_FAR:
-      // see comment above for MARK_POLL_FAR
+      // see comment above for POLL_FAR
       _instructions->relocate(pc, relocInfo::poll_return_type, Assembler::imm_operand);
       break;
     default:
@@ -223,6 +209,3 @@ inline void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       break;
   }
 }
-
-#endif // CPU_X86_VM_CODEINSTALLER_X86_HPP
-
