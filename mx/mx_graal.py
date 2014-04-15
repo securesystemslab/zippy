@@ -828,7 +828,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile):
+def _run_tests(args, harness, annotations, testfile, whitelist):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -860,6 +860,9 @@ def _run_tests(args, harness, annotations, testfile):
                 mx.log('warning: no tests matched by substring "' + t)
         projectscp = mx.classpath(projs)
 
+    if whitelist:
+        classes = list(set(classes) & set(whitelist))
+
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
         for c in classes:
@@ -867,7 +870,7 @@ def _run_tests(args, harness, annotations, testfile):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp=""):
+def _unittest(args, annotations, prefixcp="", whitelist=None):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -894,7 +897,7 @@ def _unittest(args, annotations, prefixcp=""):
             vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
-        _run_tests(args, harness, annotations, testfile)
+        _run_tests(args, harness, annotations, testfile, whitelist)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
@@ -902,8 +905,10 @@ def _unittest(args, annotations, prefixcp=""):
 _unittestHelpSuffix = """
     Unittest options:
 
-      --short-only     run short testcases only
-      --long-only      run long testcases only
+      --short-only           run short testcases only
+      --long-only            run long testcases only
+      --baseline-whitelist   run only testcases which are known to
+                             work with the baseline compiler
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -943,6 +948,7 @@ def unittest(args):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--short-only', action='store_true', help='run short testcases only')
     group.add_argument('--long-only', action='store_true', help='run long testcases only')
+    parser.add_argument('--baseline-whitelist', action='store_true', help='run baseline testcases only')
 
     ut_args = []
     delimiter = False
@@ -962,6 +968,15 @@ def unittest(args):
         parsed_args, remaining_args = parser.parse_known_args(ut_args)
         args = remaining_args + args
 
+    whitelist = None
+    if parsed_args.baseline_whitelist:
+        baseline_whitelist_file = 'test/baseline_whitelist.txt'
+        try:
+            with open(join(_graal_home, baseline_whitelist_file)) as fp:
+                whitelist = [l.rstrip() for l in fp.readlines()]
+        except IOError:
+            mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
+
     if parsed_args.long_only:
         annotations = ['@LongTest', '@Parameters']
     elif parsed_args.short_only:
@@ -969,7 +984,7 @@ def unittest(args):
     else:
         annotations = ['@Test', '@LongTest', '@Parameters']
 
-    _unittest(args, annotations)
+    _unittest(args, annotations, whitelist=whitelist)
 
 def shortunittest(args):
     """alias for 'unittest --short-only'{0}"""
