@@ -28,7 +28,7 @@
 
 import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
 from os.path import join, exists, dirname, basename, getmtime
-from argparse import ArgumentParser, REMAINDER
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
 import mx
 import xml.dom.minidom
@@ -900,6 +900,12 @@ def _unittest(args, annotations, prefixcp=""):
             os.remove(testfile)
 
 _unittestHelpSuffix = """
+    Unittest options:
+
+      --short-only     run short testcases only
+      --long-only      run long testcases only
+
+    To avoid conflicts with VM options '--' can be used as delimiter.
 
     If filters are supplied, only tests whose fully qualified name
     includes a filter as a substring are run.
@@ -928,17 +934,54 @@ _unittestHelpSuffix = """
 def unittest(args):
     """run the JUnit tests (all testcases){0}"""
 
-    _unittest(args, ['@Test', '@LongTest', '@Parameters'])
+    parser = ArgumentParser(prog='mx unittest',
+          description='run the JUnit tests',
+          add_help=False,
+          formatter_class=RawDescriptionHelpFormatter,
+          epilog=_unittestHelpSuffix,
+        )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--short-only', action='store_true', help='run short testcases only')
+    group.add_argument('--long-only', action='store_true', help='run long testcases only')
+
+    ut_args = []
+    delimiter = False
+    # check for delimiter
+    while len(args) > 0:
+        arg = args.pop(0)
+        if arg == '--':
+            delimiter = True
+            break
+        ut_args.append(arg)
+
+    if delimiter:
+        # all arguments before '--' must be recognized
+        parsed_args = parser.parse_args(ut_args)
+    else:
+        # parse all know arguments
+        parsed_args, remaining_args = parser.parse_known_args(ut_args)
+        args = remaining_args + args
+
+    if parsed_args.long_only:
+        annotations = ['@LongTest', '@Parameters']
+    elif parsed_args.short_only:
+        annotations = ['@Test']
+    else:
+        annotations = ['@Test', '@LongTest', '@Parameters']
+
+    _unittest(args, annotations)
 
 def shortunittest(args):
-    """run the JUnit tests (short testcases only){0}"""
+    """alias for 'unittest --short-only'{0}"""
 
-    _unittest(args, ['@Test'])
+    args.insert(0, '--short-only')
+    unittest(args)
 
 def longunittest(args):
-    """run the JUnit tests (long testcases only){0}"""
+    """alias for 'unittest --long-only'{0}"""
 
-    _unittest(args, ['@LongTest', '@Parameters'])
+    args.insert(0, '--long-only')
+    unittest(args)
 
 def buildvms(args):
     """build one or more VMs in various configurations"""
@@ -1784,9 +1827,9 @@ def mx_init(suite):
         'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
-        'shortunittest' : [shortunittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
