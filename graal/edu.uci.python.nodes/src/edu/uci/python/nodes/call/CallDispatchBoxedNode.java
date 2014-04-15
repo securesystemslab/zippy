@@ -61,9 +61,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         } else if (callee instanceof PythonBuiltinClass && primary instanceof PythonModule) {
             return new DispatchBuiltinConstructorNode(primary, (PythonBuiltinClass) callee, next);
         } else if (callee instanceof PMethod) {
-            return new DispatchMethodBoxedNode(primary, (PMethod) callee, next);
-        } else if (callee instanceof PythonBuiltinClass) {
-            return new DispatchConstructorBoxedNode((PythonBuiltinClass) callee, next);
+            return new DispatchMethodNode(primary, (PMethod) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -172,7 +170,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      * The primary is a {@link PythonObject}
      *
      */
-    public static final class DispatchMethodBoxedNode extends CallDispatchBoxedNode {
+    public static final class DispatchMethodNode extends CallDispatchBoxedNode {
 
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
@@ -181,7 +179,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         private final Assumption dispatchStable;
         private final MaterializedFrame declarationFrame;
 
-        public DispatchMethodBoxedNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
+        public DispatchMethodNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
@@ -205,37 +203,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
 
             return nextNode.executeCall(frame, primaryObj, arguments);
-        }
-    }
-
-    public static final class DispatchConstructorBoxedNode extends CallDispatchBoxedNode {
-
-        protected final PythonBuiltinClass cachedCallee;
-        protected final Assumption cachedCallTargetStable;
-
-        @Child protected CallNode callNode;
-        @Child protected CallDispatchBoxedNode nextNode;
-
-        public DispatchConstructorBoxedNode(PythonBuiltinClass callee, CallDispatchBoxedNode next) {
-            super(callee.getName());
-            cachedCallee = callee;
-            PythonCallable constructor = callee.lookUpMethod("__init__");
-            cachedCallTargetStable = callee.getStableAssumption();
-            callNode = Truffle.getRuntime().createCallNode(split(constructor.getCallTarget()));
-            nextNode = next;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
-                PArguments arg = new PArguments(PNone.NONE, null, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
-            }
         }
     }
 
