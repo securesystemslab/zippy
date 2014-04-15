@@ -448,9 +448,9 @@ class Library(Dependency):
 
 
     def get_source_path(self, resolve):
-        if self.path is None:
+        if self.sourcePath is None:
             return None
-        path = _make_absolute(self.path, self.suite.dir)
+        path = _make_absolute(self.sourcePath, self.suite.dir)
         sha1path = path + '.sha1'
 
         return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
