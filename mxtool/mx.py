@@ -406,7 +406,7 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
     return path
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1):
+    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
@@ -415,6 +415,7 @@ class Library(Dependency):
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
         self.sourceSha1 = sourceSha1
+        self.deps = deps
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -461,9 +462,21 @@ class Library(Dependency):
             cp.append(path)
 
     def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
-        if not includeLibs or not includeSelf:
+        """
+        Add the transitive set of dependencies for this library to the 'deps' list.
+        """
+        if not includeLibs:
             return deps
-        deps.append(self)
+        childDeps = list(self.deps)
+        if self in deps:
+            return deps
+        for name in childDeps:
+            assert name != self.name
+            dep = library(name)
+            if not dep in deps:
+                dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+        if not self in deps and includeSelf:
+            deps.append(self)
         return deps
 
 class HgConfig:
@@ -620,7 +633,8 @@ class Suite:
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
             sourceSha1 = attrs.pop('sourceSha1', None)
-            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1)
+            deps = pop_list(attrs, 'dependencies')
+            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -2859,37 +2873,47 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
 
-        containers = set()
+        containerDeps = set()
+        libraryDeps = set()
+        projectDeps = set()
+
         for dep in p.all_deps([], True):
             if dep == p:
                 continue
-
             if dep.isLibrary():
-                if hasattr(dep, 'eclipse.container') and getattr(dep, 'eclipse.container') not in containers:
-                    out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : getattr(dep, 'eclipse.container')})
-                    containers.add(getattr(dep, 'eclipse.container'))
-                elif hasattr(dep, 'eclipse.project'):
-                    out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + getattr(dep, 'eclipse.project')})
+                if hasattr(dep, 'eclipse.container'):
+                    container = getattr(dep, 'eclipse.container')
+                    containerDeps.add(container)
+                    libraryDeps -= set(dep.all_deps([], True))
                 else:
-                    path = dep.path
-                    dep.get_path(resolve=True)
-                    if not path or (not exists(path) and not dep.mustExist):
-                        continue
-
-                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                    # safest to simply use absolute paths.
-                    path = _make_absolute(path, p.suite.dir)
-
-                    attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
-
-                    sourcePath = dep.get_source_path(resolve=True)
-                    if sourcePath is not None:
-                        attributes['sourcepath'] = sourcePath
-                    out.element('classpathentry', attributes)
-                    libFiles.append(path)
+                    libraryDeps.add(dep)
             else:
-                out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
+                projectDeps.add(dep)
+
+        for dep in containerDeps:
+            out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : dep})
+
+        for dep in libraryDeps:
+            path = dep.path
+            dep.get_path(resolve=True)
+            if not path or (not exists(path) and not dep.mustExist):
+                continue
+
+            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+            # safest to simply use absolute paths.
+            path = _make_absolute(path, p.suite.dir)
+
+            attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
+
+            sourcePath = dep.get_source_path(resolve=True)
+            if sourcePath is not None:
+                attributes['sourcepath'] = sourcePath
+            out.element('classpathentry', attributes)
+            libFiles.append(path)
+
+        for dep in projectDeps:
+            out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
         out.element('classpathentry', {'kind' : 'output', 'path' : getattr(p, 'eclipse.output', 'bin')})
         out.close('classpath')
