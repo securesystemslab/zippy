@@ -59,7 +59,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) callee, next);
         } else if (callee instanceof PMethod) {
-            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
+            return new DispatchMethodBoxedNode(primary, (PMethod) callee, next);
         } else if (callee instanceof PythonBuiltinClass) {
             return new DispatchConstructorBoxedNode((PythonBuiltinClass) callee, next);
         }
