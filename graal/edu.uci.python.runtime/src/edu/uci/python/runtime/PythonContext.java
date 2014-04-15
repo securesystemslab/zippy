@@ -105,6 +105,10 @@ public class PythonContext {
         return lookup;
     }
 
+    public static PythonContext getCurrentContext() {
+        return currentContext;
+    }
+
     public static PythonBuiltinClass getBuiltinTypeFor(Class<? extends PythonBuiltinObject> javaClass) {
         return currentContext.lookup.lookupType(javaClass);
     }

@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -118,6 +119,8 @@ public abstract class DispatchCallNode extends PNode {
                 return true;
             } else if (primary instanceof PythonObject && callee instanceof PMethod) {
                 return true;
+            } else if (primary instanceof PNone && callee instanceof PFunction) {
+                return true;
             }
 
             return false;
@@ -142,6 +145,7 @@ public abstract class DispatchCallNode extends PNode {
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
             }
 
+            assert !(primary instanceof PythonBasicObject) : "Primary is boxed!";
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
             replace(new UnboxedCallNode(calleeName, primaryNode, argumentNodes, dispatch));
             return dispatch.executeCall(frame, primary, arguments);

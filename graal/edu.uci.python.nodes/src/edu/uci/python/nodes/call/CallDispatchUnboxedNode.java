@@ -45,16 +45,8 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
     protected static CallDispatchUnboxedNode create(PythonCallable callee, PNode calleeNode) {
         UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode);
-        /**
-         * Treat generator as slow path for now.
-         */
-        if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
-        }
 
-        if (callee instanceof PFunction) {
-            return new DispatchVariableFunctionNode((PFunction) callee, next);
-        } else if (callee instanceof PBuiltinMethod) {
+        if (callee instanceof PBuiltinMethod) {
             return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
         } else if (callee instanceof PythonBuiltinClass) {
             return new DispatchBuiltinTypeNode((PythonBuiltinClass) callee, next);
