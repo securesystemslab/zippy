@@ -61,6 +61,7 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(InstalledCode)                                                                                                                                   \
     long_field(InstalledCode, address)                                                                                                                         \
+    long_field(InstalledCode, version)                                                                                                                         \
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     int_field(HotSpotInstalledCode, size)                                                                                                                      \

@@ -533,6 +533,7 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
     if (!installed_code_handle.is_null()) {
       assert(installed_code_handle->is_a(InstalledCode::klass()), "wrong type");
       InstalledCode::set_address(installed_code_handle, (jlong) cb);
+      InstalledCode::set_version(installed_code_handle, InstalledCode::version(installed_code_handle) + 1);
       oop comp_result = HotSpotCompiledCode::comp(compiled_code_handle);
       if (comp_result->is_a(ExternalCompilationResult::klass())) {
         if (TraceGPUInteraction) {
