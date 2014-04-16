@@ -1972,7 +1972,7 @@ void nmethod::oops_do(OopClosure* f, bool allow_zombie) {
   // should not get GC'd.  Skip the first few bytes of oops on
   // not-entrant methods.
   address low_boundary = verified_entry_point();
-  if (is_not_entrant() || is_zombie()) {
+  if (is_not_entrant()) {
     low_boundary += NativeJump::instruction_size;
     // %%% Note:  On SPARC we patch only a 4-byte trap, not a full NativeJump.
     // (See comment above.)

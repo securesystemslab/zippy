@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "code/scopeDesc.hpp"
 #include "memory/oopFactory.hpp"
 #include "oops/generateOopMap.hpp"
 #include "oops/fieldStreams.hpp"
@@ -39,6 +40,9 @@
 #include "graal/graalVMToCompiler.hpp"
 #include "gc_implementation/g1/heapRegion.hpp"
 #include "runtime/javaCalls.hpp"
+#include "runtime/deoptimization.hpp"
+#include "runtime/vframe.hpp"
+#include "runtime/vframe_hp.hpp"
 #include "runtime/vmStructs.hpp"
 #include "runtime/gpu.hpp"
 
@@ -153,7 +157,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   //------------------------------------------------------------------------------------------------
 
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
 
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
@@ -186,6 +189,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
   set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
   set_address("validateObject", GraalRuntime::validate_object);
+
+  set_address("deoptimizationFetchUnrollInfo", Deoptimization::fetch_unroll_info);
+  set_address("deoptimizationUncommonTrap", Deoptimization::uncommon_trap);
+  set_address("deoptimizationUnpackFrames", Deoptimization::unpack_frames);
 
   //------------------------------------------------------------------------------------------------
 
@@ -727,11 +734,9 @@ C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspo
   HotSpotInstalledCode::set_codeBlob(hotspotInstalledCode, 0);
 C2V_END
 
-
-C2V_VMENTRY(jobject, readUnsafeUncompressedPointer, (JNIEnv *env, jobject, jobject o, jlong offset))
-  oop resolved_o = JNIHandles::resolve(o);
-  address addr = ((address)resolved_o) + offset;
-  return JNIHandles::make_local(*((oop*)addr));
+C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv *env, jobject, jlong metaspace_klass))
+  Klass* klass = asKlass(metaspace_klass);
+  return JNIHandles::make_local(klass->java_mirror());
 C2V_END
 
 C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
@@ -772,6 +777,254 @@ C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metasp
   return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
 C2V_END
 
+C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv *env, jobject))
+  // tty->time_stamp is the time since VM start which should be used
+  // for all HotSpot log output when a timestamp is required.
+  return tty->time_stamp().milliseconds();
+C2V_END
+
+bool matches(jlongArray methods, Method* method) {
+  typeArrayOop methods_oop = (typeArrayOop) JNIHandles::resolve(methods);
+
+  for (int i = 0; i < methods_oop->length(); i++) {
+    if (methods_oop->long_at(i) == (jlong) method) {
+      return true;
+    }
+  }
+  return false;
+}
+
+C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
+  ResourceMark rm;
+
+  if (!thread->has_last_Java_frame()) return NULL;
+  Handle result = InstanceKlass::cast(HotSpotStackFrameReference::klass())->allocate_instance(thread);
+  HotSpotStackFrameReference::klass()->initialize(thread);
+
+  StackFrameStream fst(thread);
+  if (hs_frame != NULL) {
+    // look for the correct stack frame if one is given
+    intptr_t* stack_pointer = (intptr_t*) HotSpotStackFrameReference::stackPointer(hs_frame);
+    while (fst.current()->sp() != stack_pointer && !fst.is_done()) {
+      fst.next();
+    }
+    if (fst.current()->sp() != stack_pointer) {
+      THROW_MSG_NULL(vmSymbols::java_lang_IllegalStateException(), "stack frame not found")
+    }
+  }
+
+  int frame_number = 0;
+  vframe* vf = vframe::new_vframe(fst.current(), fst.register_map(), thread);
+  if (hs_frame != NULL) {
+    // look for the correct vframe within the stack frame if one is given
+    int last_frame_number = HotSpotStackFrameReference::frameNumber(hs_frame);
+    while (frame_number < last_frame_number) {
+      if (vf->is_top()) {
+        THROW_MSG_NULL(vmSymbols::java_lang_IllegalStateException(), "invalid frame number")
+      }
+      vf = vf->sender();
+      frame_number ++;
+    }
+    // move one frame forward
+    if (vf->is_top()) {
+      if (fst.is_done()) {
+        return NULL;
+      }
+      fst.next();
+      vf = vframe::new_vframe(fst.current(), fst.register_map(), thread);
+      frame_number = 0;
+    } else {
+      vf = vf->sender();
+      frame_number++;
+    }
+  }
+
+  while (true) {
+    // look for the given method
+    while (true) {
+      StackValueCollection* locals = NULL;
+      if (vf->is_compiled_frame()) {
+        // compiled method frame
+        compiledVFrame* cvf = compiledVFrame::cast(vf);
+        if (methods == NULL || matches(methods, cvf->method())) {
+          if (initialSkip > 0) {
+            initialSkip --;
+          } else {
+            GrowableArray<ScopeValue*>* objects = cvf->scope()->objects();
+            bool reallocated = false;
+            if (objects != NULL) {
+              reallocated = Deoptimization::realloc_objects(thread, fst.current(), objects, THREAD);
+              if (reallocated) {
+                Deoptimization::reassign_fields(fst.current(), fst.register_map(), objects);
+              }
+
+              GrowableArray<ScopeValue*>* local_values = cvf->scope()->locals();
+              typeArrayHandle array = oopFactory::new_boolArray(local_values->length(), thread);
+              for (int i = 0; i < local_values->length(); i++) {
+                ScopeValue* value = local_values->at(i);
+                if (value->is_object()) {
+                  array->bool_at_put(i, true);
+                }
+              }
+              HotSpotStackFrameReference::set_localIsVirtual(result, array());
+            } else {
+              HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
+            }
+
+            locals = cvf->locals();
+            HotSpotStackFrameReference::set_bci(result, cvf->bci());
+            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) cvf->method());
+          }
+        }
+      } else if (vf->is_interpreted_frame()) {
+        // interpreted method frame
+        interpretedVFrame* ivf = interpretedVFrame::cast(vf);
+        if (methods == NULL || matches(methods, ivf->method())) {
+          if (initialSkip > 0) {
+            initialSkip --;
+          } else {
+            locals = ivf->locals();
+            HotSpotStackFrameReference::set_bci(result, ivf->bci());
+            HotSpotStackFrameReference::set_metaspaceMethod(result, (jlong) ivf->method());
+            HotSpotStackFrameReference::set_localIsVirtual(result, NULL);
+          }
+        }
+      }
+
+      // locals != NULL means that we found a matching frame and result is already partially initialized
+      if (locals != NULL) {
+        HotSpotStackFrameReference::set_compilerToVM(result, JNIHandles::resolve(compilerToVM));
+        HotSpotStackFrameReference::set_stackPointer(result, (jlong) fst.current()->sp());
+        HotSpotStackFrameReference::set_frameNumber(result, frame_number);
+
+        // initialize the locals array
+        objArrayHandle array = oopFactory::new_objectArray(locals->size(), thread);
+        for (int i = 0; i < locals->size(); i++) {
+          StackValue* var = locals->at(i);
+          if (var->type() == T_OBJECT) {
+            array->obj_at_put(i, locals->at(i)->get_obj()());
+          }
+        }
+        HotSpotStackFrameReference::set_locals(result, array());
+
+        return JNIHandles::make_local(thread, result());
+      }
+
+      if (vf->is_top()) {
+        break;
+      }
+      frame_number++;
+      vf = vf->sender();
+    } // end of vframe loop
+
+    if (fst.is_done()) {
+      break;
+    }
+    fst.next();
+    vf = vframe::new_vframe(fst.current(), fst.register_map(), thread);
+    frame_number = 0;
+  } // end of frame loop
+
+  // the end was reached without finding a matching method
+  return NULL;
+C2V_END
+
+
+
+// public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
+C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv *env, jobject, jobject hs_frame, bool invalidate))
+  ResourceMark rm;
+
+  if (hs_frame == NULL) {
+    THROW_MSG(vmSymbols::java_lang_NullPointerException(), "stack frame is null")
+  }
+
+  HotSpotStackFrameReference::klass()->initialize(thread);
+
+  // look for the given stack frame
+  StackFrameStream fst(thread);
+  intptr_t* stack_pointer = (intptr_t*) HotSpotStackFrameReference::stackPointer(hs_frame);
+  while (fst.current()->sp() != stack_pointer && !fst.is_done()) {
+    fst.next();
+  }
+  if (fst.current()->sp() != stack_pointer) {
+    THROW_MSG(vmSymbols::java_lang_IllegalStateException(), "stack frame not found")
+  }
+
+  if (invalidate) {
+    assert(fst.current()->cb()->is_nmethod(), "nmethod expected");
+    ((nmethod*) fst.current()->cb())->make_not_entrant();
+  }
+  Deoptimization::deoptimize(thread, *fst.current(), fst.register_map(), Deoptimization::Reason_none);
+
+  vframe* vf = vframe::new_vframe(fst.current(), fst.register_map(), thread);
+  if (!vf->is_compiled_frame()) {
+    THROW_MSG(vmSymbols::java_lang_IllegalStateException(), "compiled stack frame expected")
+  }
+
+  GrowableArray<compiledVFrame*>* virtualFrames = new GrowableArray<compiledVFrame*>(10);
+  while (true) {
+    assert(vf->is_compiled_frame(), "Wrong frame type");
+    virtualFrames->push(compiledVFrame::cast(vf));
+    if (vf->is_top()) {
+      break;
+    }
+    vf = vf->sender();
+  }
+
+  int last_frame_number = HotSpotStackFrameReference::frameNumber(hs_frame);
+  if (last_frame_number >= virtualFrames->length()) {
+    THROW_MSG(vmSymbols::java_lang_IllegalStateException(), "invalid frame number")
+  }
+
+  // Reallocate the non-escaping objects and restore their fields.
+  assert (virtualFrames->at(last_frame_number)->scope() != NULL,"invalid scope");
+  GrowableArray<ScopeValue*>* objects = virtualFrames->at(last_frame_number)->scope()->objects();
+
+  if (objects == NULL) {
+    // no objects to materialize
+    return;
+  }
+
+  bool reallocated = Deoptimization::realloc_objects(thread, fst.current(), objects, THREAD);
+  if (reallocated) {
+    Deoptimization::reassign_fields(fst.current(), fst.register_map(), objects);
+
+    for (int frame_index = 0; frame_index < virtualFrames->length(); frame_index++) {
+      compiledVFrame* cvf = virtualFrames->at(frame_index);
+
+      GrowableArray<ScopeValue*>* scopeLocals = cvf->scope()->locals();
+      StackValueCollection* locals = cvf->locals();
+
+      if (locals != NULL) {
+        for (int i2 = 0; i2 < locals->size(); i2++) {
+          StackValue* var = locals->at(i2);
+          if (var->type() == T_OBJECT && scopeLocals->at(i2)->is_object()) {
+            jvalue val;
+            val.l = (jobject) locals->at(i2)->get_obj()();
+            cvf->update_local(T_OBJECT, i2, val);
+          }
+        }
+      }
+    }
+
+    // all locals are materialized by now
+    HotSpotStackFrameReference::set_localIsVirtual(hs_frame, NULL);
+
+    // update the locals array
+    objArrayHandle array = (objArrayOop) HotSpotStackFrameReference::locals(hs_frame);
+    StackValueCollection* locals = virtualFrames->at(last_frame_number)->locals();
+    for (int i = 0; i < locals->size(); i++) {
+      StackValue* var = locals->at(i);
+      if (var->type() == T_OBJECT) {
+        array->obj_at_put(i, locals->at(i)->get_obj()());
+      }
+    }
+  }
+C2V_END
+
+
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -784,9 +1037,12 @@ C2V_END
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
+#define RESOLVED_METHOD       "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;"
 #define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
+#define NODE_CLASS            "Lcom/oracle/graal/graph/NodeClass;"
+#define HS_STACK_FRAME_REF    "Lcom/oracle/graal/hotspot/HotSpotStackFrameReference;"
 #define METASPACE_KLASS       "J"
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
@@ -835,13 +1091,16 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
   {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",                      CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
-  {CC"readUnsafeUncompressedPointer",                CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
+  {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                     FN_PTR(getJavaMirror)},
   {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
   {CC"collectCounters",                              CC"()[J",                                                         FN_PTR(collectCounters)},
   {CC"getGPUs",                                      CC"()"STRING,                                                     FN_PTR(getGPUs)},
   {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
   {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
   {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
+  {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
+  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                 FN_PTR(getNextStackFrame)},
+  {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                     FN_PTR(materializeVirtualObjects)},
 };
 
 int CompilerToVM_methods_count() {

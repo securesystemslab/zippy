@@ -752,11 +752,6 @@ JRT_ENTRY(void, SharedRuntime::throw_IncompatibleClassChangeError(JavaThread* th
   throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IncompatibleClassChangeError(), "vtable stub");
 JRT_END
 
-JRT_ENTRY(void, SharedRuntime::throw_InvalidInstalledCodeException(JavaThread* thread))
-  // These errors occur only at call sites
-  throw_and_post_jvmti_exception(thread, vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException());
-JRT_END
-
 JRT_ENTRY(void, SharedRuntime::throw_ArithmeticException(JavaThread* thread))
   throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_ArithmeticException(), "/ by zero");
 JRT_END

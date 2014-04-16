@@ -1677,30 +1677,6 @@ static void gen_special_dispatch(MacroAssembler* masm,
   verify_oop_args(masm, method, sig_bt, regs);
   vmIntrinsics::ID iid = method->intrinsic_id();
 
-#ifdef GRAAL
-  if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
-    // We are called from compiled code here. The three object arguments
-    // are already in the correct registers (j_rarg0, jrarg1, jrarg2). The
-    // fourth argument (j_rarg3) is a pointer to the HotSpotInstalledCode object.
-
-    // Load the nmethod pointer from the HotSpotInstalledCode object
-    __ movq(j_rarg4, Address(j_rarg3, sizeof(oopDesc)));
-
-    // Check whether the nmethod was invalidated
-    __ testq(j_rarg4, j_rarg4);
-    Label invalid_nmethod;
-    __ jcc(Assembler::zero, invalid_nmethod);
-
-    // Perform a tail call to the verified entry point of the nmethod.
-    __ jmp(Address(j_rarg4, nmethod::verified_entry_point_offset()));
-
-    __ bind(invalid_nmethod);
-
-    __ jump(RuntimeAddress(StubRoutines::throw_InvalidInstalledCodeException_entry()));
-    return;
-  }
-#endif
-
   // Now write the args into the outgoing interpreter space
   bool     has_receiver   = false;
   Register receiver_reg   = noreg;
@@ -3384,9 +3360,8 @@ void SharedRuntime::generate_deopt_blob() {
 
 #ifdef GRAAL
   int implicit_exception_uncommon_trap_offset = __ pc() - start;
-  __ pushptr(Address(r15_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset())));
 
-  int uncommon_trap_offset = __ pc() - start;
+  __ pushptr(Address(r15_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset())));
 
   // Save everything in sight.
   RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
@@ -3667,7 +3642,6 @@ void SharedRuntime::generate_deopt_blob() {
   _deopt_blob = DeoptimizationBlob::create(&buffer, oop_maps, 0, exception_offset, reexecute_offset, frame_size_in_words);
   _deopt_blob->set_unpack_with_exception_in_tls_offset(exception_in_tls_offset);
 #ifdef GRAAL
-  _deopt_blob->set_uncommon_trap_offset(uncommon_trap_offset);
   _deopt_blob->set_implicit_exception_uncommon_trap_offset(implicit_exception_uncommon_trap_offset);
 #endif
 }

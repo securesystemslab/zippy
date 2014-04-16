@@ -357,7 +357,10 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
     unpack_sp = deoptee.unextended_sp();
 
 #ifdef ASSERT
-  assert(cb->is_deoptimization_stub() || cb->is_uncommon_trap_stub(), "just checking");
+  assert(cb->is_deoptimization_stub() ||
+         cb->is_uncommon_trap_stub() ||
+         strcmp("Stub<DeoptimizationStub.uncommonTrapHandler>", cb->name()) == 0,
+         err_msg("unexpected code blob: %s", cb->name()));
 #endif
 #else
   intptr_t* unpack_sp = stub_frame.sender(&dummy_map).unextended_sp();

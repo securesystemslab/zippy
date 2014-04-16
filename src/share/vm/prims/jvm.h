@@ -477,11 +477,6 @@ JVM_GetProtectionDomain(JNIEnv *env, jclass cls);
 JNIEXPORT jboolean JNICALL
 JVM_IsArrayClass(JNIEnv *env, jclass cls);
 
-// Preserved in Graal repo so that linking against a JDK7 libjava.so works
-JNIEXPORT void JNICALL
-JVM_SetProtectionDomain(JNIEnv *env, jclass cls, jobject protection_domain);
-
-
 JNIEXPORT jboolean JNICALL
 JVM_IsPrimitiveClass(JNIEnv *env, jclass cls);
 

@@ -2988,7 +2988,6 @@ class StubGenerator: public StubCodeGenerator {
     // and need to be relocatable, so they each fabricate a RuntimeStub internally.
     StubRoutines::_throw_AbstractMethodError_entry         = generate_throw_exception("AbstractMethodError throw_exception",          CAST_FROM_FN_PTR(address, SharedRuntime::throw_AbstractMethodError));
     StubRoutines::_throw_IncompatibleClassChangeError_entry= generate_throw_exception("IncompatibleClassChangeError throw_exception", CAST_FROM_FN_PTR(address, SharedRuntime::throw_IncompatibleClassChangeError));
-    StubRoutines::_throw_InvalidInstalledCodeException_entry         = generate_throw_exception("InvalidInstalledCodeException throw_exception", CAST_FROM_FN_PTR(address, SharedRuntime::throw_InvalidInstalledCodeException));
     StubRoutines::_throw_NullPointerException_at_call_entry= generate_throw_exception("NullPointerException at call throw_exception", CAST_FROM_FN_PTR(address, SharedRuntime::throw_NullPointerException_at_call));
 
     //------------------------------------------------------------------------------------------------------------------------

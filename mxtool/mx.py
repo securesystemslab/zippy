@@ -36,6 +36,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import textwrap
 import socket
+import tarfile
 import hashlib
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
@@ -65,9 +66,8 @@ class Distribution:
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
-        self.sourcesPath = sourcesPath.replace('/', os.sep) if sourcesPath else None
-        if not isabs(self.path):
-            self.path = join(suite.dir, self.path)
+        self.path = _make_absolute(self.path, suite.dir)
+        self.sourcesPath = _make_absolute(sourcesPath.replace('/', os.sep), suite.dir) if sourcesPath else None
         self.deps = deps
         self.update_listeners = set()
         self.excludedLibs = excludedLibs
@@ -359,6 +359,14 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
+def _make_absolute(path, prefix):
+    """
+    Makes 'path' absolute if it isn't already by prefixing 'prefix'
+    """
+    if not isabs(path):
+        return join(prefix, path)
+    return path
+
 def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
     def _download_lib():
         print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
@@ -429,9 +437,7 @@ class Library(Dependency):
 
 
     def get_path(self, resolve):
-        path = self.path
-        if not isabs(path):
-            path = join(self.suite.dir, path)
+        path = _make_absolute(self.path, self.suite.dir)
         sha1path = path + '.sha1'
 
         includedInJDK = getattr(self, 'includedInJDK', None)
@@ -442,11 +448,9 @@ class Library(Dependency):
 
 
     def get_source_path(self, resolve):
-        path = self.sourcePath
-        if path is None:
+        if self.path is None:
             return None
-        if not isabs(path):
-            path = join(self.suite.dir, path)
+        path = _make_absolute(self.path, self.suite.dir)
         sha1path = path + '.sha1'
 
         return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
@@ -1690,6 +1694,7 @@ def build(args, parser=None):
     parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
     parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
+    parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
     parser.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
 
     if suppliedParser:
@@ -1915,11 +1920,15 @@ def build(args, parser=None):
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
-                    # convert all warnings to errors
-                    if args.jdt_warning_as_error:
+                    with open(jdtProperties) as fp:
+                        origContent = fp.read()
+                        content = origContent
+                        if args.jdt_warning_as_error:
+                            content = content.replace('=warning', '=error')
+                        if not args.jdt_show_task_tags:
+                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
+                    if origContent != content:
                         jdtPropertiesTmp = jdtProperties + '.tmp'
-                        with open(jdtProperties) as fp:
-                            content = fp.read().replace('=warning', '=error')
                         with open(jdtPropertiesTmp, 'w') as fp:
                             fp.write(content)
                         toBeDeleted.append(jdtPropertiesTmp)
@@ -2168,25 +2177,43 @@ def archive(args):
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
 
+
+    class Archive:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            if self.path:
+                fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
+                self.tmpFd = fd
+                self.tmpPath = tmp
+                self.zf = zipfile.ZipFile(tmp, 'w')
+            else:
+                self.tmpFd = None
+                self.tmpPath = None
+                self.zf = None
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            if self.zf:
+                self.zf.close()
+                os.close(self.tmpFd)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(self.tmpPath, 0o666 & ~currentUmask)
+                # Atomic on Unix
+                shutil.move(self.tmpPath, self.path)
+
     archives = []
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
-            if d.sourcesPath:
-                sourcesFd, sourcesTmp = tempfile.mkstemp(suffix='', prefix=basename(d.sourcesPath) + '.', dir=dirname(d.sourcesPath))
-            else:
-                sourcesTmp = None
-            services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+            with Archive(d.path) as arc, Archive(d.sourcesPath) as srcArc:
+                services = {}
+                def overwriteCheck(zf, arcname, source):
+                    if arcname in zf.namelist():
+                        log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
 
-            def overwriteCheck(zf, arcname, source):
-                if arcname in zf.namelist():
-                    log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
-
-            try:
-                zf = zipfile.ZipFile(tmp, 'w')
-                szf = zipfile.ZipFile(sourcesTmp, 'w') if sourcesTmp else None
                 for dep in d.sorted_deps(includeLibs=True):
                     if dep.isLibrary():
                         l = dep
@@ -2198,18 +2225,17 @@ def archive(args):
                             with zipfile.ZipFile(lpath, 'r') as lp:
                                 for arcname in lp.namelist():
                                     if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
-                                        f = arcname[len('META-INF/services/'):].replace('/', os.sep)
-                                        with open(join(services, f), 'a') as outfile:
-                                            for line in lp.read(arcname).splitlines():
-                                                outfile.write(line)
+                                        service = arcname[len('META-INF/services/'):]
+                                        assert '/' not in service
+                                        services.setdefault(service, []).extend(lp.read(arcname).splitlines())
                                     else:
-                                        overwriteCheck(zf, arcname, lpath + '!' + arcname)
-                                        zf.writestr(arcname, lp.read(arcname))
-                        if szf and libSourcePath:
+                                        overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
+                                        arc.zf.writestr(arcname, lp.read(arcname))
+                        if srcArc.zf and libSourcePath:
                             with zipfile.ZipFile(libSourcePath, 'r') as lp:
                                 for arcname in lp.namelist():
-                                    overwriteCheck(szf, arcname, lpath + '!' + arcname)
-                                    szf.writestr(arcname, lp.read(arcname))
+                                    overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
+                                    srcArc.zf.writestr(arcname, lp.read(arcname))
                     else:
                         p = dep
                         # skip a  Java project if its Java compliance level is "higher" than the configured JDK
@@ -2223,79 +2249,47 @@ def archive(args):
                         for root, _, files in os.walk(outputDir):
                             relpath = root[len(outputDir) + 1:]
                             if relpath == join('META-INF', 'services'):
-                                for f in files:
-                                    with open(join(services, f), 'a') as outfile:
-                                        with open(join(root, f), 'r') as infile:
-                                            for line in infile:
-                                                outfile.write(line)
+                                for service in files:
+                                    with open(join(root, service), 'r') as fp:
+                                        services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
                             elif relpath == join('META-INF', 'providers'):
-                                for f in files:
-                                    with open(join(root, f), 'r') as infile:
-                                        for line in infile:
-                                            with open(join(services, line.strip()), 'a') as outfile:
-                                                outfile.write(f + '\n')
+                                for provider in files:
+                                    with open(join(root, provider), 'r') as fp:
+                                        for service in fp:
+                                            services.setdefault(service.strip(), []).append(provider)
                             else:
                                 for f in files:
                                     arcname = join(relpath, f).replace(os.sep, '/')
-                                    overwriteCheck(zf, arcname, join(root, f))
-                                    zf.write(join(root, f), arcname)
-                        if szf:
+                                    overwriteCheck(arc.zf, arcname, join(root, f))
+                                    arc.zf.write(join(root, f), arcname)
+                        if srcArc.zf:
                             for srcDir in p.source_dirs():
                                 for root, _, files in os.walk(srcDir):
                                     relpath = root[len(srcDir) + 1:]
                                     for f in files:
                                         if f.endswith('.java'):
                                             arcname = join(relpath, f).replace(os.sep, '/')
-                                            overwriteCheck(szf, arcname, join(root, f))
-                                            szf.write(join(root, f), arcname)
+                                            overwriteCheck(srcArc.zf, arcname, join(root, f))
+                                            srcArc.zf.write(join(root, f), arcname)
 
-                for f in os.listdir(services):
-                    arcname = join('META-INF', 'services', f).replace(os.sep, '/')
-                    zf.write(join(services, f), arcname)
-                zf.close()
-                os.close(fd)
-                shutil.rmtree(services)
-                # Atomic on Unix
-                shutil.move(tmp, d.path)
-                # Correct the permissions on the temporary file which is created with restrictive permissions
-                os.chmod(d.path, 0o666 & ~currentUmask)
-                archives.append(d.path)
+                for service, providers in services.iteritems():
+                    arcname = 'META-INF/services/' + service
+                    arc.zf.writestr(arcname, '\n'.join(providers))
 
-                if szf:
-                    szf.close()
-                    os.close(sourcesFd)
-                    shutil.move(sourcesTmp, d.sourcesPath)
-                    os.chmod(d.sourcesPath, 0o666 & ~currentUmask)
-
-                d.notify_updated()
-            finally:
-                if exists(tmp):
-                    os.remove(tmp)
-                if exists(services):
-                    shutil.rmtree(services)
+            d.notify_updated()
+            archives.append(d.path)
 
         else:
             p = project(name)
             outputDir = p.output_dir()
-            fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
-            try:
-                zf = zipfile.ZipFile(tmp, 'w')
+            with Archive(join(p.dir, p.name + '.jar')) as arc:
                 for root, _, files in os.walk(outputDir):
                     for f in files:
                         relpath = root[len(outputDir) + 1:]
                         arcname = join(relpath, f).replace(os.sep, '/')
-                        zf.write(join(root, f), arcname)
-                zf.close()
-                os.close(fd)
-                # Atomic on Unix
-                jarFile = join(p.dir, p.name + '.jar')
-                shutil.move(tmp, jarFile)
-                # Correct the permissions on the temporary file which is created with restrictive permissions
-                os.chmod(jarFile, 0o666 & ~currentUmask)
-                archives.append(jarFile)
-            finally:
-                if exists(tmp):
-                    os.remove(tmp)
+                        arc.zf.write(join(root, f), arcname)
+                archives.append(arc.path)
+
     return archives
 
 def canonicalizeprojects(args):
@@ -2880,11 +2874,10 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     if not path or (not exists(path) and not dep.mustExist):
                         continue
 
-                    if not isabs(path):
-                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                        # safest to simply use absolute paths.
-                        path = join(p.suite.dir, path)
+                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                    # safest to simply use absolute paths.
+                    path = _make_absolute(path, p.suite.dir)
 
                     attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
 
@@ -3039,11 +3032,10 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                             if dep.mustExist:
                                 path = dep.get_path(resolve=True)
                                 if path:
-                                    if not isabs(path):
-                                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                                        # safest to simply use absolute paths.
-                                        path = join(p.suite.dir, path)
+                                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                                    # safest to simply use absolute paths.
+                                    path = _make_absolute(path, p.suite.dir)
                                     out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
                                     files.append(path)
                     else:
@@ -3568,6 +3560,193 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
 
+def intellijinit(args, refreshOnly=False):
+    """(re)generate Intellij project configurations"""
+
+    for suite in suites(True):
+        _intellij_suite(args, suite, refreshOnly)
+
+def _intellij_suite(args, suite, refreshOnly=False):
+
+    libraries = set()
+
+    ideaProjectDirectory = join(suite.dir, '.idea')
+
+    if not exists(ideaProjectDirectory):
+        os.mkdir(ideaProjectDirectory)
+    nameFile = join(ideaProjectDirectory, '.name')
+    update_file(nameFile, "Graal")
+    modulesXml = XMLDoc()
+    modulesXml.open('project', attributes={'version': '4'})
+    modulesXml.open('component', attributes={'name': 'ProjectModuleManager'})
+    modulesXml.open('modules')
+
+
+    def _intellij_exclude_if_exists(xml, p, name):
+        path = join(p.dir, name)
+        if exists(path):
+            xml.element('excludeFolder', attributes={'url':'file://$MODULE_DIR$/' + name})
+
+    annotationProcessorProfiles = {}
+
+    def _complianceToIntellijLanguageLevel(compliance):
+        return 'JDK_1_' + str(compliance.value)
+
+    # create the modules (1 module  = 1 Intellij project)
+    for p in suite.projects:
+        if p.native:
+            continue
+
+        if not java(p.javaCompliance):
+            log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
+            continue
+
+        if not exists(p.dir):
+            os.makedirs(p.dir)
+
+        annotationProcessorProfileKey = tuple(p.annotation_processors())
+
+        if not annotationProcessorProfileKey in annotationProcessorProfiles:
+            annotationProcessorProfiles[annotationProcessorProfileKey] = [p]
+        else:
+            annotationProcessorProfiles[annotationProcessorProfileKey].append(p)
+
+        intellijLanguageLevel = _complianceToIntellijLanguageLevel(p.javaCompliance)
+
+        moduleXml = XMLDoc()
+        moduleXml.open('module', attributes={'type': 'JAVA_MODULE', 'version': '4'})
+
+        moduleXml.open('component', attributes={'name': 'NewModuleRootManager', 'LANGUAGE_LEVEL': intellijLanguageLevel, 'inherit-compiler-output': 'false'})
+        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'})
+        moduleXml.element('exclude-output')
+
+        moduleXml.open('content', attributes={'url': 'file://$MODULE_DIR$'})
+        for src in p.srcDirs:
+            srcDir = join(p.dir, src)
+            if not exists(srcDir):
+                os.mkdir(srcDir)
+            moduleXml.element('sourceFolder', attributes={'url':'file://$MODULE_DIR$/' + src, 'isTestSource': 'false'})
+
+        if len(p.annotation_processors()) > 0:
+            genDir = p.source_gen_dir()
+            if not exists(genDir):
+                os.mkdir(genDir)
+            moduleXml.element('sourceFolder', attributes={'url':'file://$MODULE_DIR$/' + os.path.relpath(genDir, p.dir), 'isTestSource': 'false'})
+
+        for name in ['.externalToolBuilders', '.settings', 'nbproject']:
+            _intellij_exclude_if_exists(moduleXml, p, name)
+        moduleXml.close('content')
+
+        moduleXml.element('orderEntry', attributes={'type': 'jdk', 'jdkType': 'JavaSDK', 'jdkName': str(p.javaCompliance)})
+        moduleXml.element('orderEntry', attributes={'type': 'sourceFolder', 'forTests': 'false'})
+
+        deps = p.all_deps([], True, includeAnnotationProcessors=True)
+        for dep in deps:
+            if dep == p:
+                continue
+
+            if dep.isLibrary():
+                if dep.mustExist:
+                    libraries.add(dep)
+                    moduleXml.element('orderEntry', attributes={'type': 'library', 'name': dep.name, 'level': 'project'})
+            else:
+                moduleXml.element('orderEntry', attributes={'type': 'module', 'module-name': dep.name})
+
+        moduleXml.close('component')
+        moduleXml.close('module')
+        moduleFile = join(p.dir, p.name + '.iml')
+        update_file(moduleFile, moduleXml.xml(indent='  ', newl='\n'))
+
+        moduleFilePath = "$PROJECT_DIR$/" + os.path.relpath(moduleFile, suite.dir)
+        modulesXml.element('module', attributes={'fileurl': 'file://' + moduleFilePath, 'filepath': moduleFilePath})
+
+    modulesXml.close('modules')
+    modulesXml.close('component')
+    modulesXml.close('project')
+    moduleXmlFile = join(ideaProjectDirectory, 'modules.xml')
+    update_file(moduleXmlFile, modulesXml.xml(indent='  ', newl='\n'))
+
+    # TODO What about cross-suite dependencies?
+
+    librariesDirectory = join(ideaProjectDirectory, 'libraries')
+
+    if not exists(librariesDirectory):
+        os.mkdir(librariesDirectory)
+
+    # Setup the libraries that were used above
+    # TODO: setup all the libraries from the suite regardless of usage?
+    for library in libraries:
+        libraryXml = XMLDoc()
+
+        libraryXml.open('component', attributes={'name': 'libraryTable'})
+        libraryXml.open('library', attributes={'name': library.name})
+        libraryXml.open('CLASSES')
+        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.path, suite.dir) + '!/'})
+        libraryXml.close('CLASSES')
+        libraryXml.element('JAVADOC')
+        if library.sourcePath:
+            libraryXml.open('SOURCES')
+            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.sourcePath, suite.dir) + '!/'})
+            libraryXml.close('SOURCES')
+        else:
+            libraryXml.element('SOURCES')
+        libraryXml.close('library')
+        libraryXml.close('component')
+
+        libraryFile = join(librariesDirectory, library.name + '.xml')
+        update_file(libraryFile, libraryXml.xml(indent='  ', newl='\n'))
+
+
+
+    # Set annotation processor profiles up, and link them to modules in compiler.xml
+    compilerXml = XMLDoc()
+    compilerXml.open('project', attributes={'version': '4'})
+    compilerXml.open('component', attributes={'name': 'CompilerConfiguration'})
+
+    compilerXml.element('option', attributes={'name': "DEFAULT_COMPILER", 'value': 'Javac'})
+    compilerXml.element('resourceExtensions')
+    compilerXml.open('wildcardResourcePatterns')
+    compilerXml.element('entry', attributes={'name': '!?*.java'})
+    compilerXml.close('wildcardResourcePatterns')
+
+    if annotationProcessorProfiles:
+        compilerXml.open('annotationProcessing')
+        for processors, modules in annotationProcessorProfiles.items():
+            compilerXml.open('profile', attributes={'default': 'false', 'name': '-'.join(processors), 'enabled': 'true'})
+            compilerXml.element('sourceOutputDir', attributes={'name': 'src_gen'})  # TODO use p.source_gen_dir() ?
+            compilerXml.element('outputRelativeToContentRoot', attributes={'value': 'true'})
+            compilerXml.open('processorPath', attributes={'useClasspath': 'false'})
+            for apName in processors:
+                pDep = dependency(apName)
+                for entry in pDep.all_deps([], True):
+                    if entry.isLibrary():
+                        compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.path, suite.dir)})
+                    else:
+                        assert entry.isProject()
+                        compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.output_dir(), suite.dir)})
+            compilerXml.close('processorPath')
+            for module in modules:
+                compilerXml.element('module', attributes={'name': module.name})
+            compilerXml.close('profile')
+        compilerXml.close('annotationProcessing')
+
+    compilerXml.close('component')
+    compilerXml.close('project')
+    compilerFile = join(ideaProjectDirectory, 'compiler.xml')
+    update_file(compilerFile, compilerXml.xml(indent='  ', newl='\n'))
+
+    # Wite misc.xml for global JDK config
+    miscXml = XMLDoc()
+    miscXml.open('project', attributes={'version': '4'})
+    miscXml.element('component', attributes={'name': 'ProjectRootManager', 'version': '2', 'languagelevel': _complianceToIntellijLanguageLevel(java().javaCompliance), 'project-jdk-name': str(java().javaCompliance), 'project-jdk-type': 'JavaSDK'})
+    miscXml.close('project')
+    miscFile = join(ideaProjectDirectory, 'misc.xml')
+    update_file(miscFile, miscXml.xml(indent='  ', newl='\n'))
+
+
+    # TODO look into copyright settings
+    # TODO should add vcs.xml support
+
 def ideclean(args):
     """remove all Eclipse and NetBeans project configurations"""
     def rm(path):
@@ -3577,6 +3756,7 @@ def ideclean(args):
     for s in suites():
         rm(join(s.mxDir, 'eclipse-config.zip'))
         rm(join(s.mxDir, 'netbeans-config.zip'))
+        shutil.rmtree(join(s.dir, '.idea'), ignore_errors=True)
 
     for p in projects():
         if p.native:
@@ -3589,6 +3769,7 @@ def ideclean(args):
         rm(join(p.dir, '.checkstyle'))
         rm(join(p.dir, '.project'))
         rm(join(p.dir, '.factorypath'))
+        rm(join(p.dir, p.name + '.iml'))
         rm(join(p.dir, 'build.xml'))
         rm(join(p.dir, 'eclipse-build.xml'))
         try:
@@ -3601,6 +3782,7 @@ def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    intellijinit(args, refreshOnly=refreshOnly)
     if not refreshOnly:
         fsckprojects([])
 
@@ -4094,6 +4276,75 @@ def select_items(items, descriptions=None, allowMultiple=True):
                 return items[indexes[0]]
             return None
 
+def exportlibs(args):
+    """export libraries to an archive file"""
+
+    parser = ArgumentParser(prog='exportlibs')
+    parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
+    parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
+    parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
+    parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
+    parser.add_argument('--include-system-libs', action='store_true', help='include system libraries (i.e., those not downloaded from URLs)')
+    parser.add_argument('extras', nargs=REMAINDER, help='extra files and directories to add to archive', metavar='files...')
+    args = parser.parse_args(args)
+
+    def createArchive(addMethod):
+        entries = {}
+        def add(path, arcname):
+            apath = os.path.abspath(path)
+            if not entries.has_key(arcname):
+                entries[arcname] = apath
+                logv('[adding ' + path + ']')
+                addMethod(path, arcname=arcname)
+            elif entries[arcname] != apath:
+                logv('[warning: ' + apath + ' collides with ' + entries[arcname] + ' as ' + arcname + ']')
+            else:
+                logv('[already added ' + path + ']')
+
+        for lib in _libs.itervalues():
+            if len(lib.urls) != 0 or args.include_system_libs:
+                add(lib.get_path(resolve=True), lib.path)
+        if args.extras:
+            for e in args.extras:
+                if os.path.isdir(e):
+                    for root, _, filenames in os.walk(e):
+                        for name in filenames:
+                            f = join(root, name)
+                            add(f, f)
+                else:
+                    add(e, e)
+
+    if args.arc == 'zip':
+        path = args.base + '.zip'
+        with zipfile.ZipFile(path, 'w') as zf:
+            createArchive(zf.write)
+    else:
+        path = args.base + '.tar'
+        mode = 'w'
+        if args.arc != 'tar':
+            sfx = args.arc[1:]
+            mode = mode + ':' + sfx
+            path = path + '.' + sfx
+        with tarfile.open(path, mode) as tar:
+            createArchive(tar.add)
+    log('created ' + path)
+
+    def digest(enabled, path, factory, suffix):
+        if enabled:
+            d = factory()
+            with open(path, 'rb') as f:
+                while True:
+                    buf = f.read(4096)
+                    if not buf:
+                        break
+                    d.update(buf)
+            with open(path + '.' + suffix, 'w') as fp:
+                print >> fp, d.hexdigest()
+            log('created ' + path + '.' + suffix)
+
+    digest(args.sha1, path, hashlib.sha1, 'sha1')
+    digest(args.md5, path, hashlib.md5, 'md5')
+
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
@@ -4162,11 +4413,13 @@ _commands = {
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
     'eclipseformat': [eclipseformat, ''],
+    'exportlibs': [exportlibs, ''],
     'findclass': [findclass, ''],
     'fsckprojects': [fsckprojects, ''],
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
+    'intellijinit': [intellijinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'pylint': [pylint, ''],

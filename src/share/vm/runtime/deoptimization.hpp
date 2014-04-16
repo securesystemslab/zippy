@@ -139,6 +139,8 @@ class Deoptimization : AllStatic {
   static void revoke_biases_of_monitors(CodeBlob* cb);
 
 #if defined(COMPILER2) || defined(GRAAL)
+GRAAL_ONLY(public:)
+
   // Support for restoring non-escaping objects
   static bool realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS);
   static void reassign_type_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, typeArrayOop obj, BasicType type);

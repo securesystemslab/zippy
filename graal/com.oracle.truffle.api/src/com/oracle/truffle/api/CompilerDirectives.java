@@ -28,9 +28,9 @@ import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
 
-import com.oracle.truffle.api.frame.*;
-
 import sun.misc.*;
+
+import com.oracle.truffle.api.frame.*;
 
 /**
  * Directives that influence the optimizations of the Truffle compiler. All of the operations have
@@ -196,7 +196,7 @@ public final class CompilerDirectives {
      * @return the value to be casted to the new type
      */
     public static MaterializedFrame unsafeFrameCast(MaterializedFrame value) {
-        return unsafeCast(value, getUnsafeFrameType(), true);
+        return unsafeCast(value, getUnsafeFrameType(), true, true);
     }
 
     private static Class<? extends MaterializedFrame> getUnsafeFrameType() {
@@ -618,5 +618,14 @@ public final class CompilerDirectives {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE})
     public @interface ValueType {
+    }
+
+    /**
+     * Ensures that the given object is not virtual, i.e., not removed by Escape Analysis at the
+     * point of this call.
+     *
+     * @param obj the object to exclude from Escape Analysis
+     */
+    public static void materialize(Object obj) {
     }
 }

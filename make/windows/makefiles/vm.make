@@ -71,6 +71,10 @@ CXX_FLAGS=$(CXX_FLAGS) $(CXX_INCLUDE_DIRS)
 # Define that so jni.h is on correct side
 CXX_FLAGS=$(CXX_FLAGS) /D "_JNI_IMPLEMENTATION_"
 
+!if "$(INCLUDE_GRAAL)" == "true"
+  CXX_FLAGS=$(CXX_FLAGS) /D "GRAAL_VERSION=\"$(GRAAL_VERSION)\""
+!endif
+
 !if "$(BUILDARCH)" == "ia64"
 STACK_SIZE="/STACK:1048576,262144"
 !else

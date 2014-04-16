@@ -35,7 +35,6 @@
 #include "prims/jvmtiExport.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/globals_extension.hpp"
-#include "runtime/gpu.hpp"
 #include "runtime/java.hpp"
 #include "services/management.hpp"
 #include "services/memTracker.hpp"
@@ -182,6 +181,13 @@ void Arguments::init_system_properties() {
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.version", VM_Version::vm_release(),  false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.name", VM_Version::vm_name(),  false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.info", VM_Version::vm_info_string(),  true));
+#ifdef GRAAL
+#ifdef GRAAL_VERSION
+  PropertyList_add(&_system_properties, new SystemProperty("graal.version", GRAAL_VERSION,  true));
+#else
+  PropertyList_add(&_system_properties, new SystemProperty("graal.version", "unknown",  true));
+#endif
+#endif
 
   // following are JVMTI agent writeable properties.
   // Properties values are set to NULL and they are

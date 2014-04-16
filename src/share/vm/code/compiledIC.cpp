@@ -76,7 +76,7 @@ void CompiledIC::internal_set_ic_destination(address entry_point, bool is_icstub
   // Don't use ic_destination for this test since that forwards
   // through ICBuffer instead of returning the actual current state of
   // the CompiledIC.
-  if (is_icholder_entry(_ic_call->destination()) GRAAL_ONLY(&& _value != NULL)) {
+  if (is_icholder_entry(_ic_call->destination())) {
     // When patching for the ICStub case the cached value isn't
     // overwritten until the ICStub copied into the CompiledIC during
     // the next safepoint.  Make sure that the CompiledICHolder* is
@@ -106,13 +106,6 @@ void CompiledIC::internal_set_ic_destination(address entry_point, bool is_icstub
 #endif
   _ic_call->set_destination_mt_safe(entry_point);
 }
-
-#ifdef GRAAL
-  if (_value == NULL) {
-    // Can happen when Graal converted a virtual call into an invoke special based on static analysis.
-    return;
-  }
-#endif
 
   if (is_optimized() || is_icstub) {
     // Optimized call sites don't have a cache value and ICStub call
@@ -235,7 +228,9 @@ bool CompiledIC::is_call_to_compiled() const {
   bool is_monomorphic = (cb != NULL && cb->is_nmethod());
   // Check that the cached_value is a klass for non-optimized monomorphic calls
   // This assertion is invalid for compiler1: a call that does not look optimized (no static stub) can be used
-  // for calling directly to vep without using the inline cache (i.e., cached_value == NULL)
+  // for calling directly to vep without using the inline cache (i.e., cached_value == NULL).
+  // For Graal this occurs because CHA is only used to improve inlining so call sites which could be optimized
+  // virtuals because there are no currently loaded subclasses of a type are left as virtual call sites.
 #ifdef ASSERT
   CodeBlob* caller = CodeCache::find_blob_unsafe(instruction_address());
   bool is_c1_or_graal_method = caller->is_compiled_by_c1() || caller->is_compiled_by_graal();
@@ -264,14 +259,12 @@ bool CompiledIC::is_call_to_interpreted() const {
     // Check if we are calling into our own codeblob (i.e., to a stub)
     CodeBlob* cb = CodeCache::find_blob(_ic_call->instruction_address());
     address dest = ic_destination();
-#ifndef GRAAL
 #ifdef ASSERT
     {
       CodeBlob* db = CodeCache::find_blob_unsafe(dest);
       assert(!db->is_adapter_blob(), "must use stub!");
     }
 #endif /* ASSERT */
-#endif
     is_call_to_interpreted = cb->contains(dest);
   }
   return is_call_to_interpreted;

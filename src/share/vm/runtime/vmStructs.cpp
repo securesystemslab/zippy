@@ -576,6 +576,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(ThreadLocalAllocBuffer,      _start,                                        HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _top,                                          HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _end,                                          HeapWord*)                             \
+  nonstatic_field(ThreadLocalAllocBuffer,      _pf_top,                                       HeapWord*)                             \
   nonstatic_field(ThreadLocalAllocBuffer,      _desired_size,                                 size_t)                                \
   nonstatic_field(ThreadLocalAllocBuffer,      _refill_waste_limit,                           size_t)                                \
      static_field(ThreadLocalAllocBuffer,      _target_refills,                               unsigned)                              \
@@ -2422,6 +2423,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(Method::_force_inline)                                 \
   declare_constant(Method::_dont_inline)                                  \
   declare_constant(Method::_hidden)                                       \
+  declare_constant(Method::nonvirtual_vtable_index)                       \
                                                                           \
   declare_constant(ConstMethod::_has_linenumber_table)                    \
   declare_constant(ConstMethod::_has_checked_exceptions)                  \
@@ -2646,7 +2648,6 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   declare_constant(OopMapValue::register_mask_in_place)                   \
   declare_constant(OopMapValue::unused_value)                             \
   declare_constant(OopMapValue::oop_value)                                \
-  declare_constant(OopMapValue::value_value)                              \
   declare_constant(OopMapValue::narrowoop_value)                          \
   declare_constant(OopMapValue::callee_saved_value)                       \
   declare_constant(OopMapValue::derived_oop_value)                        \

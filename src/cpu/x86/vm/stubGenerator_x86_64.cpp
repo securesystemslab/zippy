@@ -3860,12 +3860,6 @@ class StubGenerator: public StubCodeGenerator {
                                                 SharedRuntime::
                                                 throw_IncompatibleClassChangeError));
 
-    StubRoutines::_throw_InvalidInstalledCodeException_entry =
-      generate_throw_exception("InvalidInstalledCodeException throw_exception",
-                               CAST_FROM_FN_PTR(address,
-                                                SharedRuntime::
-                                                throw_InvalidInstalledCodeException));
-
     StubRoutines::_throw_NullPointerException_at_call_entry =
       generate_throw_exception("NullPointerException at call throw_exception",
                                CAST_FROM_FN_PTR(address,

@@ -24,6 +24,7 @@
  */
 package com.oracle.truffle.api;
 
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -36,8 +37,8 @@ public abstract class RootCallTarget extends CallTarget {
 
     public RootCallTarget(RootNode function) {
         this.rootNode = function;
-        this.rootNode.setCallTarget(this);
         this.rootNode.adoptChildren();
+        this.rootNode.setCallTarget(this);
     }
 
     @Override
@@ -45,7 +46,16 @@ public abstract class RootCallTarget extends CallTarget {
         return rootNode.toString();
     }
 
-    public RootNode getRootNode() {
+    public final RootNode getRootNode() {
         return rootNode;
+    }
+
+    protected final Object callProxy(VirtualFrame frame) {
+        try {
+            return getRootNode().execute(frame);
+        } finally {
+            // this assertion is needed to keep the values from being cleared as non-live locals
+            assert frame != null && this != null;
+        }
     }
 }
