@@ -27,11 +27,9 @@
 
 #include "utilities/exceptions.hpp"
 #include "graal/graalEnv.hpp"
-// #include "graal/graalCodeInstaller.hpp"
 #include "gpu_hsail_Frame.hpp"
 
-class Hsail {
-  friend class gpu;
+class Hsail : public Gpu {
 
   public:
   class HSAILKernelDeoptimization {
@@ -58,6 +56,7 @@ class Hsail {
   class HSAILDeoptimizationInfo : public ResourceObj {
     friend class VMStructs;
    private:
+    jint* _notice_safepoints;
     jint _deopt_occurred;
     jint _deopt_next_index;
     JavaThread** _donor_threads;
@@ -67,12 +66,12 @@ class Hsail {
     HSAILKernelDeoptimization _deopt_save_states[MAX_DEOPT_SAVE_STATES_SIZE];
 
     inline HSAILDeoptimizationInfo() {
+      _notice_safepoints = &Hsail::_notice_safepoints;
       _deopt_occurred = 0;
       _deopt_next_index = 0;
     }
 
     inline jint deopt_occurred() {
-      // Check that hsail did not write in the wrong place
       return _deopt_occurred;
     }
     inline jint num_deopts() { return _deopt_next_index; }
@@ -102,8 +101,8 @@ private:
   static void getNewTlabForDonorThread(ThreadLocalAllocBuffer* tlab, size_t tlabMinHsail);
 
   static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oopsSave,
-                                                  jobject donorThreads, int allocBytesPerWorkitem, TRAPS);
-
+                                                  jobject donor_threads, int allocBytesPerWorkitem, TRAPS);
+  
   static void register_heap();
 
   static GraalEnv::CodeInstallResult install_code(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
@@ -112,6 +111,11 @@ public:
 
   // Registers the implementations for the native methods in HSAILHotSpotBackend
   static bool register_natives(JNIEnv* env);
+
+  virtual const char* name() { return "HSAIL"; }
+
+  virtual void notice_safepoints();
+  virtual void ignore_safepoints();
 
 #if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
   typedef unsigned long long CUdeviceptr;
@@ -149,5 +153,8 @@ public:
   
 protected:
   static void* _device_context;
+
+  // true if safepoints are activated
+  static jint _notice_safepoints;
 };
 #endif // GPU_HSAIL_HPP

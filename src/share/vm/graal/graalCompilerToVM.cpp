@@ -757,7 +757,7 @@ C2V_END
 
 C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
 #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux) || defined(TARGET_OS_FAMILY_windows)
-  return gpu::probe_gpus(env);
+  return Gpu::probe_gpus(env);
 #else
   return env->NewStringUTF("");
 #endif
