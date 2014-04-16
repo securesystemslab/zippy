@@ -186,6 +186,9 @@ class Ticks;
   /* Support for Graal */                                                                                                \
   do_klass(CompilerThread_klass,                  com_oracle_graal_compiler_CompilerThread,                     Opt) \
   do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
+  /* graal.graph */                                                                                                  \
+  do_klass(Node_klass,                            com_oracle_graal_graph_Node,                                  Opt) \
+  do_klass(NodeClass_klass,                       com_oracle_graal_graph_NodeClass,                             Opt) \
   /* graal.hotspot */                                                                                                \
   do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Opt) \
   do_klass(HotSpotCompiledCode_Comment_klass,     com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,         Opt) \

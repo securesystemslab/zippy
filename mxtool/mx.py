@@ -406,7 +406,7 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
     return path
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1):
+    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
@@ -415,6 +415,7 @@ class Library(Dependency):
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
         self.sourceSha1 = sourceSha1
+        self.deps = deps
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -448,9 +449,9 @@ class Library(Dependency):
 
 
     def get_source_path(self, resolve):
-        if self.path is None:
+        if self.sourcePath is None:
             return None
-        path = _make_absolute(self.path, self.suite.dir)
+        path = _make_absolute(self.sourcePath, self.suite.dir)
         sha1path = path + '.sha1'
 
         return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
@@ -461,9 +462,21 @@ class Library(Dependency):
             cp.append(path)
 
     def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
-        if not includeLibs or not includeSelf:
+        """
+        Add the transitive set of dependencies for this library to the 'deps' list.
+        """
+        if not includeLibs:
             return deps
-        deps.append(self)
+        childDeps = list(self.deps)
+        if self in deps:
+            return deps
+        for name in childDeps:
+            assert name != self.name
+            dep = library(name)
+            if not dep in deps:
+                dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+        if not self in deps and includeSelf:
+            deps.append(self)
         return deps
 
 class HgConfig:
@@ -620,7 +633,8 @@ class Suite:
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
             sourceSha1 = attrs.pop('sourceSha1', None)
-            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1)
+            deps = pop_list(attrs, 'dependencies')
+            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -1694,6 +1708,7 @@ def build(args, parser=None):
     parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
     parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
+    parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
     parser.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
 
     if suppliedParser:
@@ -1919,11 +1934,15 @@ def build(args, parser=None):
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
-                    # convert all warnings to errors
-                    if args.jdt_warning_as_error:
+                    with open(jdtProperties) as fp:
+                        origContent = fp.read()
+                        content = origContent
+                        if args.jdt_warning_as_error:
+                            content = content.replace('=warning', '=error')
+                        if not args.jdt_show_task_tags:
+                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
+                    if origContent != content:
                         jdtPropertiesTmp = jdtProperties + '.tmp'
-                        with open(jdtProperties) as fp:
-                            content = fp.read().replace('=warning', '=error')
                         with open(jdtPropertiesTmp, 'w') as fp:
                             fp.write(content)
                         toBeDeleted.append(jdtPropertiesTmp)
@@ -2854,35 +2873,47 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
 
+        containerDeps = set()
+        libraryDeps = set()
+        projectDeps = set()
+
         for dep in p.all_deps([], True):
             if dep == p:
                 continue
-
             if dep.isLibrary():
                 if hasattr(dep, 'eclipse.container'):
-                    out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : getattr(dep, 'eclipse.container')})
-                elif hasattr(dep, 'eclipse.project'):
-                    out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + getattr(dep, 'eclipse.project')})
+                    container = getattr(dep, 'eclipse.container')
+                    containerDeps.add(container)
+                    libraryDeps -= set(dep.all_deps([], True))
                 else:
-                    path = dep.path
-                    dep.get_path(resolve=True)
-                    if not path or (not exists(path) and not dep.mustExist):
-                        continue
-
-                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                    # safest to simply use absolute paths.
-                    path = _make_absolute(path, p.suite.dir)
-
-                    attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
-
-                    sourcePath = dep.get_source_path(resolve=True)
-                    if sourcePath is not None:
-                        attributes['sourcepath'] = sourcePath
-                    out.element('classpathentry', attributes)
-                    libFiles.append(path)
+                    libraryDeps.add(dep)
             else:
-                out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
+                projectDeps.add(dep)
+
+        for dep in containerDeps:
+            out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : dep})
+
+        for dep in libraryDeps:
+            path = dep.path
+            dep.get_path(resolve=True)
+            if not path or (not exists(path) and not dep.mustExist):
+                continue
+
+            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+            # safest to simply use absolute paths.
+            path = _make_absolute(path, p.suite.dir)
+
+            attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
+
+            sourcePath = dep.get_source_path(resolve=True)
+            if sourcePath is not None:
+                attributes['sourcepath'] = sourcePath
+            out.element('classpathentry', attributes)
+            libFiles.append(path)
+
+        for dep in projectDeps:
+            out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
         out.element('classpathentry', {'kind' : 'output', 'path' : getattr(p, 'eclipse.output', 'bin')})
         out.close('classpath')
@@ -3612,7 +3643,7 @@ def _intellij_suite(args, suite, refreshOnly=False):
         moduleXml.open('module', attributes={'type': 'JAVA_MODULE', 'version': '4'})
 
         moduleXml.open('component', attributes={'name': 'NewModuleRootManager', 'LANGUAGE_LEVEL': intellijLanguageLevel, 'inherit-compiler-output': 'false'})
-        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'}) # TODO use p.output_dir() ?
+        moduleXml.element('output', attributes={'url': 'file://$MODULE_DIR$/bin'})
         moduleXml.element('exclude-output')
 
         moduleXml.open('content', attributes={'url': 'file://$MODULE_DIR$'})
@@ -3676,12 +3707,12 @@ def _intellij_suite(args, suite, refreshOnly=False):
         libraryXml.open('component', attributes={'name': 'libraryTable'})
         libraryXml.open('library', attributes={'name': library.name})
         libraryXml.open('CLASSES')
-        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.path, suite.dir) + '!/'})
+        libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.get_path(True), suite.dir) + '!/'})
         libraryXml.close('CLASSES')
         libraryXml.element('JAVADOC')
         if library.sourcePath:
             libraryXml.open('SOURCES')
-            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.sourcePath, suite.dir) + '!/'})
+            libraryXml.element('root', attributes={'url': 'jar://$PROJECT_DIR$/' + os.path.relpath(library.get_source_path(True), suite.dir) + '!/'})
             libraryXml.close('SOURCES')
         else:
             libraryXml.element('SOURCES')
@@ -3733,7 +3764,7 @@ def _intellij_suite(args, suite, refreshOnly=False):
     # Wite misc.xml for global JDK config
     miscXml = XMLDoc()
     miscXml.open('project', attributes={'version': '4'})
-    miscXml.element('component', attributes={'name': 'ProjectRootManager', 'version': '2', 'languagelevel': _complianceToIntellijLanguageLevel(java().javaCompliance), 'project-jdk-name': str(java().javaCompliance), 'project-jdk-type': 'JavaSDK'})
+    miscXml.element('component', attributes={'name': 'ProjectRootManager', 'version': '2', 'languageLevel': _complianceToIntellijLanguageLevel(java().javaCompliance), 'project-jdk-name': str(java().javaCompliance), 'project-jdk-type': 'JavaSDK'})
     miscXml.close('project')
     miscFile = join(ideaProjectDirectory, 'misc.xml')
     update_file(miscFile, miscXml.xml(indent='  ', newl='\n'))
@@ -4332,9 +4363,9 @@ def exportlibs(args):
                     buf = f.read(4096)
                     if not buf:
                         break
-                d.update(buf)
+                    d.update(buf)
             with open(path + '.' + suffix, 'w') as fp:
-                fp.write(d.hexdigest())
+                print >> fp, d.hexdigest()
             log('created ' + path + '.' + suffix)
 
     digest(args.sha1, path, hashlib.sha1, 'sha1')

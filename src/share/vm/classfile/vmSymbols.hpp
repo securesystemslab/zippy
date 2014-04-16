@@ -292,6 +292,9 @@
   /* Support for Graal */                                                                                                             \
   template(com_oracle_graal_compiler_CompilerThread,                 "com/oracle/graal/compiler/CompilerThread")                      \
   template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
+  /* graal.graph */                                                                                                                   \
+  template(com_oracle_graal_graph_Node,                              "com/oracle/graal/graph/Node")                                   \
+  template(com_oracle_graal_graph_NodeClass,                         "com/oracle/graal/graph/NodeClass")                              \
   /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
