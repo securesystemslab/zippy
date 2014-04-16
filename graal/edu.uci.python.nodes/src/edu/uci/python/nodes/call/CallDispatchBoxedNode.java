@@ -211,19 +211,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      */
     public static final class DispatchMethodNode extends CallDispatchBoxedNode {
 
-        @Child protected CallNode callNode;
+        @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
         private final PythonClass cachedClass;
         private final Assumption dispatchStable;
-        private final MaterializedFrame declarationFrame;
 
         public DispatchMethodNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
-            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
+            invokeNode = InvokeNode.create(callee);
             nextNode = next;
             cachedClass = primary.getPythonClass();
-            declarationFrame = callee.__func__().getDeclarationFrame();
             dispatchStable = primary.getStableAssumption();
             assert primary instanceof PythonObject && !(primary instanceof PythonClass);
         }
@@ -233,9 +231,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             if (primaryObj.getPythonClass() == cachedClass) {
                 try {
                     dispatchStable.check();
-
-                    PArguments arg = new PArguments(primaryObj, declarationFrame, arguments);
-                    return callNode.call(frame.pack(), arg);
+                    return invokeNode.invoke(frame, primaryObj, arguments);
                 } catch (InvalidAssumptionException ex) {
                     return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }

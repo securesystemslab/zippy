@@ -44,6 +44,9 @@ public abstract class InvokeNode extends Node {
     public static InvokeNode create(PythonCallable callee) {
         if (callee instanceof PFunction) {
             return new InvokeFunctionNode((PFunction) callee);
+        } else if (callee instanceof PMethod) {
+            PMethod method = (PMethod) callee;
+            return new InvokeFunctionNode(method.__func__());
         } else if (callee instanceof PBuiltinFunction) {
             // Split built-in constructors.
             return new InvokeBuiltinFunctionNode((PBuiltinFunction) callee, callee.getName().equals("__init__"));
