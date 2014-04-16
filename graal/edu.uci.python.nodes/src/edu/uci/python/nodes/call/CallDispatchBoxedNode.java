@@ -129,28 +129,40 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        protected final Assumption dispatchStable;
+        private final PythonBasicObject cachedPrimary;
+        private final Assumption dispatchStable;
 
         public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
-            Assumption globalStable = primary.getStableAssumption();
-            Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
-            dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
-            assert primary instanceof PythonModule || primary instanceof PythonBuiltinClass;
+            cachedPrimary = primary;
+
+            if (primary instanceof PythonModule) {
+                Assumption globalStable = primary.getStableAssumption();
+                Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
+                dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+            } else if (primary instanceof PythonBuiltinClass) {
+                dispatchStable = AlwaysValidAssumption.INSTANCE;
+            } else {
+                throw new IllegalStateException("Unsupported primary type " + primary);
+            }
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
-            try {
-                dispatchStable.check();
+            if (primaryObj == cachedPrimary) {
+                try {
+                    dispatchStable.check();
 
-                PArguments arg = new PArguments(PNone.NONE, null, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
+                    PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (InvalidAssumptionException ex) {
+                    return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
+                }
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 
