@@ -455,8 +455,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   _code = (arrayOop) CompilationResult::targetCode(comp_result);
   _code_size = CompilationResult::targetCodeSize(comp_result);
-  // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;  // FIXME this is an x86-ism
+  _total_frame_size = CompilationResult::frameSize(comp_result);
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
