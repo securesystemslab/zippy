@@ -45,7 +45,8 @@ public abstract class InvokeNode extends Node {
         if (callee instanceof PFunction) {
             return new InvokeFunctionNode((PFunction) callee);
         } else if (callee instanceof PBuiltinFunction) {
-            return new InvokeBuiltinFunctionNode((PBuiltinFunction) callee);
+            // Split built-in constructors.
+            return new InvokeBuiltinFunctionNode((PBuiltinFunction) callee, callee.getName().equals("__init__"));
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -69,8 +70,8 @@ public abstract class InvokeNode extends Node {
 
     public static final class InvokeBuiltinFunctionNode extends InvokeNode {
 
-        public InvokeBuiltinFunctionNode(PBuiltinFunction callee) {
-            super(Truffle.getRuntime().createCallNode(callee.getCallTarget()));
+        public InvokeBuiltinFunctionNode(PBuiltinFunction callee, boolean split) {
+            super(Truffle.getRuntime().createCallNode(split ? callee.getCallTarget() : CallDispatchNode.split(callee.getCallTarget())));
         }
 
         @Override
