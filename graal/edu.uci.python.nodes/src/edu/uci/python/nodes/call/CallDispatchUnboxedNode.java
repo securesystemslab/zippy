@@ -27,7 +27,6 @@ package edu.uci.python.nodes.call;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
@@ -56,7 +55,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         if (callee instanceof PFunction) {
             return new DispatchVariableFunctionNode(primary, (PFunction) callee, next);
         } else if (callee instanceof PBuiltinMethod) {
-            return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
+            return new DispatchBuiltinMethodNode(primary, (PBuiltinMethod) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee + " calleeNode type " + calleeNode);
@@ -99,37 +98,36 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
     }
 
+    /**
+     * The primary is an unboxed object.
+     *
+     */
     public static final class DispatchBuiltinMethodNode extends CallDispatchUnboxedNode {
-
-        protected final PBuiltinMethod cachedCallee;
-        protected final CallTarget cachedCallTarget;
-        protected final Assumption cachedCallTargetStable;
 
         @Child protected CallNode callNode;
         @Child protected CallDispatchUnboxedNode nextNode;
 
-        public DispatchBuiltinMethodNode(PBuiltinMethod callee, CallDispatchUnboxedNode next) {
-            super(callee.getName());
-            cachedCallee = callee;
-            cachedCallTarget = callee.getCallTarget();
-            // TODO: Is is necessary?
-            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
+        private final Class cachedPrimaryType;
 
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+        public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, CallDispatchUnboxedNode next) {
+            super(callee.getName());
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
+            cachedPrimaryType = primary.getClass();
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
-                PArguments arg = new PArguments(cachedCallee.__self__(), null, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
+            if (primaryObj.getClass() == cachedPrimaryType) {
+                try {
+                    PArguments arg = new PArguments(PythonContext.boxAsPythonBuiltinObject(primaryObj), null, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (UnexpectedResultException e) {
+                    throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                }
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 

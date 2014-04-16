@@ -129,7 +129,7 @@ public class PythonContext {
         return moduleClass;
     }
 
-    public PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) throws UnexpectedResultException {
+    public static PythonBuiltinObject boxAsPythonBuiltinObject(Object obj) throws UnexpectedResultException {
         if (obj instanceof PythonBuiltinObject) {
             return (PythonBuiltinObject) obj;
         }
