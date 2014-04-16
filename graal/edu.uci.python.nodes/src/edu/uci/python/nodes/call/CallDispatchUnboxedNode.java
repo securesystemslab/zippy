@@ -58,14 +58,14 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
      */
     public static final class DispatchBuiltinMethodNode extends CallDispatchUnboxedNode {
 
-        @Child protected CallNode callNode;
+        @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchUnboxedNode nextNode;
 
         private final Class cachedPrimaryType;
 
         public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, CallDispatchUnboxedNode next) {
             super(callee.getName());
-            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
+            invokeNode = InvokeNode.create(callee);
             nextNode = next;
             cachedPrimaryType = primary.getClass();
         }
@@ -73,12 +73,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
             if (primaryObj.getClass() == cachedPrimaryType) {
-                try {
-                    PArguments arg = new PArguments(PythonContext.boxAsPythonBuiltinObject(primaryObj), null, arguments);
-                    return callNode.call(frame.pack(), arg);
-                } catch (UnexpectedResultException e) {
-                    throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
-                }
+                return invokeNode.invoke(frame, primaryObj, arguments);
             }
 
             return nextNode.executeCall(frame, primaryObj, arguments);

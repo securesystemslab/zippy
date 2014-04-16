@@ -50,6 +50,9 @@ public abstract class InvokeNode extends Node {
         } else if (callee instanceof PBuiltinFunction) {
             // Split built-in constructors.
             return new InvokeBuiltinFunctionNode((PBuiltinFunction) callee, callee.getName().equals("__init__"));
+        } else if (callee instanceof PBuiltinMethod) {
+            PBuiltinMethod method = (PBuiltinMethod) callee;
+            return new InvokeBuiltinFunctionNode(method.__func__(), false);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
