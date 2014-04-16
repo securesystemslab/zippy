@@ -31,6 +31,13 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
+/**
+ * Dispatches call sites that do not have the primary part. The specialized dispatch node caches the
+ * callee passed from the head of the dispatch chain.
+ *
+ * @author zwei
+ *
+ */
 public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
     public CallDispatchNoneNode(String calleeName) {
