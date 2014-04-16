@@ -26,7 +26,6 @@ package edu.uci.python.nodes.call;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -69,25 +68,22 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
      */
     public static final class DispatchVariableFunctionNode extends CallDispatchNoneNode {
 
-        @Child protected CallNode callNode;
+        @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchNoneNode nextNode;
 
         private final PythonCallable cachedCallee;
-        private final MaterializedFrame declarationFrame;
 
         public DispatchVariableFunctionNode(PFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
+            invokeNode = InvokeNode.create(callee);
             nextNode = next;
             cachedCallee = callee;
-            declarationFrame = callee.getDeclarationFrame();
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
             if (cachedCallee == callee) {
-                PArguments arg = new PArguments(null, declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
+                return invokeNode.invoke(frame, null, arguments);
             }
 
             return nextNode.executeCall(frame, callee, arguments);
