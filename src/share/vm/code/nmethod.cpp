@@ -1738,7 +1738,7 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 #ifdef GRAAL
   // Follow Graal method
   if (_graal_installed_code != NULL) {
-    if (HotSpotNmethod::isDefault(_graal_installed_code)) {
+    if (_graal_installed_code->is_a(HotSpotNmethod::klass()) && HotSpotNmethod::isDefault(_graal_installed_code)) {
       if (!is_alive->do_object_b(_graal_installed_code)) {
         _graal_installed_code = NULL;
       }
