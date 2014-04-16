@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -105,6 +106,33 @@ public abstract class DispatchCallNode extends PNode {
         }
     }
 
+    public static final class NoneCallNode extends DispatchCallNode {
+
+        @Child protected PNode calleeNode;
+        @Child protected CallDispatchNoneNode dispatchNode;
+
+        public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, CallDispatchNoneNode dispatch) {
+            super(context, calleeName, primary, arguments);
+            this.calleeNode = callee;
+            this.dispatchNode = dispatch;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
+            PythonCallable callee;
+
+            try {
+                callee = calleeNode.executePythonCallable(frame);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+            }
+
+            return dispatchNode.executeCall(frame, callee, arguments);
+        }
+
+    }
+
     public static final class UninitializedCallNode extends DispatchCallNode {
 
         @Child protected PNode calleeNode;
@@ -137,6 +165,12 @@ public abstract class DispatchCallNode extends PNode {
                 callee = calleeNode.executePythonCallable(frame);
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException();
+            }
+
+            if (primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE) {
+                CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee);
+                replace(new NoneCallNode(context, calleeName, primaryNode, calleeNode, argumentNodes, dispatch));
+                return dispatch.executeCall(frame, callee, arguments);
             }
 
             if (isPrimaryBoxed(primary, callee)) {

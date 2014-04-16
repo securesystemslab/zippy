@@ -30,7 +30,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 
@@ -45,57 +44,12 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
     protected static CallDispatchUnboxedNode create(Object primary, PythonCallable callee, PNode calleeNode) {
         assert !(primary instanceof PythonBasicObject);
         UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode);
-        /**
-         * Treat generator as slow path for now.
-         */
-        if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
-        }
 
-        if (callee instanceof PFunction) {
-            return new DispatchVariableFunctionNode(primary, (PFunction) callee, next);
-        } else if (callee instanceof PBuiltinMethod) {
+        if (callee instanceof PBuiltinMethod) {
             return new DispatchBuiltinMethodNode(primary, (PBuiltinMethod) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee + " calleeNode type " + calleeNode);
-    }
-
-    /**
-     * The callee is not a global attribute or any object's attribute. It could be a local or
-     * non-local variable or an intermediate operand.
-     * <p>
-     * The primary is None for this case.
-     *
-     */
-    public static final class DispatchVariableFunctionNode extends CallDispatchUnboxedNode {
-
-        @Child protected PNode calleeNode;
-        @Child protected CallNode callNode;
-        @Child protected CallDispatchUnboxedNode nextNode;
-
-        private final PythonCallable cachedCallee;
-        private final MaterializedFrame declarationFrame;
-
-        public DispatchVariableFunctionNode(Object primary, PFunction callee, UninitializedDispatchUnboxedNode next) {
-            super(callee.getName());
-            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
-            nextNode = next;
-            calleeNode = next.calleeNode;
-            cachedCallee = callee;
-            declarationFrame = callee.getDeclarationFrame();
-            assert primary == PNone.NONE;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            if (cachedCallee == calleeNode.execute(frame)) {
-                PArguments arg = new PArguments(null, declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            }
-
-            return nextNode.executeCall(frame, primaryObj, arguments);
-        }
     }
 
     /**
