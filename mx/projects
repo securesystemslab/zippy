@@ -745,7 +745,7 @@ project@com.oracle.graal.truffle.hotspot@workingSets=Graal,Truffle
 # graal.truffle.hotspot.amd64
 project@com.oracle.graal.truffle.hotspot.amd64@subDir=graal
 project@com.oracle.graal.truffle.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.truffle.hotspot.amd64@dependencies=com.oracle.graal.truffle.hotspot,com.oracle.graal.hotspot.amd64
+project@com.oracle.graal.truffle.hotspot.amd64@dependencies=com.oracle.graal.truffle.hotspot,com.oracle.graal.asm.amd64
 project@com.oracle.graal.truffle.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.hotspot.amd64@javaCompliance=1.8
 project@com.oracle.graal.truffle.hotspot.amd64@annotationProcessors=com.oracle.graal.service.processor
