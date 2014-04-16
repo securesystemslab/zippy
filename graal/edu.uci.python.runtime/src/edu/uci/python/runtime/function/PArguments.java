@@ -69,11 +69,7 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.ParallelGeneratorArguments.class);
     }
 
-    public final int getNominalArgumentsLength() {
-        return arguments.length;
-    }
-
-    public final int getActualArgumentsLength() {
+    public final int getArgumentsLength() {
         return arguments.length;
     }
 

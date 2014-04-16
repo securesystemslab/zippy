@@ -107,7 +107,7 @@ public abstract class ReadIndexedArgumentNode extends PNode {
         public Object execute(VirtualFrame frame) {
             PArguments args = frame.getArguments(PArguments.class);
 
-            if (index >= args.getActualArgumentsLength()) {
+            if (index >= args.getArgumentsLength()) {
                 replace(new OffBoundReadArgumentNode(index));
                 return PNone.NONE;
             } else {
