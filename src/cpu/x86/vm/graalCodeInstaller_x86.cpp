@@ -21,6 +21,7 @@
  * questions.
  */
 
+#include "precompiled.hpp"
 #include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
 #include "graal/graalEnv.hpp"
