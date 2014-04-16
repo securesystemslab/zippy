@@ -26,6 +26,8 @@ package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class CallTests {
@@ -85,6 +87,12 @@ public class CallTests {
                         "foo.func()\n";
 
         assertPrints("42\n", source);
+    }
+
+    @Test
+    public void variableFunction() {
+        Path script = Paths.get("call-variable-function-test.py");
+        assertPrints("do stuff A\ndo stuff B\n", script);
     }
 
 }

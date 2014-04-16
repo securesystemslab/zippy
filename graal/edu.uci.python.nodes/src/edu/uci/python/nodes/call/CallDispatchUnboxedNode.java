@@ -31,6 +31,7 @@ import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 
@@ -53,7 +54,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new DispatchVariableFunctionNode((PFunction) callee, next);
+            return new DispatchVariableFunctionNode(primary, (PFunction) callee, next);
         } else if (callee instanceof PBuiltinMethod) {
             return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
         }
@@ -66,38 +67,35 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
      * non-local variable or an intermediate operand.
      * <p>
      * The primary is None for this case.
-     * 
+     *
      */
     public static final class DispatchVariableFunctionNode extends CallDispatchUnboxedNode {
 
-        protected final CallTarget cachedCallTarget;
-        protected final Assumption cachedCallTargetStable;
-        private final MaterializedFrame declarationFrame;
-
+        @Child protected PNode calleeNode;
         @Child protected CallNode callNode;
         @Child protected CallDispatchUnboxedNode nextNode;
 
-        public DispatchVariableFunctionNode(PFunction callee, CallDispatchUnboxedNode next) {
+        private final PythonCallable cachedCallee;
+        private final MaterializedFrame declarationFrame;
+
+        public DispatchVariableFunctionNode(Object primary, PFunction callee, UninitializedDispatchUnboxedNode next) {
             super(callee.getName());
-            cachedCallTarget = callee.getCallTarget();
-            declarationFrame = callee.getDeclarationFrame();
-            // TODO: replace holder for now.
-            cachedCallTargetStable = AlwaysValidAssumption.INSTANCE;
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
+            callNode = Truffle.getRuntime().createCallNode(callee.getCallTarget());
             nextNode = next;
+            calleeNode = next.calleeNode;
+            cachedCallee = callee;
+            declarationFrame = callee.getDeclarationFrame();
+            assert primary == PNone.NONE;
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
+            if (cachedCallee == calleeNode.execute(frame)) {
                 PArguments arg = new PArguments(null, declarationFrame, arguments);
                 return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 
