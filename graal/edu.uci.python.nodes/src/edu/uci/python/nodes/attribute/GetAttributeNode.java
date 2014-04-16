@@ -245,7 +245,6 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             try {
                 primaryObj = PythonContext.boxAsPythonBuiltinObject(primary.execute(frame));
                 attribute.getValue(frame, primaryObj);
-                cachedMethod.bind(primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);

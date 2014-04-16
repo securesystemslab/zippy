@@ -32,7 +32,7 @@ import edu.uci.python.runtime.standardtype.*;
 public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PBuiltinFunction function;
-    private PythonBuiltinObject self;
+    private final PythonBuiltinObject self;
     private final RootCallTarget callTarget;
 
     public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
@@ -49,19 +49,15 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
         return self;
     }
 
-    public void bind(PythonBuiltinObject newSelf) {
-        this.self = newSelf;
-    }
-
     /**
      * There is no declaration frame for built-in methods.
      */
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, null, args));
+        return callTarget.call(caller, new PArguments(null, args));
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return callTarget.call(caller, new PArguments(self, null, args, keywords));
+        throw new UnsupportedOperationException();
     }
 
     @Override

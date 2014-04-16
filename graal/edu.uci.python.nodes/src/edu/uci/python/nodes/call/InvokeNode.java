@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 public abstract class InvokeNode extends Node {
@@ -69,7 +68,7 @@ public abstract class InvokeNode extends Node {
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object... arguments) {
-            PArguments arg = new PArguments(null, declarationFrame, arguments);
+            PArguments arg = new PArguments(declarationFrame, arguments);
             return callNode.call(frame.pack(), arg);
         }
     }
@@ -82,7 +81,7 @@ public abstract class InvokeNode extends Node {
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object... arguments) {
-            PArguments arg = new PArguments(PNone.NONE, null, arguments);
+            PArguments arg = new PArguments(null, arguments);
             return callNode.call(frame.pack(), arg);
         }
     }

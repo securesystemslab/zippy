@@ -66,11 +66,11 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             return slowPathCallForUnitTest(caller, args, keywords);
         }
 
-        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
+        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
         return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
     }
 
-    private Object[] packSelfWithArguments(Object[] arguments) {
+    protected static Object[] packSelfWithArguments(Object self, Object[] arguments) {
         Object[] argsWithSelf = new Object[arguments.length + 1];
         argsWithSelf[0] = self;
         System.arraycopy(arguments, 0, argsWithSelf, 1, arguments.length);
@@ -87,16 +87,16 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
-                Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
-                Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+                Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
+                Object returnValue = callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
                 return returnValue;
             } catch (Exception e) {
                 return "ZippyExecutionError: " + e;
             }
         }
 
-        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
     }
 
     @Override
