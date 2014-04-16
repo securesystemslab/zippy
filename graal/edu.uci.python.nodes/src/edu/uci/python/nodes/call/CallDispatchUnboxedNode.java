@@ -31,9 +31,8 @@ import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 
 public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
@@ -43,7 +42,8 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
     protected abstract Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments);
 
-    protected static CallDispatchUnboxedNode create(PythonCallable callee, PNode calleeNode) {
+    protected static CallDispatchUnboxedNode create(Object primary, PythonCallable callee, PNode calleeNode) {
+        assert !(primary instanceof PythonBasicObject);
         UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode);
         /**
          * Treat generator as slow path for now.
@@ -56,8 +56,6 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
             return new DispatchVariableFunctionNode((PFunction) callee, next);
         } else if (callee instanceof PBuiltinMethod) {
             return new GenericDispatchUnboxedNode(callee.getName(), calleeNode);
-        } else if (callee instanceof PythonBuiltinClass) {
-            return new DispatchBuiltinTypeNode((PythonBuiltinClass) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee + " calleeNode type " + calleeNode);
@@ -68,6 +66,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
      * non-local variable or an intermediate operand.
      * <p>
      * The primary is None for this case.
+     * 
      */
     public static final class DispatchVariableFunctionNode extends CallDispatchUnboxedNode {
 
@@ -94,41 +93,6 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 cachedCallTargetStable.check();
 
                 PArguments arg = new PArguments(null, declarationFrame, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                replace(nextNode);
-                return nextNode.executeCall(frame, primaryObj, arguments);
-            }
-        }
-    }
-
-    public static final class DispatchBuiltinTypeNode extends CallDispatchUnboxedNode {
-
-        protected final PythonBuiltinClass cachedCallee;
-        protected final CallTarget cachedCallTarget;
-        protected final Assumption cachedCallTargetStable;
-
-        @Child protected CallNode callNode;
-        @Child protected CallDispatchUnboxedNode nextNode;
-
-        public DispatchBuiltinTypeNode(PythonBuiltinClass callee, CallDispatchUnboxedNode next) {
-            super(callee.getName());
-            cachedCallee = callee;
-            PythonCallable constructor = callee.lookUpMethod("__init__");
-            cachedCallTarget = split(constructor.getCallTarget());
-            // TODO: PythonBuiltinClass should return always valid assumption.
-            cachedCallTargetStable = callee.getStableAssumption();
-
-            callNode = Truffle.getRuntime().createCallNode(cachedCallTarget);
-            nextNode = next;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
-            try {
-                cachedCallTargetStable.check();
-
-                PArguments arg = new PArguments(PNone.NONE, null, arguments);
                 return callNode.call(frame.pack(), arg);
             } catch (InvalidAssumptionException ex) {
                 replace(nextNode);
@@ -222,7 +186,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                CallDispatchUnboxedNode direct = CallDispatchUnboxedNode.create(callee, calleeNode);
+                CallDispatchUnboxedNode direct = CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode);
                 specialized = replace(direct);
             } else {
                 CallDispatchUnboxedNode generic = new GenericDispatchUnboxedNode(calleeName, calleeNode);

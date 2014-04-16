@@ -145,7 +145,7 @@ public abstract class DispatchCallNode extends PNode {
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
             }
 
-            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(callee, calleeNode);
+            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode);
             replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch));
             return dispatch.executeCall(frame, primary, arguments);
         }
