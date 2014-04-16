@@ -34,7 +34,7 @@ import edu.uci.python.runtime.standardtype.*;
 public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PFunction function;
-    private PythonObject self;
+    private final PythonObject self;
     private final RootCallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
@@ -51,25 +51,30 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         return self;
     }
 
-    public void bind(PythonObject newSelf) {
-        this.self = newSelf;
-    }
-
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), args));
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), args));
     }
 
+    /**
+     * Calls that go through {@link PMethod#call(PackedFrame, Object[])} are treated as slow path.
+     * They suffer from an arguments array copy that packs the self object into the flat arguments
+     * array.
+     *
+     */
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (PythonOptions.CatchZippyExceptionForUnitTesting) {
             return slowPathCallForUnitTest(caller, args, keywords);
         }
 
-        Object[] argsWithSelf = new Object[args.length + 1];
-        argsWithSelf[0] = self;
-        System.arraycopy(args, 0, argsWithSelf, 1, args.length);
+        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
+    }
 
-        Object[] combined = function.applyKeywordArgs(false, argsWithSelf, keywords);
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+    private Object[] packSelfWithArguments(Object[] arguments) {
+        Object[] argsWithSelf = new Object[arguments.length + 1];
+        argsWithSelf[0] = self;
+        System.arraycopy(arguments, 0, argsWithSelf, 1, arguments.length);
+        return argsWithSelf;
     }
 
     /**
@@ -82,7 +87,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
-                Object[] combined = function.applyKeywordArgs(true, args, keywords);
+                Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
                 Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
                 return returnValue;
             } catch (Exception e) {
@@ -90,7 +95,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             }
         }
 
-        Object[] combined = function.applyKeywordArgs(true, args, keywords);
+        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(args), keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
     }
 
