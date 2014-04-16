@@ -166,33 +166,51 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
+    /**
+     * The primary could be:
+     * <p>
+     * 1. The global {@link PythonModule}. <br>
+     * 2. The built-in {@link PythonModule}. <br>
+     */
     public static final class DispatchBuiltinConstructorNode extends CallDispatchBoxedNode {
 
         @Child protected CallNode callNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        protected final Assumption dispatchStable;
+        private final PythonBasicObject cachedPrimary;
+        private final Assumption dispatchStable;
 
         public DispatchBuiltinConstructorNode(PythonBasicObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             PythonCallable constructor = callee.lookUpMethod("__init__");
             callNode = Truffle.getRuntime().createCallNode(split(constructor.getCallTarget()));
             nextNode = next;
-            Assumption globalStable = primary.getStableAssumption();
-            Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
-            dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+
+            assert primary instanceof PythonModule;
+            cachedPrimary = primary;
+            if (primary.equals(next.context.getBuiltins())) {
+                dispatchStable = primary.getStableAssumption();
+            } else {
+                Assumption globalStable = primary.getStableAssumption();
+                Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
+                dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+            }
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
-            try {
-                dispatchStable.check();
+            if (cachedPrimary == primaryObj) {
+                try {
+                    dispatchStable.check();
 
-                PArguments arg = new PArguments(PNone.NONE, null, arguments);
-                return callNode.call(frame.pack(), arg);
-            } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
+                    PArguments arg = new PArguments(PNone.NONE, null, arguments);
+                    return callNode.call(frame.pack(), arg);
+                } catch (InvalidAssumptionException ex) {
+                    return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
+                }
             }
+
+            return nextNode.executeCall(frame, primaryObj, arguments);
         }
     }
 
@@ -216,6 +234,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             cachedClass = primary.getPythonClass();
             declarationFrame = callee.__func__().getDeclarationFrame();
             dispatchStable = primary.getStableAssumption();
+            assert primary instanceof PythonObject && !(primary instanceof PythonClass);
         }
 
         @Override
