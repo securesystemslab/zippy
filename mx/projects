@@ -5,10 +5,21 @@ suite=graal
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
 library@JDK_TOOLS@optional=true
 
-library@JUNIT@path=lib/junit-4.8.jar
-library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.8/junit-4.8.jar
-library@JUNIT@sha1=4150c00c5706306ef0f8f1410e70c8ff12757922
+library@JUNIT@path=lib/junit-4.11.jar
+library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
+library@JUNIT@sha1=4e031bb61df09069aeb2bffb4019e7a5034a4ee0
 library@JUNIT@eclipse.container=org.eclipse.jdt.junit.JUNIT_CONTAINER/4
+library@JUNIT@sourcePath=lib/junit-4.11-sources.jar
+library@JUNIT@sourceUrls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11-sources.jar
+library@JUNIT@sourceSha1=28e0ad201304e4a4abf999ca0570b7cffc352c3c
+library@JUNIT@dependencies=HAMCREST
+
+library@HAMCREST@path=lib/hamcrest-core-1.3.jar
+library@HAMCREST@urls=http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+library@HAMCREST@sha1=42a25dc3219429f0e5d060061f71acb49bf010a0
+library@HAMCREST@sourcePath=lib/hamcrest-core-1.3-sources.jar
+library@HAMCREST@sourceUrls=http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3-sources.jar
+library@HAMCREST@sourceSha1=1dc37250fbc78e23a65a67fbbaf71d2e9cbc3c0b
 
 library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,21 +20,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.nodes.arithmetic;
+package com.oracle.graal.graph.test.matchers;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import org.hamcrest.*;
+import org.hamcrest.core.*;
 
-public class IntegerSubExactSplitNode extends IntegerExactArithmeticSplitNode {
+import com.oracle.graal.graph.iterators.*;
 
-    public IntegerSubExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, BeginNode next, BeginNode overflowSuccessor) {
-        super(stamp, x, y, next, overflowSuccessor);
+public class NodeIterableIsEmpty extends BaseMatcher<NodeIterable<?>> {
+
+    private static final NodeIterableIsEmpty INSTANCE = new NodeIterableIsEmpty();
+
+    public boolean matches(Object iterable) {
+        return iterable instanceof NodeIterable<?> && ((NodeIterable<?>) iterable).isEmpty();
     }
 
-    @Override
-    protected Value generateArithmetic(NodeLIRBuilderTool gen) {
-        return gen.getLIRGeneratorTool().emitSub(gen.operand(getX()), gen.operand(getY()));
+    public void describeTo(Description description) {
+        description.appendText("is an empty NodeIterable");
+    }
+
+    public static Matcher<NodeIterable<?>> isEmpty() {
+        return INSTANCE;
+    }
+
+    public static Matcher<NodeIterable<?>> isNotEmpty() {
+        return IsNot.not(INSTANCE);
     }
 }

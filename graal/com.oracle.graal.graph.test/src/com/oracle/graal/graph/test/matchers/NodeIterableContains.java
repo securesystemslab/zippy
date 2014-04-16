@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,21 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.nodes.arithmetic;
+package com.oracle.graal.graph.test.matchers;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import org.hamcrest.*;
 
-public class IntegerSubExactSplitNode extends IntegerExactArithmeticSplitNode {
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.iterators.*;
 
-    public IntegerSubExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, BeginNode next, BeginNode overflowSuccessor) {
-        super(stamp, x, y, next, overflowSuccessor);
+public class NodeIterableContains<T extends Node> extends TypeSafeDiagnosingMatcher<NodeIterable<T>> {
+    private T node;
+
+    public NodeIterableContains(T node) {
+        this.node = node;
+    }
+
+    public void describeTo(Description description) {
+        description.appendText("is a NodeIterable containing").appendValue(node);
+    }
+
+    public static <T extends Node> NodeIterableContains<T> contains(T node) {
+        return new NodeIterableContains<>(node);
+    }
+
+    public static <T extends Node> NodeIterableContains<T> d(T node) {
+        return new NodeIterableContains<>(node);
     }
 
     @Override
-    protected Value generateArithmetic(NodeLIRBuilderTool gen) {
-        return gen.getLIRGeneratorTool().emitSub(gen.operand(getX()), gen.operand(getY()));
+    protected boolean matchesSafely(NodeIterable<T> iterable, Description description) {
+        return iterable.contains(node);
     }
 }
