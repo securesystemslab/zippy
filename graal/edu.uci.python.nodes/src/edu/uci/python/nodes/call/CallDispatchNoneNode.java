@@ -75,7 +75,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         public DispatchVariableFunctionNode(PFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee);
+            invokeNode = InvokeNode.create(callee, false);
             nextNode = next;
             cachedCallee = callee;
         }
@@ -83,7 +83,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         @Override
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
             if (cachedCallee == callee) {
-                return invokeNode.invoke(frame, null, arguments);
+                return invokeNode.invoke(frame, null, arguments, null);
             }
 
             return nextNode.executeCall(frame, callee, arguments);

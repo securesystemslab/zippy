@@ -76,6 +76,11 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
     }
 
     @Override
+    public Arity getArity() {
+        return function.getArity();
+    }
+
+    @Override
     public String getName() {
         return function.getName();
     }

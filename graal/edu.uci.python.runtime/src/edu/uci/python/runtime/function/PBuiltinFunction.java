@@ -76,6 +76,11 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     }
 
     @Override
+    public Arity getArity() {
+        return arity;
+    }
+
+    @Override
     public RootCallTarget getCallTarget() {
         return callTarget;
     }

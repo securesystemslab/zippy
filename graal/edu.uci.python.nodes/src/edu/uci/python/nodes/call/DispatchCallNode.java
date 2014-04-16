@@ -111,7 +111,7 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            return dispatchBoxedNode.executeCall(frame, primary, arguments);
+            return dispatchBoxedNode.executeCall(frame, primary, arguments, PKeyword.EMPTY_KEYWORDS);
         }
     }
 
@@ -212,7 +212,7 @@ public abstract class DispatchCallNode extends PNode {
             if (isPrimaryBoxed(primary, callee)) {
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode);
                 replace(new BoxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch, passPrimaryAsArgument));
-                return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
+                return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments, PKeyword.EMPTY_KEYWORDS);
             }
 
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode);

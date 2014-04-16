@@ -42,11 +42,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments);
+    protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords);
 
     protected final Object executeCallAndRewrite(CallDispatchBoxedNode next, VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
         replace(next);
-        return next.executeCall(frame, primaryObj, arguments);
+        return next.executeCall(frame, primaryObj, arguments, null);
     }
 
     protected static CallDispatchBoxedNode create(PythonContext context, PythonBasicObject primary, PythonCallable callee, PNode calleeNode) {
@@ -90,24 +90,24 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchFunctionNode(PythonBasicObject primary, PFunction callee, CallDispatchBoxedNode next) {
             super(callee.getName());
             nextNode = next;
-            invokeNode = InvokeNode.create(callee);
+            invokeNode = InvokeNode.create(callee, false);
             cachedPrimary = primary;
             dispatchStable = primary.getStableAssumption();
             assert primary instanceof PythonModule || primary instanceof PythonClass;
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj == cachedPrimary) {
                 try {
                     dispatchStable.check();
-                    return invokeNode.invoke(frame, primaryObj, arguments);
+                    return invokeNode.invoke(frame, primaryObj, arguments, keywords);
                 } catch (InvalidAssumptionException ex) {
                     return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments);
+            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -129,7 +129,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee);
+            invokeNode = InvokeNode.create(callee, false);
             nextNode = next;
             cachedPrimary = primary;
 
@@ -145,17 +145,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj == cachedPrimary) {
                 try {
                     dispatchStable.check();
-                    return invokeNode.invoke(frame, primaryObj, arguments);
+                    return invokeNode.invoke(frame, primaryObj, arguments, null);
                 } catch (InvalidAssumptionException ex) {
                     return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments);
+            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -176,7 +176,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchBuiltinConstructorNode(PythonBasicObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             PythonCallable constructor = callee.lookUpMethod("__init__");
-            invokeNode = InvokeNode.create(constructor);
+            invokeNode = InvokeNode.create(constructor, false);
             nextNode = next;
 
             assert primary instanceof PythonModule;
@@ -191,17 +191,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (cachedPrimary == primaryObj) {
                 try {
                     dispatchStable.check();
-                    return invokeNode.invoke(frame, primaryObj, arguments);
+                    return invokeNode.invoke(frame, primaryObj, arguments, null);
                 } catch (InvalidAssumptionException ex) {
                     return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments);
+            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -219,7 +219,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchMethodNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee);
+            invokeNode = InvokeNode.create(callee, false);
             nextNode = next;
             cachedClass = primary.getPythonClass();
             dispatchStable = primary.getStableAssumption();
@@ -227,17 +227,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getPythonClass() == cachedClass) {
                 try {
                     dispatchStable.check();
-                    return invokeNode.invoke(frame, primaryObj, arguments);
+                    return invokeNode.invoke(frame, primaryObj, arguments, null);
                 } catch (InvalidAssumptionException ex) {
                     return executeCallAndRewrite(nextNode, frame, primaryObj, arguments);
                 }
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments);
+            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -253,7 +253,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchNode current = this;
@@ -279,7 +279,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 specialized = current.replace(generic);
             }
 
-            return specialized.executeCall(frame, primaryObj, arguments);
+            return specialized.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -293,7 +293,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             PythonCallable callee;
 
             try {
@@ -302,7 +302,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
-            return callee.call(frame.pack(), arguments);
+            return callee.call(frame.pack(), arguments, keywords);
         }
     }
 

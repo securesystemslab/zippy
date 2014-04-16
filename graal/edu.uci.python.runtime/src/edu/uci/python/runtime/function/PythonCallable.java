@@ -35,6 +35,8 @@ public interface PythonCallable {
 
     Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
 
+    Arity getArity();
+
     void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords);
 
     RootCallTarget getCallTarget();

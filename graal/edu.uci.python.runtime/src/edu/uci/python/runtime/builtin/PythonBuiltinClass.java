@@ -74,6 +74,12 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
     }
 
     @Override
+    public Arity getArity() {
+        PythonCallable init = (PythonCallable) getAttribute("__init__");
+        return init.getArity();
+    }
+
+    @Override
     public RootCallTarget getCallTarget() {
         throw new UnsupportedOperationException();
     }

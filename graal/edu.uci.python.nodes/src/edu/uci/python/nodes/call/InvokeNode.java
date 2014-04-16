@@ -38,11 +38,15 @@ public abstract class InvokeNode extends Node {
         this.callNode = callNode;
     }
 
-    protected abstract Object invoke(VirtualFrame frame, Object primary, Object... arguments);
+    protected abstract Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords);
 
-    public static InvokeNode create(PythonCallable callee) {
+    public static InvokeNode create(PythonCallable callee, boolean hasKeyword) {
         if (callee instanceof PFunction) {
-            return new InvokeFunctionNode((PFunction) callee);
+            if (!hasKeyword) {
+                return new InvokeFunctionNode((PFunction) callee);
+            } else {
+                return new InvokeFunctionWithKeywordsNode((PFunction) callee);
+            }
         } else if (callee instanceof PMethod) {
             PMethod method = (PMethod) callee;
             return new InvokeFunctionNode(method.__func__());
@@ -67,7 +71,7 @@ public abstract class InvokeNode extends Node {
         }
 
         @Override
-        protected Object invoke(VirtualFrame frame, Object primary, Object... arguments) {
+        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             PArguments arg = new PArguments(declarationFrame, arguments);
             return callNode.call(frame.pack(), arg);
         }
@@ -80,8 +84,27 @@ public abstract class InvokeNode extends Node {
         }
 
         @Override
-        protected Object invoke(VirtualFrame frame, Object primary, Object... arguments) {
+        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             PArguments arg = new PArguments(null, arguments);
+            return callNode.call(frame.pack(), arg);
+        }
+    }
+
+    public static final class InvokeFunctionWithKeywordsNode extends InvokeNode {
+
+        private final MaterializedFrame declarationFrame;
+        private final Arity arity;
+
+        public InvokeFunctionWithKeywordsNode(PFunction callee) {
+            super(Truffle.getRuntime().createCallNode(callee.getCallTarget()));
+            this.declarationFrame = callee.getDeclarationFrame();
+            this.arity = callee.getArity();
+        }
+
+        @Override
+        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
+            PFunction.applyKeywordArgs(arity, arguments, keywords);
+            PArguments arg = new PArguments(declarationFrame, arguments);
             return callNode.call(frame.pack(), arg);
         }
     }

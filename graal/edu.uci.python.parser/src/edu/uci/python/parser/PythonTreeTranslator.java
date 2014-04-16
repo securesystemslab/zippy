@@ -306,9 +306,10 @@ public class PythonTreeTranslator extends Visitor {
         int numOfDefaultArguments = node.getInternalDefaults().size();
         if (numOfDefaultArguments > 0) {
             takesFixedNumOfArgs = false;
-            for (expr arg : node.getInternalArgs()) {
-                parameterIds.add(((Name) arg).getInternalId());
-            }
+        }
+
+        for (expr arg : node.getInternalArgs()) {
+            parameterIds.add(((Name) arg).getInternalId());
         }
 
         if (node.getInternalVararg() != null) {

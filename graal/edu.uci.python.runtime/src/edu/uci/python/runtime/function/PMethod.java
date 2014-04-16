@@ -66,7 +66,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             return slowPathCallForUnitTest(caller, args, keywords);
         }
 
-        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
+        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
         return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
     }
 
@@ -87,7 +87,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
-                Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
+                Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
                 Object returnValue = callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
                 return returnValue;
             } catch (Exception e) {
@@ -95,7 +95,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             }
         }
 
-        Object[] combined = function.applyKeywordArgs(packSelfWithArguments(self, args), keywords);
+        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
         return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
     }
 
@@ -115,6 +115,11 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
          * TODO Causes problem in unit test, so arity check is not performed on PMethod.
          */
         // function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+    }
+
+    @Override
+    public Arity getArity() {
+        return function.getArity();
     }
 
     @Override

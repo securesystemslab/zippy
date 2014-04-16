@@ -122,7 +122,7 @@ public abstract class CallFunctionNode extends PNode {
 
     @ExplodeLoop
     protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
-        PKeyword[] evaluated = new PKeyword[arguments.length];
+        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
 
         for (int i = 0; i < arguments.length; i++) {
             evaluated[i] = (PKeyword) arguments[i].execute(frame);

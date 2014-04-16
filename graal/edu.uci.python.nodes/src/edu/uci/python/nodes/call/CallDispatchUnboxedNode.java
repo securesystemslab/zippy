@@ -65,7 +65,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
         public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, CallDispatchUnboxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee);
+            invokeNode = InvokeNode.create(callee, false);
             nextNode = next;
             cachedPrimaryType = primary.getClass();
         }
@@ -73,7 +73,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
             if (primaryObj.getClass() == cachedPrimaryType) {
-                return invokeNode.invoke(frame, primaryObj, arguments);
+                return invokeNode.invoke(frame, primaryObj, arguments, null);
             }
 
             return nextNode.executeCall(frame, primaryObj, arguments);

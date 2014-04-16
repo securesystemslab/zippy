@@ -87,8 +87,13 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        Object[] combined = applyKeywordArgs(arguments, keywords);
+        Object[] combined = applyKeywordArgs(arity, arguments, keywords);
         return callTarget.call(caller, new PArguments(declarationFrame, combined));
+    }
+
+    @Override
+    public Arity getArity() {
+        return arity;
     }
 
     @Override
@@ -96,8 +101,8 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
-    protected Object[] applyKeywordArgs(Object[] arguments, Object[] keywords) {
-        List<String> parameters = arity.getParameterIds();
+    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, Object[] keywords) {
+        List<String> parameters = calleeArity.getParameterIds();
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
