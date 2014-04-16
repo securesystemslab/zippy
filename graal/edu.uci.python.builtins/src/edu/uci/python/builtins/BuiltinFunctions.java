@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,6 @@ import java.util.*;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
@@ -86,8 +85,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object absObject(PythonObject object) {
             Object absAttribute = object.getAttribute("__abs__");
             if (absAttribute != null && absAttribute instanceof PFunction) {
-                PFunction absFunction = (PFunction) absAttribute;
-                PMethod method = CallAttributeNode.createPMethodFor(object, absFunction);
+                PMethod method = new PMethod(object, (PFunction) absAttribute);
                 return method.call(null, null);
             } else {
                 throw Py.TypeError("bad operand type for abs(): '" + object + "'");
@@ -384,9 +382,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             if (attrValue instanceof PFunction) {
-                PFunction funcAttr = (PFunction) attrValue;
-                PMethod method = CallAttributeNode.createPMethodFor(object, funcAttr);
-                return method;
+                return new PMethod(object, (PFunction) attrValue);
             }
 
             return attrValue;

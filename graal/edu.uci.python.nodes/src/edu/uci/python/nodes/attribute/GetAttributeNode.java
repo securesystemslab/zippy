@@ -32,7 +32,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -282,7 +281,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         }
 
         if (value instanceof PFunction && !(primaryObj instanceof PythonClass) && !(primaryObj instanceof PythonModule)) {
-            value = CallAttributeNode.createPMethodFor((PythonObject) primaryObj, (PFunction) value);
+            value = new PMethod((PythonObject) primaryObj, (PFunction) value);
             current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode));
         } else {
             current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));

@@ -36,7 +36,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -177,56 +176,19 @@ public abstract class CallAttributeNode extends PNode {
      */
     protected PythonCallable applyMethodDescriptor(PythonObject primaryObj, PythonCallable attribute) {
         if (attribute instanceof PFunction) {
-            CompilerDirectives.transferToInterpreter();
-            return createPMethodFor(primaryObj, (PFunction) attribute);
+            return new PMethod(primaryObj, (PFunction) attribute);
         }
 
         return attribute;
     }
 
-    public static PMethod createPMethodFor(PythonObject primaryObj, PFunction function) {
-        RootNode root = (RootNode) function.getFunctionRootNode().copy();
-        redirectFirstArgumentToSelf(root);
-        return new PMethod(primaryObj, PFunction.duplicate(function, Truffle.getRuntime().createCallTarget(root)));
-    }
-
     protected PythonCallable applyBuiltinMethodDescriptor(PythonBuiltinObject primaryObj, PythonCallable callable) {
         if (callable instanceof PBuiltinFunction) {
             CompilerDirectives.transferToInterpreter();
-            return createPBuiltinMethodFor(primaryObj, (PBuiltinFunction) callable);
+            return new PBuiltinMethod(primaryObj, (PBuiltinFunction) callable);
         }
 
         return callable;
     }
 
-    public static PBuiltinMethod createPBuiltinMethodFor(PythonBuiltinObject primaryObj, PBuiltinFunction function) {
-        PBuiltinFunction copied = function.duplicate();
-        RootNode root = copied.getFunctionRootNode();
-        redirectFirstArgumentToSelf(root);
-        return new PBuiltinMethod(primaryObj, copied);
-    }
-
-    private static void redirectFirstArgumentToSelf(RootNode root) {
-        /**
-         * No need to redirect argument access.
-         */
-        if (NodeUtil.findFirstNodeInstance(root, ReadSelfArgumentNode.class) != null) {
-            return;
-        }
-
-        List<ReadIndexedArgumentNode> argReads = NodeUtil.findAllNodeInstances(root, ReadIndexedArgumentNode.class);
-
-        for (ReadIndexedArgumentNode read : argReads) {
-            if (read.getIndex() == 0) {
-                read.replace(new ReadSelfArgumentNode());
-            } else {
-                int index = read.getIndex();
-                if (read instanceof ReadVarArgsNode) {
-                    read.replace(new ReadVarArgsNode(index - 1));
-                } else {
-                    read.replace(ReadIndexedArgumentNode.create(index - 1));
-                }
-            }
-        }
-    }
 }
