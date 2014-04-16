@@ -33,7 +33,6 @@ import edu.uci.python.runtime.standardtype.*;
 public class CallConstructorNode extends PNode {
 
     @Child protected PNode targetClass;
-
     @Children private final PNode[] arguments;
 
     public CallConstructorNode(PNode targetClass, PNode[] arguments) {
