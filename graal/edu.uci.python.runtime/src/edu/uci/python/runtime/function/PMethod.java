@@ -64,7 +64,11 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             return slowPathCallForUnitTest(caller, args, keywords);
         }
 
-        Object[] combined = function.applyKeywordArgs(true, args, keywords);
+        Object[] argsWithSelf = new Object[args.length + 1];
+        argsWithSelf[0] = self;
+        System.arraycopy(args, 0, argsWithSelf, 1, args.length);
+
+        Object[] combined = function.applyKeywordArgs(false, argsWithSelf, keywords);
         return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
     }
 

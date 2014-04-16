@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -250,6 +250,20 @@ public final class StringBuiltins extends PythonBuiltins {
     public abstract static class TranslateNode extends PythonBuiltinNode {
 
         @Specialization(order = 0)
+        public String translate(String self, PDict table) {
+            char[] translatedChars = new char[self.length()];
+
+            for (int i = 0; i < self.length(); i++) {
+                char original = self.charAt(i);
+                Object translated = table.getItem((int) original);
+                int ord = translated == null ? original : (int) translated;
+                translatedChars[i] = (char) ord;
+            }
+
+            return new String(translatedChars);
+        }
+
+        @Specialization(order = 1)
         public String translate(PString self, PDict table) {
             String selfs = self.getValue();
             char[] translatedChars = new char[selfs.length()];

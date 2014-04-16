@@ -42,14 +42,15 @@ public abstract class DispatchCallNode extends PNode {
     @Children protected final PNode[] argumentNodes;
 
     protected final String calleeName;
-    @SuppressWarnings("unused") private boolean passPrimaryAsTheFirstArgument;
+    protected final boolean passPrimaryAsTheFirstArgument;
     protected final PythonContext context;
 
-    public DispatchCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments) {
+    public DispatchCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, boolean passPrimary) {
         this.context = context;
         this.calleeName = calleeName;
         this.primaryNode = primary;
         this.argumentNodes = arguments;
+        this.passPrimaryAsTheFirstArgument = passPrimary;
     }
 
     public static DispatchCallNode create(PythonContext context, PythonCallable callee, PNode calleeNode, PNode[] argumentNodes) {
@@ -65,19 +66,43 @@ public abstract class DispatchCallNode extends PNode {
         return new UninitializedCallNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes);
     }
 
+    /**
+     * Pack primary into the evaluated arguments array if passPrimary is true.
+     *
+     */
+    @ExplodeLoop
+    protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
+        final int length = passPrimary ? arguments.length + 1 : arguments.length;
+        final Object[] evaluated = new Object[length];
+        final int offset;
+
+        if (passPrimary) {
+            evaluated[0] = primary;
+            offset = 1;
+        } else {
+            offset = 0;
+        }
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[i + offset] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
     public static final class BoxedCallNode extends DispatchCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchBoxedNode;
 
-        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch) {
-            super(context, calleeName, primary, arguments);
+        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchBoxedNode dispatch, boolean passPrimary) {
+            super(context, calleeName, primary, arguments, passPrimary);
             dispatchBoxedNode = dispatch;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             PythonBasicObject primary;
+
             try {
                 primary = primaryNode.executePythonBasicObject(frame);
             } catch (UnexpectedResultException e) {
@@ -85,6 +110,7 @@ public abstract class DispatchCallNode extends PNode {
                 throw new IllegalStateException();
             }
 
+            Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
             return dispatchBoxedNode.executeCall(frame, primary, arguments);
         }
     }
@@ -93,15 +119,15 @@ public abstract class DispatchCallNode extends PNode {
 
         @Child protected CallDispatchUnboxedNode dispatchNode;
 
-        public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchUnboxedNode dispatch) {
-            super(context, calleeName, primary, arguments);
+        public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, CallDispatchUnboxedNode dispatch, boolean passPrimary) {
+            super(context, calleeName, primary, arguments, passPrimary);
             dispatchNode = dispatch;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             Object primary = primaryNode.execute(frame);
+            Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
             return dispatchNode.executeCall(frame, primary, arguments);
         }
     }
@@ -112,7 +138,7 @@ public abstract class DispatchCallNode extends PNode {
         @Child protected CallDispatchNoneNode dispatchNode;
 
         public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, CallDispatchNoneNode dispatch) {
-            super(context, calleeName, primary, arguments);
+            super(context, calleeName, primary, arguments, false);
             this.calleeNode = callee;
             this.dispatchNode = dispatch;
         }
@@ -138,7 +164,7 @@ public abstract class DispatchCallNode extends PNode {
         @Child protected PNode calleeNode;
 
         public UninitializedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments) {
-            super(context, calleeName, primary, arguments);
+            super(context, calleeName, primary, arguments, false);
             this.calleeNode = callee;
         }
 
@@ -154,20 +180,30 @@ public abstract class DispatchCallNode extends PNode {
             return false;
         }
 
+        private boolean isPrimaryNone(Object primary) {
+            return primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
+        }
+
+        private boolean haveToPassPrimary(Object primary) {
+            return !isPrimaryNone(primary) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule);
+        }
+
         @Override
         public Object execute(VirtualFrame frame) {
             CompilerAsserts.neverPartOfCompilation();
 
-            Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             Object primary = primaryNode.execute(frame);
+            boolean passPrimaryAsArgument = haveToPassPrimary(primary);
+            Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
             PythonCallable callee;
+
             try {
                 callee = calleeNode.executePythonCallable(frame);
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException();
             }
 
-            if (primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE) {
+            if (isPrimaryNone(primary)) {
                 CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee);
                 replace(new NoneCallNode(context, calleeName, primaryNode, calleeNode, argumentNodes, dispatch));
                 return dispatch.executeCall(frame, callee, arguments);
@@ -175,12 +211,12 @@ public abstract class DispatchCallNode extends PNode {
 
             if (isPrimaryBoxed(primary, callee)) {
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode);
-                replace(new BoxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch));
+                replace(new BoxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch, passPrimaryAsArgument));
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments);
             }
 
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode);
-            replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch));
+            replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, primary, arguments);
         }
     }

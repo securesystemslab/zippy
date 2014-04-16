@@ -172,7 +172,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             }
 
             if (value instanceof PFunction) {
-                return CallAttributeNode.createPMethodFor(primaryObj, (PFunction) value);
+                return new PMethod(primaryObj, (PFunction) value);
             } else {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, primaryObj, this);
@@ -245,7 +245,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             try {
                 primaryObj = PythonContext.boxAsPythonBuiltinObject(primary.execute(frame));
                 attribute.getValue(frame, primaryObj);
-                cachedMethod.bind(PythonContext.boxAsPythonBuiltinObject(primaryObj));
+                cachedMethod.bind(primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
@@ -311,7 +311,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         if (value instanceof PBuiltinFunction && !(primaryObj instanceof PythonBuiltinClass)) {
             try {
-                value = CallAttributeNode.createPBuiltinMethodFor(PythonContext.boxAsPythonBuiltinObject(primaryObj), (PBuiltinFunction) value);
+                value = new PBuiltinMethod(PythonContext.boxAsPythonBuiltinObject(builtinPrimaryObj), (PBuiltinFunction) value);
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException("Attribute access failed in slow path!");
             }
