@@ -43,10 +43,10 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments);
+    protected abstract Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords);
 
-    protected static CallDispatchNoneNode create(PythonCallable callee) {
-        UninitializedDispatchNoneNode next = new UninitializedDispatchNoneNode(callee.getName());
+    protected static CallDispatchNoneNode create(PythonCallable callee, PKeyword[] keywords) {
+        UninitializedDispatchNoneNode next = new UninitializedDispatchNoneNode(callee.getName(), keywords.length != 0);
 
         if (callee instanceof PGeneratorFunction) {
             return new GenericDispatchNoneNode(callee.getName());
@@ -75,18 +75,18 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         public DispatchVariableFunctionNode(PFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, false);
+            invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
             cachedCallee = callee;
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             if (cachedCallee == callee) {
-                return invokeNode.invoke(frame, null, arguments, null);
+                return invokeNode.invoke(frame, null, arguments, keywords);
             }
 
-            return nextNode.executeCall(frame, callee, arguments);
+            return nextNode.executeCall(frame, callee, arguments, keywords);
         }
     }
 
@@ -97,19 +97,22 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             return callee.call(frame.pack(), arguments);
         }
     }
 
     public static final class UninitializedDispatchNoneNode extends CallDispatchNoneNode {
 
-        public UninitializedDispatchNoneNode(String calleeName) {
+        private final boolean hasKeyword;
+
+        public UninitializedDispatchNoneNode(String calleeName, boolean hasKeyword) {
             super(calleeName);
+            this.hasKeyword = hasKeyword;
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchNode current = this;
@@ -121,14 +124,14 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
             CallDispatchNoneNode specialized;
             if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
-                CallDispatchNoneNode direct = CallDispatchNoneNode.create(callee);
+                CallDispatchNoneNode direct = CallDispatchNoneNode.create(callee, keywords);
                 specialized = replace(direct);
             } else {
                 CallDispatchNoneNode generic = new GenericDispatchNoneNode(calleeName);
                 specialized = current.replace(generic);
             }
 
-            return specialized.executeCall(frame, callee, arguments);
+            return specialized.executeCall(frame, callee, arguments, keywords);
         }
     }
 

@@ -148,7 +148,6 @@ public abstract class DispatchCallNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object[] arguments = CallFunctionNode.executeArguments(frame, argumentNodes);
             PythonCallable callee;
 
             try {
@@ -157,7 +156,9 @@ public abstract class DispatchCallNode extends PNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
-            return dispatchNode.executeCall(frame, callee, arguments);
+            Object[] arguments = executeArguments(frame, false, null, argumentNodes);
+            PKeyword[] keywords = CallFunctionNode.executeKeywordArguments(frame, keywordNodes);
+            return dispatchNode.executeCall(frame, callee, arguments, keywords);
         }
 
     }
@@ -188,9 +189,9 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             if (isPrimaryNone(primary)) {
-                CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee);
+                CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee, keywords);
                 replace(new NoneCallNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
-                return dispatch.executeCall(frame, callee, arguments);
+                return dispatch.executeCall(frame, callee, arguments, keywords);
             }
 
             if (isPrimaryBoxed(primary, callee)) {
