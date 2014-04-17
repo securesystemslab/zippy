@@ -41,47 +41,41 @@ public abstract class InvokeNode extends Node {
     protected abstract Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords);
 
     public static InvokeNode create(PythonCallable callee, boolean hasKeyword) {
+        CallTarget callTarget;
+        MaterializedFrame declarationFrame = null;
+
         if (callee instanceof PFunction) {
-            return createInvokeFunctionNode((PFunction) callee, hasKeyword);
+            callTarget = callee.getCallTarget();
+            declarationFrame = ((PFunction) callee).getDeclarationFrame();
         } else if (callee instanceof PMethod) {
             PMethod method = (PMethod) callee;
-            return new InvokeFunctionNode(method.__func__());
+            callTarget = method.__func__().getCallTarget();
+            declarationFrame = method.__func__().getDeclarationFrame();
         } else if (callee instanceof PBuiltinFunction) {
-            return createInvokeBuiltinNode((PBuiltinFunction) callee, hasKeyword);
+            // Split built-in constructors.
+            boolean split = callee.getName().equals("__init__");
+            callTarget = split ? callee.getCallTarget() : CallDispatchNode.split(callee.getCallTarget());
         } else if (callee instanceof PBuiltinMethod) {
             PBuiltinMethod method = (PBuiltinMethod) callee;
-            return new InvokeBuiltinFunctionNode(method.__func__(), false);
-        }
-
-        throw new UnsupportedOperationException("Unsupported callee type " + callee);
-    }
-
-    private static InvokeNode createInvokeFunctionNode(PFunction callee, boolean hasKeyword) {
-        if (!hasKeyword) {
-            return new InvokeFunctionNode(callee);
+            callTarget = method.__func__().getCallTarget();
         } else {
-            return new InvokeFunctionWithKeywordsNode(callee);
+            throw new UnsupportedOperationException("Unsupported callee type " + callee);
         }
-    }
 
-    // Split built-in constructors.
-    private static InvokeNode createInvokeBuiltinNode(PBuiltinFunction callee, boolean hasKeyword) {
-        boolean split = callee.getName().equals("__init__");
-
-        if (!hasKeyword) {
-            return new InvokeBuiltinFunctionNode(callee, split);
+        if (hasKeyword) {
+            return new InvokeWithKeywordNode(callTarget, declarationFrame, callee.getArity());
         } else {
-            return new InvokeBuiltinFunctionWithKeywordsNode(callee, split);
+            return new InvokeNoKeywordNode(callTarget, declarationFrame);
         }
     }
 
-    public static final class InvokeFunctionNode extends InvokeNode {
+    public static final class InvokeNoKeywordNode extends InvokeNode {
 
         private final MaterializedFrame declarationFrame;
 
-        public InvokeFunctionNode(PFunction callee) {
-            super(Truffle.getRuntime().createCallNode(callee.getCallTarget()));
-            this.declarationFrame = callee.getDeclarationFrame();
+        public InvokeNoKeywordNode(CallTarget callTarget, MaterializedFrame declarationFrame) {
+            super(Truffle.getRuntime().createCallNode(callTarget));
+            this.declarationFrame = declarationFrame;
         }
 
         @Override
@@ -91,51 +85,21 @@ public abstract class InvokeNode extends Node {
         }
     }
 
-    public static final class InvokeBuiltinFunctionNode extends InvokeNode {
-
-        public InvokeBuiltinFunctionNode(PBuiltinFunction callee, boolean split) {
-            super(Truffle.getRuntime().createCallNode(split ? callee.getCallTarget() : CallDispatchNode.split(callee.getCallTarget())));
-        }
-
-        @Override
-        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
-            PArguments arg = new PArguments(null, arguments);
-            return callNode.call(frame.pack(), arg);
-        }
-    }
-
-    public static final class InvokeFunctionWithKeywordsNode extends InvokeNode {
+    public static final class InvokeWithKeywordNode extends InvokeNode {
 
         private final MaterializedFrame declarationFrame;
         private final Arity arity;
 
-        public InvokeFunctionWithKeywordsNode(PFunction callee) {
-            super(Truffle.getRuntime().createCallNode(callee.getCallTarget()));
-            this.declarationFrame = callee.getDeclarationFrame();
-            this.arity = callee.getArity();
+        public InvokeWithKeywordNode(CallTarget callTarget, MaterializedFrame declarationFrame, Arity arity) {
+            super(Truffle.getRuntime().createCallNode(callTarget));
+            this.declarationFrame = declarationFrame;
+            this.arity = arity;
         }
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             Object[] combined = PFunction.applyKeywordArgs(arity, arguments, keywords);
             PArguments arg = new PArguments(declarationFrame, combined);
-            return callNode.call(frame.pack(), arg);
-        }
-    }
-
-    public static final class InvokeBuiltinFunctionWithKeywordsNode extends InvokeNode {
-
-        private final Arity arity;
-
-        public InvokeBuiltinFunctionWithKeywordsNode(PBuiltinFunction callee, boolean split) {
-            super(Truffle.getRuntime().createCallNode(split ? callee.getCallTarget() : CallDispatchNode.split(callee.getCallTarget())));
-            this.arity = callee.getArity();
-        }
-
-        @Override
-        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
-            Object[] combined = PFunction.applyKeywordArgs(arity, arguments, keywords);
-            PArguments arg = new PArguments(null, combined);
             return callNode.call(frame.pack(), arg);
         }
     }
