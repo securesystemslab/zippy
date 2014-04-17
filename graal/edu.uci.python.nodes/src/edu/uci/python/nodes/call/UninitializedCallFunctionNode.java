@@ -56,25 +56,13 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
     public Object execute(VirtualFrame frame) {
         transferToInterpreterAndInvalidate();
         Object calleeObj = callee.execute(frame);
+
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
-
-            if (callable instanceof PFunction) {
-                DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
-                replace(callNode);
-                return callNode.execute(frame);
-            } else {
-                if (keywords.length == 0) {
-                    DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
-                    replace(callNode);
-                    return callNode.execute(frame);
-                } else {
-                    CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
-                    replace(callFunction);
-                    return callFunction.execute(frame);
-                }
-            }
+            DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
+            replace(callNode);
+            return callNode.execute(frame);
         } else if (calleeObj instanceof PythonClass) {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
             replace(specialized);
@@ -87,6 +75,7 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 ps.println("[ZipPy]: calling jython runtime function " + calleeObj);
                 // CheckStyle: resume system..print check
             }
+
             CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
             replace(callFunction);
             return callFunction.execute(frame);

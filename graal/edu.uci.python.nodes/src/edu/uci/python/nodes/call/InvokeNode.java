@@ -43,6 +43,7 @@ public abstract class InvokeNode extends Node {
     public static InvokeNode create(PythonCallable callee, boolean hasKeyword) {
         CallTarget callTarget;
         MaterializedFrame declarationFrame = null;
+        boolean isBuiltin = false;
 
         if (callee instanceof PFunction) {
             callTarget = callee.getCallTarget();
@@ -53,16 +54,20 @@ public abstract class InvokeNode extends Node {
             declarationFrame = method.__func__().getDeclarationFrame();
         } else if (callee instanceof PBuiltinFunction) {
             // Split built-in constructors.
+            isBuiltin = true;
             boolean split = callee.getName().equals("__init__");
             callTarget = split ? callee.getCallTarget() : InvokeNode.split(callee.getCallTarget());
         } else if (callee instanceof PBuiltinMethod) {
+            isBuiltin = true;
             PBuiltinMethod method = (PBuiltinMethod) callee;
             callTarget = method.__func__().getCallTarget();
         } else {
             throw new UnsupportedOperationException("Unsupported callee type " + callee);
         }
 
-        if (hasKeyword) {
+        if (hasKeyword && isBuiltin) {
+            return new InvokeBuiltinWithKeywordNode(callTarget);
+        } else if (hasKeyword) {
             return new InvokeWithKeywordNode(callTarget, declarationFrame, callee.getArity());
         } else {
             return new InvokeNoKeywordNode(callTarget, declarationFrame);
@@ -109,6 +114,19 @@ public abstract class InvokeNode extends Node {
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             Object[] combined = PFunction.applyKeywordArgs(arity, arguments, keywords);
             PArguments arg = new PArguments(declarationFrame, combined);
+            return callNode.call(frame.pack(), arg);
+        }
+    }
+
+    public static final class InvokeBuiltinWithKeywordNode extends InvokeNode {
+
+        public InvokeBuiltinWithKeywordNode(CallTarget callTarget) {
+            super(Truffle.getRuntime().createCallNode(callTarget));
+        }
+
+        @Override
+        protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
+            PArguments arg = new PArguments(null, arguments, keywords);
             return callNode.call(frame.pack(), arg);
         }
     }
