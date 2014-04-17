@@ -116,7 +116,7 @@ void graal_compute_offsets();
     long_field(ExternalCompilationResult, entryPoint)                                                                                                          \
   end_class                                                                                                                                                    \
   start_class(CompilationResult)                                                                                                                               \
-    int_field(CompilationResult, frameSize)                                                                                                                    \
+    int_field(CompilationResult, totalFrameSize)                                                                                                               \
     int_field(CompilationResult, customStackAreaOffset)                                                                                                        \
     oop_field(CompilationResult, targetCode, "[B")                                                                                                             \
     oop_field(CompilationResult, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")                                                                       \
