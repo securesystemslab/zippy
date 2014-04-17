@@ -201,10 +201,9 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @SuppressWarnings("unused")
         @Specialization(order = 8)
         public String join(Object self, Object arg) {
-            throw new RuntimeException("invalid arguments type for join()");
+            throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }
     }
 
