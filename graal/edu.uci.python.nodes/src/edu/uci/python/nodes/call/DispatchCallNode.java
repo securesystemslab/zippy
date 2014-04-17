@@ -131,7 +131,8 @@ public abstract class DispatchCallNode extends PNode {
         public Object execute(VirtualFrame frame) {
             Object primary = primaryNode.execute(frame);
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            return dispatchNode.executeCall(frame, primary, arguments);
+            PKeyword[] keywords = CallFunctionNode.executeKeywordArguments(frame, keywordNodes);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
@@ -200,9 +201,9 @@ public abstract class DispatchCallNode extends PNode {
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments, keywords);
             }
 
-            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode);
+            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode, keywords);
             replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
-            return dispatch.executeCall(frame, primary, arguments);
+            return dispatch.executeCall(frame, primary, arguments, keywords);
         }
 
         private static boolean isPrimaryBoxed(Object primary, PythonCallable callee) {

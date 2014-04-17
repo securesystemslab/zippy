@@ -39,11 +39,11 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments);
+    protected abstract Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords);
 
-    protected static CallDispatchUnboxedNode create(Object primary, PythonCallable callee, PNode calleeNode) {
+    protected static CallDispatchUnboxedNode create(Object primary, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
         assert !(primary instanceof PythonBasicObject);
-        UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode);
+        UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode, keywords.length != 0);
 
         if (callee instanceof PBuiltinMethod) {
             return new DispatchBuiltinMethodNode(primary, (PBuiltinMethod) callee, next);
@@ -63,20 +63,20 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
         private final Class cachedPrimaryType;
 
-        public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, CallDispatchUnboxedNode next) {
+        public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, UninitializedDispatchUnboxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, false);
+            invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
             cachedPrimaryType = primary.getClass();
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getClass() == cachedPrimaryType) {
-                return invokeNode.invoke(frame, primaryObj, arguments, null);
+                return invokeNode.invoke(frame, primaryObj, arguments, keywords);
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments);
+            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -90,7 +90,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             PythonCallable callee;
             try {
                 callee = calleeNode.executePythonCallable(frame);
@@ -105,14 +105,16 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
     public static final class UninitializedDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
         @Child protected PNode calleeNode;
+        private final boolean hasKeyword;
 
-        public UninitializedDispatchUnboxedNode(String calleeName, PNode calleeNode) {
+        public UninitializedDispatchUnboxedNode(String calleeName, PNode calleeNode, boolean hasKeyword) {
             super(calleeName);
             this.calleeNode = calleeNode;
+            this.hasKeyword = hasKeyword;
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object... arguments) {
+        protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchNode current = this;
@@ -131,14 +133,14 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                CallDispatchUnboxedNode direct = CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode);
+                CallDispatchUnboxedNode direct = CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode, keywords);
                 specialized = replace(direct);
             } else {
                 CallDispatchUnboxedNode generic = new GenericDispatchUnboxedNode(calleeName, calleeNode);
                 specialized = current.replace(generic);
             }
 
-            return specialized.executeCall(frame, primaryObj, arguments);
+            return specialized.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
