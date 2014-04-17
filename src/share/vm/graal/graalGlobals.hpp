@@ -88,6 +88,9 @@
   product(bool, UseHSAILDeoptimization, true,                               \
           "Code gen and runtime support for deoptimizing HSAIL kernels")    \
                                                                             \
+  product(bool, UseHSAILSafepoints, true,                                   \
+          "Code gen and runtime support for safepoints in HSAIL kernels")   \
+                                                                            \
   product(bool, GPUOffload, false,                                          \
           "Offload execution to GPU whenever possible")                     \
                                                                             \

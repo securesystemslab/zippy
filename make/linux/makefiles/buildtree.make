@@ -258,6 +258,10 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
+	echo "$(call gamma-path,altsrc,gpu/ptx/vm) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu/ptx/vm)" \\; \
+	echo "$(call gamma-path,altsrc,gpu/hsail/vm) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu/hsail/vm) \\"; \
 	echo "$(call gamma-path,altsrc,gpu) \\"; \
 	echo "$(call gamma-path,commonsrc,gpu)"; \
 	[ -n "$(CFLAGS_BROWSE)" ] && \

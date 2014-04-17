@@ -41,6 +41,7 @@
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _actionAndReason,                           jint)                                 \
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _first_frame,                               HSAILFrame)                           \
                                                                                                                                       \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _notice_safepoints,                      jint*)                                     \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_occurred,                         jint)                                      \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_next_index,                       jint)                                      \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _donor_threads,                          JavaThread**)                              \

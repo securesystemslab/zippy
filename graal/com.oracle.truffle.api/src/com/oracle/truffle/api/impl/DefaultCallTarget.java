@@ -25,7 +25,6 @@
 package com.oracle.truffle.api.impl;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -33,22 +32,28 @@ import com.oracle.truffle.api.nodes.*;
  * This is an implementation-specific class. Do not use or instantiate it. Instead, use
  * {@link TruffleRuntime#createCallTarget(RootNode)} to create a {@link RootCallTarget}.
  */
-public class DefaultCallTarget extends RootCallTarget {
+public class DefaultCallTarget implements RootCallTarget {
 
-    @CompilationFinal protected boolean needsMaterializedFrame = true;
+    private final RootNode rootNode;
 
-    protected DefaultCallTarget(RootNode function) {
-        super(function);
+    public DefaultCallTarget(RootNode function) {
+        this.rootNode = function;
+        this.rootNode.adoptChildren();
+        this.rootNode.setCallTarget(this);
     }
 
     @Override
-    public Object call(Object[] args) {
+    public String toString() {
+        return rootNode.toString();
+    }
+
+    public final RootNode getRootNode() {
+        return rootNode;
+    }
+
+    @Override
+    public Object call(Object... args) {
         VirtualFrame frame = new DefaultVirtualFrame(getRootNode().getFrameDescriptor(), args);
-        return callProxy(frame);
-    }
-
-    @Override
-    public void setNeedsMaterializedFrame() {
-        needsMaterializedFrame = true;
+        return getRootNode().execute(frame);
     }
 }

@@ -71,6 +71,7 @@ JNINativeMethod Hsail::HSAIL_methods[] = {
 };
 
 void * Hsail::_device_context = NULL;
+jint   Hsail::_notice_safepoints = false;
 
 Hsail::okra_create_context_func_t  Hsail::_okra_create_context;
 Hsail::okra_create_kernel_func_t   Hsail::_okra_create_kernel;
@@ -122,6 +123,18 @@ public:
 
 static Stats kernelStats;
 
+//static jint in_kernel = 0;
+
+void Hsail::notice_safepoints() {
+  _notice_safepoints = true;
+//  if (TraceGPUInteraction) {
+//    tty->print_cr("[HSAIL] Notice safepoint in_kernel=%d", in_kernel);
+//  }
+}
+
+void Hsail::ignore_safepoints() {
+  _notice_safepoints = false;
+}
 
 void Hsail::register_heap() {
   // After the okra functions are set up and the heap is initialized, register the java heap with HSA
@@ -137,7 +150,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
                                                       jobject donor_threads, jint allocBytesPerWorkitem))
 
   ResourceMark rm;
-  jlong nmethodValue = HotSpotInstalledCode::codeBlob(kernel_handle);
+  jlong nmethodValue = InstalledCode::address(kernel_handle);
   if (nmethodValue == 0) {
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
@@ -203,8 +216,7 @@ static void printTlabInfo (ThreadLocalAllocBuffer* tlab) {
 }
 
 
-
-jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oops_save,
+jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oops_save, 
                                                 jobject donor_threads, int allocBytesPerWorkitem, TRAPS) {
   ResourceMark rm(THREAD);
   objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
@@ -258,6 +270,9 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
 
   // This object sets up the kernel arguments
   HSAILKernelArguments hka((address) kernel, mh->signature(), argsArray, mh->is_static(), e);
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] range=%d", dimX);
+  }
 
   // if any object passed was null, throw an exception here
   // doing this means the kernel code can avoid null checks on the object parameters.
@@ -273,8 +288,12 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   // Run the kernel
   bool success = false;
   {
-    TraceTime t1("execute kernel", TraceGPUInteraction);
+    TraceTime t("execute kernel", TraceGPUInteraction);
+
+    //in_kernel = 1;
+    // Run the kernel
     success = _okra_execute_with_range(kernel, dimX);
+    //in_kernel = 0;
   }
 
   // fix up any tlab tops that overflowed
@@ -297,17 +316,23 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   }
 
   if (UseHSAILDeoptimization) {
+    kernelStats.incDeopts();
     // check if any workitem requested a deopt
     // currently we only support at most one such workitem
     int deoptcode = e->deopt_occurred();
-    if (deoptcode != 0) {
-      if (deoptcode != 1) {
+    if (deoptcode != 1) {
+      if (deoptcode == 0) {
+        if (TraceGPUInteraction && _notice_safepoints != 0) {
+          tty->print_cr("[HSAIL] observed safepoint during kernel");
+        }
+      } else {
         // error condition detected in deopt code
         char msg[200];
         sprintf(msg, "deopt error detected, slot for workitem %d was not empty", -1 * (deoptcode + 1));
         guarantee(deoptcode == 1, msg);
       }
-      kernelStats.incDeopts();
+    } else {
+
       {
         TraceTime t3("handle deoptimizing workitems", TraceGPUInteraction);
         if (TraceGPUInteraction) {
@@ -402,48 +427,47 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
           tty->print_cr("[HSAIL] Deoptimizing to host completed for %d workitems", count_deoptimized);
         }
       }
-
-      {
-        TraceTime t3("handle never-rans", TraceGPUInteraction);
-
-        // Handle any never_ran workitems if there were any
-        int count_never_ran = 0;
-        bool handleNeverRansHere = true;
-        // turn off verbose trace stuff for javacall arg setup
-        bool savedTraceGPUInteraction = TraceGPUInteraction;
-        TraceGPUInteraction = false;
-        jboolean *never_ran_array = e->never_ran_array();
-        if (handleNeverRansHere) {
-          for (int k = 0; k < dimX; k++) {
-            if (never_ran_array[k]) {
-              // run it as a javaCall
-              KlassHandle methKlass = mh->method_holder();
-              Thread* THREAD = Thread::current();
-              JavaValue result(T_VOID);
-              JavaCallArguments javaArgs;
-              // re-resolve the args_handle here
-              objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args);
-              // This object sets up the javaCall arguments
-              // the way argsArray is set up, this should work for instance methods as well
-              // (the receiver will be the first oop pushed)
-              HSAILJavaCallArguments hjca(&javaArgs, k, mh->signature(), resolvedArgsArray, mh->is_static());
-              if (mh->is_static()) {
-                JavaCalls::call_static(&result, methKlass, mh->name(), mh->signature(), &javaArgs, THREAD);
-              } else {
-                JavaCalls::call_virtual(&result, methKlass, mh->name(), mh->signature(), &javaArgs, THREAD);
-              }
-              count_never_ran++;
-            }
-          }
-          TraceGPUInteraction = savedTraceGPUInteraction;
-          if (TraceGPUInteraction) {
-            tty->print_cr("%d workitems never ran, have been run via JavaCall", count_never_ran);
-            showRanges(never_ran_array, dimX);
-          }
-        } // end of never-ran handling
-      }
     }
-    
+
+    // Handle any never_ran workitems if there were any
+    {
+      TraceTime t("handle never-rans ", TraceGPUInteraction);
+      int count_never_ran = 0;
+      bool handleNeverRansHere = true;
+      // turn off verbose trace stuff for javacall arg setup
+      bool savedTraceGPUInteraction = TraceGPUInteraction;
+      TraceGPUInteraction = false;
+      jboolean *never_ran_array = e->never_ran_array();
+      if (handleNeverRansHere) {
+        for (int k = 0; k < dimX; k++) {
+          if (never_ran_array[k]) {
+            // run it as a javaCall
+            KlassHandle methKlass = mh->method_holder();
+            Thread* THREAD = Thread::current();
+            JavaValue result(T_VOID);
+            JavaCallArguments javaArgs;
+            // re-resolve the args_handle here
+            objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args);
+            // This object sets up the javaCall arguments
+            // the way argsArray is set up, this should work for instance methods as well
+            // (the receiver will be the first oop pushed)
+            HSAILJavaCallArguments hjca(&javaArgs, k, mh->signature(), resolvedArgsArray, mh->is_static());
+            if (mh->is_static()) {
+              JavaCalls::call_static(&result, methKlass, mh->name(), mh->signature(), &javaArgs, THREAD);
+            } else {
+              JavaCalls::call_virtual(&result, methKlass, mh->name(), mh->signature(), &javaArgs, THREAD);
+            }
+            count_never_ran++;
+          }
+        }
+        TraceGPUInteraction = savedTraceGPUInteraction;
+        if (TraceGPUInteraction) {
+          tty->print_cr("%d workitems never ran, have been run via JavaCall", count_never_ran);
+          showRanges(never_ran_array, dimX);
+        }
+      } // end of never-ran handling
+    }
+
     FREE_C_HEAP_ARRAY(jboolean, e->never_ran_array(), mtInternal);
     delete e;
   }
@@ -547,7 +571,7 @@ GPU_ENTRY(jboolean, Hsail::initialize, (JNIEnv *env, jclass))
   LOOKUP_OKRA_FUNCTION(okra_register_heap, okra_register_heap);
   // if we made it this far, real success
 
-  gpu::initialized_gpu("Okra");
+  Gpu::initialized_gpu(new Hsail());
 
   return true;
 GPU_END
