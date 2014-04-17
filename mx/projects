@@ -502,7 +502,7 @@ project@com.oracle.graal.java@workingSets=Graal,Java
 # graal.compiler.common
 project@com.oracle.graal.compiler.common@subDir=graal
 project@com.oracle.graal.compiler.common@sourceDirs=src
-project@com.oracle.graal.compiler.common@dependencies=
+project@com.oracle.graal.compiler.common@dependencies=com.oracle.graal.api.meta
 project@com.oracle.graal.compiler.common@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.common@javaCompliance=1.8
 project@com.oracle.graal.compiler.common@workingSets=Graal,Java
