@@ -253,7 +253,7 @@ project@com.oracle.graal.options.test@workingSets=Graal
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
-project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.api.code,com.oracle.graal.compiler.common,FINDBUGS
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,FINDBUGS
 project@com.oracle.graal.graph@javaCompliance=1.8
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
@@ -502,7 +502,7 @@ project@com.oracle.graal.java@workingSets=Graal,Java
 # graal.compiler.common
 project@com.oracle.graal.compiler.common@subDir=graal
 project@com.oracle.graal.compiler.common@sourceDirs=src
-project@com.oracle.graal.compiler.common@dependencies=
+project@com.oracle.graal.compiler.common@dependencies=com.oracle.graal.api.code
 project@com.oracle.graal.compiler.common@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.common@javaCompliance=1.8
 project@com.oracle.graal.compiler.common@workingSets=Graal,Java

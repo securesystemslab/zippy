@@ -933,7 +933,13 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
   return NULL;
 C2V_END
 
-
+C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+  ConstantPool* cp = (ConstantPool*)metaspace_constant_pool;
+  CallInfo callInfo;
+  LinkResolver::resolve_invokedynamic(callInfo, cp, index, CHECK);
+  ConstantPoolCacheEntry* cp_cache_entry = cp->invokedynamic_cp_cache_entry_at(index);
+  cp_cache_entry->set_dynamic_call(cp, callInfo);
+C2V_END
 
 // public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
 C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv *env, jobject, jobject hs_frame, bool invalidate))
@@ -1078,6 +1084,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                FN_PTR(lookupMethodInPool)},
   {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(constantPoolRemapInstructionOperandFromCache)},
   {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,               FN_PTR(resolveField)},
+  {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                FN_PTR(resolveInvokeDynamic)},
   {CC"resolveMethod",                                CC"("METASPACE_KLASS STRING STRING")"METASPACE_METHOD,            FN_PTR(resolveMethod)},
   {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                          FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                         FN_PTR(hasFinalizableSubclass)},

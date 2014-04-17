@@ -965,8 +965,7 @@ def unittest(args):
         parsed_args = parser.parse_args(ut_args)
     else:
         # parse all know arguments
-        parsed_args, remaining_args = parser.parse_known_args(ut_args)
-        args = remaining_args + args
+        parsed_args, args = parser.parse_known_args(ut_args)
 
     whitelist = None
     if parsed_args.baseline_whitelist:

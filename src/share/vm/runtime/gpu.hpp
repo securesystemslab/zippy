@@ -32,7 +32,7 @@
 #define MAX_GPUS 2
 
 // Defines the interface to the graphics processor(s).
-class Gpu {
+class Gpu : public CHeapObj<mtInternal> {
  private:
   static int _initialized_gpus_count;
   static Gpu* _initialized_gpus[MAX_GPUS];
