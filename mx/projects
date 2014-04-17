@@ -373,7 +373,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.compiler.common
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
 project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
@@ -640,7 +640,7 @@ project@com.oracle.graal.compiler.hsail.test@javaCompliance=1.8
 # graal.asm.hsail
 project@com.oracle.graal.asm.hsail@subDir=graal
 project@com.oracle.graal.asm.hsail@sourceDirs=src
-project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm,com.oracle.graal.graph
+project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm,com.oracle.graal.compiler.common
 project@com.oracle.graal.asm.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.hsail@javaCompliance=1.8
 
