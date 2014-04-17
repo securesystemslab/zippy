@@ -129,7 +129,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, false);
+            invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
             cachedPrimary = primary;
 
@@ -176,7 +176,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public DispatchBuiltinConstructorNode(PythonBasicObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             PythonCallable constructor = callee.lookUpMethod("__init__");
-            invokeNode = InvokeNode.create(constructor, false);
+            invokeNode = InvokeNode.create(constructor, next.hasKeyword);
             nextNode = next;
 
             assert primary instanceof PythonModule;
@@ -217,9 +217,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         private final PythonClass cachedClass;
         private final Assumption dispatchStable;
 
-        public DispatchMethodNode(PythonBasicObject primary, PMethod callee, CallDispatchBoxedNode next) {
+        public DispatchMethodNode(PythonBasicObject primary, PMethod callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, false);
+            invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
             cachedClass = primary.getPythonClass();
             dispatchStable = primary.getStableAssumption();

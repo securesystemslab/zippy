@@ -54,7 +54,7 @@ public abstract class InvokeNode extends Node {
         } else if (callee instanceof PBuiltinFunction) {
             // Split built-in constructors.
             boolean split = callee.getName().equals("__init__");
-            callTarget = split ? callee.getCallTarget() : CallDispatchNode.split(callee.getCallTarget());
+            callTarget = split ? callee.getCallTarget() : InvokeNode.split(callee.getCallTarget());
         } else if (callee instanceof PBuiltinMethod) {
             PBuiltinMethod method = (PBuiltinMethod) callee;
             callTarget = method.__func__().getCallTarget();
@@ -67,6 +67,15 @@ public abstract class InvokeNode extends Node {
         } else {
             return new InvokeNoKeywordNode(callTarget, declarationFrame);
         }
+    }
+
+    /**
+     * Replicate the CallTarget to let each builtin call site executes its won AST.
+     */
+    protected static CallTarget split(RootCallTarget callTarget) {
+        CompilerAsserts.neverPartOfCompilation();
+        RootNode rootNode = callTarget.getRootNode();
+        return Truffle.getRuntime().createCallTarget(NodeUtil.cloneNode(rootNode));
     }
 
     public static final class InvokeNoKeywordNode extends InvokeNode {

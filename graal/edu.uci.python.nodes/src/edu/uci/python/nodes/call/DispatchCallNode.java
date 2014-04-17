@@ -113,7 +113,8 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            return dispatchBoxedNode.executeCall(frame, primary, arguments, PKeyword.EMPTY_KEYWORDS);
+            PKeyword[] keywords = CallFunctionNode.executeKeywordArguments(frame, keywordNodes);
+            return dispatchBoxedNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
@@ -170,26 +171,6 @@ public abstract class DispatchCallNode extends PNode {
             this.calleeNode = callee;
         }
 
-        private static boolean isPrimaryBoxed(Object primary, PythonCallable callee) {
-            if (primary instanceof PythonModule) {
-                return true;
-            } else if (primary instanceof PythonClass) {
-                return true;
-            } else if (primary instanceof PythonObject && callee instanceof PMethod) {
-                return true;
-            }
-
-            return false;
-        }
-
-        private boolean isPrimaryNone(Object primary) {
-            return primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
-        }
-
-        private boolean haveToPassPrimary(Object primary) {
-            return !isPrimaryNone(primary) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule);
-        }
-
         @Override
         public Object execute(VirtualFrame frame) {
             CompilerAsserts.neverPartOfCompilation();
@@ -221,6 +202,26 @@ public abstract class DispatchCallNode extends PNode {
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode);
             replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, primary, arguments);
+        }
+
+        private static boolean isPrimaryBoxed(Object primary, PythonCallable callee) {
+            if (primary instanceof PythonModule) {
+                return true;
+            } else if (primary instanceof PythonClass) {
+                return true;
+            } else if (primary instanceof PythonObject && callee instanceof PMethod) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean isPrimaryNone(Object primary) {
+            return primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
+        }
+
+        private boolean haveToPassPrimary(Object primary) {
+            return !isPrimaryNone(primary) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule);
         }
     }
 

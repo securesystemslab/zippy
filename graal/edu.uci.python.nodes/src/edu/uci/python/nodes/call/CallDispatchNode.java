@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.call;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -37,15 +36,6 @@ public abstract class CallDispatchNode extends Node {
 
     public CallDispatchNode(String calleeName) {
         this.calleeName = calleeName;
-    }
-
-    /**
-     * Replicate the CallTarget to make each builtin call site uses separate ASTs.
-     */
-    protected static CallTarget split(RootCallTarget callTarget) {
-        CompilerAsserts.neverPartOfCompilation();
-        RootNode rootNode = callTarget.getRootNode();
-        return Truffle.getRuntime().createCallTarget(NodeUtil.cloneNode(rootNode));
     }
 
 }
