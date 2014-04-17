@@ -61,17 +61,17 @@ public class StringTests {
 
     @Test
     public void join0() {
-        String source = "s = set(str(i) for i in range(3))\n" + //
-                        "print(''.join(s))\n";
-        assertPrints("210\n", source);
-    }
-
-    @Test
-    public void join1() {
         String source = "val = \"-\".join(\"12345\")\n" + //
                         "print(val)\n";
 
         assertPrints("1-2-3-4-5\n", source);
+    }
+
+    @Test
+    public void join1() {
+        String source = "s = set(str(i) for i in range(3))\n" + //
+                        "print(''.join(s))\n";
+        assertPrints("210\n", source);
     }
 
     @Test
