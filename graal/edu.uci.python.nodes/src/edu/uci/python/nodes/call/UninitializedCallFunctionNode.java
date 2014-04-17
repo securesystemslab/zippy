@@ -60,14 +60,20 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
 
-            if (keywords.length == 0) {
+            if (callable instanceof PFunction) {
                 DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
                 replace(callNode);
                 return callNode.execute(frame);
             } else {
-                CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
-                replace(callFunction);
-                return callFunction.execute(frame);
+                if (keywords.length == 0) {
+                    DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
+                    replace(callNode);
+                    return callNode.execute(frame);
+                } else {
+                    CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
+                    replace(callFunction);
+                    return callFunction.execute(frame);
+                }
             }
         } else if (calleeObj instanceof PythonClass) {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
