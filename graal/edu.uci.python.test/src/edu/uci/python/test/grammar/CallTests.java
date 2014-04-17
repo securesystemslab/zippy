@@ -62,6 +62,16 @@ public class CallTests {
     }
 
     @Test
+    public void keywordArgs() {
+        String source = "def bar(f):\n" + //
+                        "    print(f)\n" + //
+                        "bar(f = 2)\n" + //
+                        "bar(4)\n";
+
+        assertPrints("2\n4\n", source);
+    }
+
+    @Test
     public void classFunction() {
         String source = "class Foo:\n" + //
                         "  def __init__(self, num):\n" + //

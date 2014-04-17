@@ -101,14 +101,14 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
-    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, Object[] keywords) {
+    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
         Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
 
         for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyarg = (PKeyword) keywords[i];
+            PKeyword keyarg = keywords[i];
             int keywordIdx = parameters.indexOf(keyarg.getName());
 
             if (keywordIdx < -1) {
