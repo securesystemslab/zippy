@@ -60,13 +60,13 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
-            DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable, callee, arguments, keywords);
+            DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable.getName(), callee, arguments, keywords);
             replace(callNode);
             return callNode.execute(frame);
         } else if (calleeObj instanceof PythonClass) {
             CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
             replace(specialized);
-            Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+            Object[] args = DispatchCallNode.executeArguments(frame, arguments);
             return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
         } else {
             if ((calleeObj instanceof PyObject) && (PythonOptions.TraceJythonRuntime)) {
@@ -76,9 +76,9 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
                 // CheckStyle: resume system..print check
             }
 
-            CallFunctionNode callFunction = CallFunctionNodeFactory.create(arguments, keywords, getContext(), callee);
-            replace(callFunction);
-            return callFunction.execute(frame);
+            DispatchCallNode callNode = DispatchCallNode.create(getContext(), calleeObj.toString(), callee, arguments, keywords);
+            replace(callNode);
+            return callNode.execute(frame);
         }
     }
 

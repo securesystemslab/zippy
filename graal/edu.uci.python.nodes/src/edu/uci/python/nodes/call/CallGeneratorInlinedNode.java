@@ -68,7 +68,7 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
             return uninitialize(frame);
         }
 
-        final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+        final Object[] args = DispatchCallNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments.VirtualFrameCargoArguments(null, frame, args);
         return generatorRoot.execute(createInlinedFrame(frame, pargs));
     }

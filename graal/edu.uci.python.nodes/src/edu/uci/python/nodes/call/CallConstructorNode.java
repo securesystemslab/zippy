@@ -43,7 +43,7 @@ public class CallConstructorNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         PythonClass clazz = (PythonClass) targetClass.execute(frame);
-        Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+        Object[] args = DispatchCallNode.executeArguments(frame, arguments);
         return callConstructor(frame, clazz, args);
     }
 

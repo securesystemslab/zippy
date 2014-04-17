@@ -28,14 +28,11 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild(value = "callee", type = PNode.class)
@@ -65,39 +62,10 @@ public abstract class CallFunctionNode extends PNode {
         return context;
     }
 
-    @Specialization
-    public Object doPyObject(VirtualFrame frame, PyObject callee) {
-        Object[] args = executeArguments(frame, arguments);
-        PyObject[] pyargs = adaptToPyObjects(args);
-        return unboxPyObject(callee.__call__(pyargs));
-    }
-
     @SuppressWarnings("unused")
     @Generic
     public Object doGeneric(VirtualFrame frame, Object callee) {
         throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-    }
-
-    @ExplodeLoop
-    public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        Object[] evaluated = new Object[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = arguments[i].execute(frame);
-        }
-
-        return evaluated;
-    }
-
-    @ExplodeLoop
-    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
-        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = (PKeyword) arguments[i].execute(frame);
-        }
-
-        return evaluated;
     }
 
     @Override

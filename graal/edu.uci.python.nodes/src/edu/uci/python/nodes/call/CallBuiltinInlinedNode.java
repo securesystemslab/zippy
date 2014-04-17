@@ -69,7 +69,7 @@ public class CallBuiltinInlinedNode extends InlinedCallNode {
             return uninitialize(frame);
         }
 
-        final Object[] args = CallFunctionNode.executeArguments(frame, arguments);
+        final Object[] args = DispatchCallNode.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments(null, args);
         return functionRoot.execute(createInlinedFrame(frame, pargs));
     }
