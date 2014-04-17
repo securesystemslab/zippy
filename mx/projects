@@ -373,7 +373,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.cfg
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.compiler.common
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
 project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
@@ -499,13 +499,13 @@ project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.8
 project@com.oracle.graal.java@workingSets=Graal,Java
 
-# graal.cfg
-project@com.oracle.graal.cfg@subDir=graal
-project@com.oracle.graal.cfg@sourceDirs=src
-project@com.oracle.graal.cfg@dependencies=
-project@com.oracle.graal.cfg@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.cfg@javaCompliance=1.8
-project@com.oracle.graal.cfg@workingSets=Graal,Java
+# graal.compiler.common
+project@com.oracle.graal.compiler.common@subDir=graal
+project@com.oracle.graal.compiler.common@sourceDirs=src
+project@com.oracle.graal.compiler.common@dependencies=
+project@com.oracle.graal.compiler.common@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.common@javaCompliance=1.8
+project@com.oracle.graal.compiler.common@workingSets=Graal,Java
 
 # graal.baseline
 project@com.oracle.graal.baseline@subDir=graal
