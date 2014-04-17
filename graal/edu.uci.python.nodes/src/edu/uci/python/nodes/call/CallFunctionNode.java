@@ -36,7 +36,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 @NodeChild(value = "callee", type = PNode.class)
@@ -64,36 +63,6 @@ public abstract class CallFunctionNode extends PNode {
 
     public PythonContext getContext() {
         return context;
-    }
-
-    @Specialization
-    public Object doPythonCallable(VirtualFrame frame, PythonCallable callee) {
-        Object[] args = executeArguments(frame, arguments);
-        PKeyword[] kwords = executeKeywordArguments(frame, keywords);
-        return callee.call(frame.pack(), args, kwords);
-    }
-
-    @Specialization
-    public Object doPythonObject(VirtualFrame frame, PythonObject callee) {
-        /**
-         * Calls __call__() method of an object if it exists. Otherwise, throws a type error
-         */
-        Object[] args = executeArguments(frame, arguments);
-        PKeyword[] kwords = executeKeywordArguments(frame, keywords);
-        Object callAttribute = callee.getAttribute("__call__");
-
-        if (callAttribute instanceof PFunction) {
-            PFunction callFunction = (PFunction) callAttribute;
-            PMethod callMethod = new PMethod(callee, callFunction);
-            if (keywords.length == 0) {
-                return callMethod.call(frame.pack(), args);
-            } else {
-                return callMethod.call(frame.pack(), args, kwords);
-
-            }
-        } else {
-            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-        }
     }
 
     @Specialization
