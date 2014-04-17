@@ -60,7 +60,7 @@ public abstract class InvokeNode extends Node {
         } else if (callee instanceof PBuiltinMethod) {
             isBuiltin = true;
             PBuiltinMethod method = (PBuiltinMethod) callee;
-            callTarget = method.__func__().getCallTarget();
+            callTarget = InvokeNode.split(method.__func__().getCallTarget());
         } else {
             throw new UnsupportedOperationException("Unsupported callee type " + callee);
         }
