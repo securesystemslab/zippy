@@ -5,6 +5,7 @@
 ^mx/netbeans-config.zip
 ^mx/netbeans-config-libs.zip
 ^mx/eclipse-launches
+^mx/jmh
 ^mx/currentAnnotationProcessors
 ^mx/ecj.jar
 ^mx/includes

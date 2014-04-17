@@ -29,21 +29,41 @@
 #include "oops/symbol.hpp"
 #include "utilities/array.hpp"
 
+#define MAX_GPUS 2
+
 // Defines the interface to the graphics processor(s).
-class gpu : AllStatic {
+class Gpu {
  private:
-  static int _initialized_gpus;  // number of initialize GPU devices
+  static int _initialized_gpus_count;
+  static Gpu* _initialized_gpus[MAX_GPUS];
 
  public:
 
   // Notification of a GPU device that has been initialized.
-  static void initialized_gpu(const char* name);
+  static void initialized_gpu(Gpu* gpu);
 
   // Gets a comma separated list of supported GPU architecture names.
   static jobject probe_gpus(JNIEnv* env);
   
   // Gets the number of GPU devices that have been initialized.
-  static int initialized_gpus() { return _initialized_gpus; }
+  static int initialized_gpus() { return _initialized_gpus_count; }
+
+  enum SafepointEvent {
+    SafepointBegin,
+    SafepointEnd
+  };
+
+  // Called when a safepoint has been activated.
+  static void safepoint_event(SafepointEvent event);
+
+  // Name of this GPU
+  virtual const char* name() = 0;
+
+  // Called when a safepoint has been activated.
+  virtual void notice_safepoints() {};
+
+  // Called when a safepoint has been deactivated.
+  virtual void ignore_safepoints() {};
 };
 
 #endif // SHARE_VM_RUNTIME_GPU_HPP

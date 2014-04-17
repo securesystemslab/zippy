@@ -271,7 +271,7 @@ GPU_ENTRY(jboolean, Ptx::initialize, (JNIEnv *env, jclass))
     tty->print_cr("[CUDA] Success: Created context for device: %d", _cu_device);
   }
 
-  gpu::initialized_gpu(device_name);
+  Gpu::initialized_gpu(new Ptx());
 
   return true;
 GPU_END

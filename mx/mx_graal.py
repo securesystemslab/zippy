@@ -1404,7 +1404,16 @@ def bench(args):
             f.write(json.dumps(results))
 
 def jmh(args):
-    """run the JMH_BENCHMARKS"""
+    """run the JMH_BENCHMARKS
+
+    The benchmarks are running with the default VM.
+    You can override this with an explicit option.
+    For example:
+
+        mx jmh -server ...
+
+    Will force the benchmarks to be run with the server VM.
+"""
 
     # TODO: add option for `mvn clean package'
 
@@ -1413,7 +1422,7 @@ def jmh(args):
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
 
-    jmhArgs = {'-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
+    jmhArgs = {'-rff' : join(_graal_home, 'mx', 'jmh', 'jmh.out'), '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
 
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
@@ -1427,18 +1436,54 @@ def jmh(args):
             mx.abort('error parsing JSON input: {}"\n{}'.format(j, e))
 
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
-    if not jmhPath or not exists(jmhPath):
-        mx.abort("$JMH_BENCHMARKS not properly defined: " + str(jmhPath))
+    if not jmhPath:
+        probe = join(dirname(_graal_home), 'java-benchmarks')
+        if exists(probe):
+            jmhPath = probe
 
-    def _blackhole(x):
-        mx.logv(x[:-1])
+    if not jmhPath:
+        mx.abort("Please set the JMH_BENCHMARKS environment variable to point to the java-benchmarks workspace")
+    if not exists(jmhPath):
+        mx.abort("The directory denoted by the JMH_BENCHMARKS environment variable does not exist: " + jmhPath)
+    mx.log('Using benchmarks in ' + jmhPath)
 
+    timestamp = mx.TimeStampFile(join(_graal_home, 'mx', 'jmh', jmhPath.replace(os.sep, '_') + '.timestamp'))
+    buildJmh = False
+    jmhTree = []
+    for root, dirnames, filenames in os.walk(jmhPath):
+        if root == jmhPath:
+            for n in ['.hg', '.metadata']:
+                if n in dirnames:
+                    dirnames.remove(n)
+        jmhTree.append(os.path.relpath(root, jmhPath) + ':')
+        jmhTree = jmhTree + filenames
+        jmhTree.append('')
 
-    env = os.environ.copy()
-    env['JAVA_HOME'] = _jdk(vmToCheck='graal')
-    env['MAVEN_OPTS'] = '-graal'
-    mx.log("Building benchmarks...")
-    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
+        files = [join(root, f) for f in filenames]
+        if timestamp.isOlderThan(files):
+            buildJmh = True
+
+    if not buildJmh:
+        with open(timestamp.path) as fp:
+            oldJmhTree = fp.read().split('\n')
+            if oldJmhTree != jmhTree:
+                import difflib
+                diff = difflib.unified_diff(oldJmhTree, jmhTree)
+                mx.log("Need to rebuild JMH due to change in JMH directory tree indicated by this diff:")
+                mx.log('\n'.join(diff))
+                buildJmh = True
+
+    if buildJmh:
+        def _blackhole(x):
+            mx.logv(x[:-1])
+        env = os.environ.copy()
+        env['JAVA_HOME'] = _jdk(vmToCheck='graal')
+        env['MAVEN_OPTS'] = '-graal'
+        mx.log("Building benchmarks...")
+        mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
+        timestamp.touch()
+        with open(timestamp.path, 'w') as fp:
+            fp.write('\n'.join(jmhTree))
 
     matchedSuites = set()
     numBench = [0]
