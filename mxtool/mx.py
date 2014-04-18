@@ -150,6 +150,8 @@ class Distribution:
                                 arc.zf.write(join(root, f), arcname)
                     if srcArc.zf:
                         sourceDirs = p.source_dirs()
+                        if p.source_gen_dir():
+                            sourceDirs.append(p.source_gen_dir())
                         for srcDir in sourceDirs:
                             for root, _, files in os.walk(srcDir):
                                 relpath = root[len(srcDir) + 1:]
