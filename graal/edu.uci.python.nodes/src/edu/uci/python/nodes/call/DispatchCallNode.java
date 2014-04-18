@@ -35,6 +35,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -305,6 +306,7 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             boolean passPrimaryAsArgument = haveToPassPrimary(primary);
+            callee.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, getKeywordNames());
             Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
             PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
 
@@ -323,6 +325,17 @@ public abstract class DispatchCallNode extends PNode {
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode, keywords);
             replace(new UnboxedCallNode(context, callee.getName(), primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, primary, arguments, keywords);
+        }
+
+        private String[] getKeywordNames() {
+            String[] keywordNames = new String[keywordNodes.length];
+
+            for (int i = 0; i < keywordNodes.length; i++) {
+                KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) keywordNodes[i];
+                keywordNames[i] = keywordLiteral.getName();
+            }
+
+            return keywordNames;
         }
 
         private static boolean isPrimaryBoxed(Object primary, PythonCallable callee) {

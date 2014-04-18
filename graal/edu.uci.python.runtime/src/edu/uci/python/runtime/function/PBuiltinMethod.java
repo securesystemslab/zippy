@@ -72,7 +72,7 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
-        function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+        function.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
     @Override
