@@ -140,7 +140,7 @@ public class CallFunctionNoKeywordNode extends PNode {
     }
 
     public Object executeCall(VirtualFrame frame, PythonCallable callable) {
-        final Object[] args = DispatchCallNode.executeArguments(frame, arguments);
+        final Object[] args = PythonCallNode.executeArguments(frame, arguments);
         return callable.call(frame.pack(), args);
     }
 

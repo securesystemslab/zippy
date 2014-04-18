@@ -44,7 +44,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class DispatchCallNode extends PNode {
+public abstract class PythonCallNode extends PNode {
 
     @Child protected PNode primaryNode;
     @Children protected final PNode[] argumentNodes;
@@ -54,7 +54,7 @@ public abstract class DispatchCallNode extends PNode {
     protected final boolean passPrimaryAsTheFirstArgument;
     protected final PythonContext context;
 
-    public DispatchCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, PNode[] keywords, boolean passPrimary) {
+    public PythonCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, PNode[] keywords, boolean passPrimary) {
         this.context = context;
         this.calleeName = calleeName;
         this.primaryNode = primary;
@@ -63,7 +63,7 @@ public abstract class DispatchCallNode extends PNode {
         this.passPrimaryAsTheFirstArgument = passPrimary;
     }
 
-    public static DispatchCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
+    public static PythonCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
@@ -122,7 +122,7 @@ public abstract class DispatchCallNode extends PNode {
         return evaluated;
     }
 
-    public static final class BoxedCallNode extends DispatchCallNode {
+    public static final class BoxedCallNode extends PythonCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchBoxedNode;
 
@@ -143,12 +143,12 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
             return dispatchBoxedNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
-    public static final class UnboxedCallNode extends DispatchCallNode {
+    public static final class UnboxedCallNode extends PythonCallNode {
 
         @Child protected CallDispatchUnboxedNode dispatchNode;
 
@@ -161,12 +161,12 @@ public abstract class DispatchCallNode extends PNode {
         public Object execute(VirtualFrame frame) {
             Object primary = primaryNode.execute(frame);
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
-    public static final class NoneCallNode extends DispatchCallNode {
+    public static final class NoneCallNode extends PythonCallNode {
 
         @Child protected PNode calleeNode;
         @Child protected CallDispatchNoneNode dispatchNode;
@@ -188,12 +188,12 @@ public abstract class DispatchCallNode extends PNode {
             }
 
             Object[] arguments = executeArguments(frame, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, callee, arguments, keywords);
         }
     }
 
-    public static final class CallConstructorNode extends DispatchCallNode {
+    public static final class CallConstructorNode extends PythonCallNode {
 
         @Child protected PNode calleeNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
@@ -228,13 +228,13 @@ public abstract class DispatchCallNode extends PNode {
         protected Object executeCall(VirtualFrame frame, PythonBasicObject primary, PythonClass clazz) {
             PythonObject newInstance = new PythonObject(clazz);
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
             return newInstance;
         }
     }
 
-    public static final class CallJythonNode extends DispatchCallNode {
+    public static final class CallJythonNode extends PythonCallNode {
 
         @Child protected PNode calleeNode;
 
@@ -263,7 +263,7 @@ public abstract class DispatchCallNode extends PNode {
         }
     }
 
-    public static final class UninitializedCallNode extends DispatchCallNode {
+    public static final class UninitializedCallNode extends PythonCallNode {
 
         @Child protected PNode calleeNode;
 
@@ -308,7 +308,7 @@ public abstract class DispatchCallNode extends PNode {
             boolean passPrimaryAsArgument = haveToPassPrimary(primary);
             callee.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, getKeywordNames());
             Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
 
             if (isPrimaryNone(primary)) {
                 CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee, keywords);

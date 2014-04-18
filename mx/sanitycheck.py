@@ -560,7 +560,7 @@ class Test:
             if vm == 'cpython2':
                 result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'cpython':
-                result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
+                result = mx.run(['python3'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
             elif vm == 'pypy':

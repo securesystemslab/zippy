@@ -509,7 +509,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createAttributeCall(attr.extractPrimary(), attr.getAttributeId(), argumentNodes);
         }
 
-        return DispatchCallNode.create(context, calleeNode, argumentNodes, keywordNodes);
+        return PythonCallNode.create(context, calleeNode, argumentNodes, keywordNodes);
     }
 
     @Override

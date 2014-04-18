@@ -29,7 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.call.DispatchCallNode.UninitializedCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.UninitializedCallNode;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.statement.*;
 
