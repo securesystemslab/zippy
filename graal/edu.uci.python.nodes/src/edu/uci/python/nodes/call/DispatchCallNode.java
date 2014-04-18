@@ -208,15 +208,13 @@ public abstract class DispatchCallNode extends PNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
-            Object[] args = executeArguments(frame, argumentNodes);
-            return executeCall(null, callee, args, PKeyword.EMPTY_KEYWORDS);
+            return executeCall(frame, callee);
         }
 
-        @SuppressWarnings({"static-method", "unused"})
-        protected Object executeCall(Object primary, Object callee, Object[] arguments, PKeyword[] keywords) {
-            PyObject jythonCallee = (PyObject) callee;
+        protected Object executeCall(VirtualFrame frame, PyObject callee) {
+            Object[] arguments = executeArguments(frame, argumentNodes);
             PyObject[] pyargs = adaptToPyObjects(arguments);
-            return unboxPyObject(jythonCallee.__call__(pyargs));
+            return unboxPyObject(callee.__call__(pyargs));
         }
     }
 
@@ -234,9 +232,6 @@ public abstract class DispatchCallNode extends PNode {
             CompilerAsserts.neverPartOfCompilation();
 
             Object primary = primaryNode.execute(frame);
-            boolean passPrimaryAsArgument = haveToPassPrimary(primary);
-            Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
-            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
             PythonCallable callee;
 
             try {
@@ -246,11 +241,15 @@ public abstract class DispatchCallNode extends PNode {
                 if (result instanceof PyObject) {
                     CallJythonNode specialized = new CallJythonNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes);
                     replace(specialized);
-                    return specialized.executeCall(primary, result, arguments, keywords);
+                    return specialized.executeCall(frame, (PyObject) result);
                 }
 
                 throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
             }
+
+            boolean passPrimaryAsArgument = haveToPassPrimary(primary);
+            Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
+            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
 
             if (isPrimaryNone(primary)) {
                 CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee, keywords);
