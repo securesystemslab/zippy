@@ -22,49 +22,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.call;
+package edu.uci.python.nodes.call.legacy;
 
-import com.oracle.truffle.api.*;
+import org.python.core.*;
+
+import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.nodes.literal.*;
+import edu.uci.python.runtime.*;
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
-public class CallFunctionInlinedNode extends InlinedCallNode {
+@NodeChild(value = "callee", type = PNode.class)
+public abstract class CallFunctionNode extends PNode {
 
-    private final PFunction function;
-    private final Assumption globalScopeUnchanged;
-    @Child protected PNode functionRoot;
+    @Children protected final PNode[] arguments;
+    @Children protected final KeywordLiteralNode[] keywords;
+    private final PythonContext context;
 
-    public CallFunctionInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
-        super(callee, arguments, function.getFrameDescriptor().copy(), frameFactory);
-        this.function = function;
-        this.globalScopeUnchanged = globalScopeUnchanged;
-        this.functionRoot = prepareBody(functionRoot.getInlinedRootNode());
+    public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
+        this.arguments = arguments;
+        this.keywords = keywords;
+        this.context = context;
+    }
+
+    protected CallFunctionNode(CallFunctionNode node) {
+        this(node.arguments, node.keywords, node.context);
+    }
+
+    public abstract PNode getCallee();
+
+    public PNode[] getArguments() {
+        return arguments;
+    }
+
+    public PythonContext getContext() {
+        return context;
+    }
+
+    @SuppressWarnings("unused")
+    @Generic
+    public Object doGeneric(VirtualFrame frame, Object callee) {
+        throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
     }
 
     @Override
-    public PFunction getCallee() {
-        return function;
-    }
-
-    public CallTarget getCallTarget() {
-        return function.getCallTarget();
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            globalScopeUnchanged.check();
-        } catch (InvalidAssumptionException e) {
-            return uninitialize(frame);
-        }
-
-        final Object[] args = DispatchCallNode.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments.VirtualFrameCargoArguments(null, frame, args);
-        return functionRoot.execute(createInlinedFrame(frame, pargs));
+    public String toString() {
+        return getClass().getSimpleName() + "(callee=" + getCallee() + ")";
     }
 
 }

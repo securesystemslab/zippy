@@ -22,37 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.call;
+package edu.uci.python.nodes.call.legacy;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.function.*;
 
-public class CallBuiltinInlinedNode extends InlinedCallNode {
+public class CallFunctionInlinedNode extends InlinedCallNode {
 
-    private final PBuiltinFunction function;
-    private final BuiltinFunctionRootNode functionRoot;
+    private final PFunction function;
     private final Assumption globalScopeUnchanged;
-    private final Assumption builtinModuleUnchanged;
+    @Child protected PNode functionRoot;
 
-    // Dummy, does not need {@link PythonFrameTypeConversion}
-    private static final FrameDescriptor FrameDescriptor = new FrameDescriptor();
-
-    public CallBuiltinInlinedNode(PNode callee, PNode[] arguments, PBuiltinFunction function, BuiltinFunctionRootNode functionRoot, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged,
-                    FrameFactory frameFactory) {
-        super(callee, arguments, FrameDescriptor, frameFactory);
+    public CallFunctionInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
+        super(callee, arguments, function.getFrameDescriptor().copy(), frameFactory);
         this.function = function;
-        this.functionRoot = functionRoot;
         this.globalScopeUnchanged = globalScopeUnchanged;
-        this.builtinModuleUnchanged = builtinModuleUnchanged;
+        this.functionRoot = prepareBody(functionRoot.getInlinedRootNode());
     }
 
     @Override
-    public PBuiltinFunction getCallee() {
+    public PFunction getCallee() {
         return function;
     }
 
@@ -64,13 +59,12 @@ public class CallBuiltinInlinedNode extends InlinedCallNode {
     public Object execute(VirtualFrame frame) {
         try {
             globalScopeUnchanged.check();
-            builtinModuleUnchanged.check();
         } catch (InvalidAssumptionException e) {
             return uninitialize(frame);
         }
 
         final Object[] args = DispatchCallNode.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments(null, args);
+        final PArguments pargs = new PArguments.VirtualFrameCargoArguments(null, frame, args);
         return functionRoot.execute(createInlinedFrame(frame, pargs));
     }
 

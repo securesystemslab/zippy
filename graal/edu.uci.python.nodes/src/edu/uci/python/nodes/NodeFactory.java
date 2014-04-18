@@ -48,7 +48,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.attribute.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryArithmeticNodeFactory.*;

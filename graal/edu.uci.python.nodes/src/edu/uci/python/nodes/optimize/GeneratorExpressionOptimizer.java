@@ -32,7 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.nodes.generator.*;
