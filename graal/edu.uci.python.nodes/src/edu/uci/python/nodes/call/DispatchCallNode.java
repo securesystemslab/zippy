@@ -26,6 +26,8 @@ package edu.uci.python.nodes.call;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
+import java.io.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -281,9 +283,11 @@ public abstract class DispatchCallNode extends PNode {
             } catch (UnexpectedResultException e) {
                 Object result = e.getResult();
                 if (result instanceof PyObject) {
+                    PyObject pyobj = (PyObject) result;
+                    logJythonRuntime(pyobj);
                     CallJythonNode specialized = new CallJythonNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes);
                     replace(specialized);
-                    return specialized.executeCall(frame, (PyObject) result);
+                    return specialized.executeCall(frame, pyobj);
                 }
 
                 throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
@@ -335,6 +339,15 @@ public abstract class DispatchCallNode extends PNode {
 
         private boolean haveToPassPrimary(Object primary) {
             return !isPrimaryNone(primary) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule) && !(primary instanceof PyObject);
+        }
+
+        private static void logJythonRuntime(PyObject callee) {
+            if (PythonOptions.TraceJythonRuntime) {
+                // CheckStyle: stop system..print check
+                PrintStream ps = System.out;
+                ps.println("[ZipPy]: calling jython runtime function " + callee);
+                // CheckStyle: resume system..print check
+            }
         }
     }
 

@@ -26,68 +26,47 @@ package edu.uci.python.nodes.call;
 
 import static com.oracle.truffle.api.CompilerDirectives.*;
 
-import java.io.*;
-
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtype.*;
 
 public class UninitializedCallFunctionNode extends CallFunctionNode {
 
-    @Child protected PNode callee;
+    @Child protected PNode calleeNode;
 
     public UninitializedCallFunctionNode(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
         super(arguments, keywords, context);
-        this.callee = callee;
+        this.calleeNode = callee;
     }
 
     @Override
     public PNode getCallee() {
-        return callee;
+        return calleeNode;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         transferToInterpreterAndInvalidate();
-        Object calleeObj = callee.execute(frame);
+        Object callee = calleeNode.execute(frame);
 
-        if (calleeObj instanceof PythonClass && !(calleeObj instanceof PythonBuiltinClass)) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            Object[] args = DispatchCallNode.executeArguments(frame, arguments);
-            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
-        } else if (calleeObj instanceof PythonCallable) {
-            PythonCallable callable = (PythonCallable) calleeObj;
-            callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
-            DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable.getName(), callee, arguments, keywords);
-            replace(callNode);
-            return callNode.execute(frame);
-        } else if (calleeObj instanceof PythonClass) {
-            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
-            replace(specialized);
-            Object[] args = DispatchCallNode.executeArguments(frame, arguments);
-            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
+        String calleeName;
+        if (callee instanceof PythonCallable) {
+            PythonCallable callable = (PythonCallable) callee;
+            // callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
+            calleeName = callable.getName();
         } else {
-            if ((calleeObj instanceof PyObject) && (PythonOptions.TraceJythonRuntime)) {
-                // CheckStyle: stop system..print check
-                PrintStream ps = System.out;
-                ps.println("[ZipPy]: calling jython runtime function " + calleeObj);
-                // CheckStyle: resume system..print check
-            }
-
-            DispatchCallNode callNode = DispatchCallNode.create(getContext(), calleeObj.toString(), callee, arguments, keywords);
-            replace(callNode);
-            return callNode.execute(frame);
+            calleeName = callee.toString();
         }
+
+        DispatchCallNode callNode = DispatchCallNode.create(getContext(), calleeName, calleeNode, arguments, keywords);
+        replace(callNode);
+        return callNode.execute(frame);
     }
 
+    @SuppressWarnings("unused")
     private String[] getKeywordNames() {
         String[] keywordNames = new String[keywords.length];
 

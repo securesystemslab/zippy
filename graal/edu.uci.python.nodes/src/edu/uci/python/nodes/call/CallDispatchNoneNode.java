@@ -29,6 +29,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.standardtype.*;
 
 /**
  * Dispatches call sites that do not have the primary part. The specialized dispatch node caches the
@@ -54,6 +55,10 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         if (callee instanceof PFunction) {
             return new DispatchVariableFunctionNode((PFunction) callee, next);
+        }
+
+        if (callee instanceof PythonClass) {
+            return new GenericDispatchNoneNode(callee.getName());
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);

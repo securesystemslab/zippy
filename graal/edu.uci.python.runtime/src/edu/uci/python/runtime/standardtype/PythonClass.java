@@ -157,13 +157,29 @@ public class PythonClass extends PythonObject implements PythonCallable {
      * The following are slow paths.
      */
     public Object call(PackedFrame caller, Object[] args) {
+        PythonObject newInstance = new PythonObject(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        return ctor.call(caller, args);
+        ctor.call(caller, packSelfWithArguments(newInstance, args));
+        return newInstance;
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        PythonObject newInstance = new PythonObject(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        return ctor.call(caller, args, keywords);
+
+        ctor.call(caller, packSelfWithArguments(newInstance, args), keywords);
+        return newInstance;
+    }
+
+    private static Object[] packSelfWithArguments(PythonObject self, Object[] arguments) {
+        Object[] packed = new Object[arguments.length + 1];
+        packed[0] = self;
+
+        for (int i = 0; i < arguments.length; i++) {
+            packed[i + 1] = arguments[i];
+        }
+
+        return packed;
     }
 
     public Arity getArity() {

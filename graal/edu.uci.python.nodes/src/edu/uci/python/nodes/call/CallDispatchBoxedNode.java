@@ -66,6 +66,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return new DispatchBuiltinConstructorNode(primary, (PythonBuiltinClass) callee, next);
         } else if (callee instanceof PMethod) {
             return new DispatchMethodNode(primary, (PMethod) callee, next);
+        } else if (callee instanceof PythonClass) {
+            PythonClass clazz = (PythonClass) callee;
+            PythonCallable ctor = clazz.lookUpMethod("__init__");
+            if (ctor instanceof PFunction) {
+                return new DispatchFunctionNode(primary, (PFunction) ctor, next);
+            } else if (ctor instanceof PBuiltinFunction) {
+                return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) ctor, next);
+            }
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
