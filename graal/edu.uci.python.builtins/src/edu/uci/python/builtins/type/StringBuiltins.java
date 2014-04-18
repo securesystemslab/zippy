@@ -68,15 +68,6 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @Specialization
-        public Object startsWith(PString self, String prefix) {
-            if (self.getValue().startsWith(prefix)) {
-                return true;
-            }
-
-            return false;
-        }
-
-        @Specialization
         public Object startsWith(Object self, Object prefix) {
             throw new RuntimeException("startsWith is not supported for " + self + " " + self.getClass() + " prefix " + prefix);
         }
@@ -101,20 +92,6 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @Specialization(order = 1)
-        public String join(PString string, String arg) {
-            StringBuilder sb = new StringBuilder();
-            char[] joinString = arg.toCharArray();
-
-            for (int i = 0; i < joinString.length - 1; i++) {
-                sb.append(Character.toString(joinString[i]));
-                sb.append(string.getValue());
-            }
-
-            sb.append(Character.toString(joinString[joinString.length - 1]));
-            return sb.toString();
-        }
-
-        @Specialization(order = 2)
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
 
@@ -127,20 +104,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 3)
-        public String join(PString string, PSequence seq) {
-            StringBuilder sb = new StringBuilder();
-
-            for (int i = 0; i < seq.len() - 1; i++) {
-                sb.append(seq.getItem(i).toString());
-                sb.append(string.getValue());
-            }
-
-            sb.append(seq.getItem(seq.len() - 1));
-            return sb.toString();
-        }
-
-        @Specialization(order = 4)
+        @Specialization(order = 2)
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
             char[] stringList = array.getSequence();
@@ -154,20 +118,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 5)
-        public String join(PString string, PCharArray array) {
-            StringBuilder sb = new StringBuilder();
-            char[] stringList = array.getSequence();
-            for (int i = 0; i < stringList.length - 1; i++) {
-                sb.append(Character.toString(stringList[i]));
-                sb.append(string.getValue());
-            }
-
-            sb.append(Character.toString(stringList[stringList.length - 1]));
-            return sb.toString();
-        }
-
-        @Specialization(order = 6)
+        @Specialization(order = 3)
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
                 return string.toString();
@@ -184,24 +135,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 7)
-        public String join(PString string, PSet arg) {
-            if (arg.len() == 0) {
-                return string.toString();
-            }
-
-            StringBuilder sb = new StringBuilder();
-            Object[] joinString = arg.getSet().toArray();
-            for (int i = 0; i < joinString.length - 1; i++) {
-                sb.append(joinString[i]);
-                sb.append(string.getValue());
-            }
-
-            sb.append(joinString[joinString.length - 1]);
-            return sb.toString();
-        }
-
-        @Specialization(order = 8)
+        @Specialization(order = 5)
         public String join(Object self, Object arg) {
             throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }
@@ -215,12 +149,6 @@ public final class StringBuiltins extends PythonBuiltins {
         public String upper(String self) {
             return self.toUpperCase();
         }
-
-        @Specialization
-        public String upper(PString self) {
-            return self.getValue().toUpperCase();
-        }
-
     }
 
     // static str.maketrans()
@@ -254,21 +182,6 @@ public final class StringBuiltins extends PythonBuiltins {
 
             for (int i = 0; i < self.length(); i++) {
                 char original = self.charAt(i);
-                Object translated = table.getItem((int) original);
-                int ord = translated == null ? original : (int) translated;
-                translatedChars[i] = (char) ord;
-            }
-
-            return new String(translatedChars);
-        }
-
-        @Specialization(order = 1)
-        public String translate(PString self, PDict table) {
-            String selfs = self.getValue();
-            char[] translatedChars = new char[selfs.length()];
-
-            for (int i = 0; i < selfs.length(); i++) {
-                char original = selfs.charAt(i);
                 Object translated = table.getItem((int) original);
                 int ord = translated == null ? original : (int) translated;
                 translatedChars[i] = (char) ord;
