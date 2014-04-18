@@ -85,6 +85,87 @@ class Distribution:
     def add_update_listener(self, listener):
         self.update_listeners.add(listener)
 
+    def make_archive(self):
+        # are sources combined into main archive?
+        unified = self.path == self.sourcesPath
+
+        with Archiver(self.path) as arc, Archiver(None if unified else self.sourcesPath) as srcArcRaw:
+            srcArc = arc if unified else srcArcRaw
+            services = {}
+            def overwriteCheck(zf, arcname, source):
+                if not hasattr(zf, '_provenance'):
+                    zf._provenance = {}
+                existingSource = zf._provenance.get(arcname, None)
+                if existingSource and existingSource != source and not arcname.endswith('/'):
+                    log('warning: ' + self.path + ': overwriting ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                zf._provenance[arcname] = source
+
+            for dep in self.sorted_deps(includeLibs=True):
+                if dep.isLibrary():
+                    l = dep
+                    # merge library jar into distribution jar
+                    logv('[' + self.path + ': adding library ' + l.name + ']')
+                    lpath = l.get_path(resolve=True)
+                    libSourcePath = l.get_source_path(resolve=True)
+                    if lpath:
+                        with zipfile.ZipFile(lpath, 'r') as lp:
+                            for arcname in lp.namelist():
+                                if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
+                                    service = arcname[len('META-INF/services/'):]
+                                    assert '/' not in service
+                                    services.setdefault(service, []).extend(lp.read(arcname).splitlines())
+                                else:
+                                    overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
+                                    arc.zf.writestr(arcname, lp.read(arcname))
+                    if srcArc.zf and libSourcePath:
+                        with zipfile.ZipFile(libSourcePath, 'r') as lp:
+                            for arcname in lp.namelist():
+                                overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
+                                srcArc.zf.writestr(arcname, lp.read(arcname))
+                else:
+                    p = dep
+                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                    jdk = java(p.javaCompliance)
+                    if not jdk:
+                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, self.path))
+                        continue
+
+                    logv('[' + self.path + ': adding project ' + p.name + ']')
+                    outputDir = p.output_dir()
+                    for root, _, files in os.walk(outputDir):
+                        relpath = root[len(outputDir) + 1:]
+                        if relpath == join('META-INF', 'services'):
+                            for service in files:
+                                with open(join(root, service), 'r') as fp:
+                                    services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
+                        elif relpath == join('META-INF', 'providers'):
+                            for provider in files:
+                                with open(join(root, provider), 'r') as fp:
+                                    for service in fp:
+                                        services.setdefault(service.strip(), []).append(provider)
+                        else:
+                            for f in files:
+                                arcname = join(relpath, f).replace(os.sep, '/')
+                                overwriteCheck(arc.zf, arcname, join(root, f))
+                                arc.zf.write(join(root, f), arcname)
+                    if srcArc.zf:
+                        sourceDirs = p.source_dirs()
+                        for srcDir in sourceDirs:
+                            for root, _, files in os.walk(srcDir):
+                                relpath = root[len(srcDir) + 1:]
+                                for f in files:
+                                    if f.endswith('.java'):
+                                        arcname = join(relpath, f).replace(os.sep, '/')
+                                        overwriteCheck(srcArc.zf, arcname, join(root, f))
+                                        srcArc.zf.write(join(root, f), arcname)
+
+            for service, providers in services.iteritems():
+                arcname = 'META-INF/services/' + service
+                arc.zf.writestr(arcname, '\n'.join(providers))
+
+        self.notify_updated()
+
+
     def notify_updated(self):
         for l in self.update_listeners:
             l(self)
@@ -358,6 +439,18 @@ class Project(Dependency):
                 for ap in aps:
                     print >> fp, ap
         return outOfDate
+
+    def make_archive(self, path=None):
+        outputDir = self.output_dir()
+        if not path:
+            path = join(self.dir, self.name + '.jar')
+        with Archiver(path) as arc:
+            for root, _, files in os.walk(outputDir):
+                for f in files:
+                    relpath = root[len(outputDir) + 1:]
+                    arcname = join(relpath, f).replace(os.sep, '/')
+                    arc.zf.write(join(root, f), arcname)
+        return path
 
 def _make_absolute(path, prefix):
     """
@@ -2185,124 +2278,50 @@ def pylint(args):
         log('Running pylint on ' + pyfile + '...')
         run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
+"""
+Utility for creating and updating a zip file atomically.
+"""
+class Archiver:
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        if self.path:
+            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
+            self.tmpFd = fd
+            self.tmpPath = tmp
+            self.zf = zipfile.ZipFile(tmp, 'w')
+        else:
+            self.tmpFd = None
+            self.tmpPath = None
+            self.zf = None
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.zf:
+            self.zf.close()
+            os.close(self.tmpFd)
+            # Correct the permissions on the temporary file which is created with restrictive permissions
+            os.chmod(self.tmpPath, 0o666 & ~currentUmask)
+            # Atomic on Unix
+            shutil.move(self.tmpPath, self.path)
+
 def archive(args):
     """create jar files for projects and distributions"""
     parser = ArgumentParser(prog='mx archive')
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
 
-
-    class Archive:
-        def __init__(self, path):
-            self.path = path
-
-        def __enter__(self):
-            if self.path:
-                fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
-                self.tmpFd = fd
-                self.tmpPath = tmp
-                self.zf = zipfile.ZipFile(tmp, 'w')
-            else:
-                self.tmpFd = None
-                self.tmpPath = None
-                self.zf = None
-            return self
-
-        def __exit__(self, exc_type, exc_value, traceback):
-            if self.zf:
-                self.zf.close()
-                os.close(self.tmpFd)
-                # Correct the permissions on the temporary file which is created with restrictive permissions
-                os.chmod(self.tmpPath, 0o666 & ~currentUmask)
-                # Atomic on Unix
-                shutil.move(self.tmpPath, self.path)
-
     archives = []
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            with Archive(d.path) as arc, Archive(d.sourcesPath) as srcArc:
-                services = {}
-                def overwriteCheck(zf, arcname, source):
-                    if arcname in zf.namelist():
-                        log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
-
-                for dep in d.sorted_deps(includeLibs=True):
-                    if dep.isLibrary():
-                        l = dep
-                        # merge library jar into distribution jar
-                        logv('[' + d.path + ': adding library ' + l.name + ']')
-                        lpath = l.get_path(resolve=True)
-                        libSourcePath = l.get_source_path(resolve=True)
-                        if lpath:
-                            with zipfile.ZipFile(lpath, 'r') as lp:
-                                for arcname in lp.namelist():
-                                    if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
-                                        service = arcname[len('META-INF/services/'):]
-                                        assert '/' not in service
-                                        services.setdefault(service, []).extend(lp.read(arcname).splitlines())
-                                    else:
-                                        overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
-                                        arc.zf.writestr(arcname, lp.read(arcname))
-                        if srcArc.zf and libSourcePath:
-                            with zipfile.ZipFile(libSourcePath, 'r') as lp:
-                                for arcname in lp.namelist():
-                                    overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
-                                    srcArc.zf.writestr(arcname, lp.read(arcname))
-                    else:
-                        p = dep
-                        # skip a  Java project if its Java compliance level is "higher" than the configured JDK
-                        jdk = java(p.javaCompliance)
-                        if not jdk:
-                            log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
-                            continue
-
-                        logv('[' + d.path + ': adding project ' + p.name + ']')
-                        outputDir = p.output_dir()
-                        for root, _, files in os.walk(outputDir):
-                            relpath = root[len(outputDir) + 1:]
-                            if relpath == join('META-INF', 'services'):
-                                for service in files:
-                                    with open(join(root, service), 'r') as fp:
-                                        services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
-                            elif relpath == join('META-INF', 'providers'):
-                                for provider in files:
-                                    with open(join(root, provider), 'r') as fp:
-                                        for service in fp:
-                                            services.setdefault(service.strip(), []).append(provider)
-                            else:
-                                for f in files:
-                                    arcname = join(relpath, f).replace(os.sep, '/')
-                                    overwriteCheck(arc.zf, arcname, join(root, f))
-                                    arc.zf.write(join(root, f), arcname)
-                        if srcArc.zf:
-                            for srcDir in p.source_dirs():
-                                for root, _, files in os.walk(srcDir):
-                                    relpath = root[len(srcDir) + 1:]
-                                    for f in files:
-                                        if f.endswith('.java'):
-                                            arcname = join(relpath, f).replace(os.sep, '/')
-                                            overwriteCheck(srcArc.zf, arcname, join(root, f))
-                                            srcArc.zf.write(join(root, f), arcname)
-
-                for service, providers in services.iteritems():
-                    arcname = 'META-INF/services/' + service
-                    arc.zf.writestr(arcname, '\n'.join(providers))
-
-            d.notify_updated()
+            d.make_archive()
             archives.append(d.path)
-
         else:
             p = project(name)
-            outputDir = p.output_dir()
-            with Archive(join(p.dir, p.name + '.jar')) as arc:
-                for root, _, files in os.walk(outputDir):
-                    for f in files:
-                        relpath = root[len(outputDir) + 1:]
-                        arcname = join(relpath, f).replace(os.sep, '/')
-                        arc.zf.write(join(root, f), arcname)
-                archives.append(arc.path)
+            archives.append(p.make_archive())
 
     return archives
 
