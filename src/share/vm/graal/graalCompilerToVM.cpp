@@ -468,11 +468,69 @@ C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant
   return (jlong) (address) result.field_holder();
 C2V_END
 
-C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass, jstring name, jstring signature))
-  Klass* klass = (Klass*) metaspace_klass;
-  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
-  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
-  return (jlong) (address) klass->lookup_method(name_symbol, signature_symbol);
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_receiver, jlong metaspace_method, jlong metaspace_klass_caller))
+  Klass* recv_klass = (Klass*) metaspace_klass_receiver;
+  Klass* caller_klass = (Klass*) metaspace_klass_caller;
+  Method* method = (Method*) metaspace_method;
+
+  if (recv_klass->oop_is_array() || (InstanceKlass::cast(recv_klass)->is_linked())) {
+    Klass* holder_klass = method->method_holder();
+    Symbol* method_name = method->name();
+    Symbol* method_signature = method->signature();
+
+
+    if (holder_klass->is_interface()) {
+      // do link-time resolution to check all access rules.
+      methodHandle resolved_method;
+      LinkResolver::linktime_resolve_interface_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
+      if (resolved_method->is_private()) {
+        return (jlong) NULL;
+      }
+      assert(recv_klass->is_subtype_of(holder_klass), "");
+      // do actual lookup
+      methodHandle sel_method;
+      LinkResolver::lookup_instance_method_in_klasses(sel_method, recv_klass,
+                resolved_method->name(),
+                resolved_method->signature(), CHECK_AND_CLEAR_0);
+      return (jlong) (address) sel_method();
+    } else {
+      // do link-time resolution to check all access rules.
+      methodHandle resolved_method;
+      LinkResolver::linktime_resolve_virtual_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
+      // do actual lookup (see LinkResolver::runtime_resolve_virtual_method)
+      int vtable_index = Method::invalid_vtable_index;
+      Method* selected_method;
+
+      if (resolved_method->method_holder()->is_interface()) { // miranda method
+        vtable_index = LinkResolver::vtable_index_of_interface_method(holder_klass, resolved_method);
+        assert(vtable_index >= 0 , "we should have valid vtable index at this point");
+
+        InstanceKlass* inst = InstanceKlass::cast(recv_klass);
+        selected_method = inst->method_at_vtable(vtable_index);
+      } else {
+        // at this point we are sure that resolved_method is virtual and not
+        // a miranda method; therefore, it must have a valid vtable index.
+        assert(!resolved_method->has_itable_index(), "");
+        vtable_index = resolved_method->vtable_index();
+        // We could get a negative vtable_index for final methods,
+        // because as an optimization they are they are never put in the vtable,
+        // unless they override an existing method.
+        // If we do get a negative, it means the resolved method is the the selected
+        // method, and it can never be changed by an override.
+        if (vtable_index == Method::nonvirtual_vtable_index) {
+          assert(resolved_method->can_be_statically_bound(), "cannot override this method");
+          selected_method = resolved_method();
+        } else {
+          // recv_klass might be an arrayKlassOop but all vtables start at
+          // the same place. The cast is to avoid virtual call and assertion.
+          InstanceKlass* inst = (InstanceKlass*)recv_klass;
+          selected_method = inst->method_at_vtable(vtable_index);
+        }
+      }
+      return (jlong) (address) selected_method;
+    }
+  }
+  return (jlong) NULL;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
@@ -1058,58 +1116,58 @@ C2V_END
 #define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"initializeBytecode",                           CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
-  {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                        FN_PTR(exceptionTableLength)},
-  {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
-  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
-  {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
-  {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
-  {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(methodIsIgnoredBySecurityStackWalk)},
-  {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
-  {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
-  {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
-  {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolveConstantInPool)},
-  {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolvePossiblyCachedConstantInPool)},
-  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupNameRefInPool)},
-  {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupNameAndTypeRefIndexInPool)},
-  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupSignatureRefInPool)},
-  {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupKlassRefIndexInPool)},
-  {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(constantPoolKlassAt)},
-  {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(lookupKlassInPool)},
-  {CC"lookupAppendixInPool",                         CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupAppendixInPool)},
-  {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                FN_PTR(lookupMethodInPool)},
-  {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(constantPoolRemapInstructionOperandFromCache)},
-  {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,               FN_PTR(resolveField)},
-  {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                FN_PTR(resolveInvokeDynamic)},
-  {CC"resolveMethod",                                CC"("METASPACE_KLASS STRING STRING")"METASPACE_METHOD,            FN_PTR(resolveMethod)},
-  {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                          FN_PTR(getClassInitializer)},
-  {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                         FN_PTR(hasFinalizableSubclass)},
-  {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
-  {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",         FN_PTR(installCode0)},
-  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                 FN_PTR(notifyCompilationStatistics)},
-  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
-  {CC"resetCompilationStatistics",                   CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
-  {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                             FN_PTR(executeCompiledMethodVarargs)},
-  {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
-  {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
-  {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
-  {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
-  {CC"invalidateInstalledCode",                      CC"("INSTALLED_CODE")V",                                          FN_PTR(invalidateInstalledCode)},
-  {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                     FN_PTR(getJavaMirror)},
-  {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
-  {CC"collectCounters",                              CC"()[J",                                                         FN_PTR(collectCounters)},
-  {CC"getGPUs",                                      CC"()"STRING,                                                     FN_PTR(getGPUs)},
-  {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
-  {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
-  {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
-  {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
-  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                 FN_PTR(getNextStackFrame)},
-  {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                     FN_PTR(materializeVirtualObjects)},
+  {CC"initializeBytecode",                           CC"("METASPACE_METHOD"[B)[B",                                             FN_PTR(initializeBytecode)},
+  {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
+  {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
+  {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
+  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                                 FN_PTR(findUniqueConcreteMethod)},
+  {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                                   FN_PTR(getKlassImplementor)},
+  {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                             FN_PTR(getStackTraceElement)},
+  {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                                FN_PTR(methodIsIgnoredBySecurityStackWalk)},
+  {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                                FN_PTR(doNotInlineOrCompile)},
+  {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                                FN_PTR(canInlineMethod)},
+  {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                                FN_PTR(shouldInlineMethod)},
+  {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                                     FN_PTR(lookupType)},
+  {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolveConstantInPool)},
+  {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolvePossiblyCachedConstantInPool)},
+  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupNameRefInPool)},
+  {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupNameAndTypeRefIndexInPool)},
+  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupSignatureRefInPool)},
+  {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupKlassRefIndexInPool)},
+  {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(constantPoolKlassAt)},
+  {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(lookupKlassInPool)},
+  {CC"lookupAppendixInPool",                         CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(lookupAppendixInPool)},
+  {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                        FN_PTR(lookupMethodInPool)},
+  {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(constantPoolRemapInstructionOperandFromCache)},
+  {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,                       FN_PTR(resolveField)},
+  {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                        FN_PTR(resolveInvokeDynamic)},
+  {CC"resolveMethod",                                CC"("METASPACE_KLASS METASPACE_METHOD METASPACE_KLASS")"METASPACE_METHOD, FN_PTR(resolveMethod)},
+  {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                                  FN_PTR(getClassInitializer)},
+  {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                                 FN_PTR(hasFinalizableSubclass)},
+  {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                                 FN_PTR(getMaxCallTargetOffset)},
+  {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                           FN_PTR(getMetaspaceMethod)},
+  {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                                       FN_PTR(initializeConfiguration)},
+  {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",                 FN_PTR(installCode0)},
+  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                         FN_PTR(notifyCompilationStatistics)},
+  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                                FN_PTR(printCompilationStatistics)},
+  {CC"resetCompilationStatistics",                   CC"()V",                                                                  FN_PTR(resetCompilationStatistics)},
+  {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                            FN_PTR(disassembleCodeBlob)},
+  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                                     FN_PTR(executeCompiledMethodVarargs)},
+  {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                               FN_PTR(getLineNumberTable)},
+  {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                                FN_PTR(getLocalVariableTableStart)},
+  {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                                FN_PTR(getLocalVariableTableLength)},
+  {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                                FN_PTR(reprofile)},
+  {CC"invalidateInstalledCode",                      CC"("INSTALLED_CODE")V",                                                  FN_PTR(invalidateInstalledCode)},
+  {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                             FN_PTR(getJavaMirror)},
+  {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                          FN_PTR(readUnsafeKlassPointer)},
+  {CC"collectCounters",                              CC"()[J",                                                                 FN_PTR(collectCounters)},
+  {CC"getGPUs",                                      CC"()"STRING,                                                             FN_PTR(getGPUs)},
+  {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                               FN_PTR(allocateCompileId)},
+  {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                           FN_PTR(isMature)},
+  {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                              FN_PTR(hasCompiledCodeForOSR)},
+  {CC"getTimeStamp",                                 CC"()J",                                                                  FN_PTR(getTimeStamp)},
+  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
+  {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
 };
 
 int CompilerToVM_methods_count() {
