@@ -1402,19 +1402,129 @@ def bench(args):
         with open(resultFile, 'w') as f:
             f.write(json.dumps(results))
 
+def _get_jmh_path():
+    path = mx.get_env('JMH_BENCHMARKS', None)
+    if not path:
+        probe = join(dirname(_graal_home), 'java-benchmarks')
+        if exists(probe):
+            path = probe
+
+    if not path:
+        mx.abort("Please set the JMH_BENCHMARKS environment variable to point to the java-benchmarks workspace")
+    if not exists(path):
+        mx.abort("The directory denoted by the JMH_BENCHMARKS environment variable does not exist: " + path)
+    return path
+
+def makejmhdeps(args):
+    """creates and installs Maven dependencies required by the JMH benchmarks
+
+    The dependencies are specified by files named pom.mxdeps in the
+    JMH directory tree. Each such file contains a list of dependencies
+    defined in JSON format. For example:
+
+    '[{"artifactId" : "compiler.test", "groupId" : "com.oracle.graal", "deps" : ["com.oracle.graal.compiler.test"]}]'
+
+    will result in a dependency being installed in the local Maven repository
+    that can be referenced in a pom.xml file as follows:
+
+          <dependency>
+            <groupId>com.oracle.graal</groupId>
+            <artifactId>compiler.test</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>"""
+
+    parser = ArgumentParser(prog='mx makejmhdeps')
+    parser.add_argument('-s', '--settings', help='alternative path for Maven user settings file', metavar='<path>')
+    parser.add_argument('-p', '--permissive', action='store_true', help='issue note instead of error if a Maven dependency cannot be built due to missing projects/libraries')
+    args = parser.parse_args(args)
+
+    def makejmhdep(artifactId, groupId, deps):
+        graalSuite = mx.suite("graal")
+        path = artifactId + '.jar'
+        if args.permissive:
+            for name in deps:
+                if not mx.project(name, fatalIfMissing=False):
+                    if not mx.library(name, fatalIfMissing=False):
+                        mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
+                        return
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedLibs=[])
+        d.make_archive()
+        cmd = ['mvn', '-q', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
+               '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
+        if args.settings:
+            cmd = cmd + ['-s', args.settings]
+        mx.run(cmd)
+        os.unlink(d.path)
+
+    jmhPath = _get_jmh_path()
+    for root, _, filenames in os.walk(jmhPath):
+        for f in [join(root, n) for n in filenames if n == 'pom.mxdeps']:
+            mx.logv('[processing ' + f + ']')
+            try:
+                with open(f) as fp:
+                    for d in json.load(fp):
+                        artifactId = d['artifactId']
+                        groupId = d['groupId']
+                        deps = d['deps']
+                        makejmhdep(artifactId, groupId, deps)
+            except ValueError as e:
+                mx.abort('Error parsing {}:\n{}'.format(f, e))
+
+def buildjmh(args):
+    """build the JMH benchmarks"""
+
+    parser = ArgumentParser(prog='mx buildjmh')
+    parser.add_argument('-s', '--settings', help='alternative path for Maven user settings file', metavar='<path>')
+    parser.add_argument('-c', action='store_true', dest='clean', help='clean before building')
+    args = parser.parse_args(args)
+
+    jmhPath = _get_jmh_path()
+    mx.log('JMH benchmarks: ' + jmhPath)
+
+    timestamp = mx.TimeStampFile(join(_graal_home, 'mx', 'jmh', jmhPath.replace(os.sep, '_') + '.timestamp'))
+    mustBuild = args.clean
+    if not mustBuild:
+        try:
+            hgfiles = [join(jmhPath, f) for f in subprocess.check_output(['hg', '-R', jmhPath, 'locate']).split('\n')]
+            mustBuild = timestamp.isOlderThan(hgfiles)
+        except:
+            # not a Mercurial repository or hg commands are not available.
+            mustBuild = True
+
+    if mustBuild:
+        buildOutput = []
+        def _redirect(x):
+            if mx._opts.verbose:
+                mx.log(x[:-1])
+            else:
+                buildOutput.append(x)
+        env = os.environ.copy()
+        env['JAVA_HOME'] = _jdk(vmToCheck='server')
+        env['MAVEN_OPTS'] = '-server'
+        mx.log("Building benchmarks...")
+        makejmhdeps(['-p'] + (['-s', args.settings] if args.settings else []))
+        cmd = ['mvn']
+        if args.settings:
+            cmd = cmd + ['-s', args.settings]
+        if args.clean:
+            cmd.append('clean')
+        cmd.append('package')
+        retcode = mx.run(cmd, cwd=jmhPath, out=_redirect, env=env, nonZeroIsFatal=False)
+        if retcode != 0:
+            mx.log(''.join(buildOutput))
+            mx.abort(retcode)
+        timestamp.touch()
+    else:
+        mx.logv('[all Mercurial controlled files in ' + jmhPath + ' are older than ' + timestamp.path + ' - skipping build]')
+
 def jmh(args):
-    """run the JMH_BENCHMARKS
+    """run the JMH benchmarks
 
-    The benchmarks are running with the default VM.
-    You can override this with an explicit option.
-    For example:
-
-        mx jmh -server ...
-
-    Will force the benchmarks to be run with the server VM.
-"""
-
-    # TODO: add option for `mvn clean package'
+    This command respects the standard --vm and --vmbuild options
+    for choosing which VM to run the benchmarks with."""
+    if '-h' in args:
+        mx.help_(['jmh'])
+        mx.abort(1)
 
     vmArgs, benchmarksAndJsons = _extract_VM_args(args)
 
@@ -1432,64 +1542,10 @@ def jmh(args):
                 else:
                     jmhArgs[n] = v
         except ValueError as e:
-            mx.abort('error parsing JSON input: {}"\n{}'.format(j, e))
+            mx.abort('error parsing JSON input: {}\n{}'.format(j, e))
 
-    jmhPath = mx.get_env('JMH_BENCHMARKS', None)
-    if not jmhPath:
-        probe = join(dirname(_graal_home), 'java-benchmarks')
-        if exists(probe):
-            jmhPath = probe
-
-    if not jmhPath:
-        mx.abort("Please set the JMH_BENCHMARKS environment variable to point to the java-benchmarks workspace")
-    if not exists(jmhPath):
-        mx.abort("The directory denoted by the JMH_BENCHMARKS environment variable does not exist: " + jmhPath)
+    jmhPath = _get_jmh_path()
     mx.log('Using benchmarks in ' + jmhPath)
-
-    timestamp = mx.TimeStampFile(join(_graal_home, 'mx', 'jmh', jmhPath.replace(os.sep, '_') + '.timestamp'))
-    buildJmh = False
-    jmhTree = []
-    for root, dirnames, filenames in os.walk(jmhPath):
-        if root == jmhPath:
-            for n in ['.hg', '.metadata']:
-                if n in dirnames:
-                    dirnames.remove(n)
-        jmhTree.append(os.path.relpath(root, jmhPath) + ':')
-        jmhTree = jmhTree + filenames
-        jmhTree.append('')
-
-        files = [join(root, f) for f in filenames]
-        if timestamp.isOlderThan(files):
-            buildJmh = True
-
-    if not buildJmh:
-        with open(timestamp.path) as fp:
-            oldJmhTree = fp.read().split('\n')
-            if oldJmhTree != jmhTree:
-                import difflib
-                diff = difflib.unified_diff(oldJmhTree, jmhTree)
-                mx.log("Need to rebuild JMH due to change in JMH directory tree indicated by this diff:")
-                mx.log('\n'.join(diff))
-                buildJmh = True
-
-    if buildJmh:
-        buildOutput = []
-        def _redirect(x):
-            if mx._opts.verbose:
-                mx.log(x[:-1])
-            else:
-                buildOutput.append(x)
-        env = os.environ.copy()
-        env['JAVA_HOME'] = _jdk(vmToCheck='server')
-        env['MAVEN_OPTS'] = '-server'
-        mx.log("Building benchmarks...")
-        retcode = mx.run(['mvn', 'package'], cwd=jmhPath, out=_redirect, env=env, nonZeroIsFatal=False)
-        if retcode != 0:
-            mx.log(''.join(buildOutput))
-            mx.abort(retcode)
-        timestamp.touch()
-        with open(timestamp.path, 'w') as fp:
-            fp.write('\n'.join(jmhTree))
 
     matchedSuites = set()
     numBench = [0]
@@ -1503,8 +1559,7 @@ def jmh(args):
 
         microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
         if not exists(microJar):
-            mx.logv('JMH: ignored ' + absoluteMicro + " because it doesn't contain the expected jar file ('" + microJar + "')")
-            continue
+            mx.abort('Missing ' + microJar + ' - please run "mx buildjmh"')
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
@@ -1543,7 +1598,6 @@ def jmh(args):
             if len(str(v)):
                 javaArgs.append(str(v))
         mx.run_java(javaArgs + regex, addDefaultArgs=False, cwd=jmhPath)
-
 
 def specjvm2008(args):
     """run one or more SPECjvm2008 benchmarks"""
@@ -1874,6 +1928,7 @@ def checkheaders(args):
 def mx_init(suite):
     commands = {
         'build': [build, ''],
+        'buildjmh': [buildjmh, '[-options]'],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
@@ -1895,6 +1950,7 @@ def mx_init(suite):
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
+        'makejmhdeps' : [makejmhdeps, ''],
         'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
