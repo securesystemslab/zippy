@@ -35,6 +35,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -57,7 +58,12 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         transferToInterpreterAndInvalidate();
         Object calleeObj = callee.execute(frame);
 
-        if (calleeObj instanceof PythonCallable) {
+        if (calleeObj instanceof PythonClass && !(calleeObj instanceof PythonBuiltinClass)) {
+            CallConstructorNode specialized = new CallConstructorNode(getCallee(), arguments);
+            replace(specialized);
+            Object[] args = DispatchCallNode.executeArguments(frame, arguments);
+            return specialized.callConstructor(frame, (PythonClass) calleeObj, args);
+        } else if (calleeObj instanceof PythonCallable) {
             PythonCallable callable = (PythonCallable) calleeObj;
             callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
             DispatchCallNode callNode = DispatchCallNode.create(getContext(), callable.getName(), callee, arguments, keywords);

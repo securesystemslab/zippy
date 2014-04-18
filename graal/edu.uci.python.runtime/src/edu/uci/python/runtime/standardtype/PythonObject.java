@@ -62,7 +62,7 @@ public class PythonObject extends PythonBasicObject {
 
     @Override
     public String toString() {
-        return "<" + pythonClass.getClassName() + " object at " + hashCode() + ">";
+        return "<" + pythonClass.getName() + " object at " + hashCode() + ">";
     }
 
     @Override

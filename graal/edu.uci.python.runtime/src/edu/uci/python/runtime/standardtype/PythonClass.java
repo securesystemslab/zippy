@@ -27,6 +27,8 @@ package edu.uci.python.runtime.standardtype;
 import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -36,7 +38,7 @@ import edu.uci.python.runtime.object.*;
 /**
  * Mutable class.
  */
-public class PythonClass extends PythonObject {
+public class PythonClass extends PythonObject implements PythonCallable {
 
     private final String className;
     private final PythonContext context;
@@ -78,7 +80,8 @@ public class PythonClass extends PythonObject {
         return superClass;
     }
 
-    public String getClassName() {
+    @Override
+    public String getName() {
         return className;
     }
 
@@ -148,6 +151,39 @@ public class PythonClass extends PythonObject {
 
     public final void updateInstanceObjectLayout(ObjectLayout newLayout) {
         this.instanceObjectLayout = newLayout;
+    }
+
+    /**
+     * The following are slow paths.
+     */
+    public Object call(PackedFrame caller, Object[] args) {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.call(caller, args);
+    }
+
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.call(caller, args, keywords);
+    }
+
+    public Arity getArity() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getArity();
+    }
+
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        PythonCallable ctor = lookUpMethod("__init__");
+        ctor.arityCheck(numOfArgs, numOfKeywords, keywords);
+    }
+
+    public RootCallTarget getCallTarget() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getCallTarget();
+    }
+
+    public FrameDescriptor getFrameDescriptor() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getFrameDescriptor();
     }
 
     @Override

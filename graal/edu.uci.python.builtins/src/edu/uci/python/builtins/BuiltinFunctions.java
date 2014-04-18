@@ -428,7 +428,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @SuppressWarnings("unused")
         @Specialization(order = 1)
         public Object isinstance(String str, PythonClass clazz) {
-            if (clazz.getClassName().equals("str")) {
+            if (clazz.getName().equals("str")) {
                 return true;
             } else {
                 return false;
@@ -461,7 +461,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             if (object instanceof PythonClass) {
-                if (clazz.getClassName().equals("type")) {
+                if (clazz.getName().equals("type")) {
                     return true;
                 }
             }
@@ -473,7 +473,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
                 PythonClass pythonClass = (PythonClass) clazz;
-                if (pythonClass.getClassName().equals("str")) {
+                if (pythonClass.getName().equals("str")) {
                     return true;
                 }
 
@@ -507,12 +507,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
              * TODO How do you check two classes are equal? Name comparison can't be true all the
              * time.
              */
-            if (clazz.getClassName().equals(clazzinfo.getClassName())) {
+            if (clazz.getName().equals(clazzinfo.getName())) {
                 return true;
             } else {
                 PythonClass superClass = clazz.getSuperClass();
                 while (superClass != null) {
-                    if (superClass.getClassName().equals(clazzinfo.getClassName())) {
+                    if (superClass.getName().equals(clazzinfo.getName())) {
                         return true;
                     }
                     superClass = superClass.getSuperClass();
