@@ -1480,8 +1480,8 @@ def jmh(args):
             else:
                 buildOutput.append(x)
         env = os.environ.copy()
-        env['JAVA_HOME'] = _jdk(vmToCheck='graal')
-        env['MAVEN_OPTS'] = '-graal'
+        env['JAVA_HOME'] = _jdk(vmToCheck='server')
+        env['MAVEN_OPTS'] = '-server'
         mx.log("Building benchmarks...")
         retcode = mx.run(['mvn', 'package'], cwd=jmhPath, out=_redirect, env=env, nonZeroIsFatal=False)
         if retcode != 0:
