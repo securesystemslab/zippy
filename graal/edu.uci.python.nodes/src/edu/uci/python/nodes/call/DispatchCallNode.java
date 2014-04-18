@@ -35,6 +35,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -189,6 +190,47 @@ public abstract class DispatchCallNode extends PNode {
         }
     }
 
+    public static final class CallConstructorNode extends DispatchCallNode {
+
+        @Child protected PNode calleeNode;
+        @Child protected CallDispatchBoxedNode dispatchNode;
+
+        public CallConstructorNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
+            super(context, calleeName, primary, arguments, keywords, true);
+            calleeNode = callee;
+            dispatchNode = dispatch;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PythonBasicObject primary;
+
+            try {
+                primary = primaryNode.executePythonBasicObject(frame);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            PythonClass callee;
+
+            try {
+                callee = calleeNode.executePythonClass(frame);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+            }
+
+            return executeCall(frame, primary, callee);
+        }
+
+        protected Object executeCall(VirtualFrame frame, PythonBasicObject primary, PythonClass clazz) {
+            PythonObject newInstance = new PythonObject(clazz);
+            Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
+            PKeyword[] keywords = DispatchCallNode.executeKeywordArguments(frame, keywordNodes);
+            dispatchNode.executeCall(frame, primary, arguments, keywords);
+            return newInstance;
+        }
+    }
+
     public static final class CallJythonNode extends DispatchCallNode {
 
         @Child protected PNode calleeNode;
@@ -245,6 +287,13 @@ public abstract class DispatchCallNode extends PNode {
                 }
 
                 throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
+            }
+
+            if (isPrimaryBoxed(primary, callee) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
+                PythonClass clazz = (PythonClass) callee;
+                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode, PKeyword.EMPTY_KEYWORDS);
+                CallConstructorNode specialized = new CallConstructorNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
+                return specialized.executeCall(frame, (PythonBasicObject) primary, clazz);
             }
 
             boolean passPrimaryAsArgument = haveToPassPrimary(primary);
