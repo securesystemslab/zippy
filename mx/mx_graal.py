@@ -1473,13 +1473,20 @@ def jmh(args):
                 buildJmh = True
 
     if buildJmh:
-        def _blackhole(x):
-            mx.logv(x[:-1])
+        buildOutput = []
+        def _redirect(x):
+            if mx._opts.verbose:
+                mx.log(x[:-1])
+            else:
+                buildOutput.append(x)
         env = os.environ.copy()
         env['JAVA_HOME'] = _jdk(vmToCheck='graal')
         env['MAVEN_OPTS'] = '-graal'
         mx.log("Building benchmarks...")
-        mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
+        retcode = mx.run(['mvn', 'package'], cwd=jmhPath, out=_redirect, env=env, nonZeroIsFatal=False)
+        if retcode != 0:
+            mx.log(''.join(buildOutput))
+            mx.abort(retcode)
         timestamp.touch()
         with open(timestamp.path, 'w') as fp:
             fp.write('\n'.join(jmhTree))
