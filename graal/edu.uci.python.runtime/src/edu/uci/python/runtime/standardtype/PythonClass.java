@@ -156,6 +156,7 @@ public class PythonClass extends PythonObject implements PythonCallable {
     /**
      * The following are slow paths.
      */
+    @Override
     public Object call(PackedFrame caller, Object[] args) {
         PythonObject newInstance = new PythonObject(this);
         PythonCallable ctor = lookUpMethod("__init__");
@@ -163,10 +164,10 @@ public class PythonClass extends PythonObject implements PythonCallable {
         return newInstance;
     }
 
+    @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         PythonObject newInstance = new PythonObject(this);
         PythonCallable ctor = lookUpMethod("__init__");
-
         ctor.call(caller, packSelfWithArguments(newInstance, args), keywords);
         return newInstance;
     }
@@ -182,21 +183,25 @@ public class PythonClass extends PythonObject implements PythonCallable {
         return packed;
     }
 
+    @Override
     public Arity getArity() {
         PythonCallable ctor = lookUpMethod("__init__");
         return ctor.getArity();
     }
 
+    @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         PythonCallable ctor = lookUpMethod("__init__");
         ctor.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
+    @Override
     public RootCallTarget getCallTarget() {
         PythonCallable ctor = lookUpMethod("__init__");
         return ctor.getCallTarget();
     }
 
+    @Override
     public FrameDescriptor getFrameDescriptor() {
         PythonCallable ctor = lookUpMethod("__init__");
         return ctor.getFrameDescriptor();

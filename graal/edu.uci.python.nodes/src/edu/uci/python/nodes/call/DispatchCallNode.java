@@ -62,17 +62,17 @@ public abstract class DispatchCallNode extends PNode {
         this.passPrimaryAsTheFirstArgument = passPrimary;
     }
 
-    public static DispatchCallNode create(PythonContext context, String calleeName, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
+    public static DispatchCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
         PNode primaryNode;
 
         if (calleeNode instanceof HasPrimaryNode) {
             HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
-            primaryNode = hasPrimary.extractPrimary();
+            primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
         } else {
             primaryNode = EmptyNode.INSTANCE;
         }
 
-        return new UninitializedCallNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywords);
+        return new UninitializedCallNode(context, primaryNode, calleeNode, argumentNodes, keywords);
     }
 
     /**
@@ -266,9 +266,13 @@ public abstract class DispatchCallNode extends PNode {
 
         @Child protected PNode calleeNode;
 
-        public UninitializedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords) {
-            super(context, calleeName, primary, arguments, keywords, false);
+        public UninitializedCallNode(PythonContext context, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords) {
+            super(context, "uninitialized", primary, arguments, keywords, false);
             this.calleeNode = callee;
+        }
+
+        public PNode getCallee() {
+            return calleeNode;
         }
 
         @Override
@@ -285,7 +289,7 @@ public abstract class DispatchCallNode extends PNode {
                 if (result instanceof PyObject) {
                     PyObject pyobj = (PyObject) result;
                     logJythonRuntime(pyobj);
-                    CallJythonNode specialized = new CallJythonNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes);
+                    CallJythonNode specialized = new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes);
                     replace(specialized);
                     return specialized.executeCall(frame, pyobj);
                 }
@@ -295,8 +299,8 @@ public abstract class DispatchCallNode extends PNode {
 
             if (isPrimaryBoxed(primary, callee) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
                 PythonClass clazz = (PythonClass) callee;
-                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode, PKeyword.EMPTY_KEYWORDS);
-                CallConstructorNode specialized = new CallConstructorNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
+                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+                CallConstructorNode specialized = new CallConstructorNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
                 return specialized.executeCall(frame, (PythonBasicObject) primary, clazz);
             }
 
@@ -306,18 +310,18 @@ public abstract class DispatchCallNode extends PNode {
 
             if (isPrimaryNone(primary)) {
                 CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee, keywords);
-                replace(new NoneCallNode(context, calleeName, primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
+                replace(new NoneCallNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
                 return dispatch.executeCall(frame, callee, arguments, keywords);
             }
 
             if (isPrimaryBoxed(primary, callee)) {
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, calleeNode, keywords);
-                replace(new BoxedCallNode(context, calleeName, primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
+                replace(new BoxedCallNode(context, callee.getName(), primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
                 return dispatch.executeCall(frame, (PythonBasicObject) primary, arguments, keywords);
             }
 
             CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode, keywords);
-            replace(new UnboxedCallNode(context, calleeName, primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
+            replace(new UnboxedCallNode(context, callee.getName(), primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, primary, arguments, keywords);
         }
 

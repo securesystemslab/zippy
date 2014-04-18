@@ -52,16 +52,11 @@ public class UninitializedCallFunctionNode extends CallFunctionNode {
         transferToInterpreterAndInvalidate();
         Object callee = calleeNode.execute(frame);
 
-        String calleeName;
         if (callee instanceof PythonCallable) {
-            PythonCallable callable = (PythonCallable) callee;
             // callable.arityCheck(arguments.length, keywords.length, getKeywordNames());
-            calleeName = callable.getName();
-        } else {
-            calleeName = callee.toString();
         }
 
-        DispatchCallNode callNode = DispatchCallNode.create(getContext(), calleeName, calleeNode, arguments, keywords);
+        DispatchCallNode callNode = DispatchCallNode.create(getContext(), calleeNode, arguments, keywords);
         replace(callNode);
         return callNode.execute(frame);
     }

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.DispatchCallNode.UninitializedCallNode;
 import edu.uci.python.nodes.statement.*;
 
 public class EscapeAnalyzer {
@@ -77,8 +78,8 @@ public class EscapeAnalyzer {
                 return false;
             } else if (current instanceof InlineableCallNode) {
                 return true;
-            } else if (current instanceof CallFunctionNode) {
-                PNode calleeNode = ((CallFunctionNode) current).getCallee();
+            } else if (current instanceof UninitializedCallNode) {
+                PNode calleeNode = ((UninitializedCallNode) current).getCallee();
 
                 if (calleeNode instanceof ReadGlobalNode) {
                     return isBuiltinConstructor(((ReadGlobalNode) calleeNode).getAttributeId()) ? false : true;

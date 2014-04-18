@@ -42,6 +42,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.function.*;
@@ -497,18 +498,18 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitCall(Call node) throws Exception {
-        PNode callee = (PNode) visit(node.getInternalFunc());
+        PNode calleeNode = (PNode) visit(node.getInternalFunc());
         List<PNode> arguments = walkExprList(node.getInternalArgs());
-        PNode[] argumentsArray = arguments.toArray(new PNode[arguments.size()]);
+        PNode[] argumentNodes = arguments.toArray(new PNode[arguments.size()]);
         List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
-        KeywordLiteralNode[] keywordsArray = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
+        KeywordLiteralNode[] keywordNodes = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
 
-        if (callee instanceof LoadAttributeNode) {
-            LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.extractPrimary(), attr.getAttributeId(), argumentsArray);
+        if (calleeNode instanceof LoadAttributeNode) {
+            LoadAttributeNode attr = (LoadAttributeNode) calleeNode;
+            return factory.createAttributeCall(attr.extractPrimary(), attr.getAttributeId(), argumentNodes);
         }
 
-        return factory.createCallFunction(callee, argumentsArray, keywordsArray, context);
+        return DispatchCallNode.create(context, calleeNode, argumentNodes, keywordNodes);
     }
 
     @Override

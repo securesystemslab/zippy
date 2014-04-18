@@ -400,10 +400,6 @@ public class NodeFactory {
         return new ObjectLiteralNode(obj);
     }
 
-    public PNode createCallFunction(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
-        return new UninitializedCallFunctionNode(callee, arguments, keywords, context);
-    }
-
     public PNode createKeywordLiteral(PNode value, String name) {
         return new KeywordLiteralNode(value, name);
     }
@@ -454,4 +450,5 @@ public class NodeFactory {
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
+
 }
