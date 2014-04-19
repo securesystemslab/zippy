@@ -270,21 +270,21 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
     }
 
     protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
-        DispatchBoxedNode cacheNode = new DispatchBoxedNode.UninitializedDispatchBoxedNode(current.attributeId);
-        cacheNode = cacheNode.rewrite(primaryObj, cacheNode);
+        DispatchBoxedNode dispatch = new DispatchBoxedNode.UninitializedDispatchBoxedNode(current.attributeId);
+        dispatch = dispatch.rewrite(primaryObj, dispatch);
         Object value;
 
         try {
-            value = cacheNode.getValue(frame, primaryObj);
+            value = dispatch.getValue(frame, primaryObj);
         } catch (UnexpectedResultException e) {
             throw new IllegalStateException();
         }
 
         if (value instanceof PFunction && !(primaryObj instanceof PythonClass) && !(primaryObj instanceof PythonModule)) {
             value = new PMethod((PythonObject) primaryObj, (PFunction) value);
-            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode));
+            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, dispatch));
         } else {
-            current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));
+            current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, dispatch));
         }
 
         return value;
@@ -298,11 +298,12 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             throw new IllegalStateException();
         }
 
-        DispatchUnboxedNode cacheNode = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(current.attributeId).rewrite(builtinPrimaryObj);
+        DispatchUnboxedNode dispatch = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(current.attributeId);
+        dispatch = dispatch.rewrite(builtinPrimaryObj, dispatch);
         Object value = null;
 
         try {
-            value = cacheNode.getValue(frame, builtinPrimaryObj);
+            value = dispatch.getValue(frame, builtinPrimaryObj);
         } catch (UnexpectedResultException e) {
             throw new IllegalStateException("Attribute access failed in slow path!");
         }
@@ -313,9 +314,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException("Attribute access failed in slow path!");
             }
-            current.replace(new UnboxedGetMethodNode(current.context, current.attributeId, current.primary, cacheNode, (PBuiltinMethod) value));
+            current.replace(new UnboxedGetMethodNode(current.context, current.attributeId, current.primary, dispatch, (PBuiltinMethod) value));
         } else {
-            current.replace(new UnboxedGetAttributeNode(current.context, current.attributeId, current.primary, cacheNode));
+            current.replace(new UnboxedGetAttributeNode(current.context, current.attributeId, current.primary, dispatch));
         }
 
         return value;

@@ -184,4 +184,5 @@ public class GetAttributeCacheNodeTests {
             assertTrue(pe.value.toString().contains("no attribute"));
         }
     }
+
 }

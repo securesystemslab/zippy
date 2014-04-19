@@ -31,12 +31,13 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class DispatchUnboxedNode extends Node {
 
-    private final String attributeId;
+    protected final String attributeId;
 
     public DispatchUnboxedNode(String attributeId) {
         this.attributeId = attributeId;
@@ -56,7 +57,7 @@ public abstract class DispatchUnboxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected DispatchUnboxedNode rewrite(PythonBuiltinObject primaryObj) {
+    protected DispatchUnboxedNode rewrite(PythonBuiltinObject primaryObj, DispatchUnboxedNode next) {
         PythonClass current = primaryObj.__class__();
         assert current != null;
 
@@ -72,7 +73,7 @@ public abstract class DispatchUnboxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        AttributeDispatchUnboxedNode newNode = new AttributeDispatchUnboxedNode(attributeId, primaryObj, current);
+        AttributeDispatchUnboxedNode newNode = new AttributeDispatchUnboxedNode(attributeId, primaryObj, current, next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -92,20 +93,55 @@ public abstract class DispatchUnboxedNode extends Node {
         @Override
         public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreter();
-            return rewrite(primaryObj).getValue(frame, primaryObj);
+
+            Node current = this;
+            int depth = 0;
+            DispatchUnboxedNode specialized;
+
+            if (current.getParent() == null) {
+                specialized = rewrite(primaryObj, this);
+                return specialized.getValue(frame, primaryObj);
+            }
+
+            while (current.getParent() instanceof DispatchBoxedNode) {
+                current = current.getParent();
+                depth++;
+            }
+
+            if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
+                specialized = rewrite(primaryObj, this);
+            } else {
+                specialized = new GenericDispatchUnboxedNode(attributeId);
+            }
+
+            return specialized.getValue(frame, primaryObj);
+        }
+    }
+
+    public static final class GenericDispatchUnboxedNode extends DispatchUnboxedNode {
+
+        public GenericDispatchUnboxedNode(String attributeId) {
+            super(attributeId);
+        }
+
+        @Override
+        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
+            return primaryObj.__class__().getAttribute(attributeId);
         }
     }
 
     public static final class AttributeDispatchUnboxedNode extends DispatchUnboxedNode {
 
         @Child protected AttributeReadNode read;
+        @Child protected DispatchUnboxedNode next;
 
         private final Class cachedClass;
         private final PythonBasicObject cachedStorage;
 
-        public AttributeDispatchUnboxedNode(String attributeId, Object primary, PythonBasicObject storage) {
+        public AttributeDispatchUnboxedNode(String attributeId, Object primary, PythonBasicObject storage, DispatchUnboxedNode next) {
             super(attributeId);
             this.read = AttributeReadNode.create(storage.getOwnValidLocation(attributeId));
+            this.next = next;
             this.cachedClass = primary.getClass();
             this.cachedStorage = storage;
         }
@@ -122,36 +158,36 @@ public abstract class DispatchUnboxedNode extends Node {
         public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             if (dispatchGuard(primaryObj)) {
                 return read.getValueUnsafe(cachedStorage);
-            } else {
-                throw new UnexpectedResultException(primaryObj);
             }
+
+            return next.getValue(frame, primaryObj);
         }
 
         @Override
         public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             if (dispatchGuard(primaryObj)) {
                 return read.getIntValueUnsafe(cachedStorage);
-            } else {
-                throw new UnexpectedResultException(primaryObj);
             }
+
+            return next.getIntValue(frame, primaryObj);
         }
 
         @Override
         public double getDoubleValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             if (dispatchGuard(primaryObj)) {
                 return read.getDoubleValueUnsafe(cachedStorage);
-            } else {
-                throw new UnexpectedResultException(primaryObj);
             }
+
+            return next.getDoubleValue(frame, primaryObj);
         }
 
         @Override
         public boolean getBooleanValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
             if (dispatchGuard(primaryObj)) {
                 return read.getBooleanValueUnsafe(cachedStorage);
-            } else {
-                throw new UnexpectedResultException(primaryObj);
             }
+
+            return next.getBooleanValue(frame, primaryObj);
         }
     }
 
