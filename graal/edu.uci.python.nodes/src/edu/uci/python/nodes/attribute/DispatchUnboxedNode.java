@@ -84,6 +84,7 @@ public abstract class DispatchUnboxedNode extends Node {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchUnboxedNode extends DispatchUnboxedNode {
 
         public UninitializedDispatchUnboxedNode(String attributeId) {
@@ -103,7 +104,7 @@ public abstract class DispatchUnboxedNode extends Node {
                 return specialized.getValue(frame, primaryObj);
             }
 
-            while (current.getParent() instanceof DispatchBoxedNode) {
+            while (current.getParent() instanceof DispatchUnboxedNode) {
                 current = current.getParent();
                 depth++;
             }
@@ -111,13 +112,14 @@ public abstract class DispatchUnboxedNode extends Node {
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 specialized = rewrite(primaryObj, this);
             } else {
-                specialized = new GenericDispatchUnboxedNode(attributeId);
+                specialized = current.replace(new GenericDispatchUnboxedNode(attributeId));
             }
 
             return specialized.getValue(frame, primaryObj);
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchUnboxedNode extends DispatchUnboxedNode {
 
         public GenericDispatchUnboxedNode(String attributeId) {

@@ -93,4 +93,20 @@ public class GetAttributeCacheTests {
         assertPrints("<class 'int'>\n<class 'int'>\n<class 'int'>\n", source);
     }
 
+    @Test
+    public void unboxedAttributePolymorphic() {
+        String source = "l = [1, 3.0, 'oo']\n" + //
+                        "for i in l:\n" + //
+                        "    i.__str__\n";
+        assertPrints("", source);
+    }
+
+    @Test
+    public void unboxedAttributeMegamorphic() {
+        String source = "l = [1, 3.0, 'oo', []]\n" + //
+                        "for i in l:\n" + //
+                        "    i.__str__\n";
+        assertPrints("", source);
+    }
+
 }

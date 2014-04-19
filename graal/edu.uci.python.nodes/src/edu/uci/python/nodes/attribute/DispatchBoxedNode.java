@@ -146,7 +146,7 @@ public abstract class DispatchBoxedNode extends Node {
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 specialized = rewrite(primaryObj, this);
             } else {
-                specialized = new GenericDispatchBoxedNode(attributeId);
+                specialized = current.replace(new GenericDispatchBoxedNode(attributeId));
             }
 
             return specialized.getValue(frame, primaryObj);

@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -137,7 +138,11 @@ public class PythonContext {
         /**
          * TODO: missing int, double, boolean... and maybe more.
          */
-        if (obj instanceof String) {
+        if (obj instanceof Integer) {
+            return new PInt((int) obj);
+        } else if (obj instanceof Double) {
+            return new PFloat((double) obj);
+        } else if (obj instanceof String) {
             return new PString((String) obj);
         }
 
