@@ -852,7 +852,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         for t in tests:
             found = False
             for c, p in candidates.iteritems():
-                if t in c:
+                if t == c:
                     found = True
                     classes.append(c)
                     projs.add(p.name)
@@ -881,6 +881,7 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
         os.close(_)
 
     def harness(projectscp, vmArgs):
+        projectscp = mx.classpath("ant") + os.pathsep + projectscp 
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
         if _get_vm() != 'graal':
