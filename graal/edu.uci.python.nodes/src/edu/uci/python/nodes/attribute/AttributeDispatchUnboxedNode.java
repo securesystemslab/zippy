@@ -33,30 +33,34 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class AttributeDispatchUnboxedNode extends AbstractDispatchUnboxedNode {
 
-    @Child protected PrimaryCheckUnboxedNode primaryCheck;
     @Child protected AttributeReadNode read;
+
+    private final Class cachedClass;
     private final PythonBasicObject cachedStorage;
 
-    public AttributeDispatchUnboxedNode(PythonContext context, String attributeId, PrimaryCheckUnboxedNode checkNode, AttributeReadNode read, PythonBasicObject storage) {
+    public AttributeDispatchUnboxedNode(PythonContext context, String attributeId, AttributeReadNode read, Class clazz, PythonBasicObject storage) {
         super(context, attributeId);
-        this.primaryCheck = checkNode;
         this.read = read;
+        this.cachedClass = clazz;
         this.cachedStorage = storage;
     }
 
     public static AttributeDispatchUnboxedNode create(PythonContext context, String attributeId, Object primaryObj, PythonBasicObject storage, StorageLocation location) {
-        PrimaryCheckUnboxedNode check = PrimaryCheckUnboxedNode.create(primaryObj);
         AttributeReadNode read = AttributeReadNode.create(location);
-        return new AttributeDispatchUnboxedNode(context, attributeId, check, read, storage);
+        return new AttributeDispatchUnboxedNode(context, attributeId, read, primaryObj.getClass(), storage);
     }
 
     public AttributeReadNode extractReadNode() {
         return read;
     }
 
+    protected boolean dispatchGuard(Object primary) {
+        return primary.getClass() == cachedClass;
+    }
+
     @Override
     public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
+        if (dispatchGuard(primaryObj)) {
             return read.getValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
@@ -65,7 +69,7 @@ public class AttributeDispatchUnboxedNode extends AbstractDispatchUnboxedNode {
 
     @Override
     public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
+        if (dispatchGuard(primaryObj)) {
             return read.getIntValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
@@ -74,7 +78,7 @@ public class AttributeDispatchUnboxedNode extends AbstractDispatchUnboxedNode {
 
     @Override
     public double getDoubleValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
+        if (dispatchGuard(primaryObj)) {
             return read.getDoubleValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);
@@ -83,7 +87,7 @@ public class AttributeDispatchUnboxedNode extends AbstractDispatchUnboxedNode {
 
     @Override
     public boolean getBooleanValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        if (primaryCheck.accept(primaryObj)) {
+        if (dispatchGuard(primaryObj)) {
             return read.getBooleanValueUnsafe(cachedStorage);
         } else {
             throw new UnexpectedResultException(primaryObj);

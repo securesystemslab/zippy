@@ -33,11 +33,11 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNode {
 
-    @Child protected PrimaryCheckBoxedNode primaryCheck;
+    @Child protected ShapeCheckNode primaryCheck;
     @Child protected AttributeReadNode read;
     @Child protected AbstractDispatchBoxedNode next;
 
-    public AttributeDispatchBoxedNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, AbstractDispatchBoxedNode next) {
+    public AttributeDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, AbstractDispatchBoxedNode next) {
         super(attributeId);
         this.primaryCheck = checkNode;
         this.read = read;
@@ -45,7 +45,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
     }
 
     public static AttributeDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonBasicObject storage, StorageLocation location, int depth, AbstractDispatchBoxedNode next) {
-        PrimaryCheckBoxedNode check = PrimaryCheckBoxedNode.create(primaryObj, depth);
+        ShapeCheckNode check = ShapeCheckNode.create(primaryObj, depth);
         AttributeReadNode read = AttributeReadNode.create(location);
 
         if (primaryObj instanceof PythonObject && !(primaryObj instanceof PythonClass)) {
@@ -139,7 +139,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
 
         private final PythonClass cachedClass;
 
-        public InObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, AbstractDispatchBoxedNode next) {
+        public InObjectAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, AbstractDispatchBoxedNode next) {
             super(attributeId, checkNode, read, next);
             this.cachedClass = primaryObj.getPythonClass();
         }
@@ -165,7 +165,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
         private final PythonClass cachedClass;
         private final PythonBasicObject cachedStorage;
 
-        public CachedObjectAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
+        public CachedObjectAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
                         AbstractDispatchBoxedNode next) {
             super(attributeId, checkNode, read, next);
             this.cachedClass = primaryObj.getPythonClass();
@@ -193,7 +193,7 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
         private final PythonBasicObject cachedType;
         private final PythonBasicObject cachedStorage;
 
-        public CachedClassAttributeDispatchNode(String attributeId, PrimaryCheckBoxedNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
+        public CachedClassAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
                         AbstractDispatchBoxedNode next) {
             super(attributeId, checkNode, read, next);
             this.cachedType = primaryObj;

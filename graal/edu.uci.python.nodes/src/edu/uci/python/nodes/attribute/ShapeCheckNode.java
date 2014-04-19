@@ -30,11 +30,11 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class PrimaryCheckBoxedNode extends Node {
+public abstract class ShapeCheckNode extends Node {
 
     public abstract void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
-    public static PrimaryCheckBoxedNode create(PythonBasicObject primaryObj, int depth) {
+    public static ShapeCheckNode create(PythonBasicObject primaryObj, int depth) {
         if (depth == 0) {
             return new PythonObjectCheckNode(primaryObj);
         } else if (depth == 1) {
@@ -44,7 +44,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
     }
 
-    public static final class PythonObjectCheckNode extends PrimaryCheckBoxedNode {
+    public static final class PythonObjectCheckNode extends ShapeCheckNode {
 
         private final Assumption stableAssumption;
 
@@ -58,15 +58,13 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
     }
 
-    public static final class PythonClassCheckNode extends PrimaryCheckBoxedNode {
+    public static final class PythonClassCheckNode extends ShapeCheckNode {
 
-        private final PythonClass cachedClass;
         private final Assumption classStableAssumption;
         private final Assumption objectStableAssumption;
 
         public PythonClassCheckNode(PythonBasicObject primaryObj) {
-            this.cachedClass = primaryObj.getPythonClass();
-            this.classStableAssumption = cachedClass.getStableAssumption();
+            this.classStableAssumption = primaryObj.getPythonClass().getStableAssumption();
             this.objectStableAssumption = primaryObj.getStableAssumption();
         }
 
@@ -77,7 +75,7 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
     }
 
-    public static final class ClassChainCheckNode extends PrimaryCheckBoxedNode {
+    public static final class ClassChainCheckNode extends ShapeCheckNode {
 
         private final Assumption objectStableAssumption;
         @Children private final PythonObjectCheckNode[] classChecks;
