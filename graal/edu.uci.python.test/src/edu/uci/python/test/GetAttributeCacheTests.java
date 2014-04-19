@@ -25,10 +25,17 @@
 package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
+import static org.junit.Assert.*;
 
 import java.nio.file.*;
+import java.util.*;
 
 import org.junit.*;
+
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.attribute.DispatchUnboxedNode.*;
+import edu.uci.python.runtime.*;
 
 public class GetAttributeCacheTests {
 
@@ -98,7 +105,16 @@ public class GetAttributeCacheTests {
         String source = "l = [1, 3.0, 'oo']\n" + //
                         "for i in l:\n" + //
                         "    i.__str__\n";
-        assertPrints("", source);
+        PythonParseResult result = assertPrints("", source);
+        RootNode root = result.getModuleRoot();
+
+        // depth of dispatch chain
+        List<AttributeDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, AttributeDispatchUnboxedNode.class);
+        assertTrue(dispatchNodes.size() == 3);
+
+        // bottom unitialized dispatch node
+        List<UninitializedDispatchUnboxedNode> uninitialized = NodeUtil.findAllNodeInstances(root, UninitializedDispatchUnboxedNode.class);
+        assertTrue(uninitialized.size() == 1);
     }
 
     @Test
@@ -106,7 +122,16 @@ public class GetAttributeCacheTests {
         String source = "l = [1, 3.0, 'oo', []]\n" + //
                         "for i in l:\n" + //
                         "    i.__str__\n";
-        assertPrints("", source);
+        PythonParseResult result = assertPrints("", source);
+        RootNode root = result.getModuleRoot();
+
+        // depth of dispatch chain
+        List<AttributeDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, AttributeDispatchUnboxedNode.class);
+        assertTrue(dispatchNodes.size() == 0);
+
+        // generic dispatch node
+        List<GenericDispatchUnboxedNode> uninitialized = NodeUtil.findAllNodeInstances(root, GenericDispatchUnboxedNode.class);
+        assertTrue(uninitialized.size() == 1);
     }
 
 }

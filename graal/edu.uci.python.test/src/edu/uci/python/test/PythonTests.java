@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -49,15 +49,16 @@ public class PythonTests {
         assertTrue(result.contains(expected));
     }
 
-    public static void assertPrints(String expected, String code) {
+    public static PythonParseResult assertPrints(String expected, String code) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
         Source source = context.getSourceManager().get("(test)", code);
-        RunScript.runScript(new String[0], source, context);
+        PythonParseResult parseResult = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
+        return parseResult;
     }
 
     public static String parseTest(String code) {
@@ -78,7 +79,7 @@ public class PythonTests {
         try {
             PythonContext context = getContext(System.out, printStream);
             Source source = context.getSourceManager().get("(test)", code);
-            RunScript.runTrowableScript(new String[0], source, context);
+            RunScript.runThrowableScript(new String[0], source, context);
         } catch (Throwable err) {
             error = err.toString();
         }

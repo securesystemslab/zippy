@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -106,7 +106,7 @@ public class RunScript {
         }
     }
 
-    public static void runTrowableScript(String[] args, Source source, PythonContext context) {
+    public static void runThrowableScript(String[] args, Source source, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -121,7 +121,7 @@ public class RunScript {
         }
     }
 
-    public static void runScript(String[] args, Source source, PythonContext context) {
+    public static PythonParseResult runScript(String[] args, Source source, PythonContext context) {
         // Setup the basic python system state from these options
         PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
         PySystemState systemState = Py.getSystemState();
@@ -129,13 +129,14 @@ public class RunScript {
         // Now create an interpreter
         CustomConsole interp = new CustomConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
+        PythonParseResult result = null;
 
         if (source != null) {
             try {
                 PyString path = new PyString(System.getProperty("user.dir"));
                 Py.getSystemState().path.insert(0, path);
 
-                interp.execfile(context, source);
+                result = interp.execfile(context, source);
             } catch (Throwable t) {
                 if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
                     // Shutdown this instance...
@@ -144,20 +145,22 @@ public class RunScript {
                     // ..reset the state...
                     Py.setSystemState(new PySystemState());
                     // ...and start again
-                    return;
+                    return result;
                 } else {
                     Py.printException(t);
                     interp.cleanup();
                 }
             }
         }
+
+        return result;
     }
 
     /**
      * Returns a new python interpreter using the InteractiveConsole subclass from the
      * <tt>python.console</tt> registry key.
      * <p>
-     * 
+     *
      * When stdin is interactive the default is {@link JLineConsole}. Otherwise the featureless
      * {@link InteractiveConsole} is always used as alternative consoles cause unexpected behavior
      * with the std file streams.
