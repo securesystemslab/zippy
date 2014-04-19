@@ -31,7 +31,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class AttributeDispatchUnboxedNode extends AbstractDispatchUnboxedNode {
+public class AttributeDispatchUnboxedNode extends DispatchUnboxedNode {
 
     @Child protected AttributeReadNode read;
 

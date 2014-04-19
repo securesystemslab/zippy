@@ -88,9 +88,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AbstractDispatchBoxedNode attribute;
+        @Child protected DispatchBoxedNode attribute;
 
-        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractDispatchBoxedNode cache) {
+        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, DispatchBoxedNode cache) {
             super(context, attributeId, primary);
             this.attribute = cache;
         }
@@ -154,7 +154,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
      */
     public static final class BoxedGetMethodNode extends BoxedGetAttributeNode {
 
-        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractDispatchBoxedNode cache) {
+        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, DispatchBoxedNode cache) {
             super(context, attributeId, primary, cache);
         }
 
@@ -181,9 +181,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
     public static class UnboxedGetAttributeNode extends GetAttributeNode {
 
-        @Child protected AbstractDispatchUnboxedNode attribute;
+        @Child protected DispatchUnboxedNode attribute;
 
-        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, AbstractDispatchUnboxedNode cache) {
+        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, DispatchUnboxedNode cache) {
             super(context, attributeId, primary);
             this.attribute = cache;
         }
@@ -233,7 +233,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         private final PBuiltinMethod cachedMethod;
 
-        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, AbstractDispatchUnboxedNode cache, PBuiltinMethod cachedMethod) {
+        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, DispatchUnboxedNode cache, PBuiltinMethod cachedMethod) {
             super(context, attributeId, primary, cache);
             this.cachedMethod = cachedMethod;
         }
@@ -270,7 +270,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
     }
 
     protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonBasicObject primaryObj, GetAttributeNode current) {
-        AbstractDispatchBoxedNode cacheNode = new AbstractDispatchBoxedNode.UninitializedCachedAttributeNode(current.attributeId);
+        DispatchBoxedNode cacheNode = new DispatchBoxedNode.UninitializedDispatchBoxedNode(current.attributeId);
         cacheNode = cacheNode.rewrite(primaryObj, cacheNode);
         Object value;
 
@@ -298,7 +298,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             throw new IllegalStateException();
         }
 
-        AbstractDispatchUnboxedNode cacheNode = new AbstractDispatchUnboxedNode.UninitializedCachedAttributeNode(current.context, current.attributeId).rewrite(builtinPrimaryObj);
+        DispatchUnboxedNode cacheNode = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(current.context, current.attributeId).rewrite(builtinPrimaryObj);
         Object value = null;
 
         try {

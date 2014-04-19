@@ -35,11 +35,11 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class AbstractDispatchBoxedNode extends Node {
+public abstract class DispatchBoxedNode extends Node {
 
     protected final String attributeId;
 
-    public AbstractDispatchBoxedNode(String attributeId) {
+    public DispatchBoxedNode(String attributeId) {
         this.attributeId = attributeId;
     }
 
@@ -57,7 +57,7 @@ public abstract class AbstractDispatchBoxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected AbstractDispatchBoxedNode rewrite(PythonBasicObject primaryObj, AbstractDispatchBoxedNode next) {
+    protected DispatchBoxedNode rewrite(PythonBasicObject primaryObj, DispatchBoxedNode next) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -66,7 +66,7 @@ public abstract class AbstractDispatchBoxedNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            AbstractDispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
+            DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -79,7 +79,7 @@ public abstract class AbstractDispatchBoxedNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                AbstractDispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
+                DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -107,7 +107,7 @@ public abstract class AbstractDispatchBoxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        AbstractDispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, getOwnValidLocation(current), depth, next);
+        DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, getOwnValidLocation(current), depth, next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -125,9 +125,9 @@ public abstract class AbstractDispatchBoxedNode extends Node {
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
-    public static class UninitializedCachedAttributeNode extends AbstractDispatchBoxedNode {
+    public static class UninitializedDispatchBoxedNode extends DispatchBoxedNode {
 
-        public UninitializedCachedAttributeNode(String attributeId) {
+        public UninitializedDispatchBoxedNode(String attributeId) {
             super(attributeId);
         }
 
@@ -137,14 +137,14 @@ public abstract class AbstractDispatchBoxedNode extends Node {
 
             Node current = this;
             int depth = 0;
-            AbstractDispatchBoxedNode specialized;
+            DispatchBoxedNode specialized;
 
             if (current.getParent() == null) {
                 specialized = rewrite(primaryObj, this);
                 return specialized.getValue(frame, primaryObj);
             }
 
-            while (current.getParent() instanceof AbstractDispatchBoxedNode) {
+            while (current.getParent() instanceof DispatchBoxedNode) {
                 current = current.getParent();
                 depth++;
             }
@@ -152,7 +152,7 @@ public abstract class AbstractDispatchBoxedNode extends Node {
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 specialized = rewrite(primaryObj, this);
             } else {
-                specialized = new GenericAttributeReadBoxedNode(attributeId);
+                specialized = new GenericDispatchBoxedNode(attributeId);
             }
 
             return specialized.getValue(frame, primaryObj);
@@ -160,9 +160,9 @@ public abstract class AbstractDispatchBoxedNode extends Node {
     }
 
     @NodeInfo(cost = NodeCost.MEGAMORPHIC)
-    public static final class GenericAttributeReadBoxedNode extends AbstractDispatchBoxedNode {
+    public static final class GenericDispatchBoxedNode extends DispatchBoxedNode {
 
-        public GenericAttributeReadBoxedNode(String attributeId) {
+        public GenericDispatchBoxedNode(String attributeId) {
             super(attributeId);
         }
 
