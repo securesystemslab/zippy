@@ -37,6 +37,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.attribute.*;
+import edu.uci.python.nodes.attribute.DispatchUnboxedNode.AttributeDispatchUnboxedNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.BoxedGetAttributeNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.UnboxedGetMethodNode;
 import edu.uci.python.nodes.function.*;

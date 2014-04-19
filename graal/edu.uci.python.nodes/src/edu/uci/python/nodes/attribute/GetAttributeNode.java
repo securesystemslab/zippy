@@ -298,7 +298,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             throw new IllegalStateException();
         }
 
-        DispatchUnboxedNode cacheNode = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(current.context, current.attributeId).rewrite(builtinPrimaryObj);
+        DispatchUnboxedNode cacheNode = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(current.attributeId).rewrite(builtinPrimaryObj);
         Object value = null;
 
         try {
