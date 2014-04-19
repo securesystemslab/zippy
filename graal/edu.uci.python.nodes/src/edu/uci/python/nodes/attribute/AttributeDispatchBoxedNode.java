@@ -74,9 +74,8 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
     public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         if (dispatchGuard(primaryObj)) {
             try {
-                if (primaryCheck.accept(primaryObj)) {
-                    return read.getValueUnsafe(getStorage(primaryObj));
-                }
+                primaryCheck.accept(primaryObj);
+                return read.getValueUnsafe(getStorage(primaryObj));
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewrite(primaryObj, next).getValue(frame, primaryObj);
@@ -90,9 +89,8 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         if (dispatchGuard(primaryObj)) {
             try {
-                if (primaryCheck.accept(primaryObj)) {
-                    return read.getIntValueUnsafe(getStorage(primaryObj));
-                }
+                primaryCheck.accept(primaryObj);
+                return read.getIntValueUnsafe(getStorage(primaryObj));
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewrite(primaryObj, next).getIntValue(frame, primaryObj);
@@ -106,9 +104,8 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
     public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         if (dispatchGuard(primaryObj)) {
             try {
-                if (primaryCheck.accept(primaryObj)) {
-                    return read.getDoubleValueUnsafe(getStorage(primaryObj));
-                }
+                primaryCheck.accept(primaryObj);
+                return read.getDoubleValueUnsafe(getStorage(primaryObj));
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
@@ -122,9 +119,8 @@ public abstract class AttributeDispatchBoxedNode extends AbstractDispatchBoxedNo
     public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
         if (dispatchGuard(primaryObj)) {
             try {
-                if (primaryCheck.accept(primaryObj)) {
-                    return read.getBooleanValueUnsafe(getStorage(primaryObj));
-                }
+                primaryCheck.accept(primaryObj);
+                return read.getBooleanValueUnsafe(getStorage(primaryObj));
             } catch (InvalidAssumptionException iae) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);

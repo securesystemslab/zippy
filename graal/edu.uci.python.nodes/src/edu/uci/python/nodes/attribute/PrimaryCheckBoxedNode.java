@@ -32,7 +32,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PrimaryCheckBoxedNode extends Node {
 
-    public abstract boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
+    public abstract void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
     public static PrimaryCheckBoxedNode create(PythonBasicObject primaryObj, int depth) {
         if (depth == 0) {
@@ -53,9 +53,8 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             stableAssumption.check();
-            return true;
         }
     }
 
@@ -72,16 +71,9 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            PythonObject pobj = (PythonObject) primaryObj;
-
-            if (pobj.getPythonClass() == cachedClass) {
-                objectStableAssumption.check();
-                classStableAssumption.check();
-                return true;
-            }
-
-            return false;
+        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+            objectStableAssumption.check();
+            classStableAssumption.check();
         }
     }
 
@@ -108,18 +100,14 @@ public abstract class PrimaryCheckBoxedNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             objectStableAssumption.check();
             PythonClass clazz = primaryObj.getPythonClass();
 
             for (PythonObjectCheckNode checkNode : classChecks) {
-                if (!checkNode.accept(clazz)) {
-                    return false;
-                }
+                checkNode.accept(clazz);
                 clazz = clazz.getSuperClass();
             }
-
-            return true;
         }
     }
 

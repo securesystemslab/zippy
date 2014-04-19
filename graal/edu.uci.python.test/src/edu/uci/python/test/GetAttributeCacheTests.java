@@ -83,7 +83,7 @@ public class GetAttributeCacheTests {
     }
 
     @Test
-    public void objectAttributeStore() {
+    public void inObjectAttributeStore() {
         String source = "class A:\n" + //
                         "    pass\n" + //
                         "a = A()\n" + //
