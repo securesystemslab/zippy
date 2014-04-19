@@ -1449,8 +1449,10 @@ def makejmhdeps(args):
                         return
         d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedLibs=[])
         d.make_archive()
-        cmd = ['mvn', '-q', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
+        cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
+        if not mx._opts.verbose:
+            cmd.append('-q')
         if args.settings:
             cmd = cmd + ['-s', args.settings]
         mx.run(cmd)
@@ -1481,6 +1483,9 @@ def buildjmh(args):
     jmhPath = _get_jmh_path()
     mx.log('JMH benchmarks: ' + jmhPath)
 
+    # Ensure the mx injected dependencies are up to date
+    makejmhdeps(['-p'] + (['-s', args.settings] if args.settings else []))
+
     timestamp = mx.TimeStampFile(join(_graal_home, 'mx', 'jmh', jmhPath.replace(os.sep, '_') + '.timestamp'))
     mustBuild = args.clean
     if not mustBuild:
@@ -1502,7 +1507,6 @@ def buildjmh(args):
         env['JAVA_HOME'] = _jdk(vmToCheck='server')
         env['MAVEN_OPTS'] = '-server'
         mx.log("Building benchmarks...")
-        makejmhdeps(['-p'] + (['-s', args.settings] if args.settings else []))
         cmd = ['mvn']
         if args.settings:
             cmd = cmd + ['-s', args.settings]
