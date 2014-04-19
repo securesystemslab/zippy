@@ -68,20 +68,26 @@ public abstract class PythonBasicObject {
         allocateObjectStorageLocations();
     }
 
-    public PythonClass getPythonClass() {
+    public final PythonClass getPythonClass() {
         assert pythonClass != null;
         return pythonClass;
     }
 
-    public ObjectLayout getObjectLayout() {
+    public final ObjectLayout getObjectLayout() {
         return objectLayout;
     }
 
     /**
      * Does this object have an instance variable defined?
      */
-    public boolean isOwnAttribute(String name) {
+    public final boolean isOwnAttribute(String name) {
         return objectLayout.findStorageLocation(name) != null;
+    }
+
+    public final StorageLocation getOwnValidLocation(String attributeId) {
+        final StorageLocation location = objectLayout.findStorageLocation(attributeId);
+        assert location != null;
+        return location;
     }
 
     private void allocateObjectStorageLocations() {

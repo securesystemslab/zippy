@@ -66,7 +66,7 @@ public abstract class DispatchBoxedNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
+            DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -79,7 +79,7 @@ public abstract class DispatchBoxedNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, getOwnValidLocation(primaryObj), 0, next);
+                DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -107,7 +107,7 @@ public abstract class DispatchBoxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, getOwnValidLocation(current), depth, next);
+        DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, primaryObj.getOwnValidLocation(attributeId), depth, next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -116,12 +116,6 @@ public abstract class DispatchBoxedNode extends Node {
         if (this.getParent() != null) {
             replace(newNode);
         }
-    }
-
-    private StorageLocation getOwnValidLocation(PythonBasicObject storage) {
-        final StorageLocation location = storage.getObjectLayout().findStorageLocation(attributeId);
-        assert location != null;
-        return location;
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)

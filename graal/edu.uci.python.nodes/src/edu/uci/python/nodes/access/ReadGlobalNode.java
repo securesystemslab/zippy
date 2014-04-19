@@ -32,6 +32,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
@@ -80,20 +81,20 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     public static final class ReadGlobalDirectNode extends ReadGlobalNode {
 
+        @Child protected AttributeReadNode read;
         private final Assumption globalScopeStable;
-        @Child protected LoadAttributeNode load;
 
         public ReadGlobalDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
+            this.read = AttributeReadNode.create(globalScope.getOwnValidLocation(attributeId));
             this.globalScopeStable = globalScope.getStableAssumption();
-            this.load = new UninitializedLoadAttributeNode(attributeId, new ObjectLiteralNode(globalScope));
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
                 globalScopeStable.check();
-                return load.execute(frame);
+                return read.getValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 return respecialize(frame);
             }
@@ -103,7 +104,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             try {
                 globalScopeStable.check();
-                return load.executeInt(frame);
+                return read.getIntValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(respecialize(frame));
@@ -114,7 +115,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             try {
                 globalScopeStable.check();
-                return load.executeDouble(frame);
+                return read.getDoubleValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 return PythonTypesGen.PYTHONTYPES.expectDouble(respecialize(frame));
             }
@@ -124,7 +125,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             try {
                 globalScopeStable.check();
-                return load.executeBoolean(frame);
+                return read.getBooleanValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(respecialize(frame));
             }
