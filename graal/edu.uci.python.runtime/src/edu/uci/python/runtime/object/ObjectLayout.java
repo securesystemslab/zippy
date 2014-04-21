@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -38,8 +38,6 @@ import edu.uci.python.runtime.*;
  * the type of existing instance variables returning new object layouts.
  */
 public class ObjectLayout {
-
-    public static final ObjectLayout EMPTY = new ObjectLayout("(empty)");
 
     private final String originHint;
 
@@ -133,6 +131,10 @@ public class ObjectLayout {
         primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
         objectStorageLocationsUsed = objectStorageLocationIndex;
+    }
+
+    public static final ObjectLayout empty() {
+        return new ObjectLayout("(empty)");
     }
 
     /**
@@ -245,8 +247,15 @@ public class ObjectLayout {
         return originHint;
     }
 
+    public boolean isEmpty() {
+        return storageLocations.isEmpty() && objectStorageLocationsUsed == 0 && //
+                        this.primitiveIntStorageLocationsUsed == 0 && //
+                        this.primitiveDoubleStorageLocationsUsed == 0;
+    }
+
     @Override
     public String toString() {
         return "ObjectLayout:" + this.storageLocations.toString();
     }
+
 }

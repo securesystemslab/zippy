@@ -64,7 +64,7 @@ public abstract class PythonBasicObject {
 
     public PythonBasicObject(PythonClass pythonClass) {
         unsafeSetPythonClass(pythonClass);
-        objectLayout = pythonClass == null ? ObjectLayout.EMPTY : pythonClass.getInstanceObjectLayout();
+        objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
         allocateObjectStorageLocations();
     }
 

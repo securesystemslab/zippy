@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.attribute;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -72,62 +71,62 @@ public abstract class AttributeDispatchBoxedNode extends DispatchBoxedNode {
 
     @Override
     public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (dispatchGuard(primaryObj)) {
-            try {
-                primaryCheck.accept(primaryObj);
-                return read.getValueUnsafe(getStorage(primaryObj));
-            } catch (InvalidAssumptionException iae) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return rewrite(primaryObj, next).getValue(frame, primaryObj);
-            }
-        }
+        try {
+            boolean hit = primaryCheck.accept(primaryObj);
 
-        return next.getValue(frame, primaryObj);
+            if (hit) {
+                return read.getValueUnsafe(getStorage(primaryObj));
+            } else {
+                return next.getValue(frame, primaryObj);
+            }
+        } catch (InvalidAssumptionException e) {
+            return rewrite(primaryObj, next).getValue(frame, primaryObj);
+        }
     }
 
     @Override
     public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (dispatchGuard(primaryObj)) {
-            try {
-                primaryCheck.accept(primaryObj);
-                return read.getIntValueUnsafe(getStorage(primaryObj));
-            } catch (InvalidAssumptionException iae) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return rewrite(primaryObj, next).getIntValue(frame, primaryObj);
-            }
-        }
+        try {
+            boolean hit = primaryCheck.accept(primaryObj);
 
-        return next.getIntValue(frame, primaryObj);
+            if (hit) {
+                return read.getIntValueUnsafe(getStorage(primaryObj));
+            } else {
+                return next.getIntValue(frame, primaryObj);
+            }
+        } catch (InvalidAssumptionException e) {
+            return rewrite(primaryObj, next).getIntValue(frame, primaryObj);
+        }
     }
 
     @Override
     public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (dispatchGuard(primaryObj)) {
-            try {
-                primaryCheck.accept(primaryObj);
-                return read.getDoubleValueUnsafe(getStorage(primaryObj));
-            } catch (InvalidAssumptionException iae) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
-            }
-        }
+        try {
+            boolean hit = primaryCheck.accept(primaryObj);
 
-        return next.getDoubleValue(frame, primaryObj);
+            if (hit) {
+                return read.getDoubleValueUnsafe(getStorage(primaryObj));
+            } else {
+                return next.getDoubleValue(frame, primaryObj);
+            }
+        } catch (InvalidAssumptionException e) {
+            return rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
+        }
     }
 
     @Override
     public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
-        if (dispatchGuard(primaryObj)) {
-            try {
-                primaryCheck.accept(primaryObj);
-                return read.getBooleanValueUnsafe(getStorage(primaryObj));
-            } catch (InvalidAssumptionException iae) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);
-            }
-        }
+        try {
+            boolean hit = primaryCheck.accept(primaryObj);
 
-        return next.getBooleanValue(frame, primaryObj);
+            if (hit) {
+                return read.getBooleanValueUnsafe(getStorage(primaryObj));
+            } else {
+                return next.getBooleanValue(frame, primaryObj);
+            }
+        } catch (InvalidAssumptionException e) {
+            return rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);
+        }
     }
 
     /**
@@ -165,8 +164,7 @@ public abstract class AttributeDispatchBoxedNode extends DispatchBoxedNode {
         private final PythonClass cachedClass;
         private final PythonBasicObject cachedStorage;
 
-        public CachedObjectAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
-                        DispatchBoxedNode next) {
+        public CachedObjectAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage, DispatchBoxedNode next) {
             super(attributeId, checkNode, read, next);
             this.cachedClass = primaryObj.getPythonClass();
             this.cachedStorage = storage;
@@ -193,8 +191,7 @@ public abstract class AttributeDispatchBoxedNode extends DispatchBoxedNode {
         private final PythonBasicObject cachedType;
         private final PythonBasicObject cachedStorage;
 
-        public CachedClassAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage,
-                        DispatchBoxedNode next) {
+        public CachedClassAttributeDispatchNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject primaryObj, PythonBasicObject storage, DispatchBoxedNode next) {
             super(attributeId, checkNode, read, next);
             this.cachedType = primaryObj;
             this.cachedStorage = storage;

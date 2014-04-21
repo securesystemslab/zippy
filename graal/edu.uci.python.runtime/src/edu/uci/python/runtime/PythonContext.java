@@ -33,7 +33,6 @@ import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -68,9 +67,9 @@ public class PythonContext {
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
 
-        assert typeClass.usePrivateLayout() && typeClass.getObjectLayout() == ObjectLayout.EMPTY;
-        assert objectClass.usePrivateLayout() && objectClass.getObjectLayout() == ObjectLayout.EMPTY;
-        assert moduleClass.usePrivateLayout() && moduleClass.getObjectLayout() == ObjectLayout.EMPTY;
+        assert typeClass.usePrivateLayout() && typeClass.getObjectLayout().isEmpty();
+        assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
+        assert moduleClass.usePrivateLayout() && moduleClass.getObjectLayout().isEmpty();
 
         this.sourceManager = new SourceManager();
         this.parser = parser;

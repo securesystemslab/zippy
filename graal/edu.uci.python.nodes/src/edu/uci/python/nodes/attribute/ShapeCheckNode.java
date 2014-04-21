@@ -32,7 +32,13 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class ShapeCheckNode extends Node {
 
-    public abstract void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
+    protected final ObjectLayout cachedObjectLayout;
+
+    public ShapeCheckNode(ObjectLayout shape) {
+        this.cachedObjectLayout = shape;
+    }
+
+    public abstract boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException;
 
     public static ShapeCheckNode create(PythonBasicObject primaryObj, int depth) {
         if (depth == 0) {
@@ -49,12 +55,18 @@ public abstract class ShapeCheckNode extends Node {
         private final Assumption stableAssumption;
 
         public PythonObjectCheckNode(PythonBasicObject pythonObj) {
+            super(pythonObj.getObjectLayout());
             stableAssumption = pythonObj.getStableAssumption();
         }
 
         @Override
-        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            stableAssumption.check();
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+            if (primaryObj.getObjectLayout() == cachedObjectLayout) {
+                stableAssumption.check();
+                return true;
+            }
+
+            return false;
         }
     }
 
@@ -64,14 +76,20 @@ public abstract class ShapeCheckNode extends Node {
         private final Assumption objectStableAssumption;
 
         public PythonClassCheckNode(PythonBasicObject primaryObj) {
+            super(primaryObj.getObjectLayout());
             this.classStableAssumption = primaryObj.getPythonClass().getStableAssumption();
             this.objectStableAssumption = primaryObj.getStableAssumption();
         }
 
         @Override
-        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            objectStableAssumption.check();
-            classStableAssumption.check();
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+            if (primaryObj.getObjectLayout() == cachedObjectLayout) {
+                objectStableAssumption.check();
+                classStableAssumption.check();
+                return true;
+            }
+
+            return false;
         }
     }
 
@@ -81,6 +99,7 @@ public abstract class ShapeCheckNode extends Node {
         @Children private final PythonObjectCheckNode[] classChecks;
 
         public ClassChainCheckNode(PythonBasicObject primaryObj, int depth) {
+            super(primaryObj.getObjectLayout());
             this.objectStableAssumption = primaryObj.getStableAssumption();
             PythonObjectCheckNode[] classCheckNodes = new PythonObjectCheckNode[depth];
             PythonClass current = primaryObj.getPythonClass();
@@ -98,14 +117,21 @@ public abstract class ShapeCheckNode extends Node {
         }
 
         @Override
-        public void accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
-            objectStableAssumption.check();
-            PythonClass clazz = primaryObj.getPythonClass();
+        public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
+            if (primaryObj.getObjectLayout() == cachedObjectLayout) {
+                objectStableAssumption.check();
+                PythonClass clazz = primaryObj.getPythonClass();
 
-            for (PythonObjectCheckNode checkNode : classChecks) {
-                checkNode.accept(clazz);
-                clazz = clazz.getSuperClass();
+                for (PythonObjectCheckNode checkNode : classChecks) {
+                    if (!checkNode.accept(clazz)) {
+                        return false;
+                    }
+
+                    clazz = clazz.getSuperClass();
+                }
             }
+
+            return true;
         }
     }
 
