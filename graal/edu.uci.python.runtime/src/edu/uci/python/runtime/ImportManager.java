@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.util.*;
 
 import org.python.core.*;
 
@@ -43,15 +44,22 @@ public class ImportManager {
 
     private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
     private final PythonContext context;
+    private final HashMap<String, PythonModule> importedModules;
 
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
+
+        // TODO: Suggested ugly fix until a proper way can be found
+        if (workingDir.endsWith("/graal/edu.uci.python.test"))
+            workingDir = workingDir.replaceAll("/graal/edu.uci.python.test", "");
+
         String librayPath = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
         return librayPath;
     }
 
     public ImportManager(PythonContext context) {
         this.context = context;
+        this.importedModules = new HashMap<>();
     }
 
     public Object importModule(String moduleName) {
@@ -59,6 +67,7 @@ public class ImportManager {
     }
 
     public Object importModule(PythonModule relativeto, String moduleName) {
+
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
@@ -74,11 +83,15 @@ public class ImportManager {
             String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
 
             if (path != null) {
-                importedModule = tryImporting(path, moduleName);
+                importedModule = importedModules.get(path);
+                if (importedModule == null)
+                    importedModule = tryImporting(path, moduleName);
             } else {
                 path = getPathFromLibrary(moduleName);
                 if (path != null) {
-                    importedModule = tryImporting(path, moduleName);
+                    importedModule = importedModules.get(path);
+                    if (importedModule == null)
+                        importedModule = tryImporting(path, moduleName);
                 } else {
                     importedModule = importFromJython(moduleName);
                 }
@@ -176,8 +189,8 @@ public class ImportManager {
         if (file.exists()) {
             PythonModule importedModule = new PythonModule(context, moduleName, path);
             Source source = context.getSourceManager().get(path);
+            importedModules.put(path, importedModule);
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source);
-
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {
                     // CheckStyle: stop system..print check
