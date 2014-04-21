@@ -96,38 +96,31 @@ public abstract class ShapeCheckNode extends Node {
     public static final class ClassChainCheckNode extends ShapeCheckNode {
 
         private final Assumption objectStableAssumption;
-        @Children private final PythonObjectCheckNode[] classChecks;
+        private final Assumption[] classStableAssumptions;
 
         public ClassChainCheckNode(PythonBasicObject primaryObj, int depth) {
             super(primaryObj.getObjectLayout());
             this.objectStableAssumption = primaryObj.getStableAssumption();
-            PythonObjectCheckNode[] classCheckNodes = new PythonObjectCheckNode[depth];
+            Assumption[] classStables = new Assumption[depth];
             PythonClass current = primaryObj.getPythonClass();
 
             for (int i = 0; i < depth; i++) {
-                classCheckNodes[i] = new PythonObjectCheckNode(current);
+                classStables[i] = current.getStableAssumption();
                 current = current.getSuperClass();
+                assert current != null;
 
-                if (current == null) {
-                    throw new IllegalStateException();
-                }
             }
 
-            this.classChecks = classCheckNodes;
+            this.classStableAssumptions = classStables;
         }
 
         @Override
         public boolean accept(PythonBasicObject primaryObj) throws InvalidAssumptionException {
             if (primaryObj.getObjectLayout() == cachedObjectLayout) {
                 objectStableAssumption.check();
-                PythonClass clazz = primaryObj.getPythonClass();
 
-                for (PythonObjectCheckNode checkNode : classChecks) {
-                    if (!checkNode.accept(clazz)) {
-                        return false;
-                    }
-
-                    clazz = clazz.getSuperClass();
+                for (Assumption classStable : classStableAssumptions) {
+                    classStable.check();
                 }
             }
 
