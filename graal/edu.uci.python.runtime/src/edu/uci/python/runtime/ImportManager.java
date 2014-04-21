@@ -49,9 +49,10 @@ public class ImportManager {
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
 
-        // TODO: Suggested ugly fix until a proper way can be found
-        if (workingDir.endsWith("/graal/edu.uci.python.test"))
+        // TODO: Fix this hack that supports proper standard lib import in unittest.
+        if (workingDir.endsWith("/graal/edu.uci.python.test")) {
             workingDir = workingDir.replaceAll("/graal/edu.uci.python.test", "");
+        }
 
         String librayPath = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
         return librayPath;
@@ -83,15 +84,11 @@ public class ImportManager {
             String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
 
             if (path != null) {
-                importedModule = importedModules.get(path);
-                if (importedModule == null)
-                    importedModule = tryImporting(path, moduleName);
+                importedModule = importAndCache(path, moduleName);
             } else {
                 path = getPathFromLibrary(moduleName);
                 if (path != null) {
-                    importedModule = importedModules.get(path);
-                    if (importedModule == null)
-                        importedModule = tryImporting(path, moduleName);
+                    importedModule = importAndCache(path, moduleName);
                 } else {
                     importedModule = importFromJython(moduleName);
                 }
@@ -171,6 +168,15 @@ public class ImportManager {
         return null;
     }
 
+    private PythonModule importAndCache(String path, String moduleName) {
+        PythonModule importedModule = importedModules.get(path);
+        if (importedModule == null) {
+            importedModule = tryImporting(path, moduleName);
+        }
+
+        return importedModule;
+    }
+
     private PythonModule tryImporting(String path, String moduleName) {
         PythonParseResult parsedModule = parseModule(path, moduleName);
 
@@ -207,4 +213,5 @@ public class ImportManager {
 
         return null;
     }
+
 }
