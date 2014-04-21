@@ -254,7 +254,7 @@ public class ScopeTranslator extends Visitor {
         environment.createLocal(tmp);
         ArgListCompiler ac = new ArgListCompiler();
         List<expr> args = new ArrayList<>();
-        args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
+        args.add(new Name(node, boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
         environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
 

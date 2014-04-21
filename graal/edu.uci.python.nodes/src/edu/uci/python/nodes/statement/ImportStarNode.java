@@ -51,6 +51,7 @@ package edu.uci.python.nodes.statement;
 
 /**
  * @author Gulfem
+ * @author myq
  */
 import org.python.core.*;
 
@@ -58,13 +59,14 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ImportStarNode extends PNode {
 
     private final PythonContext context;
     private final String moduleName;
-    @SuppressWarnings("unused") private final PythonModule relativeto;
+    private final PythonModule relativeto;
 
     public ImportStarNode(PythonContext context, PythonModule relativeto, String moduleName) {
         this.context = context;
@@ -74,25 +76,36 @@ public class ImportStarNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PyObject importedModule = __builtin__.__import__(moduleName);
-        PyObject all = importedModule.__findattr__("__all__");
-        PyObject names;
 
-        if (all != null) {
-            names = all;
+        Object importedModule = context.getImportManager().importModule(relativeto, moduleName);
+
+        if (importedModule instanceof PythonModule) {
+
+            for (String name : ((PythonModule) importedModule).getAttributeNames()) {
+                Object attr = ((PythonModule) importedModule).getAttribute(name);
+                relativeto.setAttribute(name, attr);
+            }
         } else {
-            names = importedModule.__dir__();
+            PyObject jythonModule = (PyObject) importedModule;
+            PyObject all = jythonModule.__findattr__("__all__");
+            PyObject names = null;
+
+            if (all != null) {
+                names = all;
+            } else {
+                names = jythonModule.__dir__();
+            }
+
+// // PythonModule mainModule = context.getPythonBuiltinsLookup().lookupModule("__main__");
+// PythonModule mainModule = context.getMainModule();
+
+            for (int i = 0; i < names.__len__(); i++) {
+                PyString name = (PyString) names.__getitem__(i);
+                PyObject attr = jythonModule.__getattr__(name);
+                relativeto.setAttribute(name.getString(), attr);
+            }
         }
 
-        // PythonModule mainModule = context.getPythonBuiltinsLookup().lookupModule("__main__");
-        PythonModule mainModule = context.getMainModule();
-
-        for (int i = 0; i < names.__len__(); i++) {
-            PyString name = (PyString) names.__getitem__(i);
-            PyObject attr = importedModule.__getattr__(name);
-            mainModule.setAttribute(name.getString(), attr);
-        }
-
-        return null;
+        return PNone.NONE;
     }
 }
