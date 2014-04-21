@@ -33,7 +33,7 @@ import edu.uci.python.nodes.function.*;
 
 /**
  * @author zwei
- *
+ * 
  */
 public class MathModuleBuiltins extends PythonBuiltins {
 
@@ -57,4 +57,101 @@ public class MathModuleBuiltins extends PythonBuiltins {
         }
     }
 
+    @Builtin(name = "exp", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class ExpNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double exp(int value) {
+            return Math.exp(value);
+        }
+
+        @Specialization
+        public double exp(double value) {
+            return Math.exp(value);
+        }
+    }
+
+    @Builtin(name = "pi", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    public abstract static class PiNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double pi() {
+            return Math.PI;
+        }
+    }
+
+    @Builtin(name = "e", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    public abstract static class ENode extends PythonBuiltinNode {
+
+        @Specialization
+        public double e() {
+            return Math.E;
+        }
+
+    }
+
+    @Builtin(name = "ceil", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class CeilNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double ceil(double value) {
+            return Math.ceil(value);
+        }
+    }
+
+    @Builtin(name = "acos", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class AcosNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double acos(int value) {
+            return Math.acos(value);
+        }
+
+        @Specialization
+        public double acos(double value) {
+            return Math.acos(value);
+        }
+    }
+
+    @Builtin(name = "cos", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class CosNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double cos(int value) {
+            return Math.cos(value);
+        }
+
+        @Specialization
+        public double cos(double value) {
+            return Math.cos(value);
+        }
+    }
+
+    @Builtin(name = "sin", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class SinNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double sin(int value) {
+            return Math.sin(value);
+        }
+
+        @Specialization
+        public double sin(double value) {
+            return Math.sin(value);
+        }
+    }
+
+    @Builtin(name = "log", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class LogNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double log(int value) {
+            return Math.log(value);
+        }
+
+        @Specialization
+        public double log(double value) {
+            return Math.log(value);
+        }
+    }
 }
