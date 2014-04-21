@@ -278,7 +278,7 @@ public abstract class PythonCallNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            CompilerAsserts.neverPartOfCompilation();
+            CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Object primary = primaryNode.execute(frame);
             PythonCallable callee;
