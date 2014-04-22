@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,24 +22,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.object;
+package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
-@NodeInfo(shortName = "class-def")
-public class ClassDefinitionNode extends StatementNode {
+public final class ClassDefinitionNode extends StatementNode {
 
     private final String name;
 
     @Child protected PNode superClass;
-
     @Child protected FunctionDefinitionNode definitionFunction;
 
     public ClassDefinitionNode(String name, PNode superClass, FunctionDefinitionNode definitionFunction) {
@@ -50,10 +47,23 @@ public class ClassDefinitionNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        PythonClass base = (PythonClass) superClass.execute(frame);
+        PythonClass base;
+        try {
+            base = superClass.executePythonClass(frame);
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
         PythonClass newClass = new PythonClass(base, name);
-        PFunction definitionFunc = (PFunction) definitionFunction.execute(frame);
+        PFunction definitionFunc;
+        try {
+            definitionFunc = (PFunction) definitionFunction.executePythonCallable(frame);
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
         definitionFunc.call(frame.pack(), new Object[]{newClass});
         return newClass;
     }
+
 }

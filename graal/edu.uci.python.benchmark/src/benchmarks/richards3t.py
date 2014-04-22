@@ -437,4 +437,4 @@ def measure(iteration):
 # warmup
 entry_point(10)
 
-measure(sys.argv[1])
+measure(int(sys.argv[1]))
