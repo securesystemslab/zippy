@@ -390,7 +390,7 @@ project@com.oracle.graal.nodes.test@workingSets=Graal,Graph
 # graal.phases
 project@com.oracle.graal.phases@subDir=graal
 project@com.oracle.graal.phases@sourceDirs=src
-project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes,com.oracle.graal.options
+project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes
 project@com.oracle.graal.phases@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.phases@javaCompliance=1.8
 project@com.oracle.graal.phases@workingSets=Graal,Phases
@@ -502,7 +502,7 @@ project@com.oracle.graal.java@workingSets=Graal,Java
 # graal.compiler.common
 project@com.oracle.graal.compiler.common@subDir=graal
 project@com.oracle.graal.compiler.common@sourceDirs=src
-project@com.oracle.graal.compiler.common@dependencies=com.oracle.graal.api.code
+project@com.oracle.graal.compiler.common@dependencies=com.oracle.graal.api.code,com.oracle.graal.options
 project@com.oracle.graal.compiler.common@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.common@javaCompliance=1.8
 project@com.oracle.graal.compiler.common@workingSets=Graal,Java
