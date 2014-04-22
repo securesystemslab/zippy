@@ -91,6 +91,23 @@ public class ObjectLayoutTests {
     }
 
     @Test
+    public void booleanAttribute() {
+        // Create a class and an instance
+        final PythonContext context = PythonTests.getContext();
+        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+
+        obj.setAttribute("boolean1", true);
+        obj.setAttribute("boolean0", false);
+        StorageLocation location1 = obj.getOwnValidLocation("boolean1");
+        StorageLocation location0 = obj.getOwnValidLocation("boolean0");
+        assertTrue(location1 instanceof IntStorageLocation);
+        assertTrue(location0 instanceof IntStorageLocation);
+        assertEquals(location1.read(obj), true);
+        assertEquals(location0.read(obj), false);
+    }
+
+    @Test
     public void classAttributes() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();

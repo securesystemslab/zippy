@@ -33,13 +33,14 @@ public abstract class AttributeWriteNode extends Node {
     public static AttributeWriteNode create(StorageLocation location) {
         if (location instanceof ObjectStorageLocation) {
             return new WriteObjectAttributeNode((ObjectStorageLocation) location);
+        } else if (location instanceof BooleanStorageLocation) {
+            return new WriteBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new WriteIntAttributeNode((IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
             return new WriteDoubleAttributeNode((FloatStorageLocation) location);
         }
 
-        // TODO: write boolean
         throw new IllegalStateException();
     }
 
@@ -86,7 +87,7 @@ public abstract class AttributeWriteNode extends Node {
 
         @Override
         public void setIntValueUnsafe(PythonBasicObject storage, int value) throws GeneralizeStorageLocationException {
-            intLocation.write(storage, value);
+            intLocation.writeInt(storage, value);
         }
     }
 
@@ -105,26 +106,26 @@ public abstract class AttributeWriteNode extends Node {
 
         @Override
         public void setDoubleValueUnsafe(PythonBasicObject storage, double value) throws GeneralizeStorageLocationException {
-            floatLocation.write(storage, value);
+            floatLocation.writeDouble(storage, value);
         }
     }
 
     public static final class WriteBooleanAttributeNode extends AttributeWriteNode {
 
-        private final IntStorageLocation intLocation;
+        private final BooleanStorageLocation booleanLocation;
 
-        public WriteBooleanAttributeNode(IntStorageLocation intLocation) {
-            this.intLocation = intLocation;
+        public WriteBooleanAttributeNode(BooleanStorageLocation booleanLocation) {
+            this.booleanLocation = booleanLocation;
         }
 
         @Override
         public void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException {
-            intLocation.write(storage, value);
+            booleanLocation.write(storage, value);
         }
 
         @Override
         public void setBooleanValueUnsafe(PythonBasicObject storage, boolean value) throws GeneralizeStorageLocationException {
-            intLocation.write(storage, value);
+            booleanLocation.writeBoolean(storage, value);
         }
     }
 

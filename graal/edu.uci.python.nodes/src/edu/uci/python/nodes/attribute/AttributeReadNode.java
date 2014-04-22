@@ -34,13 +34,12 @@ public abstract class AttributeReadNode extends Node {
     public static AttributeReadNode create(StorageLocation location) {
         if (location instanceof ObjectStorageLocation) {
             return new ReadObjectAttributeNode((ObjectStorageLocation) location);
+        } else if (location instanceof BooleanStorageLocation) {
+            return new ReadBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new ReadIntAttributeNode((IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
             return new ReadDoubleAttributeNode((FloatStorageLocation) location);
-        } else if (location instanceof IntStorageLocation) {
-            // zwei TODO: Fix storage location for booealn!
-            return new ReadBooleanAttributeNode((IntStorageLocation) location);
         }
 
         throw new IllegalStateException();
@@ -114,24 +113,20 @@ public abstract class AttributeReadNode extends Node {
 
     public static final class ReadBooleanAttributeNode extends AttributeReadNode {
 
-        private final IntStorageLocation intLocation;
+        private final BooleanStorageLocation booleanLocation;
 
-        public ReadBooleanAttributeNode(IntStorageLocation intLocation) {
-            this.intLocation = intLocation;
+        public ReadBooleanAttributeNode(BooleanStorageLocation intLocation) {
+            this.booleanLocation = intLocation;
         }
 
         @Override
         public Object getValueUnsafe(PythonBasicObject storage) {
-            try {
-                return intLocation.readBoolean(storage);
-            } catch (UnexpectedResultException e) {
-                return e.getResult();
-            }
+            return booleanLocation.read(storage);
         }
 
         @Override
         public boolean getBooleanValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
-            return intLocation.readBoolean(storage);
+            return booleanLocation.readBoolean(storage);
         }
     }
 

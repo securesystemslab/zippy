@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,30 +28,24 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
 
-/**
- * A storage location for ints.
- */
-public class IntStorageLocation extends PrimitiveStorageLocation {
+public class BooleanStorageLocation extends IntStorageLocation {
 
-    protected final long offset;
-
-    public IntStorageLocation(ObjectLayout objectLayout, int index) {
+    protected BooleanStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = getExactOffsetOf(index);
     }
 
     @Override
     public Object read(PythonBasicObject object) {
         try {
-            return readInt(object);
+            return readBoolean(object);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
     }
 
-    public int readInt(PythonBasicObject object) throws UnexpectedResultException {
+    public boolean readBoolean(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getInt(object, offset);
+            return PythonUnsafe.UNSAFE.getBoolean(object, offset);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -59,8 +53,8 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
 
     @Override
     public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
-        if (value instanceof Integer) {
-            writeInt(object, (int) value);
+        if (value instanceof Boolean) {
+            writeBoolean(object, (boolean) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
@@ -68,28 +62,14 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
         }
     }
 
-    public void writeInt(PythonBasicObject object, int value) {
-        PythonUnsafe.UNSAFE.putInt(object, offset, value);
+    public void writeBoolean(PythonBasicObject object, boolean value) {
+        PythonUnsafe.UNSAFE.putBoolean(object, offset, value);
         markAsSet(object);
     }
 
     @Override
     public Class getStoredClass() {
-        return Integer.class;
-    }
-
-    protected static long getExactOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveIntStorageLocation" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
+        return Boolean.class;
     }
 
 }

@@ -105,6 +105,12 @@ public class ObjectLayout {
                         } else {
                             storageClass = Object.class;
                         }
+                    } else if (type == Boolean.class) {
+                        if (primitiveIntStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                            storageClass = Boolean.class;
+                        } else {
+                            storageClass = Object.class;
+                        }
                     } else {
                         storageClass = Object.class;
                     }
@@ -120,6 +126,10 @@ public class ObjectLayout {
                     final FloatStorageLocation newStorageLocation = new FloatStorageLocation(this, primitiveDoubleStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveDoubleStorageLocationIndex++;
+                } else if (storageClass == Boolean.class) {
+                    final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex);
+                    storageLocations.put(entry.getKey(), newStorageLocation);
+                    primitiveIntStorageLocationIndex++;
                 } else {
                     final ObjectStorageLocation newStorageLocation = new ObjectStorageLocation(this, objectStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
