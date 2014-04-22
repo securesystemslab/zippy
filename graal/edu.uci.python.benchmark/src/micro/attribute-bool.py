@@ -1,8 +1,8 @@
-# zwei 04/04/2014
-# micro benchmark: attribute access
+# zwei 04/21/2014
+# micro benchmark: boolean attribute access
 import time
 
-iteration = 50000 # 50000
+iteration = 500000
 
 class TaskState(object):
     def __init__(self):
@@ -28,27 +28,30 @@ class TaskState(object):
         self.task_holding = False
         return self
 
-def dostuff(task):
-	for i in range(iteration):
-		task = TaskState() 
-		task.waiting()
-		task.running()
+def dostuff():
+    task = TaskState()
+    
+    for i in range(iteration):
+        task.waiting()
+        task.running()
 
-	return task.task_holding
+        if task.task_waiting: task.task_holding = False
+
+    return task.task_holding
 
 def measure(num):
-	print("Start timing...")
-	start = time.time()
+    print("Start timing...")
+    start = time.time()
 
-	for i in range(num): # 50000
-	  result = dostuff(TaskState())
+    for i in range(num):
+      result = dostuff()
 
-	print(result)
-	duration = "%.3f\n" % (time.time() - start)
-	print("attribute-bool: " + duration)
+    print(result)
+    duration = "%.3f\n" % (time.time() - start)
+    print("attribute-bool: " + duration)
 
 # warm up
 for i in range(2000):
-	dostuff(TaskState())
+    dostuff()
 
 measure(5000)
