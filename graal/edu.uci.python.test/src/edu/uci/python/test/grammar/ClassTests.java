@@ -146,7 +146,7 @@ public class ClassTests {
 
     @Test
     public void keywordArgInMethod() {
-        if (!PythonOptions.CacheAttributeLoads) {
+        if (!PythonOptions.AttributeAccessInlineCaching) {
             return;
         }
         String source = "class TestSuite():\n" + //

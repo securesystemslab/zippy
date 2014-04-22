@@ -101,7 +101,7 @@ public class GeneratorExpressionTranslationTests {
     public void escapeByCall() {
         PythonOptions.OptimizeGeneratorExpressions = true;
 
-        if (!PythonOptions.CacheAttributeLoads) {
+        if (!PythonOptions.AttributeAccessInlineCaching) {
             return;
         }
 
