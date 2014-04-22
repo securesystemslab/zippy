@@ -90,16 +90,19 @@ public class SetAttributeNode extends PNode implements WriteNode {
 
     protected SetAttributeNode specialize(Object value) {
         CompilerAsserts.neverPartOfCompilation();
+        SetAttributeNode specialized;
 
         if (value instanceof Integer) {
-            return new SetIntAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetIntAttributeNode(attributeId, primaryNode, rhs, context);
         } else if (value instanceof Double) {
-            return new SetDoubleAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetDoubleAttributeNode(attributeId, primaryNode, rhs, context);
         } else if (value instanceof Boolean) {
-            return new SetBooleanAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetBooleanAttributeNode(attributeId, primaryNode, rhs, context);
         } else {
-            return new SetObjectAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetObjectAttributeNode(attributeId, primaryNode, rhs, context);
         }
+
+        return replace(specialized);
     }
 
     public static final class SetObjectAttributeNode extends SetAttributeNode {

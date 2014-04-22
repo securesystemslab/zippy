@@ -78,7 +78,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new UninitializedStoreAttributeNode(this.attributeId, this.primary, rhs);
+        return new SetAttributeNode(attributeId, primary, rhs, context);
     }
 
     @Override

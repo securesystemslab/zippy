@@ -27,6 +27,7 @@ package edu.uci.python.nodes.attribute;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
@@ -71,11 +72,6 @@ public abstract class SetDispatchNode extends Node {
 
             Node current = this;
             int depth = 0;
-
-            if (current.getParent() == null) {
-                rewrite(this).setValue(frame, primary, value);
-                return;
-            }
 
             while (current.getParent() instanceof SetDispatchNode) {
                 current = current.getParent();

@@ -347,10 +347,6 @@ public class NodeFactory {
         return new UninitializedLoadAttributeNode(name, operand);
     }
 
-    public PNode createStoreAttribute(PNode primary, String name, PNode value) {
-        return new UninitializedStoreAttributeNode(name, primary, value);
-    }
-
     public PNode createSlice(PNode lower, PNode upper, PNode step) {
         return SliceNodeFactory.create(lower, upper, step);
     }
