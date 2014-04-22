@@ -71,4 +71,13 @@ public abstract class FieldStorageLocation extends StorageLocation {
         }
     }
 
+    protected static long getExactFieldObjectOffsetOf(int index) {
+        assert index >= 0 && index <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT - 1;
+        try {
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("fieldObject" + index));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

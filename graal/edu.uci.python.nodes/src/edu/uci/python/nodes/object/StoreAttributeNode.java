@@ -88,9 +88,10 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
             return new StoreBooleanAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (BooleanStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
             return new StoreFloatAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
+        } else if (storageLocation instanceof FieldObjectStorageLocation) {
+            return new StoreFieldObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FieldObjectStorageLocation) storageLocation);
         } else {
-            return new StoreObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+            return new StoreArrayObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ArrayObjectStorageLocation) storageLocation);
         }
     }
-
 }

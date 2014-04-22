@@ -32,14 +32,16 @@ import edu.uci.python.runtime.object.*;
 public abstract class AttributeReadNode extends Node {
 
     public static AttributeReadNode create(StorageLocation location) {
-        if (location instanceof ObjectStorageLocation) {
-            return new ReadObjectAttributeNode((ObjectStorageLocation) location);
+        if (location instanceof ArrayObjectStorageLocation) {
+            return new ReadArrayObjectAttributeNode((ArrayObjectStorageLocation) location);
         } else if (location instanceof BooleanStorageLocation) {
             return new ReadBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new ReadIntAttributeNode((IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
             return new ReadDoubleAttributeNode((FloatStorageLocation) location);
+        } else if (location instanceof FieldObjectStorageLocation) {
+            return new ReadFieldObjectAttributeNode((FieldObjectStorageLocation) location);
         }
 
         throw new IllegalStateException();
@@ -59,11 +61,25 @@ public abstract class AttributeReadNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(storage));
     }
 
-    public static final class ReadObjectAttributeNode extends AttributeReadNode {
+    public static final class ReadArrayObjectAttributeNode extends AttributeReadNode {
 
-        private final ObjectStorageLocation objLocation;
+        private final ArrayObjectStorageLocation objLocation;
 
-        public ReadObjectAttributeNode(ObjectStorageLocation objLocation) {
+        public ReadArrayObjectAttributeNode(ArrayObjectStorageLocation objLocation) {
+            this.objLocation = objLocation;
+        }
+
+        @Override
+        public Object getValueUnsafe(PythonBasicObject storage) {
+            return objLocation.read(storage);
+        }
+    }
+
+    public static final class ReadFieldObjectAttributeNode extends AttributeReadNode {
+
+        private final FieldObjectStorageLocation objLocation;
+
+        public ReadFieldObjectAttributeNode(FieldObjectStorageLocation objLocation) {
             this.objLocation = objLocation;
         }
 

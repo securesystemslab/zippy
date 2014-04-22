@@ -22,51 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.nodes.object;
 
-import edu.uci.python.runtime.datatype.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
-/**
- * A storage location for any object.
- */
-public final class ObjectStorageLocation extends StorageLocation {
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
-    private final int index;
+public class StoreArrayObjectAttributeNode extends StoreSpecializedAttributeNode {
 
-    public ObjectStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout);
-        this.index = index;
+    private final ArrayObjectStorageLocation storageLocation;
+
+    public StoreArrayObjectAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout, ArrayObjectStorageLocation storageLocation) {
+        super(name, primary, rhs, objLayout);
+        this.storageLocation = storageLocation;
     }
 
     @Override
-    public boolean isSet(PythonBasicObject object) {
-        return object.arrayObjects[index] != null;
+    public Object execute(VirtualFrame frame) {
+        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final Object value = rhs.execute(frame);
+        return doObject(primaryObject, value);
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
-        final Object result = object.arrayObjects[index];
+    public Object executeWith(VirtualFrame frame, Object value) {
+        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        return doObject(primaryObject, value);
+    }
 
-        if (result == null) {
-            return PNone.NONE;
-        } else {
-            return result;
+    private Object doObject(PythonBasicObject primaryObject, Object value) {
+        if (primaryObject.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            respecialize(primaryObject, value);
+            return value;
         }
-    }
 
-    @Override
-    public void write(PythonBasicObject object, Object value) {
-        object.arrayObjects[index] = value;
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return Object.class;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
+        storageLocation.write(primaryObject, value);
+        return value;
     }
 
 }

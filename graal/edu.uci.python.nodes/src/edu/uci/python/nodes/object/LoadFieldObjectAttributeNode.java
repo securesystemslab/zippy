@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,37 +30,26 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.object.*;
 
-public class StoreObjectAttributeNode extends StoreSpecializedAttributeNode {
+public class LoadFieldObjectAttributeNode extends LoadSpecializedAttributeNode {
 
-    private final ObjectStorageLocation storageLocation;
+    private final FieldObjectStorageLocation storageLocation;
 
-    public StoreObjectAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout, ObjectStorageLocation storageLocation) {
-        super(name, primary, rhs, objLayout);
+    public LoadFieldObjectAttributeNode(String name, PNode primary, ObjectLayout objectLayout, FieldObjectStorageLocation storageLocation) {
+        super(name, primary, objectLayout);
         this.storageLocation = storageLocation;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
-        final Object value = rhs.execute(frame);
-        return doObject(primaryObject, value);
-    }
+        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
-    @Override
-    public Object executeWith(VirtualFrame frame, Object value) {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
-        return doObject(primaryObject, value);
-    }
-
-    private Object doObject(PythonBasicObject primaryObject, Object value) {
-        if (primaryObject.getObjectLayout() != objectLayout) {
+        if (receiverObject.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            respecialize(primaryObject, value);
-            return value;
+            respecialize(receiverObject);
+            return receiverObject.getAttribute(attributeId);
         }
 
-        storageLocation.write(primaryObject, value);
-        return value;
+        return storageLocation.read(receiverObject);
     }
 
 }

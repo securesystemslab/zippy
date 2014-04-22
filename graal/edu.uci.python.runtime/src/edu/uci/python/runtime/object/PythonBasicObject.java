@@ -55,7 +55,7 @@ public abstract class PythonBasicObject {
     protected double primitiveDouble3;
     protected double primitiveDouble4;
 
-    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
+    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 0;
     protected double fieldObject0;
     protected double fieldObject1;
     protected double fieldObject2;

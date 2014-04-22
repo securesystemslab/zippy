@@ -24,58 +24,46 @@
  */
 package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.nodes.*;
-
 import edu.uci.python.runtime.datatype.*;
 
-/**
- * A storage location for ints.
- */
-public class IntStorageLocation extends FieldStorageLocation {
+public final class ArrayObjectStorageLocation extends StorageLocation {
 
-    private final long offset;
+    private final int index;
 
-    public IntStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = FieldStorageLocation.getExactPrimitiveIntOffsetOf(index);
+    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index) {
+        super(objectLayout);
+        this.index = index;
+    }
+
+    @Override
+    public boolean isSet(PythonBasicObject object) {
+        return object.arrayObjects[index] != null;
     }
 
     @Override
     public Object read(PythonBasicObject object) {
-        try {
-            return readInt(object);
-        } catch (UnexpectedResultException e) {
-            return e.getResult();
-        }
-    }
+        final Object result = object.arrayObjects[index];
 
-    public int readInt(PythonBasicObject object) throws UnexpectedResultException {
-        if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getInt(object, offset);
+        if (result == null) {
+            return PNone.NONE;
         } else {
-            throw new UnexpectedResultException(PNone.NONE);
+            return result;
         }
     }
 
     @Override
-    public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
-        if (value instanceof Integer) {
-            writeInt(object, (int) value);
-        } else if (value instanceof PNone) {
-            markAsUnset(object);
-        } else {
-            throw new GeneralizeStorageLocationException();
-        }
-    }
-
-    public void writeInt(PythonBasicObject object, int value) {
-        PythonUnsafe.UNSAFE.putInt(object, offset, value);
-        markAsSet(object);
+    public void write(PythonBasicObject object, Object value) {
+        object.arrayObjects[index] = value;
     }
 
     @Override
     public Class getStoredClass() {
-        return Integer.class;
+        return Object.class;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " at " + index;
     }
 
 }

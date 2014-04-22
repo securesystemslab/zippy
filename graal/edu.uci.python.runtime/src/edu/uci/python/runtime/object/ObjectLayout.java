@@ -47,14 +47,16 @@ public class ObjectLayout {
 
     private final int primitiveIntStorageLocationsUsed;
     private final int primitiveDoubleStorageLocationsUsed;
-    private final int objectStorageLocationsUsed;
+    private final int fieldObjectStorageLocationsUsed;
+    private final int arrayObjectStorageLocationsUsed;
 
     private ObjectLayout(String originHint) {
         this.originHint = originHint;
         this.parent = null;
         primitiveIntStorageLocationsUsed = 0;
         primitiveDoubleStorageLocationsUsed = 0;
-        objectStorageLocationsUsed = 0;
+        fieldObjectStorageLocationsUsed = 0;
+        arrayObjectStorageLocationsUsed = 0;
     }
 
     public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent) {
@@ -69,16 +71,19 @@ public class ObjectLayout {
 
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
+        int fieldObjectStorageLocationIndex;
         int objectStorageLocationIndex;
 
         if (parent == null) {
             primitiveIntStorageLocationIndex = 0;
             primitiveDoubleStorageLocationIndex = 0;
+            fieldObjectStorageLocationIndex = 0;
             objectStorageLocationIndex = 0;
         } else {
             primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
             primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
-            objectStorageLocationIndex = parent.objectStorageLocationsUsed;
+            fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
+            objectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
         }
 
         // Go through the variables we've been asked to store
@@ -131,16 +136,23 @@ public class ObjectLayout {
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else {
-                    final ObjectStorageLocation newStorageLocation = new ObjectStorageLocation(this, objectStorageLocationIndex);
-                    storageLocations.put(entry.getKey(), newStorageLocation);
-                    objectStorageLocationIndex++;
+                    if (fieldObjectStorageLocationIndex + 1 <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, objectStorageLocationIndex);
+                        storageLocations.put(entry.getKey(), newStorageLocation);
+                        fieldObjectStorageLocationIndex++;
+                    } else {
+                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, objectStorageLocationIndex);
+                        storageLocations.put(entry.getKey(), newStorageLocation);
+                        objectStorageLocationIndex++;
+                    }
                 }
             }
         }
 
         primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
-        objectStorageLocationsUsed = objectStorageLocationIndex;
+        fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
+        arrayObjectStorageLocationsUsed = objectStorageLocationIndex;
     }
 
     public static final ObjectLayout empty() {
@@ -231,7 +243,7 @@ public class ObjectLayout {
     }
 
     public int getObjectStorageLocationsUsed() {
-        return objectStorageLocationsUsed;
+        return arrayObjectStorageLocationsUsed;
     }
 
     /**
@@ -258,7 +270,7 @@ public class ObjectLayout {
     }
 
     public boolean isEmpty() {
-        return storageLocations.isEmpty() && objectStorageLocationsUsed == 0 && //
+        return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0 && //
                         this.primitiveIntStorageLocationsUsed == 0 && //
                         this.primitiveDoubleStorageLocationsUsed == 0;
     }

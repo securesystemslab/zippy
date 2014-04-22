@@ -31,14 +31,16 @@ import edu.uci.python.runtime.object.*;
 public abstract class AttributeWriteNode extends Node {
 
     public static AttributeWriteNode create(StorageLocation location) {
-        if (location instanceof ObjectStorageLocation) {
-            return new WriteObjectAttributeNode((ObjectStorageLocation) location);
+        if (location instanceof ArrayObjectStorageLocation) {
+            return new WriteArrayObjectAttributeNode((ArrayObjectStorageLocation) location);
         } else if (location instanceof BooleanStorageLocation) {
             return new WriteBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new WriteIntAttributeNode((IntStorageLocation) location);
         } else if (location instanceof FloatStorageLocation) {
             return new WriteDoubleAttributeNode((FloatStorageLocation) location);
+        } else if (location instanceof FieldObjectStorageLocation) {
+            return new WriteFieldObjectAttributeNode((FieldObjectStorageLocation) location);
         }
 
         throw new IllegalStateException();
@@ -58,11 +60,25 @@ public abstract class AttributeWriteNode extends Node {
         setValueUnsafe(storage, value);
     }
 
-    public static final class WriteObjectAttributeNode extends AttributeWriteNode {
+    public static final class WriteArrayObjectAttributeNode extends AttributeWriteNode {
 
-        private final ObjectStorageLocation objLocation;
+        private final ArrayObjectStorageLocation objLocation;
 
-        public WriteObjectAttributeNode(ObjectStorageLocation objLocation) {
+        public WriteArrayObjectAttributeNode(ArrayObjectStorageLocation objLocation) {
+            this.objLocation = objLocation;
+        }
+
+        @Override
+        public void setValueUnsafe(PythonBasicObject storage, Object value) {
+            objLocation.write(storage, value);
+        }
+    }
+
+    public static final class WriteFieldObjectAttributeNode extends AttributeWriteNode {
+
+        private final FieldObjectStorageLocation objLocation;
+
+        public WriteFieldObjectAttributeNode(FieldObjectStorageLocation objLocation) {
             this.objLocation = objLocation;
         }
 

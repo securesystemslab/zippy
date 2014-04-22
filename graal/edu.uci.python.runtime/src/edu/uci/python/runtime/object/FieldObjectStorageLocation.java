@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,40 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.object;
+package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
-import com.oracle.truffle.api.frame.*;
+public class FieldObjectStorageLocation extends FieldStorageLocation {
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.object.*;
+    private final long offset;
 
-public final class LoadObjectAttributeNode extends LoadSpecializedAttributeNode {
-
-    private final ObjectStorageLocation storageLocation;
-
-    public LoadObjectAttributeNode(String name, PNode primary, ObjectLayout objectLayout, ObjectStorageLocation storageLocation) {
-        super(name, primary, objectLayout);
-        this.storageLocation = storageLocation;
+    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index) {
+        super(objectLayout, index);
+        offset = getExactFieldObjectOffsetOf(index);
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
-
-        if (receiverObject.getObjectLayout() != objectLayout) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            return getAttributeSlow(receiverObject);
-        }
-
-        return storageLocation.read(receiverObject);
+    public Object read(PythonBasicObject object) {
+        return PythonUnsafe.UNSAFE.getObject(object, offset);
     }
 
-    @SlowPath
-    private Object getAttributeSlow(PythonBasicObject receiverObject) {
-        respecialize(receiverObject);
-        return receiverObject.getAttribute(attributeId);
+    @Override
+    public void write(PythonBasicObject object, Object value) {
+        PythonUnsafe.UNSAFE.putObject(object, offset, value);
+    }
+
+    @Override
+    public Class getStoredClass() {
+        return Object.class;
     }
 
 }
