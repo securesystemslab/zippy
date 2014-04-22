@@ -37,8 +37,8 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.attribute.*;
-import edu.uci.python.nodes.attribute.DispatchBoxedNode.AttributeDispatchBoxedNode;
-import edu.uci.python.nodes.attribute.DispatchUnboxedNode.AttributeDispatchUnboxedNode;
+import edu.uci.python.nodes.attribute.DispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.attribute.DispatchUnboxedNode.LinkedDispatchUnboxedNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.BoxedGetAttributeNode;
 import edu.uci.python.nodes.attribute.GetAttributeNode.UnboxedGetMethodNode;
 import edu.uci.python.nodes.function.*;
@@ -82,7 +82,7 @@ public class GetAttributeCacheNodeTests {
 
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
-        AttributeDispatchUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
+        LinkedDispatchUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, LinkedDispatchUnboxedNode.class);
         assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadObjectAttributeNode);
 
         // 3rd execute
@@ -90,7 +90,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getMethod, AttributeDispatchUnboxedNode.class);
+        cache = NodeUtil.findFirstNodeInstance(getMethod, LinkedDispatchUnboxedNode.class);
         assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadObjectAttributeNode);
 
         /**
@@ -160,7 +160,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedCachedAttributeNode
-        AttributeDispatchBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, AttributeDispatchBoxedNode.class);
+        LinkedDispatchBoxedNode cache = NodeUtil.findFirstNodeInstance(getAttr, LinkedDispatchBoxedNode.class);
         assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadIntAttributeNode);
 
         // 3rd execute
@@ -168,7 +168,7 @@ public class GetAttributeCacheNodeTests {
         root.execute(frame);
 
         // make sure cache node stay unchanged
-        cache = NodeUtil.findFirstNodeInstance(getAttr, AttributeDispatchBoxedNode.class);
+        cache = NodeUtil.findFirstNodeInstance(getAttr, LinkedDispatchBoxedNode.class);
         assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadIntAttributeNode);
 
         /**

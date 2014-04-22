@@ -66,7 +66,7 @@ public abstract class DispatchBoxedNode extends Node {
                 throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
             }
 
-            DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
+            DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
             checkAndReplace(newNode);
             return newNode;
         }
@@ -79,7 +79,7 @@ public abstract class DispatchBoxedNode extends Node {
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
-                DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
+                DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
                 checkAndReplace(newNode);
                 return newNode;
             }
@@ -107,7 +107,7 @@ public abstract class DispatchBoxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        DispatchBoxedNode newNode = AttributeDispatchBoxedNode.create(attributeId, primaryObj, current, current.getOwnValidLocation(attributeId), depth, next);
+        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, current, current.getOwnValidLocation(attributeId), depth, next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -165,7 +165,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
     }
 
-    public static final class AttributeDispatchBoxedNode extends DispatchBoxedNode {
+    public static final class LinkedDispatchBoxedNode extends DispatchBoxedNode {
 
         @Child protected ShapeCheckNode primaryCheck;
         @Child protected AttributeReadNode read;
@@ -173,7 +173,7 @@ public abstract class DispatchBoxedNode extends Node {
 
         private final PythonBasicObject cachedStorage;
 
-        public AttributeDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject storage, DispatchBoxedNode next) {
+        public LinkedDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject storage, DispatchBoxedNode next) {
             super(attributeId);
             this.primaryCheck = checkNode;
             this.read = read;
@@ -181,19 +181,19 @@ public abstract class DispatchBoxedNode extends Node {
             this.cachedStorage = storage;
         }
 
-        public static AttributeDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonBasicObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
+        public static LinkedDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonBasicObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
             ShapeCheckNode check = ShapeCheckNode.create(primaryObj, depth);
             AttributeReadNode read = AttributeReadNode.create(location);
 
             if (primaryObj instanceof PythonObject && !(primaryObj instanceof PythonClass)) {
                 if (depth == 0) {
                     assert primaryObj == storage;
-                    return new AttributeDispatchBoxedNode(attributeId, check, read, null, next);
+                    return new LinkedDispatchBoxedNode(attributeId, check, read, null, next);
                 } else {
-                    return new AttributeDispatchBoxedNode(attributeId, check, read, storage, next);
+                    return new LinkedDispatchBoxedNode(attributeId, check, read, storage, next);
                 }
             } else if (primaryObj instanceof PythonClass || primaryObj instanceof PythonModule) {
-                return new AttributeDispatchBoxedNode(attributeId, check, read, storage, next);
+                return new LinkedDispatchBoxedNode(attributeId, check, read, storage, next);
             }
 
             throw new IllegalStateException();

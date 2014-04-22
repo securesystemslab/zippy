@@ -73,7 +73,7 @@ public abstract class DispatchUnboxedNode extends Node {
             throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
         }
 
-        AttributeDispatchUnboxedNode newNode = new AttributeDispatchUnboxedNode(attributeId, primaryObj, current, next);
+        LinkedDispatchUnboxedNode newNode = new LinkedDispatchUnboxedNode(attributeId, primaryObj, current, next);
         checkAndReplace(newNode);
         return newNode;
     }
@@ -132,7 +132,7 @@ public abstract class DispatchUnboxedNode extends Node {
         }
     }
 
-    public static final class AttributeDispatchUnboxedNode extends DispatchUnboxedNode {
+    public static final class LinkedDispatchUnboxedNode extends DispatchUnboxedNode {
 
         @Child protected AttributeReadNode read;
         @Child protected DispatchUnboxedNode next;
@@ -140,7 +140,7 @@ public abstract class DispatchUnboxedNode extends Node {
         private final Class cachedClass;
         private final PythonBasicObject cachedStorage;
 
-        public AttributeDispatchUnboxedNode(String attributeId, Object primary, PythonBasicObject storage, DispatchUnboxedNode next) {
+        public LinkedDispatchUnboxedNode(String attributeId, Object primary, PythonBasicObject storage, DispatchUnboxedNode next) {
             super(attributeId);
             this.read = AttributeReadNode.create(storage.getOwnValidLocation(attributeId));
             this.next = next;

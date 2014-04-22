@@ -109,7 +109,7 @@ public class GetAttributeCacheTests {
         RootNode root = result.getModuleRoot();
 
         // depth of dispatch chain
-        List<AttributeDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, AttributeDispatchUnboxedNode.class);
+        List<LinkedDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, LinkedDispatchUnboxedNode.class);
         assertTrue(dispatchNodes.size() == 3);
 
         // bottom unitialized dispatch node
@@ -126,7 +126,7 @@ public class GetAttributeCacheTests {
         RootNode root = result.getModuleRoot();
 
         // depth of dispatch chain
-        List<AttributeDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, AttributeDispatchUnboxedNode.class);
+        List<LinkedDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, LinkedDispatchUnboxedNode.class);
         assertTrue(dispatchNodes.size() == 0);
 
         // generic dispatch node
