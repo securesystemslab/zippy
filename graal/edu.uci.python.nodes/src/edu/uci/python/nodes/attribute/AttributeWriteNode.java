@@ -30,6 +30,19 @@ import edu.uci.python.runtime.object.*;
 
 public abstract class AttributeWriteNode extends Node {
 
+    public static AttributeWriteNode create(StorageLocation location) {
+        if (location instanceof ObjectStorageLocation) {
+            return new WriteObjectAttributeNode((ObjectStorageLocation) location);
+        } else if (location instanceof IntStorageLocation) {
+            return new WriteIntAttributeNode((IntStorageLocation) location);
+        } else if (location instanceof FloatStorageLocation) {
+            return new WriteDoubleAttributeNode((FloatStorageLocation) location);
+        }
+
+        // TODO: write boolean
+        throw new IllegalStateException();
+    }
+
     public abstract void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException;
 
     public void setIntValueUnsafe(PythonBasicObject storage, int value) throws GeneralizeStorageLocationException {
