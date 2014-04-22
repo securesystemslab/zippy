@@ -2058,6 +2058,39 @@ def build(args, parser=None):
         return args
     return None
 
+def _chunk_files_for_command_line(files, limit=None, pathFunction=None):
+    """
+    Returns a generator for splitting up a list of files into chunks such that the
+    size of the space separated file paths in a chunk is less than a given limit.
+    This is used to work around system command line length limits.
+    """
+    chunkSize = 0
+    chunkStart = 0
+    if limit is None:
+        commandLinePrefixAllowance = 3000
+        if get_os() == 'windows':
+            # The CreateProcess function on Windows limits the length of a command line to
+            # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
+            limit = 32768 - commandLinePrefixAllowance
+        else:
+            # Using just SC_ARG_MAX without extra downwards adjustment
+            # results in "[Errno 7] Argument list too long" on MacOS.
+            syslimit = os.sysconf('SC_ARG_MAX') - 20000
+            limit = syslimit - commandLinePrefixAllowance
+    for i in range(len(files)):
+        path = files[i] if pathFunction is None else pathFunction(files[i])
+        size = len(path) + 1
+        if chunkSize + size < limit:
+            chunkSize += size
+        else:
+            assert i > chunkStart
+            yield files[chunkStart:i]
+            chunkStart = i
+            chunkSize = 0
+    if chunkStart == 0:
+        assert chunkSize < limit
+        yield files
+
 def eclipseformat(args):
     """run the Eclipse Code Formatter on the Java sources
 
@@ -2160,18 +2193,19 @@ def eclipseformat(args):
         if res is not batch:
             res.javafiles = res.javafiles + batch.javafiles
 
-    print "we have: " + str(len(batches)) + " batches"
+    log("we have: " + str(len(batches)) + " batches")
     for batch in batches.itervalues():
-        run([args.eclipse_exe,
-            '-nosplash',
-            '-application',
-            'org.eclipse.jdt.core.JavaCodeFormatter',
-            '-vm', java(batch.javaCompliance).java,
-            '-config', batch.path]
-            + [f.path for f in batch.javafiles])
-        for fi in batch.javafiles:
-            if fi.update(batch.removeTrailingWhitespace):
-                modified.append(fi)
+        for chunk in _chunk_files_for_command_line(batch.javafiles, pathFunction=lambda f: f.path):
+            run([args.eclipse_exe,
+                '-nosplash',
+                '-application',
+                'org.eclipse.jdt.core.JavaCodeFormatter',
+                '-vm', java(batch.javaCompliance).java,
+                '-config', batch.path]
+                + [f.path for f in chunk])
+            for fi in chunk:
+                if fi.update(batch.removeTrailingWhitespace):
+                    modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
 
@@ -2503,26 +2537,9 @@ def checkstyle(args):
             log('Running Checkstyle on {0} using {1}...'.format(sourceDir, config))
 
             try:
-
-                # Checkstyle is unable to read the filenames to process from a file, and the
-                # CreateProcess function on Windows limits the length of a command line to
-                # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
-                # so calling Checkstyle must be done in batches.
-                while len(javafilelist) != 0:
-                    i = 0
-                    size = 0
-                    while i < len(javafilelist):
-                        s = len(javafilelist[i]) + 1
-                        if size + s < 30000:
-                            size += s
-                            i += 1
-                        else:
-                            break
-
-                    batch = javafilelist[:i]
-                    javafilelist = javafilelist[i:]
+                for chunk in _chunk_files_for_command_line(javafilelist):
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch, nonZeroIsFatal=False)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + chunk, nonZeroIsFatal=False)
                     finally:
                         if exists(auditfileName):
                             errors = []
