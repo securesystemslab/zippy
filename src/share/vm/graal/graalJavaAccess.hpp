@@ -47,7 +47,7 @@ void graal_compute_offsets();
  *
  */
 
-#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
+#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field, static_int_field) \
   start_class(HotSpotResolvedObjectType)                                                                                                                       \
     oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                       \
   end_class                                                                                                                                                    \
@@ -196,6 +196,7 @@ void graal_compute_offsets();
     int_field(BytecodeFrame, numLocks)                                                                                                                         \
     boolean_field(BytecodeFrame, rethrowException)                                                                                                             \
     boolean_field(BytecodeFrame, duringCall)                                                                                                                   \
+    static_int_field(BytecodeFrame, BEFORE_BCI)                                                                                                                \
   end_class                                                                                                                                                    \
   start_class(BytecodePosition)                                                                                                                                \
     oop_field(BytecodePosition, caller, "Lcom/oracle/graal/api/code/BytecodePosition;")                                                                        \
@@ -313,7 +314,19 @@ class name : AllStatic {                                                        
         oop_store((oop*)addr, x);                                                                                                                              \
       }                                                                                                                                                        \
     }
-COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
+#define STATIC_INT_FIELD(klassName, name)                                                                                                                      \
+    static int _##name##_offset;                                                                                                                               \
+    static int name() {                                                                                                                                        \
+      InstanceKlass* ik = InstanceKlass::cast(klassName::klass());                                                                                             \
+      address addr = ik->static_field_addr(_##name##_offset - InstanceMirrorKlass::offset_of_static_fields());                                                 \
+      return *((jint *)addr);                                                                                                                                  \
+    }                                                                                                                                                          \
+    static void set_##name(int x) {                                                                                                                            \
+      InstanceKlass* ik = InstanceKlass::cast(klassName::klass());                                                                                             \
+      address addr = ik->static_field_addr(_##name##_offset - InstanceMirrorKlass::offset_of_static_fields());                                                 \
+      *((jint *)addr) = x;                                                                                                                                     \
+    }
+COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD, STATIC_INT_FIELD)
 #undef START_CLASS
 #undef END_CLASS
 #undef FIELD
@@ -324,6 +337,7 @@ COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD
 #undef FLOAT_FIELD
 #undef OOP_FIELD
 #undef STATIC_OOP_FIELD
+#undef STATIC_INT_FIELD
 
 void compute_offset(int &dest_offset, Klass* klass, const char* name, const char* signature, bool static_field);
 
