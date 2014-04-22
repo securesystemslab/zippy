@@ -283,7 +283,7 @@ project@com.oracle.graal.debug.test@workingSets=Graal,Debug,Test
 # graal.lir
 project@com.oracle.graal.lir@subDir=graal
 project@com.oracle.graal.lir@sourceDirs=src
-project@com.oracle.graal.lir@dependencies=com.oracle.graal.nodes,com.oracle.graal.asm
+project@com.oracle.graal.lir@dependencies=com.oracle.graal.asm,com.oracle.graal.compiler.common,com.oracle.graal.options,com.oracle.graal.debug
 project@com.oracle.graal.lir@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir@javaCompliance=1.8
 project@com.oracle.graal.lir@workingSets=Graal,LIR
@@ -373,7 +373,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.lir
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
 project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
@@ -422,7 +422,7 @@ project@com.oracle.graal.loop@workingSets=Graal,Phases
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.8
 project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
