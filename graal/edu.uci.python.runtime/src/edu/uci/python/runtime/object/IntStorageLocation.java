@@ -31,13 +31,13 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for ints.
  */
-public class IntStorageLocation extends PrimitiveStorageLocation {
+public class IntStorageLocation extends FieldStorageLocation {
 
     protected final long offset;
 
     public IntStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = getExactOffsetOf(index);
+        offset = FieldStorageLocation.getExactPrimitiveIntOffsetOf(index);
     }
 
     @Override
@@ -76,20 +76,6 @@ public class IntStorageLocation extends PrimitiveStorageLocation {
     @Override
     public Class getStoredClass() {
         return Integer.class;
-    }
-
-    protected static long getExactOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveIntStorageLocation" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
     }
 
 }

@@ -38,28 +38,34 @@ import edu.uci.python.runtime.standardtype.*;
 public abstract class PythonBasicObject {
 
     @CompilationFinal protected PythonClass pythonClass;
-
-    private boolean usePrivateLayout;
     private ObjectLayout objectLayout;
+    private boolean usePrivateLayout;
 
     public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
-    protected int primitiveIntStorageLocation0;
-    protected int primitiveIntStorageLocation1;
-    protected int primitiveIntStorageLocation2;
-    protected int primitiveIntStorageLocation3;
-    protected int primitiveIntStorageLocation4;
+    protected int primitiveInt0;
+    protected int primitiveInt1;
+    protected int primitiveInt2;
+    protected int primitiveInt3;
+    protected int primitiveInt4;
 
     public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 5;
-    protected double primitiveDoubleStorageLocation0;
-    protected double primitiveDoubleStorageLocation1;
-    protected double primitiveDoubleStorageLocation2;
-    protected double primitiveDoubleStorageLocation3;
-    protected double primitiveDoubleStorageLocation4;
+    protected double primitiveDouble0;
+    protected double primitiveDouble1;
+    protected double primitiveDouble2;
+    protected double primitiveDouble3;
+    protected double primitiveDouble4;
+
+    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
+    protected double fieldObject0;
+    protected double fieldObject1;
+    protected double fieldObject2;
+    protected double fieldObject3;
+    protected double fieldObject4;
 
     // A bit map to indicate which primitives are set.
     protected int primitiveSetMap;
 
-    protected Object[] objectStorageLocations = null;
+    protected Object[] arrayObjects = null;
 
     public PythonBasicObject(PythonClass pythonClass) {
         unsafeSetPythonClass(pythonClass);
@@ -93,9 +99,9 @@ public abstract class PythonBasicObject {
         final int objectStorageLocationsUsed = objectLayout.getObjectStorageLocationsUsed();
 
         if (objectStorageLocationsUsed == 0) {
-            objectStorageLocations = null;
+            arrayObjects = null;
         } else {
-            objectStorageLocations = new Object[objectStorageLocationsUsed];
+            arrayObjects = new Object[objectStorageLocationsUsed];
         }
     }
 

@@ -40,12 +40,12 @@ public final class ObjectStorageLocation extends StorageLocation {
 
     @Override
     public boolean isSet(PythonBasicObject object) {
-        return object.objectStorageLocations[index] != null;
+        return object.arrayObjects[index] != null;
     }
 
     @Override
     public Object read(PythonBasicObject object) {
-        final Object result = object.objectStorageLocations[index];
+        final Object result = object.arrayObjects[index];
 
         if (result == null) {
             return PNone.NONE;
@@ -56,7 +56,7 @@ public final class ObjectStorageLocation extends StorageLocation {
 
     @Override
     public void write(PythonBasicObject object, Object value) {
-        object.objectStorageLocations[index] = value;
+        object.arrayObjects[index] = value;
     }
 
     @Override

@@ -101,8 +101,8 @@ public class ObjectLayoutTests {
         obj.setAttribute("boolean0", false);
         StorageLocation location1 = obj.getOwnValidLocation("boolean1");
         StorageLocation location0 = obj.getOwnValidLocation("boolean0");
-        assertTrue(location1 instanceof IntStorageLocation);
-        assertTrue(location0 instanceof IntStorageLocation);
+        assertTrue(location1 instanceof BooleanStorageLocation);
+        assertTrue(location0 instanceof BooleanStorageLocation);
         assertEquals(location1.read(obj), true);
         assertEquals(location0.read(obj), false);
     }

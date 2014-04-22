@@ -73,6 +73,8 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode, HasPr
 
         if (storageLocation instanceof IntStorageLocation) {
             return new LoadIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof BooleanStorageLocation) {
+            return new LoadBooleanAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (BooleanStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
             return new LoadFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
         } else {

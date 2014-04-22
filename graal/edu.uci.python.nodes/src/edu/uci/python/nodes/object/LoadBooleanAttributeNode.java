@@ -22,57 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.object.*;
 
-public class BooleanStorageLocation extends FieldStorageLocation {
+public class LoadBooleanAttributeNode extends LoadSpecializedAttributeNode {
 
-    private final long offset;
+    private final BooleanStorageLocation storageLocation;
 
-    protected BooleanStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = FieldStorageLocation.getExactPrimitiveIntOffsetOf(index);
+    public LoadBooleanAttributeNode(String name, PNode primary, ObjectLayout objectLayout, BooleanStorageLocation storageLocation) {
+        super(name, primary, objectLayout);
+        this.storageLocation = storageLocation;
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
+    public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+        final PythonBasicObject primaryObj = primary.executePythonBasicObject(frame);
+
+        if (primaryObj.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            respecialize(primaryObj);
+            return PythonTypesGen.PYTHONTYPES.expectBoolean(primaryObj.getAttribute(attributeId));
+        }
+
+        return storageLocation.readBoolean(primaryObj);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
         try {
-            return readBoolean(object);
+            return executeBoolean(frame);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
-    }
-
-    public boolean readBoolean(PythonBasicObject object) throws UnexpectedResultException {
-        if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getBoolean(object, offset);
-        } else {
-            throw new UnexpectedResultException(PNone.NONE);
-        }
-    }
-
-    @Override
-    public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
-        if (value instanceof Boolean) {
-            writeBoolean(object, (boolean) value);
-        } else if (value instanceof PNone) {
-            markAsUnset(object);
-        } else {
-            throw new GeneralizeStorageLocationException();
-        }
-    }
-
-    public void writeBoolean(PythonBasicObject object, boolean value) {
-        PythonUnsafe.UNSAFE.putBoolean(object, offset, value);
-        markAsSet(object);
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return Boolean.class;
     }
 
 }

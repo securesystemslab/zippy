@@ -24,15 +24,12 @@
  */
 package edu.uci.python.runtime.object;
 
-/**
- * A storage location that uses one of the primitive fields in <code>PythonObject</code>.
- */
-public abstract class PrimitiveStorageLocation extends StorageLocation {
+public abstract class FieldStorageLocation extends StorageLocation {
 
     private final int mask;
     protected final int index; // logical index not physical
 
-    protected PrimitiveStorageLocation(ObjectLayout objectLayout, int index) {
+    protected FieldStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout);
         mask = 1 << index;
         this.index = index;
@@ -49,6 +46,29 @@ public abstract class PrimitiveStorageLocation extends StorageLocation {
 
     protected void markAsUnset(PythonBasicObject object) {
         object.primitiveSetMap &= ~mask;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " at " + index;
+    }
+
+    protected static long getExactPrimitiveDoubleOffsetOf(int index) {
+        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
+        try {
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDouble" + index));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected static long getExactPrimitiveIntOffsetOf(int index) {
+        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
+        try {
+            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveInt" + index));
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -31,13 +31,13 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for floats.
  */
-public class FloatStorageLocation extends PrimitiveStorageLocation {
+public class FloatStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 
     public FloatStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = getExactOffsetOf(index);
+        offset = FieldStorageLocation.getExactPrimitiveDoubleOffsetOf(index);
     }
 
     @Override
@@ -76,20 +76,6 @@ public class FloatStorageLocation extends PrimitiveStorageLocation {
     @Override
     public Class getStoredClass() {
         return Double.class;
-    }
-
-    private static long getExactOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDoubleStorageLocation" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
     }
 
 }
