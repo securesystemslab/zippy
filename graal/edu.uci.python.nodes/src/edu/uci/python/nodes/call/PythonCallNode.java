@@ -302,7 +302,7 @@ public abstract class PythonCallNode extends PNode {
                 PythonClass clazz = (PythonClass) callee;
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonBasicObject) primary, callee, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
                 CallConstructorNode specialized = new CallConstructorNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
-                return specialized.executeCall(frame, (PythonBasicObject) primary, clazz);
+                return replace(specialized).executeCall(frame, (PythonBasicObject) primary, clazz);
             }
 
             boolean passPrimaryAsArgument = haveToPassPrimary(primary);

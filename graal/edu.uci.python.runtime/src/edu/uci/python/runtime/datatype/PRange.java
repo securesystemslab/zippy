@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,7 +26,7 @@ package edu.uci.python.runtime.datatype;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.*;
 
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
@@ -49,7 +49,8 @@ public final class PRange extends PImmutableSequence {
 
     public PRange(int low, int hi, int step) {
         if (step == 0) {
-            rangeIsZeroError();
+            CompilerDirectives.transferToInterpreter();
+            throw Py.ValueError("range() arg 3 must not be zero");
         }
 
         int n;
@@ -65,11 +66,6 @@ public final class PRange extends PImmutableSequence {
         this.length = n;
     }
 
-    @SlowPath
-    private static void rangeIsZeroError() {
-        throw Py.ValueError("range() arg 3 must not be zero");
-    }
-
     public static int getLenOfRange(int lo, int hi, int step) {
         int n = 0;
         if (lo < hi) {
@@ -80,15 +76,11 @@ public final class PRange extends PImmutableSequence {
             // negative number
             n = (int) ((diff / step) + 1);
             if (n < 0) {
-                overFlowError();
+                CompilerDirectives.transferToInterpreter();
+                throw Py.OverflowError("range() result has too many items");
             }
         }
         return n;
-    }
-
-    @SlowPath
-    private static void overFlowError() {
-        throw Py.OverflowError("range() result has too many items");
     }
 
     public int getStart() {
@@ -113,15 +105,11 @@ public final class PRange extends PImmutableSequence {
         int index = SequenceUtil.normalizeIndex(idx, length);
 
         if (index > length - 1) {
-            getItemIndexOutOfBound();
+            CompilerDirectives.transferToInterpreter();
+            throw Py.IndexError("range object index out of range");
         }
 
         return index * step + start;
-    }
-
-    @SlowPath
-    private static void getItemIndexOutOfBound() {
-        throw Py.IndexError("range object index out of range");
     }
 
     @SuppressWarnings("hiding")
