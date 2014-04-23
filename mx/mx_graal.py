@@ -35,6 +35,7 @@ import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
+import fnmatch, re
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
@@ -861,7 +862,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         projectscp = mx.classpath(projs)
 
     if whitelist:
-        classes = list(set(classes) & set(whitelist))
+        classes = [c for c in classes if any([glob.match(c) for glob in whitelist])]
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -966,7 +967,7 @@ def unittest(args):
     if parsed_args.whitelist:
         try:
             with open(join(_graal_home, parsed_args.whitelist)) as fp:
-                whitelist = [l.rstrip() for l in fp.readlines() if not l.startswith('#')]
+                whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
