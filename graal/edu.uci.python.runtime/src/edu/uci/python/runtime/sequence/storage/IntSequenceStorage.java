@@ -26,8 +26,6 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
-import edu.uci.python.runtime.object.*;
-
 public final class IntSequenceStorage extends BasicSequenceStorage {
 
     private int[] values;
@@ -84,7 +82,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     public int getIntItemInBound(int idx) {
-        return ObjectLayoutUtil.readIntArrayUnsafeAt(values, idx, null);
+        return values[idx];
     }
 
     @Override
@@ -97,7 +95,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setIntItemInBound(int idx, int value) {
-        ObjectLayoutUtil.writeIntArrayUnsafeAt(values, idx, value, null);
+        values[idx] = value;
     }
 
     @Override
