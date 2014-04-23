@@ -125,6 +125,7 @@ python2MicroBenchmarks = {
     'genexp-builtin-call'   : '0',
     'attribute-access'      : '0',
     'attribute-bool'        : '0',
+    'object-allocate'       : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -142,6 +143,7 @@ pythonMicroBenchmarks = {
     'genexp-builtin-call'   : '0',
     'attribute-access'      : '0',
     'attribute-bool'        : '0',
+    'object-allocate'       : '0',
 }
 
 pythonBenchmarks = {
