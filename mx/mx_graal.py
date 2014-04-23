@@ -862,7 +862,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         projectscp = mx.classpath(projs)
 
     if whitelist:
-        classes = [c for c in classes if any([glob.match(c) for glob in whitelist])]
+        classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
