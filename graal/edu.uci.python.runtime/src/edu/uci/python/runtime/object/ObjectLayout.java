@@ -72,18 +72,18 @@ public class ObjectLayout {
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
         int fieldObjectStorageLocationIndex;
-        int objectStorageLocationIndex;
+        int arrayObjectStorageLocationIndex;
 
         if (parent == null) {
             primitiveIntStorageLocationIndex = 0;
             primitiveDoubleStorageLocationIndex = 0;
             fieldObjectStorageLocationIndex = 0;
-            objectStorageLocationIndex = 0;
+            arrayObjectStorageLocationIndex = 0;
         } else {
             primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
             primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
             fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
-            objectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
+            arrayObjectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
         }
 
         // Go through the variables we've been asked to store
@@ -137,13 +137,13 @@ public class ObjectLayout {
                     primitiveIntStorageLocationIndex++;
                 } else {
                     if (fieldObjectStorageLocationIndex + 1 <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
-                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, objectStorageLocationIndex);
+                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         fieldObjectStorageLocationIndex++;
                     } else {
-                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, objectStorageLocationIndex);
+                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex);
                         storageLocations.put(entry.getKey(), newStorageLocation);
-                        objectStorageLocationIndex++;
+                        arrayObjectStorageLocationIndex++;
                     }
                 }
             }
@@ -152,7 +152,7 @@ public class ObjectLayout {
         primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
         fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
-        arrayObjectStorageLocationsUsed = objectStorageLocationIndex;
+        arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
     }
 
     public static final ObjectLayout empty() {
@@ -272,6 +272,7 @@ public class ObjectLayout {
     public boolean isEmpty() {
         return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0 && //
                         this.primitiveIntStorageLocationsUsed == 0 && //
+                        this.fieldObjectStorageLocationsUsed == 0 && //
                         this.primitiveDoubleStorageLocationsUsed == 0;
     }
 

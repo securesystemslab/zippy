@@ -41,6 +41,7 @@ public class FieldObjectStorageLocation extends FieldStorageLocation {
     @Override
     public void write(PythonBasicObject object, Object value) {
         PythonUnsafe.UNSAFE.putObject(object, offset, value);
+        markAsSet(object);
     }
 
     @Override

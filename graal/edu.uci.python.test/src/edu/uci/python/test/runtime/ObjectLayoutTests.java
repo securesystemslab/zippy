@@ -83,7 +83,8 @@ public class ObjectLayoutTests {
 
         final ObjectLayout layout = obj.getObjectLayout();
         int objectStorageLocationUsed = layout.getObjectStorageLocationsUsed();
-        assertEquals(100 - PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
+        assertEquals(100 - PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - //
+                        PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
 
         for (int i = 0; i < 100; i++) {
             assertEquals(i, obj.getAttribute("foo" + i));
@@ -105,6 +106,23 @@ public class ObjectLayoutTests {
         assertTrue(location0 instanceof BooleanStorageLocation);
         assertEquals(location1.read(obj), true);
         assertEquals(location0.read(obj), false);
+    }
+
+    @Test
+    public void fieldObjectAttribute() {
+        // Create a class and an instance
+        final PythonContext context = PythonTests.getContext();
+        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+
+        obj.setAttribute("string0", "string0");
+        obj.setAttribute("string1", "string1");
+        StorageLocation location0 = obj.getOwnValidLocation("string0");
+        StorageLocation location1 = obj.getOwnValidLocation("string1");
+        assertTrue(location0 instanceof FieldObjectStorageLocation);
+        assertTrue(location1 instanceof FieldObjectStorageLocation);
+        assertEquals("string0", location0.read(obj));
+        assertEquals("string1", location1.read(obj));
     }
 
     @Test
@@ -136,4 +154,5 @@ public class ObjectLayoutTests {
 
         assertTrue(obj.isOwnAttribute("foo"));
     }
+
 }
