@@ -905,8 +905,6 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
 _unittestHelpSuffix = """
     Unittest options:
 
-      --short-only           run short testcases only
-      --long-only            run long testcases only
       --whitelist            run only testcases which are included
                              in the given whitelist
 
@@ -945,9 +943,6 @@ def unittest(args):
           formatter_class=RawDescriptionHelpFormatter,
           epilog=_unittestHelpSuffix,
         )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--short-only', action='store_true', help='run short testcases only')
-    group.add_argument('--long-only', action='store_true', help='run long testcases only')
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
 
     ut_args = []
@@ -975,17 +970,12 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    if parsed_args.short_only:
-        annotations = ['@Test']
-    else:
-        annotations = ['@Test', '@Parameters']
-
-    _unittest(args, annotations, whitelist=whitelist)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist)
 
 def shortunittest(args):
-    """alias for 'unittest --short-only'{0}"""
+    """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
 
-    args.insert(0, '--short-only')
+    args = ['--whitelist', 'test/whitelist_shortunittest.txt'] + args
     unittest(args)
 
 def buildvms(args):
