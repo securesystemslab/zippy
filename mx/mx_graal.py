@@ -1306,7 +1306,7 @@ def c1visualizer(args):
         executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
 
     archive = join(libpath, 'c1visualizer_2014-04-22.zip')
-    if not exists(executable):
+    if not exists(executable) or not exists(archive):
         if not exists(archive):
             mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer_2014-04-22.zip'])
         zf = zipfile.ZipFile(archive, 'r')
