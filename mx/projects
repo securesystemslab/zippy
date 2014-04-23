@@ -283,7 +283,7 @@ project@com.oracle.graal.debug.test@workingSets=Graal,Debug,Test
 # graal.lir
 project@com.oracle.graal.lir@subDir=graal
 project@com.oracle.graal.lir@sourceDirs=src
-project@com.oracle.graal.lir@dependencies=com.oracle.graal.asm,com.oracle.graal.compiler.common,com.oracle.graal.options,com.oracle.graal.debug
+project@com.oracle.graal.lir@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.asm
 project@com.oracle.graal.lir@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir@javaCompliance=1.8
 project@com.oracle.graal.lir@workingSets=Graal,LIR
