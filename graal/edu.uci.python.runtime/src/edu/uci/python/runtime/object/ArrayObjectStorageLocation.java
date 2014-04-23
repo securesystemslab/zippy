@@ -42,7 +42,7 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
 
     @Override
     public Object read(PythonBasicObject object) {
-        final Object result = object.arrayObjects[index];
+        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
 
         if (result == null) {
             return PNone.NONE;
@@ -53,7 +53,7 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
 
     @Override
     public void write(PythonBasicObject object, Object value) {
-        object.arrayObjects[index] = value;
+        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
     }
 
     @Override

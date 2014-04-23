@@ -26,6 +26,9 @@ package edu.uci.python.runtime.object;
 
 import java.lang.reflect.*;
 
+import sun.misc.*;
+
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
@@ -69,6 +72,40 @@ public class ObjectLayoutUtil {
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static final Object readObjectArrayUnsafeAt(Object[] array, int index, Object locationIdentity) {
+        return CompilerDirectives.unsafeGetObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, true, locationIdentity);
+    }
+
+    public static final void writeObjectArrayUnsafeAt(Object[] array, int index, Object value, Object locationIdentity) {
+        CompilerDirectives.unsafePutObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, value, locationIdentity);
+    }
+
+    public static final int readIntArrayUnsafeAt(int[] array, int index, Object locationIdentity) {
+        return CompilerDirectives.unsafeGetInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, true, locationIdentity);
+    }
+
+    public static final void writeIntArrayUnsafeAt(int[] array, int index, int value, Object locationIdentity) {
+        CompilerDirectives.unsafePutInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, value, locationIdentity);
+    }
+
+    public static final double readDoubleArrayUnsafeAt(double[] array, int index, Object locationIdentity) {
+        return CompilerDirectives.unsafeGetDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, true, locationIdentity);
+    }
+
+    public static final void writeDoubleArrayUnsafeAt(double[] array, int index, double value, Object locationIdentity) {
+        CompilerDirectives.unsafePutDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, value, locationIdentity);
+    }
+
+    public static final char readCharArrayUnsafeAt(char[] array, int index, Object locationIdentity) {
+        final short value = CompilerDirectives.unsafeGetShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, true, locationIdentity);
+        return CompilerDirectives.unsafeCast(value, char.class, true);
+    }
+
+    public static final void writeCharArrayUnsafeAt(char[] array, int index, char value, Object locationIdentity) {
+        final short castedValue = CompilerDirectives.unsafeCast(value, short.class, true);
+        CompilerDirectives.unsafePutShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, castedValue, locationIdentity);
     }
 
 }
