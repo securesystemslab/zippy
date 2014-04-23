@@ -45,11 +45,11 @@ import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Cmp;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Nop;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.RestoreWindow;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Setx;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.SaveRegistersOp;
@@ -74,8 +74,8 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
     }
 
     @Override
-    public FrameMap newFrameMap() {
-        return new SPARCFrameMap(getProviders().getCodeCache());
+    public FrameMap newFrameMap(RegisterConfig registerConfig) {
+        return new SPARCFrameMap(getProviders().getCodeCache(), registerConfig);
     }
 
     @Override
@@ -84,13 +84,13 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
     }
 
     @Override
-    public NodeLIRGenerator newNodeLIRGenerator(StructuredGraph graph, LIRGenerationResult lirGenRes, LIRGenerator lirGen) {
-        return new SPARCHotSpotNodeLIRGenerator(graph, lirGenRes, lirGen);
+    public NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen) {
+        return new SPARCHotSpotNodeLIRBuilder(graph, lirGen);
     }
 
     /**
      * Emits code to do stack overflow checking.
-     * 
+     *
      * @param afterFrameInit specifies if the stack pointer has already been adjusted to allocate
      *            the current frame
      */
@@ -174,7 +174,7 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
         // On SPARC we always use stack frames.
         HotSpotFrameContext frameContext = new HotSpotFrameContext(stub != null);
         CompilationResultBuilder crb = factory.createBuilder(getProviders().getCodeCache(), getProviders().getForeignCalls(), frameMap, masm, frameContext, compilationResult);
-        crb.setFrameSize(frameMap.frameSize());
+        crb.setTotalFrameSize(frameMap.totalFrameSize());
         StackSlot deoptimizationRescueSlot = gen.getDeoptimizationRescueSlot();
         if (deoptimizationRescueSlot != null && stub == null) {
             crb.compilationResult.setCustomStackAreaOffset(frameMap.offsetForStackSlot(deoptimizationRescueSlot));

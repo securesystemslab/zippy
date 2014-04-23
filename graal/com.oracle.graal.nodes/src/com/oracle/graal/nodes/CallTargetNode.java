@@ -24,21 +24,23 @@ package com.oracle.graal.nodes;
 
 import java.util.*;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
+@NodeInfo(allowedUsageTypes = {InputType.Extension})
 public abstract class CallTargetNode extends ValueNode implements LIRLowerable {
 
     @Input private final NodeInputList<ValueNode> arguments;
 
     public CallTargetNode(ValueNode[] arguments) {
-        super(StampFactory.extension());
+        super(StampFactory.forVoid());
         this.arguments = new NodeInputList<>(this, arguments);
     }
 
     public CallTargetNode(List<ValueNode> arguments) {
-        super(StampFactory.extension());
+        super(StampFactory.forVoid());
         this.arguments = new NodeInputList<>(this, arguments);
     }
 
@@ -54,7 +56,7 @@ public abstract class CallTargetNode extends ValueNode implements LIRLowerable {
     public abstract String targetName();
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         // nop
     }
 }

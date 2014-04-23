@@ -36,12 +36,13 @@ import com.oracle.graal.nodes.util.*;
 /**
  * Denotes the merging of multiple control-flow paths.
  */
+@NodeInfo(allowedUsageTypes = {InputType.Association})
 public class MergeNode extends BeginStateSplitNode implements IterableNodeType, LIRLowerable {
 
-    @Input(notDataflow = true) private final NodeInputList<AbstractEndNode> ends = new NodeInputList<>(this);
+    @Input(InputType.Association) private final NodeInputList<AbstractEndNode> ends = new NodeInputList<>(this);
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         gen.visitMerge(this);
     }
 
@@ -68,7 +69,7 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
 
     /**
      * Determines if a given node is a phi whose {@linkplain PhiNode#merge() merge} is this node.
-     * 
+     *
      * @param value the instruction to test
      * @return {@code true} if {@code value} is a phi and its merge is {@code this}
      */
@@ -79,7 +80,7 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
     /**
      * Removes the given end from the merge, along with the entries corresponding to this end in the
      * phis connected to the merge.
-     * 
+     *
      * @param pred the end to remove
      */
     public void removeEnd(AbstractEndNode pred) {
@@ -123,26 +124,18 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
     }
 
     public NodeIterable<PhiNode> phis() {
-        return this.usages().filter(PhiNode.class).filter(new NodePredicate() {
-
-            @Override
-            public boolean apply(Node n) {
-                return ((PhiNode) n).merge() == MergeNode.this;
-            }
-        });
+        return this.usages().filter(PhiNode.class).filter(this::isPhiAtMerge);
     }
 
     @Override
     public NodeIterable<Node> anchored() {
-        return super.anchored().filter(isNotA(PhiNode.class).or(new NodePredicate() {
-
-            @Override
-            public boolean apply(Node n) {
-                return ((PhiNode) n).merge() != MergeNode.this;
-            }
-        }));
+        return super.anchored().filter(n -> !isPhiAtMerge(n));
     }
 
+    /**
+     * This simplify method can deal with a null value for tool, so that it can be used outside of
+     * canonicalization.
+     */
     @Override
     public void simplify(SimplifierTool tool) {
         FixedNode next = next();
@@ -162,10 +155,8 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
                 return;
             }
             for (PhiNode phi : phis()) {
-                for (Node usage : phi.usages().filter(isNotA(FrameState.class))) {
-                    if (!merge.isPhiAtMerge(usage)) {
-                        return;
-                    }
+                if (phi.usages().filter(isNotA(FrameState.class)).and(node -> !merge.isPhiAtMerge(node)).isNotEmpty()) {
+                    return;
                 }
             }
             Debug.log("Split %s into ends for %s.", this, merge);
@@ -193,7 +184,9 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
                 this.removeEnd(end);
                 end.replaceAtPredecessor(newEnd);
                 end.safeDelete();
-                tool.addToWorkList(newEnd.predecessor()); // ?
+                if (tool != null) {
+                    tool.addToWorkList(newEnd.predecessor());
+                }
             }
             graph().reduceTrivialMerge(this);
         } else if (next instanceof ReturnNode) {
@@ -210,7 +203,7 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
                 }
             }
 
-            PhiNode returnValuePhi = returnNode.result() == null || !isPhiAtMerge(returnNode.result()) ? null : (PhiNode) returnNode.result();
+            ValuePhiNode returnValuePhi = returnNode.result() == null || !isPhiAtMerge(returnNode.result()) ? null : (ValuePhiNode) returnNode.result();
             List<AbstractEndNode> endNodes = forwardEnds().snapshot();
             for (AbstractEndNode end : endNodes) {
                 ReturnNode newReturn = graph().add(new ReturnNode(returnValuePhi == null ? returnNode.result() : returnValuePhi.valueAt(end)));

@@ -29,6 +29,8 @@ import static com.oracle.graal.phases.GraalOptions.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
@@ -70,11 +72,14 @@ public final class SchedulePhase extends Phase {
     }
 
     public static enum SchedulingStrategy {
-        EARLIEST, LATEST, LATEST_OUT_OF_LOOPS
+        EARLIEST,
+        LATEST,
+        LATEST_OUT_OF_LOOPS
     }
 
     public static enum MemoryScheduling {
-        NONE, OPTIMAL
+        NONE,
+        OPTIMAL
     }
 
     private class KillSet implements Iterable<LocationIdentity> {
@@ -149,7 +154,7 @@ public final class SchedulePhase extends Phase {
         }
 
         @Override
-        protected List<KillSet> processLoop(Loop loop, KillSet state) {
+        protected List<KillSet> processLoop(Loop<Block> loop, KillSet state) {
             LoopInfo<KillSet> info = ReentrantBlockIterator.processLoop(this, loop, cloneState(state));
 
             assert loop.header.getBeginNode() instanceof LoopBeginNode;
@@ -198,7 +203,7 @@ public final class SchedulePhase extends Phase {
             }
         }
 
-        AbstractBeginNode startNode = cfg.getStartBlock().getBeginNode();
+        BeginNode startNode = cfg.getStartBlock().getBeginNode();
         assert startNode instanceof StartNode;
 
         KillSet accm = foundExcludeNode ? set : excludedLocations;
@@ -293,19 +298,20 @@ public final class SchedulePhase extends Phase {
 
     private void printSchedule(String desc) {
         if (Debug.isLogEnabled()) {
-            Debug.printf("=== %s / %s / %s (%s) ===\n", getCFG().getStartBlock().getBeginNode().graph(), selectedStrategy, memsched, desc);
+            Formatter buf = new Formatter();
+            buf.format("=== %s / %s / %s (%s) ===%n", getCFG().getStartBlock().getBeginNode().graph(), selectedStrategy, memsched, desc);
             for (Block b : getCFG().getBlocks()) {
-                Debug.printf("==== b: %s (loopDepth: %s). ", b, b.getLoopDepth());
-                Debug.printf("dom: %s. ", b.getDominator());
-                Debug.printf("post-dom: %s. ", b.getPostdominator());
-                Debug.printf("preds: %s. ", b.getPredecessors());
-                Debug.printf("succs: %s ====\n", b.getSuccessors());
+                buf.format("==== b: %s (loopDepth: %s). ", b, b.getLoopDepth());
+                buf.format("dom: %s. ", b.getDominator());
+                buf.format("post-dom: %s. ", b.getPostdominator());
+                buf.format("preds: %s. ", b.getPredecessors());
+                buf.format("succs: %s ====%n", b.getSuccessors());
                 BlockMap<KillSet> killSets = blockToKillSet;
                 if (killSets != null) {
-                    Debug.printf("X block kills: \n");
+                    buf.format("X block kills: %n");
                     if (killSets.get(b) != null) {
                         for (LocationIdentity locId : killSets.get(b)) {
-                            Debug.printf("X %s killed by %s\n", locId, "dunno anymore");
+                            buf.format("X %s killed by %s%n", locId, "dunno anymore");
                         }
                     }
                 }
@@ -320,28 +326,30 @@ public final class SchedulePhase extends Phase {
                     }
                 }
             }
-            Debug.printf("\n\n");
+            buf.format("%n");
+            Debug.log("%s", buf);
         }
     }
 
     private static void printNode(Node n) {
-        Debug.printf("%s", n);
+        Formatter buf = new Formatter();
+        buf.format("%s", n);
         if (n instanceof MemoryCheckpoint.Single) {
-            Debug.printf(" // kills %s", ((MemoryCheckpoint.Single) n).getLocationIdentity());
+            buf.format(" // kills %s", ((MemoryCheckpoint.Single) n).getLocationIdentity());
         } else if (n instanceof MemoryCheckpoint.Multi) {
-            Debug.printf(" // kills ");
+            buf.format(" // kills ");
             for (LocationIdentity locid : ((MemoryCheckpoint.Multi) n).getLocationIdentities()) {
-                Debug.printf("%s, ", locid);
+                buf.format("%s, ", locid);
             }
         } else if (n instanceof FloatingReadNode) {
             FloatingReadNode frn = (FloatingReadNode) n;
-            Debug.printf(" // from %s", frn.location().getLocationIdentity());
-            Debug.printf(", lastAccess: %s", frn.getLastLocationAccess());
-            Debug.printf(", object: %s", frn.object());
+            buf.format(" // from %s", frn.location().getLocationIdentity());
+            buf.format(", lastAccess: %s", frn.getLastLocationAccess());
+            buf.format(", object: %s", frn.object());
         } else if (n instanceof GuardNode) {
-            Debug.printf(", guard: %s", ((GuardNode) n).getGuard());
+            buf.format(", anchor: %s", ((GuardNode) n).getAnchor());
         }
-        Debug.printf("\n");
+        Debug.log("%s", buf);
     }
 
     public ControlFlowGraph getCFG() {
@@ -410,7 +418,7 @@ public final class SchedulePhase extends Phase {
                 if (scheduleRead) {
                     FloatingReadNode read = (FloatingReadNode) node;
                     block = optimalBlock(read, strategy);
-                    Debug.printf("schedule for %s: %s\n", read, block);
+                    Debug.log("schedule for %s: %s", read, block);
                     assert earliestBlock.dominates(block) : String.format("%s (%s) cannot be scheduled before earliest schedule (%s). location: %s", read, block, earliestBlock,
                                     read.getLocationIdentity());
                 } else {
@@ -462,11 +470,11 @@ public final class SchedulePhase extends Phase {
      *
      * <pre>
      *    U      upperbound block, defined by last access location of the floating read
-     *    &#9650;
+     *    &and;
      *    E      earliest block
-     *    &#9650;
+     *    &and;
      *    O      optimal block, first block that contains a kill of the read's location
-     *    &#9650;
+     *    &and;
      *    L      latest block
      * </pre>
      *
@@ -486,14 +494,14 @@ public final class SchedulePhase extends Phase {
         Block latestBlock = latestBlock(n, strategy);
         assert latestBlock != null && earliestBlock.dominates(latestBlock) : "earliest (" + earliestBlock + ") should dominate latest block (" + latestBlock + ")";
 
-        Debug.printf("processing %s (accessing %s): latest %s, earliest %s, upper bound %s (%s)\n", n, locid, latestBlock, earliestBlock, upperBoundBlock, n.getLastLocationAccess());
+        Debug.log("processing %s (accessing %s): latest %s, earliest %s, upper bound %s (%s)", n, locid, latestBlock, earliestBlock, upperBoundBlock, n.getLastLocationAccess());
         if (earliestBlock == latestBlock) {
             // read is fixed to this block, nothing to schedule
             return latestBlock;
         }
 
         Deque<Block> path = computePathInDominatorTree(earliestBlock, latestBlock);
-        Debug.printf("|path| is %d: %s\n", path.size(), path);
+        Debug.log("|path| is %d: %s", path.size(), path);
 
         // follow path, start at earliest schedule
         while (path.size() > 0) {
@@ -504,7 +512,7 @@ public final class SchedulePhase extends Phase {
                 assert dominatedBlock.getBeginNode() instanceof MergeNode;
 
                 HashSet<Block> region = computeRegion(currentBlock, dominatedBlock);
-                Debug.printf("> merge.  %s: region for %s -> %s: %s\n", n, currentBlock, dominatedBlock, region);
+                Debug.log("> merge.  %s: region for %s -> %s: %s", n, currentBlock, dominatedBlock, region);
 
                 NewMemoryScheduleClosure closure = null;
                 if (currentBlock == upperBoundBlock) {
@@ -643,12 +651,7 @@ public final class SchedulePhase extends Phase {
          * implies that the inputs' blocks have a total ordering via their dominance relation. So in
          * order to find the earliest block placement for this node we need to find the input block
          * that is dominated by all other input blocks.
-         * 
-         * While iterating over the inputs a set of dominator blocks of the current earliest
-         * placement is maintained. When the block of an input is not within this set, it becomes
-         * the current earliest placement and the list of dominator blocks is updated.
          */
-        BitSet dominators = new BitSet(cfg.getBlocks().length);
 
         if (node.predecessor() != null) {
             throw new SchedulingError();
@@ -661,12 +664,24 @@ public final class SchedulePhase extends Phase {
             } else {
                 inputEarliest = earliestBlock(input);
             }
-            if (!dominators.get(inputEarliest.getId())) {
+            if (earliest == null) {
                 earliest = inputEarliest;
-                do {
-                    dominators.set(inputEarliest.getId());
-                    inputEarliest = inputEarliest.getDominator();
-                } while (inputEarliest != null && !dominators.get(inputEarliest.getId()));
+            } else if (earliest != inputEarliest) {
+                // Find out whether earliest or inputEarliest is earlier.
+                Block a = earliest.getDominator();
+                Block b = inputEarliest;
+                while (true) {
+                    if (a == inputEarliest || b == null) {
+                        // Nothing to change, the previous earliest block is still earliest.
+                        break;
+                    } else if (b == earliest || a == null) {
+                        // New earliest is the earliest.
+                        earliest = inputEarliest;
+                        break;
+                    }
+                    a = a.getDominator();
+                    b = b.getDominator();
+                }
             }
         }
         if (earliest == null) {
@@ -747,7 +762,7 @@ public final class SchedulePhase extends Phase {
                     // If a FrameState is an outer FrameState this method behaves as if the inner
                     // FrameState was the actual usage, by recursing.
                     blocksForUsage(node, unscheduledUsage, closure, strategy);
-                } else if (unscheduledUsage instanceof AbstractBeginNode) {
+                } else if (unscheduledUsage instanceof BeginNode) {
                     // Only FrameStates can be connected to BeginNodes.
                     if (!(usage instanceof FrameState)) {
                         throw new SchedulingError(usage.toString());
@@ -916,7 +931,7 @@ public final class SchedulePhase extends Phase {
             }
             if (canNotMove) {
                 if (b.getEndNode() instanceof ControlSplitNode) {
-                    throw new GraalInternalError("Schedule is not possible : needs to move a node after the last node of the block which can not be move").addContext(lastSorted).addContext(
+                    throw new GraalGraphInternalError("Schedule is not possible : needs to move a node after the last node of the block which can not be move").addContext(lastSorted).addContext(
                                     b.getEndNode());
                 }
 
@@ -1041,7 +1056,7 @@ public final class SchedulePhase extends Phase {
                 }
             }
 
-            if (instruction instanceof AbstractBeginNode) {
+            if (instruction instanceof BeginNode) {
                 ArrayList<ProxyNode> proxies = (instruction instanceof LoopExitNode) ? new ArrayList<>() : null;
                 for (ScheduledNode inBlock : blockToNodesMap.get(b)) {
                     if (!visited.isMarked(inBlock)) {

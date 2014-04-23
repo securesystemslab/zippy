@@ -261,13 +261,14 @@ ifeq ($(USE_CLANG), true)
   WARNINGS_ARE_ERRORS += -Wno-empty-body
 endif
 
-WARNING_FLAGS = -Wpointer-arith -Wsign-compare -Wundef -Wunused-function -Wformat=2 -Wno-error=format-nonliteral
+WARNING_FLAGS = -Wpointer-arith -Wsign-compare -Wundef
 
-ifeq ($(USE_CLANG),)
+ifeq "$(shell expr \( $(CC_VER_MAJOR) \> 4 \) \| \( \( $(CC_VER_MAJOR) = 4 \) \& \( $(CC_VER_MINOR) \>= 3 \) \))" "0"
   # Since GCC 4.3, -Wconversion has changed its meanings to warn these implicit
   # conversions which might affect the values. Only enable it in earlier versions.
-  ifeq "$(shell expr \( $(CC_VER_MAJOR) \> 4 \) \| \( \( $(CC_VER_MAJOR) = 4 \) \& \( $(CC_VER_MINOR) \>= 3 \) \))" "0"
-    WARNINGS_FLAGS += -Wconversion
+  WARNING_FLAGS = -Wunused-function
+  ifeq ($(USE_CLANG),)
+    WARNING_FLAGS += -Wconversion
   endif
 endif
 
@@ -290,7 +291,7 @@ CFLAGS += -fno-strict-aliasing
 # The flags to use for an Optimized g++ build
 ifeq ($(OS_VENDOR), Darwin)
   # use -Os by default, unless -O3 can be proved to be worth the cost, as per policy
-  # <https://wiki.openjdk.java.net/display/MacOSXPort/Compiler+Errata>
+  # <http://wikis.sun.com/display/OpenJDK/Mac+OS+X+Port+Compilers>
   OPT_CFLAGS_DEFAULT ?= SIZE
 else
   OPT_CFLAGS_DEFAULT ?= SPEED

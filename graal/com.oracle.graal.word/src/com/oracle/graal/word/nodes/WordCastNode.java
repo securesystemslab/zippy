@@ -23,6 +23,7 @@
 package com.oracle.graal.word.nodes;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -67,7 +68,7 @@ public final class WordCastNode extends FixedWithNextNode implements LIRLowerabl
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         assert getKind() != input.getKind();
         assert generator.getLIRGeneratorTool().target().getSizeInBytes(getKind()) == generator.getLIRGeneratorTool().target().getSizeInBytes(input.getKind());
 

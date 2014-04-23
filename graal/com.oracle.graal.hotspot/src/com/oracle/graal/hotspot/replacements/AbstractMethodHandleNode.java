@@ -26,6 +26,7 @@ import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -162,7 +163,7 @@ public abstract class AbstractMethodHandleNode extends MacroNode implements Cano
         Constant vmtarget = memberNameVmtargetField.readValue(memberName);
 
         // Create a method from the vmtarget pointer
-        Class<?> c = (Class<?>) clazz.asObject();
+        Class<?> c = (Class<?>) HotSpotObjectConstant.asObject(clazz);
         HotSpotResolvedObjectType holderClass = (HotSpotResolvedObjectType) HotSpotResolvedObjectType.fromClass(c);
         HotSpotResolvedJavaMethod targetMethod = HotSpotResolvedJavaMethod.fromMetaspace(vmtarget.asLong());
 

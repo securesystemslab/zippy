@@ -381,9 +381,6 @@ address AbstractInterpreterGenerator::generate_method_entry(AbstractInterpreter:
     case Interpreter::zerolocals_synchronized: synchronized = true;                                                        break;
     case Interpreter::native                 : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(false);  break;
     case Interpreter::native_synchronized    : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(true);   break;
-#ifdef GRAAL
-    case Interpreter::execute_compiled_method: entry_point = ((InterpreterGenerator*)this)->generate_execute_compiled_method_entry();   break;
-#endif
     case Interpreter::empty                  : entry_point = ((InterpreterGenerator*)this)->generate_empty_entry();        break;
     case Interpreter::accessor               : entry_point = ((InterpreterGenerator*)this)->generate_accessor_entry();     break;
     case Interpreter::abstract               : entry_point = ((InterpreterGenerator*)this)->generate_abstract_entry();     break;

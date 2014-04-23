@@ -867,6 +867,8 @@ inline Metadata* Dependencies::DepStream::recorded_metadata_at(int i) {
   } else {
     o = _deps->oop_recorder()->metadata_at(i);
   }
+  assert(o == NULL || o->is_metaspace_object(),
+         err_msg("Should be metadata " PTR_FORMAT, o));
   return o;
 }
 
@@ -888,17 +890,6 @@ Metadata* Dependencies::DepStream::argument(int i) {
 
   assert(result == NULL || result->is_klass() || result->is_method(), "must be");
   return result;
-}
-
-/**
- * Returns a unique identifier for each dependency argument.
- */
-uintptr_t Dependencies::DepStream::get_identifier(int i) {
-  if (has_oop_argument()) {
-    return (uintptr_t)(oopDesc*)argument_oop(i);
-  } else {
-    return (uintptr_t)argument(i);
-  }
 }
 
 oop Dependencies::DepStream::argument_oop(int i) {
@@ -934,20 +925,6 @@ Klass* Dependencies::DepStream::context_type() {
   // And some dependencies don't have a context type at all,
   // e.g. evol_method.
   return NULL;
-}
-
-// ----------------- DependencySignature --------------------------------------
-bool DependencySignature::equals(DependencySignature* sig) const {
-  if ((type() != sig->type()) || (args_count() != sig->args_count())) {
-    return false;
-  }
-
-  for (int i = 0; i < sig->args_count(); i++) {
-    if (arg(i) != sig->arg(i)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 /// Checking dependencies:
@@ -1396,9 +1373,11 @@ bool Dependencies::is_concrete_method(Method* m) {
 
   // We could also return false if m does not yet appear to be
   // executed, if the VM version supports this distinction also.
-  // Default methods are considered "concrete" as well.
   return !m->is_abstract() &&
-         !m->is_overpass(); // error functions aren't concrete
+         !InstanceKlass::cast(m->method_holder())->is_interface();
+         // TODO: investigate whether default methods should be
+         // considered as "concrete" in this situation.  For now they
+         // are not.
 }
 
 

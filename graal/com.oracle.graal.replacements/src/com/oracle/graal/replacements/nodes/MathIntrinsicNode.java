@@ -23,6 +23,7 @@
 package com.oracle.graal.replacements.nodes;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -36,7 +37,13 @@ public class MathIntrinsicNode extends FloatingNode implements Canonicalizable, 
     private final Operation operation;
 
     public enum Operation {
-        ABS, SQRT, LOG, LOG10, SIN, COS, TAN
+        ABS,
+        SQRT,
+        LOG,
+        LOG10,
+        SIN,
+        COS,
+        TAN
     }
 
     public ValueNode x() {
@@ -55,35 +62,35 @@ public class MathIntrinsicNode extends FloatingNode implements Canonicalizable, 
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
-        Value input = gen.operand(x());
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        Value input = builder.operand(x());
         Value result;
         switch (operation()) {
             case ABS:
-                result = gen.getLIRGeneratorTool().emitMathAbs(input);
+                result = gen.emitMathAbs(input);
                 break;
             case SQRT:
-                result = gen.getLIRGeneratorTool().emitMathSqrt(input);
+                result = gen.emitMathSqrt(input);
                 break;
             case LOG:
-                result = gen.getLIRGeneratorTool().emitMathLog(input, false);
+                result = gen.emitMathLog(input, false);
                 break;
             case LOG10:
-                result = gen.getLIRGeneratorTool().emitMathLog(input, true);
+                result = gen.emitMathLog(input, true);
                 break;
             case SIN:
-                result = gen.getLIRGeneratorTool().emitMathSin(input);
+                result = gen.emitMathSin(input);
                 break;
             case COS:
-                result = gen.getLIRGeneratorTool().emitMathCos(input);
+                result = gen.emitMathCos(input);
                 break;
             case TAN:
-                result = gen.getLIRGeneratorTool().emitMathTan(input);
+                result = gen.emitMathTan(input);
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        gen.setResult(this, result);
+        builder.setResult(this, result);
     }
 
     public Constant evalConst(Constant... inputs) {

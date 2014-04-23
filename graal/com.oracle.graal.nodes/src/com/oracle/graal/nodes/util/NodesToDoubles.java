@@ -48,4 +48,8 @@ public class NodesToDoubles {
         assert value != null;
         return value;
     }
+
+    public int getCount() {
+        return nodeProbabilities.size();
+    }
 }

@@ -27,7 +27,7 @@ import java.lang.reflect.*;
 import java.net.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 
 /**
  * Implementation of {@link JavaType} for primitive HotSpot types.
@@ -253,6 +253,6 @@ public final class HotSpotResolvedPrimitiveType extends HotSpotResolvedJavaType 
 
     @Override
     public Constant newArray(int length) {
-        return Constant.forObject(Array.newInstance(mirror(), length));
+        return HotSpotObjectConstant.forObject(Array.newInstance(mirror(), length));
     }
 }

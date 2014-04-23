@@ -31,6 +31,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
@@ -43,12 +44,12 @@ import com.oracle.graal.nodes.type.*;
  */
 public class TailcallNode extends FixedWithNextNode implements LIRGenResLowerable {
 
-    @Input private FrameState frameState;
+    @Input(InputType.State) private FrameState frameState;
     @Input private ValueNode target;
 
     /**
      * Creates a TailcallNode.
-     * 
+     *
      * @param target points to the start of an nmethod
      * @param frameState the parameters will be taken from this FrameState
      */
@@ -58,7 +59,7 @@ public class TailcallNode extends FixedWithNextNode implements LIRGenResLowerabl
         this.frameState = frameState;
     }
 
-    public void generate(NodeLIRGeneratorTool gen, LIRGenerationResult res) {
+    public void generate(NodeLIRBuilderTool gen, LIRGenerationResult res) {
         HotSpotVMConfig config = runtime().getConfig();
         ResolvedJavaMethod method = frameState.method();
         boolean isStatic = Modifier.isStatic(method.getModifiers());

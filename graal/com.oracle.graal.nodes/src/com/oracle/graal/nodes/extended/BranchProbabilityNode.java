@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.nodes.extended;
 
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -110,11 +112,12 @@ public class BranchProbabilityNode extends FloatingNode implements Canonicalizab
     /**
      * This intrinsic should only be used for the condition of an if statement. The parameter
      * condition should also only denote a simple condition and not a combined condition involving
-     * && or || operators. It injects the probability of the condition into the if statement.
-     * 
+     * &amp;&amp; or || operators. It injects the probability of the condition into the if
+     * statement.
+     *
      * @param probability the probability that the given condition is true as a double value between
      *            0.0 and 1.0.
-     * @param condition the simple condition without any && or || operators
+     * @param condition the simple condition without any &amp;&amp; or || operators
      * @return the condition
      */
     @NodeIntrinsic

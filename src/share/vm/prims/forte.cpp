@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -71,7 +71,7 @@ enum {
 // Native interfaces for use by Forte tools.
 
 
-#if !defined(IA64) && !defined(PPC64)
+#ifndef IA64
 
 class vframeStreamForte : public vframeStreamCommon {
  public:
@@ -613,7 +613,7 @@ void AsyncGetCallTrace(ASGCT_CallTrace *trace, jint depth, void* ucontext) {
 #ifdef __APPLE__
 // XXXDARWIN: Link errors occur even when __attribute__((weak_import))
 // is added
-#define collector_func_load(x0,x1,x2,x3,x4,x5,x6) ((void) 0)
+#define collector_func_load(x0,x1,x2,x3,x4,x5,x6) (0)
 #else
 void    collector_func_load(char* name,
                             void* null_argument_1,
@@ -629,16 +629,16 @@ void    collector_func_load(char* name,
 #endif // !_WINDOWS
 
 } // end extern "C"
-#endif // !IA64 && !PPC64
+#endif // !IA64
 
 void Forte::register_stub(const char* name, address start, address end) {
-#if !defined(_WINDOWS) && !defined(IA64) && !defined(PPC64)
+#if !defined(_WINDOWS) && !defined(IA64)
   assert(pointer_delta(end, start, sizeof(jbyte)) < INT_MAX,
          "Code size exceeds maximum range");
 
   collector_func_load((char*)name, NULL, NULL, start,
     pointer_delta(end, start, sizeof(jbyte)), 0, NULL);
-#endif // !_WINDOWS && !IA64 && !PPC64
+#endif // !_WINDOWS && !IA64
 }
 
 #else // INCLUDE_JVMTI

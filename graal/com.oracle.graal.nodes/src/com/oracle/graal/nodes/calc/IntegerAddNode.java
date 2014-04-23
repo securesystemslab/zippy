@@ -23,6 +23,7 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -89,16 +90,16 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
-        Value op1 = gen.operand(x());
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        Value op1 = builder.operand(x());
         assert op1 != null : x() + ", this=" + this;
-        Value op2 = gen.operand(y());
-        if (!y().isConstant() && !FloatAddNode.livesLonger(this, y(), gen)) {
+        Value op2 = builder.operand(y());
+        if (!y().isConstant() && !FloatAddNode.livesLonger(this, y(), builder)) {
             Value op = op1;
             op1 = op2;
             op2 = op;
         }
-        gen.setResult(this, gen.getLIRGeneratorTool().emitAdd(op1, op2));
+        builder.setResult(this, gen.emitAdd(op1, op2));
     }
 
     @Override

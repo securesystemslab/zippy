@@ -33,17 +33,18 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
+import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.compiler.common.spi.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.options.*;
 import com.oracle.graal.phases.util.*;
 
@@ -67,8 +68,8 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
     private DebugInfoBuilder debugInfoBuilder;
 
     protected AbstractBlock<?> currentBlock;
-    private final int traceLevel;
-    private final boolean printIRWithLIR;
+    public final int traceLevel;
+    public final boolean printIRWithLIR;
 
     /**
      * Handle for an operation that loads a constant into a variable. The operation starts in the
@@ -92,14 +93,14 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
          * The block that does or will contain {@link #op}. This is initially the block where the
          * first usage of the constant is seen during LIR generation.
          */
-        Block block;
+        AbstractBlock<?> block;
 
         /**
          * The variable into which the constant is loaded.
          */
         final Variable variable;
 
-        public LoadConstant(Variable variable, Block block, int index, LIRInstruction op) {
+        public LoadConstant(Variable variable, AbstractBlock<?> block, int index, LIRInstruction op) {
             this.variable = variable;
             this.block = block;
             this.index = index;
@@ -141,7 +142,7 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
 
     Map<Constant, LoadConstant> constantLoads;
 
-    protected LIRGenerationResult res;
+    private LIRGenerationResult res;
 
     /**
      * Set this before using the LIRGenerator.
@@ -243,16 +244,6 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
         return value;
     }
 
-    public LabelRef getLIRBlock(FixedNode b) {
-        assert res.getLIR().getControlFlowGraph() instanceof ControlFlowGraph;
-        Block result = ((ControlFlowGraph) res.getLIR().getControlFlowGraph()).blockFor(b);
-        int suxIndex = currentBlock.getSuccessors().indexOf(result);
-        assert suxIndex != -1 : "Block not in successor list of current block";
-
-        assert currentBlock instanceof Block;
-        return LabelRef.forSuccessor(res.getLIR(), (Block) currentBlock, suxIndex);
-    }
-
     /**
      * Determines if only oop maps are required for the code generated from the LIR.
      */
@@ -315,16 +306,19 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
 
     public void append(LIRInstruction op) {
         if (printIRWithLIR && !TTY.isSuppressed()) {
-            // if (currentInstruction != null && lastInstructionPrinted != currentInstruction) {
-            // lastInstructionPrinted = currentInstruction;
-            // InstructionPrinter ip = new InstructionPrinter(TTY.out());
-            // ip.printInstructionListing(currentInstruction);
-            // }
             TTY.println(op.toStringWithIdPrefix());
             TTY.println();
         }
         assert LIRVerifier.verify(op);
         res.getLIR().getLIRforBlock(currentBlock).add(op);
+    }
+
+    public boolean hasBlockEnd(AbstractBlock<?> block) {
+        List<LIRInstruction> ops = getResult().getLIR().getLIRforBlock(block);
+        if (ops.size() == 0) {
+            return false;
+        }
+        return ops.get(ops.size() - 1) instanceof BlockEndOp;
     }
 
     public final void doBlockStart(AbstractBlock<?> block) {
@@ -362,25 +356,22 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
         ((LabelOp) res.getLIR().getLIRforBlock(currentBlock).get(0)).setIncomingValues(params);
     }
 
-    protected PlatformKind getPhiKind(PhiNode phi) {
-        return phi.getKind();
-    }
-
     public abstract void emitJump(LabelRef label);
 
-    public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability);
+    public abstract void emitCompareBranch(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
+                    double trueDestinationProbability);
 
     public abstract void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, double overflowProbability);
 
     public abstract void emitIntegerTestBranch(Value left, Value right, LabelRef trueDestination, LabelRef falseDestination, double trueSuccessorProbability);
 
-    public abstract Variable emitConditionalMove(Value leftVal, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue);
+    public abstract Variable emitConditionalMove(PlatformKind cmpKind, Value leftVal, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue);
 
     public abstract Variable emitIntegerTestMove(Value leftVal, Value right, Value trueValue, Value falseValue);
 
     protected abstract void emitForeignCall(ForeignCallLinkage linkage, Value result, Value[] arguments, Value[] temps, LIRFrameState info);
 
-    protected static AllocatableValue toStackKind(AllocatableValue value) {
+    public static AllocatableValue toStackKind(AllocatableValue value) {
         if (value.getKind().getStackKind() != value.getKind()) {
             // We only have stack-kinds in the LIR, so convert the operand kind for values from the
             // calling convention.
@@ -486,7 +477,7 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
 
                 // Move loads of constant outside of loops
                 if (OptScheduleOutOfLoops.getValue()) {
-                    Block outOfLoopDominator = lc.block;
+                    AbstractBlock<?> outOfLoopDominator = lc.block;
                     while (outOfLoopDominator.getLoop() != null) {
                         outOfLoopDominator = outOfLoopDominator.getDominator();
                     }
@@ -512,7 +503,7 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
             int groupBegin = 0;
             while (true) {
                 int groupEnd = groupBegin + 1;
-                Block block = groupedByBlock[groupBegin].block;
+                AbstractBlock<?> block = groupedByBlock[groupBegin].block;
                 while (groupEnd < groupedByBlock.length && groupedByBlock[groupEnd].block == block) {
                     groupEnd++;
                 }
@@ -585,11 +576,16 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
         return stamp.getPlatformKind(this);
     }
 
-    public PlatformKind getIntegerKind(int bits, boolean unsigned) {
-        if (bits > 32) {
-            return Kind.Long;
-        } else {
+    public PlatformKind getIntegerKind(int bits) {
+        if (bits <= 8) {
+            return Kind.Byte;
+        } else if (bits <= 16) {
+            return Kind.Short;
+        } else if (bits <= 32) {
             return Kind.Int;
+        } else {
+            assert bits <= 64;
+            return Kind.Long;
         }
     }
 
@@ -624,5 +620,9 @@ public abstract class LIRGenerator implements ArithmeticLIRGenerator, LIRGenerat
 
     void setCurrentBlock(AbstractBlock<?> block) {
         currentBlock = block;
+    }
+
+    public LIRGenerationResult getResult() {
+        return res;
     }
 }

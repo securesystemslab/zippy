@@ -27,6 +27,7 @@ import sun.misc.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
@@ -63,35 +64,12 @@ public class CipherBlockChainingSubstitutions {
     }
 
     @Fold
-    private static Class getAESCryptClass() {
+    private static Class<?> getAESCryptClass() {
         return AESCryptSubstitutions.AESCryptClass;
     }
 
-    @MethodSubstitution(isStatic = false, optional = true)
-    static void encrypt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
-        Object embeddedCipher = UnsafeLoadNode.load(rcvr, embeddedCipherOffset, Kind.Object, LocationIdentity.ANY_LOCATION);
-        if (getAESCryptClass().isInstance(embeddedCipher)) {
-            Object aesCipher = PiNode.piCastNonNull(embeddedCipher, AESCryptSubstitutions.AESCryptClass);
-            crypt(rcvr, in, inOffset, inLength, out, outOffset, aesCipher, true);
-        } else {
-            encrypt(rcvr, in, inOffset, inLength, out, outOffset);
-        }
-    }
-
-    @MethodSubstitution(isStatic = false, optional = true)
-    static void decrypt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
-        Object realReceiver = PiNode.piCastNonNull(rcvr, cipherBlockChainingClass);
-        Object embeddedCipher = UnsafeLoadNode.load(realReceiver, embeddedCipherOffset, Kind.Object, LocationIdentity.ANY_LOCATION);
-        if (in != out && getAESCryptClass().isInstance(embeddedCipher)) {
-            Object aesCipher = PiNode.piCastNonNull(embeddedCipher, AESCryptSubstitutions.AESCryptClass);
-            crypt(realReceiver, in, inOffset, inLength, out, outOffset, aesCipher, false);
-        } else {
-            decrypt(realReceiver, in, inOffset, inLength, out, outOffset);
-        }
-    }
-
-    @MethodSubstitution(value = "encrypt", isStatic = false, optional = true)
-    static int encryptInt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
+    @MethodSubstitution(isStatic = false)
+    static int encrypt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
         Object realReceiver = PiNode.piCastNonNull(rcvr, cipherBlockChainingClass);
         Object embeddedCipher = UnsafeLoadNode.load(realReceiver, embeddedCipherOffset, Kind.Object, LocationIdentity.ANY_LOCATION);
         if (getAESCryptClass().isInstance(embeddedCipher)) {
@@ -99,12 +77,12 @@ public class CipherBlockChainingSubstitutions {
             crypt(realReceiver, in, inOffset, inLength, out, outOffset, aesCipher, true);
             return inLength;
         } else {
-            return encryptInt(realReceiver, in, inOffset, inLength, out, outOffset);
+            return encrypt(realReceiver, in, inOffset, inLength, out, outOffset);
         }
     }
 
-    @MethodSubstitution(value = "decrypt", isStatic = false, optional = true)
-    static int decryptInt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
+    @MethodSubstitution(isStatic = false)
+    static int decrypt(Object rcvr, byte[] in, int inOffset, int inLength, byte[] out, int outOffset) {
         Object realReceiver = PiNode.piCastNonNull(rcvr, cipherBlockChainingClass);
         Object embeddedCipher = UnsafeLoadNode.load(realReceiver, embeddedCipherOffset, Kind.Object, LocationIdentity.ANY_LOCATION);
         if (in != out && getAESCryptClass().isInstance(embeddedCipher)) {
@@ -112,7 +90,7 @@ public class CipherBlockChainingSubstitutions {
             crypt(realReceiver, in, inOffset, inLength, out, outOffset, aesCipher, false);
             return inLength;
         } else {
-            return decryptInt(realReceiver, in, inOffset, inLength, out, outOffset);
+            return decrypt(realReceiver, in, inOffset, inLength, out, outOffset);
         }
     }
 

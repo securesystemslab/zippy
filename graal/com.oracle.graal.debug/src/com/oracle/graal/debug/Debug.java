@@ -23,6 +23,7 @@
 package com.oracle.graal.debug;
 
 import static com.oracle.graal.debug.Debug.Initialization.*;
+import static com.oracle.graal.debug.DelegatingDebugConfig.Feature.*;
 import static java.util.FormattableFlags.*;
 
 import java.io.*;
@@ -142,8 +143,8 @@ public class Debug {
 
     /**
      * Represents a debug scope entered by {@link Debug#scope(Object)} or
-     * {@link Debug#sandbox(String, DebugConfig, Object...)}. Leaving the scope is achieved via
-     * {@link #close()}.
+     * {@link Debug#sandbox(CharSequence, DebugConfig, Object...)}. Leaving the scope is achieved
+     * via {@link #close()}.
      */
     public interface Scope extends AutoCloseable {
         void close();
@@ -180,6 +181,19 @@ public class Debug {
     public static Scope scope(Object name) {
         if (ENABLED) {
             return DebugScope.getInstance().scope(convertFormatArg(name).toString(), null);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @see #scope(Object)
+     * @param contextObjects an array of object to be appended to the {@linkplain #context()
+     *            current} debug context
+     */
+    public static Scope scope(Object name, Object[] contextObjects) {
+        if (ENABLED) {
+            return DebugScope.getInstance().scope(convertFormatArg(name).toString(), null, contextObjects);
         } else {
             return null;
         }
@@ -259,27 +273,35 @@ public class Debug {
     }
 
     public static Scope forceLog() {
-        return Debug.sandbox("forceLog", new DelegatingDebugConfig(DebugScope.getConfig()) {
-            @Override
-            public boolean isLogEnabled() {
-                return true;
-            }
+        return Debug.sandbox("forceLog", new DelegatingDebugConfig().enable(LOG).enable(LOG_METHOD));
+    }
 
-            @Override
-            public boolean isLogEnabledForMethod() {
-                return true;
-            }
-        });
+    /**
+     * Opens a scope in which exception {@linkplain DebugConfig#interceptException(Throwable)
+     * interception} is disabled. It is recommended to use the try-with-resource statement for
+     * managing entering and leaving such scopes:
+     *
+     * <pre>
+     * try (DebugConfigScope s = Debug.disableIntercept()) {
+     *     ...
+     * }
+     * </pre>
+     *
+     * This is particularly useful to suppress extraneous output in JUnit tests that are expected to
+     * throw an exception.
+     */
+    public static DebugConfigScope disableIntercept() {
+        return Debug.setConfig(new DelegatingDebugConfig().disable(INTERCEPT));
     }
 
     /**
      * Handles an exception in the context of the debug scope just exited. The just exited scope
      * must have the current scope as its parent which will be the case if the try-with-resource
      * pattern recommended by {@link #scope(Object)} and
-     * {@link #sandbox(String, DebugConfig, Object...)} is used
+     * {@link #sandbox(CharSequence, DebugConfig, Object...)} is used
      *
      * @see #scope(Object)
-     * @see #sandbox(String, DebugConfig, Object...)
+     * @see #sandbox(CharSequence, DebugConfig, Object...)
      */
     public static RuntimeException handle(Throwable exception) {
         if (ENABLED) {
@@ -355,6 +377,15 @@ public class Debug {
     }
 
     /**
+     * @see #log(String, Object)
+     */
+    public static void log(String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5, Object arg6) {
+        if (ENABLED) {
+            DebugScope.getInstance().log(format, arg1, arg2, arg3, arg4, arg5, arg6);
+        }
+    }
+
+    /**
      * Prints a message to the current debug scope's logging stream. This method must only be called
      * if debugging is {@linkplain Debug#isEnabled() enabled} as it incurs allocation at the call
      * site. If possible, call one of the other {@code log()} methods in this class that take a
@@ -371,9 +402,10 @@ public class Debug {
     }
 
     /**
-     * This override exists the catch cases when log is called with one argument from a method which
-     * is vararg. It will bind to this method instead of the single arg variant and produce a
-     * deprecation warning instead of silently wrapping the Object[] inside of another Object[].
+     * This override exists to catch cases when {@link #log(String, Object)} is called with one
+     * argument bound to a varargs method parameter. It will bind to this method instead of the
+     * single arg variant and produce a deprecation warning instead of silently wrapping the
+     * Object[] inside of another Object[].
      */
     @Deprecated
     public static void log(String format, Object[] args) {
@@ -381,79 +413,137 @@ public class Debug {
         logv(format, args);
     }
 
-    /**
-     * The same as {@link #log}, but without line termination and without indentation.
-     */
-    public static void printf(String msg, Object... args) {
-        if (ENABLED && DebugScope.getInstance().isLogEnabled()) {
-            DebugScope.getInstance().printf(msg, args);
-        }
-    }
-
-    public static void dump(Object object, String msg, Object... args) {
+    public static void dump(Object object, String msg) {
         if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
-            DebugScope.getInstance().dump(object, msg, args);
+            DebugScope.getInstance().dump(object, msg);
         }
     }
 
-    private static final class NoLogger implements Indent {
-
-        @Override
-        public void log(String msg, Object... args) {
-        }
-
-        @Override
-        public Indent indent() {
-            return this;
-        }
-
-        @Override
-        public Indent logAndIndent(String msg, Object... args) {
-            return this;
-        }
-
-        @Override
-        public Indent outdent() {
-            return this;
-        }
-
-        @Override
-        public void close() {
+    public static void dump(Object object, String format, Object arg) {
+        if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
+            DebugScope.getInstance().dump(object, format, arg);
         }
     }
 
-    private static final NoLogger noLoggerInstance = new NoLogger();
+    public static void dump(Object object, String format, Object arg1, Object arg2) {
+        if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
+            DebugScope.getInstance().dump(object, format, arg1, arg2);
+        }
+    }
+
+    public static void dump(Object object, String format, Object arg1, Object arg2, Object arg3) {
+        if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
+            DebugScope.getInstance().dump(object, format, arg1, arg2, arg3);
+        }
+    }
 
     /**
-     * Creates a new indentation level (by adding some spaces) based on the last used Indent of the
-     * current DebugScope.
+     * This override exists to catch cases when {@link #dump(Object, String, Object)} is called with
+     * one argument bound to a varargs method parameter. It will bind to this method instead of the
+     * single arg variant and produce a deprecation warning instead of silently wrapping the
+     * Object[] inside of another Object[].
+     */
+    @Deprecated
+    public static void dump(Object object, String format, Object[] args) {
+        assert false : "shouldn't use this";
+        if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
+            DebugScope.getInstance().dump(object, format, args);
+        }
+    }
+
+    /**
+     * Opens a new indentation level (by adding some spaces) based on the current indentation level.
+     * This should be used in a {@linkplain Indent try-with-resources} pattern.
      *
-     * @return The new indentation level
-     * @see Indent#indent
+     * @return an object that reverts to the current indentation level when
+     *         {@linkplain Indent#close() closed} or null if debugging is disabled
+     * @see #logAndIndent(String)
+     * @see #logAndIndent(String, Object)
      */
     public static Indent indent() {
         if (ENABLED) {
             DebugScope scope = DebugScope.getInstance();
             return scope.pushIndentLogger();
         }
-        return noLoggerInstance;
+        return null;
     }
 
     /**
-     * A convenience function which combines {@link #log} and {@link #indent()}.
+     * A convenience function which combines {@link #log(String)} and {@link #indent()}.
      *
-     * @param msg The format string of the log message
-     * @param args The arguments referenced by the log message string
-     * @return The new indentation level
-     * @see Indent#logAndIndent
+     * @param msg the message to log
+     * @return an object that reverts to the current indentation level when
+     *         {@linkplain Indent#close() closed} or null if debugging is disabled
      */
-    public static Indent logAndIndent(String msg, Object... args) {
+    public static Indent logAndIndent(String msg) {
+        if (ENABLED) {
+            return logvAndIndent(msg);
+        }
+        return null;
+    }
+
+    /**
+     * A convenience function which combines {@link #log(String, Object)} and {@link #indent()}.
+     *
+     * @param format a format string
+     * @param arg the argument referenced by the format specifiers in {@code format}
+     * @return an object that reverts to the current indentation level when
+     *         {@linkplain Indent#close() closed} or null if debugging is disabled
+     */
+    public static Indent logAndIndent(String format, Object arg) {
+        if (ENABLED) {
+            return logvAndIndent(format, arg);
+        }
+        return null;
+    }
+
+    /**
+     * @see #logAndIndent(String, Object)
+     */
+    public static Indent logAndIndent(String format, Object arg1, Object arg2) {
+        if (ENABLED) {
+            return logvAndIndent(format, arg1, arg2);
+        }
+        return null;
+    }
+
+    /**
+     * @see #logAndIndent(String, Object)
+     */
+    public static Indent logAndIndent(String format, Object arg1, Object arg2, Object arg3) {
+        if (ENABLED) {
+            return logvAndIndent(format, arg1, arg2, arg3);
+        }
+        return null;
+    }
+
+    /**
+     * A convenience function which combines {@link #logv(String, Object...)} and {@link #indent()}.
+     *
+     * @param format a format string
+     * @param args the arguments referenced by the format specifiers in {@code format}
+     * @return an object that reverts to the current indentation level when
+     *         {@linkplain Indent#close() closed} or null if debugging is disabled
+     */
+    public static Indent logvAndIndent(String format, Object... args) {
         if (ENABLED) {
             DebugScope scope = DebugScope.getInstance();
-            scope.log(msg, args);
+            scope.log(format, args);
             return scope.pushIndentLogger();
         }
-        return noLoggerInstance;
+        throw new InternalError("Use of Debug.logvAndIndent() must be guarded by a test of Debug.isEnabled()");
+    }
+
+    /**
+     * This override exists to catch cases when {@link #logAndIndent(String, Object)} is called with
+     * one argument bound to a varargs method parameter. It will bind to this method instead of the
+     * single arg variant and produce a deprecation warning instead of silently wrapping the
+     * Object[] inside of another Object[].
+     */
+    @Deprecated
+    public static void logAndIndent(String format, Object[] args) {
+        assert false : "shouldn't use this";
+        logvAndIndent(format, args);
     }
 
     public static Iterable<Object> context() {
@@ -785,7 +875,7 @@ public class Debug {
 
     public static Object convertFormatArg(Object arg) {
         if (arg instanceof Class) {
-            return ((Class) arg).getSimpleName();
+            return ((Class<?>) arg).getSimpleName();
         }
         return arg;
     }

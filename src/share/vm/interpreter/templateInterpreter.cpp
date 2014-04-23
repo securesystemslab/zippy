@@ -369,9 +369,6 @@ void TemplateInterpreterGenerator::generate_all() {
   method_entry(zerolocals)
   method_entry(zerolocals_synchronized)
   method_entry(empty)
-#ifdef GRAAL
-  method_entry(execute_compiled_method)
-#endif
   method_entry(accessor)
   method_entry(abstract)
   method_entry(java_lang_math_sin  )

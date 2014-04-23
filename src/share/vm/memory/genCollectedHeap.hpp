@@ -166,6 +166,14 @@ public:
   HeapWord** top_addr() const;
   HeapWord** end_addr() const;
 
+  // Return an estimate of the maximum allocation that could be performed
+  // without triggering any collection activity.  In a generational
+  // collector, for example, this is probably the largest allocation that
+  // could be supported in the youngest generation.  It is "unsafe" because
+  // no locks are taken; the result should be treated as an approximation,
+  // not a guarantee.
+  size_t unsafe_max_alloc();
+
   // Does this heap support heap inspection? (+PrintClassHistogram)
   virtual bool supports_heap_inspection() const { return true; }
 
@@ -248,7 +256,6 @@ public:
   // Section on TLAB's.
   virtual bool supports_tlab_allocation() const;
   virtual size_t tlab_capacity(Thread* thr) const;
-  virtual size_t tlab_used(Thread* thr) const;
   virtual size_t unsafe_max_tlab_alloc(Thread* thr) const;
   virtual HeapWord* allocate_new_tlab(size_t size);
 
@@ -316,7 +323,7 @@ public:
   }
 
   // Update the gc statistics for each generation.
-  // "level" is the level of the latest collection.
+  // "level" is the level of the lastest collection
   void update_gc_stats(int current_level, bool full) {
     for (int i = 0; i < _n_gens; i++) {
       _gens[i]->update_gc_stats(current_level, full);
@@ -412,15 +419,18 @@ public:
                                 // The remaining arguments are in an order
                                 // consistent with SharedHeap::process_strong_roots:
                                 bool activate_scope,
+                                bool is_scavenging,
                                 SharedHeap::ScanningOption so,
                                 OopsInGenClosure* not_older_gens,
+                                bool do_code_roots,
                                 OopsInGenClosure* older_gens,
                                 KlassClosure* klass_closure);
 
-  // Apply "root_closure" to all the weak roots of the system.
-  // These include JNI weak roots, string table,
-  // and referents of reachable weak refs.
-  void gen_process_weak_roots(OopClosure* root_closure);
+  // Apply "blk" to all the weak roots of the system.  These include
+  // JNI weak roots, the code cache, system dictionary, symbol table,
+  // string table, and referents of reachable weak refs.
+  void gen_process_weak_roots(OopClosure* root_closure,
+                              CodeBlobClosure* code_roots);
 
   // Set the saved marks of generations, if that makes sense.
   // In particular, if any generation might iterate over the oops

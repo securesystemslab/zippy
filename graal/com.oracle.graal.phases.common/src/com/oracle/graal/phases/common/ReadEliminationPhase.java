@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.phases.common;
 
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
@@ -60,9 +61,9 @@ public class ReadEliminationPhase extends Phase {
             WriteNode other = (WriteNode) lastLocationAccess;
             return other.object() == n.object() && other.location() == n.location();
         }
-        if (lastLocationAccess instanceof PhiNode) {
+        if (lastLocationAccess instanceof MemoryPhiNode) {
             visited.mark(ValueNodeUtil.asNode(lastLocationAccess));
-            for (ValueNode value : ((PhiNode) lastLocationAccess).values()) {
+            for (ValueNode value : ((MemoryPhiNode) lastLocationAccess).values()) {
                 if (!isWrites(n, (MemoryNode) value, visited)) {
                     return false;
                 }
@@ -85,9 +86,9 @@ public class ReadEliminationPhase extends Phase {
         if (lastLocationAccess instanceof WriteNode) {
             return ((WriteNode) lastLocationAccess).value();
         }
-        if (lastLocationAccess instanceof PhiNode) {
-            PhiNode phi = (PhiNode) lastLocationAccess;
-            PhiNode newPhi = phi.graph().addWithoutUnique(new PhiNode(n.stamp().unrestricted(), phi.merge()));
+        if (lastLocationAccess instanceof MemoryPhiNode) {
+            MemoryPhiNode phi = (MemoryPhiNode) lastLocationAccess;
+            ValuePhiNode newPhi = phi.graph().addWithoutUnique(new ValuePhiNode(n.stamp().unrestricted(), phi.merge()));
             nodeMap.set(phi, newPhi);
             for (ValueNode value : phi.values()) {
                 newPhi.addInput(getValue(n, (MemoryNode) value, nodeMap));

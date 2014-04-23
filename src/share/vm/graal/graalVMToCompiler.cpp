@@ -49,12 +49,12 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
 }
 
 Handle VMToCompiler::truffleRuntime() {
-  Symbol* name = vmSymbols::com_oracle_graal_truffle_GraalTruffleRuntime();
+  Symbol* name = vmSymbols::com_oracle_graal_truffle_hotspot_HotSpotTruffleRuntime();
   KlassHandle klass = loadClass(name);
 
   JavaValue result(T_OBJECT);
   JavaCalls::call_static(&result, klass, vmSymbols::makeInstance_name(), vmSymbols::makeInstance_signature(), Thread::current());
-  check_pending_exception("Couldn't initialize GraalTruffleRuntime");
+  check_pending_exception("Couldn't initialize HotSpotTruffleRuntime");
   return Handle((oop) result.get_jobject());
 }
 

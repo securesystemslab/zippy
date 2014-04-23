@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -61,7 +62,7 @@ public class NewMultiArrayStubCall extends ForeignCallNode {
     }
 
     @Override
-    protected Value[] operands(NodeLIRGeneratorTool gen) {
+    protected Value[] operands(NodeLIRBuilderTool gen) {
         return new Value[]{gen.operand(hub), Constant.forInt(rank), gen.operand(dims)};
     }
 

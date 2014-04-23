@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.calc;
 import static com.oracle.graal.nodes.calc.CompareNode.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -38,7 +39,7 @@ import com.oracle.graal.nodes.type.*;
  */
 public final class ConditionalNode extends BinaryNode implements Canonicalizable, LIRLowerable {
 
-    @Input private LogicNode condition;
+    @Input(InputType.Condition) private LogicNode condition;
 
     public LogicNode condition() {
         return condition;
@@ -109,7 +110,7 @@ public final class ConditionalNode extends BinaryNode implements Canonicalizable
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         generator.emitConditional(this);
     }
 
@@ -128,7 +129,7 @@ public final class ConditionalNode extends BinaryNode implements Canonicalizable
     public static native boolean materializeCondition(@ConstantNodeParameter Condition condition, long x, long y);
 
     @NodeIntrinsic
-    public static boolean materializeIsInstance(Class mirror, Object object) {
+    public static boolean materializeIsInstance(Class<?> mirror, Object object) {
         return mirror.isInstance(object);
     }
 }

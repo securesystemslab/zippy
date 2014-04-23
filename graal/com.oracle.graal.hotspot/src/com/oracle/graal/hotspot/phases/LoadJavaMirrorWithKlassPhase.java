@@ -26,6 +26,7 @@ import static com.oracle.graal.api.meta.LocationIdentity.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -54,9 +55,9 @@ public class LoadJavaMirrorWithKlassPhase extends BasePhase<PhaseContext> {
     }
 
     private FloatingReadNode getClassConstantReplacement(StructuredGraph graph, PhaseContext context, Constant constant) {
-        if (constant.getKind() == Kind.Object && constant.asObject() instanceof Class<?>) {
+        if (constant.getKind() == Kind.Object && HotSpotObjectConstant.asObject(constant) instanceof Class<?>) {
             MetaAccessProvider metaAccess = context.getMetaAccess();
-            ResolvedJavaType type = metaAccess.lookupJavaType((Class<?>) constant.asObject());
+            ResolvedJavaType type = metaAccess.lookupJavaType((Class<?>) HotSpotObjectConstant.asObject(constant));
             assert type instanceof HotSpotResolvedObjectType;
 
             Constant klass = ((HotSpotResolvedObjectType) type).klass();

@@ -27,9 +27,10 @@ import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.sparc.*;
-import com.oracle.graal.asm.sparc.SPARCAssembler.*;
-import com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Ldsw;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Ldx;
+import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Cmp;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.lir.asm.*;
 
 public class SPARCTestOp extends SPARCLIRInstruction {

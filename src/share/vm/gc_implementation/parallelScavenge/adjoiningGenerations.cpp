@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -118,8 +118,8 @@ size_t AdjoiningGenerations::reserved_byte_size() {
 
 
 // Make checks on the current sizes of the generations and
-// the constraints on the sizes of the generations.  Push
-// up the boundary within the constraints.  A partial
+// the contraints on the sizes of the generations.  Push
+// up the boundary within the contraints.  A partial
 // push can occur.
 void AdjoiningGenerations::request_old_gen_expansion(size_t expand_in_bytes) {
   assert(UseAdaptiveSizePolicy && UseAdaptiveGCBoundary, "runtime check");

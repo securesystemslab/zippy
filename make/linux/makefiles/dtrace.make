@@ -42,47 +42,24 @@ ifneq ($(ALT_SDT_H),)
 else
   SDT_H_FILE = /usr/include/sys/sdt.h
 endif
-
 DTRACE_ENABLED = $(shell test -f $(SDT_H_FILE) && echo $(SDT_H_FILE))
 REASON = "$(SDT_H_FILE) not found"
 
-endif # GCC version
-endif # OPENJDK
-
-
-DTRACE_COMMON_SRCDIR = $(GAMMADIR)/src/os/posix/dtrace
-DTRACE_PROG = dtrace
-DtraceOutDir = $(GENERATED)/dtracefiles
-
-$(DtraceOutDir):
-	mkdir $(DtraceOutDir)
-
-$(DtraceOutDir)/hotspot.h: $(DTRACE_COMMON_SRCDIR)/hotspot.d | $(DtraceOutDir)
-	$(QUIETLY) $(DTRACE_PROG) $(DTRACE_OPTS) -C -I. -h -o $@ -s $(DTRACE_COMMON_SRCDIR)/hotspot.d
-
-$(DtraceOutDir)/hotspot_jni.h: $(DTRACE_COMMON_SRCDIR)/hotspot_jni.d | $(DtraceOutDir)
-	$(QUIETLY) $(DTRACE_PROG) $(DTRACE_OPTS) -C -I. -h -o $@ -s $(DTRACE_COMMON_SRCDIR)/hotspot_jni.d
-
-$(DtraceOutDir)/hs_private.h: $(DTRACE_COMMON_SRCDIR)/hs_private.d | $(DtraceOutDir)
-	$(QUIETLY) $(DTRACE_PROG) $(DTRACE_OPTS) -C -I. -h -o $@ -s $(DTRACE_COMMON_SRCDIR)/hs_private.d
-
 ifneq ($(DTRACE_ENABLED),)
-CFLAGS += -DDTRACE_ENABLED
-dtrace_gen_headers: $(DtraceOutDir)/hotspot.h $(DtraceOutDir)/hotspot_jni.h $(DtraceOutDir)/hs_private.h
-else
-dtrace_gen_headers:
-	$(QUIETLY) echo "**NOTICE** Dtrace support disabled: $(REASON)"
+  CFLAGS += -DDTRACE_ENABLED
+endif
+
+endif
 endif
 
 # Phony target used in vm.make build target to check whether enabled.
+.PHONY: dtraceCheck
 ifeq ($(DTRACE_ENABLED),)
 dtraceCheck:
 	$(QUIETLY) echo "**NOTICE** Dtrace support disabled: $(REASON)"
 else
 dtraceCheck:
 endif
-
-.PHONY: dtrace_gen_headers dtraceCheck
 
 # It doesn't support HAVE_DTRACE_H though.
 

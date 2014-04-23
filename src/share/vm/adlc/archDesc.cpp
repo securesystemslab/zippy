@@ -1,5 +1,5 @@
 //
-// Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+// Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,32 @@ char *toUpper(const char *str) {
   }
   *upper = '\0';
   return result;
+}
+
+// Utilities to characterize effect statements
+static bool is_def(int usedef) {
+  switch(usedef) {
+  case Component::DEF:
+  case Component::USE_DEF: return true; break;
+  }
+  return false;
+}
+
+static bool is_use(int usedef) {
+  switch(usedef) {
+  case Component::USE:
+  case Component::USE_DEF:
+  case Component::USE_KILL: return true; break;
+  }
+  return false;
+}
+
+static bool is_kill(int usedef) {
+  switch(usedef) {
+  case Component::KILL:
+  case Component::USE_KILL: return true; break;
+  }
+  return false;
 }
 
 //---------------------------ChainList Methods-------------------------------
@@ -146,8 +172,7 @@ ArchDesc::ArchDesc()
     _internalOps(cmpstr,hashstr, Form::arena),
     _internalMatch(cmpstr,hashstr, Form::arena),
     _chainRules(cmpstr,hashstr, Form::arena),
-    _cisc_spill_operand(NULL),
-    _needs_clone_jvms(false) {
+    _cisc_spill_operand(NULL) {
 
       // Initialize the opcode to MatchList table with NULLs
       for( int i=0; i<_last_opcode; ++i ) {
@@ -1167,12 +1192,15 @@ void ArchDesc::buildMustCloneMap(FILE *fp_hpp, FILE *fp_cpp) {
          || strcmp(idealName,"CmpF") == 0
          || strcmp(idealName,"FastLock") == 0
          || strcmp(idealName,"FastUnlock") == 0
-         || strcmp(idealName,"OverflowAddI") == 0
-         || strcmp(idealName,"OverflowAddL") == 0
-         || strcmp(idealName,"OverflowSubI") == 0
-         || strcmp(idealName,"OverflowSubL") == 0
-         || strcmp(idealName,"OverflowMulI") == 0
-         || strcmp(idealName,"OverflowMulL") == 0
+         || strcmp(idealName,"AddExactI") == 0
+         || strcmp(idealName,"AddExactL") == 0
+         || strcmp(idealName,"SubExactI") == 0
+         || strcmp(idealName,"SubExactL") == 0
+         || strcmp(idealName,"MulExactI") == 0
+         || strcmp(idealName,"MulExactL") == 0
+         || strcmp(idealName,"NegExactI") == 0
+         || strcmp(idealName,"NegExactL") == 0
+         || strcmp(idealName,"FlagsProj") == 0
          || strcmp(idealName,"Bool") == 0
          || strcmp(idealName,"Binary") == 0 ) {
       // Removed ConI from the must_clone list.  CPUs that cannot use

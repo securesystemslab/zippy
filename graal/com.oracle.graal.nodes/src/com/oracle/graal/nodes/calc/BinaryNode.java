@@ -22,7 +22,8 @@
  */
 package com.oracle.graal.nodes.calc;
 
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
@@ -45,7 +46,7 @@ public abstract class BinaryNode extends FloatingNode {
 
     /**
      * Creates a new BinaryNode instance.
-     * 
+     *
      * @param stamp the result type of this instruction
      * @param x the first input instruction
      * @param y the second input instruction
@@ -57,7 +58,8 @@ public abstract class BinaryNode extends FloatingNode {
     }
 
     public enum ReassociateMatch {
-        x, y;
+        x,
+        y;
 
         public ValueNode getValue(BinaryNode binary) {
             switch (this) {
@@ -155,7 +157,7 @@ public abstract class BinaryNode extends FloatingNode {
      * criterion: {@code (a + 2) + 1 => a + (1 + 2)}
      * <p>
      * This method accepts only {@linkplain #canTryReassociate(BinaryNode) reassociable} operations
-     * such as +, -, *, &, | and ^
+     * such as +, -, *, &amp;, | and ^
      */
     public static BinaryNode reassociate(BinaryNode node, NodePredicate criterion) {
         assert canTryReassociate(node);

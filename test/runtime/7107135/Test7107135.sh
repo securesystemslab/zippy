@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-#  Copyright (c) 1998, 2014, Oracle and/or its affiliates. All rights reserved.
+#  Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
 #  Copyright (c) 2011 SAP AG.  All Rights Reserved.
 #  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
@@ -25,11 +25,9 @@
 #
 
 ##
-## @ignore 8025519
 ## @test Test7107135.sh
 ## @bug 7107135
 ## @bug 8021296
-## @bug 8025519
 ## @summary Stack guard pages lost after loading library with executable stack.
 ## @run shell Test7107135.sh
 ##
@@ -65,10 +63,10 @@ ARCH=`uname -m`
 THIS_DIR=.
 
 cp ${TESTSRC}${FS}*.java ${THIS_DIR}
-${COMPILEJAVA}${FS}bin${FS}javac *.java
+${TESTJAVA}${FS}bin${FS}javac *.java
 
 $gcc_cmd -fPIC -shared -c -o test.o \
-    -I${COMPILEJAVA}${FS}include -I${COMPILEJAVA}${FS}include${FS}linux \
+    -I${TESTJAVA}${FS}include -I${TESTJAVA}${FS}include${FS}linux \
     ${TESTSRC}${FS}test.c
 
 ld -shared -z   execstack -o libtest-rwx.so test.o

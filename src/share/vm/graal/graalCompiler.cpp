@@ -32,6 +32,7 @@
 #include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/compilationPolicy.hpp"
+#include "runtime/globals_extension.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
 
@@ -98,7 +99,11 @@ void GraalCompiler::initialize() {
 
     if (UseCompiler) {
       _external_deopt_i2c_entry = create_external_deopt_i2c();
-      bool bootstrap = COMPILERGRAAL_PRESENT(BootstrapGraal) NOT_COMPILERGRAAL(false);
+#ifdef COMPILERGRAAL
+      bool bootstrap = FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal;
+#else
+      bool bootstrap = false;
+#endif
       VMToCompiler::startCompiler(bootstrap);
       _initialized = true;
       CompilationPolicy::completed_vm_startup();

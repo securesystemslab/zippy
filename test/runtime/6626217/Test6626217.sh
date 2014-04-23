@@ -1,5 +1,5 @@
 # 
-#  Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+#  Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
 #  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 # 
 #  This code is free software; you can redistribute it and/or modify it
@@ -47,11 +47,6 @@ ${CP} ${TESTSRC}${FS}* ${THIS_DIR}
 
 # A Clean Compile: this line will probably fail within jtreg as have a clean dir:
 ${RM} -f *.class *.impl many_loader.java
-
-# Make sure that the compilation steps occurs in the future as not to allow fast systems
-# to copy and compile bug_21227.java so fast as to make the class and java have the same
-# time stamp, which later on would make the compilation step of many_loader.java fail
-sleep 2
 
 # Compile all the usual suspects, including the default 'many_loader'
 ${CP} many_loader1.java.foo many_loader.java

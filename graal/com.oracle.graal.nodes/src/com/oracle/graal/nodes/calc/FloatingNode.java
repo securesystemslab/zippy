@@ -22,18 +22,13 @@
  */
 package com.oracle.graal.nodes.calc;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.type.*;
 
 public abstract class FloatingNode extends ValueNode implements Node.ValueNumberable {
 
     public FloatingNode(Stamp stamp) {
         super(stamp);
-    }
-
-    @Override
-    public FloatingNode asNode() {
-        return this;
     }
 }

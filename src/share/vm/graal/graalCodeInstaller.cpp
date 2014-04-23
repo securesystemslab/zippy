@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "code/compiledIC.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
@@ -180,14 +181,14 @@ static void record_metadata_reference(oop obj, jlong prim, bool compressed, OopR
 
 // Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedObjectType.klass()).
 static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder) {
-  char kind = Kind::typeChar(Constant::kind(constant));
-  char wordKind = 'j';
-  if (kind == wordKind) {
-    oop obj = Constant::object(constant);
-    jlong prim = Constant::primitive(constant);
-    if (obj != NULL) {
-      record_metadata_reference(obj, prim, false, oop_recorder);
-    }
+  if (constant->is_a(HotSpotMetaspaceConstant::klass())) {
+    oop obj = HotSpotMetaspaceConstant::metaspaceObject(constant);
+    jlong prim = HotSpotMetaspaceConstant::primitive(constant);
+    assert(Kind::typeChar(Constant::kind(constant)) == 'j', "must have word kind");
+    assert(obj != NULL, "must have an object");
+    assert(prim != 0, "must have a primitive value");
+
+    record_metadata_reference(obj, prim, false, oop_recorder);
   }
 }
 
@@ -263,17 +264,19 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     return value;
   } else if (value->is_a(Constant::klass())){
     record_metadata_in_constant(value, oop_recorder);
-    jlong prim = Constant::primitive(value);
     if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
+      jlong prim = PrimitiveConstant::primitive(value);
       return new ConstantIntValue(*(jint*)&prim);
     } else if (type == T_LONG || type == T_DOUBLE) {
+      jlong prim = PrimitiveConstant::primitive(value);
       second = new ConstantIntValue(0);
       return new ConstantLongValue(prim);
     } else if (type == T_OBJECT) {
-      oop obj = Constant::object(value);
-      if (obj == NULL) {
+      if (value->is_a(NullConstant::klass())) {
         return new ConstantOopWriteValue(NULL);
       } else {
+        oop obj = HotSpotObjectConstant::object(value);
+        assert(obj != NULL, "null value must be in NullConstant");
         return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
     } else if (type == T_ADDRESS) {
@@ -452,8 +455,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   _code = (arrayOop) CompilationResult::targetCode(comp_result);
   _code_size = CompilationResult::targetCodeSize(comp_result);
-  // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;  // FIXME this is an x86-ism
+  _total_frame_size = CompilationResult::totalFrameSize(comp_result);
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
@@ -472,12 +474,35 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   _next_call_type = INVOKE_INVALID;
 }
 
+int CodeInstaller::estimate_stub_entries() {
+  // Estimate the number of static call stubs that might be emitted.
+  int static_call_stubs = 0;
+  for (int i = 0; i < _sites->length(); i++) {
+    oop site = ((objArrayOop) (_sites))->obj_at(i);
+    if (site->is_a(CompilationResult_Mark::klass())) {
+      oop id_obj = CompilationResult_Mark::id(site);
+      if (id_obj != NULL) {
+        assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
+        jint id = id_obj->int_field(java_lang_boxing_object::value_offset_in_bytes(T_INT));
+        if (id == INVOKESTATIC || id == INVOKESPECIAL) {
+          static_call_stubs++;
+        }
+      }
+    }
+  }
+  return static_call_stubs;
+}
+
 // perform data and call relocation on the CodeBuffer
 bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   int locs_buffer_size = _sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
   char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
   buffer.insts()->initialize_shared_locs((relocInfo*)locs_buffer, locs_buffer_size / sizeof(relocInfo));
-  buffer.initialize_stubs_size(256);
+  // Allocate enough space in the stub section for the static call
+  // stubs.  Stubs have extra relocs but they are managed by the stub
+  // section itself so they don't need to be accounted for in the
+  // locs_buffer above.
+  buffer.initialize_stubs_size(estimate_stub_entries() * CompiledStaticCall::to_interp_stub_size());
   buffer.initialize_consts_size(_constants_size);
 
   _debug_recorder = new DebugInformationRecorder(_oop_recorder);
@@ -776,6 +801,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     TRACE_graal_3("method call");
     CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
+    if (_next_call_type == INVOKESTATIC || _next_call_type == INVOKESPECIAL) {
+      // Need a static call stub for transitions from compiled to interpreted.
+      CompiledStaticCall::emit_to_interp_stub(buffer, _instructions->start() + pc_offset);
+    }
   }
 
   _next_call_type = INVOKE_INVALID;

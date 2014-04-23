@@ -32,17 +32,19 @@
 // constants required by the Serviceability Agent. This file is
 // referenced by vmStructs.cpp.
 
-#define VM_STRUCTS_GPU_HSAIL(nonstatic_field)                                                                                                    \
+#define VM_STRUCTS_GPU_HSAIL(nonstatic_field)                                                                                         \
   nonstatic_field(HSAILFrame, _pc_offset,                                                  jint)                                      \
   nonstatic_field(HSAILFrame, _num_s_regs,                                                 jbyte)                                     \
   nonstatic_field(HSAILFrame, _save_area[0],                                               jlong)                                     \
-                                                                                                                                                                                                                                                                                      \
+                                                                                                                                      \
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _workitemid,                                jint)                                 \
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _actionAndReason,                           jint)                                 \
-  nonstatic_field(Hsail::HSAILKernelDeoptimization, _first_frame,                               HSAILFrame)                      \
-                                                                                                                                           \
+  nonstatic_field(Hsail::HSAILKernelDeoptimization, _first_frame,                               HSAILFrame)                           \
+                                                                                                                                      \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _notice_safepoints,                      jint*)                                     \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_occurred,                         jint)                                      \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_next_index,                       jint)                                      \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _donor_threads,                          JavaThread**)                              \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _never_ran_array,                        jboolean *)                                \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_save_states[0],                   Hsail::HSAILKernelDeoptimization)          \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_save_states[1],                   Hsail::HSAILKernelDeoptimization)

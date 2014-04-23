@@ -36,9 +36,6 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "os_windows.inline.hpp"
 #endif
-#ifdef TARGET_OS_FAMILY_aix
-# include "os_aix.inline.hpp"
-#endif
 #ifdef TARGET_OS_FAMILY_bsd
 # include "os_bsd.inline.hpp"
 #endif
@@ -46,7 +43,7 @@
 // Mutexes used in the VM.
 
 extern Mutex*   Patching_lock;                   // a lock used to guard code patching of compiled code
-extern Monitor* SystemDictionary_lock;           // a lock on the system dictionary
+extern Monitor* SystemDictionary_lock;           // a lock on the system dictonary
 extern Mutex*   PackageTable_lock;               // a lock on the class loader package table
 extern Mutex*   CompiledIC_lock;                 // a lock used to guard compiled IC patching and access
 extern Mutex*   InlineCacheBuffer_lock;          // a lock used to guard the InlineCacheBuffer
@@ -348,8 +345,8 @@ class MutexUnlockerEx: StackObj {
 //   - reentrant locking
 //   - locking out of order
 //
-// Only to be used for verify code, where we can relax out dead-lock
-// detection code a bit (unsafe, but probably ok). This code is NEVER to
+// Only too be used for verify code, where we can relaxe out dead-lock
+// dection code a bit (unsafe, but probably ok). This code is NEVER to
 // be included in a product version.
 //
 class VerifyMutexLocker: StackObj {
@@ -361,7 +358,7 @@ class VerifyMutexLocker: StackObj {
     _mutex     = mutex;
     _reentrant = mutex->owned_by_self();
     if (!_reentrant) {
-      // We temp. disable strict safepoint checking, while we require the lock
+      // We temp. diable strict safepoint checking, while we require the lock
       FlagSetting fs(StrictSafepointChecks, false);
       _mutex->lock();
     }

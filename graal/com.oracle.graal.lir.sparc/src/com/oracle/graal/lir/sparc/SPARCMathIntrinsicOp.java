@@ -27,14 +27,19 @@ import static com.oracle.graal.api.code.ValueUtil.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.sparc.SPARCAssembler.Fsqrtd;
 import com.oracle.graal.asm.sparc.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 
 public class SPARCMathIntrinsicOp extends SPARCLIRInstruction {
 
     public enum IntrinsicOpcode {
-        SQRT, SIN, COS, TAN, LOG, LOG10
+        SQRT,
+        SIN,
+        COS,
+        TAN,
+        LOG,
+        LOG10
     }
 
     @Opcode private final IntrinsicOpcode opcode;

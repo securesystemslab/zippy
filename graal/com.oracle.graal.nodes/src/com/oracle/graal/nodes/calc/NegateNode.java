@@ -23,6 +23,7 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -47,7 +48,7 @@ public final class NegateNode extends FloatingNode implements Canonicalizable, A
 
     /**
      * Creates new NegateNode instance.
-     * 
+     *
      * @param x the instruction producing the value that is input to this instruction
      */
     public NegateNode(ValueNode x) {
@@ -88,7 +89,7 @@ public final class NegateNode extends FloatingNode implements Canonicalizable, A
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
-        gen.setResult(this, gen.getLIRGeneratorTool().emitNegate(gen.operand(x())));
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        builder.setResult(this, gen.emitNegate(builder.operand(x())));
     }
 }

@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -61,7 +62,7 @@ public class NewArrayStubCall extends DeoptimizingStubCall implements LIRGenLowe
     }
 
     @Override
-    public void generate(NodeLIRGenerator gen) {
+    public void generate(NodeLIRBuilder gen) {
         ForeignCallLinkage linkage = gen.getLIRGeneratorTool().getForeignCalls().lookupForeignCall(NEW_ARRAY);
         Variable result = gen.getLIRGenerator().emitForeignCall(linkage, this, gen.operand(hub), gen.operand(length));
         gen.setResult(this, result);

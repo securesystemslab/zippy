@@ -26,6 +26,7 @@ import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -70,7 +71,7 @@ public class ObjectGetClassNode extends MacroNode implements Virtualizable, Cano
             Stamp stamp = getObject().stamp();
             if (stamp instanceof ObjectStamp) {
                 ObjectStamp objectStamp = (ObjectStamp) stamp;
-                if (objectStamp.isExactType()) {
+                if (objectStamp.isLegal() && objectStamp.isExactType()) {
                     Constant clazz = objectStamp.type().getEncoding(Representation.JavaClass);
                     return ConstantNode.forConstant(clazz, tool.getMetaAccess(), graph());
                 }

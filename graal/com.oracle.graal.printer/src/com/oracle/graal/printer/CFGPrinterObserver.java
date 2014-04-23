@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.alloc.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
@@ -131,13 +132,16 @@ public class CFGPrinterObserver implements DebugDumpHandler {
         if (!checkMethodScope()) {
             return;
         }
+        if (curMethod instanceof ResolvedJavaMethod) {
+            cfgPrinter.method = (ResolvedJavaMethod) curMethod;
+        }
 
         if (object instanceof LIR) {
             cfgPrinter.lir = (LIR) object;
         } else {
             cfgPrinter.lir = Debug.contextLookup(LIR.class);
         }
-        cfgPrinter.nodeLirGenerator = Debug.contextLookup(NodeLIRGenerator.class);
+        cfgPrinter.nodeLirGenerator = Debug.contextLookup(NodeLIRBuilder.class);
         if (cfgPrinter.nodeLirGenerator != null) {
             cfgPrinter.target = cfgPrinter.nodeLirGenerator.getLIRGeneratorTool().target();
         }

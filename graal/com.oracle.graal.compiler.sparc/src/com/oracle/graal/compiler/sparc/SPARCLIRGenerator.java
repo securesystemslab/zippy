@@ -33,8 +33,9 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.sparc.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.sparc.*;
@@ -58,7 +59,6 @@ import com.oracle.graal.lir.sparc.SPARCMove.MoveFromRegOp;
 import com.oracle.graal.lir.sparc.SPARCMove.MoveToRegOp;
 import com.oracle.graal.lir.sparc.SPARCMove.StackLoadAddressOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.util.*;
@@ -219,7 +219,12 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitReturn(Value input) {
-        append(new ReturnOp(input));
+        AllocatableValue operand = Value.ILLEGAL;
+        if (input != null) {
+            operand = resultOperandFor(input.getKind());
+            emitMove(operand, input);
+        }
+        append(new ReturnOp(operand));
     }
 
     @Override
@@ -228,7 +233,8 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
+    public void emitCompareBranch(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
+                    double trueDestinationProbability) {
         boolean mirrored = emitCompare(left, right);
         Condition finalCondition = mirrored ? cond.mirror() : cond;
         Kind kind = left.getKind().getStackKind();
@@ -273,7 +279,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public Variable emitConditionalMove(Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
+    public Variable emitConditionalMove(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
         boolean mirrored = emitCompare(left, right);
         Condition finalCondition = mirrored ? cond.mirror() : cond;
 
@@ -297,7 +303,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     /**
      * This method emits the compare instruction, and may reorder the operands. It returns true if
      * it did so.
-     * 
+     *
      * @param a the left operand of the comparison
      * @param b the right operand of the comparison
      * @return true if the left and right operands were switched, false otherwise

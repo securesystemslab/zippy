@@ -22,11 +22,11 @@
  */
 package com.oracle.graal.replacements.nodes;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.type.*;
-import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.Snippet.VarargsParameter;
 
 /**
  * Implements the semantics of {@link VarargsParameter}.

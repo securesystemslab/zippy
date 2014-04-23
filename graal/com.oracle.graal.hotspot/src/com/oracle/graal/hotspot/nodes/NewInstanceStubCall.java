@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.nodes.*;
@@ -57,7 +58,7 @@ public class NewInstanceStubCall extends DeoptimizingStubCall implements LIRLowe
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         ForeignCallLinkage linkage = gen.getLIRGeneratorTool().getForeignCalls().lookupForeignCall(NEW_INSTANCE);
         Value result = gen.getLIRGeneratorTool().emitForeignCall(linkage, this, gen.operand(hub));
         gen.setResult(this, result);

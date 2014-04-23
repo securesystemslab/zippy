@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.test;
 import org.junit.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -103,8 +104,9 @@ public class ObjectStampJoinTest extends GraalCompilerTest {
     @Test
     public void testJoin6() {
         Stamp dExactNonNull = StampFactory.exactNonNull(getType(D.class));
-        Stamp allwaysNull = StampFactory.alwaysNull();
-        Stamp join = join(allwaysNull, dExactNonNull);
+        Stamp alwaysNull = StampFactory.alwaysNull();
+        Stamp join = join(alwaysNull, dExactNonNull);
+        Assert.assertFalse(join.isLegal());
         Assert.assertFalse(ObjectStamp.isObjectNonNull(join));
         Assert.assertFalse(ObjectStamp.isObjectAlwaysNull(join));
     }

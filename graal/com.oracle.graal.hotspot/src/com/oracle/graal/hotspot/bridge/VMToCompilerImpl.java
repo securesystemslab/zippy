@@ -34,9 +34,9 @@ import java.util.concurrent.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.CompilerThreadFactory.DebugConfigAccess;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.CompilationTask.Enqueueing;
 import com.oracle.graal.hotspot.CompileTheWorld.Config;
@@ -144,8 +144,6 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     public void startCompiler(boolean bootstrapEnabled) throws Throwable {
 
-        FastNodeClassRegistry.initialize();
-
         bootstrapRunning = bootstrapEnabled;
 
         if (LogFile.getValue() != null) {
@@ -250,7 +248,7 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     /**
      * Take action related to entering a new execution phase.
-     * 
+     *
      * @param phase the execution phase being entered
      */
     protected void phaseTransition(String phase) {

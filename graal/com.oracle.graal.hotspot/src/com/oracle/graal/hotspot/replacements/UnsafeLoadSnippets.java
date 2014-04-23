@@ -26,10 +26,10 @@ import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.replacements.SnippetTemplate.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.HeapAccess.BarrierType;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.*;
 import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
 import com.oracle.graal.replacements.SnippetTemplate.Arguments;
@@ -42,9 +42,9 @@ public class UnsafeLoadSnippets implements Snippets {
     public static Object lowerUnsafeLoad(Object object, long offset) {
         Object fixedObject = FixedValueAnchorNode.getObject(object);
         if (object instanceof java.lang.ref.Reference && referentOffset() == offset) {
-            return Word.fromObject(fixedObject).readObject((int) offset, BarrierType.PRECISE, true);
+            return Word.fromObject(fixedObject).readObject((int) offset, BarrierType.PRECISE);
         } else {
-            return Word.fromObject(fixedObject).readObject((int) offset, BarrierType.NONE, true);
+            return Word.fromObject(fixedObject).readObject((int) offset, BarrierType.NONE);
         }
     }
 
@@ -52,8 +52,8 @@ public class UnsafeLoadSnippets implements Snippets {
 
         private final SnippetInfo unsafeLoad = snippet(UnsafeLoadSnippets.class, "lowerUnsafeLoad");
 
-        public Templates(Providers providers, TargetDescription target) {
-            super(providers, target);
+        public Templates(HotSpotProviders providers, TargetDescription target) {
+            super(providers, providers.getSnippetReflection(), target);
         }
 
         public void lower(UnsafeLoadNode load, LoweringTool tool) {

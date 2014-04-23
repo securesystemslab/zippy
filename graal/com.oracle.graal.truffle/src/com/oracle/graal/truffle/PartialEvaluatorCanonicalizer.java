@@ -24,8 +24,6 @@ package com.oracle.graal.truffle;
 
 import java.lang.reflect.*;
 
-import sun.misc.*;
-
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.nodes.*;
@@ -58,14 +56,11 @@ final class PartialEvaluatorCanonicalizer implements CanonicalizerPhase.CustomCa
             }
         } else if (node instanceof LoadIndexedNode) {
             LoadIndexedNode loadIndexedNode = (LoadIndexedNode) node;
-            if (loadIndexedNode.array().isConstant() && !loadIndexedNode.array().isNullConstant() && loadIndexedNode.index().isConstant()) {
-                Object array = loadIndexedNode.array().asConstant().asObject();
-                long index = loadIndexedNode.index().asConstant().asLong();
-                if (index >= 0 && index < Array.getLength(array)) {
-                    int arrayBaseOffset = Unsafe.getUnsafe().arrayBaseOffset(array.getClass());
-                    int arrayIndexScale = Unsafe.getUnsafe().arrayIndexScale(array.getClass());
-                    Constant constant = constantReflection.readUnsafeConstant(loadIndexedNode.elementKind(), array, arrayBaseOffset + index * arrayIndexScale,
-                                    loadIndexedNode.elementKind() == Kind.Object);
+            if (loadIndexedNode.array().isConstant() && loadIndexedNode.index().isConstant()) {
+                int index = loadIndexedNode.index().asConstant().asInt();
+
+                Constant constant = constantReflection.readArrayElement(loadIndexedNode.array().asConstant(), index);
+                if (constant != null) {
                     return ConstantNode.forConstant(constant, metaAccess, loadIndexedNode.graph());
                 }
             }
@@ -73,9 +68,10 @@ final class PartialEvaluatorCanonicalizer implements CanonicalizerPhase.CustomCa
         return node;
     }
 
-    private static boolean verifyFieldValue(ResolvedJavaField field, Constant constant) {
-        assert field.getAnnotation(Child.class) == null || constant.isNull() || constant.asObject() instanceof com.oracle.truffle.api.nodes.Node : "@Child field value must be a Node: " + field +
-                        ", but was: " + constant.asObject();
+    private boolean verifyFieldValue(ResolvedJavaField field, Constant constant) {
+        assert field.getAnnotation(Child.class) == null || constant.isNull() ||
+                        metaAccess.lookupJavaType(com.oracle.truffle.api.nodes.Node.class).isAssignableFrom(metaAccess.lookupJavaType(constant)) : "@Child field value must be a Node: " + field +
+                        ", but was: " + constant;
         return true;
     }
 }

@@ -38,9 +38,6 @@
 #ifdef TARGET_COMPILER_sparcWorks
 # include "utilities/globalDefinitions_sparcWorks.hpp"
 #endif
-#ifdef TARGET_COMPILER_xlc
-# include "utilities/globalDefinitions_xlc.hpp"
-#endif
 
 #include "utilities/macros.hpp"
 
@@ -152,7 +149,7 @@ const int LogHeapWordsPerLong = LogBytesPerLong - LogHeapWordSize;
 // The larger HeapWordSize for 64bit requires larger heaps
 // for the same application running in 64bit.  See bug 4967770.
 // The minimum alignment to a heap word size is done.  Other
-// parts of the memory system may require additional alignment
+// parts of the memory system may required additional alignment
 // and are responsible for those alignments.
 #ifdef _LP64
 #define ScaleForWordSize(x) align_size_down_((x) * 13 / 10, HeapWordSize)
@@ -396,17 +393,6 @@ const uint64_t KlassEncodingMetaspaceMax = (uint64_t(max_juint) + 1) << LogKlass
  */
 #ifndef PLATFORM_NATIVE_STACK_WALKING_SUPPORTED
 #define PLATFORM_NATIVE_STACK_WALKING_SUPPORTED 1
-#endif
-
-// To assure the IRIW property on processors that are not multiple copy
-// atomic, sync instructions must be issued between volatile reads to
-// assure their ordering, instead of after volatile stores.
-// (See "A Tutorial Introduction to the ARM and POWER Relaxed Memory Models"
-// by Luc Maranget, Susmit Sarkar and Peter Sewell, INRIA/Cambridge)
-#ifdef CPU_NOT_MULTIPLE_COPY_ATOMIC
-const bool support_IRIW_for_not_multiple_copy_atomic_cpu = true;
-#else
-const bool support_IRIW_for_not_multiple_copy_atomic_cpu = false;
 #endif
 
 // The byte alignment to be used by Arena::Amalloc.  See bugid 4169348.

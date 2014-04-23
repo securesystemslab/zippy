@@ -36,8 +36,9 @@ import static java.lang.reflect.Modifier.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.java.*;
@@ -192,7 +193,7 @@ public class PTXWrapperBuilder extends GraphKit {
             }
         }
 
-        InvokeNode kernelStart = createInvoke(getClass(), "getKernelStart", ConstantNode.forObject(kernel, providers.getMetaAccess(), getGraph()));
+        InvokeNode kernelStart = createInvoke(getClass(), "getKernelStart", ConstantNode.forConstant(HotSpotObjectConstant.forObject(kernel), providers.getMetaAccess(), getGraph()));
 
         AllocaNode buf = append(new AllocaNode(bufSize / wordSize, new BitSet()));
         ValueNode objectParametersOffsets;
@@ -290,8 +291,8 @@ public class PTXWrapperBuilder extends GraphKit {
             Debug.dump(getGraph(), "Initial kernel launch graph");
         }
 
-        rewriteWordTypes();
-        inlineInvokes();
+        rewriteWordTypes(providers.getSnippetReflection());
+        inlineInvokes(providers.getSnippetReflection());
 
         if (Debug.isDumpEnabled()) {
             Debug.dump(getGraph(), "Kernel launch graph before compilation");

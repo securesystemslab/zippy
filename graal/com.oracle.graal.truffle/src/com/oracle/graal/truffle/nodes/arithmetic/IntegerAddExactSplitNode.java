@@ -23,18 +23,18 @@
 package com.oracle.graal.truffle.nodes.arithmetic;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
 public class IntegerAddExactSplitNode extends IntegerExactArithmeticSplitNode {
 
-    public IntegerAddExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, AbstractBeginNode next, AbstractBeginNode overflowSuccessor) {
+    public IntegerAddExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, BeginNode next, BeginNode overflowSuccessor) {
         super(stamp, x, y, next, overflowSuccessor);
     }
 
     @Override
-    protected Value generateArithmetic(NodeLIRGeneratorTool gen) {
+    protected Value generateArithmetic(NodeLIRBuilderTool gen) {
         return gen.getLIRGeneratorTool().emitAdd(gen.operand(getX()), gen.operand(getY()));
     }
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -99,6 +99,10 @@ CXXFLAGS += $(CXXFLAGS/BYFILE)
 ifneq ($(LP64), 1)
 CXXFLAGS/ostream.o += -D_FILE_OFFSET_BITS=64
 endif # ifneq ($(LP64), 1)
+
+ifeq ($(INCLUDE_GRAAL), true)
+  CXXFLAGS += -DGRAAL_VERSION="\"$(GRAAL_VERSION)\""
+endif
 
 # CFLAGS_WARN holds compiler options to suppress/enable warnings.
 CFLAGS += $(CFLAGS_WARN)

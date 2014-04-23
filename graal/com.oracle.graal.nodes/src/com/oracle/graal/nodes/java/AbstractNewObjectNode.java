@@ -24,12 +24,12 @@ package com.oracle.graal.nodes.java;
 
 import java.util.*;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
 /**
  * The {@code AbstractNewObjectNode} is the base class for the new instance and new array nodes.
@@ -40,7 +40,7 @@ public class AbstractNewObjectNode extends DeoptimizingFixedWithNextNode impleme
 
     /**
      * Constructs a new AbstractNewObjectNode.
-     * 
+     *
      * @param stamp the stamp of the newly created object
      * @param fillContents determines if the object's contents should be initialized to zero/null.
      */

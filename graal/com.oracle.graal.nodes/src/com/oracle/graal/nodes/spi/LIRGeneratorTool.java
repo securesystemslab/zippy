@@ -24,6 +24,7 @@ package com.oracle.graal.nodes.spi;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 
@@ -37,9 +38,31 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     ForeignCallsProvider getForeignCalls();
 
-    Value emitLoad(Kind kind, Value address, Access access);
+    Value emitLoad(PlatformKind kind, Value address, Access access);
 
-    void emitStore(Kind kind, Value address, Value input, Access access);
+    void emitStore(PlatformKind kind, Value address, Value input, Access access);
+
+    Value emitCompareAndSwap(Value address, Value expectedValue, Value newValue, Value trueValue, Value falseValue);
+
+    /**
+     * Emit an atomic read-and-add instruction.
+     *
+     * @param address address of the value to be read and written
+     * @param delta the value to be added
+     */
+    default Value emitAtomicReadAndAdd(Value address, Value delta) {
+        throw GraalInternalError.unimplemented();
+    }
+
+    /**
+     * Emit an atomic read-and-write instruction.
+     *
+     * @param address address of the value to be read and written
+     * @param newValue the new value to be written
+     */
+    default Value emitAtomicReadAndWrite(Value address, Value newValue) {
+        throw GraalInternalError.unimplemented();
+    }
 
     void emitDeoptimize(Value actionAndReason, Value failedSpeculation, DeoptimizingNode deopting);
 
@@ -48,7 +71,7 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
     /**
      * Checks whether the supplied constant can be used without loading it into a register for most
      * operations, i.e., for commonly used arithmetic, logical, and comparison operations.
-     * 
+     *
      * @param c The constant to check.
      * @return True if the constant can be used directly, false if the constant needs to be in a
      *         register.
@@ -67,7 +90,7 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     /**
      * Emits an op that loads the address of some raw data.
-     * 
+     *
      * @param dst the variable into which the address is loaded
      * @param data the data to be installed with the generated code
      */
@@ -89,5 +112,9 @@ public interface LIRGeneratorTool extends ArithmeticLIRGenerator {
 
     void emitIncomingValues(Value[] params);
 
+    /**
+     * Emits a return instruction. Implementations need to insert a move if the input is not in the
+     * correct location.
+     */
     void emitReturn(Value input);
 }

@@ -33,9 +33,6 @@
 
   address generate_normal_entry(bool synchronized);
   address generate_native_entry(bool synchronized);
-#ifdef GRAAL
-  address generate_execute_compiled_method_entry();
-#endif
  address generate_abstract_entry(void);
   address generate_math_entry(AbstractInterpreter::MethodKind kind);
   address generate_empty_entry(void);

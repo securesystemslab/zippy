@@ -38,7 +38,6 @@
 #include "nativeInst_x86.hpp"
 #include "oops/objArrayKlass.hpp"
 #include "runtime/sharedRuntime.hpp"
-#include "vmreg_x86.inline.hpp"
 
 
 // These masks are used to provide 128-bit aligned bitmasks to the XMM
@@ -801,7 +800,13 @@ void LIR_Assembler::const2mem(LIR_Opr src, LIR_Opr dest, BasicType type, CodeEmi
         if (UseCompressedOops && !wide) {
           __ movl(as_Address(addr), (int32_t)NULL_WORD);
         } else {
+#ifdef _LP64
+          __ xorptr(r10, r10);
+          null_check_here = code_offset();
+          __ movptr(as_Address(addr), r10);
+#else
           __ movptr(as_Address(addr), NULL_WORD);
+#endif
         }
       } else {
         if (is_literal_address(addr)) {
@@ -1007,9 +1012,6 @@ void LIR_Assembler::reg2mem(LIR_Opr src, LIR_Opr dest, BasicType type, LIR_Patch
     if (UseCompressedOops && !wide) {
       __ movptr(compressed_src, src->as_register());
       __ encode_heap_oop(compressed_src);
-      if (patch_code != lir_patch_none) {
-        info->oop_map()->set_narrowoop(compressed_src->as_VMReg());
-      }
     }
 #endif
   }

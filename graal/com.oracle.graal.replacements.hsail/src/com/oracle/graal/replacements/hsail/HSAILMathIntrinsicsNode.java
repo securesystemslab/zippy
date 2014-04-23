@@ -22,19 +22,16 @@
  */
 package com.oracle.graal.replacements.hsail;
 
-import com.oracle.graal.api.meta.Constant;
-import com.oracle.graal.api.meta.Value;
-import com.oracle.graal.compiler.hsail.HSAILLIRGenerator;
-import com.oracle.graal.graph.GraalInternalError;
-import com.oracle.graal.graph.Node;
-import com.oracle.graal.graph.spi.Canonicalizable;
-import com.oracle.graal.graph.spi.CanonicalizerTool;
-import com.oracle.graal.lir.hsail.HSAILArithmetic;
-import com.oracle.graal.nodes.calc.FloatingNode;
-import com.oracle.graal.nodes.ConstantNode;
-import com.oracle.graal.nodes.ValueNode;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.hsail.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.lir.hsail.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.StampFactory;
+import com.oracle.graal.nodes.type.*;
 
 /**
  * This node implements HSAIL intrinsics for specific {@link Math} routines.
@@ -53,7 +50,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Gets the parameter passed to the math operation that this node represents.
-     * 
+     *
      * @return the parameter
      */
     public ValueNode getParameter() {
@@ -62,7 +59,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Returns the math operation represented by this node.
-     * 
+     *
      * @return the operation
      */
     public HSAILArithmetic operation() {
@@ -71,7 +68,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Creates a new HSAILMathIntrinsicNode.
-     * 
+     *
      * @param x the argument to the math operation
      * @param op the math operation
      */
@@ -85,30 +82,30 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
      * Generates the LIR instructions for the math operation represented by this node.
      */
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
-        Value input = gen.operand(getParameter());
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        Value input = builder.operand(getParameter());
         Value result;
         switch (operation()) {
             case ABS:
-                result = gen.getLIRGeneratorTool().emitMathAbs(input);
+                result = gen.emitMathAbs(input);
                 break;
             case CEIL:
-                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathCeil(input);
+                result = ((HSAILLIRGenerator) gen).emitMathCeil(input);
                 break;
             case FLOOR:
-                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathFloor(input);
+                result = ((HSAILLIRGenerator) gen).emitMathFloor(input);
                 break;
             case RINT:
-                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathRint(input);
+                result = ((HSAILLIRGenerator) gen).emitMathRint(input);
                 break;
             case SQRT:
-                result = gen.getLIRGeneratorTool().emitMathSqrt(input);
+                result = gen.emitMathSqrt(input);
                 break;
 
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        gen.setResult(this, result);
+        builder.setResult(this, result);
     }
 
     /**
@@ -136,7 +133,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Node intrinsic for {@link Math} routines taking a single int parameter.
-     * 
+     *
      * @param value
      * @param op the math operation
      * @return the result of the operation
@@ -146,7 +143,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Node intrinsic for {@link Math} routines taking a single double parameter.
-     * 
+     *
      * @param value the input parameter
      * @param op the math operation
      * @return the result of the operation
@@ -156,7 +153,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Node intrinsic for {@link Math} routines taking a single float parameter.
-     * 
+     *
      * @param value the input parameter
      * @param op the math operation
      * @return the result of the operation
@@ -166,10 +163,10 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
 
     /**
      * Node intrinsic for {@link Math} routines taking a single double parameter.
-     * 
+     *
      * @param value the input parameter
      * @param op the math operation
-     * 
+     *
      * @return the result of the operation
      */
     @NodeIntrinsic

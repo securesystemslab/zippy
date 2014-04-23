@@ -27,13 +27,12 @@ import static com.oracle.graal.api.meta.LocationIdentity.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.virtual.phases.ea.ReadEliminationBlockState.CacheEntry;
@@ -175,7 +174,7 @@ public class ReadEliminationClosure extends EffectsClosure<ReadEliminationBlockS
     protected void processLoopExit(LoopExitNode exitNode, ReadEliminationBlockState initialState, ReadEliminationBlockState exitState, GraphEffectList effects) {
         for (Map.Entry<CacheEntry<?>, ValueNode> entry : exitState.getReadCache().entrySet()) {
             if (initialState.getReadCache().get(entry.getKey()) != entry.getValue()) {
-                ProxyNode proxy = new ProxyNode(exitState.getCacheEntry(entry.getKey()), exitNode, PhiType.Value);
+                ProxyNode proxy = new ValueProxyNode(exitState.getCacheEntry(entry.getKey()), exitNode);
                 effects.addFloatingNode(proxy, "readCacheProxy");
                 entry.setValue(proxy);
             }
@@ -194,16 +193,16 @@ public class ReadEliminationClosure extends EffectsClosure<ReadEliminationBlockS
 
     private class ReadEliminationMergeProcessor extends EffectsClosure<ReadEliminationBlockState>.MergeProcessor {
 
-        private final HashMap<Object, PhiNode> materializedPhis = new HashMap<>();
+        private final HashMap<Object, ValuePhiNode> materializedPhis = new HashMap<>();
 
         public ReadEliminationMergeProcessor(Block mergeBlock) {
             super(mergeBlock);
         }
 
         protected <T> PhiNode getCachedPhi(T virtual, Stamp stamp) {
-            PhiNode result = materializedPhis.get(virtual);
+            ValuePhiNode result = materializedPhis.get(virtual);
             if (result == null) {
-                result = new PhiNode(stamp, merge);
+                result = new ValuePhiNode(stamp, merge);
                 materializedPhis.put(virtual, result);
             }
             return result;

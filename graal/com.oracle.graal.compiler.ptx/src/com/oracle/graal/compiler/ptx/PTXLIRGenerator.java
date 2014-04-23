@@ -32,8 +32,9 @@ import static com.oracle.graal.lir.ptx.PTXCompare.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.ptx.*;
@@ -58,7 +59,6 @@ import com.oracle.graal.lir.ptx.PTXMemOp.StoreReturnValOp;
 import com.oracle.graal.lir.ptx.PTXMove.MoveFromRegOp;
 import com.oracle.graal.lir.ptx.PTXMove.MoveToRegOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.type.*;
@@ -232,26 +232,26 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public Variable emitLoad(Kind kind, Value address, Access access) {
+    public Variable emitLoad(PlatformKind kind, Value address, Access access) {
         PTXAddressValue loadAddress = asAddress(address);
         Variable result = newVariable(kind);
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);
         }
-        append(new LoadOp(kind, result, loadAddress, state));
+        append(new LoadOp((Kind) kind, result, loadAddress, state));
         return result;
     }
 
     @Override
-    public void emitStore(Kind kind, Value address, Value inputVal, Access access) {
+    public void emitStore(PlatformKind kind, Value address, Value inputVal, Access access) {
         PTXAddressValue storeAddress = asAddress(address);
         Variable input = load(inputVal);
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);
         }
-        append(new StoreOp(kind, storeAddress, input, state));
+        append(new StoreOp((Kind) kind, storeAddress, input, state));
     }
 
     @Override
@@ -265,7 +265,8 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
+    public void emitCompareBranch(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
+                    double trueDestinationProbability) {
         switch (left.getKind().getStackKind()) {
             case Int:
                 append(new CompareOp(ICMP, cond, left, right, nextPredRegNum));
@@ -305,7 +306,7 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public Variable emitConditionalMove(Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
+    public Variable emitConditionalMove(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
 
         Condition finalCondition = LIRValueUtil.isVariable(right) ? cond.mirror() : cond;
 
@@ -333,7 +334,7 @@ public class PTXLIRGenerator extends LIRGenerator {
     /**
      * This method emits the compare instruction, and may reorder the operands. It returns true if
      * it did so.
-     * 
+     *
      * @param a the left operand of the comparison
      * @param b the right operand of the comparison
      * @return true if the left and right operands were switched, false otherwise
@@ -375,7 +376,6 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitIntegerTestMove(Value left, Value right, Value trueValue, Value falseValue) {
-
         emitIntegerTest(left, right);
         Variable result = newVariable(trueValue.getKind());
         append(new CondMoveOp(result, Condition.EQ, load(trueValue), loadNonConst(falseValue), nextPredRegNum));
@@ -385,7 +385,6 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     private void emitIntegerTest(Value a, Value b) {
-
         assert a.getKind().isNumericInteger();
 
         if (LIRValueUtil.isVariable(b)) {
@@ -554,7 +553,6 @@ public class PTXLIRGenerator extends LIRGenerator {
             case Long:
                 append(new Op2Stack(LAND, result, a, loadNonConst(b)));
                 break;
-
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
@@ -829,7 +827,14 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitReturn(Value input) {
-        append(new ReturnOp(input));
+        if (input != null) {
+            AllocatableValue operand = resultOperandFor(input.getKind());
+            // Load the global memory address from return parameter
+            Variable loadVar = emitLoadReturnAddress(operand.getKind(), operand, null);
+            // Store input in global memory whose location is loadVar
+            emitStoreReturnValue(operand.getKind(), loadVar, input, null);
+        }
+        emitReturnNoVal();
     }
 
     void emitReturnNoVal() {
@@ -865,7 +870,6 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     public Variable emitLoadReturnAddress(Kind kind, Value address, DeoptimizingNode deopting) {
-
         PTXAddressValue loadAddress = asAddress(address);
         Variable result;
         switch (kind) {
@@ -877,7 +881,6 @@ public class PTXLIRGenerator extends LIRGenerator {
                 break;
             default:
                 result = newVariable(kind);
-
         }
         append(new LoadReturnAddrOp(kind, result, loadAddress, deopting != null ? state(deopting) : null));
 
@@ -885,7 +888,6 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     public void emitStoreReturnValue(Kind kind, Value address, Value inputVal, DeoptimizingNode deopting) {
-
         PTXAddressValue storeAddress = asAddress(address);
         Variable input = load(inputVal);
         append(new StoreReturnValOp(kind, storeAddress, input, deopting != null ? state(deopting) : null));
@@ -897,6 +899,10 @@ public class PTXLIRGenerator extends LIRGenerator {
             return ILLEGAL;
         }
         return (new Variable(kind, 0));
+    }
+
+    public Value emitCompareAndSwap(Value address, Value expectedValue, Value newValue, Value trueValue, Value falseValue) {
+        throw GraalInternalError.unimplemented();
     }
 
 }

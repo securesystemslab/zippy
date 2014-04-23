@@ -23,16 +23,18 @@
 package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ValueNumberable;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
 /**
  * A location for a memory access in terms of the kind of value accessed and how to access it. All
  * locations have the form [base + location], where base is a node and location is defined by
  * subclasses of the {@link LocationNode}.
  */
+@NodeInfo(allowedUsageTypes = {InputType.Association})
 public abstract class LocationNode extends FloatingNode implements LIRLowerable, ValueNumberable {
 
     /**
@@ -56,9 +58,9 @@ public abstract class LocationNode extends FloatingNode implements LIRLowerable,
     public abstract LocationIdentity getLocationIdentity();
 
     @Override
-    public final void generate(NodeLIRGeneratorTool generator) {
+    public final void generate(NodeLIRBuilderTool generator) {
         // nothing to do...
     }
 
-    public abstract Value generateAddress(NodeLIRGeneratorTool gen, Value base);
+    public abstract Value generateAddress(NodeMappableLIRBuilder builder, LIRGeneratorTool gen, Value base);
 }

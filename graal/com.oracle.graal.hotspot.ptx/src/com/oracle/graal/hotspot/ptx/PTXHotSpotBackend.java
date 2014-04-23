@@ -36,11 +36,12 @@ import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.ptx.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.gpu.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.lir.*;
@@ -50,9 +51,9 @@ import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
 import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.lir.ptx.*;
+import com.oracle.graal.lir.ptx.PTXControlFlow.PTXPredicatedLIRInstruction;
 import com.oracle.graal.lir.ptx.PTXMemOp.LoadReturnAddrOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
@@ -67,7 +68,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Descriptor for the PTX runtime method for calling a kernel. The C++ signature is:
-     * 
+     *
      * <pre>
      *     jlong (JavaThread* thread,
      *            jlong kernel,
@@ -95,6 +96,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
                     long.class, // objectParameterOffsets
                     long.class, // pinnedObjects
                     int.class); // encodedReturnTypeSize
+
     // @formatter:on
 
     public PTXHotSpotBackend(HotSpotGraalRuntime runtime, HotSpotProviders providers) {
@@ -113,7 +115,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Initializes the GPU device.
-     * 
+     *
      * @return whether or not initialization was successful
      */
     private static native boolean initialize();
@@ -154,8 +156,8 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     private static native long getLaunchKernelAddress();
 
     @Override
-    public FrameMap newFrameMap() {
-        return new PTXFrameMap(getCodeCache());
+    public FrameMap newFrameMap(RegisterConfig registerConfig) {
+        return new PTXFrameMap(getCodeCache(), registerConfig);
     }
 
     /**
@@ -167,7 +169,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Compiles a given method to PTX code.
-     * 
+     *
      * @param makeBinary specifies whether a GPU binary should also be generated for the PTX code.
      *            If true, the returned value is guaranteed to have a non-zero
      *            {@linkplain ExternalCompilationResult#getEntryPoint() entry point}.
@@ -338,7 +340,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         Assembler masm = createAssembler(frameMap);
         PTXFrameContext frameContext = new PTXFrameContext();
         CompilationResultBuilder crb = factory.createBuilder(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
-        crb.setFrameSize(0);
+        crb.setTotalFrameSize(0);
         return crb;
     }
 
@@ -358,8 +360,8 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public NodeLIRGenerator newNodeLIRGenerator(StructuredGraph graph, LIRGenerationResult lirGenRes, LIRGenerator lirGen) {
-        return new PTXHotSpotNodeLIRGenerator(graph, lirGenRes, lirGen);
+    public NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen) {
+        return new PTXHotSpotNodeLIRBuilder(graph, lirGen);
     }
 
     private static void emitKernelEntry(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod codeCacheOwner) {
@@ -408,12 +410,20 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         assert codeCacheOwner != null : lir + " is not associated with a method";
 
         RegisterAnalysis registerAnalysis = new RegisterAnalysis();
+        // Assume no predicate registers are used
+        int maxPredRegNum = -1;
 
         for (AbstractBlock<?> b : lir.codeEmittingOrder()) {
             for (LIRInstruction op : lir.getLIRforBlock(b)) {
                 if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {
+                    if (op instanceof PTXPredicatedLIRInstruction) {
+                        // Update maximum predicate register number if op uses a larger number
+                        int opPredRegNum = ((PTXPredicatedLIRInstruction) op).getPredRegNum();
+                        maxPredRegNum = (opPredRegNum > maxPredRegNum) ? opPredRegNum : maxPredRegNum;
+                    }
+                    // Record registers used in the kernel
                     registerAnalysis.op = op;
                     op.forEachTemp(registerAnalysis);
                     op.forEachOutput(registerAnalysis);
@@ -421,13 +431,13 @@ public class PTXHotSpotBackend extends HotSpotBackend {
             }
         }
 
+        // Emit register declarations
         Assembler asm = crb.asm;
         registerAnalysis.emitDeclarations(asm);
 
         // emit predicate register declaration
-        int maxPredRegNum = lir.numVariables();
-        if (maxPredRegNum > 0) {
-            asm.emitString(".reg .pred %p<" + maxPredRegNum + ">;");
+        if (maxPredRegNum > -1) {
+            asm.emitString(".reg .pred %p<" + ++maxPredRegNum + ">;");
         }
     }
 

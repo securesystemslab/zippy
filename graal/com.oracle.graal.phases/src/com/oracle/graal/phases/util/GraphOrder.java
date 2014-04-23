@@ -24,14 +24,17 @@ package com.oracle.graal.phases.util;
 
 import java.util.*;
 
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.VirtualState.NodeClosure;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.graph.*;
-import com.oracle.graal.phases.graph.ReentrantBlockIterator.*;
+import com.oracle.graal.phases.graph.ReentrantBlockIterator.BlockIteratorClosure;
 import com.oracle.graal.phases.schedule.*;
-import com.oracle.graal.phases.schedule.SchedulePhase.*;
+import com.oracle.graal.phases.schedule.SchedulePhase.MemoryScheduling;
+import com.oracle.graal.phases.schedule.SchedulePhase.SchedulingStrategy;
 
 public final class GraphOrder {
 
@@ -42,7 +45,7 @@ public final class GraphOrder {
      * Quick (and imprecise) assertion that there are no (invalid) cycles in the given graph. First,
      * an ordered list of all nodes in the graph (a total ordering) is created. A second run over
      * this list checks whether inputs are scheduled before their usages.
-     * 
+     *
      * @param graph the graph to be checked.
      * @throws AssertionError if a cycle was detected.
      */
@@ -57,16 +60,10 @@ public final class GraphOrder {
             } else {
                 for (Node input : node.inputs()) {
                     if (!visited.isMarked(input)) {
-                        if (input instanceof FrameState && node instanceof StateSplit && input == ((StateSplit) node).stateAfter()) {
-                            // nothing to do - after frame states are known, allowed cycles
+                        if (input instanceof FrameState) {
+                            // nothing to do - frame states are known, allowed cycles
                         } else {
-                            /*
-                             * TODO assertion does not hold for Substrate VM (in general for all
-                             * notDataflow inputs)
-                             * 
-                             * assert false : "unexpected cycle detected at input " + node + " -> "
-                             * + input;
-                             */
+                            assert false : "unexpected cycle detected at input " + node + " -> " + input;
                         }
                     }
                 }
@@ -80,7 +77,7 @@ public final class GraphOrder {
         final ArrayList<Node> nodes = new ArrayList<>();
         final NodeBitMap visited = graph.createNodeBitMap();
 
-        new PostOrderNodeIterator<MergeableState.EmptyState>(graph.start(), new MergeableState.EmptyState()) {
+        new StatelessPostOrderNodeIterator(graph.start()) {
             @Override
             protected void node(FixedNode node) {
                 visitForward(nodes, visited, node, false);
@@ -124,15 +121,14 @@ public final class GraphOrder {
                 }
             }
         } catch (GraalInternalError e) {
-            e.addContext(node);
-            throw e;
+            throw GraalGraphInternalError.transformAndAddContext(e, node);
         }
     }
 
     /**
      * This method schedules the graph and makes sure that, for every node, all inputs are available
      * at the position where it is scheduled. This is a very expensive assertion.
-     * 
+     *
      * Also, this phase assumes ProxyNodes to exist at LoopExitNodes, so that it cannot be run after
      * phases that remove loop proxies or move proxies to BeginNodes.
      */
@@ -145,7 +141,7 @@ public final class GraphOrder {
             BlockIteratorClosure<NodeBitMap> closure = new BlockIteratorClosure<NodeBitMap>() {
 
                 @Override
-                protected List<NodeBitMap> processLoop(Loop loop, NodeBitMap initialState) {
+                protected List<NodeBitMap> processLoop(Loop<Block> loop, NodeBitMap initialState) {
                     return ReentrantBlockIterator.processLoop(this, loop, initialState).exitStates;
                 }
 
@@ -161,6 +157,9 @@ public final class GraphOrder {
                     FrameState pendingStateAfter = null;
                     for (final ScheduledNode node : list) {
                         FrameState stateAfter = node instanceof StateSplit ? ((StateSplit) node).stateAfter() : null;
+                        if (node instanceof InfopointNode) {
+                            stateAfter = ((InfopointNode) node).getState();
+                        }
 
                         if (pendingStateAfter != null && node instanceof FixedNode) {
                             pendingStateAfter.applyToNonVirtual(new NodeClosure<Node>() {
@@ -185,15 +184,23 @@ public final class GraphOrder {
                                 }
                             }
                         } else if (node instanceof LoopExitNode) {
-                            // the contents of the loop are only accessible via proxies at the exit
-                            currentState.clearAll();
-                            currentState.markAll(loopEntryStates.get(((LoopExitNode) node).loopBegin()));
+                            if (!graph.isAfterFloatingReadPhase()) {
+                                // loop contents are only accessible via proxies at the exit
+                                currentState.clearAll();
+                                currentState.markAll(loopEntryStates.get(((LoopExitNode) node).loopBegin()));
+                            }
                             // Loop proxies aren't scheduled, so they need to be added explicitly
                             currentState.markAll(((LoopExitNode) node).proxies());
                         } else {
                             for (Node input : node.inputs()) {
                                 if (input != stateAfter) {
-                                    assert currentState.isMarked(input) : input + " not available at " + node + " in block " + block + "\n" + list;
+                                    if (input instanceof FrameState) {
+                                        ((FrameState) input).applyToNonVirtual((usage, nonVirtual) -> {
+                                            assert currentState.isMarked(nonVirtual) : nonVirtual + " not available at " + node + " in block " + block + "\n" + list;
+                                        });
+                                    } else {
+                                        assert currentState.isMarked(input) : input + " not available at " + node + " in block " + block + "\n" + list;
+                                    }
                                 }
                             }
                         }

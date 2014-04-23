@@ -29,7 +29,7 @@ import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.hotspot.nodes.*;
@@ -45,12 +45,12 @@ public class ThreadSubstitutions {
 
     @MethodSubstitution
     public static Thread currentThread() {
-        return PiNode.piCastNonNull(CurrentJavaThreadNode.get().readObject(threadObjectOffset(), LocationIdentity.FINAL_LOCATION), Thread.class);
+        return PiNode.piCastNonNull(CurrentJavaThreadNode.get(getWordKind()).readObject(threadObjectOffset(), LocationIdentity.FINAL_LOCATION), Thread.class);
     }
 
     @MethodSubstitution(isStatic = false)
     public static boolean isInterrupted(final Thread thisObject, boolean clearInterrupted) {
-        Word javaThread = CurrentJavaThreadNode.get();
+        Word javaThread = CurrentJavaThreadNode.get(getWordKind());
         Object thread = javaThread.readObject(threadObjectOffset(), LocationIdentity.FINAL_LOCATION);
         if (thisObject == thread) {
             Word osThread = javaThread.readWord(osThreadOffset(), LocationIdentity.FINAL_LOCATION);

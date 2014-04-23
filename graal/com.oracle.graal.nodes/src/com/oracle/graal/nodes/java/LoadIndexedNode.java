@@ -23,6 +23,7 @@
 package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -34,7 +35,7 @@ public final class LoadIndexedNode extends AccessIndexedNode implements Virtuali
 
     /**
      * Creates a new LoadIndexedNode.
-     * 
+     *
      * @param array the instruction producing the array
      * @param index the instruction producing the index
      * @param elementKind the element type

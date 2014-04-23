@@ -25,6 +25,7 @@ package com.oracle.graal.replacements.nodes;
 import static java.lang.reflect.Modifier.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
@@ -102,7 +103,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
 
     /**
      * Applies {@linkplain LoweringPhase lowering} to a replacement graph.
-     * 
+     *
      * @param replacementGraph a replacement (i.e., snippet or method substitution) graph
      */
     protected StructuredGraph lowerReplacement(final StructuredGraph replacementGraph, LoweringTool tool) {

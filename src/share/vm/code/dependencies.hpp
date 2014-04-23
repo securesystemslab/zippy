@@ -32,7 +32,6 @@
 #include "code/compressedStream.hpp"
 #include "code/nmethod.hpp"
 #include "utilities/growableArray.hpp"
-#include "utilities/hashtable.hpp"
 
 //** Dependencies represent assertions (approximate invariants) within
 // the runtime system, e.g. class hierarchy changes.  An example is an
@@ -571,9 +570,6 @@ class Dependencies: public ResourceObj {
     bool next();
 
     DepType type()               { return _type; }
-    bool has_oop_argument()      { return type() == call_site_target_value; }
-    uintptr_t get_identifier(int i);
-
     int argument_count()         { return dep_args(type()); }
     int argument_index(int i)    { assert(0 <= i && i < argument_count(), "oob");
                                    return _xi[i]; }
@@ -614,30 +610,6 @@ class Dependencies: public ResourceObj {
   friend class Dependencies::DepStream;
 
   static void print_statistics() PRODUCT_RETURN;
-};
-
-
-class DependencySignature : public GenericHashtableEntry<DependencySignature, ResourceObj> {
- private:
-  int                   _args_count;
-  uintptr_t             _argument_hash[Dependencies::max_arg_count];
-  Dependencies::DepType _type;
-
- public:
-  DependencySignature(Dependencies::DepStream& dep) {
-    _args_count = dep.argument_count();
-    _type = dep.type();
-    for (int i = 0; i < _args_count; i++) {
-      _argument_hash[i] = dep.get_identifier(i);
-    }
-  }
-
-  bool equals(DependencySignature* sig) const;
-  uintptr_t key() const { return _argument_hash[0] >> 2; }
-
-  int args_count()             const { return _args_count; }
-  uintptr_t arg(int idx)       const { return _argument_hash[idx]; }
-  Dependencies::DepType type() const { return _type; }
 };
 
 

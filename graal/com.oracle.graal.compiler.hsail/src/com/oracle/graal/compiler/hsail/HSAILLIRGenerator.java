@@ -31,8 +31,9 @@ import static com.oracle.graal.lir.hsail.HSAILCompare.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.hsail.*;
@@ -51,7 +52,6 @@ import com.oracle.graal.lir.hsail.HSAILMove.MembarOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveFromRegOp;
 import com.oracle.graal.lir.hsail.HSAILMove.MoveToRegOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.phases.util.*;
 
@@ -60,17 +60,11 @@ import com.oracle.graal.phases.util.*;
  */
 public abstract class HSAILLIRGenerator extends LIRGenerator {
 
-    public static class HSAILSpillMoveFactory implements LIR.SpillMoveFactory {
+    public class HSAILSpillMoveFactory implements LIR.SpillMoveFactory {
 
         @Override
         public LIRInstruction createMove(AllocatableValue dst, Value src) {
-            if (src instanceof HSAILAddressValue) {
-                return new LeaOp(dst, (HSAILAddressValue) src);
-            } else if (isRegister(src) || isStackSlot(dst)) {
-                return new MoveFromRegOp(dst, src);
-            } else {
-                return new MoveToRegOp(dst, src);
-            }
+            return HSAILLIRGenerator.this.createMove(dst, src);
         }
     }
 
@@ -99,18 +93,24 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitMove(Value input) {
-        Variable result = newVariable(input.getKind());
+        Variable result = newVariable(input.getPlatformKind());
         emitMove(result, input);
         return result;
     }
 
+    protected HSAILLIRInstruction createMove(AllocatableValue dst, Value src) {
+        if (src instanceof HSAILAddressValue) {
+            return new LeaOp(dst, (HSAILAddressValue) src);
+        } else if (isRegister(src) || isStackSlot(dst)) {
+            return new MoveFromRegOp(dst.getKind(), dst, src);
+        } else {
+            return new MoveToRegOp(dst.getKind(), dst, src);
+        }
+    }
+
     @Override
     public void emitMove(AllocatableValue dst, Value src) {
-        if (isRegister(src) || isStackSlot(dst)) {
-            append(new MoveFromRegOp(dst, src));
-        } else {
-            append(new MoveToRegOp(dst, src));
-        }
+        append(createMove(dst, src));
     }
 
     public void emitData(AllocatableValue dst, byte[] data) {
@@ -148,8 +148,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
                 finalDisp += asConstant(index).asLong() * scale;
             } else {
                 Value indexRegister;
-                Value convertedIndex;
-                convertedIndex = this.emitSignExtend(index, 32, 64);
+                Value convertedIndex = index.getKind() == Kind.Long ? index : this.emitSignExtend(index, 32, 64);
                 if (scale != 1) {
                     indexRegister = emitUMul(convertedIndex, Constant.forInt(scale));
                 } else {
@@ -193,7 +192,8 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
+    public void emitCompareBranch(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
+                    double trueDestinationProbability) {
         // We don't have to worry about mirroring the condition on HSAIL.
         Condition finalCondition = cond;
         Variable result = newVariable(left.getKind());
@@ -220,11 +220,13 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitIntegerTestBranch(Value left, Value right, LabelRef trueDestination, LabelRef falseDestination, double trueDestinationProbability) {
-        throw GraalInternalError.unimplemented();
+        Variable result = emitAnd(left, right);
+        Variable dummyResult = newVariable(left.getKind());
+        append(new CompareBranchOp(mapKindToCompareOp(left.getKind()), Condition.EQ, result, Constant.forInt(0), dummyResult, dummyResult, trueDestination, falseDestination, false));
     }
 
     @Override
-    public Variable emitConditionalMove(Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
+    public Variable emitConditionalMove(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
         Condition finalCondition = cond;
         Variable result = newVariable(trueValue.getKind());
         Kind kind = left.getKind().getStackKind();
@@ -806,7 +808,12 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitReturn(Value input) {
-        append(new ReturnOp(input));
+        AllocatableValue operand = Value.ILLEGAL;
+        if (input != null) {
+            operand = resultOperandFor(input.getKind());
+            emitMove(operand, input);
+        }
+        append(new ReturnOp(operand));
     }
 
     /**

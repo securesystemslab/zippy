@@ -30,6 +30,7 @@ import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -38,6 +39,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Creates a memory barrier.
  */
+@NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class MembarNode extends FixedWithNextNode implements LIRLowerable, MemoryCheckpoint.Single {
 
     private final int barriers;
@@ -56,7 +58,7 @@ public class MembarNode extends FixedWithNextNode implements LIRLowerable, Memor
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         generator.getLIRGeneratorTool().emitMembar(barriers);
     }
 

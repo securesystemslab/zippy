@@ -33,8 +33,8 @@ import java.nio.charset.*;
 import java.nio.file.*;
 import java.util.*;
 
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.logging.*;
 import com.oracle.graal.options.*;
 import com.oracle.graal.phases.common.*;
@@ -217,7 +217,7 @@ public class HotSpotOptions {
      * @param c the class in which the field is declared
      * @param name the name of the field
      */
-    private static void unconditionallyEnableTimerOrMetric(Class c, String name) {
+    private static void unconditionallyEnableTimerOrMetric(Class<?> c, String name) {
         try {
             Field field = c.getDeclaredField(name);
             String propertyName;

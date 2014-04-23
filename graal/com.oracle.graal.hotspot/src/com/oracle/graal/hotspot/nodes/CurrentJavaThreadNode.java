@@ -25,10 +25,13 @@ package com.oracle.graal.hotspot.nodes;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.word.*;
 
 /**
@@ -36,12 +39,12 @@ import com.oracle.graal.word.*;
  */
 public final class CurrentJavaThreadNode extends FloatingNode implements LIRLowerable {
 
-    private CurrentJavaThreadNode() {
-        super(null);
+    private CurrentJavaThreadNode(Kind kind) {
+        super(StampFactory.forKind(kind));
     }
 
     @Override
-    public void generate(NodeLIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         Register rawThread = ((HotSpotLIRGenerator) gen.getLIRGeneratorTool()).getProviders().getRegisters().getThreadRegister();
         gen.setResult(this, rawThread.asValue(this.getKind()));
     }
@@ -55,7 +58,7 @@ public final class CurrentJavaThreadNode extends FloatingNode implements LIRLowe
     }
 
     @NodeIntrinsic(setStampFromReturnType = true)
-    public static Word get() {
+    public static Word get(@SuppressWarnings("unused") @ConstantNodeParameter Kind kind) {
         return Word.unsigned(unsafeReadWord(Thread.currentThread(), eetopOffset()));
     }
 }

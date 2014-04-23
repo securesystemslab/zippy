@@ -41,7 +41,7 @@ public class StructuredGraph extends Graph {
      * The different stages of the compilation of a {@link Graph} regarding the status of
      * {@link GuardNode guards}, {@link DeoptimizingNode deoptimizations} and {@link FrameState
      * framestates}. The stage of a graph progresses monotonously.
-     * 
+     *
      */
     public static enum GuardsStage {
         /**
@@ -79,16 +79,14 @@ public class StructuredGraph extends Graph {
     private boolean isAfterFloatingReadPhase = false;
 
     /**
-     * Creates a new Graph containing a single {@link AbstractBeginNode} as the {@link #start()
-     * start} node.
+     * Creates a new Graph containing a single {@link BeginNode} as the {@link #start() start} node.
      */
     public StructuredGraph() {
         this(null, null);
     }
 
     /**
-     * Creates a new Graph containing a single {@link AbstractBeginNode} as the {@link #start()
-     * start} node.
+     * Creates a new Graph containing a single {@link BeginNode} as the {@link #start() start} node.
      */
     public StructuredGraph(String name, ResolvedJavaMethod method) {
         this(name, method, uniqueGraphIds.incrementAndGet(), INVOCATION_ENTRY_BCI);
@@ -137,7 +135,7 @@ public class StructuredGraph extends Graph {
 
     /**
      * Gets the method from which this graph was built.
-     * 
+     *
      * @return null if this method was not built from a method or the method is not available
      */
     public ResolvedJavaMethod method() {
@@ -250,13 +248,13 @@ public class StructuredGraph extends Graph {
     /**
      * Unlinks a node from all its control flow neighbors and then removes it from its graph. The
      * node must have no {@linkplain Node#usages() usages}.
-     * 
+     *
      * @param node the node to be unlinked and removed
      */
     public void removeFixed(FixedWithNextNode node) {
         assert node != null;
-        if (node instanceof AbstractBeginNode) {
-            ((AbstractBeginNode) node).prepareDelete();
+        if (node instanceof BeginNode) {
+            ((BeginNode) node).prepareDelete();
         }
         assert node.usages().isEmpty() : node + " " + node.usages();
         FixedNode next = node.next();
@@ -295,7 +293,7 @@ public class StructuredGraph extends Graph {
         node.safeDelete();
     }
 
-    public void removeSplit(ControlSplitNode node, AbstractBeginNode survivingSuccessor) {
+    public void removeSplit(ControlSplitNode node, BeginNode survivingSuccessor) {
         assert node != null;
         assert node.usages().isEmpty();
         assert survivingSuccessor != null;
@@ -304,7 +302,7 @@ public class StructuredGraph extends Graph {
         node.safeDelete();
     }
 
-    public void removeSplitPropagate(ControlSplitNode node, AbstractBeginNode survivingSuccessor) {
+    public void removeSplitPropagate(ControlSplitNode node, BeginNode survivingSuccessor) {
         assert node != null;
         assert node.usages().isEmpty();
         assert survivingSuccessor != null;
@@ -321,7 +319,7 @@ public class StructuredGraph extends Graph {
         }
     }
 
-    public void replaceSplit(ControlSplitNode node, Node replacement, AbstractBeginNode survivingSuccessor) {
+    public void replaceSplit(ControlSplitNode node, Node replacement, BeginNode survivingSuccessor) {
         if (replacement instanceof FixedWithNextNode) {
             replaceSplitWithFixed(node, (FixedWithNextNode) replacement, survivingSuccessor);
         } else {
@@ -331,7 +329,7 @@ public class StructuredGraph extends Graph {
         }
     }
 
-    public void replaceSplitWithFixed(ControlSplitNode node, FixedWithNextNode replacement, AbstractBeginNode survivingSuccessor) {
+    public void replaceSplitWithFixed(ControlSplitNode node, FixedWithNextNode replacement, BeginNode survivingSuccessor) {
         assert node != null && replacement != null && node.isAlive() && replacement.isAlive() : "cannot replace " + node + " with " + replacement;
         assert survivingSuccessor != null;
         node.clearSuccessors();
@@ -339,7 +337,7 @@ public class StructuredGraph extends Graph {
         node.replaceAndDelete(replacement);
     }
 
-    public void replaceSplitWithFloating(ControlSplitNode node, FloatingNode replacement, AbstractBeginNode survivingSuccessor) {
+    public void replaceSplitWithFloating(ControlSplitNode node, FloatingNode replacement, BeginNode survivingSuccessor) {
         assert node != null && replacement != null && node.isAlive() && replacement.isAlive() : "cannot replace " + node + " with " + replacement;
         assert survivingSuccessor != null;
         node.clearSuccessors();

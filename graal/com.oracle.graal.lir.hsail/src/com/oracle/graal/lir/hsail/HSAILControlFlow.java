@@ -22,22 +22,20 @@
  */
 package com.oracle.graal.lir.hsail;
 
+import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.hsail.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
+import com.oracle.graal.hsail.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.SwitchStrategy.BaseSwitchClosure;
 import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.nodes.calc.*;
-
-import static com.oracle.graal.api.code.ValueUtil.*;
-
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.hsail.HSAIL;
 
 /**
  * Implementation of control flow instructions.
@@ -47,7 +45,7 @@ public class HSAILControlFlow {
     /**
      * This class represents the LIR instruction that the HSAIL backend generates for a switch
      * construct in Java.
-     * 
+     *
      * The HSAIL backend compiles switch statements into a series of cascading compare and branch
      * instructions because this is the currently the recommended way to generate optimally
      * performing HSAIL code. Thus the execution path for both the TABLESWITCH and LOOKUPSWITCH
@@ -85,12 +83,12 @@ public class HSAILControlFlow {
 
         /**
          * Generates the code for this switch op.
-         * 
+         *
          * The keys for switch statements in Java bytecode for of type int. However, Graal also
          * generates a TypeSwitchNode (for method dispatch) which triggers the invocation of these
          * routines with keys of type Long or Object. Currently we only support the
          * IntegerSwitchNode so we throw an exception if the key isn't of type int.
-         * 
+         *
          * @param crb the CompilationResultBuilder
          * @param masm the HSAIL assembler
          */
@@ -103,7 +101,7 @@ public class HSAILControlFlow {
                         case Int:
                         case Long:
                             // Generate cascading compare and branches for each case.
-                            masm.emitCompare(key, keyConstants[index], HSAILCompare.conditionToString(condition), false, false);
+                            masm.emitCompare(key.getKind(), key, keyConstants[index], HSAILCompare.conditionToString(condition), false, false);
                             masm.cbr(masm.nameOf(target));
                             break;
                         case Object:
@@ -131,11 +129,17 @@ public class HSAILControlFlow {
         }
     }
 
+    public interface DeoptimizingOp {
+        public LIRFrameState getFrameState();
+
+        public int getCodeBufferPos();
+    }
+
     /***
      * The ALIVE annotation is so we can get a scratch32 register that does not clobber
      * actionAndReason.
      */
-    public static class DeoptimizeOp extends ReturnOp {
+    public static class DeoptimizeOp extends ReturnOp implements DeoptimizingOp {
 
         @Alive({REG, CONST}) protected Value actionAndReason;
         @State protected LIRFrameState frameState;
@@ -175,6 +179,8 @@ public class HSAILControlFlow {
             // debugInfo)
             codeBufferPos = masm.position();
 
+            masm.emitComment("/* HSAIL Deoptimization pos=" + codeBufferPos + ", bci=" + frameState.debugInfo().getBytecodePosition().getBCI() + ", frameState=" + frameState + " */");
+
             // get the bitmap of $d regs that contain references
             ReferenceMap referenceMap = frameState.debugInfo().getReferenceMap();
             for (int dreg = HSAIL.d0.number; dreg <= HSAIL.d15.number; dreg++) {
@@ -183,17 +189,12 @@ public class HSAILControlFlow {
                 }
             }
 
-            // here we will by convention use some never-allocated registers to pass to the epilogue
-            // deopt code
-            // todo: define these in HSAIL.java
-            // we need to pass the actionAndReason and the codeBufferPos
-
-            AllocatableValue actionAndReasonReg = HSAIL.s32.asValue(Kind.Int);
-            AllocatableValue codeBufferOffsetReg = HSAIL.s33.asValue(Kind.Int);
-            AllocatableValue dregOopMapReg = HSAIL.s39.asValue(Kind.Int);
-            masm.emitMov(actionAndReasonReg, actionAndReason);
-            masm.emitMov(codeBufferOffsetReg, Constant.forInt(codeBufferPos));
-            masm.emitMov(dregOopMapReg, Constant.forInt(dregOopMap));
+            AllocatableValue actionAndReasonReg = HSAIL.actionAndReasonReg.asValue(Kind.Int);
+            AllocatableValue codeBufferOffsetReg = HSAIL.codeBufferOffsetReg.asValue(Kind.Int);
+            AllocatableValue dregOopMapReg = HSAIL.dregOopMapReg.asValue(Kind.Int);
+            masm.emitMov(Kind.Int, actionAndReasonReg, actionAndReason);
+            masm.emitMov(Kind.Int, codeBufferOffsetReg, Constant.forInt(codeBufferPos));
+            masm.emitMov(Kind.Int, dregOopMapReg, Constant.forInt(dregOopMap));
             masm.emitJumpToLabelName(masm.getDeoptLabelName());
 
             // now record the debuginfo
@@ -288,10 +289,10 @@ public class HSAILControlFlow {
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
             if (crb.isSuccessorEdge(trueDestination)) {
-                HSAILCompare.emit(crb, masm, condition.negate(), x, y, z, !unordered);
+                HSAILCompare.emit(crb, masm, opcode, condition.negate(), x, y, z, !unordered);
                 masm.cbr(masm.nameOf(falseDestination.label()));
             } else {
-                HSAILCompare.emit(crb, masm, condition, x, y, z, unordered);
+                HSAILCompare.emit(crb, masm, opcode, condition, x, y, z, unordered);
                 masm.cbr(masm.nameOf(trueDestination.label()));
                 if (!crb.isSuccessorEdge(falseDestination)) {
                     masm.jmp(falseDestination.label());
@@ -322,7 +323,7 @@ public class HSAILControlFlow {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
-            HSAILCompare.emit(crb, masm, condition, left, right, right, false);
+            HSAILCompare.emit(crb, masm, opcode, condition, left, right, right, false);
             cmove(masm, result, trueValue, falseValue);
         }
     }
@@ -338,7 +339,7 @@ public class HSAILControlFlow {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
-            HSAILCompare.emit(crb, masm, condition, left, right, right, unorderedIsTrue);
+            HSAILCompare.emit(crb, masm, opcode, condition, left, right, right, unorderedIsTrue);
             cmove(masm, result, trueValue, falseValue);
         }
     }

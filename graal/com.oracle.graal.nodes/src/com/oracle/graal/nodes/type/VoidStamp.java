@@ -23,8 +23,9 @@
 package com.oracle.graal.nodes.type;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.spi.*;
+import com.oracle.graal.compiler.common.type.*;
 
 /**
  * Singleton stamp representing the value of type {@code void}.
@@ -89,6 +90,17 @@ public final class VoidStamp extends Stamp {
     @Override
     public boolean isCompatible(Stamp stamp) {
         return this == stamp;
+    }
+
+    @Override
+    public Stamp illegal() {
+        // there is no illegal void stamp
+        return this;
+    }
+
+    @Override
+    public boolean isLegal() {
+        return true;
     }
 
     private static VoidStamp instance = new VoidStamp();

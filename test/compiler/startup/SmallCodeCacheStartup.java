@@ -24,13 +24,20 @@
 /*
  * @test
  * @bug 8023014
- * @summary Test ensures that there is no crash if there is not enough ReservedCodeacacheSize
- *          to initialize all compiler threads. The option -Xcomp gives the VM more time to
- *          to trigger the old bug.
- * @run main/othervm -XX:ReservedCodeCacheSize=3m -XX:CICompilerCount=64 -Xcomp SmallCodeCacheStartup
+ * @summary Test ensures that there is no crash when compiler initialization fails
+ * @library /testlibrary
+ *
  */
+import com.oracle.java.testlibrary.*;
+
 public class SmallCodeCacheStartup {
   public static void main(String[] args) throws Exception {
-    System.out.println("TEST PASSED");
+    ProcessBuilder pb;
+    OutputAnalyzer out;
+
+    pb = ProcessTools.createJavaProcessBuilder("-XX:ReservedCodeCacheSize=3m", "-XX:CICompilerCount=64", "-version");
+    out = new OutputAnalyzer(pb.start());
+    out.shouldContain("no space to run compiler");
+    out.shouldHaveExitValue(0);
   }
 }

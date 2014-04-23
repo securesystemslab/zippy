@@ -22,6 +22,7 @@
  */
 
 /*
+ * @ignore 8023735
  * @test
  * @bug 7051189 8023393
  * @summary Need to suppress info message if -Xcheck:jni is used with libjsig.so
@@ -29,8 +30,7 @@
  * @run main XCheckJSig
  */
 
-import java.io.File;
-import java.util.Map;
+import java.util.*;
 import com.oracle.java.testlibrary.*;
 
 public class XCheckJSig {
@@ -47,36 +47,33 @@ public class XCheckJSig {
         String libjsig;
         String env_var;
         if (Platform.isOSX()) {
+            libjsig = jdk_path + "/jre/lib/server/libjsig.dylib";
             env_var = "DYLD_INSERT_LIBRARIES";
-            libjsig = jdk_path + "/jre/lib/libjsig.dylib"; // jdk location
-            if (!(new File(libjsig).exists())) {
-                libjsig = jdk_path + "/lib/libjsig.dylib"; // jre location
-            }
         } else {
+            libjsig = jdk_path + "/jre/lib/" + os_arch + "/libjsig.so";
             env_var = "LD_PRELOAD";
-            libjsig = jdk_path + "/jre/lib/" + os_arch + "/libjsig.so"; // jdk location
-            if (!(new File(libjsig).exists())) {
-                libjsig = jdk_path + "/lib/" + os_arch + "/libjsig.so"; // jre location
-            }
+        }
+        String java_program;
+        if (Platform.isSolaris()) {
+            // On Solaris, need to call the 64-bit Java directly in order for
+            // LD_PRELOAD to work because libjsig.so is 64-bit.
+            java_program = jdk_path + "/jre/bin/" + os_arch + "/java";
+        } else {
+            java_program = JDKToolFinder.getJDKTool("java");
         }
         // If this test fails, these might be useful to know.
         System.out.println("libjsig: " + libjsig);
         System.out.println("osArch: " + os_arch);
+        System.out.println("java_program: " + java_program);
 
-        // Make sure the libjsig file exists.
-        if (!(new File(libjsig).exists())) {
-            System.out.println("File " + libjsig + " not found, skipping");
-            return;
-        }
-
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder("-Xcheck:jni", "-version");
+        ProcessBuilder pb = new ProcessBuilder(java_program, "-Xcheck:jni", "-version");
         Map<String, String> env = pb.environment();
         env.put(env_var, libjsig);
         OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldNotContain("libjsig is activated");
         output.shouldHaveExitValue(0);
 
-        pb = ProcessTools.createJavaProcessBuilder("-Xcheck:jni", "-verbose:jni", "-version");
+        pb = new ProcessBuilder(java_program, "-Xcheck:jni", "-verbose:jni", "-version");
         env = pb.environment();
         env.put(env_var, libjsig);
         output = new OutputAnalyzer(pb.start());
