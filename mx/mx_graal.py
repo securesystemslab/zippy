@@ -1085,6 +1085,11 @@ def _basic_gate_body(args, tasks):
         unittest([])
         tasks.append(t.stop())
 
+    with VM('server', 'product'):  # hosted mode
+        t = Task('UnitTests-BaselineCompiler:hosted-product')
+        unittest(['--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
+        tasks.append(t.stop())
+
     for vmbuild in ['fastdebug', 'product']:
         for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild) + sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             t = Task(str(test) + ':' + vmbuild)
