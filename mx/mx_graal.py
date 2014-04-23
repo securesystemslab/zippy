@@ -35,7 +35,7 @@ import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
-import fnmatch, re
+import fnmatch
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
