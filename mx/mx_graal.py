@@ -35,6 +35,7 @@ import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
+import fnmatch
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
@@ -861,7 +862,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         projectscp = mx.classpath(projs)
 
     if whitelist:
-        classes = list(set(classes) & set(whitelist))
+        classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -905,10 +906,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
 _unittestHelpSuffix = """
     Unittest options:
 
-      --short-only           run short testcases only
-      --long-only            run long testcases only
-      --baseline-whitelist   run only testcases which are known to
-                             work with the baseline compiler
+      --whitelist            run only testcases which are included
+                             in the given whitelist
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -945,10 +944,7 @@ def unittest(args):
           formatter_class=RawDescriptionHelpFormatter,
           epilog=_unittestHelpSuffix,
         )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--short-only', action='store_true', help='run short testcases only')
-    group.add_argument('--long-only', action='store_true', help='run long testcases only')
-    parser.add_argument('--baseline-whitelist', action='store_true', help='run baseline testcases only')
+    parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
 
     ut_args = []
     delimiter = False
@@ -968,33 +964,19 @@ def unittest(args):
         parsed_args, args = parser.parse_known_args(ut_args)
 
     whitelist = None
-    if parsed_args.baseline_whitelist:
-        baseline_whitelist_file = 'test/baseline_whitelist.txt'
+    if parsed_args.whitelist:
         try:
-            with open(join(_graal_home, baseline_whitelist_file)) as fp:
-                whitelist = [l.rstrip() for l in fp.readlines()]
+            with open(join(_graal_home, parsed_args.whitelist)) as fp:
+                whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
-            mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
+            mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    if parsed_args.long_only:
-        annotations = ['@LongTest', '@Parameters']
-    elif parsed_args.short_only:
-        annotations = ['@Test']
-    else:
-        annotations = ['@Test', '@LongTest', '@Parameters']
-
-    _unittest(args, annotations, whitelist=whitelist)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist)
 
 def shortunittest(args):
-    """alias for 'unittest --short-only'{0}"""
+    """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
 
-    args.insert(0, '--short-only')
-    unittest(args)
-
-def longunittest(args):
-    """alias for 'unittest --long-only'{0}"""
-
-    args.insert(0, '--long-only')
+    args = ['--whitelist', 'test/whitelist_shortunittest.txt'] + args
     unittest(args)
 
 def buildvms(args):
@@ -1102,6 +1084,11 @@ def _basic_gate_body(args, tasks):
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests:hosted-product')
         unittest([])
+        tasks.append(t.stop())
+
+    with VM('server', 'product'):  # hosted mode
+        t = Task('UnitTests-BaselineCompiler:hosted-product')
+        unittest(['--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
@@ -1723,14 +1710,14 @@ def trufflejar(args=None):
     """make truffle.jar"""
 
     # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
 
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
     packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
 
     # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
 
 
 def isGraalEnabled(vm):
@@ -1953,7 +1940,6 @@ def mx_init(suite):
         'gate' : [gate, '[-options]'],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'makejmhdeps' : [makejmhdeps, ''],
         'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
