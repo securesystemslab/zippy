@@ -230,6 +230,7 @@ public abstract class PythonCallNode extends PNode {
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
             PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
+            newInstance.switchToPrivateLayout();
             return newInstance;
         }
     }

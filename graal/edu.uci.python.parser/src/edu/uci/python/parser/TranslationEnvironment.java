@@ -34,6 +34,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.parser.ScopeInfo.ScopeKind;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -96,6 +97,12 @@ public class TranslationEnvironment {
     public boolean atNonModuleLevel() {
         assert scopeLevel > 0;
         return scopeLevel > 1;
+    }
+
+    public boolean isInConstructorScope() {
+        return isInFunctionScope() && //
+                        currentScope.getScopeId().equals("__init__") && //
+                        currentScope.getParent().getScopeKind() == ScopeKind.Class;
     }
 
     public ScopeInfo.ScopeKind getScopeKind() {

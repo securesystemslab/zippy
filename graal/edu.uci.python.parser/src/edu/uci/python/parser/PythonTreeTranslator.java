@@ -651,6 +651,18 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitAttribute(Attribute node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
 
+        /**
+         * Use monomorphic {@link StoreAttributeNode} in constructors. This helps to avoid unwanted
+         * polymorphic dispatch node created when initializing the
+         * {@link PythonClass#instanceObjectLayout} of the invoked class.
+         */
+        if (environment.isInConstructorScope() && node.getInternalCtx() == expr_contextType.Store) {
+            expr primaryToken = node.getInternalValue();
+            if (primaryToken instanceof Name && ((Name) primaryToken).getInternalId().equals("self")) {
+                return factory.createLoadAttribute(primary, node.getInternalAttr());
+            }
+        }
+
         if (PythonOptions.AttributeAccessInlineCaching) {
             return factory.createGetAttribute(context, primary, node.getInternalAttr());
         } else {
