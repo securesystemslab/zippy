@@ -976,12 +976,10 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
 
-    if parsed_args.long_only:
-        annotations = ['@LongTest', '@Parameters']
-    elif parsed_args.short_only:
+    if parsed_args.short_only:
         annotations = ['@Test']
     else:
-        annotations = ['@Test', '@LongTest', '@Parameters']
+        annotations = ['@Test', '@Parameters']
 
     _unittest(args, annotations, whitelist=whitelist)
 
@@ -989,12 +987,6 @@ def shortunittest(args):
     """alias for 'unittest --short-only'{0}"""
 
     args.insert(0, '--short-only')
-    unittest(args)
-
-def longunittest(args):
-    """alias for 'unittest --long-only'{0}"""
-
-    args.insert(0, '--long-only')
     unittest(args)
 
 def buildvms(args):
@@ -1723,14 +1715,14 @@ def trufflejar(args=None):
     """make truffle.jar"""
 
     # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
 
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
     packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
 
     # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
 
 
 def isGraalEnabled(vm):
@@ -1953,7 +1945,6 @@ def mx_init(suite):
         'gate' : [gate, '[-options]'],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'makejmhdeps' : [makejmhdeps, ''],
         'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
