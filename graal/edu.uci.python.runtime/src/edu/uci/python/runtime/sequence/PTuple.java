@@ -115,7 +115,7 @@ public final class PTuple extends PImmutableSequence {
             checkedIdx += array.length;
         }
 
-        return ObjectLayoutUtil.readObjectArrayUnsafeAt(array, checkedIdx, this);
+        return ObjectLayoutUtil.readObjectArrayUnsafeAt(array, checkedIdx, null);
     }
 
     @Override

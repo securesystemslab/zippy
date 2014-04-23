@@ -72,7 +72,7 @@ public class PDoubleArray extends PArray {
     }
 
     public double getDoubleItemInBound(int idx) {
-        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(array, idx, this);
+        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(array, idx, null);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class PDoubleArray extends PArray {
     }
 
     public void setDoubleItemInBound(int idx, double value) {
-        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(array, idx, value, this);
+        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(array, idx, value, null);
     }
 
     @Override

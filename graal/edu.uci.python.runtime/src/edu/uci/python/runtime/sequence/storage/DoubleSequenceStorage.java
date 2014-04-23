@@ -84,7 +84,7 @@ public class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public double getDoubleItemInBound(int idx) {
-        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(values, idx, this);
+        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(values, idx, null);
     }
 
     @Override
@@ -97,7 +97,7 @@ public class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setDoubleItemInBound(int idx, double value) {
-        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(values, idx, value, this);
+        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(values, idx, value, null);
     }
 
     @Override

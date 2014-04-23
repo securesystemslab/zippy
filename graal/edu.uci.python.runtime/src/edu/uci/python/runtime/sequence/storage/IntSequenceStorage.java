@@ -84,7 +84,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     public int getIntItemInBound(int idx) {
-        return ObjectLayoutUtil.readIntArrayUnsafeAt(values, idx, this);
+        return ObjectLayoutUtil.readIntArrayUnsafeAt(values, idx, null);
     }
 
     @Override
@@ -97,7 +97,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setIntItemInBound(int idx, int value) {
-        ObjectLayoutUtil.writeIntArrayUnsafeAt(values, idx, value, this);
+        ObjectLayoutUtil.writeIntArrayUnsafeAt(values, idx, value, null);
     }
 
     @Override

@@ -72,7 +72,7 @@ public class PCharArray extends PArray {
     }
 
     public char getCharItemInBound(int idx) {
-        return ObjectLayoutUtil.readCharArrayUnsafeAt(array, idx, this);
+        return ObjectLayoutUtil.readCharArrayUnsafeAt(array, idx, null);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class PCharArray extends PArray {
     }
 
     public void setCharItemInBound(int idx, char value) {
-        ObjectLayoutUtil.writeCharArrayUnsafeAt(array, idx, value, this);
+        ObjectLayoutUtil.writeCharArrayUnsafeAt(array, idx, value, null);
     }
 
     @Override

@@ -72,7 +72,7 @@ public class PIntArray extends PArray {
     }
 
     public int getIntItemInBound(int idx) {
-        return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, this);
+        return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, null);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class PIntArray extends PArray {
     }
 
     public void setIntItemInBound(int idx, int value) {
-        ObjectLayoutUtil.writeIntArrayUnsafeAt(array, idx, value, this);
+        ObjectLayoutUtil.writeIntArrayUnsafeAt(array, idx, value, null);
     }
 
     @Override

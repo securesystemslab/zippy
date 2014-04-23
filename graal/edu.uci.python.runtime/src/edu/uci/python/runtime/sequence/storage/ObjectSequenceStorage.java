@@ -44,12 +44,12 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object getItemInBound(int idx) {
-        return ObjectLayoutUtil.readObjectArrayUnsafeAt(values, idx, this);
+        return ObjectLayoutUtil.readObjectArrayUnsafeAt(values, idx, null);
     }
 
     @Override
     public void setItemInBound(int idx, Object value) {
-        ObjectLayoutUtil.writeObjectArrayUnsafeAt(values, idx, value, this);
+        ObjectLayoutUtil.writeObjectArrayUnsafeAt(values, idx, value, null);
     }
 
     @Override
