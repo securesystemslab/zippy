@@ -907,8 +907,8 @@ _unittestHelpSuffix = """
 
       --short-only           run short testcases only
       --long-only            run long testcases only
-      --baseline-whitelist   run only testcases which are known to
-                             work with the baseline compiler
+      --whitelist            run only testcases which are included
+                             in the given whitelist
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -948,7 +948,7 @@ def unittest(args):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--short-only', action='store_true', help='run short testcases only')
     group.add_argument('--long-only', action='store_true', help='run long testcases only')
-    parser.add_argument('--baseline-whitelist', action='store_true', help='run baseline testcases only')
+    parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
 
     ut_args = []
     delimiter = False
@@ -968,13 +968,12 @@ def unittest(args):
         parsed_args, args = parser.parse_known_args(ut_args)
 
     whitelist = None
-    if parsed_args.baseline_whitelist:
-        baseline_whitelist_file = 'test/baseline_whitelist.txt'
+    if parsed_args.whitelist:
         try:
-            with open(join(_graal_home, baseline_whitelist_file)) as fp:
+            with open(join(_graal_home, parsed_args.whitelist)) as fp:
                 whitelist = [l.rstrip() for l in fp.readlines()]
         except IOError:
-            mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
+            mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
     if parsed_args.short_only:
         annotations = ['@Test']
