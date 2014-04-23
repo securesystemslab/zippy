@@ -90,7 +90,7 @@ public class TranslationUtil {
             if (scopeEntity instanceof FunctionDef) {
                 scopeId = ((FunctionDef) scopeEntity).getInternalName();
             } else if (scopeEntity instanceof Lambda) {
-                scopeId = "";
+                scopeId = "lambda";
             }
         } else if (kind == ScopeInfo.ScopeKind.Class) {
             scopeId = ((ClassDef) scopeEntity).getInternalName();
