@@ -966,7 +966,7 @@ def unittest(args):
     if parsed_args.whitelist:
         try:
             with open(join(_graal_home, parsed_args.whitelist)) as fp:
-                whitelist = [l.rstrip() for l in fp.readlines()]
+                whitelist = [l.rstrip() for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
