@@ -29,7 +29,6 @@ import java.util.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public final class PTuple extends PImmutableSequence {
@@ -115,7 +114,7 @@ public final class PTuple extends PImmutableSequence {
             checkedIdx += array.length;
         }
 
-        return ObjectLayoutUtil.readObjectArrayUnsafeAt(array, checkedIdx, null);
+        return array[checkedIdx];
     }
 
     @Override

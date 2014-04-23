@@ -26,8 +26,6 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
-import edu.uci.python.runtime.object.*;
-
 public class DoubleSequenceStorage extends BasicSequenceStorage {
 
     private double[] values;
@@ -84,7 +82,7 @@ public class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public double getDoubleItemInBound(int idx) {
-        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(values, idx, null);
+        return values[idx];
     }
 
     @Override
@@ -97,7 +95,7 @@ public class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setDoubleItemInBound(int idx, double value) {
-        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(values, idx, value, null);
+        values[idx] = value;
     }
 
     @Override
