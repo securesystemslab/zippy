@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
@@ -37,7 +38,7 @@ public class IntStorageLocation extends FieldStorageLocation {
 
     public IntStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = FieldStorageLocation.getExactPrimitiveIntOffsetOf(index);
+        offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(index);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class IntStorageLocation extends FieldStorageLocation {
 
     public int readInt(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getInt(object, offset);
+            return CompilerDirectives.unsafeGetInt(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -69,7 +70,7 @@ public class IntStorageLocation extends FieldStorageLocation {
     }
 
     public void writeInt(PythonBasicObject object, int value) {
-        PythonUnsafe.UNSAFE.putInt(object, offset, value);
+        CompilerDirectives.unsafePutInt(object, offset, value, this);
         markAsSet(object);
     }
 

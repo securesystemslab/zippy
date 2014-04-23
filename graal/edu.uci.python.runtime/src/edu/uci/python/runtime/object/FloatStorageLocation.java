@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
@@ -37,7 +38,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
 
     public FloatStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = FieldStorageLocation.getExactPrimitiveDoubleOffsetOf(index);
+        offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(index);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
 
     public double readDouble(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getDouble(object, offset);
+            return CompilerDirectives.unsafeGetDouble(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -69,7 +70,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
     }
 
     public void writeDouble(PythonBasicObject object, Double value) {
-        PythonUnsafe.UNSAFE.putDouble(object, offset, value);
+        CompilerDirectives.unsafePutDouble(object, offset, value, this);
         markAsSet(object);
     }
 

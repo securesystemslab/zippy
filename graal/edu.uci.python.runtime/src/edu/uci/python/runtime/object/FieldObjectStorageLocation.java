@@ -24,23 +24,25 @@
  */
 package edu.uci.python.runtime.object;
 
+import com.oracle.truffle.api.*;
+
 public class FieldObjectStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 
     protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = getExactFieldObjectOffsetOf(index);
+        offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(index);
     }
 
     @Override
     public Object read(PythonBasicObject object) {
-        return PythonUnsafe.UNSAFE.getObject(object, offset);
+        return CompilerDirectives.unsafeGetObject(object, offset, true, this);
     }
 
     @Override
     public void write(PythonBasicObject object, Object value) {
-        PythonUnsafe.UNSAFE.putObject(object, offset, value);
+        CompilerDirectives.unsafePutObject(object, offset, value, this);
         markAsSet(object);
     }
 

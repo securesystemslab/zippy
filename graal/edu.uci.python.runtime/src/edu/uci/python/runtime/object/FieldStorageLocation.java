@@ -53,31 +53,4 @@ public abstract class FieldStorageLocation extends StorageLocation {
         return getClass().getSimpleName() + " at " + index;
     }
 
-    protected static long getExactPrimitiveDoubleOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDouble" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected static long getExactPrimitiveIntOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveInt" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected static long getExactFieldObjectOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("fieldObject" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }
