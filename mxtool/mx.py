@@ -4345,6 +4345,7 @@ def exportlibs(args):
 
     parser = ArgumentParser(prog='exportlibs')
     parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
+    parser.add_argument('-a', '--include-all', action='store_true', help="include all defined libaries")
     parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
     parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
     parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
@@ -4366,29 +4367,33 @@ def exportlibs(args):
                 logv('[already added ' + path + ']')
 
         libsToExport = set()
-        def isValidLibrary(dep):
-            if dep in _libs.iterkeys():
-                lib = _libs[dep]
-                if len(lib.urls) != 0 or args.include_system_libs:
-                    return lib
-            return None
+        if args.include_all:
+            for lib in _libs.itervalues():
+                libsToExport.add(lib)
+        else:
+            def isValidLibrary(dep):
+                if dep in _libs.iterkeys():
+                    lib = _libs[dep]
+                    if len(lib.urls) != 0 or args.include_system_libs:
+                        return lib
+                return None
 
-        # iterate over all project dependencies and find used libraries
-        for p in _projects.itervalues():
-            for dep in p.deps:
-                r = isValidLibrary(dep)
-                if r:
-                    libsToExport.add(r)
-
-        # a library can have other libraries as dependency
-        size = 0
-        while size != len(libsToExport):
-            size = len(libsToExport)
-            for lib in libsToExport.copy():
-                for dep in lib.deps:
+            # iterate over all project dependencies and find used libraries
+            for p in _projects.itervalues():
+                for dep in p.deps:
                     r = isValidLibrary(dep)
                     if r:
                         libsToExport.add(r)
+
+            # a library can have other libraries as dependency
+            size = 0
+            while size != len(libsToExport):
+                size = len(libsToExport)
+                for lib in libsToExport.copy():
+                    for dep in lib.deps:
+                        r = isValidLibrary(dep)
+                        if r:
+                            libsToExport.add(r)
 
         for lib in libsToExport:
             add(lib.get_path(resolve=True), lib.path)
