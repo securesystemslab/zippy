@@ -25,6 +25,7 @@
 package com.oracle.truffle.api.utilities;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 /**
  * Holds an {@link Assumption}, and knows how to recreate it with the same properties on
@@ -36,7 +37,8 @@ import com.oracle.truffle.api.*;
 public class CyclicAssumption {
 
     private final String name;
-    private Assumption assumption;
+    // zwei: made {@link assumption} @CompilationFinal.
+    @CompilationFinal private Assumption assumption;
 
     public CyclicAssumption(String name) {
         this.name = name;
