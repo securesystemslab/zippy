@@ -426,6 +426,7 @@ project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.8
 project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.compiler@annotationProcessorForDependents=true
 project@com.oracle.graal.compiler@workingSets=Graal
 
 # graal.compiler.amd64
