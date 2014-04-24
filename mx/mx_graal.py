@@ -30,6 +30,7 @@ import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subproc
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
+from fnmatch import fnmatch
 import mx
 import xml.dom.minidom
 import sanitycheck
@@ -852,7 +853,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         for t in tests:
             found = False
             for c, p in candidates.iteritems():
-                if t == c:
+                if fnmatch(c, t):
                     found = True
                     classes.append(c)
                     projs.add(p.name)
