@@ -42,15 +42,15 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
-library@OKRA@path=lib/okra-1.8.jar
-library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8.jar
-library@OKRA@sourcePath=lib/okra-1.8-src.jar
-library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-src.jar
+library@OKRA@path=lib/okra-1.9.jar
+library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9.jar
+library@OKRA@sourcePath=lib/okra-1.9-src.jar
+library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-src.jar
 
-library@OKRA_WITH_SIM@path=lib/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
-library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
+library@OKRA_WITH_SIM@path=lib/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@sourcePath=lib/okra-1.9-with-sim-src.jar
+library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
 library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-8f0db117e64e.jar
