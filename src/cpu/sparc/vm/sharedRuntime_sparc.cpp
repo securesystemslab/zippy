@@ -990,6 +990,19 @@ void AdapterGenerator::gen_i2c_adapter(
 
   // Jump to the compiled code just as if compiled code was doing it.
   __ ld_ptr(G5_method, in_bytes(Method::from_compiled_offset()), G3);
+#ifdef GRAAL
+  // check if this call should be routed towards a specific entry point
+  __ ld(Address(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())), G1);
+  __ cmp(G0, G1);
+  Label no_alternative_target;
+  __ br(Assembler::equal, false, Assembler::pn, no_alternative_target);
+  __ delayed()->nop();
+
+  __ ld_ptr(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset()), G3);
+  __ st(G0, Address(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())));
+
+  __ bind(no_alternative_target);
+#endif
 
   // 6243940 We might end up in handle_wrong_method if
   // the callee is deoptimized as we race thru here. If that
