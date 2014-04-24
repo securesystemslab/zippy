@@ -4392,6 +4392,12 @@ def exportlibs(args):
 
         for lib in libsToExport:
             add(lib.get_path(resolve=True), lib.path)
+            if lib.sha1:
+                add(lib.get_path(resolve=True) + ".sha1", lib.path + ".sha1")
+            if lib.sourcePath:
+                add(lib.get_source_path(resolve=True), lib.sourcePath)
+                if lib.sourceSha1:
+                    add(lib.get_source_path(resolve=True) + ".sha1", lib.sourcePath + ".sha1")
 
         if args.extras:
             for e in args.extras:
