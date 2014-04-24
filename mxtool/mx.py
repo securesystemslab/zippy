@@ -4365,9 +4365,34 @@ def exportlibs(args):
             else:
                 logv('[already added ' + path + ']')
 
-        for lib in _libs.itervalues():
-            if len(lib.urls) != 0 or args.include_system_libs:
-                add(lib.get_path(resolve=True), lib.path)
+        libsToExport = set()
+        def isValidLibrary(dep):
+            if dep in _libs.iterkeys():
+                lib = _libs[dep]
+                if len(lib.urls) != 0 or args.include_system_libs:
+                    return lib
+            return None
+
+        # iterate over all project dependencies and find used libraries
+        for p in _projects.itervalues():
+            for dep in p.deps:
+                r = isValidLibrary(dep)
+                if r:
+                    libsToExport.add(r)
+
+        # a library can have other libraries as dependency
+        size = 0
+        while size != len(libsToExport):
+            for lib in libsToExport.copy():
+                for dep in lib.deps:
+                    r = isValidLibrary(dep)
+                    if r:
+                        libsToExport.add(r)
+            size = len(libsToExport)
+
+        for lib in libsToExport:
+            add(lib.get_path(resolve=True), lib.path)
+
         if args.extras:
             for e in args.extras:
                 if os.path.isdir(e):
