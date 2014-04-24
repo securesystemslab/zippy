@@ -1680,9 +1680,11 @@ JavaThread::~JavaThread() {
   if (_thread_stat != NULL) delete _thread_stat;
 
 #ifdef GRAAL
-  if (GraalCounterSize > 0 && graal_counters_include(threadObj())) {
-    for (int i = 0; i < GraalCounterSize; i++) {
-      _graal_old_thread_counters[i] += _graal_counters[i];
+  if (GraalCounterSize > 0) {
+    if (graal_counters_include(threadObj())) {
+      for (int i = 0; i < GraalCounterSize; i++) {
+        _graal_old_thread_counters[i] += _graal_counters[i];
+      }
     }
     FREE_C_HEAP_ARRAY(jlong, _graal_counters, mtInternal);
   }
