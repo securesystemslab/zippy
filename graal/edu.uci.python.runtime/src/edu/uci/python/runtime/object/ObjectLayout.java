@@ -59,11 +59,11 @@ public class ObjectLayout {
         arrayObjectStorageLocationsUsed = 0;
     }
 
-    public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent) {
-        this(originHint, context, parent, new HashMap<String, Class>());
+    public ObjectLayout(String originHint, ObjectLayout parent) {
+        this(originHint, parent, new HashMap<String, Class>());
     }
 
-    public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent, Map<String, Class> storageTypes) {
+    public ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -97,7 +97,7 @@ public class ObjectLayout {
             if (parent == null || parent.findStorageLocation(name) == null) {
                 Class storageClass;
 
-                if (context.getUseUnsafe()) {
+                if (PythonOptions.UseUnsafe) {
                     if (type == Integer.class) {
                         if (primitiveIntStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                             storageClass = Integer.class;
@@ -164,31 +164,31 @@ public class ObjectLayout {
      * comes from the same Python class as it did, but it's a new layout because layouts are
      * immutable, so modifications to the superclass yields a new layout.
      */
-    public ObjectLayout renew(PythonContext context, ObjectLayout newParent) {
-        return new ObjectLayout(originHint + ".renewed", context, newParent, getStorageTypes());
+    public ObjectLayout renew(ObjectLayout newParent) {
+        return new ObjectLayout(originHint + ".renewed", newParent, getStorageTypes());
     }
 
     /**
      * Create a new version of this layout but with a new variable.
      */
-    public ObjectLayout withNewAttribute(PythonContext context, String name, Class type) {
+    public ObjectLayout withNewAttribute(String name, Class type) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
-        return new ObjectLayout(originHint + ".withnew", context, parent, storageTypes);
+        return new ObjectLayout(originHint + ".withnew", parent, storageTypes);
     }
 
-    public ObjectLayout withoutAttribute(PythonContext context, String name) {
+    public ObjectLayout withoutAttribute(String name) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.remove(name);
-        return new ObjectLayout(originHint + ".without", context, parent, storageTypes);
+        return new ObjectLayout(originHint + ".without", parent, storageTypes);
     }
 
     /**
      * Create a new version of this layout but with an existing variable generalized to support any
      * type.
      */
-    public ObjectLayout withGeneralisedVariable(PythonContext context, String name) {
-        return withNewAttribute(context, name, Object.class);
+    public ObjectLayout withGeneralisedVariable(String name) {
+        return withNewAttribute(name, Object.class);
     }
 
     /**

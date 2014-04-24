@@ -147,7 +147,7 @@ public abstract class PythonBasicObject {
              * the layout of this object.
              */
             invalidateStableAssumption();
-            updateLayout(objectLayout.withNewAttribute(pythonClass.getContext(), name, value.getClass()));
+            updateLayout(objectLayout.withNewAttribute(name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
 
@@ -159,7 +159,7 @@ public abstract class PythonBasicObject {
              * It might not be able to store the type that we passed, if not generalize the class's
              * layout and update the layout of this object.
              */
-            updateLayout(objectLayout.withGeneralisedVariable(pythonClass.getContext(), name));
+            updateLayout(objectLayout.withGeneralisedVariable(name));
 
             storageLocation = objectLayout.findStorageLocation(name);
 
@@ -182,7 +182,7 @@ public abstract class PythonBasicObject {
             throw Py.AttributeError(this + " object has no attribute " + name);
         }
 
-        updateLayout(objectLayout.withoutAttribute(pythonClass.getContext(), name));
+        updateLayout(objectLayout.withoutAttribute(name));
     }
 
     public void updateLayout(ObjectLayout newLayout) {

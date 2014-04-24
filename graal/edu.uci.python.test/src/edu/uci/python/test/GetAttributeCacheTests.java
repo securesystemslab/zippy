@@ -127,11 +127,11 @@ public class GetAttributeCacheTests {
 
         // depth of dispatch chain
         List<LinkedDispatchUnboxedNode> dispatchNodes = NodeUtil.findAllNodeInstances(root, LinkedDispatchUnboxedNode.class);
-        assertTrue(dispatchNodes.size() == 0);
+        assertTrue(dispatchNodes.size() == 4);
 
         // generic dispatch node
         List<GenericDispatchUnboxedNode> uninitialized = NodeUtil.findAllNodeInstances(root, GenericDispatchUnboxedNode.class);
-        assertTrue(uninitialized.size() == 1);
+        assertTrue(uninitialized.size() == 0);
     }
 
 }
