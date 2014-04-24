@@ -1,1 +1,3 @@
 com.oracle.graal.jtt.bytecode.*
+com.oracle.graal.jtt.loop.*
+com.oracle.graal.jtt.except.*
