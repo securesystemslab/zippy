@@ -4383,12 +4383,12 @@ def exportlibs(args):
         # a library can have other libraries as dependency
         size = 0
         while size != len(libsToExport):
+            size = len(libsToExport)
             for lib in libsToExport.copy():
                 for dep in lib.deps:
                     r = isValidLibrary(dep)
                     if r:
                         libsToExport.add(r)
-            size = len(libsToExport)
 
         for lib in libsToExport:
             add(lib.get_path(resolve=True), lib.path)
