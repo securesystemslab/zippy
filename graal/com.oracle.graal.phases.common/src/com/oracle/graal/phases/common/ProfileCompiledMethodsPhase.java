@@ -55,8 +55,11 @@ public class ProfileCompiledMethodsPhase extends Phase {
 
     private static final String GROUP_NAME = "~profiled weight";
     private static final String GROUP_NAME_WITHOUT = "~profiled weight (invoke-free sections)";
+    private static final String GROUP_NAME_INVOKES = "~profiled invokes";
 
     private static final boolean WITH_SECTION_HEADER = false;
+    private static boolean WITH_INVOKE_FREE_SECTIONS = false;
+    private static boolean WITH_INVOKES = true;
 
     @Override
     protected void run(StructuredGraph graph) {
@@ -77,8 +80,16 @@ public class ProfileCompiledMethodsPhase extends Phase {
         while (current.next() instanceof FixedWithNextNode) {
             current = (FixedWithNextNode) current.next();
         }
-        if (graph.getEntryBCI() != -1) {
-            addSectionCounters(current, Arrays.asList(cfg.getBlocks()), cfg.getLoops(), schedule, probabilities);
+        addSectionCounters(current, Arrays.asList(cfg.getBlocks()), cfg.getLoops(), schedule, probabilities);
+
+        if (WITH_INVOKES) {
+            for (Node node : graph.getNodes()) {
+                if (node instanceof Invoke) {
+                    Invoke invoke = (Invoke) node;
+                    DynamicCounterNode.addCounterBefore(GROUP_NAME_INVOKES, invoke.callTarget().targetName(), 1, true, invoke.asNode());
+
+                }
+            }
         }
     }
 
@@ -89,7 +100,7 @@ public class ProfileCompiledMethodsPhase extends Phase {
         }
         double weight = getSectionWeight(schedule, probabilities, blocks) / probabilities.get(start);
         DynamicCounterNode.addCounterBefore(GROUP_NAME, sectionHead(start), (long) weight, true, start.next());
-        if (!hasInvoke(blocks)) {
+        if (WITH_INVOKE_FREE_SECTIONS && !hasInvoke(blocks)) {
             DynamicCounterNode.addCounterBefore(GROUP_NAME_WITHOUT, sectionHead(start), (long) weight, true, start.next());
         }
     }

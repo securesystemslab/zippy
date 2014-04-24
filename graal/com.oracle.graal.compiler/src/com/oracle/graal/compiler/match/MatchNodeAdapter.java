@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.compiler.match;
 
-import java.util.*;
+import com.oracle.graal.nodes.*;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
-
-public class IndirectCallTargetNode extends LoweredCallTargetNode {
-
-    @Input private ValueNode computedAddress;
-
-    public IndirectCallTargetNode(ValueNode computedAddress, List<ValueNode> arguments, Stamp returnStamp, JavaType[] signature, ResolvedJavaMethod target, CallingConvention.Type callType) {
-        super(arguments, returnStamp, signature, target, callType);
-        this.computedAddress = computedAddress;
+/**
+ * Helper class to visit the matchable inputs of a node in a specified order. This may not be needed
+ * in the end since this could probably be done using the inputs iterator but it simplifies things
+ * for the moment.
+ */
+public class MatchNodeAdapter {
+    @SuppressWarnings("unused")
+    protected ValueNode getFirstInput(ValueNode node) {
+        throw new InternalError();
     }
 
-    public ValueNode computedAddress() {
-        return computedAddress;
-    }
-
-    @Override
-    public String targetName() {
-        return MetaUtil.format("Indirect#%h.%n", target());
+    @SuppressWarnings("unused")
+    protected ValueNode getSecondInput(ValueNode node) {
+        throw new InternalError();
     }
 }

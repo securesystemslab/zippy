@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,18 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.hotspot.nodes;
 
-import java.util.*;
+import com.oracle.graal.compiler.match.*;
+import com.oracle.graal.nodes.*;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
-
-public class IndirectCallTargetNode extends LoweredCallTargetNode {
-
-    @Input private ValueNode computedAddress;
-
-    public IndirectCallTargetNode(ValueNode computedAddress, List<ValueNode> arguments, Stamp returnStamp, JavaType[] signature, ResolvedJavaMethod target, CallingConvention.Type callType) {
-        super(arguments, returnStamp, signature, target, callType);
-        this.computedAddress = computedAddress;
+@MatchableNode(shortName = "Compression", value = CompressionNode.class, inputs = 1, adapter = HotSpotMatchableNodes.CompressionNodeAdapter.class)
+public class HotSpotMatchableNodes {
+    public static class CompressionNodeAdapter extends MatchNodeAdapter {
+        @Override
+        protected ValueNode getFirstInput(ValueNode node) {
+            return ((CompressionNode) node).getInput();
+        }
     }
 
-    public ValueNode computedAddress() {
-        return computedAddress;
-    }
-
-    @Override
-    public String targetName() {
-        return MetaUtil.format("Indirect#%h.%n", target());
-    }
 }

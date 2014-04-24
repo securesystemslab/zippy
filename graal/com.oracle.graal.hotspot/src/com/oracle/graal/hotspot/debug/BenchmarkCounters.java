@@ -99,7 +99,6 @@ public class BenchmarkCounters {
 
     private static final boolean DUMP_STATIC = false;
 
-    public static String excludedClassPrefix = null;
     public static boolean enabled = false;
 
     public static final ConcurrentHashMap<String, Integer> indexes = new ConcurrentHashMap<>();
@@ -115,9 +114,10 @@ public class BenchmarkCounters {
         String name;
         String group = counter.getGroup();
         if (counter.isWithContext()) {
-            name = counter.getName() + " @ " + counter.graph().graphId() + ":" + MetaUtil.format("%h.%n", counter.graph().method());
-            if (counter.graph().name != null) {
-                name += " (" + counter.graph().name + ")";
+            StructuredGraph graph = counter.graph();
+            name = counter.getName() + " @ " + graph.graphId() + ":" + (graph.method() == null ? "" : MetaUtil.format("%h.%n", graph.method()));
+            if (graph.name != null) {
+                name += " (" + graph.name + ")";
             }
             name += "#" + group;
 
@@ -289,25 +289,30 @@ public class BenchmarkCounters {
         final class BenchmarkCountersOutputStream extends CallbackOutputStream {
 
             private long startTime;
+            private boolean running;
             private boolean waitingForEnd;
 
             private BenchmarkCountersOutputStream(PrintStream delegate, String start, String end) {
-                super(delegate, new String[]{start, end, "\n"});
+                super(delegate, new String[]{"\n", end, start});
             }
 
             @Override
             protected void patternFound(int index) {
                 switch (index) {
-                    case 0:
+                    case 2:
                         startTime = System.nanoTime();
                         BenchmarkCounters.clear(compilerToVM.collectCounters());
+                        running = true;
                         break;
                     case 1:
-                        waitingForEnd = true;
+                        if (running) {
+                            waitingForEnd = true;
+                        }
                         break;
-                    case 2:
+                    case 0:
                         if (waitingForEnd) {
                             waitingForEnd = false;
+                            running = false;
                             BenchmarkCounters.dump(delegate, (System.nanoTime() - startTime) / 1000000000d, compilerToVM.collectCounters(), 100);
                         }
                         break;
@@ -329,7 +334,6 @@ public class BenchmarkCounters {
                     throw new GraalInternalError("invalid arguments to BenchmarkDynamicCounters: err|out");
                 }
             }
-            excludedClassPrefix = "Lcom/oracle/graal/";
             enabled = true;
         }
         if (Options.GenericDynamicCounters.getValue()) {
@@ -371,26 +375,24 @@ public class BenchmarkCounters {
 
     public static void lower(DynamicCounterNode counter, HotSpotRegistersProvider registers, HotSpotVMConfig config, Kind wordKind) {
         StructuredGraph graph = counter.graph();
-        if (excludedClassPrefix == null || (counter.graph().method() != null && !counter.graph().method().getDeclaringClass().getName().startsWith(excludedClassPrefix))) {
 
-            ReadRegisterNode thread = graph.add(new ReadRegisterNode(registers.getThreadRegister(), wordKind, true, false));
+        ReadRegisterNode thread = graph.add(new ReadRegisterNode(registers.getThreadRegister(), wordKind, true, false));
 
-            int index = BenchmarkCounters.getIndex(counter);
-            if (index >= config.graalCountersSize) {
-                throw new GraalInternalError("too many counters, reduce number of counters or increase -XX:GraalCounterSize=... (current value: " + config.graalCountersSize + ")");
-            }
-            ConstantLocationNode arrayLocation = ConstantLocationNode.create(LocationIdentity.ANY_LOCATION, wordKind, config.graalCountersThreadOffset, graph);
-            ReadNode readArray = graph.add(new ReadNode(thread, arrayLocation, StampFactory.forKind(wordKind), BarrierType.NONE, false));
-            ConstantLocationNode location = ConstantLocationNode.create(LocationIdentity.ANY_LOCATION, Kind.Long, Unsafe.ARRAY_LONG_INDEX_SCALE * index, graph);
-            ReadNode read = graph.add(new ReadNode(readArray, location, StampFactory.forKind(Kind.Long), BarrierType.NONE, false));
-            IntegerAddNode add = graph.unique(new IntegerAddNode(StampFactory.forKind(Kind.Long), read, counter.getIncrement()));
-            WriteNode write = graph.add(new WriteNode(readArray, add, location, BarrierType.NONE, false));
-
-            graph.addBeforeFixed(counter, thread);
-            graph.addBeforeFixed(counter, readArray);
-            graph.addBeforeFixed(counter, read);
-            graph.addBeforeFixed(counter, write);
+        int index = BenchmarkCounters.getIndex(counter);
+        if (index >= config.graalCountersSize) {
+            throw new GraalInternalError("too many counters, reduce number of counters or increase -XX:GraalCounterSize=... (current value: " + config.graalCountersSize + ")");
         }
+        ConstantLocationNode arrayLocation = ConstantLocationNode.create(LocationIdentity.ANY_LOCATION, wordKind, config.graalCountersThreadOffset, graph);
+        ReadNode readArray = graph.add(new ReadNode(thread, arrayLocation, StampFactory.forKind(wordKind), BarrierType.NONE, false));
+        ConstantLocationNode location = ConstantLocationNode.create(LocationIdentity.ANY_LOCATION, Kind.Long, Unsafe.ARRAY_LONG_INDEX_SCALE * index, graph);
+        ReadNode read = graph.add(new ReadNode(readArray, location, StampFactory.forKind(Kind.Long), BarrierType.NONE, false));
+        IntegerAddNode add = graph.unique(new IntegerAddNode(StampFactory.forKind(Kind.Long), read, counter.getIncrement()));
+        WriteNode write = graph.add(new WriteNode(readArray, add, location, BarrierType.NONE, false));
+
+        graph.addBeforeFixed(counter, thread);
+        graph.addBeforeFixed(counter, readArray);
+        graph.addBeforeFixed(counter, read);
+        graph.addBeforeFixed(counter, write);
         graph.removeFixed(counter);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.compiler.match;
 
-import java.util.*;
+import java.lang.annotation.*;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.nodes.*;
 
-public class IndirectCallTargetNode extends LoweredCallTargetNode {
+/**
+ * This annotation declares a textual pattern for matching an HIR DAG. It's an s-expression with a
+ * node followed by its inputs. Node types are always uppercase and lowercase words are the names of
+ * nodes.
+ *
+ * <pre>
+ *   NAME := [a-z][a-zA-Z0-9]*
+ *   NODETYPE := [A-Z][a-zA-Z0-9]*
+ *   NODEORNAME :=  NODE [ = NAME ] | NAME
+ *   EXPRESSION := ( NODEORNAME [ EXPRESSION | NODEORNAME [ EXPRESSION | NODEORNAME ] )
+ * </pre>
+ *
+ * All matched nodes except the root of the match and {@link ConstantNode}s must have a single user.
+ * All matched nodes must be in the same block.
+ */
 
-    @Input private ValueNode computedAddress;
-
-    public IndirectCallTargetNode(ValueNode computedAddress, List<ValueNode> arguments, Stamp returnStamp, JavaType[] signature, ResolvedJavaMethod target, CallingConvention.Type callType) {
-        super(arguments, returnStamp, signature, target, callType);
-        this.computedAddress = computedAddress;
-    }
-
-    public ValueNode computedAddress() {
-        return computedAddress;
-    }
-
-    @Override
-    public String targetName() {
-        return MetaUtil.format("Indirect#%h.%n", target());
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Repeatable(value = MatchRules.class)
+public @interface MatchRule {
+    String value();
 }
