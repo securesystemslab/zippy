@@ -72,7 +72,13 @@ public class PythonClass extends PythonObject implements PythonCallable {
             unsafeSetSuperClass(superClass);
         }
 
-        instanceObjectLayout = ObjectLayout.empty();
+        // Inherite InstanceObjectLayout when possible
+        if (superClass != null && !superClass.getInstanceObjectLayout().isEmpty()) {
+            instanceObjectLayout = superClass.getInstanceObjectLayout();
+        } else {
+            instanceObjectLayout = ObjectLayout.empty();
+        }
+
         switchToPrivateLayout();
     }
 

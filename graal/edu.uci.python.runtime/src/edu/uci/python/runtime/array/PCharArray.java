@@ -30,7 +30,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
-public class PCharArray extends PArray {
+public final class PCharArray extends PArray {
 
     private final char[] array;
 
