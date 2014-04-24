@@ -267,4 +267,5 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     public Object getIndicativeValue() {
         return 0;
     }
+
 }

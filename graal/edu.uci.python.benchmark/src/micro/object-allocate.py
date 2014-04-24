@@ -9,13 +9,14 @@ class Foo():
 		self.a = a
 
 def dostuff():
-	num = 42
+	num = 24
 	foo = Foo(0)
 	for i in range(iteration):
 		num += foo.a % 3 
 		foo = Foo(num)
+		# foo.a = num # replace the line above with this line to remove allocation 
 
-	return foo
+	return num
 
 def measure(num):
 	print("Start timing...")
@@ -24,7 +25,7 @@ def measure(num):
 	for i in range(num):
 	  result = dostuff()
 
-	print(result.a)
+	print(result)
 	duration = "%.3f\n" % (time.time() - start)
 	print("object-allocate: " + duration)
 
