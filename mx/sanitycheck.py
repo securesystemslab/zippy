@@ -134,7 +134,7 @@ pythonMicroBenchmarks = {
     'for-range'             : '0',
     'function-call'         : '0',
     'list-comp'             : '0',
-    'list-indexing'         : '-InlineBuiltinFunctionCalls:false',
+    'list-indexing'         : '0',
     'list-iterating'        : '0',
     'builtin-len'           : '0',
     'builtin-len-tuple'     : '0',
