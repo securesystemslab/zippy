@@ -1,5 +1,5 @@
 # zwei 04/24/2014
-# micro benchmark: attribute access polymorphic inspired by richards
+# micro benchmark: method call polymorphic inspired by richards
 import time
 
 iteration = 10000
@@ -39,7 +39,7 @@ class WorkTask(Task):
 
 TASK_LIST = [DeviceTask(), DeviceTask(), DeviceTask(), DeviceTask(),
              HandlerTask(), HandlerTask(), HandlerTask(), HandlerTask(),
-             IdleTask(), IdleTask(), IdleTask(), IdleTask(), 
+             IdleTask(), IdleTask(), IdleTask(), IdleTask(),
              WorkTask(), WorkTask(), WorkTask(), WorkTask()]
 
 def dostuff():
