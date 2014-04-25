@@ -126,6 +126,7 @@ python2MicroBenchmarks = {
     'attribute-access'      : '0',
     'attribute-access-polymorphic' : '0',
     'attribute-bool'        : '0',
+    'call-method-polymorphic': '0',
     'object-allocate'       : '0',
 }
 
@@ -145,6 +146,7 @@ pythonMicroBenchmarks = {
     'attribute-access'      : '0',
     'attribute-access-polymorphic' : '0',
     'attribute-bool'        : '0',
+    'call-method-polymorphic': '0',
     'object-allocate'       : '0',
 }
 

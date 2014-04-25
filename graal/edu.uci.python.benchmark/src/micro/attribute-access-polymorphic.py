@@ -27,7 +27,10 @@ class WorkTask(Task):
 	def __init__(self, foo):
 		Task.__init__(self, foo)
 
-TASK_LIST = [Task(0), DeviceTask(1), HandlerTask(2), IdleTask(3), WorkTask(4)]
+TASK_LIST = [DeviceTask(0), DeviceTask(1), DeviceTask(2), DeviceTask(3),
+             HandlerTask(4), HandlerTask(5), HandlerTask(6), HandlerTask(7),
+             IdleTask(8), IdleTask(9), IdleTask(10), IdleTask(11), 
+             WorkTask(12), WorkTask(13), WorkTask(14), WorkTask(15)]
 
 def dostuff():
 	task_list = TASK_LIST
