@@ -175,7 +175,7 @@ def export(args):
     tmp = tempfile.mkdtemp(prefix='tmp', dir=_graal_home)
     if args.vmbuild:
         # Make sure the product VM binary is up to date
-        with VM(vmbuild='product'):
+        with VM(build='product'):
             build([])
 
     mx.log('Copying Java sources and mx files...')
