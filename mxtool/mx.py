@@ -1888,12 +1888,11 @@ def build(args, parser=None):
 
         cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
-        mustBuild = args.force
-        if not mustBuild:
+        buildReason = 'forced build' if args.force else None
+        if not buildReason:
             for dep in p.all_deps([], False):
                 if dep.name in built:
-                    mustBuild = True
-
+                    buildReason = dep.name + ' rebuilt'
 
         jasminAvailable = None
         javafilelist = []
@@ -1942,20 +1941,19 @@ def build(args, parser=None):
                         if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
-                if not mustBuild:
+                if not buildReason:
                     for javafile in javafiles:
                         classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
                         if not classfile.exists() or classfile.isOlderThan(javafile):
-                            mustBuild = True
+                            buildReason = 'class file(s) out of date'
                             break
 
         aps = p.annotation_processors()
         apsOutOfDate = p.update_current_annotation_processors_file()
         if apsOutOfDate:
-            logv('[annotation processors for {0} changed]'.format(p.name))
-            mustBuild = True
+            buildReason = 'annotation processor(s) changed'
 
-        if not mustBuild:
+        if not buildReason:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
@@ -1987,10 +1985,14 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+
+            def logCompilation(p, compiler, reason):
+                log('Compiling Java sources for {} with {}... [{}]'.format(p.name, compiler, reason))
+
             if not jdtJar:
                 mainJava = java()
                 if not args.error_prone:
-                    log('Compiling Java sources for {0} with javac...'.format(p.name))
+                    logCompilation(p, 'javac', buildReason)
                     javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     if jdk.debug_port is not None:
                         javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
@@ -2001,7 +2003,7 @@ def build(args, parser=None):
                         javacCmd.append('-XDignore.symbol.file')
                     run(javacCmd)
                 else:
-                    log('Compiling Java sources for {0} with javac (with error-prone)...'.format(p.name))
+                    logCompilation(p, 'javac (with error-prone)', buildReason)
                     javaArgs = ['-Xmx1g']
                     javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     javacArgs += processorArgs
@@ -2010,7 +2012,7 @@ def build(args, parser=None):
                         javacArgs.append('-XDignore.symbol.file')
                     run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
             else:
-                log('Compiling Java sources for {0} with JDT...'.format(p.name))
+                logCompilation(p, 'JDT', buildReason)
 
                 jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
 
