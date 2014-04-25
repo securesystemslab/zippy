@@ -166,6 +166,7 @@ pythonBenchmarks = {
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
+    'bm-float-timed'  : '1000',
 }
 
 python2Benchmarks = {
@@ -182,6 +183,7 @@ python2Benchmarks = {
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
+    'bm-float-timed'  : '1000',
 }
 
 specjvm2008Names = [

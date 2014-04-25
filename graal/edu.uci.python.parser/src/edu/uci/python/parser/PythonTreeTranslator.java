@@ -1043,4 +1043,10 @@ public class PythonTreeTranslator extends Visitor {
         StatementNode retVal = factory.createWithNode(context, withContext, asName, body);
         return retVal;
     }
+
+    @Override
+    public Object visitExec(Exec node) throws Exception {
+        throw notCovered();
+    }
+
 }
