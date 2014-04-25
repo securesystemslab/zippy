@@ -4,10 +4,11 @@ import time
 
 def index_list(ll, num):
 	ll_len = len(ll)
+	item = 0
 
 	for t in range(num):
 		for i in range(ll_len):
-			item = ll[i]
+			item = (item + ll[i]) % 7
 
 	return item
 
