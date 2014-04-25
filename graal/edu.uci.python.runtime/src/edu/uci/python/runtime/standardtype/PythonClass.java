@@ -73,7 +73,7 @@ public class PythonClass extends PythonObject implements PythonCallable {
         }
 
         // Inherite InstanceObjectLayout when possible
-        instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(className, superClass.getInstanceObjectLayout());
+        instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(getName(), superClass.getInstanceObjectLayout());
 
         switchToPrivateLayout();
     }

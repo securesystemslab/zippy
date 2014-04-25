@@ -63,7 +63,7 @@ public class ObjectLayout {
         this(originHint, parent, new HashMap<String, Class>());
     }
 
-    public ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes) {
+    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -251,7 +251,7 @@ public class ObjectLayout {
      * of parents? We say 'include' because all of the variables in a parent layout are available in
      * your layout as well.
      */
-    public boolean contains(ObjectLayout other) {
+    public final boolean contains(ObjectLayout other) {
         ObjectLayout layout = this;
 
         do {
