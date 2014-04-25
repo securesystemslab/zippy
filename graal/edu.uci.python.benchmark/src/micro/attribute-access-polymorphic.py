@@ -2,7 +2,7 @@
 # micro benchmark: attribute access polymorphic inspired by richards
 import time
 
-iteration = 50000 # 50000
+iteration = 20000 # 50000
 
 class TaskState(object):
 	pass
