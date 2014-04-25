@@ -105,8 +105,9 @@ pythonTestBenchmarks = {
     'meteor3'       : '2098',
     'nbody3'        : '100000',
     'spectralnorm3' : '500',
-    'richards3'     : '5',
+    'richards3'     : '3',
     'bm-ai'         : '0',
+    'pidigits'      : '0',
 }
 
 python2MicroBenchmarks = {
@@ -122,6 +123,9 @@ python2MicroBenchmarks = {
     'generator'             : '0',
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
+    'attribute-access'      : '0',
+    'attribute-bool'        : '0',
+    'object-allocate'       : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -137,6 +141,9 @@ pythonMicroBenchmarks = {
     'generator'             : '0',
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
+    'attribute-access'      : '0',
+    'attribute-bool'        : '0',
+    'object-allocate'       : '0',
 }
 
 pythonBenchmarks = {
@@ -152,6 +159,7 @@ pythonBenchmarks = {
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
+    'richards3-timed' : '200',
 }
 
 python2Benchmarks = {
@@ -167,6 +175,7 @@ python2Benchmarks = {
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
+    'richards3-timed' : '200',
 }
 
 specjvm2008Names = [
@@ -557,7 +566,7 @@ class Test:
             if vm == 'cpython2':
                 result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'cpython':
-                result = mx.run(['python3.3'] + self.cmd[-2:], out=tee.eat)
+                result = mx.run(['python3'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
             elif vm == 'pypy':

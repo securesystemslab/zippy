@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -75,6 +75,7 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         return defaultTarget.getRootNode();
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -85,13 +86,18 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(null, declarationFrame, args));
+        return callTarget.call(caller, new PArguments(declarationFrame, args));
     }
 
     @Override
     public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
-        Object[] combined = applyKeywordArgs(false, arguments, keywords);
-        return callTarget.call(caller, new PArguments(null, declarationFrame, combined));
+        Object[] combined = applyKeywordArgs(arity, arguments, keywords);
+        return callTarget.call(caller, new PArguments(declarationFrame, combined));
+    }
+
+    @Override
+    public Arity getArity() {
+        return arity;
     }
 
     @Override
@@ -99,14 +105,14 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
     }
 
-    protected Object[] applyKeywordArgs(boolean withImplicitSelf, Object[] arguments, Object[] keywords) {
-        List<String> parameters = arity.getParameterIds();
-        Object[] combined = new Object[withImplicitSelf ? parameters.size() - 1 : parameters.size()];
+    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
+        List<String> parameters = calleeArity.getParameterIds();
+        Object[] combined = new Object[parameters.size()];
         assert combined.length >= arguments.length : "Parameters size does not match";
         System.arraycopy(arguments, 0, combined, 0, arguments.length);
 
         for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyarg = (PKeyword) keywords[i];
+            PKeyword keyarg = keywords[i];
             int keywordIdx = parameters.indexOf(keyarg.getName());
 
             if (keywordIdx < -1) {
@@ -116,7 +122,6 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
                  */
             }
 
-            keywordIdx = withImplicitSelf ? --keywordIdx : keywordIdx;
             combined[keywordIdx] = keyarg.getValue();
         }
 

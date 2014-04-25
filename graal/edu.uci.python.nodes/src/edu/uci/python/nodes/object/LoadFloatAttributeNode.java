@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,10 +24,12 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 
 public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
@@ -43,9 +45,10 @@ public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
     public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
         final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!receiverObject.getObjectLayout().contains(objectLayout)) {
+        if (receiverObject.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(receiverObject);
-            throw new UnexpectedResultException(receiverObject.getAttribute(attributeId));
+            return PythonTypesGen.PYTHONTYPES.expectDouble(receiverObject.getAttribute(attributeId));
         }
 
         return storageLocation.readDouble(receiverObject);

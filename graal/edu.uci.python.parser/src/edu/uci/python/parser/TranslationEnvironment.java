@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,6 +34,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.parser.ScopeInfo.ScopeKind;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -98,6 +99,12 @@ public class TranslationEnvironment {
         return scopeLevel > 1;
     }
 
+    public boolean isInConstructorScope() {
+        return isInFunctionScope() && //
+                        currentScope.getScopeId().equals("__init__") && //
+                        currentScope.getParent().getScopeKind() == ScopeKind.Class;
+    }
+
     public ScopeInfo.ScopeKind getScopeKind() {
         return currentScope.getScopeKind();
     }
@@ -146,7 +153,7 @@ public class TranslationEnvironment {
 
     public PNode getWriteArgumentToLocal(String name) {
         FrameSlot slot = findSlot(name);
-        BasicReadArgumentNode right = new BasicReadArgumentNode(slot.getIndex());
+        ReadIndexedArgumentNode right = ReadIndexedArgumentNode.create(slot.getIndex());
         return factory.createWriteLocal(right, slot);
     }
 

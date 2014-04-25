@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,7 +34,7 @@ import edu.uci.python.runtime.standardtype.*;
 public class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PFunction function;
-    private PythonObject self;
+    private final PythonObject self;
     private final RootCallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
@@ -51,21 +51,30 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         return self;
     }
 
-    public void bind(PythonObject newSelf) {
-        this.self = newSelf;
-    }
-
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), args));
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), args));
     }
 
+    /**
+     * Calls that go through {@link PMethod#call(PackedFrame, Object[])} are treated as slow path.
+     * They suffer from an arguments array copy that packs the self object into the flat arguments
+     * array.
+     *
+     */
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (PythonOptions.CatchZippyExceptionForUnitTesting) {
             return slowPathCallForUnitTest(caller, args, keywords);
         }
 
-        Object[] combined = function.applyKeywordArgs(true, args, keywords);
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
+    }
+
+    protected static Object[] packSelfWithArguments(Object self, Object[] arguments) {
+        Object[] argsWithSelf = new Object[arguments.length + 1];
+        argsWithSelf[0] = self;
+        System.arraycopy(arguments, 0, argsWithSelf, 1, arguments.length);
+        return argsWithSelf;
     }
 
     /**
@@ -78,16 +87,16 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
-                Object[] combined = function.applyKeywordArgs(true, args, keywords);
-                Object returnValue = callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+                Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
+                Object returnValue = callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
                 return returnValue;
             } catch (Exception e) {
                 return "ZippyExecutionError: " + e;
             }
         }
 
-        Object[] combined = function.applyKeywordArgs(true, args, keywords);
-        return callTarget.call(caller, new PArguments(self, function.getDeclarationFrame(), combined));
+        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
     }
 
     @Override
@@ -106,6 +115,16 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
          * TODO Causes problem in unit test, so arity check is not performed on PMethod.
          */
         // function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+    }
+
+    @Override
+    public Arity getArity() {
+        return function.getArity();
+    }
+
+    @Override
+    public String getName() {
+        return function.getName();
     }
 
     @Override

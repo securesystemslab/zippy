@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -48,7 +48,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.attribute.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryArithmeticNodeFactory.*;
@@ -71,6 +71,11 @@ public class NodeFactory {
         return factory;
     }
 
+    @SuppressWarnings({"unchecked", "unused"})
+    public <T> T duplicate(Node orig, Class<T> clazz) {
+        return (T) NodeUtil.cloneNode(orig);
+    }
+
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
         BlockNode block = createBlock(body);
         return new ModuleNode(block, fd);
@@ -78,10 +83,6 @@ public class NodeFactory {
 
     public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
         return new FunctionRootNode(context, functionName, frameDescriptor, body);
-    }
-
-    public PNode createAddClassAttribute(String attributeId, PNode rhs) {
-        return new AddClassAttributeNode(attributeId, rhs);
     }
 
     public PNode createReadClassAttribute(String attributeId) {
@@ -346,10 +347,6 @@ public class NodeFactory {
         return new UninitializedLoadAttributeNode(name, operand);
     }
 
-    public PNode createStoreAttribute(PNode primary, String name, PNode value) {
-        return new UninitializedStoreAttributeNode(name, primary, value);
-    }
-
     public PNode createSlice(PNode lower, PNode upper, PNode step) {
         return SliceNodeFactory.create(lower, upper, step);
     }
@@ -380,7 +377,7 @@ public class NodeFactory {
     }
 
     public PNode createReadGlobalScope(PythonContext context, PythonModule globalScope, String attributeId) {
-        return new ReadGlobalScopeNode(context, globalScope, attributeId);
+        return ReadGlobalNode.create(context, globalScope, attributeId);
     }
 
     public PNode createBooleanLiteral(boolean value) {
@@ -393,10 +390,6 @@ public class NodeFactory {
 
     public PNode createObjectLiteral(Object obj) {
         return new ObjectLiteralNode(obj);
-    }
-
-    public PNode createCallFunction(PNode callee, PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
-        return new UninitializedCallFunctionNode(callee, arguments, keywords, context);
     }
 
     public PNode createKeywordLiteral(PNode value, String name) {
@@ -449,4 +442,5 @@ public class NodeFactory {
     public PNode createRuntimeValueNode() {
         return new RuntimeValueNode(null);
     }
+
 }

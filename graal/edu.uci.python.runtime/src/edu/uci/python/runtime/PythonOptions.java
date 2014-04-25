@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -49,7 +49,7 @@ public class PythonOptions {
 
     public static boolean InlineBuiltinFunctionCalls = true;
 
-    public static final boolean CacheAttributeLoads = true;
+    public static final boolean AttributeAccessInlineCaching = true;
 
     public static final boolean UnboxSequenceStorage = true;
 
@@ -57,7 +57,9 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
-    public static final int CallSiteInlineCacheMax = 2;
+    public static final int AttributeAccessInlineCacheMaxDepth = 3;
+
+    public static final int CallSiteInlineCacheMaxDepth = 3;
 
     // Generators
     public static boolean InlineGeneratorCalls = false;
@@ -81,7 +83,7 @@ public class PythonOptions {
 
     public static final boolean ProfileCallSites = false;
 
-    public static final boolean SortProfilerCounts = false;
+    public static final boolean SortProfilerCounts = true;
 
     public static final boolean ProfileFunctionCalls = false;
 

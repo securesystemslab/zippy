@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -84,11 +84,14 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
 
         if (storageLocation instanceof IntStorageLocation) {
             return new StoreIntAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof BooleanStorageLocation) {
+            return new StoreBooleanAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (BooleanStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
             return new StoreFloatAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
+        } else if (storageLocation instanceof FieldObjectStorageLocation) {
+            return new StoreFieldObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (FieldObjectStorageLocation) storageLocation);
         } else {
-            return new StoreObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+            return new StoreArrayObjectAttributeNode(attributeId, primary, rhs, storageLocation.getObjectLayout(), (ArrayObjectStorageLocation) storageLocation);
         }
     }
-
 }

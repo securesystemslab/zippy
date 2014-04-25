@@ -58,73 +58,81 @@ public class CallFunctionNoKeywordNode extends PNode {
         return arguments;
     }
 
-    public static CallFunctionNoKeywordNode create(PNode callee, PNode[] argumentNodes, PythonCallable callable, PythonContext context) {
-        /**
-         * Any non global scope callable lookup is not optimized.
-         */
-        if (!(callee instanceof ReadGlobalScopeNode)) {
-            return new CallFunctionNoKeywordNode(callee, argumentNodes);
-        }
+// public static CallFunctionNoKeywordNode create(PNode callee, PNode[] argumentNodes,
+// PythonCallable callable, PythonContext context) {
+// /**
+// * Any non global scope callable lookup is not optimized.
+// */
+// if (!(callee instanceof ReadGlobalScopeNode)) {
+// return new CallFunctionNoKeywordNode(callee, argumentNodes);
+// }
+//
+// ReadGlobalScopeNode calleeNode = (ReadGlobalScopeNode) callee;
+//
+// if (callable instanceof PGeneratorFunction) {
+// return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
+// } else if (callable instanceof PFunction) {
+// return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
+// } else if (callable instanceof PBuiltinFunction) {
+// return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
+// } else if (callable instanceof PythonBuiltinClass) {
+// /**
+// * Built-in class constructor
+// */
+// PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass)
+// callable).getAttribute("__init__");
+// return createBuiltinCall(function, calleeNode, argumentNodes, context);
+// } else {
+// throw new UnsupportedOperationException();
+// }
+// }
 
-        ReadGlobalScopeNode calleeNode = (ReadGlobalScopeNode) callee;
+// private static CallFunctionNoKeywordNode createFunctionCall(PFunction function,
+// ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
+// Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+//
+// /**
+// * (zwei): This is a temporary hack to black list 'balance' in euler31.<br>
+// * The recursion makes it hard for genexp transformation. Since there might be an
+// * unoptimized on-stack invocation that references the transformed genexp. So the modified
+// * calling convention crashes...
+// */
+// if (function.getName().equals("balance") || function.getName().equals("updateDict")) {
+// return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+// }
+//
+// if (PythonOptions.InlineFunctionCalls) {
+// return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function,
+// context, globalScopeUnchanged);
+// } else {
+// return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
+// }
+// }
 
-        if (callable instanceof PGeneratorFunction) {
-            return createGeneratorCall((PGeneratorFunction) callable, calleeNode, argumentNodes);
-        } else if (callable instanceof PFunction) {
-            return createFunctionCall((PFunction) callable, calleeNode, argumentNodes, context);
-        } else if (callable instanceof PBuiltinFunction) {
-            return createBuiltinCall((PBuiltinFunction) callable, calleeNode, argumentNodes, context);
-        } else if (callable instanceof PythonBuiltinClass) {
-            /**
-             * Built-in class constructor
-             */
-            PBuiltinFunction function = (PBuiltinFunction) ((PythonBuiltinClass) callable).getAttribute("__init__");
-            return createBuiltinCall(function, calleeNode, argumentNodes, context);
-        } else {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    private static CallFunctionNoKeywordNode createFunctionCall(PFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-
-        /**
-         * (zwei): This is a temporary hack to black list 'balance' in euler31.<br>
-         * The recursion makes it hard for genexp transformation. Since there might be an
-         * unoptimized on-stack invocation that references the transformed genexp. So the modified
-         * calling convention crashes...
-         */
-        if (function.getName().equals("balance") || function.getName().equals("updateDict")) {
-            return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
-        }
-
-        if (PythonOptions.InlineFunctionCalls) {
-            return new InlineableCallNode.CallFunctionInlinableNode(calleeNode, argumentNodes, function, context, globalScopeUnchanged);
-        } else {
-            return new CallFunctionCachedNode(calleeNode, argumentNodes, function, globalScopeUnchanged);
-        }
-    }
-
-    private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-        Assumption builtinsModuleUnchanged = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
-
-        if (PythonOptions.InlineBuiltinFunctionCalls) {
-            return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes, function.duplicate(), context, globalScopeUnchanged, builtinsModuleUnchanged);
-        } else {
-            return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
-        }
-    }
-
-    private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
-        Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
-
-        if (PythonOptions.InlineGeneratorCalls) {
-            return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
-        } else {
-            return new CallFunctionCachedNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
-        }
-    }
+// private static CallFunctionNoKeywordNode createBuiltinCall(PBuiltinFunction function,
+// ReadGlobalScopeNode calleeNode, PNode[] argumentNodes, PythonContext context) {
+// Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+// Assumption builtinsModuleUnchanged =
+// context.getPythonBuiltinsLookup().lookupModule("__builtins__").getUnmodifiedAssumption();
+//
+// if (PythonOptions.InlineBuiltinFunctionCalls) {
+// return new InlineableCallNode.CallBuiltinInlinableNode(calleeNode, argumentNodes,
+// function.duplicate(), context, globalScopeUnchanged, builtinsModuleUnchanged);
+// } else {
+// return new CallFunctionNoKeywordNode(calleeNode, argumentNodes);
+// }
+// }
+//
+// private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator,
+// ReadGlobalScopeNode calleeNode, PNode[] argumentNodes) {
+// Assumption globalScopeUnchanged = calleeNode.getGlobaScope().getUnmodifiedAssumption();
+//
+// if (PythonOptions.InlineGeneratorCalls) {
+// return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
+// } else {
+// return new CallFunctionCachedNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
+// }
+// }
 
     @Override
     public Object execute(VirtualFrame frame) {

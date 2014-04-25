@@ -89,48 +89,48 @@ public abstract class CallFunctionNode extends PNode {
         return callee.call(frame.pack(), args, kwords);
     }
 
-    @Specialization
-    public Object doPythonObject(VirtualFrame frame, PythonObject callee) {
-        /**
-         * Calls __call__() method of an object if it exists. Otherwise, throws a type error
-         */
-        Object[] args = executeArguments(frame, arguments);
-        PKeyword[] kwords = executeKeywordArguments(frame, keywords);
-        Object callAttribute = callee.getAttribute("__call__");
-
-        if (callAttribute instanceof PFunction) {
-            PFunction callFunction = (PFunction) callAttribute;
-            PMethod callMethod = CallAttributeNode.createPMethodFor(callee, callFunction);
-
-            if (PythonOptions.ProfileFunctionCalls) {
-                Profiler.getInstance().increment(callMethod.getCallableName());
-            }
-
-            if (PythonOptions.ProfileCallSites) {
-                callSiteProfiler.executeWithCallableName(frame, callMethod.getCallTarget().getRootNode());
-            }
-
-            if (keywords.length == 0) {
-                return callMethod.call(frame.pack(), args);
-            } else {
-                return callMethod.call(frame.pack(), args, kwords);
-            }
-        } else {
-            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-        }
-    }
-
-    @Specialization
-    public Object doPyObject(VirtualFrame frame, PyObject callee) {
-        Object[] args = executeArguments(frame, arguments);
-        PyObject[] pyargs = adaptToPyObjects(args);
-
-        if (PythonOptions.ProfileFunctionCalls) {
-            Profiler.getInstance().increment(callee.toString());
-        }
-
-        return unboxPyObject(callee.__call__(pyargs));
-    }
+// @Specialization
+// public Object doPythonObject(VirtualFrame frame, PythonObject callee) {
+// /**
+// * Calls __call__() method of an object if it exists. Otherwise, throws a type error
+// */
+// Object[] args = executeArguments(frame, arguments);
+// PKeyword[] kwords = executeKeywordArguments(frame, keywords);
+// Object callAttribute = callee.getAttribute("__call__");
+//
+// if (callAttribute instanceof PFunction) {
+// PFunction callFunction = (PFunction) callAttribute;
+// PMethod callMethod = CallAttributeNode.createPMethodFor(callee, callFunction);
+//
+// if (PythonOptions.ProfileFunctionCalls) {
+// Profiler.getInstance().increment(callMethod.getCallableName());
+// }
+//
+// if (PythonOptions.ProfileCallSites) {
+// callSiteProfiler.executeWithCallableName(frame, callMethod.getCallTarget().getRootNode());
+// }
+//
+// if (keywords.length == 0) {
+// return callMethod.call(frame.pack(), args);
+// } else {
+// return callMethod.call(frame.pack(), args, kwords);
+// }
+// } else {
+// throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+// }
+// }
+//
+// @Specialization
+// public Object doPyObject(VirtualFrame frame, PyObject callee) {
+// Object[] args = executeArguments(frame, arguments);
+// PyObject[] pyargs = adaptToPyObjects(args);
+//
+// if (PythonOptions.ProfileFunctionCalls) {
+// Profiler.getInstance().increment(callee.toString());
+// }
+//
+// return unboxPyObject(callee.__call__(pyargs));
+// }
 
     @SuppressWarnings("unused")
     @Generic

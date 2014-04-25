@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.util.*;
 
 import org.python.core.*;
 
@@ -43,15 +44,23 @@ public class ImportManager {
 
     private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
     private final PythonContext context;
+    private final HashMap<String, PythonModule> importedModules;
 
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
+
+        // TODO: Fix this hack that supports proper standard lib import in unittest.
+        if (workingDir.endsWith("/graal/edu.uci.python.test")) {
+            workingDir = workingDir.replaceAll("/graal/edu.uci.python.test", "");
+        }
+
         String librayPath = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
         return librayPath;
     }
 
     public ImportManager(PythonContext context) {
         this.context = context;
+        this.importedModules = new HashMap<>();
     }
 
     public Object importModule(String moduleName) {
@@ -59,6 +68,7 @@ public class ImportManager {
     }
 
     public Object importModule(PythonModule relativeto, String moduleName) {
+
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
 
         /**
@@ -74,11 +84,11 @@ public class ImportManager {
             String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
 
             if (path != null) {
-                importedModule = tryImporting(path, moduleName);
+                importedModule = importAndCache(path, moduleName);
             } else {
                 path = getPathFromLibrary(moduleName);
                 if (path != null) {
-                    importedModule = tryImporting(path, moduleName);
+                    importedModule = importAndCache(path, moduleName);
                 } else {
                     importedModule = importFromJython(moduleName);
                 }
@@ -158,12 +168,21 @@ public class ImportManager {
         return null;
     }
 
+    private PythonModule importAndCache(String path, String moduleName) {
+        PythonModule importedModule = importedModules.get(path);
+        if (importedModule == null) {
+            importedModule = tryImporting(path, moduleName);
+        }
+
+        return importedModule;
+    }
+
     private PythonModule tryImporting(String path, String moduleName) {
         PythonParseResult parsedModule = parseModule(path, moduleName);
 
         if (parsedModule != null) {
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot());
-            callTarget.call(null, new PArguments(null));
+            callTarget.call(null, PArguments.EMPTY_ARGUMENT);
             return parsedModule.getModule();
         }
 
@@ -176,8 +195,8 @@ public class ImportManager {
         if (file.exists()) {
             PythonModule importedModule = new PythonModule(context, moduleName, path);
             Source source = context.getSourceManager().get(path);
+            importedModules.put(path, importedModule);
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source);
-
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {
                     // CheckStyle: stop system..print check
@@ -194,4 +213,5 @@ public class ImportManager {
 
         return null;
     }
+
 }

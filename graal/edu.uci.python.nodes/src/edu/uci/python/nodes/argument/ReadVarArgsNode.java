@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,27 +32,27 @@ import edu.uci.python.runtime.sequence.*;
 /**
  * @author Gulfem
  */
-public class ReadVarArgsNode extends BasicReadArgumentNode {
+public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
 
     public ReadVarArgsNode(int paramIndex) {
         super(paramIndex);
     }
 
     @Override
-    public final PTuple execute(VirtualFrame frame) {
+    public PTuple execute(VirtualFrame frame) {
         return executePTuple(frame);
     }
 
     @Override
-    public final PTuple executePTuple(VirtualFrame frame) {
+    public PTuple executePTuple(VirtualFrame frame) {
         PArguments arguments = frame.getArguments(PArguments.class);
 
-        if (getIndex() >= arguments.getLength()) {
+        if (index >= arguments.getLength()) {
             return new PTuple();
         } else {
-            Object[] varArgs = new Object[arguments.getLength() - getIndex()];
+            Object[] varArgs = new Object[arguments.getLength() - index];
             for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = arguments.getArgument(i + getIndex());
+                varArgs[i] = arguments.getArgument(i + index);
             }
 
             return new PTuple(varArgs);

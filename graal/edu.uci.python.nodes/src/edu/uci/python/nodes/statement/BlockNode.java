@@ -33,7 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 public class BlockNode extends StatementNode {
 
     public static BlockNode getEmptyBlock() {
-        return new BlockNode(new PNode[]{PNode.EMPTYNODE});
+        return new BlockNode(new PNode[]{EmptyNode.INSTANCE});
     }
 
     @Children protected final PNode[] statements;
@@ -47,7 +47,7 @@ public class BlockNode extends StatementNode {
     }
 
     public boolean isEmpty() {
-        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EMPTYNODE));
+        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EmptyNode.INSTANCE));
     }
 
     @ExplodeLoop

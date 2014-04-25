@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -51,12 +51,18 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     public PythonModule populateBuiltins(PythonContext context) {
-        PythonModule builtinsModule = createModule("__builtins__", context, new BuiltinFunctions(), new BuiltinConstructors());
+        PythonModule builtinsModule = createModule("builtins", context, new BuiltinFunctions(), new BuiltinConstructors());
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("__builtins__", builtinsModule);
 
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
+        addModule("math", createModule("math", context, new MathModuleBuiltins()));
+
+        // Only populate builtins, no need to add it to the builtinTypes lookup.
+        createType("object", context, builtinsModule, new ObjectBuiltins());
+        addType(PInt.class, (PythonBuiltinClass) builtinsModule.getAttribute("int"));
+        addType(PFloat.class, (PythonBuiltinClass) builtinsModule.getAttribute("float"));
 
         addType(PList.class, createType("list", context, builtinsModule, new ListBuiltins()));
         addType(PString.class, createType("str", context, builtinsModule, new StringBuiltins()));
@@ -75,6 +81,8 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
     private static PythonModule createModule(String name, PythonContext context, PythonBuiltins... builtins) {
         PythonModule module = new PythonModule(context, name, null);
+        assert module.usePrivateLayout();
+
         for (PythonBuiltins builtin : builtins) {
             addBuiltinsToModule(module, builtin, context);
         }

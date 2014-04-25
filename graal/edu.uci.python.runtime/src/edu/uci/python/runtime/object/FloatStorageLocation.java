@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
@@ -31,13 +32,13 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for floats.
  */
-public class FloatStorageLocation extends PrimitiveStorageLocation {
+public class FloatStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 
     public FloatStorageLocation(ObjectLayout objectLayout, int index) {
         super(objectLayout, index);
-        offset = getExactOffsetOf(index);
+        offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(index);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class FloatStorageLocation extends PrimitiveStorageLocation {
 
     public double readDouble(PythonBasicObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return PythonUnsafe.UNSAFE.getDouble(object, offset);
+            return CompilerDirectives.unsafeGetDouble(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -69,7 +70,7 @@ public class FloatStorageLocation extends PrimitiveStorageLocation {
     }
 
     public void writeDouble(PythonBasicObject object, Double value) {
-        PythonUnsafe.UNSAFE.putDouble(object, offset, value);
+        CompilerDirectives.unsafePutDouble(object, offset, value, this);
         markAsSet(object);
     }
 
@@ -78,12 +79,4 @@ public class FloatStorageLocation extends PrimitiveStorageLocation {
         return Double.class;
     }
 
-    private static long getExactOffsetOf(int index) {
-        assert index >= 0 && index <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
-        try {
-            return PythonUnsafe.UNSAFE.objectFieldOffset(PythonBasicObject.class.getDeclaredField("primitiveDoubleStorageLocation" + index));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

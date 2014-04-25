@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -38,73 +38,70 @@ import edu.uci.python.runtime.standardtype.*;
 public abstract class PythonBasicObject {
 
     @CompilationFinal protected PythonClass pythonClass;
-
     private ObjectLayout objectLayout;
+    private boolean usePrivateLayout;
 
-    public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 4;
-    protected int primitiveIntStorageLocation0;
-    protected int primitiveIntStorageLocation1;
-    protected int primitiveIntStorageLocation2;
-    protected int primitiveIntStorageLocation3;
+    public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
+    protected int primitiveInt0;
+    protected int primitiveInt1;
+    protected int primitiveInt2;
+    protected int primitiveInt3;
+    protected int primitiveInt4;
 
-    public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 7;
-    protected double primitiveDoubleStorageLocation0;
-    protected double primitiveDoubleStorageLocation1;
-    protected double primitiveDoubleStorageLocation2;
-    protected double primitiveDoubleStorageLocation3;
-    protected double primitiveDoubleStorageLocation4;
-    protected double primitiveDoubleStorageLocation5;
-    protected double primitiveDoubleStorageLocation6;
+    public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 5;
+    protected double primitiveDouble0;
+    protected double primitiveDouble1;
+    protected double primitiveDouble2;
+    protected double primitiveDouble3;
+    protected double primitiveDouble4;
+
+    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
+    protected Object fieldObject0;
+    protected Object fieldObject1;
+    protected Object fieldObject2;
+    protected Object fieldObject3;
+    protected Object fieldObject4;
 
     // A bit map to indicate which primitives are set.
     protected int primitiveSetMap;
 
-    protected Object[] objectStorageLocations = null;
+    protected Object[] arrayObjects = null;
 
     public PythonBasicObject(PythonClass pythonClass) {
-        if (pythonClass != null) {
-            unsafeSetPythonClass(pythonClass);
-        } else {
-            this.pythonClass = null;
-        }
-
-        objectLayout = ObjectLayout.EMPTY;
+        unsafeSetPythonClass(pythonClass);
+        objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
+        allocateObjectStorageLocations();
     }
 
-    public PythonBasicObject(PythonClass pythonClass, PythonBasicObject module) {
-        if (pythonClass != null) {
-            unsafeSetPythonClass(pythonClass);
-        } else {
-            this.pythonClass = null;
-        }
-
-        this.objectLayout = module.objectLayout;
-        this.objectStorageLocations = module.objectStorageLocations;
-    }
-
-    public PythonClass getPythonClass() {
+    public final PythonClass getPythonClass() {
         assert pythonClass != null;
         return pythonClass;
     }
 
-    public ObjectLayout getObjectLayout() {
+    public final ObjectLayout getObjectLayout() {
         return objectLayout;
     }
 
     /**
      * Does this object have an instance variable defined?
      */
-    public boolean isOwnAttribute(String name) {
+    public final boolean isOwnAttribute(String name) {
         return objectLayout.findStorageLocation(name) != null;
+    }
+
+    public final StorageLocation getOwnValidLocation(String attributeId) {
+        final StorageLocation location = objectLayout.findStorageLocation(attributeId);
+        assert location != null;
+        return location;
     }
 
     private void allocateObjectStorageLocations() {
         final int objectStorageLocationsUsed = objectLayout.getObjectStorageLocationsUsed();
 
         if (objectStorageLocationsUsed == 0) {
-            objectStorageLocations = null;
+            arrayObjects = null;
         } else {
-            objectStorageLocations = new Object[objectStorageLocationsUsed];
+            arrayObjects = new Object[objectStorageLocationsUsed];
         }
     }
 
@@ -149,6 +146,7 @@ public abstract class PythonBasicObject {
              * It doesn't exist, so create a new layout for the class that includes it and update
              * the layout of this object.
              */
+            invalidateStableAssumption();
             updateLayout(objectLayout.withNewAttribute(pythonClass.getContext(), name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
@@ -193,6 +191,11 @@ public abstract class PythonBasicObject {
 
         // Use new Layout
         objectLayout = newLayout;
+
+        // Synchronize instance object layout with the class
+        if (!usePrivateLayout) {
+            pythonClass.updateInstanceObjectLayout(newLayout);
+        }
 
         // Make all primitives as unset
         primitiveSetMap = 0;
@@ -256,6 +259,16 @@ public abstract class PythonBasicObject {
         }
     }
 
-    public abstract Assumption getUnmodifiedAssumption();
+    public boolean usePrivateLayout() {
+        return usePrivateLayout;
+    }
+
+    public void switchToPrivateLayout() {
+        usePrivateLayout = true;
+    }
+
+    public abstract Assumption getStableAssumption();
+
+    public abstract void invalidateStableAssumption();
 
 }

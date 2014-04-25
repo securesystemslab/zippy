@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,10 +24,12 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 
 public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
@@ -41,17 +43,12 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
 
     @Override
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObj = (PythonBasicObject) primary.execute(frame);
+        final PythonBasicObject primaryObj = primary.executePythonBasicObject(frame);
 
-        if (!primaryObj.getObjectLayout().contains(objectLayout)) {
+        if (primaryObj.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(primaryObj);
-            Object value = primaryObj.getAttribute(attributeId);
-
-            if (value instanceof Integer) {
-                return (int) value;
-            } else {
-                throw new UnexpectedResultException(value);
-            }
+            return PythonTypesGen.PYTHONTYPES.expectInteger(primaryObj.getAttribute(attributeId));
         }
 
         return storageLocation.readInt(primaryObj);

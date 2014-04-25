@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -39,8 +39,6 @@ import edu.uci.python.runtime.*;
  */
 public class ObjectLayout {
 
-    public static final ObjectLayout EMPTY = new ObjectLayout("(empty)");
-
     private final String originHint;
 
     private final ObjectLayout parent;
@@ -49,14 +47,16 @@ public class ObjectLayout {
 
     private final int primitiveIntStorageLocationsUsed;
     private final int primitiveDoubleStorageLocationsUsed;
-    private final int objectStorageLocationsUsed;
+    private final int fieldObjectStorageLocationsUsed;
+    private final int arrayObjectStorageLocationsUsed;
 
     private ObjectLayout(String originHint) {
         this.originHint = originHint;
         this.parent = null;
         primitiveIntStorageLocationsUsed = 0;
         primitiveDoubleStorageLocationsUsed = 0;
-        objectStorageLocationsUsed = 0;
+        fieldObjectStorageLocationsUsed = 0;
+        arrayObjectStorageLocationsUsed = 0;
     }
 
     public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent) {
@@ -71,16 +71,19 @@ public class ObjectLayout {
 
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
-        int objectStorageLocationIndex;
+        int fieldObjectStorageLocationIndex;
+        int arrayObjectStorageLocationIndex;
 
         if (parent == null) {
             primitiveIntStorageLocationIndex = 0;
             primitiveDoubleStorageLocationIndex = 0;
-            objectStorageLocationIndex = 0;
+            fieldObjectStorageLocationIndex = 0;
+            arrayObjectStorageLocationIndex = 0;
         } else {
             primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
             primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
-            objectStorageLocationIndex = parent.objectStorageLocationsUsed;
+            fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
+            arrayObjectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
         }
 
         // Go through the variables we've been asked to store
@@ -107,6 +110,12 @@ public class ObjectLayout {
                         } else {
                             storageClass = Object.class;
                         }
+                    } else if (type == Boolean.class) {
+                        if (primitiveIntStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                            storageClass = Boolean.class;
+                        } else {
+                            storageClass = Object.class;
+                        }
                     } else {
                         storageClass = Object.class;
                     }
@@ -122,17 +131,32 @@ public class ObjectLayout {
                     final FloatStorageLocation newStorageLocation = new FloatStorageLocation(this, primitiveDoubleStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveDoubleStorageLocationIndex++;
-                } else {
-                    final ObjectStorageLocation newStorageLocation = new ObjectStorageLocation(this, objectStorageLocationIndex);
+                } else if (storageClass == Boolean.class) {
+                    final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex);
                     storageLocations.put(entry.getKey(), newStorageLocation);
-                    objectStorageLocationIndex++;
+                    primitiveIntStorageLocationIndex++;
+                } else {
+                    if (fieldObjectStorageLocationIndex + 1 <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex);
+                        storageLocations.put(entry.getKey(), newStorageLocation);
+                        fieldObjectStorageLocationIndex++;
+                    } else {
+                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex);
+                        storageLocations.put(entry.getKey(), newStorageLocation);
+                        arrayObjectStorageLocationIndex++;
+                    }
                 }
             }
         }
 
         primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
-        objectStorageLocationsUsed = objectStorageLocationIndex;
+        fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
+        arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
+    }
+
+    public static final ObjectLayout empty() {
+        return new ObjectLayout("(empty)");
     }
 
     /**
@@ -219,7 +243,7 @@ public class ObjectLayout {
     }
 
     public int getObjectStorageLocationsUsed() {
-        return objectStorageLocationsUsed;
+        return arrayObjectStorageLocationsUsed;
     }
 
     /**
@@ -245,8 +269,16 @@ public class ObjectLayout {
         return originHint;
     }
 
+    public boolean isEmpty() {
+        return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0 && //
+                        this.primitiveIntStorageLocationsUsed == 0 && //
+                        this.fieldObjectStorageLocationsUsed == 0 && //
+                        this.primitiveDoubleStorageLocationsUsed == 0;
+    }
+
     @Override
     public String toString() {
         return "ObjectLayout:" + this.storageLocations.toString();
     }
+
 }

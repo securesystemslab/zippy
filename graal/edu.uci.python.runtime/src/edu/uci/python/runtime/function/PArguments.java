@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -36,31 +36,21 @@ import edu.uci.python.runtime.iterator.*;
 public class PArguments extends Arguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
-    public static final PArguments EMPTY_ARGUMENT = new PArguments(null);
+    public static final PArguments EMPTY_ARGUMENT = new PArguments(null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
 
     private final MaterializedFrame declarationFrame;
-    private final Object self;
     private final Object[] arguments;
     private final PKeyword[] keywords;
 
-    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
-        this.self = self;
+    public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
         this.declarationFrame = declarationFrame;
         this.arguments = arguments;
         assert arguments != null;
         this.keywords = keywords;
     }
 
-    public PArguments(MaterializedFrame declarationFrame) {
-        this(null, declarationFrame, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
-    }
-
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
-        this(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-    }
-
-    public PArguments(Object self, MaterializedFrame declarationFrame, Object[] arguments) {
-        this(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        this(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
     public static PArguments get(Frame frame) {
@@ -79,15 +69,7 @@ public class PArguments extends Arguments {
         return frame.getArguments(PArguments.ParallelGeneratorArguments.class);
     }
 
-    public final Object getSelf() {
-        return self;
-    }
-
-    public final int getNominalArgumentsLength() {
-        return self != null ? arguments.length + 1 : arguments.length;
-    }
-
-    public final int getActualArgumentsLength() {
+    public final int getArgumentsLength() {
         return arguments.length;
     }
 
@@ -131,7 +113,7 @@ public class PArguments extends Arguments {
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
         public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.generatorFrame = generatorFrame;
             this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
             this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
@@ -174,8 +156,8 @@ public class PArguments extends Arguments {
 
         private final VirtualFrame cargoFrame;
 
-        public VirtualFrameCargoArguments(Object self, MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
-            super(self, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        public VirtualFrameCargoArguments(MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.cargoFrame = cargoFrame;
         }
 
@@ -192,7 +174,7 @@ public class PArguments extends Arguments {
         private final DisruptorRingBufferHandler ringBuffer;
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
-            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = queue;
             this.buffer = null;
             this.queue = null;
@@ -200,7 +182,7 @@ public class PArguments extends Arguments {
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, SingleProducerCircularBuffer buffer, Object[] arguments) {
-            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = null;
             this.buffer = buffer;
             this.queue = null;
@@ -208,7 +190,7 @@ public class PArguments extends Arguments {
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, Queue<Object> queue, Object[] arguments) {
-            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = queue;
@@ -216,7 +198,7 @@ public class PArguments extends Arguments {
         }
 
         public ParallelGeneratorArguments(MaterializedFrame declarationFrame, DisruptorRingBufferHandler ringBuffer, Object[] arguments) {
-            super(null, declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = null;

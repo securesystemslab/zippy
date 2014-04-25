@@ -41,7 +41,7 @@ public abstract class LoadSpecializedAttributeNode extends LoadAttributeNode {
 
     @SlowPath
     protected final void respecialize(PythonBasicObject receiverObject) {
-        CompilerDirectives.transferToInterpreter();
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         replace(specialize(receiverObject));
     }
 }

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -42,6 +42,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.function.*;
@@ -108,10 +109,9 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < stmts.size(); i++) {
             stmt statementObject = stmts.get(i);
             PNode statement = (PNode) visit(statementObject);
-            // PNode statement = (PNode) visit(stmts.get(i));
 
             // Statements like Global is ignored
-            if (statement == null) {
+            if (statement == EmptyNode.INSTANCE) {
                 continue;
             }
 
@@ -307,9 +307,10 @@ public class PythonTreeTranslator extends Visitor {
         int numOfDefaultArguments = node.getInternalDefaults().size();
         if (numOfDefaultArguments > 0) {
             takesFixedNumOfArgs = false;
-            for (expr arg : node.getInternalArgs()) {
-                parameterIds.add(((Name) arg).getInternalId());
-            }
+        }
+
+        for (expr arg : node.getInternalArgs()) {
+            parameterIds.add(((Name) arg).getInternalId());
         }
 
         if (node.getInternalVararg() != null) {
@@ -445,6 +446,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
+        if (node.getInternalModule().compareTo("__future__") == 0) {
+            return EmptyNode.INSTANCE;
+        }
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
 
@@ -494,18 +498,18 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitCall(Call node) throws Exception {
-        PNode callee = (PNode) visit(node.getInternalFunc());
+        PNode calleeNode = (PNode) visit(node.getInternalFunc());
         List<PNode> arguments = walkExprList(node.getInternalArgs());
-        PNode[] argumentsArray = arguments.toArray(new PNode[arguments.size()]);
+        PNode[] argumentNodes = arguments.toArray(new PNode[arguments.size()]);
         List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
-        KeywordLiteralNode[] keywordsArray = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
+        KeywordLiteralNode[] keywordNodes = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
 
-        if (callee instanceof LoadAttributeNode) {
-            LoadAttributeNode attr = (LoadAttributeNode) callee;
-            return factory.createAttributeCall(attr.getPrimary(), attr.getAttributeId(), argumentsArray);
+        if (calleeNode instanceof LoadAttributeNode) {
+            LoadAttributeNode attr = (LoadAttributeNode) calleeNode;
+            return factory.createAttributeCall(attr.extractPrimary(), attr.getAttributeId(), argumentNodes);
         }
 
-        return factory.createCallFunction(callee, argumentsArray, keywordsArray, context);
+        return PythonCallNode.create(context, calleeNode, argumentNodes, keywordNodes);
     }
 
     @Override
@@ -552,13 +556,13 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createDictLiteral(keys, vals);
     }
 
-    // TODO: Translate AugAssign to in-place operations ?
+    // zwei TODO: Translate AugAssign to in-place operations ?
     @Override
     public Object visitAugAssign(AugAssign node) throws Exception {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
-        ReadNode read = (ReadNode) NodeUtil.cloneNode(target);
+        ReadNode read = factory.duplicate(target, ReadNode.class);
         return read.makeWriteNode(binaryOp);
     }
 
@@ -615,15 +619,15 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 1; i < rights.size(); i++) {
             PNode leftOp;
             PNode rightOp;
-            PNode tempVarCloned = (PNode) NodeUtil.cloneNode((Node) tempVar);
+            PNode duplicatedTempVariable = factory.duplicate((Node) tempVar, PNode.class);
 
             if (i == rights.size() - 1) {
-                leftOp = tempVarCloned;
+                leftOp = duplicatedTempVariable;
                 rightOp = rights.get(i);
             } else {
-                leftOp = tempVarCloned;
+                leftOp = duplicatedTempVariable;
                 tempVar = environment.makeTempLocalVariable();
-                rightOp = tempVarCloned;
+                rightOp = duplicatedTempVariable;
                 assignmentToBeLifted = tempVar.makeWriteNode(rights.get(i));
                 assignmentsToBeLifted.add(assignmentToBeLifted);
             }
@@ -647,7 +651,19 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitAttribute(Attribute node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
 
-        if (PythonOptions.CacheAttributeLoads) {
+        /**
+         * Use monomorphic {@link StoreAttributeNode} in constructors. This helps to avoid unwanted
+         * polymorphic dispatch node created when initializing the
+         * {@link PythonClass#instanceObjectLayout} of the invoked class.
+         */
+        if (environment.isInConstructorScope() && node.getInternalCtx() == expr_contextType.Store) {
+            expr primaryToken = node.getInternalValue();
+            if (primaryToken instanceof Name && ((Name) primaryToken).getInternalId().equals("self")) {
+                return factory.createLoadAttribute(primary, node.getInternalAttr());
+            }
+        }
+
+        if (PythonOptions.AttributeAccessInlineCaching) {
             return factory.createGetAttribute(context, primary, node.getInternalAttr());
         } else {
             return factory.createLoadAttribute(primary, node.getInternalAttr());
@@ -713,7 +729,7 @@ public class PythonTreeTranslator extends Visitor {
 
             List<expr> conditions = comp.getInternalIfs();
             if (conditions != null && !conditions.isEmpty()) {
-                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, PNode.EMPTYNODE);
+                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.INSTANCE);
             }
 
             PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(factory.createRuntimeValueNode());
@@ -729,7 +745,7 @@ public class PythonTreeTranslator extends Visitor {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
 
         if (environment.isInFunctionScope()) {
-            AdvanceIteratorNode next = AdvanceIteratorNodeFactory.create((WriteLocalVariableNode) target, PNode.EMPTYNODE);
+            AdvanceIteratorNode next = AdvanceIteratorNodeFactory.create((WriteLocalVariableNode) target, EmptyNode.INSTANCE);
             return ForWithLocalTargetNodeFactory.create(next, body, getIterator);
         } else {
             return factory.createFor(target, getIterator, body);
@@ -900,7 +916,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGlobal(Global node) throws Exception {
-        return null;
+        return EmptyNode.INSTANCE;
     }
 
     @Override
@@ -926,28 +942,27 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitPass(Pass node) throws Exception {
-        return null;
+        return EmptyNode.INSTANCE;
     }
 
     @Override
     public Object visitTryExcept(TryExcept node) throws Exception {
-        StatementNode retVal = null;
+        StatementNode tryExceptNode = null;
         List<PNode> b = visitStatements(node.getInternalBody());
         List<PNode> o = visitStatements(node.getInternalOrelse());
+
         BlockNode body = null;
         BlockNode orelse = null;
+        body = factory.createBlock(b);
+        orelse = factory.createBlock(o);
+
         List<excepthandler> excepts = node.getInternalHandlers();
+        ExceptNode[] exceptNodes = new ExceptNode[excepts.size()];
 
         for (int i = 0; i < excepts.size(); i++) {
-            if (i == 0) {
-                body = factory.createBlock(b);
-            } else {
-                body = factory.createSingleStatementBlock(retVal);
-            }
-
             ExceptHandler except = (ExceptHandler) excepts.get(i);
-
             PNode[] exceptType = null;
+
             if (except.getInternalType() != null) {
                 if (except.getInternalType() instanceof Tuple) {
                     List<PNode> types = walkExprList(((Tuple) except.getInternalType()).getInternalElts());
@@ -957,17 +972,15 @@ public class PythonTreeTranslator extends Visitor {
                 }
             }
 
-            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(PNode.EMPTYNODE);
+            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(EmptyNode.INSTANCE);
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             BlockNode exceptBody = factory.createBlock(exceptbody);
-
-            retVal = TryExceptNode.create(context, body, orelse, exceptType, exceptName, exceptBody);
+            ExceptNode exceptNode = new ExceptNode(context, exceptBody, exceptType, exceptName);
+            exceptNodes[i] = exceptNode;
         }
 
-        orelse = factory.createBlock(o);
-        body = factory.createSingleStatementBlock(retVal);
-        retVal = TryExceptNode.create(context, body, orelse, null, null, null);
-        return retVal;
+        tryExceptNode = new TryExceptNode(body, exceptNodes, orelse);
+        return tryExceptNode;
     }
 
     @Override

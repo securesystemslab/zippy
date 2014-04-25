@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,7 +32,7 @@ import edu.uci.python.runtime.standardtype.*;
 public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PBuiltinFunction function;
-    private PythonBuiltinObject self;
+    private final PythonBuiltinObject self;
     private final RootCallTarget callTarget;
 
     public PBuiltinMethod(PythonBuiltinObject self, PBuiltinFunction function) {
@@ -49,19 +49,15 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
         return self;
     }
 
-    public void bind(PythonBuiltinObject newSelf) {
-        this.self = newSelf;
-    }
-
     /**
      * There is no declaration frame for built-in methods.
      */
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(self, null, args));
+        return callTarget.call(caller, new PArguments(null, args));
     }
 
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return callTarget.call(caller, new PArguments(self, null, args, keywords));
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -76,7 +72,17 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
 
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
-        function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+        function.arityCheck(numOfArgs, numOfKeywords, keywords);
+    }
+
+    @Override
+    public Arity getArity() {
+        return function.getArity();
+    }
+
+    @Override
+    public String getName() {
+        return function.getName();
     }
 
     @Override

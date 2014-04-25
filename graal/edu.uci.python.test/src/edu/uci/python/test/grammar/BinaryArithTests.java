@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,8 +25,6 @@
 package edu.uci.python.test.grammar;
 
 import static edu.uci.python.test.PythonTests.*;
-
-import java.nio.file.*;
 
 import org.junit.*;
 
@@ -91,8 +89,10 @@ public class BinaryArithTests {
     }
 
     @Test
-    public void binaryArithModulo() {
-        Path script = Paths.get("binaryArith_modulo_test.py");
-        assertPrints("4 20 2.7440432148750915E-9\n", script);
+    public void modulo() {
+        assertPrints("4\n", "print(14 % 5)");
+        assertPrints("20\n", "print(54528840284285205820 % 52)");
+        assertPrints("2.7440432148750915E-9\n", "print(43253252 % 0.7)");
     }
+
 }

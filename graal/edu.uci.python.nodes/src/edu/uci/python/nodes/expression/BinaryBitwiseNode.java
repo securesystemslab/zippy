@@ -42,8 +42,9 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
 
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            // Right operand may lose precision, but it is harmless for a left
-            // shift.
+            /**
+             * Right operand may lose precision, but it is harmless for a left shift.
+             */
             return left.shiftLeft(right.intValue());
         }
     }
@@ -57,8 +58,9 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
 
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            // Right operand may lose precision, but it is harmless for a right
-            // shift.
+            /**
+             * Right operand may lose precision.
+             */
             return left.shiftRight(right.intValue());
         }
     }
@@ -79,7 +81,6 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         PBaseSet doPBaseSet(PBaseSet left, PBaseSet right) {
             return left.intersection(right);
         }
-
     }
 
     public abstract static class BitXorNode extends BinaryBitwiseNode {

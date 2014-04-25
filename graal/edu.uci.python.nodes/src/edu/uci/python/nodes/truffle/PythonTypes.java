@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -39,37 +39,53 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-@TypeSystem({boolean.class, int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class,
+@TypeSystem({boolean.class, //
+                int.class, //
+                BigInteger.class, //
+                double.class, //
+                PComplex.class, //
+                char.class, //
+                String.class,
 
-PyObject.class, PString.class, PythonClass.class, PDict.class, PList.class, PTuple.class, PRange.class, PIntArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSequence.class,
-                PSet.class, PFrozenSet.class, PBaseSet.class, PEnumerate.class, PZip.class, PSlice.class, PRangeIterator.class, PDoubleIterator.class, PIntegerIterator.class, PIterator.class,
-                PIterable.class, PythonModule.class, PNone.class, PythonBuiltinObject.class, PythonObject.class, PythonBasicObject.class, PythonCallable.class, GeneratorArguments.class,
+                PyObject.class, //
+                PString.class, //
+                PythonClass.class, //
+                PDict.class, //
+                PList.class, //
+                PTuple.class, //
+                PRange.class, //
+                PIntArray.class, //
+                PDoubleArray.class, //
+                PCharArray.class, //
+                PArray.class, //
+                PSequence.class, //
+                PSet.class, //
+                PFrozenSet.class, //
+                PBaseSet.class, //
+                PEnumerate.class, //
+                PZip.class, //
+                PSlice.class, //
+                PRangeIterator.class, //
+                PDoubleIterator.class, //
+                PIntegerIterator.class, //
+                PIterator.class, //
+                PIterable.class, //
+                PythonModule.class, //
+                PNone.class, //
+                PythonBuiltinObject.class, //
+                PythonObject.class, //
+                PythonBasicObject.class, //
+                PythonCallable.class, //
+                GeneratorArguments.class, //
                 Object[].class})
 public class PythonTypes {
 
     /**
-     * Type coercion: <br>
-     * Python bool to Python int (Integer).
+     * Type coercion: Python bool to Python int (Integer).
      */
-    @TypeCast
-    public int asInteger(boolean value) {
+    @ImplicitCast
+    public int booleanToInt(boolean value) {
         return value ? 1 : 0;
-    }
-
-    @TypeCheck
-    public boolean isInteger(Object value) {
-        return value instanceof Integer || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public int asInteger(Object value) {
-        if (value instanceof Integer) {
-            return (int) value;
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? 1 : 0;
-        }
-
-        return (int) value;
     }
 
     /**
@@ -77,31 +93,14 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    @TypeCheck
-    public boolean isBigInteger(Object value) {
-        return value instanceof BigInteger || value instanceof Integer || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(boolean value) {
+    @ImplicitCast
+    public BigInteger booleanToBigInteger(boolean value) {
         return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
 
-    @TypeCast
-    public BigInteger asBigInteger(int value) {
+    @ImplicitCast
+    public BigInteger intToBigInteger(int value) {
         return BigInteger.valueOf(value);
-    }
-
-    @TypeCast
-    public BigInteger asBigInteger(Object value) {
-        if (value instanceof Integer) {
-            return BigInteger.valueOf((int) value);
-        } else if (value instanceof Boolean) {
-            int intValue = (boolean) value ? 1 : 0;
-            return BigInteger.valueOf(intValue);
-        }
-
-        return (BigInteger) value;
     }
 
     /**
@@ -109,34 +108,19 @@ public class PythonTypes {
      * Python bool to Python float (double); <br>
      * Python int to float (Integer or BigInteger to double).
      */
-    @TypeCheck
-    public boolean isDouble(Object value) {
-        return value instanceof Double || value instanceof Integer || value instanceof BigInteger || value instanceof Boolean;
-    }
-
-    @TypeCast
-    public double asDouble(boolean value) {
+    @ImplicitCast
+    public double booleanToDouble(boolean value) {
         return value ? 1.0D : 0.0D;
     }
 
-    @TypeCast
-    public double asDouble(int value) {
+    @ImplicitCast
+    public double intToDouble(int value) {
         return value;
     }
 
-    @TypeCast
-    public double asDouble(Object value) {
-        if (value instanceof Integer) {
-            Integer integer = (Integer) value;
-            return integer.doubleValue();
-        } else if (value instanceof BigInteger) {
-            BigInteger bigInteger = (BigInteger) value;
-            return bigInteger.doubleValue();
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? 1.0D : 0.0D;
-        }
-
-        return (double) value;
+    @ImplicitCast
+    public double bigIntegerToDouble(BigInteger value) {
+        return value.doubleValue();
     }
 
     /**
@@ -145,34 +129,27 @@ public class PythonTypes {
      * Python int to Python complex (Integer or BigInteger to PComplex); <br>
      * Python float to Python complex (double to PComplex).
      */
-    @TypeCheck
-    public boolean isPComplex(Object value) {
-        return value instanceof PComplex || value instanceof Integer || value instanceof Double || value instanceof BigInteger || value instanceof Boolean;
+    @ImplicitCast
+    public PComplex booleanToPComplex(boolean value) {
+        return value ? new PComplex(1, 0) : new PComplex(0, 0);
     }
 
-    @TypeCast
-    public PComplex asPComplex(Object value) {
-        if (value instanceof Integer) {
-            PComplex complex = new PComplex((Integer) value, 0);
-            return complex;
-        } else if (value instanceof BigInteger) {
-            BigInteger bigInteger = (BigInteger) value;
-            PComplex complex = new PComplex(bigInteger.doubleValue(), 0);
-            return complex;
-        } else if (value instanceof Double) {
-            PComplex complex = new PComplex((Double) value, 0);
-            return complex;
-        } else if (value instanceof Boolean) {
-            return (boolean) value ? new PComplex(1, 0) : new PComplex(0, 0);
-        }
-
-        return (PComplex) value;
+    @ImplicitCast
+    public PComplex intToPComplex(int value) {
+        return new PComplex(value, 0);
     }
 
-    /**
-     * zwei: There is a bug when using the @ImplicitCast annotation.
-     */
-    // @ImplicitCast
+    @ImplicitCast
+    public PComplex bigIntegerToPComplex(BigInteger value) {
+        return new PComplex(value.doubleValue(), 0);
+    }
+
+    @ImplicitCast
+    public PComplex doubleToPComplex(double value) {
+        return new PComplex(value, 0);
+    }
+
+    @ImplicitCast
     public String unboxPString(PString value) {
         return value.getValue();
     }

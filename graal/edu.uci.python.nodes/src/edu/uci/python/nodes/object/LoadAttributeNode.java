@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,10 +31,9 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class LoadAttributeNode extends PNode implements ReadNode {
+public abstract class LoadAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final String attributeId;
-
     @Child protected PNode primary;
 
     public LoadAttributeNode(String name, PNode primary) {
@@ -46,7 +45,8 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
         return attributeId;
     }
 
-    public PNode getPrimary() {
+    @Override
+    public PNode extractPrimary() {
         return primary;
     }
 
@@ -73,10 +73,14 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode {
 
         if (storageLocation instanceof IntStorageLocation) {
             return new LoadIntAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (IntStorageLocation) storageLocation);
+        } else if (storageLocation instanceof BooleanStorageLocation) {
+            return new LoadBooleanAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (BooleanStorageLocation) storageLocation);
         } else if (storageLocation instanceof FloatStorageLocation) {
             return new LoadFloatAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (FloatStorageLocation) storageLocation);
+        } else if (storageLocation instanceof FieldObjectStorageLocation) {
+            return new LoadFieldObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (FieldObjectStorageLocation) storageLocation);
         } else {
-            return new LoadObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ObjectStorageLocation) storageLocation);
+            return new LoadArrayObjectAttributeNode(attributeId, primary, storageLocation.getObjectLayout(), (ArrayObjectStorageLocation) storageLocation);
         }
     }
 

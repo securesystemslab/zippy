@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -27,6 +27,8 @@ package edu.uci.python.runtime.standardtype;
 import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -36,16 +38,20 @@ import edu.uci.python.runtime.object.*;
 /**
  * Mutable class.
  */
-public class PythonClass extends PythonObject {
+public class PythonClass extends PythonObject implements PythonCallable {
 
-    protected final String className;
-
+    private final String className;
     private final PythonContext context;
 
     // TODO: Multiple inheritance and MRO...
     @CompilationFinal private PythonClass superClass;
 
     private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
+
+    /**
+     * Object layout of the instances of this class.
+     */
+    @CompilationFinal private ObjectLayout instanceObjectLayout;
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
@@ -65,13 +71,17 @@ public class PythonClass extends PythonObject {
         } else {
             unsafeSetSuperClass(superClass);
         }
+
+        instanceObjectLayout = ObjectLayout.empty();
+        switchToPrivateLayout();
     }
 
     public PythonClass getSuperClass() {
         return superClass;
     }
 
-    public String getClassName() {
+    @Override
+    public String getName() {
         return className;
     }
 
@@ -113,10 +123,10 @@ public class PythonClass extends PythonObject {
      */
     @Override
     public void setAttribute(String name, Object value) {
-        unmodifiedAssumption.invalidate();
+        stableAssumption.invalidate();
 
         for (PythonClass subClass : subClasses) {
-            subClass.unmodifiedAssumption.invalidate();
+            subClass.stableAssumption.invalidate();
         }
         super.setAttribute(name, value);
     }
@@ -133,6 +143,73 @@ public class PythonClass extends PythonObject {
 
     public final Set<PythonClass> getSubClasses() {
         return subClasses;
+    }
+
+    public final ObjectLayout getInstanceObjectLayout() {
+        return instanceObjectLayout;
+    }
+
+    public final void updateInstanceObjectLayout(ObjectLayout newLayout) {
+        this.instanceObjectLayout = newLayout;
+    }
+
+    /**
+     * The following are slow paths.
+     */
+    @Override
+    public Object call(PackedFrame caller, Object[] args) {
+        PythonObject newInstance = new PythonObject(this);
+        PythonCallable ctor = lookUpMethod("__init__");
+        ctor.call(caller, packSelfWithArguments(newInstance, args));
+        return newInstance;
+    }
+
+    @Override
+    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        PythonObject newInstance = new PythonObject(this);
+        PythonCallable ctor = lookUpMethod("__init__");
+        ctor.call(caller, packSelfWithArguments(newInstance, args), keywords);
+        return newInstance;
+    }
+
+    private static Object[] packSelfWithArguments(PythonObject self, Object[] arguments) {
+        Object[] packed = new Object[arguments.length + 1];
+        packed[0] = self;
+
+        for (int i = 0; i < arguments.length; i++) {
+            packed[i + 1] = arguments[i];
+        }
+
+        return packed;
+    }
+
+    @Override
+    public Arity getArity() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getArity();
+    }
+
+    @Override
+    public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
+        PythonCallable ctor = lookUpMethod("__init__");
+        ctor.arityCheck(numOfArgs, numOfKeywords, keywords);
+    }
+
+    @Override
+    public RootCallTarget getCallTarget() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getCallTarget();
+    }
+
+    @Override
+    public FrameDescriptor getFrameDescriptor() {
+        PythonCallable ctor = lookUpMethod("__init__");
+        return ctor.getFrameDescriptor();
+    }
+
+    @Override
+    public String getCallableName() {
+        return getName();
     }
 
     @Override

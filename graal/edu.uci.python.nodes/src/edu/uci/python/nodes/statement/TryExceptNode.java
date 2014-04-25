@@ -24,135 +24,49 @@
  */
 package edu.uci.python.nodes.statement;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.runtime.*;
-
-public abstract class TryExceptNode extends StatementNode {
+public class TryExceptNode extends StatementNode {
 
     @Child protected BlockNode body;
+    @Children final ExceptNode[] exceptNodes;
     @Child protected BlockNode orelse;
 
-    @Children final PNode[] exceptType;
-    @Child protected PNode exceptName;
-    @Child protected BlockNode exceptBody;
+    private final BranchProfile exceptProfile = new BranchProfile();
 
-    protected final PythonContext context;
-
-    protected TryExceptNode(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
+    public TryExceptNode(BlockNode body, ExceptNode[] exceptNodes, BlockNode orelse) {
         this.body = body;
+        this.exceptNodes = exceptNodes;
         this.orelse = orelse;
-
-        this.exceptName = exceptName;
-        this.exceptType = exceptType;
-        this.exceptBody = exceptBody;
-
-        this.context = context;
-    }
-
-    public static TryExceptNode create(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
-        if (exceptBody == null) {
-            if (orelse == null) {
-                return new TryOnlyNode(context, body);
-            }
-            return new TryElseNode(context, body, orelse);
-        }
-        return new ExceptOnlyNode(context, body, orelse, exceptType, exceptName, exceptBody);
-    }
-
-}
-
-class TryOnlyNode extends TryExceptNode {
-
-    protected TryOnlyNode(PythonContext context, BlockNode body) {
-        super(context, body, null, null, null, null);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return body.execute(frame);
-        } catch (ControlFlowException c) {
-            return null;
-        }
-    }
-}
-
-class ExceptOnlyNode extends TryExceptNode {
-
-    protected ExceptOnlyNode(PythonContext context, BlockNode body, BlockNode orelse, PNode[] exceptType, PNode exceptName, BlockNode exceptBody) {
-        super(context, body, orelse, exceptType, exceptName, exceptBody);
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return body.execute(frame);
-        } catch (RuntimeException ex) {
-            return executeExcept(frame, ex);
-        }
-    }
-
-    protected Object executeExcept(VirtualFrame frame, RuntimeException excep) {
-        PyException e = null;
-        if (excep instanceof PyException) {
-            e = (PyException) excep;
-        } else if (excep instanceof ArithmeticException && excep.getMessage().endsWith("divide by zero")) {
-            e = Py.ZeroDivisionError("divide by zero");
-        } else {
-            throw excep;
-        }
-
-        context.setCurrentException(e);
-
-        /**
-         * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
-         * 'Exception'
-         * 
-         * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by zero'
-         */
-        if (exceptType != null) {
-            PyObject type = null;
-            for (int i = 0; i < exceptType.length && type != e.type; i++) {
-                type = (PyObject) exceptType[i].execute(frame);
-            }
-
-            if (e.type == type) {
-                if (exceptName != null) {
-                    ((WriteNode) exceptName).executeWrite(frame, e);
-                }
-            } else {
-                throw excep;
-            }
-        }
-
-        exceptBody.execute(frame);
-
-        // clear the exception after executing the except body.
-        context.setCurrentException(null);
-        throw new ControlFlowException();
-
-    }
-}
-
-class TryElseNode extends TryExceptNode {
-
-    protected TryElseNode(PythonContext context, BlockNode body, BlockNode orelse) {
-        super(context, body, orelse, null, null, null);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
             body.execute(frame);
-        } catch (ControlFlowException c) {
-            return null;
+            return orelse.execute(frame);
+        } catch (RuntimeException ex) {
+            exceptProfile.enter();
+            return catchException(frame, ex);
         }
-        return orelse.execute(frame);
     }
+
+    private Object catchException(VirtualFrame frame, RuntimeException exception) {
+        for (ExceptNode exceptNode : exceptNodes) {
+            try {
+                exceptNode.executeExcept(frame, exception);
+            } catch (ControlFlowException cf) {
+                return cf;
+            } catch (RuntimeException ex) {
+                if (exception != ex) {
+                    throw ex;
+                }
+            }
+        }
+
+        throw exception;
+    }
+
 }

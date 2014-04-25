@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,6 @@ import java.util.*;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
@@ -65,7 +64,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // abs(x)
     @Builtin(name = "abs", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonAbsNode extends PythonBuiltinNode {
+    public abstract static class AbsNode extends PythonBuiltinNode {
 
         @Specialization
         public int absInt(int arg) {
@@ -86,8 +85,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object absObject(PythonObject object) {
             Object absAttribute = object.getAttribute("__abs__");
             if (absAttribute != null && absAttribute instanceof PFunction) {
-                PFunction absFunction = (PFunction) absAttribute;
-                PMethod method = CallAttributeNode.createPMethodFor(object, absFunction);
+                PMethod method = new PMethod(object, (PFunction) absAttribute);
                 return method.call(null, null);
             } else {
                 throw Py.TypeError("bad operand type for abs(): '" + object + "'");
@@ -103,7 +101,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // all(iterable)
     @Builtin(name = "all", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonAllNode extends PythonBuiltinNode {
+    public abstract static class AllNode extends PythonBuiltinNode {
 
         @Child protected CastToBooleanNode toBoolean;
 
@@ -136,24 +134,24 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
+                toBoolean = insert(YesNodeFactory.create(EmptyNode.INSTANCE));
             }
-            return toBoolean.executeBoolean(value);
+            return toBoolean.executeBoolean(null, value);
         }
     }
 
     // any(iterable)
     @Builtin(name = "any", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonAnyNode extends PythonBuiltinNode {
+    public abstract static class AnyNode extends PythonBuiltinNode {
 
         @Child protected CastToBooleanNode toBoolean;
 
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = insert(YesNodeFactory.create(EMPTYNODE));
+                toBoolean = insert(YesNodeFactory.create(EmptyNode.INSTANCE));
             }
-            return toBoolean.executeBoolean(value);
+            return toBoolean.executeBoolean(null, value);
         }
 
         @Specialization
@@ -186,7 +184,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // callable(object)
     @Builtin(name = "callable", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonCallableNode extends PythonBuiltinNode {
+    public abstract static class CallableNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
@@ -211,7 +209,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // chr(i)
     @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonChrNode extends PythonBuiltinNode {
+    public abstract static class ChrNode extends PythonBuiltinNode {
 
         @Specialization
         public String charFromInt(int arg) {
@@ -250,7 +248,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // dir([object])
     @Builtin(name = "dir", minNumOfArguments = 0, maxNumOfArguments = 1)
-    public abstract static class PythonDirNode extends PythonBuiltinNode {
+    public abstract static class DirNode extends PythonBuiltinNode {
 
         @Specialization
         public Object dir(PythonModule module) {
@@ -384,9 +382,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             if (attrValue instanceof PFunction) {
-                PFunction funcAttr = (PFunction) attrValue;
-                PMethod method = CallAttributeNode.createPMethodFor(object, funcAttr);
-                return method;
+                return new PMethod(object, (PFunction) attrValue);
             }
 
             return attrValue;
@@ -427,12 +423,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
-    public abstract static class PythonIsIntanceNode extends PythonBuiltinNode {
+    public abstract static class IsIntanceNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
         public Object isinstance(String str, PythonClass clazz) {
-            if (clazz.getClassName().equals("str")) {
+            if (clazz.getName().equals("str")) {
                 return true;
             } else {
                 return false;
@@ -465,7 +461,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             if (object instanceof PythonClass) {
-                if (clazz.getClassName().equals("type")) {
+                if (clazz.getName().equals("type")) {
                     return true;
                 }
             }
@@ -477,7 +473,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
                 PythonClass pythonClass = (PythonClass) clazz;
-                if (pythonClass.getClassName().equals("str")) {
+                if (pythonClass.getName().equals("str")) {
                     return true;
                 }
 
@@ -497,7 +493,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // issubclass(class, classinfo)
     @Builtin(name = "issubclass", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
-    public abstract static class PythonIsSubClassNode extends PythonBuiltinNode {
+    public abstract static class IsSubClassNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
@@ -511,12 +507,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
              * TODO How do you check two classes are equal? Name comparison can't be true all the
              * time.
              */
-            if (clazz.getClassName().equals(clazzinfo.getClassName())) {
+            if (clazz.getName().equals(clazzinfo.getName())) {
                 return true;
             } else {
                 PythonClass superClass = clazz.getSuperClass();
                 while (superClass != null) {
-                    if (superClass.getClassName().equals(clazzinfo.getClassName())) {
+                    if (superClass.getName().equals(clazzinfo.getName())) {
                         return true;
                     }
                     superClass = superClass.getSuperClass();
@@ -540,7 +536,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // iter(object[, sentinel])
     @Builtin(name = "iter", minNumOfArguments = 1, maxNumOfArguments = 2)
-    public abstract static class PythonIterNode extends PythonBuiltinNode {
+    public abstract static class IterNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
@@ -563,7 +559,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // len(s)
     @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonLenNode extends PythonBuiltinNode {
+    public abstract static class LenNode extends PythonBuiltinNode {
 
         @Specialization
         public int len(String arg) {
@@ -590,7 +586,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     // max(iterable, *[, key])
     // max(arg1, arg2, *args[, key])
     @Builtin(name = "max", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
-    public abstract static class PythonMaxNode extends PythonBuiltinNode {
+    public abstract static class MaxNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1, guards = "hasOneArgument")
@@ -678,7 +674,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     // min(iterable, *[, key])
     // min(arg1, arg2, *args[, key])
     @Builtin(name = "min", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
-    public abstract static class PythonMinNode extends PythonBuiltinNode {
+    public abstract static class MinNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "hasOneArgument")
@@ -756,7 +752,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // next(iterator[, default])
     @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
-    public abstract static class PythonNextNode extends PythonBuiltinNode {
+    public abstract static class NextNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization
@@ -789,7 +785,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
-    public abstract static class PythonPrintNode extends PythonBuiltinNode {
+    public abstract static class PrintNode extends PythonBuiltinNode {
 
         @Specialization
         public Object print(PTuple values, Object[] keywords) {
@@ -852,7 +848,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // reversed(seq)
     @Builtin(name = "reversed", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
-    public abstract static class PythonReversedNode extends PythonBuiltinNode {
+    public abstract static class ReversedNode extends PythonBuiltinNode {
 
         @Specialization
         public PIterator reversed(PRange range) {
@@ -919,7 +915,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // sum(iterable[, start])
     @Builtin(name = "sum", minNumOfArguments = 1, takesKeywordArguments = true, maxNumOfArguments = 2, keywordNames = {"start"})
-    public abstract static class PythonSumNode extends PythonBuiltinNode {
+    public abstract static class SumNode extends PythonBuiltinNode {
         /**
          * Incomplete. Only support ints.
          */
@@ -947,7 +943,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // super([type[, object-or-type]])
     @Builtin(name = "super", minNumOfArguments = 1, maxNumOfArguments = 2)
-    public abstract static class PythonSuperNode extends PythonBuiltinNode {
+    public abstract static class SuperNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization
@@ -964,7 +960,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // type(object)
     @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isConstructor = true)
-    public abstract static class PythonTypeNode extends PythonBuiltinNode {
+    public abstract static class TypeNode extends PythonBuiltinNode {
 
         @Specialization
         public Object type(PythonObject object) {

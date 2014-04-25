@@ -71,13 +71,14 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         new GeneratorExpressionOptimizer((FunctionRootNode) current).optimize();
     }
 
-    public void invokeBuiltinIntrinsifier(CallBuiltinInlinedNode inlinedCall) {
-        if (!PythonOptions.IntrinsifyBuiltinCalls) {
-            return;
-        }
-
-        new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged, inlinedCall).intrinsify();
-    }
+// public void invokeBuiltinIntrinsifier(CallBuiltinInlinedNode inlinedCall) {
+// if (!PythonOptions.IntrinsifyBuiltinCalls) {
+// return;
+// }
+//
+// new BuiltinIntrinsifier(context, globalScopeUnchanged, builtinModuleUnchanged,
+// inlinedCall).intrinsify();
+// }
 
     public static class CallFunctionInlinableNode extends InlineableCallNode {
 
@@ -104,15 +105,16 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         }
 
         public boolean inline(FrameFactory factory) {
-            CompilerAsserts.neverPartOfCompilation();
-
-            if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
-                replace(inlinedCallNode);
-                invokeGeneratorExpressionOptimizer();
-                return true;
-            }
-
+// CompilerAsserts.neverPartOfCompilation();
+//
+// if (functionRoot != null) {
+// CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments,
+// function, globalScopeUnchanged, functionRoot, factory);
+// replace(inlinedCallNode);
+// invokeGeneratorExpressionOptimizer();
+// return true;
+// }
+//
             return false;
         }
 
@@ -151,16 +153,17 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         }
 
         public boolean inline(FrameFactory factory) {
-            CompilerAsserts.neverPartOfCompilation();
-
-            if (functionRoot != null) {
-                CallBuiltinInlinedNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments, this.function, this.functionRoot, this.globalScopeUnchanged,
-                                this.builtinModuleUnchanged, factory);
-                replace(inlinedCallNode);
-                invokeBuiltinIntrinsifier(inlinedCallNode);
-                return true;
-            }
-
+// CompilerAsserts.neverPartOfCompilation();
+//
+// if (functionRoot != null) {
+// CallBuiltinInlinedNode inlinedCallNode = new CallBuiltinInlinedNode(this.callee, this.arguments,
+// this.function, this.functionRoot, this.globalScopeUnchanged,
+// this.builtinModuleUnchanged, factory);
+// replace(inlinedCallNode);
+// invokeBuiltinIntrinsifier(inlinedCallNode);
+// return true;
+// }
+//
             return false;
         }
 
