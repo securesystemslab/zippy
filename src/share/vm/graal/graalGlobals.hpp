@@ -53,7 +53,7 @@
           "Bootstrap Graal before running Java main method"))               \
                                                                             \
   product(bool, ForceGraalInitialization, false,                            \
-          "Force VM to initialize the Compiler although not used")          \
+          "Force VM to initialize the compiler even if not used")           \
                                                                             \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
