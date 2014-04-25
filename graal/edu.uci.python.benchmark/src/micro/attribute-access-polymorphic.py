@@ -11,8 +11,6 @@ class Task(TaskState):
 	def __init__(self, foo):
 		self.foo = foo
 
-Task(0)
-
 class DeviceTask(Task):
 	def __init__(self, foo):
 		Task.__init__(self, foo)
