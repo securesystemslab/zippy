@@ -846,6 +846,28 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     }
 
+    // repr(object)
+    @Builtin(name = "repr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class ReprNode extends PythonBuiltinNode {
+
+        @Specialization
+        public String repr(PythonObject obj) {
+            PythonCallable callable;
+            try {
+                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute("__repr__"));
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            return (String) callable.call(null, new Object[]{obj});
+        }
+
+        @Specialization
+        public String repr(Object obj) {
+            return obj.toString();
+        }
+    }
+
     // reversed(seq)
     @Builtin(name = "reversed", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class ReversedNode extends PythonBuiltinNode {
@@ -859,7 +881,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public PIterator reversed(PSequence sequence) {
             return new PSequenceIterator.PSequenceReverseIterator(sequence);
         }
-
     }
 
     // round(number[, ndigits])
@@ -875,7 +896,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public double round(double arg) {
             return Math.round(arg);
         }
-
     }
 
     // setattr(object, name, value)
@@ -910,7 +930,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object setAttr(Object object, Object name, Object value) {
             throw new RuntimeException("setAttr is not supported for " + object + " " + object.getClass() + " name " + name + " value " + value);
         }
-
     }
 
     // sum(iterable[, start])

@@ -52,7 +52,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), args));
+        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), packSelfWithArguments(self, args)));
     }
 
     /**

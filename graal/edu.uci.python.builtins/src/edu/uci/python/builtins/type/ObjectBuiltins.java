@@ -53,4 +53,13 @@ public class ObjectBuiltins extends PythonBuiltins {
         }
     }
 
+    @Builtin(name = "__repr__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class ReprNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object repr(PythonObject self) {
+            return self.toString();
+        }
+    }
+
 }
