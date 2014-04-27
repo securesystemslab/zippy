@@ -67,9 +67,4 @@ public final class PythonModule extends PythonBasicObject {
         return modulePath;
     }
 
-    @Override
-    public void invalidateStableAssumption() {
-        // A module uses a more fine grain stability assumption.
-    }
-
 }

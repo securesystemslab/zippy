@@ -82,6 +82,10 @@ public abstract class PythonBasicObject {
         return objectLayout;
     }
 
+    protected final void setObjectLayout(ObjectLayout newLayout) {
+        this.objectLayout = newLayout;
+    }
+
     /**
      * Does this object have an instance variable defined?
      */
@@ -146,7 +150,6 @@ public abstract class PythonBasicObject {
              * It doesn't exist, so create a new layout for the class that includes it and update
              * the layout of this object.
              */
-            invalidateStableAssumption();
             updateLayout(objectLayout.withNewAttribute(name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
@@ -268,7 +271,5 @@ public abstract class PythonBasicObject {
     }
 
     public abstract Assumption getStableAssumption();
-
-    public abstract void invalidateStableAssumption();
 
 }

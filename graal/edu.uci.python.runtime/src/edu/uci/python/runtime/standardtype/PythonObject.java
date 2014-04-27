@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.standardtype;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.object.*;
 
@@ -34,19 +33,13 @@ import edu.uci.python.runtime.object.*;
  */
 public class PythonObject extends PythonBasicObject {
 
-    /**
-     * A PythonObject is stable if its object layout is stable.
-     */
-    protected final CyclicAssumption stableAssumption;
-
     public PythonObject(PythonClass pythonClass) {
         super(pythonClass);
-        stableAssumption = new CyclicAssumption("unmodified");
     }
 
     @Override
     public Assumption getStableAssumption() {
-        return stableAssumption.getAssumption();
+        return getObjectLayout().getValidAssumption();
     }
 
     @Override
@@ -56,18 +49,12 @@ public class PythonObject extends PythonBasicObject {
 
     @Override
     public void deleteAttribute(String name) {
-        stableAssumption.invalidate();
         super.deleteAttribute(name);
     }
 
     @Override
     public String toString() {
         return "<" + pythonClass.getName() + " object at " + hashCode() + ">";
-    }
-
-    @Override
-    public void invalidateStableAssumption() {
-        stableAssumption.invalidate();
     }
 
 }

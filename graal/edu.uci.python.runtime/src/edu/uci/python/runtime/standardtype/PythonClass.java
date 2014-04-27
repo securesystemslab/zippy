@@ -72,6 +72,9 @@ public class PythonClass extends PythonObject implements PythonCallable {
             unsafeSetSuperClass(superClass);
         }
 
+        // Does not inherit instanceObjectLayout from the TypeClass.
+        setObjectLayout(ObjectLayout.empty());
+
         // Inherite InstanceObjectLayout when possible
         instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(getName(), superClass.getInstanceObjectLayout());
 
@@ -117,20 +120,6 @@ public class PythonClass extends PythonObject implements PythonCallable {
         }
 
         return storageLocation.read(this);
-    }
-
-    /**
-     * Invalidate the unmodified assumption of the PythonClass itself and propagate the invalidation
-     * to its subclasses too.
-     */
-    @Override
-    public void setAttribute(String name, Object value) {
-        stableAssumption.invalidate();
-
-        for (PythonClass subClass : subClasses) {
-            subClass.stableAssumption.invalidate();
-        }
-        super.setAttribute(name, value);
     }
 
     /**

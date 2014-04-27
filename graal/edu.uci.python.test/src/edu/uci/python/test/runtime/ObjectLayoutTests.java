@@ -47,10 +47,6 @@ public class ObjectLayoutTests {
         public Assumption getStableAssumption() {
             return Truffle.getRuntime().createAssumption();
         }
-
-        @Override
-        public void invalidateStableAssumption() {
-        }
     }
 
     @Test
