@@ -58,6 +58,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
         addModule("math", createModule("math", context, new MathModuleBuiltins()));
+        addModule("_random", createModule("_random", context, new RandomModuleBuiltins()));
 
         // Only populate builtins, no need to add it to the builtinTypes lookup.
         createType("object", context, builtinsModule, new ObjectBuiltins());
