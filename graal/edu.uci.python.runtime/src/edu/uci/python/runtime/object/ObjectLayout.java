@@ -61,7 +61,7 @@ public class ObjectLayout {
         primitiveDoubleStorageLocationsUsed = 0;
         fieldObjectStorageLocationsUsed = 0;
         arrayObjectStorageLocationsUsed = 0;
-        validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
+        validAssumption = Truffle.getRuntime().createAssumption(originHint);
     }
 
     public ObjectLayout(String originHint, ObjectLayout parent) {
