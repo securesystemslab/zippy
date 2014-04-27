@@ -28,8 +28,6 @@ import static org.junit.Assert.*;
 
 import org.junit.*;
 
-import com.oracle.truffle.api.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -41,11 +39,6 @@ public class ObjectLayoutTests {
 
         public DummyPythonBasicObject(PythonClass pythonClass) {
             super(pythonClass);
-        }
-
-        @Override
-        public Assumption getStableAssumption() {
-            return Truffle.getRuntime().createAssumption();
         }
     }
 

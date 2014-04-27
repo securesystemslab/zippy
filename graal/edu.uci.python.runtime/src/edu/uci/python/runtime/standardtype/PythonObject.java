@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.standardtype;
 
-import com.oracle.truffle.api.*;
-
 import edu.uci.python.runtime.object.*;
 
 /**
@@ -35,26 +33,6 @@ public class PythonObject extends PythonBasicObject {
 
     public PythonObject(PythonClass pythonClass) {
         super(pythonClass);
-    }
-
-    @Override
-    public Assumption getStableAssumption() {
-        return getObjectLayout().getValidAssumption();
-    }
-
-    @Override
-    public void setAttribute(String name, Object value) {
-        super.setAttribute(name, value);
-    }
-
-    @Override
-    public void deleteAttribute(String name) {
-        super.deleteAttribute(name);
-    }
-
-    @Override
-    public String toString() {
-        return "<" + pythonClass.getName() + " object at " + hashCode() + ">";
     }
 
 }

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.standardtype;
 
-import com.oracle.truffle.api.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
@@ -43,11 +41,6 @@ public final class PythonModule extends PythonBasicObject {
         addDefaultConstants(name);
     }
 
-    @Override
-    public Assumption getStableAssumption() {
-        return getObjectLayout().getValidAssumption();
-    }
-
     private void addDefaultConstants(String moduleName) {
         setAttribute("__name__", moduleName);
         setAttribute("__doc__", PNone.NONE);
@@ -58,13 +51,13 @@ public final class PythonModule extends PythonBasicObject {
         return name;
     }
 
+    public String getModulePath() {
+        return modulePath;
+    }
+
     @Override
     public String toString() {
         return "<module '" + this.getAttribute("__name__") + "'>";
-    }
-
-    public String getModulePath() {
-        return modulePath;
     }
 
 }

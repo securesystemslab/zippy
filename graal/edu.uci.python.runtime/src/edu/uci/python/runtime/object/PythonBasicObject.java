@@ -270,6 +270,13 @@ public abstract class PythonBasicObject {
         usePrivateLayout = true;
     }
 
-    public abstract Assumption getStableAssumption();
+    public final Assumption getStableAssumption() {
+        return getObjectLayout().getValidAssumption();
+    }
+
+    @Override
+    public String toString() {
+        return "<" + pythonClass.getName() + " object at " + hashCode() + ">";
+    }
 
 }
