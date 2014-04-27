@@ -39,7 +39,7 @@ public final class StoreGenericAttributeNode extends StoreAttributeNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final PythonBasicObject pbObj = (PythonBasicObject) primary.execute(frame);
+        final PythonObject pbObj = (PythonObject) primary.execute(frame);
         final Object value = rhs.execute(frame);
         pbObj.setAttribute(attributeId, value);
         return PNone.NONE;
@@ -47,7 +47,7 @@ public final class StoreGenericAttributeNode extends StoreAttributeNode {
 
     @Override
     public Object executeWith(VirtualFrame frame, Object value) {
-        final PythonBasicObject pbObj = (PythonBasicObject) primary.execute(frame);
+        final PythonObject pbObj = (PythonObject) primary.execute(frame);
         pbObj.setAttribute(attributeId, value);
         return PNone.NONE;
     }

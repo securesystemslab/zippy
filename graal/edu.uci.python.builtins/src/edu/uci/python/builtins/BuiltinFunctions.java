@@ -400,7 +400,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class HasAttrNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object hasAttr(PythonBasicObject object, String name) {
+        public Object hasAttr(PythonObject object, String name) {
             List<String> attributes = object.getAttributeNames();
             if (attributes.contains(name)) {
                 return true;
@@ -436,7 +436,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public Object isinstance(PythonBasicObject object, PythonClass clazz) {
+        public Object isinstance(PythonObject object, PythonClass clazz) {
             return isInstanceofPythonClass(object, clazz);
         }
 
@@ -445,7 +445,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return isInstanceofPythonClass(object, clazz);
         }
 
-        private static boolean isInstanceofPythonClass(PythonBasicObject object, PythonClass clazz) {
+        private static boolean isInstanceofPythonClass(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -478,8 +478,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 }
 
                 return false;
-            } else if (object instanceof PythonBasicObject && clazz instanceof PythonClass) {
-                PythonBasicObject basicObject = (PythonBasicObject) object;
+            } else if (object instanceof PythonObject && clazz instanceof PythonClass) {
+                PythonObject basicObject = (PythonObject) object;
                 PythonClass pythonClass = (PythonClass) clazz;
                 return isInstanceofPythonClass(basicObject, pythonClass);
             } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {

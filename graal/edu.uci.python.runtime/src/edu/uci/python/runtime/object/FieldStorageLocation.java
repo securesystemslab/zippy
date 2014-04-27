@@ -36,15 +36,15 @@ public abstract class FieldStorageLocation extends StorageLocation {
     }
 
     @Override
-    public boolean isSet(PythonBasicObject object) {
+    public boolean isSet(PythonObject object) {
         return (object.primitiveSetMap & mask) != 0;
     }
 
-    protected void markAsSet(PythonBasicObject object) {
+    protected void markAsSet(PythonObject object) {
         object.primitiveSetMap |= mask;
     }
 
-    protected void markAsUnset(PythonBasicObject object) {
+    protected void markAsUnset(PythonObject object) {
         object.primitiveSetMap &= ~mask;
     }
 

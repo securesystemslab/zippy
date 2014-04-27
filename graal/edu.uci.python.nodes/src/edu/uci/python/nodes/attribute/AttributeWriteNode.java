@@ -46,17 +46,17 @@ public abstract class AttributeWriteNode extends Node {
         throw new IllegalStateException();
     }
 
-    public abstract void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException;
+    public abstract void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException;
 
-    public void setIntValueUnsafe(PythonBasicObject storage, int value) throws GeneralizeStorageLocationException {
+    public void setIntValueUnsafe(PythonObject storage, int value) throws GeneralizeStorageLocationException {
         setValueUnsafe(storage, value);
     }
 
-    public void setDoubleValueUnsafe(PythonBasicObject storage, double value) throws GeneralizeStorageLocationException {
+    public void setDoubleValueUnsafe(PythonObject storage, double value) throws GeneralizeStorageLocationException {
         setValueUnsafe(storage, value);
     }
 
-    public void setBooleanValueUnsafe(PythonBasicObject storage, boolean value) throws GeneralizeStorageLocationException {
+    public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws GeneralizeStorageLocationException {
         setValueUnsafe(storage, value);
     }
 
@@ -69,7 +69,7 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonBasicObject storage, Object value) {
+        public void setValueUnsafe(PythonObject storage, Object value) {
             objLocation.write(storage, value);
         }
     }
@@ -83,7 +83,7 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonBasicObject storage, Object value) {
+        public void setValueUnsafe(PythonObject storage, Object value) {
             objLocation.write(storage, value);
         }
     }
@@ -97,12 +97,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
             intLocation.write(storage, value);
         }
 
         @Override
-        public void setIntValueUnsafe(PythonBasicObject storage, int value) throws GeneralizeStorageLocationException {
+        public void setIntValueUnsafe(PythonObject storage, int value) throws GeneralizeStorageLocationException {
             intLocation.writeInt(storage, value);
         }
     }
@@ -116,12 +116,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
             floatLocation.write(storage, value);
         }
 
         @Override
-        public void setDoubleValueUnsafe(PythonBasicObject storage, double value) throws GeneralizeStorageLocationException {
+        public void setDoubleValueUnsafe(PythonObject storage, double value) throws GeneralizeStorageLocationException {
             floatLocation.writeDouble(storage, value);
         }
     }
@@ -135,12 +135,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonBasicObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
             booleanLocation.write(storage, value);
         }
 
         @Override
-        public void setBooleanValueUnsafe(PythonBasicObject storage, boolean value) throws GeneralizeStorageLocationException {
+        public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws GeneralizeStorageLocationException {
             booleanLocation.writeBoolean(storage, value);
         }
     }

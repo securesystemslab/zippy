@@ -43,7 +43,7 @@ public class LoadBooleanAttributeNode extends LoadSpecializedAttributeNode {
 
     @Override
     public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObj = primary.executePythonBasicObject(frame);
+        final PythonObject primaryObj = primary.executePythonObject(frame);
 
         if (primaryObj.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();

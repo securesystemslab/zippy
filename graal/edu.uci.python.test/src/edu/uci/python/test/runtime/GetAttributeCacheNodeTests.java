@@ -114,7 +114,7 @@ public class GetAttributeCacheNodeTests {
          */
         // replace primary to a full PythonBasicObject
         PythonClass classA = new PythonClass(context, null, "A");
-        PythonBasicObject pbObj = new PythonObject(classA);
+        PythonObject pbObj = new PythonObject(classA);
         pbObj.setAttribute("append", 42);
         PNode objNode = factory.createObjectLiteral(pbObj);
         NodeUtil.findFirstNodeInstance(getMethod, StringLiteralNode.class).replace(objNode);
@@ -136,7 +136,7 @@ public class GetAttributeCacheNodeTests {
 
         // in object attribute
         PythonClass classA = new PythonClass(context, null, "A");
-        PythonBasicObject pbObj = new PythonObject(classA);
+        PythonObject pbObj = new PythonObject(classA);
         pbObj.setAttribute("foo", 42);
 
         // assemble AST

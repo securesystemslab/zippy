@@ -39,17 +39,17 @@ public abstract class SetDispatchNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract void setValue(VirtualFrame frame, PythonBasicObject primary, Object value);
+    public abstract void setValue(VirtualFrame frame, PythonObject primary, Object value);
 
-    public void setIntValue(VirtualFrame frame, PythonBasicObject primary, int value) {
+    public void setIntValue(VirtualFrame frame, PythonObject primary, int value) {
         setValue(frame, primary, value);
     }
 
-    public void setDoubleValue(VirtualFrame frame, PythonBasicObject primary, double value) {
+    public void setDoubleValue(VirtualFrame frame, PythonObject primary, double value) {
         setValue(frame, primary, value);
     }
 
-    public void setBooleanValue(VirtualFrame frame, PythonBasicObject primary, boolean value) {
+    public void setBooleanValue(VirtualFrame frame, PythonObject primary, boolean value) {
         setValue(frame, primary, value);
     }
 
@@ -67,7 +67,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setValue(VirtualFrame frame, PythonBasicObject primary, Object value) {
+        public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Node current = this;
@@ -95,7 +95,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setValue(VirtualFrame frame, PythonBasicObject primary, Object value) {
+        public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             primary.setAttribute(attributeId, value);
         }
     }
@@ -115,7 +115,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setValue(VirtualFrame frame, PythonBasicObject primary, Object value) {
+        public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             try {
                 if (primary.getObjectLayout() == cachedLayout) {
                     write.setValueUnsafe(primary, value);
@@ -128,7 +128,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setIntValue(VirtualFrame frame, PythonBasicObject primary, int value) {
+        public void setIntValue(VirtualFrame frame, PythonObject primary, int value) {
             try {
                 if (primary.getObjectLayout() == cachedLayout) {
                     write.setIntValueUnsafe(primary, value);
@@ -141,7 +141,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setDoubleValue(VirtualFrame frame, PythonBasicObject primary, double value) {
+        public void setDoubleValue(VirtualFrame frame, PythonObject primary, double value) {
             try {
                 if (primary.getObjectLayout() == cachedLayout) {
                     write.setDoubleValueUnsafe(primary, value);
@@ -154,7 +154,7 @@ public abstract class SetDispatchNode extends Node {
         }
 
         @Override
-        public void setBooleanValue(VirtualFrame frame, PythonBasicObject primary, boolean value) {
+        public void setBooleanValue(VirtualFrame frame, PythonObject primary, boolean value) {
             try {
                 if (primary.getObjectLayout() == cachedLayout) {
                     write.setBooleanValueUnsafe(primary, value);

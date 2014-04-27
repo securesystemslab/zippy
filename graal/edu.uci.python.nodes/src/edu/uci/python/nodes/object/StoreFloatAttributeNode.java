@@ -41,7 +41,7 @@ public class StoreFloatAttributeNode extends StoreSpecializedAttributeNode {
 
     @Override
     public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
 
         double value;
 
@@ -73,7 +73,7 @@ public class StoreFloatAttributeNode extends StoreSpecializedAttributeNode {
 
     @Override
     public Object executeWith(VirtualFrame frame, Object value) {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
 
         if (primaryObject.getObjectLayout() != objectLayout) {
             respecialize(primaryObject, value);

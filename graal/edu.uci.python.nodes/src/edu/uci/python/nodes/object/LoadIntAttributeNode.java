@@ -43,7 +43,7 @@ public class LoadIntAttributeNode extends LoadSpecializedAttributeNode {
 
     @Override
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject primaryObj = primary.executePythonBasicObject(frame);
+        final PythonObject primaryObj = primary.executePythonObject(frame);
 
         if (primaryObj.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();

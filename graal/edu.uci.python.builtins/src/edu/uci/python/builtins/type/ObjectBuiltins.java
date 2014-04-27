@@ -35,7 +35,7 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.runtime.object.*;
 
 public class ObjectBuiltins extends PythonBuiltins {
 

@@ -75,7 +75,7 @@ public abstract class StoreAttributeNode extends StatementNode implements WriteN
             return new StoreGenericAttributeNode.StorePyObjectAttributeNode(this);
         }
 
-        final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
+        final PythonObject pythonBasicObj = (PythonObject) primaryObj;
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {

@@ -29,6 +29,7 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PMethod extends PythonBuiltinObject implements PythonCallable {

@@ -64,7 +64,7 @@ public abstract class LoadAttributeNode extends PNode implements ReadNode, HasPr
             return new LoadGenericAttributeNode.LoadPObjectAttributeNode(this);
         }
 
-        final PythonBasicObject pythonBasicObj = (PythonBasicObject) primaryObj;
+        final PythonObject pythonBasicObj = (PythonObject) primaryObj;
         final StorageLocation storageLocation = pythonBasicObj.getObjectLayout().findStorageLocation(attributeId);
 
         if (storageLocation == null) {

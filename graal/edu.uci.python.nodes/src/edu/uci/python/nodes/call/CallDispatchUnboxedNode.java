@@ -42,7 +42,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
     protected abstract Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords);
 
     protected static CallDispatchUnboxedNode create(Object primary, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
-        assert !(primary instanceof PythonBasicObject);
+        assert !(primary instanceof PythonObject);
         UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode, keywords.length != 0);
 
         if (callee instanceof PBuiltinMethod) {

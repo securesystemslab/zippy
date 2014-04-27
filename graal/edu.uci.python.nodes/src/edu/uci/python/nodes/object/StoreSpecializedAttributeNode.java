@@ -38,7 +38,7 @@ public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
         this.objectLayout = objLayout;
     }
 
-    protected final void respecialize(PythonBasicObject primaryObject, Object value) {
+    protected final void respecialize(PythonObject primaryObject, Object value) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         primaryObject.setAttribute(attributeId, value);
         replace(specialize(primaryObject));

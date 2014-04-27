@@ -28,7 +28,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 
-public final class PythonModule extends PythonBasicObject {
+public final class PythonModule extends PythonObject {
 
     private final String name;
     private final String modulePath;

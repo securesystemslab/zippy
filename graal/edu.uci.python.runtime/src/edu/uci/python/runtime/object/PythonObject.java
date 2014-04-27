@@ -35,7 +35,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class PythonBasicObject {
+public class PythonObject {
 
     @CompilationFinal protected PythonClass pythonClass;
     private ObjectLayout objectLayout;
@@ -67,7 +67,7 @@ public abstract class PythonBasicObject {
 
     protected Object[] arrayObjects = null;
 
-    public PythonBasicObject(PythonClass pythonClass) {
+    public PythonObject(PythonClass pythonClass) {
         unsafeSetPythonClass(pythonClass);
         objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
         allocateObjectStorageLocations();

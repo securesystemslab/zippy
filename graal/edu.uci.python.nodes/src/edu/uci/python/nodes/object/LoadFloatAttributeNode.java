@@ -43,7 +43,7 @@ public class LoadFloatAttributeNode extends LoadSpecializedAttributeNode {
 
     @Override
     public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject receiverObject = (PythonObject) primary.execute(frame);
 
         if (receiverObject.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();

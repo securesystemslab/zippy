@@ -41,18 +41,18 @@ public class StoreFieldObjectAttributeNode extends StoreSpecializedAttributeNode
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
         final Object value = rhs.execute(frame);
         return doObject(primaryObject, value);
     }
 
     @Override
     public Object executeWith(VirtualFrame frame, Object value) {
-        final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
         return doObject(primaryObject, value);
     }
 
-    private Object doObject(PythonBasicObject primaryObject, Object value) {
+    private Object doObject(PythonObject primaryObject, Object value) {
         if (primaryObject.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             respecialize(primaryObject, value);

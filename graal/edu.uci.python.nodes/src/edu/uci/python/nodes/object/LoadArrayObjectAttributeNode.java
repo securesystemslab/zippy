@@ -42,7 +42,7 @@ public final class LoadArrayObjectAttributeNode extends LoadSpecializedAttribute
 
     @Override
     public Object execute(VirtualFrame frame) {
-        final PythonBasicObject receiverObject = (PythonBasicObject) primary.execute(frame);
+        final PythonObject receiverObject = (PythonObject) primary.execute(frame);
 
         if (receiverObject.getObjectLayout() != objectLayout) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -53,7 +53,7 @@ public final class LoadArrayObjectAttributeNode extends LoadSpecializedAttribute
     }
 
     @SlowPath
-    private Object getAttributeSlow(PythonBasicObject receiverObject) {
+    private Object getAttributeSlow(PythonObject receiverObject) {
         respecialize(receiverObject);
         return receiverObject.getAttribute(attributeId);
     }

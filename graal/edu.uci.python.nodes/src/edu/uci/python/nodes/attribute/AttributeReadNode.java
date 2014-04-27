@@ -47,17 +47,17 @@ public abstract class AttributeReadNode extends Node {
         throw new IllegalStateException();
     }
 
-    public abstract Object getValueUnsafe(PythonBasicObject storage);
+    public abstract Object getValueUnsafe(PythonObject storage);
 
-    public int getIntValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+    public int getIntValueUnsafe(PythonObject storage) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValueUnsafe(storage));
     }
 
-    public double getDoubleValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+    public double getDoubleValueUnsafe(PythonObject storage) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectDouble(getValueUnsafe(storage));
     }
 
-    public boolean getBooleanValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+    public boolean getBooleanValueUnsafe(PythonObject storage) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(storage));
     }
 
@@ -70,7 +70,7 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonObject storage) {
             return objLocation.read(storage);
         }
     }
@@ -84,7 +84,7 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonObject storage) {
             return objLocation.read(storage);
         }
     }
@@ -98,12 +98,12 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonObject storage) {
             return intLocation.read(storage);
         }
 
         @Override
-        public int getIntValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        public int getIntValueUnsafe(PythonObject storage) throws UnexpectedResultException {
             return intLocation.readInt(storage);
         }
     }
@@ -117,12 +117,12 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonObject storage) {
             return floatLocation.read(storage);
         }
 
         @Override
-        public double getDoubleValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        public double getDoubleValueUnsafe(PythonObject storage) throws UnexpectedResultException {
             return floatLocation.readDouble(storage);
         }
     }
@@ -136,12 +136,12 @@ public abstract class AttributeReadNode extends Node {
         }
 
         @Override
-        public Object getValueUnsafe(PythonBasicObject storage) {
+        public Object getValueUnsafe(PythonObject storage) {
             return booleanLocation.read(storage);
         }
 
         @Override
-        public boolean getBooleanValueUnsafe(PythonBasicObject storage) throws UnexpectedResultException {
+        public boolean getBooleanValueUnsafe(PythonObject storage) throws UnexpectedResultException {
             return booleanLocation.readBoolean(storage);
         }
     }

@@ -74,7 +74,6 @@ import edu.uci.python.runtime.standardtype.*;
                 PNone.class, //
                 PythonBuiltinObject.class, //
                 PythonObject.class, //
-                PythonBasicObject.class, //
                 PythonCallable.class, //
                 GeneratorArguments.class, //
                 Object[].class})

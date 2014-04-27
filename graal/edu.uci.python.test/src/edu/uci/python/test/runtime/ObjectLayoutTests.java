@@ -35,7 +35,7 @@ import edu.uci.python.test.*;
 
 public class ObjectLayoutTests {
 
-    public static class DummyPythonBasicObject extends PythonBasicObject {
+    public static class DummyPythonBasicObject extends PythonObject {
 
         public DummyPythonBasicObject(PythonClass pythonClass) {
             super(pythonClass);
@@ -47,7 +47,7 @@ public class ObjectLayoutTests {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+        final PythonObject obj = new DummyPythonBasicObject(classA);
         final ObjectLayout objLayoutBefore = obj.getObjectLayout();
         obj.setAttribute("foo", 42);
         obj.setAttribute("bar", 24);
@@ -64,7 +64,7 @@ public class ObjectLayoutTests {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+        final PythonObject obj = new DummyPythonBasicObject(classA);
 
         for (int i = 0; i < 100; i++) {
             obj.setAttribute("foo" + i, i);
@@ -72,8 +72,8 @@ public class ObjectLayoutTests {
 
         final ObjectLayout layout = obj.getObjectLayout();
         int objectStorageLocationUsed = layout.getObjectStorageLocationsUsed();
-        assertEquals(100 - PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - //
-                        PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
+        assertEquals(100 - PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - //
+                        PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
 
         for (int i = 0; i < 100; i++) {
             assertEquals(i, obj.getAttribute("foo" + i));
@@ -85,7 +85,7 @@ public class ObjectLayoutTests {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+        final PythonObject obj = new DummyPythonBasicObject(classA);
 
         obj.setAttribute("boolean1", true);
         obj.setAttribute("boolean0", false);
@@ -102,7 +102,7 @@ public class ObjectLayoutTests {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
         final PythonClass classA = new PythonClass(context, null, "A");
-        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+        final PythonObject obj = new DummyPythonBasicObject(classA);
 
         obj.setAttribute("string0", "string0");
         obj.setAttribute("string1", "string1");
@@ -127,7 +127,7 @@ public class ObjectLayoutTests {
         assertEquals(42, classA.getAttribute("foo"));
         assertEquals(24, classA.getAttribute("bar"));
 
-        final PythonBasicObject obj = new DummyPythonBasicObject(classA);
+        final PythonObject obj = new DummyPythonBasicObject(classA);
         int initialSize = obj.getObjectLayout().getAllStorageLocations().size();
         assertEquals(0, initialSize);
 

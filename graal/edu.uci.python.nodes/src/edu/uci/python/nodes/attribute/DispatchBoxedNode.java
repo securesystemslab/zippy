@@ -43,21 +43,21 @@ public abstract class DispatchBoxedNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException;
+    public abstract Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException;
 
-    public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+    public int getIntValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
     }
 
-    public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+    public double getDoubleValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectDouble(getValue(frame, primaryObj));
     }
 
-    public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+    public boolean getBooleanValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
     }
 
-    protected DispatchBoxedNode rewrite(PythonBasicObject primaryObj, DispatchBoxedNode next) {
+    protected DispatchBoxedNode rewrite(PythonObject primaryObj, DispatchBoxedNode next) {
         CompilerAsserts.neverPartOfCompilation();
 
         // PythonModule
@@ -75,7 +75,6 @@ public abstract class DispatchBoxedNode extends Node {
         PythonClass current = null;
         // Plain PythonObject
         if (!(primaryObj instanceof PythonClass)) {
-            assert primaryObj instanceof PythonObject;
 
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
@@ -126,7 +125,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Node current = this;
@@ -160,7 +159,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             return primaryObj.getAttribute(attributeId);
         }
     }
@@ -171,9 +170,9 @@ public abstract class DispatchBoxedNode extends Node {
         @Child protected AttributeReadNode read;
         @Child protected DispatchBoxedNode next;
 
-        private final PythonBasicObject cachedStorage;
+        private final PythonObject cachedStorage;
 
-        public LinkedDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonBasicObject storage, DispatchBoxedNode next) {
+        public LinkedDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonObject storage, DispatchBoxedNode next) {
             super(attributeId);
             this.primaryCheck = checkNode;
             this.read = read;
@@ -181,11 +180,11 @@ public abstract class DispatchBoxedNode extends Node {
             this.cachedStorage = storage;
         }
 
-        public static LinkedDispatchBoxedNode create(String attributeId, PythonBasicObject primaryObj, PythonBasicObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
+        public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primaryObj, PythonObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
             ShapeCheckNode check = ShapeCheckNode.create(primaryObj, depth);
             AttributeReadNode read = AttributeReadNode.create(location);
 
-            if (primaryObj instanceof PythonObject && !(primaryObj instanceof PythonClass)) {
+            if (!(primaryObj instanceof PythonClass)) {
                 if (depth == 0) {
                     assert primaryObj == storage;
                     return new LinkedDispatchBoxedNode(attributeId, check, read, null, next);
@@ -203,12 +202,12 @@ public abstract class DispatchBoxedNode extends Node {
             return read;
         }
 
-        private PythonBasicObject getStorage(PythonBasicObject primaryObj) {
+        private PythonObject getStorage(PythonObject primaryObj) {
             return cachedStorage == null ? primaryObj : cachedStorage;
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             try {
                 boolean hit = primaryCheck.accept(primaryObj);
 
@@ -223,7 +222,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public int getIntValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public int getIntValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             try {
                 boolean hit = primaryCheck.accept(primaryObj);
 
@@ -238,7 +237,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public double getDoubleValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public double getDoubleValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             try {
                 boolean hit = primaryCheck.accept(primaryObj);
 
@@ -253,7 +252,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public boolean getBooleanValue(VirtualFrame frame, PythonBasicObject primaryObj) throws UnexpectedResultException {
+        public boolean getBooleanValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
             try {
                 boolean hit = primaryCheck.accept(primaryObj);
 

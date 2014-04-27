@@ -42,14 +42,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords);
+    protected abstract Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords);
 
-    protected final Object executeCallAndRewrite(CallDispatchBoxedNode next, VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+    protected final Object executeCallAndRewrite(CallDispatchBoxedNode next, VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
         replace(next);
         return next.executeCall(frame, primaryObj, arguments, keywords);
     }
 
-    protected static CallDispatchBoxedNode create(PythonContext context, PythonBasicObject primary, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
+    protected static CallDispatchBoxedNode create(PythonContext context, PythonObject primary, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
         /**
          * Treat generator as slow path for now.
@@ -92,10 +92,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        private final PythonBasicObject cachedPrimary;
+        private final PythonObject cachedPrimary;
         private final Assumption dispatchStable;
 
-        public DispatchFunctionNode(PythonBasicObject primary, PFunction callee, UninitializedDispatchBoxedNode next) {
+        public DispatchFunctionNode(PythonObject primary, PFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             nextNode = next;
             invokeNode = InvokeNode.create(callee, next.hasKeyword);
@@ -105,7 +105,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj == cachedPrimary) {
                 try {
                     dispatchStable.check();
@@ -132,10 +132,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        private final PythonBasicObject cachedPrimary;
+        private final PythonObject cachedPrimary;
         private final Assumption dispatchStable;
 
-        public DispatchBuiltinFunctionNode(PythonBasicObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
+        public DispatchBuiltinFunctionNode(PythonObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
@@ -153,7 +153,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj == cachedPrimary) {
                 try {
                     dispatchStable.check();
@@ -178,10 +178,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchBoxedNode nextNode;
 
-        private final PythonBasicObject cachedPrimary;
+        private final PythonObject cachedPrimary;
         private final Assumption dispatchStable;
 
-        public DispatchBuiltinConstructorNode(PythonBasicObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
+        public DispatchBuiltinConstructorNode(PythonObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             PythonCallable constructor = callee.lookUpMethod("__init__");
             invokeNode = InvokeNode.create(constructor, next.hasKeyword);
@@ -199,7 +199,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (cachedPrimary == primaryObj) {
                 try {
                     dispatchStable.check();
@@ -225,17 +225,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         private final PythonClass cachedClass;
         private final Assumption dispatchStable;
 
-        public DispatchMethodNode(PythonBasicObject primary, PMethod callee, UninitializedDispatchBoxedNode next) {
+        public DispatchMethodNode(PythonObject primary, PMethod callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
             cachedClass = primary.getPythonClass();
             dispatchStable = primary.getStableAssumption();
-            assert primary instanceof PythonObject && !(primary instanceof PythonClass);
+            assert !(primary instanceof PythonClass);
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getPythonClass() == cachedClass) {
                 try {
                     dispatchStable.check();
@@ -263,7 +263,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchNode current = this;
@@ -303,7 +303,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonBasicObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             PythonCallable callee;
 
             try {
