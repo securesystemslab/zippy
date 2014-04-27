@@ -77,7 +77,7 @@ public class StoreIntAttributeNode extends StoreSpecializedAttributeNode {
     public Object executeWith(VirtualFrame frame, Object value) {
         final PythonBasicObject primaryObject = (PythonBasicObject) primary.execute(frame);
 
-        if (!primaryObject.getObjectLayout().contains(objectLayout)) {
+        if (primaryObject.getObjectLayout() != objectLayout) {
             respecialize(primaryObject, value);
             return value;
         }

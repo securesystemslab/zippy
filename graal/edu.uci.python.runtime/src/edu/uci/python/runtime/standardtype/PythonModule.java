@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.standardtype;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -35,20 +34,18 @@ public final class PythonModule extends PythonBasicObject {
 
     private final String name;
     private final String modulePath;
-    private final CyclicAssumption unmodifiedAssumption;
 
     public PythonModule(PythonContext context, String name, String modulePath) {
         super(context.getModuleClass());
         this.name = name;
         this.modulePath = modulePath;
-        unmodifiedAssumption = new CyclicAssumption("unmodified");
         switchToPrivateLayout();
         addDefaultConstants(name);
     }
 
     @Override
     public Assumption getStableAssumption() {
-        return unmodifiedAssumption.getAssumption();
+        return getObjectLayout().getValidAssumption();
     }
 
     private void addDefaultConstants(String moduleName) {
@@ -59,13 +56,6 @@ public final class PythonModule extends PythonBasicObject {
 
     public String getModuleName() {
         return name;
-    }
-
-    @Override
-    public void setAttribute(String name, Object value) {
-        assert value != null;
-        unmodifiedAssumption.invalidate();
-        super.setAttribute(name, value);
     }
 
     @Override

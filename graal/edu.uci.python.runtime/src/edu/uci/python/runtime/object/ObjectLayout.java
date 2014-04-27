@@ -27,6 +27,8 @@ package edu.uci.python.runtime.object;
 import java.util.*;
 import java.util.Map.Entry;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 /**
@@ -43,6 +45,8 @@ public class ObjectLayout {
 
     private final ObjectLayout parent;
 
+    private final Assumption validAssumption;
+
     private final Map<String, StorageLocation> storageLocations = new HashMap<>();
 
     private final int primitiveIntStorageLocationsUsed;
@@ -57,6 +61,7 @@ public class ObjectLayout {
         primitiveDoubleStorageLocationsUsed = 0;
         fieldObjectStorageLocationsUsed = 0;
         arrayObjectStorageLocationsUsed = 0;
+        validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
     }
 
     public ObjectLayout(String originHint, ObjectLayout parent) {
@@ -153,10 +158,15 @@ public class ObjectLayout {
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
         fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
         arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
+        validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
     }
 
     public static final ObjectLayout empty() {
         return new ObjectLayout("(empty)");
+    }
+
+    public final Assumption getValidAssumption() {
+        return validAssumption;
     }
 
     /**
@@ -164,23 +174,26 @@ public class ObjectLayout {
      * comes from the same Python class as it did, but it's a new layout because layouts are
      * immutable, so modifications to the superclass yields a new layout.
      */
-    public ObjectLayout renew(ObjectLayout newParent) {
+    protected ObjectLayout renew(ObjectLayout newParent) {
+        validAssumption.invalidate();
         return new ObjectLayout(originHint + ".renewed", newParent, getStorageTypes());
     }
 
     /**
      * Create a new version of this layout but with a new variable.
      */
-    public ObjectLayout withNewAttribute(String name, Class type) {
+    protected ObjectLayout withNewAttribute(String name, Class type) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
-        return new ObjectLayout(originHint + ".withnew", parent, storageTypes);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "+" + name, parent, storageTypes);
     }
 
-    public ObjectLayout withoutAttribute(String name) {
+    protected ObjectLayout withoutAttribute(String name) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.remove(name);
-        return new ObjectLayout(originHint + ".without", parent, storageTypes);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
     }
 
     /**
@@ -188,7 +201,10 @@ public class ObjectLayout {
      * type.
      */
     public ObjectLayout withGeneralisedVariable(String name) {
-        return withNewAttribute(name, Object.class);
+        final Map<String, Class> storageTypes = getStorageTypes();
+        storageTypes.put(name, Object.class);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "!" + name, parent, storageTypes);
     }
 
     /**
@@ -270,10 +286,11 @@ public class ObjectLayout {
     }
 
     public boolean isEmpty() {
-        return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0 && //
-                        this.primitiveIntStorageLocationsUsed == 0 && //
-                        this.fieldObjectStorageLocationsUsed == 0 && //
-                        this.primitiveDoubleStorageLocationsUsed == 0;
+        return storageLocations.isEmpty() && //
+                        arrayObjectStorageLocationsUsed == 0 && //
+                        primitiveIntStorageLocationsUsed == 0 && //
+                        fieldObjectStorageLocationsUsed == 0 && //
+                        primitiveDoubleStorageLocationsUsed == 0;
     }
 
     @Override
