@@ -171,7 +171,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             if (value == PNone.NONE) {
                 value = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getAttribute(attributeId);
             } else {
-                replace(new ReadGlobalDirectNode(context, globalScope, attributeId));
+                replace(new GetAttributeNode.UninitializedGetAttributeNode(context, attributeId, new ObjectLiteralNode(globalScope)));
                 return value;
             }
 
