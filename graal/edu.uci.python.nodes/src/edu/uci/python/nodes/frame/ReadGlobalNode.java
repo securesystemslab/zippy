@@ -73,60 +73,60 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         return globalScope;
     }
 
-    protected final Object respecialize(VirtualFrame frame) {
+    protected final Object specializeAndExecute(VirtualFrame frame) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         return replace(new UninitializedReadGlobalNode(context, globalScope, attributeId)).execute(frame);
     }
 
     public static final class ReadGlobalDirectNode extends ReadGlobalNode {
 
+        @Child protected ShapeCheckNode check;
         @Child protected AttributeReadNode read;
-        private final Assumption globalScopeStable;
 
         public ReadGlobalDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
+            this.check = ShapeCheckNode.create(globalScope, globalScope.getObjectLayout(), 0);
             this.read = AttributeReadNode.create(globalScope.getOwnValidLocation(attributeId));
-            this.globalScopeStable = globalScope.getStableAssumption();
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                globalScopeStable.check();
+                check.accept(globalScope);
                 return read.getValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
-                return respecialize(frame);
+                return specializeAndExecute(frame);
             }
         }
 
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                globalScopeStable.check();
+                check.accept(globalScope);
                 return read.getIntValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectInteger(respecialize(frame));
+                return PythonTypesGen.PYTHONTYPES.expectInteger(specializeAndExecute(frame));
             }
         }
 
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                globalScopeStable.check();
+                check.accept(globalScope);
                 return read.getDoubleValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
-                return PythonTypesGen.PYTHONTYPES.expectDouble(respecialize(frame));
+                return PythonTypesGen.PYTHONTYPES.expectDouble(specializeAndExecute(frame));
             }
         }
 
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                globalScopeStable.check();
+                check.accept(globalScope);
                 return read.getBooleanValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(respecialize(frame));
+                return PythonTypesGen.PYTHONTYPES.expectBoolean(specializeAndExecute(frame));
             }
         }
     }
@@ -151,7 +151,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 builtinsModuleStable.check();
                 return cachedBuiltin;
             } catch (InvalidAssumptionException e) {
-                return respecialize(frame);
+                return specializeAndExecute(frame);
             }
         }
     }
@@ -164,7 +164,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
         @Override
         public Object execute(VirtualFrame frame) {
-            CompilerAsserts.neverPartOfCompilation();
+            CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Object value = globalScope.getAttribute(attributeId);
 

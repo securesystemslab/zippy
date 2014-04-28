@@ -38,15 +38,15 @@ public abstract class ShapeCheckNode extends Node {
         this.cachedObjectLayout = shape;
     }
 
-    public abstract boolean accept(PythonObject primaryObj) throws InvalidAssumptionException;
+    public abstract boolean accept(PythonObject primary) throws InvalidAssumptionException;
 
-    public static ShapeCheckNode create(PythonObject primaryObj, ObjectLayout layout, int depth) {
+    public static ShapeCheckNode create(PythonObject primary, ObjectLayout layout, int depth) {
         if (depth == 0) {
-            return new PythonObjectCheckNode(primaryObj);
+            return new PythonObjectCheckNode(primary);
         } else if (depth == 1) {
-            return new PythonClassCheckNode(primaryObj);
+            return new PythonClassCheckNode(primary);
         } else {
-            return new ClassChainCheckNode(primaryObj, layout, depth);
+            return new ClassChainCheckNode(primary, layout, depth);
         }
     }
 
@@ -54,15 +54,15 @@ public abstract class ShapeCheckNode extends Node {
 
         private final Assumption stableAssumption;
 
-        public PythonObjectCheckNode(PythonObject pythonObj) {
-            super(pythonObj.getObjectLayout());
-            stableAssumption = pythonObj.getStableAssumption();
+        public PythonObjectCheckNode(PythonObject python) {
+            super(python.getObjectLayout());
+            stableAssumption = python.getStableAssumption();
         }
 
         @Override
-        public boolean accept(PythonObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonObject primary) throws InvalidAssumptionException {
             stableAssumption.check();
-            return primaryObj.getObjectLayout() == cachedObjectLayout;
+            return primary.getObjectLayout() == cachedObjectLayout;
         }
     }
 
@@ -71,17 +71,17 @@ public abstract class ShapeCheckNode extends Node {
         private final Assumption classStableAssumption;
         private final Assumption objectStableAssumption;
 
-        public PythonClassCheckNode(PythonObject primaryObj) {
-            super(primaryObj.getObjectLayout());
-            this.classStableAssumption = primaryObj.getPythonClass().getStableAssumption();
-            this.objectStableAssumption = primaryObj.getStableAssumption();
+        public PythonClassCheckNode(PythonObject primary) {
+            super(primary.getObjectLayout());
+            this.classStableAssumption = primary.getPythonClass().getStableAssumption();
+            this.objectStableAssumption = primary.getStableAssumption();
         }
 
         @Override
-        public boolean accept(PythonObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonObject primary) throws InvalidAssumptionException {
             classStableAssumption.check();
 
-            if (primaryObj.getObjectLayout() == cachedObjectLayout) {
+            if (primary.getObjectLayout() == cachedObjectLayout) {
                 objectStableAssumption.check();
                 return true;
             }
@@ -96,11 +96,11 @@ public abstract class ShapeCheckNode extends Node {
         private final Assumption[] classStableAssumptions;
         private final Assumption layoutValidAssumption;
 
-        public ClassChainCheckNode(PythonObject primaryObj, ObjectLayout layout, int depth) {
-            super(primaryObj.getObjectLayout());
-            this.objectStableAssumption = primaryObj.getStableAssumption();
+        public ClassChainCheckNode(PythonObject primary, ObjectLayout layout, int depth) {
+            super(primary.getObjectLayout());
+            this.objectStableAssumption = primary.getStableAssumption();
             Assumption[] classStables = new Assumption[depth];
-            PythonClass current = primaryObj.getPythonClass();
+            PythonClass current = primary.getPythonClass();
 
             for (int i = 0; i < depth; i++) {
                 classStables[i] = current.getStableAssumption();
@@ -113,10 +113,10 @@ public abstract class ShapeCheckNode extends Node {
         }
 
         @Override
-        public boolean accept(PythonObject primaryObj) throws InvalidAssumptionException {
+        public boolean accept(PythonObject primary) throws InvalidAssumptionException {
             layoutValidAssumption.check();
 
-            if (primaryObj.getObjectLayout() == cachedObjectLayout) {
+            if (primary.getObjectLayout() == cachedObjectLayout) {
                 objectStableAssumption.check();
 
                 for (Assumption classStable : classStableAssumptions) {
