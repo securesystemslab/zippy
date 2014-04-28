@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.runtime;
 
 import static edu.uci.python.test.PythonTests.*;
 import static org.junit.Assert.*;
@@ -37,7 +37,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.attribute.DispatchUnboxedNode.*;
 import edu.uci.python.runtime.*;
 
-public class GetAttributeCacheTests {
+public class GetAttributeDispatchTests {
 
     @Test
     public void bimorphicCallSite() {

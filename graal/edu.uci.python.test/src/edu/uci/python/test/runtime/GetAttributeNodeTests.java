@@ -49,7 +49,7 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
-public class GetAttributeCacheNodeTests {
+public class GetAttributeNodeTests {
 
     @Test
     public void builtinObjectAttribute() {
