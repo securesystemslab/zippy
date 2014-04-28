@@ -81,7 +81,7 @@ public abstract class SetDispatchNode extends Node {
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 primary.setAttribute(attributeId, value);
                 StorageLocation location = primary.getOwnValidLocation(attributeId);
-                replace(new LinkedSetDispatchNode(attributeId, AttributeWriteNode.create(location), primary.getObjectLayout(), this));
+                replace(new LinkedSetDispatchNode(attributeId, AttributeWriteNode.create(location), primary, this));
             } else {
                 replace(new GenericSetDispatchNode(attributeId)).setValue(frame, primary, value);
             }
@@ -102,27 +102,26 @@ public abstract class SetDispatchNode extends Node {
 
     public static final class LinkedSetDispatchNode extends SetDispatchNode {
 
+        @Child protected ShapeCheckNode check;
         @Child protected AttributeWriteNode write;
         @Child protected SetDispatchNode next;
 
-        private final ObjectLayout cachedLayout;
-
-        public LinkedSetDispatchNode(String attributeId, AttributeWriteNode write, ObjectLayout objLayout, SetDispatchNode next) {
+        public LinkedSetDispatchNode(String attributeId, AttributeWriteNode write, PythonObject primary, SetDispatchNode next) {
             super(attributeId);
+            this.check = ShapeCheckNode.create(primary, 0);
             this.write = write;
             this.next = next;
-            this.cachedLayout = objLayout;
         }
 
         @Override
         public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             try {
-                if (primary.getObjectLayout() == cachedLayout) {
+                if (check.accept(primary)) {
                     write.setValueUnsafe(primary, value);
                 } else {
                     next.setValue(frame, primary, value);
                 }
-            } catch (GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -130,12 +129,12 @@ public abstract class SetDispatchNode extends Node {
         @Override
         public void setIntValue(VirtualFrame frame, PythonObject primary, int value) {
             try {
-                if (primary.getObjectLayout() == cachedLayout) {
+                if (check.accept(primary)) {
                     write.setIntValueUnsafe(primary, value);
                 } else {
                     next.setIntValue(frame, primary, value);
                 }
-            } catch (GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -143,12 +142,12 @@ public abstract class SetDispatchNode extends Node {
         @Override
         public void setDoubleValue(VirtualFrame frame, PythonObject primary, double value) {
             try {
-                if (primary.getObjectLayout() == cachedLayout) {
+                if (check.accept(primary)) {
                     write.setDoubleValueUnsafe(primary, value);
                 } else {
                     next.setDoubleValue(frame, primary, value);
                 }
-            } catch (GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -156,12 +155,12 @@ public abstract class SetDispatchNode extends Node {
         @Override
         public void setBooleanValue(VirtualFrame frame, PythonObject primary, boolean value) {
             try {
-                if (primary.getObjectLayout() == cachedLayout) {
+                if (check.accept(primary)) {
                     write.setBooleanValueUnsafe(primary, value);
                 } else {
                     next.setBooleanValue(frame, primary, value);
                 }
-            } catch (GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
