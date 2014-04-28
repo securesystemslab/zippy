@@ -108,7 +108,7 @@ public abstract class SetDispatchNode extends Node {
 
         public LinkedSetDispatchNode(String attributeId, AttributeWriteNode write, PythonObject primary, SetDispatchNode next) {
             super(attributeId);
-            this.check = ShapeCheckNode.create(primary, 0);
+            this.check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
             this.write = write;
             this.next = next;
         }

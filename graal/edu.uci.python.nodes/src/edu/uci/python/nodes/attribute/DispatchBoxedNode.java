@@ -170,7 +170,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primary, PythonObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
-            ShapeCheckNode check = ShapeCheckNode.create(primary, depth);
+            ShapeCheckNode check = ShapeCheckNode.create(primary, storage.getObjectLayout(), depth);
             AttributeReadNode read = AttributeReadNode.create(location);
 
             if (!(primary instanceof PythonClass)) {
