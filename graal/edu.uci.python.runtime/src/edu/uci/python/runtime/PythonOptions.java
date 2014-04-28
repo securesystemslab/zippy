@@ -47,8 +47,6 @@ public class PythonOptions {
 
     public static boolean InlineBuiltinFunctionCalls = true;
 
-    public static final boolean AttributeAccessInlineCaching = true;
-
     public static final boolean UnboxSequenceStorage = true;
 
     public static final boolean UnboxSequenceIteration = true;

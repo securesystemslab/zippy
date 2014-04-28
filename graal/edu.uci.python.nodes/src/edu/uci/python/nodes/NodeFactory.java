@@ -38,7 +38,6 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.object.legacy.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.nodes.subscript.*;
 
@@ -332,10 +331,6 @@ public class NodeFactory {
 
     public PNode createGetAttribute(PythonContext context, PNode primary, String name) {
         return new GetAttributeNode.UninitializedGetAttributeNode(context, name, primary);
-    }
-
-    public PNode createLoadAttribute(PNode operand, String name) {
-        return new UninitializedLoadAttributeNode(name, operand);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {
