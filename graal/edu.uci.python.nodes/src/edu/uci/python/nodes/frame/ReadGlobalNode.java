@@ -131,23 +131,24 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         }
     }
 
-    public static final class ReadBuiltinCachedNode extends ReadGlobalNode {
+    public static final class ReadBuiltinDirectNode extends ReadGlobalNode {
 
-        @Child ShapeCheckNode check;
-        private final Object cachedBuiltin;
+        @Child protected ShapeCheckNode check;
+        @Child protected AttributeReadNode read;
+        private final PythonModule builtinsModule;
 
-        public ReadBuiltinCachedNode(PythonContext context, PythonModule globalScope, String attributeId, Object cachedBuiltin) {
+        public ReadBuiltinDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
-            PythonModule builtinsModule = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+            this.builtinsModule = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
             this.check = ShapeCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
-            this.cachedBuiltin = cachedBuiltin;
+            this.read = AttributeReadNode.create(builtinsModule.getOwnValidLocation(attributeId));
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
                 check.accept(globalScope);
-                return cachedBuiltin;
+                return read.getValueUnsafe(builtinsModule);
             } catch (InvalidAssumptionException e) {
                 return specializeAndExecute(frame);
             }
@@ -169,14 +170,14 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             if (value == PNone.NONE) {
                 value = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getAttribute(attributeId);
             } else {
-                replace(new GetAttributeNode.UninitializedGetAttributeNode(context, attributeId, new ObjectLiteralNode(globalScope)));
+                replace(new ReadGlobalDirectNode(context, globalScope, attributeId));
                 return value;
             }
 
             if (value == PNone.NONE) {
                 value = slowPathLookup();
             } else {
-                replace(new ReadBuiltinCachedNode(context, globalScope, attributeId, value));
+                replace(new ReadBuiltinDirectNode(context, globalScope, attributeId));
             }
 
             return value;
