@@ -85,10 +85,6 @@ public class NodeFactory {
         return new FunctionRootNode(context, functionName, frameDescriptor, body);
     }
 
-    public PNode createReadClassAttribute(String attributeId) {
-        return new AddClassAttributeNode.ReadClassAttributeNode(attributeId);
-    }
-
     public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
         return new ClassDefinitionNode(name, superclass, definitnionFunction);
     }
