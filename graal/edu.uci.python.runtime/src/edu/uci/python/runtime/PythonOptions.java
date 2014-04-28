@@ -43,8 +43,6 @@ public class PythonOptions {
     public static boolean PrintFunction = false;
 
     // Runtime flags
-    public static final boolean UseUnsafe = true;
-
     public static final boolean InlineFunctionCalls = true;
 
     public static boolean InlineBuiltinFunctionCalls = true;

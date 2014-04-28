@@ -113,10 +113,6 @@ public class PythonContext {
         return options.getStandardOut();
     }
 
-    public boolean getUseUnsafe() {
-        return PythonOptions.UseUnsafe;
-    }
-
     public PythonBuiltinClass getTypeClass() {
         return typeClass;
     }
