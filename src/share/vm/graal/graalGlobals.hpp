@@ -52,6 +52,9 @@
   COMPILERGRAAL_PRESENT(product(bool, BootstrapGraal, true,                 \
           "Bootstrap Graal before running Java main method"))               \
                                                                             \
+  product(bool, ForceGraalInitialization, false,                            \
+          "Force VM to initialize the Compiler although not used")          \
+                                                                            \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \
@@ -87,6 +90,9 @@
                                                                             \
   product(bool, UseHSAILDeoptimization, true,                               \
           "Code gen and runtime support for deoptimizing HSAIL kernels")    \
+                                                                            \
+  product(bool, UseHSAILSafepoints, true,                                   \
+          "Code gen and runtime support for safepoints in HSAIL kernels")   \
                                                                             \
   product(bool, GPUOffload, false,                                          \
           "Offload execution to GPU whenever possible")                     \

@@ -130,20 +130,4 @@ private:
  */
 Method* getMethodFromHotSpotMethod(oop hotspot_method);
 
-#ifdef TARGET_ARCH_x86
-# include "graalCodeInstaller_x86.hpp"
-#endif
-#ifdef TARGET_ARCH_sparc
-# include "graalCodeInstaller_sparc.hpp"
-#endif
-#ifdef TARGET_ARCH_zero
-# error
-#endif
-#ifdef TARGET_ARCH_arm
-# error
-#endif
-#ifdef TARGET_ARCH_ppc
-# error
-#endif
-
 #endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

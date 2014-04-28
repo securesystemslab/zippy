@@ -357,7 +357,10 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
     unpack_sp = deoptee.unextended_sp();
 
 #ifdef ASSERT
-  assert(cb->is_deoptimization_stub() || cb->is_uncommon_trap_stub(), "just checking");
+  assert(cb->is_deoptimization_stub() ||
+         cb->is_uncommon_trap_stub() ||
+         strcmp("Stub<DeoptimizationStub.uncommonTrapHandler>", cb->name()) == 0,
+         err_msg("unexpected code blob: %s", cb->name()));
 #endif
 #else
   intptr_t* unpack_sp = stub_frame.sender(&dummy_map).unextended_sp();
@@ -1482,7 +1485,10 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 #ifdef GRAAL
         oop installedCode = nm->graal_installed_code();
         if (installedCode != NULL) {
-          oop installedCodeName = HotSpotNmethod::name(installedCode);
+          oop installedCodeName = NULL;
+          if (installedCode->is_a(HotSpotNmethod::klass())) {
+            installedCodeName = HotSpotNmethod::name(installedCode);
+          }
           if (installedCodeName != NULL) {
             tty->print(" (Graal: installedCodeName=%s) ", java_lang_String::as_utf8_string(installedCodeName));
           } else {

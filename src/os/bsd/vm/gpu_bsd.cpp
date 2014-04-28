@@ -27,7 +27,7 @@
 #include "hsail/vm/gpu_hsail.hpp"
 #include "utilities/ostream.hpp"
 
-jobject gpu::probe_gpus(JNIEnv* env) {
+jobject Gpu::probe_gpus(JNIEnv* env) {
 #ifdef __APPLE__
   /*
    * Let the CUDA driver initialization be the gate to GPU for now, pending

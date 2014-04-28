@@ -26,11 +26,24 @@
 #include "runtime/gpu.hpp"
 #include "runtime/handles.hpp"
 
-int gpu::_initialized_gpus = 0;
+int  Gpu::_initialized_gpus_count = 0;
+Gpu* Gpu::_initialized_gpus[MAX_GPUS];
 
-void gpu::initialized_gpu(const char* name) {
-    _initialized_gpus++;
-    if (TraceGPUInteraction) {
-      tty->print_cr("[GPU] registered initialization of %s (total initialized: %d)", name, _initialized_gpus);
+void Gpu::initialized_gpu(Gpu* gpu) {
+  // GPUs are always initialized on the same thread so no need for locking
+  guarantee(_initialized_gpus_count < MAX_GPUS, "oob");
+  _initialized_gpus[_initialized_gpus_count++] = gpu;
+  if (TraceGPUInteraction) {
+    tty->print_cr("[GPU] registered initialization of %s (total initialized: %d)", gpu->name(), _initialized_gpus_count);
+  }
+}
+
+void Gpu::safepoint_event(SafepointEvent event) {
+  for (int i = 0; i < _initialized_gpus_count; i++) {
+    if (event == SafepointBegin) {
+      _initialized_gpus[i]->notice_safepoints();
+    } else {
+      _initialized_gpus[i]->ignore_safepoints();
     }
+  }
 }

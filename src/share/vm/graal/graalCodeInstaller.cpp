@@ -455,8 +455,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   _code = (arrayOop) CompilationResult::targetCode(comp_result);
   _code_size = CompilationResult::targetCodeSize(comp_result);
-  // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;  // FIXME this is an x86-ism
+  _total_frame_size = CompilationResult::totalFrameSize(comp_result);
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
@@ -677,8 +676,11 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   oop hotspot_method = BytecodePosition::method(frame);
   Method* method = getMethodFromHotSpotMethod(hotspot_method);
   jint bci = BytecodePosition::bci(frame);
+  if (bci == BytecodeFrame::BEFORE_BCI()) {
+    bci = SynchronizationEntryBCI;
+  }
   bool reexecute;
-  if (bci == -1 || bci == -2){
+  if (bci == SynchronizationEntryBCI){
      reexecute = false;
   } else {
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));

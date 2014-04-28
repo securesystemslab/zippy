@@ -39,6 +39,7 @@
 #include "runtime/compilationPolicy.hpp"
 #include "runtime/deoptimization.hpp"
 #include "runtime/frame.inline.hpp"
+#include "runtime/gpu.hpp"
 #include "runtime/interfaceSupport.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/osThread.hpp"
@@ -205,6 +206,12 @@ void SafepointSynchronize::begin() {
     os::make_polling_page_unreadable();
   }
 
+#ifdef GRAAL
+  if (UseHSAILSafepoints) {
+    Gpu::safepoint_event(Gpu::SafepointBegin);
+  }
+#endif
+  
   // Consider using active_processor_count() ... but that call is expensive.
   int ncpus = os::processor_count() ;
 
@@ -437,6 +444,12 @@ void SafepointSynchronize::end() {
 
   // Remove safepoint check from interpreter
   Interpreter::ignore_safepoints();
+
+#ifdef GRAAL
+  if (UseHSAILSafepoints) {
+    Gpu::safepoint_event(Gpu::SafepointEnd);
+  }
+#endif
 
   {
     MutexLocker mu(Safepoint_lock);
