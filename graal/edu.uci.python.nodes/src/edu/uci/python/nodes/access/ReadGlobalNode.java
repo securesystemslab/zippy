@@ -58,7 +58,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new UninitializedStoreAttributeNode(this.attributeId, new ObjectLiteralNode(globalScope), rhs);
+        return new SetAttributeNode.UninitializedSetAttributeNode(attributeId, new ObjectLiteralNode(globalScope), rhs, context);
     }
 
     @Override

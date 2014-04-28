@@ -59,7 +59,7 @@ import edu.uci.python.runtime.object.*;
  *               |--- next : UninitializedSetDispatchNode
  *
  */
-public class SetAttributeNode extends PNode implements WriteNode {
+public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     @Child protected PNode primaryNode;
     @Child protected PNode rhs;
@@ -129,6 +129,14 @@ public class SetAttributeNode extends PNode implements WriteNode {
         }
 
         return replace(specialized);
+    }
+
+    public static final class UninitializedSetAttributeNode extends SetAttributeNode {
+
+        public UninitializedSetAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
+            super(attributeId, primary, rhs, context);
+        }
+
     }
 
     public static final class SetObjectAttributeNode extends SetAttributeNode {
