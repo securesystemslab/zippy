@@ -58,7 +58,7 @@ public abstract class DispatchBoxedNode extends Node {
     }
 
     protected DispatchBoxedNode rewrite(PythonObject primaryObj, DispatchBoxedNode next) {
-        CompilerAsserts.neverPartOfCompilation();
+        CompilerDirectives.transferToInterpreterAndInvalidate();
 
         // PythonModule
         if (primaryObj instanceof PythonModule) {
@@ -67,7 +67,7 @@ public abstract class DispatchBoxedNode extends Node {
             }
 
             DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
-            checkAndReplace(newNode);
+            replace(newNode);
             return newNode;
         }
 
@@ -79,7 +79,7 @@ public abstract class DispatchBoxedNode extends Node {
             // In place attribute
             if (primaryObj.isOwnAttribute(attributeId)) {
                 DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
-                checkAndReplace(newNode);
+                replace(newNode);
                 return newNode;
             }
 
@@ -107,16 +107,8 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, current, current.getOwnValidLocation(attributeId), depth, next);
-        checkAndReplace(newNode);
+        replace(newNode);
         return newNode;
-    }
-
-    private void checkAndReplace(Node newNode) {
-        if (this.getParent() != null) {
-            replace(newNode);
-        } else {
-// System.out.println(">>>>>>>>>> " + newNode + " parent " + newNode.getParent());
-        }
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
@@ -133,11 +125,6 @@ public abstract class DispatchBoxedNode extends Node {
             Node current = this;
             int depth = 0;
             DispatchBoxedNode specialized;
-
-            if (current.getParent() == null) {
-                specialized = rewrite(primaryObj, this);
-                return specialized.getValue(frame, primaryObj);
-            }
 
             while (current.getParent() instanceof DispatchBoxedNode) {
                 current = current.getParent();

@@ -58,6 +58,7 @@ public abstract class DispatchUnboxedNode extends Node {
     }
 
     protected DispatchUnboxedNode rewrite(PythonBuiltinObject primaryObj, DispatchUnboxedNode next) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         PythonClass current = primaryObj.__class__();
         assert current != null;
 
@@ -74,14 +75,8 @@ public abstract class DispatchUnboxedNode extends Node {
         }
 
         LinkedDispatchUnboxedNode newNode = new LinkedDispatchUnboxedNode(attributeId, primaryObj, current, next);
-        checkAndReplace(newNode);
+        replace(newNode);
         return newNode;
-    }
-
-    private void checkAndReplace(Node newNode) {
-        if (this.getParent() != null) {
-            replace(newNode);
-        }
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
@@ -93,16 +88,11 @@ public abstract class DispatchUnboxedNode extends Node {
 
         @Override
         public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) {
-            CompilerDirectives.transferToInterpreter();
+            CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Node current = this;
             int depth = 0;
             DispatchUnboxedNode specialized;
-
-            if (current.getParent() == null) {
-                specialized = rewrite(primaryObj, this);
-                return specialized.getValue(frame, primaryObj);
-            }
 
             while (current.getParent() instanceof DispatchUnboxedNode) {
                 current = current.getParent();
