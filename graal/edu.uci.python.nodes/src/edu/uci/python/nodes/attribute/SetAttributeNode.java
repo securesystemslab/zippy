@@ -33,6 +33,32 @@ import edu.uci.python.nodes.access.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
+/*-
+ * @author zwei
+ *
+ * The structure of a SetAttributeNode
+ * -----------------------------------
+ * SetAttributeNode
+ *  |
+ *  |--- primary : PNode
+ *  |
+ *  |--- rhs : PNode
+ *  |
+ *  |--- dispatch : LinkedSetDispatchNode
+ *         |
+ *         |--- check : ShapeCheckNode
+ *         |
+ *         |--- write : AttributeWriteNode
+ *         |
+ *         |--- next : LinkedSetDispatchNode
+ *               |
+ *               |--- check : ShapeCheckNode
+ *               |
+ *               |--- write : AttributeWriteNode
+ *               |
+ *               |--- next : UninitializedSetDispatchNode
+ *
+ */
 public class SetAttributeNode extends PNode implements WriteNode {
 
     @Child protected PNode primaryNode;

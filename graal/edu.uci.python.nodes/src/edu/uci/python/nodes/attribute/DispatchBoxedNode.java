@@ -43,30 +43,30 @@ public abstract class DispatchBoxedNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, PythonObject primaryObj);
+    public abstract Object getValue(VirtualFrame frame, PythonObject primary);
 
-    public int getIntValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
+    public int getIntValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primary));
     }
 
-    public double getDoubleValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectDouble(getValue(frame, primaryObj));
+    public double getDoubleValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectDouble(getValue(frame, primary));
     }
 
-    public boolean getBooleanValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
+    public boolean getBooleanValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primary));
     }
 
-    protected DispatchBoxedNode rewrite(PythonObject primaryObj, DispatchBoxedNode next) {
+    protected DispatchBoxedNode rewrite(PythonObject primary, DispatchBoxedNode next) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
         // PythonModule
-        if (primaryObj instanceof PythonModule) {
-            if (!primaryObj.isOwnAttribute(attributeId)) {
-                throw new IllegalStateException("module: " + primaryObj + " does not contain attribute " + attributeId);
+        if (primary instanceof PythonModule) {
+            if (!primary.isOwnAttribute(attributeId)) {
+                throw new IllegalStateException("module: " + primary + " does not contain attribute " + attributeId);
             }
 
-            DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
+            DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, primary, primary.getOwnValidLocation(attributeId), 0, next);
             replace(newNode);
             return newNode;
         }
@@ -74,22 +74,22 @@ public abstract class DispatchBoxedNode extends Node {
         int depth = 0;
         PythonClass current = null;
         // Plain PythonObject
-        if (!(primaryObj instanceof PythonClass)) {
+        if (!(primary instanceof PythonClass)) {
 
             // In place attribute
-            if (primaryObj.isOwnAttribute(attributeId)) {
-                DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, primaryObj, primaryObj.getOwnValidLocation(attributeId), 0, next);
+            if (primary.isOwnAttribute(attributeId)) {
+                DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, primary, primary.getOwnValidLocation(attributeId), 0, next);
                 replace(newNode);
                 return newNode;
             }
 
             depth++;
-            current = primaryObj.getPythonClass();
+            current = primary.getPythonClass();
         }
 
         // if primary itself is a PythonClass
         if (current == null) {
-            current = (PythonClass) primaryObj;
+            current = (PythonClass) primary;
         }
 
         // class chain lookup
@@ -103,10 +103,10 @@ public abstract class DispatchBoxedNode extends Node {
         } while (current != null);
 
         if (current == null) {
-            throw Py.AttributeError(primaryObj + " object has no attribute " + attributeId);
+            throw Py.AttributeError(primary + " object has no attribute " + attributeId);
         }
 
-        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primaryObj, current, current.getOwnValidLocation(attributeId), depth, next);
+        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, current, current.getOwnValidLocation(attributeId), depth, next);
         replace(newNode);
         return newNode;
     }
@@ -119,7 +119,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
+        public Object getValue(VirtualFrame frame, PythonObject primary) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Node current = this;
@@ -132,12 +132,12 @@ public abstract class DispatchBoxedNode extends Node {
             }
 
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
-                specialized = rewrite(primaryObj, this);
+                specialized = rewrite(primary, this);
             } else {
                 specialized = current.replace(new GenericDispatchBoxedNode(attributeId));
             }
 
-            return specialized.getValue(frame, primaryObj);
+            return specialized.getValue(frame, primary);
         }
     }
 
@@ -148,8 +148,8 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
-            return primaryObj.getAttribute(attributeId);
+        public Object getValue(VirtualFrame frame, PythonObject primary) {
+            return primary.getAttribute(attributeId);
         }
     }
 
@@ -169,18 +169,18 @@ public abstract class DispatchBoxedNode extends Node {
             this.cachedStorage = storage;
         }
 
-        public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primaryObj, PythonObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
-            ShapeCheckNode check = ShapeCheckNode.create(primaryObj, depth);
+        public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primary, PythonObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
+            ShapeCheckNode check = ShapeCheckNode.create(primary, depth);
             AttributeReadNode read = AttributeReadNode.create(location);
 
-            if (!(primaryObj instanceof PythonClass)) {
+            if (!(primary instanceof PythonClass)) {
                 if (depth == 0) {
-                    assert primaryObj == storage;
+                    assert primary == storage;
                     return new LinkedDispatchBoxedNode(attributeId, check, read, null, next);
                 } else {
                     return new LinkedDispatchBoxedNode(attributeId, check, read, storage, next);
                 }
-            } else if (primaryObj instanceof PythonClass || primaryObj instanceof PythonModule) {
+            } else if (primary instanceof PythonClass || primary instanceof PythonModule) {
                 return new LinkedDispatchBoxedNode(attributeId, check, read, storage, next);
             }
 
@@ -191,16 +191,14 @@ public abstract class DispatchBoxedNode extends Node {
             return read;
         }
 
-        private PythonObject getStorage(PythonObject primaryObj) {
-            return cachedStorage == null ? primaryObj : cachedStorage;
+        private PythonObject getStorage(PythonObject primary) {
+            return cachedStorage == null ? primary : cachedStorage;
         }
 
         @Override
         public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
             try {
-                boolean hit = primaryCheck.accept(primaryObj);
-
-                if (hit) {
+                if (primaryCheck.accept(primaryObj)) {
                     return read.getValueUnsafe(getStorage(primaryObj));
                 } else {
                     return next.getValue(frame, primaryObj);
@@ -211,47 +209,41 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public int getIntValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public int getIntValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
             try {
-                boolean hit = primaryCheck.accept(primaryObj);
-
-                if (hit) {
-                    return read.getIntValueUnsafe(getStorage(primaryObj));
+                if (primaryCheck.accept(primary)) {
+                    return read.getIntValueUnsafe(getStorage(primary));
                 } else {
-                    return next.getIntValue(frame, primaryObj);
+                    return next.getIntValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primaryObj, next).getIntValue(frame, primaryObj);
+                return rewrite(primary, next).getIntValue(frame, primary);
             }
         }
 
         @Override
-        public double getDoubleValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public double getDoubleValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
             try {
-                boolean hit = primaryCheck.accept(primaryObj);
-
-                if (hit) {
-                    return read.getDoubleValueUnsafe(getStorage(primaryObj));
+                if (primaryCheck.accept(primary)) {
+                    return read.getDoubleValueUnsafe(getStorage(primary));
                 } else {
-                    return next.getDoubleValue(frame, primaryObj);
+                    return next.getDoubleValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primaryObj, next).getDoubleValue(frame, primaryObj);
+                return rewrite(primary, next).getDoubleValue(frame, primary);
             }
         }
 
         @Override
-        public boolean getBooleanValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public boolean getBooleanValue(VirtualFrame frame, PythonObject primary) throws UnexpectedResultException {
             try {
-                boolean hit = primaryCheck.accept(primaryObj);
-
-                if (hit) {
-                    return read.getBooleanValueUnsafe(getStorage(primaryObj));
+                if (primaryCheck.accept(primary)) {
+                    return read.getBooleanValueUnsafe(getStorage(primary));
                 } else {
-                    return next.getBooleanValue(frame, primaryObj);
+                    return next.getBooleanValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primaryObj, next).getBooleanValue(frame, primaryObj);
+                return rewrite(primary, next).getBooleanValue(frame, primary);
             }
         }
     }
