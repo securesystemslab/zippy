@@ -133,22 +133,20 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     public static final class ReadBuiltinCachedNode extends ReadGlobalNode {
 
-        private final Assumption globalScopeStable;
-        private final Assumption builtinsModuleStable;
+        @Child ShapeCheckNode check;
         private final Object cachedBuiltin;
 
         public ReadBuiltinCachedNode(PythonContext context, PythonModule globalScope, String attributeId, Object cachedBuiltin) {
             super(context, globalScope, attributeId);
-            this.globalScopeStable = globalScope.getStableAssumption();
-            this.builtinsModuleStable = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getStableAssumption();
+            PythonModule builtinsModule = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+            this.check = ShapeCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
             this.cachedBuiltin = cachedBuiltin;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                globalScopeStable.check();
-                builtinsModuleStable.check();
+                check.accept(globalScope);
                 return cachedBuiltin;
             } catch (InvalidAssumptionException e) {
                 return specializeAndExecute(frame);
