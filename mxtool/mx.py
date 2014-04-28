@@ -1800,11 +1800,13 @@ def build(args, parser=None):
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
-    parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
-    parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
     parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
-    parser.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
+    compilerSelect = parser.add_mutually_exclusive_group()
+    compilerSelect.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
+    compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
+    compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
+
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -1886,12 +1888,11 @@ def build(args, parser=None):
 
         cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
-        mustBuild = args.force
-        if not mustBuild:
+        buildReason = 'forced build' if args.force else None
+        if not buildReason:
             for dep in p.all_deps([], False):
                 if dep.name in built:
-                    mustBuild = True
-
+                    buildReason = dep.name + ' rebuilt'
 
         jasminAvailable = None
         javafilelist = []
@@ -1940,20 +1941,19 @@ def build(args, parser=None):
                         if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
-                if not mustBuild:
+                if not buildReason:
                     for javafile in javafiles:
                         classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
                         if not classfile.exists() or classfile.isOlderThan(javafile):
-                            mustBuild = True
+                            buildReason = 'class file(s) out of date'
                             break
 
         aps = p.annotation_processors()
         apsOutOfDate = p.update_current_annotation_processors_file()
         if apsOutOfDate:
-            logv('[annotation processors for {0} changed]'.format(p.name))
-            mustBuild = True
+            buildReason = 'annotation processor(s) changed'
 
-        if not mustBuild:
+        if not buildReason:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
@@ -1985,10 +1985,14 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+
+            def logCompilation(p, compiler, reason):
+                log('Compiling Java sources for {} with {}... [{}]'.format(p.name, compiler, reason))
+
             if not jdtJar:
                 mainJava = java()
                 if not args.error_prone:
-                    log('Compiling Java sources for {0} with javac...'.format(p.name))
+                    logCompilation(p, 'javac', buildReason)
                     javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     if jdk.debug_port is not None:
                         javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
@@ -1999,7 +2003,7 @@ def build(args, parser=None):
                         javacCmd.append('-XDignore.symbol.file')
                     run(javacCmd)
                 else:
-                    log('Compiling Java sources for {0} with javac (with error-prone)...'.format(p.name))
+                    logCompilation(p, 'javac (with error-prone)', buildReason)
                     javaArgs = ['-Xmx1g']
                     javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     javacArgs += processorArgs
@@ -2008,7 +2012,7 @@ def build(args, parser=None):
                         javacArgs.append('-XDignore.symbol.file')
                     run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
             else:
-                log('Compiling Java sources for {0} with JDT...'.format(p.name))
+                logCompilation(p, 'JDT', buildReason)
 
                 jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
 
@@ -2057,6 +2061,39 @@ def build(args, parser=None):
     if suppliedParser:
         return args
     return None
+
+def _chunk_files_for_command_line(files, limit=None, pathFunction=None):
+    """
+    Returns a generator for splitting up a list of files into chunks such that the
+    size of the space separated file paths in a chunk is less than a given limit.
+    This is used to work around system command line length limits.
+    """
+    chunkSize = 0
+    chunkStart = 0
+    if limit is None:
+        commandLinePrefixAllowance = 3000
+        if get_os() == 'windows':
+            # The CreateProcess function on Windows limits the length of a command line to
+            # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
+            limit = 32768 - commandLinePrefixAllowance
+        else:
+            # Using just SC_ARG_MAX without extra downwards adjustment
+            # results in "[Errno 7] Argument list too long" on MacOS.
+            syslimit = os.sysconf('SC_ARG_MAX') - 20000
+            limit = syslimit - commandLinePrefixAllowance
+    for i in range(len(files)):
+        path = files[i] if pathFunction is None else pathFunction(files[i])
+        size = len(path) + 1
+        if chunkSize + size < limit:
+            chunkSize += size
+        else:
+            assert i > chunkStart
+            yield files[chunkStart:i]
+            chunkStart = i
+            chunkSize = 0
+    if chunkStart == 0:
+        assert chunkSize < limit
+        yield files
 
 def eclipseformat(args):
     """run the Eclipse Code Formatter on the Java sources
@@ -2160,18 +2197,19 @@ def eclipseformat(args):
         if res is not batch:
             res.javafiles = res.javafiles + batch.javafiles
 
-    print "we have: " + str(len(batches)) + " batches"
+    log("we have: " + str(len(batches)) + " batches")
     for batch in batches.itervalues():
-        run([args.eclipse_exe,
-            '-nosplash',
-            '-application',
-            'org.eclipse.jdt.core.JavaCodeFormatter',
-            '-vm', java(batch.javaCompliance).java,
-            '-config', batch.path]
-            + [f.path for f in batch.javafiles])
-        for fi in batch.javafiles:
-            if fi.update(batch.removeTrailingWhitespace):
-                modified.append(fi)
+        for chunk in _chunk_files_for_command_line(batch.javafiles, pathFunction=lambda f: f.path):
+            run([args.eclipse_exe,
+                '-nosplash',
+                '-application',
+                'org.eclipse.jdt.core.JavaCodeFormatter',
+                '-vm', java(batch.javaCompliance).java,
+                '-config', batch.path]
+                + [f.path for f in chunk])
+            for fi in chunk:
+                if fi.update(batch.removeTrailingWhitespace):
+                    modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
 
@@ -2503,26 +2541,9 @@ def checkstyle(args):
             log('Running Checkstyle on {0} using {1}...'.format(sourceDir, config))
 
             try:
-
-                # Checkstyle is unable to read the filenames to process from a file, and the
-                # CreateProcess function on Windows limits the length of a command line to
-                # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
-                # so calling Checkstyle must be done in batches.
-                while len(javafilelist) != 0:
-                    i = 0
-                    size = 0
-                    while i < len(javafilelist):
-                        s = len(javafilelist[i]) + 1
-                        if size + s < 30000:
-                            size += s
-                            i += 1
-                        else:
-                            break
-
-                    batch = javafilelist[:i]
-                    javafilelist = javafilelist[i:]
+                for chunk in _chunk_files_for_command_line(javafilelist):
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch, nonZeroIsFatal=False)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + chunk, nonZeroIsFatal=False)
                     finally:
                         if exists(auditfileName):
                             errors = []
@@ -3826,7 +3847,7 @@ def ideclean(args):
 
 
 def ideinit(args, refreshOnly=False, buildProcessorJars=True):
-    """(re)generate Eclipse and NetBeans project configurations"""
+    """(re)generate Eclipse, NetBeans and Intellij project configurations"""
     eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     intellijinit(args, refreshOnly=refreshOnly)
@@ -4328,6 +4349,7 @@ def exportlibs(args):
 
     parser = ArgumentParser(prog='exportlibs')
     parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
+    parser.add_argument('-a', '--include-all', action='store_true', help="include all defined libaries")
     parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
     parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
     parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
@@ -4348,9 +4370,44 @@ def exportlibs(args):
             else:
                 logv('[already added ' + path + ']')
 
-        for lib in _libs.itervalues():
-            if len(lib.urls) != 0 or args.include_system_libs:
-                add(lib.get_path(resolve=True), lib.path)
+        libsToExport = set()
+        if args.include_all:
+            for lib in _libs.itervalues():
+                libsToExport.add(lib)
+        else:
+            def isValidLibrary(dep):
+                if dep in _libs.iterkeys():
+                    lib = _libs[dep]
+                    if len(lib.urls) != 0 or args.include_system_libs:
+                        return lib
+                return None
+
+            # iterate over all project dependencies and find used libraries
+            for p in _projects.itervalues():
+                for dep in p.deps:
+                    r = isValidLibrary(dep)
+                    if r:
+                        libsToExport.add(r)
+
+            # a library can have other libraries as dependency
+            size = 0
+            while size != len(libsToExport):
+                size = len(libsToExport)
+                for lib in libsToExport.copy():
+                    for dep in lib.deps:
+                        r = isValidLibrary(dep)
+                        if r:
+                            libsToExport.add(r)
+
+        for lib in libsToExport:
+            add(lib.get_path(resolve=True), lib.path)
+            if lib.sha1:
+                add(lib.get_path(resolve=True) + ".sha1", lib.path + ".sha1")
+            if lib.sourcePath:
+                add(lib.get_source_path(resolve=True), lib.sourcePath)
+                if lib.sourceSha1:
+                    add(lib.get_source_path(resolve=True) + ".sha1", lib.sourcePath + ".sha1")
+
         if args.extras:
             for e in args.extras:
                 if os.path.isdir(e):

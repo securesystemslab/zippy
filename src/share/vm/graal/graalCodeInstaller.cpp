@@ -676,8 +676,11 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   oop hotspot_method = BytecodePosition::method(frame);
   Method* method = getMethodFromHotSpotMethod(hotspot_method);
   jint bci = BytecodePosition::bci(frame);
+  if (bci == BytecodeFrame::BEFORE_BCI()) {
+    bci = SynchronizationEntryBCI;
+  }
   bool reexecute;
-  if (bci == -1 || bci == -2){
+  if (bci == SynchronizationEntryBCI){
      reexecute = false;
   } else {
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
