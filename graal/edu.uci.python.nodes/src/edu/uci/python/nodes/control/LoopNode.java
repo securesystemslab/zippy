@@ -22,48 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statement.*;
 
-public class WhileNode extends LoopNode {
+public abstract class LoopNode extends StatementNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected PNode body;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    public LoopNode(PNode body) {
+        this.body = body;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
+    public PNode getBody() {
+        return body;
+    }
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+    protected final void reportLoopCount(int count) {
+        CompilerAsserts.neverPartOfCompilation();
+        RootNode root = getRootNode();
+        assert root != null;
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        if (root.getCallTarget() instanceof LoopCountReceiver) {
+            ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
         }
-
-        return PNone.NONE;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

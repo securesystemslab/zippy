@@ -22,48 +22,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class WhileNode extends LoopNode {
-
-    @Child protected CastToBooleanNode condition;
-
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
-    }
+public final class BreakNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
-
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
+        throw BreakException.INSTANCE;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    public static final class GeneratorBreakNode extends StatementNode {
+
+        private final int iteratorSlot;
+        private final int[] indexSlots;
+
+        public GeneratorBreakNode(int iteratorSlot, int[] indexSlots) {
+            this.iteratorSlot = iteratorSlot;
+            this.indexSlots = indexSlots;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, null);
+
+            for (int indexSlot : indexSlots) {
+                GeneratorBlockNode.setIndex(frame, indexSlot, 0);
+            }
+
+            throw BreakException.INSTANCE;
+        }
     }
 
 }

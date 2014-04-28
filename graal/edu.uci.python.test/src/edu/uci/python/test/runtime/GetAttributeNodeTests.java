@@ -36,13 +36,12 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.attribute.*;
-import edu.uci.python.nodes.attribute.DispatchBoxedNode.LinkedDispatchBoxedNode;
-import edu.uci.python.nodes.attribute.DispatchUnboxedNode.LinkedDispatchUnboxedNode;
-import edu.uci.python.nodes.attribute.GetAttributeNode.BoxedGetAttributeNode;
-import edu.uci.python.nodes.attribute.GetAttributeNode.UnboxedGetMethodNode;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
+import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.object.DispatchBoxedNode.*;
+import edu.uci.python.nodes.object.DispatchUnboxedNode.*;
+import edu.uci.python.nodes.object.GetAttributeNode.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;

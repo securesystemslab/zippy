@@ -22,48 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.object.legacy;
 
-import com.oracle.truffle.api.*;
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
-public class WhileNode extends LoopNode {
+public class UninitializedLoadAttributeNode extends LoadAttributeNode {
 
-    @Child protected CastToBooleanNode condition;
-
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    public UninitializedLoadAttributeNode(String name, PNode primary) {
+        super(name, primary);
     }
 
+    @SlowPath
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
+        transferToInterpreterAndInvalidate();
+        Object primaryObj = primary.execute(frame);
+        replace(specialize(primaryObj));
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        if (primaryObj instanceof PythonObject) {
+            return ((PythonObject) primaryObj).getAttribute(attributeId);
+        } else {
+            return LoadGenericAttributeNode.executeGeneric(primaryObj, attributeId);
         }
-
-        return PNone.NONE;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,38 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test.runtime;
+package edu.uci.python.nodes.object.legacy;
 
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
+import com.oracle.truffle.api.*;
 
-import java.util.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
-import org.junit.*;
+public abstract class StoreSpecializedAttributeNode extends StoreAttributeNode {
 
-import com.oracle.truffle.api.nodes.*;
+    protected final ObjectLayout objectLayout;
 
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.object.SetDispatchNode.*;
-import edu.uci.python.runtime.*;
-
-public class SetAttributeDispatchTests {
-
-    @Test
-    public void constructor() {
-        String source = "class Task:\n" + //
-                        "  def __init__(self, a, b):\n" + //
-                        "    self.a = a\n" + //
-                        "    self.b = b\n" + //
-                        "for i in range(2):\n" + //
-                        "  Task()\n";
-        PythonParseResult result = assertPrints("", source);
-        RootNode init = result.getFunctionRoot("__init__");
-        List<SetAttributeNode> setNodes = NodeUtil.findAllNodeInstances(init, SetAttributeNode.class);
-
-        for (SetAttributeNode set : setNodes) {
-            List<LinkedSetDispatchNode> dispatches = NodeUtil.findAllNodeInstances(set, LinkedSetDispatchNode.class);
-            assertEquals(1, dispatches.size());
-        }
+    public StoreSpecializedAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout) {
+        super(name, primary, rhs);
+        this.objectLayout = objLayout;
     }
+
+    protected final void respecialize(PythonObject primaryObject, Object value) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        primaryObject.setAttribute(attributeId, value);
+        replace(specialize(primaryObject));
+    }
+
 }

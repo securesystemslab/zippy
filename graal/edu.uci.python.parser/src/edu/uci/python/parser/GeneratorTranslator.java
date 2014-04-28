@@ -32,10 +32,10 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 

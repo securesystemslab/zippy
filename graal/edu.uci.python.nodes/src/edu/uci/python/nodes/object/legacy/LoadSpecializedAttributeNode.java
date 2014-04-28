@@ -22,48 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.object.legacy;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
-public class WhileNode extends LoopNode {
+public abstract class LoadSpecializedAttributeNode extends LoadAttributeNode {
 
-    @Child protected CastToBooleanNode condition;
+    protected final ObjectLayout objectLayout;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    public LoadSpecializedAttributeNode(String name, PNode primary, ObjectLayout objectLayout) {
+        super(name, primary);
+        this.objectLayout = objectLayout;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
-
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
+    @SlowPath
+    protected final void respecialize(PythonObject receiverObject) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        replace(specialize(receiverObject));
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

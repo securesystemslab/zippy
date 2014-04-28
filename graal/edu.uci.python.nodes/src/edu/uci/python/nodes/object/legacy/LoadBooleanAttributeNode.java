@@ -22,38 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test.runtime;
+package edu.uci.python.nodes.object.legacy;
 
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
-
-import java.util.*;
-
-import org.junit.*;
-
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.object.SetDispatchNode.*;
-import edu.uci.python.runtime.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.object.*;
 
-public class SetAttributeDispatchTests {
+public class LoadBooleanAttributeNode extends LoadSpecializedAttributeNode {
 
-    @Test
-    public void constructor() {
-        String source = "class Task:\n" + //
-                        "  def __init__(self, a, b):\n" + //
-                        "    self.a = a\n" + //
-                        "    self.b = b\n" + //
-                        "for i in range(2):\n" + //
-                        "  Task()\n";
-        PythonParseResult result = assertPrints("", source);
-        RootNode init = result.getFunctionRoot("__init__");
-        List<SetAttributeNode> setNodes = NodeUtil.findAllNodeInstances(init, SetAttributeNode.class);
+    private final BooleanStorageLocation storageLocation;
 
-        for (SetAttributeNode set : setNodes) {
-            List<LinkedSetDispatchNode> dispatches = NodeUtil.findAllNodeInstances(set, LinkedSetDispatchNode.class);
-            assertEquals(1, dispatches.size());
+    public LoadBooleanAttributeNode(String name, PNode primary, ObjectLayout objectLayout, BooleanStorageLocation storageLocation) {
+        super(name, primary, objectLayout);
+        this.storageLocation = storageLocation;
+    }
+
+    @Override
+    public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+        final PythonObject primaryObj = primary.executePythonObject(frame);
+
+        if (primaryObj.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            respecialize(primaryObj);
+            return PythonTypesGen.PYTHONTYPES.expectBoolean(primaryObj.getAttribute(attributeId));
+        }
+
+        return storageLocation.readBoolean(primaryObj);
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            return executeBoolean(frame);
+        } catch (UnexpectedResultException e) {
+            return e.getResult();
         }
     }
+
 }

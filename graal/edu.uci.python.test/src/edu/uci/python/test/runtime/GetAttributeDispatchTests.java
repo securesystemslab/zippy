@@ -34,7 +34,7 @@ import org.junit.*;
 
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.attribute.DispatchUnboxedNode.*;
+import edu.uci.python.nodes.object.DispatchUnboxedNode.*;
 import edu.uci.python.runtime.*;
 
 public class GetAttributeDispatchTests {

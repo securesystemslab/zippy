@@ -22,48 +22,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.frame.*;
+import edu.uci.python.runtime.iterator.*;
 
-public class WhileNode extends LoopNode {
+@NodeChild(value = "getIterator", type = PNode.class)
+public abstract class AdvanceIteratorNode extends PNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected FrameSlotNode target;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    public AdvanceIteratorNode(FrameSlotNode target) {
+        this.target = target;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
-
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
+    protected AdvanceIteratorNode(AdvanceIteratorNode prev) {
+        this(prev.target);
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    public abstract void executeWithIterator(VirtualFrame frame, Object iterator);
+
+    public FrameSlotNode getTarget() {
+        return target;
+    }
+
+    @Specialization(order = 0)
+    public Object doInt(VirtualFrame frame, int value) {
+        return target.executeWrite(frame, value);
+    }
+
+    @Specialization(order = 1)
+    public Object doPIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
+        return target.executeWrite(frame, iterator.__nextInt__());
+    }
+
+    @Specialization(order = 2)
+    public Object doPDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
+        return target.executeWrite(frame, iterator.__nextDouble__());
+    }
+
+    @Specialization(order = 3)
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+        return target.executeWrite(frame, iterator.__next__());
     }
 
 }

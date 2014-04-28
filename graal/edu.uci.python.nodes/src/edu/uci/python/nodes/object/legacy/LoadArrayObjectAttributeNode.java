@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,38 +22,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test.runtime;
+package edu.uci.python.nodes.object.legacy;
 
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.frame.*;
 
-import java.util.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
-import org.junit.*;
+public final class LoadArrayObjectAttributeNode extends LoadSpecializedAttributeNode {
 
-import com.oracle.truffle.api.nodes.*;
+    private final ArrayObjectStorageLocation storageLocation;
 
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.object.SetDispatchNode.*;
-import edu.uci.python.runtime.*;
-
-public class SetAttributeDispatchTests {
-
-    @Test
-    public void constructor() {
-        String source = "class Task:\n" + //
-                        "  def __init__(self, a, b):\n" + //
-                        "    self.a = a\n" + //
-                        "    self.b = b\n" + //
-                        "for i in range(2):\n" + //
-                        "  Task()\n";
-        PythonParseResult result = assertPrints("", source);
-        RootNode init = result.getFunctionRoot("__init__");
-        List<SetAttributeNode> setNodes = NodeUtil.findAllNodeInstances(init, SetAttributeNode.class);
-
-        for (SetAttributeNode set : setNodes) {
-            List<LinkedSetDispatchNode> dispatches = NodeUtil.findAllNodeInstances(set, LinkedSetDispatchNode.class);
-            assertEquals(1, dispatches.size());
-        }
+    public LoadArrayObjectAttributeNode(String name, PNode primary, ObjectLayout objectLayout, ArrayObjectStorageLocation storageLocation) {
+        super(name, primary, objectLayout);
+        this.storageLocation = storageLocation;
     }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        final PythonObject receiverObject = (PythonObject) primary.execute(frame);
+
+        if (receiverObject.getObjectLayout() != objectLayout) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            return getAttributeSlow(receiverObject);
+        }
+
+        return storageLocation.read(receiverObject);
+    }
+
+    @SlowPath
+    private Object getAttributeSlow(PythonObject receiverObject) {
+        respecialize(receiverObject);
+        return receiverObject.getAttribute(attributeId);
+    }
+
 }

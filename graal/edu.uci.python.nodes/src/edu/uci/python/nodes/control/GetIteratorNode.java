@@ -22,48 +22,71 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import java.util.*;
 
-import edu.uci.python.nodes.control.*;
+import com.oracle.truffle.api.dsl.*;
+
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.*;
 
-public class WhileNode extends LoopNode {
+public abstract class GetIteratorNode extends UnaryOpNode {
 
-    @Child protected CastToBooleanNode condition;
-
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    @Specialization
+    public Object doPSequence(PSequence value) {
+        return value.__iter__();
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
+    @Specialization
+    public Object doPBaseSet(PBaseSet value) {
+        return value.__iter__();
+    }
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+    @Specialization
+    public Object doString(String value) {
+        return new PStringIterator(value);
+    }
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+    @Specialization
+    public Object doPDictionary(PDict value) {
+        return value.__iter__();
+    }
+
+    @Specialization
+    public Object doPEnumerate(PEnumerate value) {
+        return value.__iter__();
+    }
+
+    @Specialization
+    public Object doPZip(PZip value) {
+        return value.__iter__();
+    }
+
+    @Specialization
+    public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
+        return value;
+    }
+
+    @Specialization
+    public PIterator doPIterable(PIterable value) {
+        return value.__iter__();
+    }
+
+    @Specialization
+    public PIterator doPIterator(PIterator value) {
+        return value;
+    }
+
+    // (zwei): What is the purpose of this?
+    @Specialization
+    public Object doJavaList(Object value) {
+        if (value instanceof List) {
+            return ((List) value).iterator();
         }
 
-        return PNone.NONE;
+        return null;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

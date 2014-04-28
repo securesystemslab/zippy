@@ -22,48 +22,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.object.legacy;
 
-import com.oracle.truffle.api.*;
+import static com.oracle.truffle.api.CompilerDirectives.*;
+
+import org.python.core.*;
+
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 
-public class WhileNode extends LoopNode {
+public class UninitializedStoreAttributeNode extends StoreAttributeNode {
 
-    @Child protected CastToBooleanNode condition;
+    public UninitializedStoreAttributeNode(String name, PNode primary, PNode rhs) {
+        super(name, primary, rhs);
+    }
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    @Override
+    public Object executeWith(VirtualFrame frame, Object value) {
+        transferToInterpreterAndInvalidate();
+        final Object primaryObj = primary.execute(frame);
+        return doGeneric(primaryObj, value);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
+        transferToInterpreterAndInvalidate();
+        final Object primaryObj = primary.execute(frame);
+        final Object value = rhs.execute(frame);
+        return doGeneric(primaryObj, value);
+    }
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+    private Object doGeneric(Object primaryObj, Object value) {
+        assert value != null;
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        if (primaryObj instanceof PyObject) {
+            final PyObject pyObj = (PyObject) primaryObj;
+            pyObj.__setattr__(attributeId, (PyObject) value);
+        } else {
+            final PythonObject pbObj = (PythonObject) primaryObj;
+            pbObj.setAttribute(attributeId, value);
         }
 
+        replace(specialize(primaryObj));
         return PNone.NONE;
     }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
-    }
-
 }

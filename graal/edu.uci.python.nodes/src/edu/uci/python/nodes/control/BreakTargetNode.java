@@ -22,48 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
 
-public class WhileNode extends LoopNode {
+public final class BreakTargetNode extends StatementNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected StatementNode child;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
-        super(body);
-        this.condition = condition;
+    private final BranchProfile breakProfile = new BranchProfile();
+
+    public BreakTargetNode(StatementNode child) {
+        this.child = child;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
-
         try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+            return child.execute(frame);
+        } catch (BreakException ex) {
+            breakProfile.enter();
+            return PNone.NONE;
         }
-
-        return PNone.NONE;
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
     }
 
 }

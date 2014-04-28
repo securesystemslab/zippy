@@ -22,48 +22,62 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 
-public class WhileNode extends LoopNode {
+@NodeChild(value = "iterator", type = GetIteratorNode.class)
+public abstract class ForNode extends LoopNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected PNode target;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
+    public ForNode(PNode target, PNode body) {
         super(body);
-        this.condition = condition;
+        this.target = target;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        int count = 0;
+    protected ForNode(ForNode previous) {
+        this(previous.target, previous.body);
+    }
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+    @Specialization(order = 0)
+    public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
+        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+        final int start = iterator.getStart();
+        final int stop = iterator.getStop();
+        final int step = iterator.getStep();
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        for (int i = start; i < stop; i += step) {
+            rvn.setValue(i);
+            target.execute(frame);
+            body.executeVoid(frame);
         }
 
         return PNone.NONE;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    @Specialization
+    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+
+        try {
+            while (true) {
+                rvn.setValue(iterator.__next__());
+                target.execute(frame);
+                body.executeVoid(frame);
+            }
+        } catch (StopIterationException e) {
+            // fall through
+        }
+
+        return PNone.NONE;
     }
 
 }

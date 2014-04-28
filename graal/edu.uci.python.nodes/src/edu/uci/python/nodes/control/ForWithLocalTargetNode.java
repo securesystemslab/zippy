@@ -22,30 +22,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.iterator.*;
 
-public class WhileNode extends LoopNode {
+@NodeChild(value = "iterator", type = GetIteratorNode.class)
+public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected AdvanceIteratorNode target;
 
-    public WhileNode(CastToBooleanNode condition, StatementNode body) {
+    public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body) {
         super(body);
-        this.condition = condition;
+        this.target = target;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
+    protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
+        this(previous.target, previous.body);
+    }
+
+    public PNode getTarget() {
+        return target;
+    }
+
+    public abstract PNode getIterator();
+
+    @Specialization(order = 0)
+    public Object doPRange(VirtualFrame frame, PRangeIterator range) {
+        final int start = range.getStart();
+        final int stop = range.getStop();
+        final int step = range.getStep();
         int count = 0;
 
         try {
-            while (condition.executeBoolean(frame)) {
+            for (int i = start; i < stop; i += step) {
+                target.executeWithIterator(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -61,9 +78,28 @@ public class WhileNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    @Specialization(order = 1)
+    public Object doIterator(VirtualFrame frame, Object iterator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                target.executeWithIterator(frame, iterator);
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
     }
 
 }
