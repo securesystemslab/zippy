@@ -45,6 +45,7 @@ import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.loop.*;

@@ -28,7 +28,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.iterator.*;
 
 @NodeChild(value = "getIterator", type = PNode.class)

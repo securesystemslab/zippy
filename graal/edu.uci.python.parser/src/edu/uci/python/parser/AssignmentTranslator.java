@@ -33,7 +33,7 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.statement.*;
 
 public class AssignmentTranslator {

@@ -27,7 +27,8 @@ package edu.uci.python.nodes.object;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
+import edu.uci.python.nodes.attribute.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 

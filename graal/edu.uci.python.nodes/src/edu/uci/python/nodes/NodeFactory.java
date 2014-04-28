@@ -35,6 +35,7 @@ import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
@@ -46,7 +47,6 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.attribute.*;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.expression.*;

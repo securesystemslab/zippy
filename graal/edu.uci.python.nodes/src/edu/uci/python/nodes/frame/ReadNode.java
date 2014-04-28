@@ -22,39 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.frame;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import edu.uci.python.nodes.*;
 
-import edu.uci.python.runtime.function.*;
+public interface ReadNode {
 
-public final class FrameUtil {
-
-    @ExplodeLoop
-    public static MaterializedFrame getParentFrame(VirtualFrame frame, int level) {
-        assert level > 0;
-        CompilerAsserts.compilationConstant(level);
-        MaterializedFrame parentFrame = PArguments.get(frame).getDeclarationFrame();
-        for (int i = 1; i < level; i++) {
-            parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
-        }
-        return parentFrame;
-    }
-
-    @ExplodeLoop
-    public static MaterializedFrame getParentFrame(MaterializedFrame frame, int level) {
-        assert level >= 0;
-        if (level == 0) {
-            return frame;
-        } else {
-            MaterializedFrame parentFrame = frame;
-            for (int i = 0; i < level; i++) {
-                parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
-            }
-            return parentFrame;
-        }
-    }
+    PNode makeWriteNode(PNode rhs);
 
 }

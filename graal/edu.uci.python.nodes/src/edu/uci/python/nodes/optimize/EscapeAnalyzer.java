@@ -28,9 +28,9 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.PythonCallNode.UninitializedCallNode;
 import edu.uci.python.nodes.call.legacy.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.statement.*;
 
 public class EscapeAnalyzer {

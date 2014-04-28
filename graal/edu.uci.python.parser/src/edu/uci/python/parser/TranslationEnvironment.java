@@ -31,8 +31,8 @@ import org.python.antlr.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.ScopeInfo.ScopeKind;
 import edu.uci.python.runtime.*;

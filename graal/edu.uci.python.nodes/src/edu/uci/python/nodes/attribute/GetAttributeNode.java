@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.attribute;
 
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -31,8 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -266,6 +267,31 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         }
     }
 
+    public static final class GetPyObjectAttributeNode extends GetAttributeNode {
+
+        public GetPyObjectAttributeNode(PythonContext context, String attributeId, PNode primary) {
+            super(context, attributeId, primary);
+        }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primary) {
+            PyObject pyObj = (PyObject) primary;
+            return unboxPyObject(pyObj.__findattr__(attributeId));
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PyObject pyObj;
+            try {
+                pyObj = primaryNode.executePyObject(frame);
+            } catch (UnexpectedResultException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                return specializeAndExecute(frame, e.getResult());
+            }
+            return unboxPyObject(pyObj.__findattr__(attributeId));
+        }
+    }
+
     protected Object specializeAndExecute(VirtualFrame frame, Object primary) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
@@ -278,8 +304,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
              * Always go with the slow route to perform generic lookup (dependency to PyObject).
              * Should be remove once all built-in modules are implemented.
              */
-            replace(new LoadGenericAttributeNode.LoadPyObjectAttributeNode(attributeId, primaryNode));
-            return LoadGenericAttributeNode.executeGeneric(primary, attributeId);
+            return replace(new GetPyObjectAttributeNode(context, attributeId, primaryNode)).executeWithPrimary(frame, primary);
         }
     }
 

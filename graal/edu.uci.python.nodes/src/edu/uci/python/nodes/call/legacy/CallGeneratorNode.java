@@ -32,8 +32,8 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.call.legacy.CallFunctionNoKeywordNode.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.loop.*;

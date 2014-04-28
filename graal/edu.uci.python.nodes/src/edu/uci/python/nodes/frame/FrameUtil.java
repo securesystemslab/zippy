@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,26 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.access;
+package edu.uci.python.nodes.frame;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.function.*;
 
-/**
- * Imcomplete delete node. <br>
- * If the target itself is a special delete node returning None, {@link DeleteNode} does nothing.
- * 
- * @author zwei
- * 
- */
-@NodeChild(value = "target", type = PNode.class)
-public abstract class DeleteNode extends PNode {
+public final class FrameUtil {
 
-    @Specialization
-    PNone doNone(PNone none) {
-        return none;
+    @ExplodeLoop
+    public static MaterializedFrame getParentFrame(VirtualFrame frame, int level) {
+        assert level > 0;
+        CompilerAsserts.compilationConstant(level);
+        MaterializedFrame parentFrame = PArguments.get(frame).getDeclarationFrame();
+        for (int i = 1; i < level; i++) {
+            parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
+        }
+        return parentFrame;
+    }
+
+    @ExplodeLoop
+    public static MaterializedFrame getParentFrame(MaterializedFrame frame, int level) {
+        assert level >= 0;
+        if (level == 0) {
+            return frame;
+        } else {
+            MaterializedFrame parentFrame = frame;
+            for (int i = 0; i < level; i++) {
+                parentFrame = PArguments.get(parentFrame).getDeclarationFrame();
+            }
+            return parentFrame;
+        }
     }
 
 }
