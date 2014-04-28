@@ -49,42 +49,44 @@ import edu.uci.python.runtime.standardtype.*;
  *  |
  *  |--- primary : PNode
  *  |
- *  |--- attribute : AttributeDispatchNode
+ *  |--- attribute : LinkedDispatchNode
  *         |
- *         |--- check : PrimaryCheckNode
+ *         |--- check : ShapeCheckNode
  *         |
  *         |--- Read : AttributeReadNode
  *         |
- *         |--- next : AttributeDispatchNode
+ *         |--- next : LinkedDispatchNode
  *               |
- *               |--- check : PrimaryCheckNode
+ *               |--- check : ShapeCheckNode
  *               |
  *               |--- Read : AttributeReadNode
  *               |
- *               |--- next : UninitializedAttributeDispatchNode
+ *               |--- next : UninitializedDispatchNode
  *
  */
 public abstract class GetAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final PythonContext context;
     protected final String attributeId;
-    @Child protected PNode primary;
+    @Child protected PNode primaryNode;
 
     public GetAttributeNode(PythonContext context, String attributeId, PNode primary) {
         this.context = context;
         this.attributeId = attributeId;
-        this.primary = primary;
+        this.primaryNode = primary;
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new SetAttributeNode(attributeId, primary, rhs, context);
+        return new SetAttributeNode(attributeId, primaryNode, rhs, context);
     }
 
     @Override
     public PNode extractPrimary() {
-        return primary;
+        return primaryNode;
     }
+
+    public abstract Object executeWithPrimary(VirtualFrame frame, Object primaryObj);
 
     public static class BoxedGetAttributeNode extends GetAttributeNode {
 
@@ -100,7 +102,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primaryObj;
 
             try {
-                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -113,7 +115,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primaryObj;
 
             try {
-                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getIntValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -126,7 +128,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primaryObj;
 
             try {
-                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getDoubleValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -139,12 +141,17 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primaryObj;
 
             try {
-                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getBooleanValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
+        }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primaryObj) {
+            return attribute.getValue(frame, (PythonObject) primaryObj);
         }
     }
 
@@ -163,7 +170,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primaryObj;
             Object value;
             try {
-                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary.execute(frame));
+                primaryObj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
                 value = attribute.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -191,7 +198,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                return attribute.getValue(frame, PythonContext.boxAsPythonBuiltinObject(primary.execute(frame)));
+                return attribute.getValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return bootstrapBoxedOrUnboxed(frame, e.getResult(), this);
@@ -201,7 +208,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getIntValue(frame, PythonContext.boxAsPythonBuiltinObject(primary.execute(frame)));
+                return attribute.getIntValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectInteger(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -211,7 +218,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getDoubleValue(frame, PythonContext.boxAsPythonBuiltinObject(primary.execute(frame)));
+                return attribute.getDoubleValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectDouble(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
@@ -221,11 +228,16 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
             try {
-                return attribute.getBooleanValue(frame, PythonContext.boxAsPythonBuiltinObject(primary.execute(frame)));
+                return attribute.getBooleanValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(bootstrapBoxedOrUnboxed(frame, e.getResult(), this));
             }
+        }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primaryObj) {
+            return attribute.getValue(frame, (PythonBuiltinObject) primaryObj);
         }
     }
 
@@ -242,7 +254,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         public Object execute(VirtualFrame frame) {
             PythonBuiltinObject primaryObj;
             try {
-                primaryObj = PythonContext.boxAsPythonBuiltinObject(primary.execute(frame));
+                primaryObj = PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame));
                 attribute.getValue(frame, primaryObj);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -264,29 +276,22 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
              * Always go with the slow route to perform generic lookup (dependency to PyObject).
              * Should be remove once all built-in modules are implemented.
              */
-            current.replace(new LoadGenericAttributeNode.LoadPyObjectAttributeNode(current.attributeId, current.primary));
+            current.replace(new LoadGenericAttributeNode.LoadPyObjectAttributeNode(current.attributeId, current.primaryNode));
             return LoadGenericAttributeNode.executeGeneric(primaryObj, current.attributeId);
         }
     }
 
     protected Object boxedSpecializeAndExecute(VirtualFrame frame, PythonObject primaryObj, GetAttributeNode current) {
         DispatchBoxedNode dispatch = new DispatchBoxedNode.UninitializedDispatchBoxedNode(current.attributeId);
-        dispatch = dispatch.rewrite(primaryObj, dispatch);
-        Object value;
-
-        try {
-            value = dispatch.getValue(frame, primaryObj);
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
-        }
+        GetAttributeNode specialized = new BoxedGetAttributeNode(current.context, current.attributeId, current.primaryNode, dispatch);
+        Object value = specialized.executeWithPrimary(frame, primaryObj);
 
         if (value instanceof PFunction && !(primaryObj instanceof PythonClass) && !(primaryObj instanceof PythonModule)) {
             value = new PMethod(primaryObj, (PFunction) value);
-            current.replace(new BoxedGetMethodNode(current.context, current.attributeId, current.primary, dispatch));
-        } else {
-            current.replace(new BoxedGetAttributeNode(current.context, current.attributeId, current.primary, dispatch));
+            specialized = new BoxedGetMethodNode(current.context, current.attributeId, current.primaryNode, dispatch);
         }
 
+        current.replace(specialized);
         return value;
     }
 
@@ -302,11 +307,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         dispatch = dispatch.rewrite(builtinPrimaryObj, dispatch);
         Object value = null;
 
-        try {
-            value = dispatch.getValue(frame, builtinPrimaryObj);
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException("Attribute access failed in slow path!");
-        }
+        value = dispatch.getValue(frame, builtinPrimaryObj);
 
         if (value instanceof PBuiltinFunction && !(primaryObj instanceof PythonBuiltinClass)) {
             try {
@@ -314,9 +315,9 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException("Attribute access failed in slow path!");
             }
-            current.replace(new UnboxedGetMethodNode(current.context, current.attributeId, current.primary, dispatch, (PBuiltinMethod) value));
+            current.replace(new UnboxedGetMethodNode(current.context, current.attributeId, current.primaryNode, dispatch, (PBuiltinMethod) value));
         } else {
-            current.replace(new UnboxedGetAttributeNode(current.context, current.attributeId, current.primary, dispatch));
+            current.replace(new UnboxedGetAttributeNode(current.context, current.attributeId, current.primaryNode, dispatch));
         }
 
         return value;
@@ -330,7 +331,12 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         @Override
         public Object execute(VirtualFrame frame) {
-            Object primaryObj = primary.execute(frame);
+            Object primaryObj = primaryNode.execute(frame);
+            return bootstrapBoxedOrUnboxed(frame, primaryObj, this);
+        }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primaryObj) {
             return bootstrapBoxedOrUnboxed(frame, primaryObj, this);
         }
     }

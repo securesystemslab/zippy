@@ -43,7 +43,7 @@ public abstract class DispatchUnboxedNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException;
+    public abstract Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj);
 
     public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
@@ -92,7 +92,7 @@ public abstract class DispatchUnboxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) {
             CompilerDirectives.transferToInterpreter();
 
             Node current = this;
@@ -127,7 +127,7 @@ public abstract class DispatchUnboxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) {
             return primaryObj.__class__().getAttribute(attributeId);
         }
     }
@@ -157,7 +157,7 @@ public abstract class DispatchUnboxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj) {
             if (dispatchGuard(primaryObj)) {
                 return read.getValueUnsafe(cachedStorage);
             }

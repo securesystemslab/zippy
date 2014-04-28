@@ -43,7 +43,7 @@ public abstract class DispatchBoxedNode extends Node {
         this.attributeId = attributeId;
     }
 
-    public abstract Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException;
+    public abstract Object getValue(VirtualFrame frame, PythonObject primaryObj);
 
     public int getIntValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
@@ -114,6 +114,8 @@ public abstract class DispatchBoxedNode extends Node {
     private void checkAndReplace(Node newNode) {
         if (this.getParent() != null) {
             replace(newNode);
+        } else {
+// System.out.println(">>>>>>>>>> " + newNode + " parent " + newNode.getParent());
         }
     }
 
@@ -125,7 +127,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Node current = this;
@@ -159,7 +161,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
             return primaryObj.getAttribute(attributeId);
         }
     }
@@ -207,7 +209,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         @Override
-        public Object getValue(VirtualFrame frame, PythonObject primaryObj) throws UnexpectedResultException {
+        public Object getValue(VirtualFrame frame, PythonObject primaryObj) {
             try {
                 boolean hit = primaryCheck.accept(primaryObj);
 
