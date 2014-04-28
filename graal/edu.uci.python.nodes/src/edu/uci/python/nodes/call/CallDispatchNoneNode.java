@@ -54,7 +54,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new DispatchVariableFunctionNode((PFunction) callee, next);
+            return new LinkedDispatchNoneNode((PFunction) callee, next);
         }
 
         if (callee instanceof PythonClass) {
@@ -71,14 +71,13 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
      * The primary is None for this case.
      *
      */
-    public static final class DispatchVariableFunctionNode extends CallDispatchNoneNode {
+    public static final class LinkedDispatchNoneNode extends CallDispatchNoneNode {
 
         @Child protected InvokeNode invokeNode;
         @Child protected CallDispatchNoneNode nextNode;
-
         private final PythonCallable cachedCallee;
 
-        public DispatchVariableFunctionNode(PFunction callee, UninitializedDispatchNoneNode next) {
+        public LinkedDispatchNoneNode(PFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
             invokeNode = InvokeNode.create(callee, next.hasKeyword);
             nextNode = next;
@@ -129,11 +128,9 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
             CallDispatchNoneNode specialized;
             if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
-                CallDispatchNoneNode direct = CallDispatchNoneNode.create(callee, keywords);
-                specialized = replace(direct);
+                specialized = replace(CallDispatchNoneNode.create(callee, keywords));
             } else {
-                CallDispatchNoneNode generic = new GenericDispatchNoneNode(calleeName);
-                specialized = current.replace(generic);
+                specialized = current.replace(new GenericDispatchNoneNode(calleeName));
             }
 
             return specialized.executeCall(frame, callee, arguments, keywords);
