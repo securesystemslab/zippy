@@ -608,6 +608,17 @@ class HgConfig:
             else:
                 return None
 
+    def isDirty(self, sDir, abortOnError=True):
+        try:
+            return len(subprocess.check_output(['hg', 'status', '-R', sDir])) > 0
+        except OSError:
+            warn(self.missing)
+        except subprocess.CalledProcessError:
+            if abortOnError:
+                abort('failed to get status')
+            else:
+                return None
+
 class Suite:
     def __init__(self, mxDir, primary, load=True):
         self.dir = dirname(mxDir)
