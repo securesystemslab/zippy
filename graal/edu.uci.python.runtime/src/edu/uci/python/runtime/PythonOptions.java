@@ -40,12 +40,12 @@ public class PythonOptions {
     public static boolean TraceImports = false;
 
     // Translation flags
-    public static boolean PrintFunction = false;
+    public static boolean UsePrintFunction = false;
 
     // Runtime flags
     public static final boolean InlineFunctionCalls = true;
 
-    public static boolean InlineBuiltinFunctionCalls = true;
+    public static final boolean InlineBuiltinFunctionCalls = true;
 
     public static final boolean UnboxSequenceStorage = true;
 
