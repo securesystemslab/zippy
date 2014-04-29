@@ -297,6 +297,10 @@ public abstract class PythonCallNode extends PNode {
                 throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
             }
 
+            /**
+             * Non built-in constructors use CallConstructorNode. <br>
+             * Built-in constructors use regular BoxedCallNode with no special calling convention.
+             */
             if (isPrimaryBoxed(primary, callee) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
                 PythonClass clazz = (PythonClass) callee;
                 CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonObject) primary, callee, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
