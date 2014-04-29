@@ -23,6 +23,7 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.meta.ProfilingInfo.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.graph.*;
@@ -35,7 +36,7 @@ import com.oracle.graal.nodes.*;
  * Compare should probably be made a value (so that it can be canonicalized for example) and in later stages some Compare usage should be transformed
  * into variants that do not materialize the value (CompareIf, CompareGuard...)
  */
-public abstract class CompareNode extends BinaryLogicNode implements Canonicalizable {
+public abstract class CompareNode extends BinaryOpLogicNode {
 
     /**
      * Constructs a new Compare instruction.
@@ -90,9 +91,18 @@ public abstract class CompareNode extends BinaryLogicNode implements Canonicaliz
     }
 
     @Override
+    public TriState evaluate(ConstantReflectionProvider constantReflection, ValueNode forX, ValueNode forY) {
+        if (x().isConstant() && y().isConstant()) {
+            return TriState.get(condition().foldCondition(x().asConstant(), y().asConstant(), constantReflection, unorderedIsTrue()));
+        }
+        return TriState.UNKNOWN;
+    }
+
+    @Override
     public Node canonical(CanonicalizerTool tool) {
-        if (x().isConstant() && y().isConstant() && tool.getMetaAccess() != null) {
-            return LogicConstantNode.forBoolean(condition().foldCondition(x().asConstant(), y().asConstant(), tool.getConstantReflection(), unorderedIsTrue()), graph());
+        Node result = super.canonical(tool);
+        if (result != this) {
+            return result;
         }
         if (x().isConstant()) {
             if (y() instanceof ConditionalNode) {
@@ -110,7 +120,7 @@ public abstract class CompareNode extends BinaryLogicNode implements Canonicaliz
         if (x() instanceof ConvertNode && y() instanceof ConvertNode) {
             ConvertNode convertX = (ConvertNode) x();
             ConvertNode convertY = (ConvertNode) y();
-            if (convertX.isLossless() && convertY.isLossless() && convertX.getInput().stamp().isCompatible(convertY.getInput().stamp())) {
+            if (convertX.preservesOrder(condition()) && convertY.preservesOrder(condition()) && convertX.getInput().stamp().isCompatible(convertY.getInput().stamp())) {
                 setX(convertX.getInput());
                 setY(convertY.getInput());
             }
@@ -132,8 +142,8 @@ public abstract class CompareNode extends BinaryLogicNode implements Canonicaliz
         return this;
     }
 
-    private static ConstantNode canonicalConvertConstant(ConvertNode convert, Constant constant) {
-        if (convert.isLossless()) {
+    private ConstantNode canonicalConvertConstant(ConvertNode convert, Constant constant) {
+        if (convert.preservesOrder(condition())) {
             Constant reverseConverted = convert.reverse(constant);
             if (convert.convert(reverseConverted).equals(constant)) {
                 return ConstantNode.forPrimitive(convert.getInput().stamp(), reverseConverted, convert.graph());

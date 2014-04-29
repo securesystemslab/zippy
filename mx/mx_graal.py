@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
+import os, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
@@ -35,6 +35,7 @@ import xml.dom.minidom
 import sanitycheck
 import itertools
 import json, textwrap
+import fnmatch
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
@@ -162,49 +163,124 @@ def clean(args):
         rmIfExists(mx.distribution('GRAAL').path)
 
 def export(args):
-    """create a GraalVM zip file for distribution"""
+    """create archives of builds split by vmbuild and vm"""
 
     parser = ArgumentParser(prog='mx export')
-    parser.add_argument('--omit-vm-build', action='store_false', dest='vmbuild', help='omit VM build step')
-    parser.add_argument('--omit-dist-init', action='store_false', dest='distInit', help='omit class files and IDE configurations from distribution')
-    parser.add_argument('zipfile', nargs=REMAINDER, metavar='zipfile')
-
     args = parser.parse_args(args)
 
-    tmp = tempfile.mkdtemp(prefix='tmp', dir=_graal_home)
-    if args.vmbuild:
-        # Make sure the product VM binary is up to date
-        with VM(vmbuild='product'):
-            build([])
+    # collect data about export
+    infos = dict()
+    infos['timestamp'] = time.time()
 
-    mx.log('Copying Java sources and mx files...')
-    mx.run(('hg archive -I graal -I mx -I mxtool -I mx.sh ' + tmp).split())
+    hgcfg = mx.HgConfig()
+    hgcfg.check()
+    infos['revision'] = hgcfg.tip('.') + ('+' if hgcfg.isDirty('.') else '')
+    # TODO: infos['repository']
 
-    # Copy the GraalVM JDK
-    mx.log('Copying GraalVM JDK...')
-    src = _jdk()
-    dst = join(tmp, basename(src))
-    shutil.copytree(src, dst)
-    zfName = join(_graal_home, 'graalvm-' + mx.get_os() + '.zip')
-    zf = zipfile.ZipFile(zfName, 'w')
-    for root, _, files in os.walk(tmp):
-        for f in files:
-            name = join(root, f)
-            arcname = name[len(tmp) + 1:]
-            zf.write(join(tmp, name), arcname)
+    infos['jdkversion'] = str(mx.java().version)
 
-    # create class files and IDE configurations
-    if args.distInit:
-        mx.log('Creating class files...')
-        mx.run('mx build'.split(), cwd=tmp)
-        mx.log('Creating IDE configurations...')
-        mx.run('mx ideinit'.split(), cwd=tmp)
+    infos['architecture'] = _arch()
+    infos['platform'] = mx.get_os()
 
-    # clean up temp directory
-    mx.log('Cleaning up...')
-    shutil.rmtree(tmp)
+    if mx.get_os != 'windows':
+        pass
+        # infos['ccompiler']
+        # infos['linker']
 
-    mx.log('Created distribution in ' + zfName)
+    infos['hostname'] = socket.gethostname()
+
+    def _writeJson(suffix, properties):
+        d = infos.copy()
+        for k, v in properties.iteritems():
+            assert not d.has_key(k)
+            d[k] = v
+
+        jsonFileName = 'export-' + suffix + '.json'
+        with open(jsonFileName, 'w') as f:
+            print >> f, json.dumps(d)
+        return jsonFileName
+
+
+    def _genFileName(archivtype, middle):
+        idPrefix = infos['revision'] + '_'
+        idSuffix = '.tar.gz'
+        return join(_graal_home, "graalvm_" + archivtype + "_"  + idPrefix + middle + idSuffix)
+
+    def _genFileArchPlatformName(archivtype, middle):
+        return _genFileName(archivtype, infos['platform'] + '_' + infos['architecture'] + '_' + middle)
+
+
+    # archive different build types of hotspot
+    for vmBuild in _vmbuildChoices:
+        jdkpath = join(_jdksDir(), vmBuild)
+        if not exists(jdkpath):
+            mx.logv("skipping " + vmBuild)
+            continue
+
+        tarName = _genFileArchPlatformName('basejdk', vmBuild)
+        mx.logv("creating basejdk " + tarName)
+        vmSet = set()
+        with tarfile.open(tarName, 'w:gz') as tar:
+            for root, _, files in os.walk(jdkpath):
+                if basename(root) in _vmChoices.keys():
+                    # TODO: add some assert to check path assumption
+                    vmSet.add(root)
+                    continue
+
+                for f in files:
+                    name = join(root, f)
+                    # print name
+                    tar.add(name, name)
+
+            n = _writeJson("basejdk-" + vmBuild, {'vmbuild' : vmBuild})
+            tar.add(n, n)
+
+        # create a separate archive for each VM
+        for vm in vmSet:
+            bVm = basename(vm)
+            vmTarName = _genFileArchPlatformName('vm', vmBuild + '_' + bVm)
+            mx.logv("creating vm " + vmTarName)
+
+            debugFiles = set()
+            with tarfile.open(vmTarName, 'w:gz') as tar:
+                for root, _, files in os.walk(vm):
+                    for f in files:
+                        # TODO: mac, windows, solaris?
+                        if any(map(f.endswith, [".debuginfo"])):
+                            debugFiles.add(f)
+                        else:
+                            name = join(root, f)
+                            # print name
+                            tar.add(name, name)
+
+                n = _writeJson("vm-" + vmBuild + "-" + bVm, {'vmbuild' : vmBuild, 'vm' : bVm})
+                tar.add(n, n)
+
+            if len(debugFiles) > 0:
+                debugTarName = _genFileArchPlatformName('debugfilesvm', vmBuild + '_' + bVm)
+                mx.logv("creating debugfilesvm " + debugTarName)
+                with tarfile.open(debugTarName, 'w:gz') as tar:
+                    for f in debugFiles:
+                        name = join(root, f)
+                        # print name
+                        tar.add(name, name)
+
+                    n = _writeJson("debugfilesvm-" + vmBuild + "-" + bVm, {'vmbuild' : vmBuild, 'vm' : bVm})
+                    tar.add(n, n)
+
+    # graal directory
+    graalDirTarName = _genFileName('classfiles', 'javac')
+    mx.logv("creating graal " + graalDirTarName)
+    with tarfile.open(graalDirTarName, 'w:gz') as tar:
+        for root, _, files in os.walk("graal"):
+            for f in [f for f in files if not f.endswith('.java')]:
+                name = join(root, f)
+                # print name
+                tar.add(name, name)
+
+        n = _writeJson("graal", {'javacompiler' : 'javac'})
+        tar.add(n, n)
+
 
 def _run_benchmark(args, availableBenchmarks, runBenchmark):
 
@@ -861,7 +937,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         projectscp = mx.classpath(projs)
 
     if whitelist:
-        classes = list(set(classes) & set(whitelist))
+        classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -905,10 +981,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
 _unittestHelpSuffix = """
     Unittest options:
 
-      --short-only           run short testcases only
-      --long-only            run long testcases only
-      --baseline-whitelist   run only testcases which are known to
-                             work with the baseline compiler
+      --whitelist            run only testcases which are included
+                             in the given whitelist
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -945,10 +1019,7 @@ def unittest(args):
           formatter_class=RawDescriptionHelpFormatter,
           epilog=_unittestHelpSuffix,
         )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--short-only', action='store_true', help='run short testcases only')
-    group.add_argument('--long-only', action='store_true', help='run long testcases only')
-    parser.add_argument('--baseline-whitelist', action='store_true', help='run baseline testcases only')
+    parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
 
     ut_args = []
     delimiter = False
@@ -968,33 +1039,19 @@ def unittest(args):
         parsed_args, args = parser.parse_known_args(ut_args)
 
     whitelist = None
-    if parsed_args.baseline_whitelist:
-        baseline_whitelist_file = 'test/baseline_whitelist.txt'
+    if parsed_args.whitelist:
         try:
-            with open(join(_graal_home, baseline_whitelist_file)) as fp:
-                whitelist = [l.rstrip() for l in fp.readlines()]
+            with open(join(_graal_home, parsed_args.whitelist)) as fp:
+                whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
-            mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
+            mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    if parsed_args.long_only:
-        annotations = ['@LongTest', '@Parameters']
-    elif parsed_args.short_only:
-        annotations = ['@Test']
-    else:
-        annotations = ['@Test', '@LongTest', '@Parameters']
-
-    _unittest(args, annotations, whitelist=whitelist)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist)
 
 def shortunittest(args):
-    """alias for 'unittest --short-only'{0}"""
+    """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
 
-    args.insert(0, '--short-only')
-    unittest(args)
-
-def longunittest(args):
-    """alias for 'unittest --long-only'{0}"""
-
-    args.insert(0, '--long-only')
+    args = ['--whitelist', 'test/whitelist_shortunittest.txt'] + args
     unittest(args)
 
 def buildvms(args):
@@ -1102,6 +1159,11 @@ def _basic_gate_body(args, tasks):
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests:hosted-product')
         unittest([])
+        tasks.append(t.stop())
+
+    with VM('server', 'product'):  # hosted mode
+        t = Task('UnitTests-BaselineCompiler:hosted-product')
+        unittest(['--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
@@ -1306,7 +1368,7 @@ def c1visualizer(args):
         executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
 
     archive = join(libpath, 'c1visualizer_2014-04-22.zip')
-    if not exists(executable):
+    if not exists(executable) or not exists(archive):
         if not exists(archive):
             mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer_2014-04-22.zip'])
         zf = zipfile.ZipFile(archive, 'r')
@@ -1723,14 +1785,14 @@ def trufflejar(args=None):
     """make truffle.jar"""
 
     # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'])
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
 
     # We use the DSL processor as the starting point for the classpath - this
     # therefore includes the DSL processor, the DSL and the API.
     packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
 
     # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@LongTest', '@Parameters'], "truffle.jar:")
+    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
 
 
 def isGraalEnabled(vm):
@@ -1953,7 +2015,6 @@ def mx_init(suite):
         'gate' : [gate, '[-options]'],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'makejmhdeps' : [makejmhdeps, ''],
         'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],

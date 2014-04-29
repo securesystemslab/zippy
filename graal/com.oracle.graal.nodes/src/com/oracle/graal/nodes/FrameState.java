@@ -95,8 +95,8 @@ public final class FrameState extends VirtualState implements IterableNodeType {
         this.virtualObjectMappings = new NodeInputList<>(this, virtualObjectMappings);
         this.rethrowException = rethrowException;
         this.duringCall = duringCall;
-        assert !rethrowException || stackSize == 1 : "must have exception on top of the stack";
-        assert values.size() - localsSize - stackSize == monitorIds.size();
+        assert !this.rethrowException || this.stackSize == 1 : "must have exception on top of the stack";
+        assert this.locksSize() == this.monitorIds.size();
     }
 
     /**
@@ -220,6 +220,19 @@ public final class FrameState extends VirtualState implements IterableNodeType {
      * correctly in slot encoding: a long or double will be followed by a null slot.
      */
     public FrameState duplicateModified(int newBci, boolean newRethrowException, Kind popKind, ValueNode... pushedValues) {
+        return duplicateModified(newBci, method, newRethrowException, popKind, pushedValues);
+    }
+
+    /**
+     * Creates a copy of this frame state with one stack element of type popKind popped from the
+     * stack and the values in pushedValues pushed on the stack. The pushedValues will be formatted
+     * correctly in slot encoding: a long or double will be followed by a null slot.
+     */
+    public FrameState duplicateModified(Kind popKind, ValueNode... pushedValues) {
+        return duplicateModified(bci, method, rethrowException, popKind, pushedValues);
+    }
+
+    private FrameState duplicateModified(int newBci, ResolvedJavaMethod newMethod, boolean newRethrowException, Kind popKind, ValueNode... pushedValues) {
         ArrayList<ValueNode> copy = new ArrayList<>(values.subList(0, localsSize + stackSize));
         if (popKind != Kind.Void) {
             if (stackAt(stackSize() - 1) == null) {
@@ -238,7 +251,7 @@ public final class FrameState extends VirtualState implements IterableNodeType {
         int newStackSize = copy.size() - localsSize;
         copy.addAll(values.subList(localsSize + stackSize, values.size()));
 
-        FrameState other = graph().add(new FrameState(method, newBci, copy, localsSize, newStackSize, newRethrowException, false, monitorIds, virtualObjectMappings));
+        FrameState other = graph().add(new FrameState(newMethod, newBci, copy, localsSize, newStackSize, newRethrowException, false, monitorIds, virtualObjectMappings));
         other.setOuterFrameState(outerFrameState());
         return other;
     }
@@ -386,7 +399,7 @@ public final class FrameState extends VirtualState implements IterableNodeType {
 
     @Override
     public boolean verify() {
-        assertTrue(values.size() - localsSize - stackSize == monitorIds.size(), "mismatch in number of locks");
+        assertTrue(locksSize() == monitorIds.size(), "mismatch in number of locks");
         for (ValueNode value : values) {
             assertTrue(value == null || !value.isDeleted(), "frame state must not contain deleted nodes");
             assertTrue(value == null || value instanceof VirtualObjectNode || (value.getKind() != Kind.Void), "unexpected value: %s", value);

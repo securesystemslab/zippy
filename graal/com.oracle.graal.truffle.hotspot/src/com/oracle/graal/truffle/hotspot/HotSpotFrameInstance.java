@@ -88,13 +88,12 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
 
     public abstract CallTarget getTargetCallTarget();
 
-    public DirectCallNode getCallNode() {
+    public Node getCallNode() {
         Object receiver = stackFrame.getLocal(getNotifyIndex());
-        if (receiver instanceof DirectCallNode) {
-            return (DirectCallNode) receiver;
-        } else {
-            return null;
+        if (receiver instanceof DirectCallNode || receiver instanceof IndirectCallNode) {
+            return (Node) receiver;
         }
+        return null;
     }
 
     /**
@@ -146,10 +145,9 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
     }
 
     /**
-     * This class represents a frame that is taken from the
-     * {@link RootCallTarget#callProxy(VirtualFrame)} method.
+     * This class represents a frame that is taken from the {@link OptimizedCallTarget#callProxy}
+     * method.
      */
-    @SuppressWarnings("javadoc")
     public static final class CallTargetFrame extends HotSpotFrameInstance {
         public static final Method METHOD;
         static {

@@ -42,19 +42,19 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
-library@OKRA@path=lib/okra-1.8.jar
-library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8.jar
-library@OKRA@sourcePath=lib/okra-1.8-src.jar
-library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-src.jar
+library@OKRA@path=lib/okra-1.9.jar
+library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9.jar
+library@OKRA@sourcePath=lib/okra-1.9-src.jar
+library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-src.jar
 
-library@OKRA_WITH_SIM@path=lib/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
-library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
+library@OKRA_WITH_SIM@path=lib/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@sourcePath=lib/okra-1.9-with-sim-src.jar
+library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
-library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-8f0db117e64e.jar
-library@JAVA_ALLOCATION_INSTRUMENTER@sha1=64c0a5329fbcb8284640e58d83252e0a3b08c23e
+library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-c7e3525a6b90.jar
+library@JAVA_ALLOCATION_INSTRUMENTER@sha1=128eb20a4cd3362a4d8b94614e66647808a2e37c
 
 library@VECMATH@path=lib/vecmath-1.3.1.jar
 library@VECMATH@urls=http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/vecmath-1.3.1.jar
@@ -283,7 +283,7 @@ project@com.oracle.graal.debug.test@workingSets=Graal,Debug,Test
 # graal.lir
 project@com.oracle.graal.lir@subDir=graal
 project@com.oracle.graal.lir@sourceDirs=src
-project@com.oracle.graal.lir@dependencies=com.oracle.graal.nodes,com.oracle.graal.asm
+project@com.oracle.graal.lir@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.asm
 project@com.oracle.graal.lir@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir@javaCompliance=1.8
 project@com.oracle.graal.lir@workingSets=Graal,LIR
@@ -373,7 +373,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.lir
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
 project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
@@ -422,10 +422,11 @@ project@com.oracle.graal.loop@workingSets=Graal,Phases
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.8
 project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.compiler@annotationProcessorForDependents=true
 project@com.oracle.graal.compiler@workingSets=Graal
 
 # graal.compiler.amd64

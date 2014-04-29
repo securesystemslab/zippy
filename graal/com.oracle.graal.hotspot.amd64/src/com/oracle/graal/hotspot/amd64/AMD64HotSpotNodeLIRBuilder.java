@@ -26,15 +26,15 @@ import static com.oracle.graal.amd64.AMD64.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.hotspot.HotSpotBackend.*;
 
-import java.lang.reflect.*;
-
 import com.oracle.graal.amd64.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.AMD64Address.Scale;
 import com.oracle.graal.compiler.amd64.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.match.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
@@ -45,17 +45,61 @@ import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.amd64.AMD64Move.CompareAndSwapOp;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 
 /**
  * LIR generator specialized for AMD64 HotSpot.
  */
+@MatchableNodeImport({"com.oracle.graal.hotspot.nodes.HotSpotMatchableNodes"})
 public class AMD64HotSpotNodeLIRBuilder extends AMD64NodeLIRBuilder implements HotSpotNodeLIRBuilder {
 
-    public AMD64HotSpotNodeLIRBuilder(StructuredGraph graph, LIRGenerator gen) {
+    private static ValueNode filterCompression(ValueNode node) {
+        ValueNode result = node;
+        while (result instanceof CompressionNode) {
+            result = ((CompressionNode) result).getInput();
+        }
+        return result;
+    }
+
+    private void emitCompareCompressedMemory(IfNode ifNode, ValueNode valueNode, Access access, CompareNode compare) {
+        Value value;
+        // This works by embedding the compressed form for constants, so force a constant instead of
+        // respecting what operand() would return.
+        if (valueNode.isConstant()) {
+            value = valueNode.asConstant();
+        } else {
+            value = gen.load(operand(valueNode));
+        }
+        AMD64AddressValue address = makeAddress(access);
+
+        Condition cond = compare.condition();
+        Value left;
+        Value right;
+        if (access == filterCompression(compare.x())) {
+            left = value;
+            right = address;
+        } else {
+            assert access == filterCompression(compare.y());
+            left = address;
+            right = value;
+            cond = cond.mirror();
+        }
+
+        LabelRef trueLabel = getLIRBlock(ifNode.trueSuccessor());
+        LabelRef falseLabel = getLIRBlock(ifNode.falseSuccessor());
+        double trueLabelProbability = ifNode.probability(ifNode.trueSuccessor());
+        getGen().emitCompareBranchMemoryCompressed(left, right, cond, trueLabel, falseLabel, trueLabelProbability, getState(access));
+    }
+
+    public AMD64HotSpotNodeLIRBuilder(StructuredGraph graph, LIRGeneratorTool gen) {
         super(graph, gen);
-        memoryPeephole = new AMD64HotSpotMemoryPeephole(this);
+        assert gen instanceof AMD64HotSpotLIRGenerator;
+        assert getDebugInfoBuilder() instanceof HotSpotDebugInfoBuilder;
+        ((AMD64HotSpotLIRGenerator) gen).setLockStack(((HotSpotDebugInfoBuilder) getDebugInfoBuilder()).lockStack());
     }
 
     private AMD64HotSpotLIRGenerator getGen() {
@@ -107,7 +151,7 @@ public class AMD64HotSpotNodeLIRBuilder extends AMD64NodeLIRBuilder implements H
 
     @Override
     public void visitSafepointNode(SafepointNode i) {
-        LIRFrameState info = gen.state(i);
+        LIRFrameState info = state(i);
         append(new AMD64HotSpotSafepointOp(info, getGen().config, this));
     }
 
@@ -119,7 +163,7 @@ public class AMD64HotSpotNodeLIRBuilder extends AMD64NodeLIRBuilder implements H
         } else {
             assert invokeKind == InvokeKind.Static || invokeKind == InvokeKind.Special;
             HotSpotResolvedJavaMethod resolvedMethod = (HotSpotResolvedJavaMethod) callTarget.target();
-            assert !Modifier.isAbstract(resolvedMethod.getModifiers()) : "Cannot make direct call to abstract method.";
+            assert !resolvedMethod.isAbstract() : "Cannot make direct call to abstract method.";
             append(new AMD64HotspotDirectStaticCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind));
         }
     }
@@ -198,5 +242,41 @@ public class AMD64HotSpotNodeLIRBuilder extends AMD64NodeLIRBuilder implements H
         Variable result = newVariable(x.getKind());
         gen.emitMove(result, raxLocal);
         setResult(x, result);
+    }
+
+    /**
+     * Helper class to convert the NodeLIRBuilder into the current subclass.
+     */
+    static abstract class AMD64HotSpotMatchGenerator implements MatchGenerator {
+        public AMD64HotSpotMatchGenerator() {
+        }
+
+        public ComplexMatchResult match(NodeLIRBuilder gen) {
+            return match((AMD64HotSpotNodeLIRBuilder) gen);
+        }
+
+        abstract public ComplexMatchResult match(AMD64HotSpotNodeLIRBuilder gen);
+    }
+
+    @MatchRule("(If (ObjectEquals=compare Constant=value (Compression Read=access)))")
+    @MatchRule("(If (ObjectEquals=compare Constant=value (Compression FloatingRead=access)))")
+    @MatchRule("(If (ObjectEquals=compare (Compression value) (Compression Read=access)))")
+    @MatchRule("(If (ObjectEquals=compare (Compression value) (Compression FloatingRead=access)))")
+    public static class IfCompareMemory extends AMD64HotSpotMatchGenerator {
+        IfNode root;
+        Access access;
+        ValueNode value;
+        CompareNode compare;
+
+        @Override
+        public ComplexMatchResult match(AMD64HotSpotNodeLIRBuilder gen) {
+            if (HotSpotGraalRuntime.runtime().getConfig().useCompressedOops) {
+                return builder -> {
+                    gen.emitCompareCompressedMemory(root, value, access, compare);
+                    return null;
+                };
+            }
+            return null;
+        }
     }
 }

@@ -29,12 +29,11 @@ import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.spi.*;
 
 /**
- * Describes the possible values of a {@link ValueNode} that produces an int or long result.
+ * Describes the possible values of a node that produces an int or long result.
  *
  * The description consists of (inclusive) lower and upper bounds and up (may be set) and down
  * (always set) bit-masks.
  */
-@SuppressWarnings("javadoc")
 public class IntegerStamp extends PrimitiveStamp {
 
     private final long lowerBound;
@@ -79,7 +78,7 @@ public class IntegerStamp extends PrimitiveStamp {
     }
 
     @Override
-    public PlatformKind getPlatformKind(LIRTypeTool tool) {
+    public PlatformKind getPlatformKind(PlatformKindTool tool) {
         return tool.getIntegerKind(getBits());
     }
 

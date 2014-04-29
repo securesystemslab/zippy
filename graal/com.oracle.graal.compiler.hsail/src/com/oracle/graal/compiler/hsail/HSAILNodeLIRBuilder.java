@@ -28,6 +28,7 @@ import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.hsail.*;
 import com.oracle.graal.nodes.*;
 
@@ -36,7 +37,7 @@ import com.oracle.graal.nodes.*;
  */
 public abstract class HSAILNodeLIRBuilder extends NodeLIRBuilder {
 
-    public HSAILNodeLIRBuilder(StructuredGraph graph, LIRGenerator lirGen) {
+    public HSAILNodeLIRBuilder(StructuredGraph graph, LIRGeneratorTool lirGen) {
         super(graph, lirGen);
     }
 
@@ -66,7 +67,7 @@ public abstract class HSAILNodeLIRBuilder extends NodeLIRBuilder {
         assert v.stamp() instanceof ObjectStamp;
         Variable obj = newVariable(Kind.Object);
         gen.emitMove(obj, operand(v));
-        append(new HSAILMove.NullCheckOp(obj, gen.state(deopting)));
+        append(new HSAILMove.NullCheckOp(obj, state(deopting)));
     }
 
     @Override

@@ -608,6 +608,17 @@ class HgConfig:
             else:
                 return None
 
+    def isDirty(self, sDir, abortOnError=True):
+        try:
+            return len(subprocess.check_output(['hg', 'status', '-R', sDir])) > 0
+        except OSError:
+            warn(self.missing)
+        except subprocess.CalledProcessError:
+            if abortOnError:
+                abort('failed to get status')
+            else:
+                return None
+
 class Suite:
     def __init__(self, mxDir, primary, load=True):
         self.dir = dirname(mxDir)
@@ -1800,11 +1811,13 @@ def build(args, parser=None):
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
-    parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
-    parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
     parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
-    parser.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
+    compilerSelect = parser.add_mutually_exclusive_group()
+    compilerSelect.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
+    compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
+    compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
+
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -1886,12 +1899,11 @@ def build(args, parser=None):
 
         cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
-        mustBuild = args.force
-        if not mustBuild:
+        buildReason = 'forced build' if args.force else None
+        if not buildReason:
             for dep in p.all_deps([], False):
                 if dep.name in built:
-                    mustBuild = True
-
+                    buildReason = dep.name + ' rebuilt'
 
         jasminAvailable = None
         javafilelist = []
@@ -1940,20 +1952,19 @@ def build(args, parser=None):
                         if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
-                if not mustBuild:
+                if not buildReason:
                     for javafile in javafiles:
                         classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
                         if not classfile.exists() or classfile.isOlderThan(javafile):
-                            mustBuild = True
+                            buildReason = 'class file(s) out of date'
                             break
 
         aps = p.annotation_processors()
         apsOutOfDate = p.update_current_annotation_processors_file()
         if apsOutOfDate:
-            logv('[annotation processors for {0} changed]'.format(p.name))
-            mustBuild = True
+            buildReason = 'annotation processor(s) changed'
 
-        if not mustBuild:
+        if not buildReason:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
@@ -1985,10 +1996,14 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+
+            def logCompilation(p, compiler, reason):
+                log('Compiling Java sources for {} with {}... [{}]'.format(p.name, compiler, reason))
+
             if not jdtJar:
                 mainJava = java()
                 if not args.error_prone:
-                    log('Compiling Java sources for {0} with javac...'.format(p.name))
+                    logCompilation(p, 'javac', buildReason)
                     javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     if jdk.debug_port is not None:
                         javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
@@ -1999,7 +2014,7 @@ def build(args, parser=None):
                         javacCmd.append('-XDignore.symbol.file')
                     run(javacCmd)
                 else:
-                    log('Compiling Java sources for {0} with javac (with error-prone)...'.format(p.name))
+                    logCompilation(p, 'javac (with error-prone)', buildReason)
                     javaArgs = ['-Xmx1g']
                     javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     javacArgs += processorArgs
@@ -2008,7 +2023,7 @@ def build(args, parser=None):
                         javacArgs.append('-XDignore.symbol.file')
                     run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
             else:
-                log('Compiling Java sources for {0} with JDT...'.format(p.name))
+                logCompilation(p, 'JDT', buildReason)
 
                 jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
 
@@ -3843,7 +3858,7 @@ def ideclean(args):
 
 
 def ideinit(args, refreshOnly=False, buildProcessorJars=True):
-    """(re)generate Eclipse and NetBeans project configurations"""
+    """(re)generate Eclipse, NetBeans and Intellij project configurations"""
     eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     intellijinit(args, refreshOnly=refreshOnly)
@@ -3981,7 +3996,13 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
             try:
                 log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
                 projectJava = java(p.javaCompliance)
-                run([java().javadoc, memory,
+
+                # Once https://bugs.openjdk.java.net/browse/JDK-8041628 is fixed,
+                # this should be reverted to:
+                # javadocExe = java().javadoc
+                javadocExe = projectJava.javadoc
+
+                run([javadocExe, memory,
                      '-XDignore.symbol.file',
                      '-classpath', cp,
                      '-quiet',
@@ -3991,6 +4012,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
                      '-source', str(projectJava.javaCompliance),
                      '-bootclasspath', projectJava.bootclasspath(),
                      '-extdirs', projectJava.extdirs()] +
+                     ([] if projectJava.javaCompliance < JavaCompliance('1.8') else ['-Xdoclint:none']) +
                      links +
                      extraArgs +
                      nowarnAPI +
@@ -4028,115 +4050,19 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
              '-quiet',
              '-d', out,
              '-sourcepath', sp] +
+             ([] if java().javaCompliance < JavaCompliance('1.8') else ['-Xdoclint:none']) +
              links +
              extraArgs +
              nowarnAPI +
              list(pkgs))
         log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
 
-class Chunk:
-    def __init__(self, content, ldelim, rdelim=None):
-        lindex = content.find(ldelim)
-        if rdelim is not None:
-            rindex = content.find(rdelim)
-        else:
-            rindex = lindex + len(ldelim)
-        self.ldelim = ldelim
-        self.rdelim = rdelim
-        if lindex != -1 and rindex != -1 and rindex > lindex:
-            self.text = content[lindex + len(ldelim):rindex]
-        else:
-            self.text = None
-
-    def replace(self, content, repl):
-        lindex = content.find(self.ldelim)
-        if self.rdelim is not None:
-            rindex = content.find(self.rdelim)
-            rdelimLen = len(self.rdelim)
-        else:
-            rindex = lindex + len(self.ldelim)
-            rdelimLen = 0
-        old = content[lindex:rindex + rdelimLen]
-        return content.replace(old, repl)
-
-# Post-process an overview-summary.html file to move the
-# complete overview to the top of the page
-def _fix_overview_summary(path, topLink):
-    """
-    Processes an "overview-summary.html" generated by javadoc to put the complete
-    summary text above the Packages table.
-    """
-
-    # This uses scraping and so will break if the relevant content produced by javadoc changes in any way!
-    with open(path) as fp:
-        content = fp.read()
-
-    chunk1 = Chunk(content, """<div class="header">
-<div class="subTitle">
-<div class="block">""", """</div>
-</div>
-<p>See: <a href="#overview.description">Description</a></p>
-</div>""")
-
-    chunk2 = Chunk(content, """<div class="contentContainer"><a name="overview.description">
-<!--   -->
-</a>
-<div class="block">""", """</div>
-</div>
-<!-- ======= START OF BOTTOM NAVBAR ====== -->""")
-
-    assert chunk1.text, 'Could not find header section in ' + path
-    assert chunk2.text, 'Could not find footer section in ' + path
-
-    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text + '</div></div></div>')
-    content = chunk2.replace(content, '')
-
-    with open(path, 'w') as fp:
-        fp.write(content)
-
-
-# Post-process a package-summary.html file to move the
-# complete package description to the top of the page
-def _fix_package_summary(path):
-    """
-    Processes an "overview-summary.html" generated by javadoc to put the complete
-    summary text above the Packages table.
-    """
-
-    # This uses scraping and so will break if the relevant content produced by javadoc changes in any way!
-    with open(path) as fp:
-        content = fp.read()
-
-    chunk1 = Chunk(content, """<div class="header">
-<h1 title="Package" class="title">Package""", """<p>See:&nbsp;<a href="#package.description">Description</a></p>
-</div>""")
-
-    chunk2 = Chunk(content, """<a name="package.description">
-<!--   -->
-</a>""", """</div>
-</div>
-<!-- ======= START OF BOTTOM NAVBAR ====== -->""")
-
-    if chunk1.text:
-        if chunk2.text:
-            repl = re.sub(r'<h2 title=(.*) Description</h2>', r'<h1 title=\1</h1>', chunk2.text, 1)
-            content = chunk1.replace(content, '<div class="header">' + repl + '</div></div>')
-            content = chunk2.replace(content, '')
-
-            with open(path, 'w') as fp:
-                fp.write(content)
-        else:
-            log('warning: Could not find package description detail section in ' + path)
-
-    else:
-        # no package description given
-        pass
-
 def site(args):
     """creates a website containing javadoc and the project dependency graph"""
 
     parser = ArgumentParser(prog='site')
     parser.add_argument('-d', '--base', action='store', help='directory for generated site', required=True, metavar='<dir>')
+    parser.add_argument('--tmp', action='store', help='directory to use for intermediate results', metavar='<dir>')
     parser.add_argument('--name', action='store', help='name of overall documentation', required=True, metavar='<name>')
     parser.add_argument('--overview', action='store', help='path to the overview content for overall documentation', required=True, metavar='<path>')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
@@ -4147,7 +4073,7 @@ def site(args):
     args = parser.parse_args(args)
 
     args.base = os.path.abspath(args.base)
-    tmpbase = tempfile.mkdtemp(prefix=basename(args.base) + '.', dir=dirname(args.base))
+    tmpbase = args.tmp if args.tmp else  tempfile.mkdtemp(prefix=basename(args.base) + '.', dir=dirname(args.base))
     unified = join(tmpbase, 'all')
 
     exclude_packages_arg = []
@@ -4196,6 +4122,9 @@ def site(args):
                  '--arg', '@-windowtitle', '--arg', '@' + title,
                  '--arg', '@-doctitle', '--arg', '@' + title,
                  '--arg', '@-overview', '--arg', '@' + args.overview] + exclude_packages_arg + projects_arg + extra_javadoc_args)
+
+        if exists(unified):
+            shutil.rmtree(unified)
         os.rename(join(tmpbase, 'javadoc'), unified)
 
         # Generate dependency graph with Graphviz
@@ -4249,29 +4178,17 @@ def site(args):
             with open(html, 'w') as fp:
                 print >> fp, '<html><body><object data="{}.svg" type="image/svg+xml"></object></body></html>'.format(args.dot_output_base)
 
-        top = join(tmpbase, 'all', 'overview-summary.html')
-        for root, _, files in os.walk(tmpbase):
-            for f in files:
-                if f == 'overview-summary.html':
-                    path = join(root, f)
-                    topLink = ''
-                    if top != path:
-                        link = os.path.relpath(join(tmpbase, 'all', 'index.html'), dirname(path))
-                        topLink = '<p><a href="' + link + '", target="_top"><b>[return to the overall ' + args.name + ' documentation]</b></a></p>'
-                    _fix_overview_summary(path, topLink)
-                elif f == 'package-summary.html':
-                    path = join(root, f)
-                    _fix_package_summary(path)
-
-
         if exists(args.base):
             shutil.rmtree(args.base)
-        shutil.move(tmpbase, args.base)
+        if args.tmp:
+            shutil.copytree(tmpbase, args.base)
+        else:
+            shutil.move(tmpbase, args.base)
 
         print 'Created website - root is ' + join(args.base, 'all', 'index.html')
 
     finally:
-        if exists(tmpbase):
+        if not args.tmp and exists(tmpbase):
             shutil.rmtree(tmpbase)
 
 def _kwArg(kwargs):
@@ -4345,6 +4262,7 @@ def exportlibs(args):
 
     parser = ArgumentParser(prog='exportlibs')
     parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
+    parser.add_argument('-a', '--include-all', action='store_true', help="include all defined libaries")
     parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
     parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
     parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
@@ -4365,9 +4283,44 @@ def exportlibs(args):
             else:
                 logv('[already added ' + path + ']')
 
-        for lib in _libs.itervalues():
-            if len(lib.urls) != 0 or args.include_system_libs:
-                add(lib.get_path(resolve=True), lib.path)
+        libsToExport = set()
+        if args.include_all:
+            for lib in _libs.itervalues():
+                libsToExport.add(lib)
+        else:
+            def isValidLibrary(dep):
+                if dep in _libs.iterkeys():
+                    lib = _libs[dep]
+                    if len(lib.urls) != 0 or args.include_system_libs:
+                        return lib
+                return None
+
+            # iterate over all project dependencies and find used libraries
+            for p in _projects.itervalues():
+                for dep in p.deps:
+                    r = isValidLibrary(dep)
+                    if r:
+                        libsToExport.add(r)
+
+            # a library can have other libraries as dependency
+            size = 0
+            while size != len(libsToExport):
+                size = len(libsToExport)
+                for lib in libsToExport.copy():
+                    for dep in lib.deps:
+                        r = isValidLibrary(dep)
+                        if r:
+                            libsToExport.add(r)
+
+        for lib in libsToExport:
+            add(lib.get_path(resolve=True), lib.path)
+            if lib.sha1:
+                add(lib.get_path(resolve=True) + ".sha1", lib.path + ".sha1")
+            if lib.sourcePath:
+                add(lib.get_source_path(resolve=True), lib.sourcePath)
+                if lib.sourceSha1:
+                    add(lib.get_source_path(resolve=True) + ".sha1", lib.sourcePath + ".sha1")
+
         if args.extras:
             for e in args.extras:
                 if os.path.isdir(e):

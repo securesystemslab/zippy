@@ -49,7 +49,6 @@ import com.oracle.graal.asm.hsail.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.gpu.*;
@@ -61,6 +60,7 @@ import com.oracle.graal.hsail.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.hsail.*;
 import com.oracle.graal.lir.hsail.HSAILControlFlow.DeoptimizingOp;
 import com.oracle.graal.lir.hsail.HSAILMove.AtomicReadAndAddOp;
@@ -69,6 +69,7 @@ import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.tiers.*;
@@ -301,9 +302,8 @@ public class HSAILHotSpotBackend extends HotSpotBackend {
         for (CodeAnnotation annotation : hostCode.getAnnotations()) {
             result.addAnnotation(annotation);
         }
-        CompilationResult.Mark[] noMarks = {};
         for (Mark mark : hostCode.getMarks()) {
-            result.recordMark(mark.pcOffset, mark.id, noMarks);
+            result.recordMark(mark.pcOffset, mark.id);
         }
         for (ExceptionHandler handler : hostCode.getExceptionHandlers()) {
             result.recordExceptionHandler(handler.pcOffset, handler.handlerPos);
@@ -375,7 +375,7 @@ public class HSAILHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public LIRGenerator newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes) {
+    public LIRGeneratorTool newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes) {
         return new HSAILHotSpotLIRGenerator(getProviders(), getRuntime().getConfig(), cc, lirGenRes);
     }
 
@@ -385,7 +385,7 @@ public class HSAILHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen) {
+    public NodeLIRBuilderTool newNodeLIRBuilder(StructuredGraph graph, LIRGeneratorTool lirGen) {
         return new HSAILHotSpotNodeLIRBuilder(graph, lirGen);
     }
 
@@ -468,7 +468,7 @@ public class HSAILHotSpotBackend extends HotSpotBackend {
         // We're subtracting 1 because we're not making the final gid as a parameter.
 
         int nonConstantParamCount = sigParamCount - 1;
-        boolean isStatic = (Modifier.isStatic(method.getModifiers()));
+        boolean isStatic = (method.isStatic());
         // Determine if this is an object lambda.
         boolean isObjectLambda = true;
 

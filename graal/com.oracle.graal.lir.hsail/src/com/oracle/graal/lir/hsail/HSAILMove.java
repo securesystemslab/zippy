@@ -402,7 +402,8 @@ public class HSAILMove {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
-            throw new InternalError("NYI");
+            HSAILAddress addr = address.toAddress();
+            masm.emitLea(result, addr);
         }
     }
 
@@ -476,6 +477,32 @@ public class HSAILMove {
                 default:
                     throw GraalInternalError.shouldNotReachHere();
             }
+        }
+    }
+
+    @Opcode("ATOMIC_READ_AND_WRITE")
+    public static class AtomicReadAndWriteOp extends HSAILLIRInstruction {
+
+        private final Kind accessKind;
+
+        @Def protected AllocatableValue result;
+        @Use({COMPOSITE}) protected HSAILAddressValue address;
+        @Use({REG, CONST}) protected Value newValue;
+
+        public AtomicReadAndWriteOp(Kind accessKind, AllocatableValue result, HSAILAddressValue address, Value newValue) {
+            this.accessKind = accessKind;
+            this.result = result;
+            this.address = address;
+            this.newValue = newValue;
+        }
+
+        public HSAILAddressValue getAddress() {
+            return address;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            masm.emitAtomicExch(accessKind, result, address.toAddress(), newValue);
         }
     }
 

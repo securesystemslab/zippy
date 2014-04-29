@@ -27,7 +27,6 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.hsail.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.hotspot.*;
@@ -35,6 +34,7 @@ import com.oracle.graal.hotspot.HotSpotVMConfig.CompressEncoding;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.hsail.*;
 import com.oracle.graal.lir.hsail.HSAILMove.CompareAndSwapOp;
 import com.oracle.graal.nodes.*;
@@ -44,7 +44,7 @@ import com.oracle.graal.nodes.*;
  */
 public class HSAILHotSpotNodeLIRBuilder extends HSAILNodeLIRBuilder implements HotSpotNodeLIRBuilder {
 
-    public HSAILHotSpotNodeLIRBuilder(StructuredGraph graph, LIRGenerator lirGen) {
+    public HSAILHotSpotNodeLIRBuilder(StructuredGraph graph, LIRGeneratorTool lirGen) {
         super(graph, lirGen);
     }
 
@@ -105,7 +105,7 @@ public class HSAILHotSpotNodeLIRBuilder extends HSAILNodeLIRBuilder implements H
     public void visitSafepointNode(SafepointNode i) {
         HotSpotVMConfig config = getGen().config;
         if (config.useHSAILSafepoints == true) {
-            LIRFrameState info = gen.state(i);
+            LIRFrameState info = state(i);
             HSAILHotSpotSafepointOp safepoint = new HSAILHotSpotSafepointOp(info, config, this);
             ((HSAILHotSpotLIRGenerationResult) getGen().getResult()).addDeopt(safepoint);
             append(safepoint);

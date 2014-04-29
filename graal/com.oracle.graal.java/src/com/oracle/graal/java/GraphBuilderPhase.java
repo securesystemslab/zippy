@@ -26,8 +26,6 @@ import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 import static com.oracle.graal.bytecode.Bytecodes.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
-import static java.lang.reflect.Modifier.*;
-
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
@@ -46,7 +44,6 @@ import com.oracle.graal.java.BciBlockMapping.ExceptionDispatchBlock;
 import com.oracle.graal.java.BciBlockMapping.LocalLiveness;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
@@ -723,7 +720,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
                      * https://wikis.oracle.com/display/HotSpotInternals/Method+handles
                      * +and+invokedynamic
                      */
-                    boolean hasReceiver = !isStatic(((ResolvedJavaMethod) target).getModifiers());
+                    boolean hasReceiver = !((ResolvedJavaMethod) target).isStatic();
                     Constant appendix = constantPool.lookupAppendix(stream.readCPI(), Bytecodes.INVOKEVIRTUAL);
                     if (appendix != null) {
                         frameState.apush(ConstantNode.forConstant(appendix, metaAccess, currentGraph));
@@ -1089,7 +1086,7 @@ public class GraphBuilderPhase extends BasePhase<HighTierContext> {
             }
 
             private ValueNode synchronizedObject(HIRFrameStateBuilder state, ResolvedJavaMethod target) {
-                if (isStatic(target.getModifiers())) {
+                if (target.isStatic()) {
                     return appendConstant(target.getDeclaringClass().getEncoding(Representation.JavaClass));
                 } else {
                     return state.loadLocal(0);

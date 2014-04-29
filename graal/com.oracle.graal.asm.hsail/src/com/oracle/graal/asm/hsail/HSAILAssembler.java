@@ -136,6 +136,11 @@ public abstract class HSAILAssembler extends AbstractHSAILAssembler {
         emitAddrOp("lda_global_u64", dest, addr);
     }
 
+    public final void emitLea(Value dest, HSAILAddress addr) {
+        String prefix = getArgType(dest);
+        emitString(String.format("add_%s %s, $%s, 0x%s;", prefix, HSAIL.mapRegister(dest), addr.getBase().name, Long.toHexString(addr.getDisplacement())));
+    }
+
     public final void emitLoadKernelArg(Value dest, String kernArgName, String argTypeStr) {
         emitString("ld_kernarg_" + argTypeStr + " " + HSAIL.mapRegister(dest) + ", [" + kernArgName + "];");
     }
@@ -249,6 +254,9 @@ public abstract class HSAILAssembler extends AbstractHSAILAssembler {
                 break;
             case Byte:
                 prefix = "s8";
+                break;
+            case Boolean:
+                prefix = "u8";
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -545,6 +553,17 @@ public abstract class HSAILAssembler extends AbstractHSAILAssembler {
         }
         String prefix = getArgTypeForceUnsigned(result);
         emitString(String.format("atomic_add_global_%s   %s, %s, %s;", prefix, HSAIL.mapRegister(result), mapAddress(address), mapRegOrConstToString(mydelta)));
+    }
+
+    /**
+     * Emits an atomic_exch_global instruction.
+     *
+     * @param result result operand that gets the original contents of the memory location
+     * @param address the memory location
+     * @param newValue the new value to write to the memory location
+     */
+    public void emitAtomicExch(Kind accessKind, AllocatableValue result, HSAILAddress address, Value newValue) {
+        emitString(String.format("atomic_exch_global_b%d   %s, %s, %s;", getArgSizeFromKind(accessKind), HSAIL.mapRegister(result), mapAddress(address), mapRegOrConstToString(newValue)));
     }
 
     /**

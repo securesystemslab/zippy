@@ -187,6 +187,8 @@ public final class GraalOptions {
 
     // Code generator settings
     @Option(help = "")
+    public static final OptionValue<Boolean> FlowSensitiveReduction = new OptionValue<>(false);
+    @Option(help = "")
     public static final OptionValue<Boolean> ConditionalElimination = new OptionValue<>(true);
     @Option(help = "")
     public static final OptionValue<Boolean> UseProfilingInformation = new OptionValue<>(true);
@@ -272,7 +274,9 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Boolean> OptPushThroughPi = new OptionValue<>(true);
     @Option(help = "Allow backend to emit arithmetic and compares directly against memory.")
-    public static final OptionValue<Boolean> OptFoldMemory = new OptionValue<>(true);
+    public static final OptionValue<Boolean> OptFoldMemory = new OptionValue<>(false);
+    @Option(help = "Allow backend to match complex expressions.")
+    public static final OptionValue<Boolean> MatchExpressions = new OptionValue<>(true);
 
 
     /**

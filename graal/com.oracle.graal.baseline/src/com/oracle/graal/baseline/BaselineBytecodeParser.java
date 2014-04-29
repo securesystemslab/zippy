@@ -44,13 +44,13 @@ import com.oracle.graal.java.BciBlockMapping.BciBlock;
 import com.oracle.graal.java.BciBlockMapping.LocalLiveness;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.BlockEndOp;
-import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
 
-public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFrameStateBuilder> implements BytecodeParserTool {
+public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, BaselineFrameStateBuilder> implements BytecodeParserTool {
     private Backend backend;
-    protected LIRGenerator gen;
+    protected LIRGeneratorTool gen;
     private LIRGenerationResult lirGenRes;
     private BytecodeLIRBuilder lirBuilder;
     @SuppressWarnings("unused") private BciBlock[] loopHeaders;
@@ -74,7 +74,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
     }
 
     public BaselineBytecodeParser(MetaAccessProvider metaAccess, ResolvedJavaMethod method, GraphBuilderConfiguration graphBuilderConfig, OptimisticOptimizations optimisticOpts,
-                    LIRFrameStateBuilder frameState, BytecodeStream stream, ProfilingInfo profilingInfo, ConstantPool constantPool, int entryBCI, Backend backend) {
+                    BaselineFrameStateBuilder frameState, BytecodeStream stream, ProfilingInfo profilingInfo, ConstantPool constantPool, int entryBCI, Backend backend) {
 
         super(metaAccess, method, graphBuilderConfig, optimisticOpts, frameState, stream, profilingInfo, constantPool, entryBCI);
         this.backend = backend;
@@ -109,7 +109,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
                 throw GraalInternalError.unimplemented("Handle synchronized methods");
             }
 
-            frameState = new LIRFrameStateBuilder(method);
+            frameState = new BaselineFrameStateBuilder(method);
             frameState.clearNonLiveLocals(blockMap.startBlock, liveness, true);
 
             currentBlock = blockMap.startBlock;
@@ -121,7 +121,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
             // add loops ? how do we add looks when we haven't parsed the bytecode?
 
             // create the control flow graph
-            LIRControlFlowGraph cfg = new LIRControlFlowGraph(blockMap);
+            BaselineControlFlowGraph cfg = new BaselineControlFlowGraph(blockMap);
 
             BlocksToDoubles blockProbabilities = new BlocksToDoubles(blockMap.blocks.size());
             for (BciBlock b : blockMap.blocks) {
@@ -608,7 +608,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
         }
 
         // We already saw this block before, so we have to merge states.
-        if (!((LIRFrameStateBuilder) block.entryState).isCompatibleWith(frameState)) {
+        if (!((BaselineFrameStateBuilder) block.entryState).isCompatibleWith(frameState)) {
             throw new BailoutException("stacks do not match; bytecodes would not verify");
         }
 
@@ -616,7 +616,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
             assert currentBlock == null || currentBlock.getId() >= block.getId() : "must be backward branch";
             if (currentBlock != null && currentBlock.numNormalSuccessors() == 1) {
                 // this is the only successor of the current block so we can adjust
-                adaptFramestate((LIRFrameStateBuilder) block.entryState);
+                adaptFramestate((BaselineFrameStateBuilder) block.entryState);
                 return;
             }
             GraalInternalError.unimplemented("Loops not yet supported");
@@ -630,7 +630,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
          */
         if (currentBlock != null && currentBlock.numNormalSuccessors() == 1) {
             // this is the only successor of the current block so we can adjust
-            adaptFramestate((LIRFrameStateBuilder) block.entryState);
+            adaptFramestate((BaselineFrameStateBuilder) block.entryState);
             return;
         }
         GraalInternalError.unimplemented("second block visit not yet implemented");
@@ -674,7 +674,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
         }
     }
 
-    private void adaptFramestate(LIRFrameStateBuilder other) {
+    private void adaptFramestate(BaselineFrameStateBuilder other) {
         assert frameState.isCompatibleWith(other) : "framestates not compatible!";
         PhiResolver resolver = new PhiResolver(gen);
         for (int i = 0; i < frameState.stackSize(); i++) {
@@ -692,7 +692,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, LIRFra
 
     @Override
     protected void processBlock(BciBlock block) {
-        frameState = (LIRFrameStateBuilder) block.entryState;
+        frameState = (BaselineFrameStateBuilder) block.entryState;
         setCurrentFrameState(frameState);
         currentBlock = block;
         iterateBytecodesForBlock(block);
