@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -77,7 +77,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         /**
          * This is a fix for comparisons involving a PyInteger.
-         * 
+         *
          * @param left
          * @param right
          * @return comparison result
@@ -246,12 +246,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class IsNode extends BinaryComparisonNode {
 
-        @SuppressWarnings("unused")
-        @Specialization(order = 0)
-        boolean doPNone(Object left, PNone right) {
-            return left.equals(PNone.NONE) ? true : false;
-        }
-
         @Specialization(order = 3)
         boolean doInteger(int left, int right) {
             return left == right;
@@ -267,6 +261,18 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left == right;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(order = 10)
+        boolean doLeftPNone(PNone left, Object right) {
+            return PNone.NONE == right;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 11)
+        boolean doRightPNone(Object left, PNone right) {
+            return left == PNone.NONE;
+        }
+
         @Generic
         public boolean doGeneric(Object left, Object right) {
             return left.equals(right);
@@ -275,32 +281,37 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class IsNotNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int left, int right) {
             return left != right;
         }
 
-        @Specialization
+        @Specialization(order = 2)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) != 0;
         }
 
-        @Specialization
+        @Specialization(order = 3)
         boolean doDouble(double left, double right) {
             return left != right;
         }
 
         @SuppressWarnings("unused")
-        @Specialization
-        public boolean doPNone(String left, PNone right) {
-            return true;
+        @Specialization(order = 10)
+        public boolean doLeftPNone(PNone left, Object right) {
+            return PNone.NONE != right;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 11)
+        public boolean doRightPNone(Object left, PNone right) {
+            return left != PNone.NONE;
         }
 
         @Generic
         public boolean doGeneric(Object left, Object right) {
             return !left.equals(right);
         }
-
     }
 
     public abstract static class InNode extends BinaryComparisonNode {
@@ -331,7 +342,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         public boolean doPDictionary(Object left, PDict right) {
             return right.hasKey(new Object[]{left});
         }
-
     }
 
     public abstract static class NotInNode extends BinaryComparisonNode {
