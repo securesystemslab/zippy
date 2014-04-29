@@ -65,6 +65,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         return new ObjectLiteralNode(globalScope);
     }
 
+    @Override
     public String getAttributeId() {
         return attributeId;
     }

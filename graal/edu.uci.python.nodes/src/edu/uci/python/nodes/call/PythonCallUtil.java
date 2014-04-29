@@ -22,14 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.object;
+package edu.uci.python.nodes.call;
 
-import edu.uci.python.nodes.*;
+import java.io.*;
 
-public interface HasPrimaryNode {
+import org.python.core.*;
 
-    PNode extractPrimary();
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
-    String getAttributeId();
+public class PythonCallUtil {
+
+    protected static boolean isPrimaryBoxed(Object primary) {
+        if (primary instanceof PythonModule) {
+            return true;
+        } else if (primary instanceof PythonClass) {
+            return true;
+        } else if (primary instanceof PythonObject) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected static void logJythonRuntime(PyObject callee) {
+        if (PythonOptions.TraceJythonRuntime) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy]: calling jython runtime function " + callee);
+        }
+    }
+
+    protected static boolean isBuiltin(PythonCallable callee) {
+        return callee instanceof PBuiltinFunction || callee instanceof PBuiltinMethod || callee instanceof PythonBuiltinClass;
+    }
+
+    protected static boolean isNotBuiltin(PythonCallable callee) {
+        return callee instanceof PFunction || callee instanceof PMethod || callee instanceof PythonClass;
+    }
 
 }

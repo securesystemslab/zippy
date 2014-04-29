@@ -24,18 +24,22 @@
  */
 package edu.uci.python.nodes.call;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
+import static edu.uci.python.nodes.call.PythonCallUtil.*;
 
 public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
@@ -50,27 +54,92 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return replace(next).executeCall(frame, primaryObj, arguments, keywords);
     }
 
-    protected static CallDispatchBoxedNode create(PythonContext context, PythonObject primary, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
+    protected static CallDispatchBoxedNode create(PythonContext context, PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
-        /**
-         * Treat generator as slow path for now.
-         */
-        if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
-        }
 
-        if (callee instanceof PFunction || callee instanceof PMethod) {
-            return new DispatchFunctionNode(primary, callee, next);
-        } else if (callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass) {
-            return new DispatchBuiltinNode(primary, callee, next);
-        } else if (callee instanceof PythonClass) {
-            PythonClass clazz = (PythonClass) callee;
-            PythonCallable ctor = clazz.lookUpMethod("__init__");
-            if (ctor instanceof PFunction) {
-                return new DispatchFunctionNode(primary, ctor, next);
-            } else if (ctor instanceof PBuiltinFunction) {
-                return new DispatchBuiltinNode(primary, ctor, next);
+        if (isNotBuiltin(callee)) {
+            ObjectLayout storageLayout = null;
+            ShapeCheckNode check = null;
+            if (primary instanceof PythonModule) {
+                if (primary.isOwnAttribute(calleeName)) {
+                    storageLayout = primary.getObjectLayout();
+                    check = ShapeCheckNode.create(primary, storageLayout, 0);
+                } else if (calleeNode instanceof ReadGlobalNode) {
+                    PythonModule builtinsModule = context.getBuiltins();
+
+                    if (builtinsModule.isOwnAttribute(calleeName)) {
+                        storageLayout = builtinsModule.getObjectLayout();
+                        check = ShapeCheckNode.create(primary, storageLayout, 1);
+                    }
+                }
+            } else if (primary.isOwnAttribute(calleeName)) {
+                storageLayout = primary.getObjectLayout();
+                check = ShapeCheckNode.create(primary, storageLayout, 0);
+            } else {
+                // class chain lookup
+                int depth = 1;
+                PythonClass current = primary.getPythonClass();
+                do {
+                    if (current.isOwnAttribute(calleeName)) {
+                        break;
+                    }
+
+                    current = current.getSuperClass();
+                    depth++;
+                } while (current != null);
+
+                if (current == null) {
+                    throw Py.AttributeError(primary + " object has no attribute " + calleeName);
+                }
+
+                storageLayout = current.getObjectLayout();
+                check = ShapeCheckNode.create(primary, storageLayout, depth);
             }
+
+            assert storageLayout != null && check != null;
+
+            /**
+             * Treat generator as slow path for now.
+             */
+            if (callee instanceof PGeneratorFunction) {
+                return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
+            }
+
+            if (callee instanceof PFunction || callee instanceof PMethod) {
+                return new DispatchFunctionNode(primary, callee, next);
+            } else if (callee instanceof PythonClass) {
+                PythonClass clazz = (PythonClass) callee;
+                PythonCallable ctor = clazz.lookUpMethod("__init__");
+                if (ctor instanceof PFunction) {
+                    return new DispatchFunctionNode(primary, ctor, next);
+                } else if (ctor instanceof PBuiltinFunction) {
+                    return new DispatchBuiltinNode(primary, ctor, storageLayout, check, next);
+                }
+            }
+        } else if (isBuiltin(callee)) {
+            ObjectLayout storageLayout = null;
+            ShapeCheckNode check = null;
+
+            if (primary instanceof PythonModule) {
+                if (primary.isOwnAttribute(calleeName)) {
+                    storageLayout = primary.getObjectLayout();
+                    check = ShapeCheckNode.create(primary, storageLayout, 0);
+                } else if (calleeNode instanceof ReadGlobalNode) {
+                    PythonModule builtinsModule = context.getBuiltins();
+
+                    if (builtinsModule.isOwnAttribute(calleeName)) {
+                        storageLayout = builtinsModule.getObjectLayout();
+                        check = ShapeCheckNode.create(primary, storageLayout, 1);
+                    }
+                }
+
+            } else if (primary instanceof PythonBuiltinClass) {
+                storageLayout = primary.getObjectLayout();
+                check = ShapeCheckNode.create(primary, storageLayout, 0);
+            }
+
+            assert storageLayout != null && check != null;
+            return new DispatchBuiltinNode(primary, callee, storageLayout, check, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -129,13 +198,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      */
     public static final class DispatchBuiltinNode extends CallDispatchBoxedNode {
 
+        @Child protected ShapeCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
         private final ObjectLayout cachedLayout;
         private final Assumption dispatchStable;
 
-        public DispatchBuiltinNode(PythonObject primary, PythonCallable callee, UninitializedDispatchBoxedNode next) {
+        public DispatchBuiltinNode(PythonObject primary, PythonCallable callee, ObjectLayout storageLayout, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             assert callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass;
 
@@ -145,6 +215,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 this.invoke = InvokeNode.create(callee, next.hasKeyword);
             }
 
+            this.check = check;
             this.next = next;
             this.cachedLayout = primary.getObjectLayout();
 
@@ -236,7 +307,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                specialized = replace(create(context, primaryObj, callee, calleeNode, keywords));
+                specialized = replace(create(context, primaryObj, calleeName, callee, calleeNode, keywords));
             } else {
                 specialized = current.replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
             }
