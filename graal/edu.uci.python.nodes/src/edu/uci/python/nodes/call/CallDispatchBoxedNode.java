@@ -59,19 +59,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
         }
 
-        if (callee instanceof PFunction) {
-            return new DispatchFunctionNode(primary, (PFunction) callee, next);
+        if (callee instanceof PFunction || callee instanceof PMethod) {
+            return new DispatchFunctionNode(primary, callee, next);
         } else if (callee instanceof PBuiltinFunction) {
             return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) callee, next);
         } else if (callee instanceof PythonBuiltinClass && primary instanceof PythonModule) {
             return new DispatchBuiltinConstructorNode(primary, (PythonBuiltinClass) callee, next);
-        } else if (callee instanceof PMethod) {
-            return new DispatchMethodNode(primary, (PMethod) callee, next);
         } else if (callee instanceof PythonClass) {
             PythonClass clazz = (PythonClass) callee;
             PythonCallable ctor = clazz.lookUpMethod("__init__");
             if (ctor instanceof PFunction) {
-                return new DispatchFunctionNode(primary, (PFunction) ctor, next);
+                return new DispatchFunctionNode(primary, ctor, next);
             } else if (ctor instanceof PBuiltinFunction) {
                 return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) ctor, next);
             }
@@ -85,7 +83,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      * <p>
      * 1. The global {@link PythonModule}. <br>
      * 3. A {@link PythonModule}. <br>
-     * 2. A {@link PythonClass}.
+     * 2. A {@link PythonClass}. <br>
+     * 4. A {@link PythonObject}
      *
      */
     public static final class DispatchFunctionNode extends CallDispatchBoxedNode {
@@ -97,14 +96,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         private final ObjectLayout cachedLayout;
         private final Assumption dispatchValid;
 
-        public DispatchFunctionNode(PythonObject primary, PFunction callee, UninitializedDispatchBoxedNode next) {
+        public DispatchFunctionNode(PythonObject primary, PythonCallable callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             // this.check = ShapeCheckNode.create(primary, storageLayout, depth);
             this.next = next;
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
             this.cachedLayout = primary.getObjectLayout();
             this.dispatchValid = primary.getStableAssumption();
-            assert primary instanceof PythonModule || primary instanceof PythonClass;
+            assert callee instanceof PFunction || callee instanceof PMethod;
         }
 
         @Override
@@ -199,42 +198,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
                 dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
             }
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            try {
-                dispatchStable.check();
-                if (cachedLayout == primaryObj.getObjectLayout()) {
-                    return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } else {
-                    return next.executeCall(frame, primaryObj, arguments, keywords);
-                }
-            } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
-            }
-        }
-    }
-
-    /**
-     * The primary is a {@link PythonObject}
-     *
-     */
-    public static final class DispatchMethodNode extends CallDispatchBoxedNode {
-
-        @Child protected InvokeNode invoke;
-        @Child protected CallDispatchBoxedNode next;
-
-        private final ObjectLayout cachedLayout;
-        private final Assumption dispatchStable;
-
-        public DispatchMethodNode(PythonObject primary, PMethod callee, UninitializedDispatchBoxedNode next) {
-            super(callee.getName());
-            this.invoke = InvokeNode.create(callee, next.hasKeyword);
-            this.next = next;
-            this.cachedLayout = primary.getObjectLayout();
-            this.dispatchStable = primary.getStableAssumption();
-            assert !(primary instanceof PythonClass);
         }
 
         @Override
