@@ -135,14 +135,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final PythonObject cachedPrimary;
+        private final ObjectLayout cachedLayout;
         private final Assumption dispatchStable;
 
         public DispatchBuiltinFunctionNode(PythonObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
             this.next = next;
-            this.cachedPrimary = primary;
+            this.cachedLayout = primary.getObjectLayout();
 
             if (primary instanceof PythonModule) {
                 Assumption globalStable = primary.getStableAssumption();
@@ -157,16 +157,16 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            if (primaryObj == cachedPrimary) {
-                try {
-                    dispatchStable.check();
+            try {
+                dispatchStable.check();
+                if (cachedLayout == primaryObj.getObjectLayout()) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } catch (InvalidAssumptionException ex) {
-                    return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
+                } else {
+                    return next.executeCall(frame, primaryObj, arguments, keywords);
                 }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
-
-            return next.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -181,7 +181,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final PythonObject cachedPrimary;
+        private final ObjectLayout cachedLayout;
         private final Assumption dispatchStable;
 
         public DispatchBuiltinConstructorNode(PythonObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
@@ -191,7 +191,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             this.next = next;
 
             assert primary instanceof PythonModule;
-            cachedPrimary = primary;
+            this.cachedLayout = primary.getObjectLayout();
             if (primary.equals(next.context.getBuiltins())) {
                 dispatchStable = primary.getStableAssumption();
             } else {
@@ -203,16 +203,16 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            if (cachedPrimary == primaryObj) {
-                try {
-                    dispatchStable.check();
+            try {
+                dispatchStable.check();
+                if (cachedLayout == primaryObj.getObjectLayout()) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } catch (InvalidAssumptionException ex) {
-                    return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
+                } else {
+                    return next.executeCall(frame, primaryObj, arguments, keywords);
                 }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
-
-            return next.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -225,30 +225,30 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final PythonClass cachedClass;
+        private final ObjectLayout cachedLayout;
         private final Assumption dispatchStable;
 
         public DispatchMethodNode(PythonObject primary, PMethod callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
             this.next = next;
-            this.cachedClass = primary.getPythonClass();
+            this.cachedLayout = primary.getObjectLayout();
             this.dispatchStable = primary.getStableAssumption();
             assert !(primary instanceof PythonClass);
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            if (primaryObj.getPythonClass() == cachedClass) {
-                try {
-                    dispatchStable.check();
+            try {
+                dispatchStable.check();
+                if (cachedLayout == primaryObj.getObjectLayout()) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } catch (InvalidAssumptionException ex) {
-                    return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
+                } else {
+                    return next.executeCall(frame, primaryObj, arguments, keywords);
                 }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
-
-            return next.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
