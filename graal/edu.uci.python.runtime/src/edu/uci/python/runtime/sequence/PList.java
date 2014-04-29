@@ -204,7 +204,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int len() {
+    public final int len() {
         return store.length();
     }
 
