@@ -163,7 +163,7 @@ def clean(args):
         rmIfExists(mx.distribution('GRAAL').path)
 
 def export(args):
-    """create archives of builds splitted by vmbuild and vm"""
+    """create archives of builds split by vmbuild and vm"""
 
     parser = ArgumentParser(prog='mx export')
     args = parser.parse_args(args)
@@ -174,8 +174,7 @@ def export(args):
 
     hgcfg = mx.HgConfig()
     hgcfg.check()
-    infos['revision'] = hgcfg.tip('.')
-    infos['revision_dirty'] = hgcfg.isDirty('.')
+    infos['revision'] = hgcfg.tip('.') + ('+' if hgcfg.isDirty('.') else '')
     # TODO: infos['repository']
 
     infos['jdkversion'] = str(mx.java().version)

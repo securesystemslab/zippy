@@ -3996,7 +3996,13 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
             try:
                 log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
                 projectJava = java(p.javaCompliance)
-                run([projectJava.javadoc, memory,
+
+                # Once https://bugs.openjdk.java.net/browse/JDK-8041628 is fixed,
+                # this should be reverted to:
+                # javadocExe = java().javadoc
+                javadocExe = projectJava.javadoc
+
+                run([javadocExe, memory,
                      '-XDignore.symbol.file',
                      '-classpath', cp,
                      '-quiet',
