@@ -227,7 +227,7 @@ public class PList extends PSequence {
         store.reverse();
     }
 
-    public void append(Object value) {
+    public final void append(Object value) {
         if (store instanceof EmptySequenceStorage) {
             store = store.generalizeFor(value);
         }
