@@ -24,7 +24,7 @@ def measure():
 	print("builtin-len: " + duration)
 
 #warm up
-for run in range(10000):
-	callLen(50000, [1,2,3,4,5])
+for run in range(5000):
+	callLen(10000, [1,2,3,4,5])
 
 measure()

@@ -566,12 +566,17 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return arg.length();
         }
 
-        @Specialization(order = 1)
+        @Specialization
         public int len(PTuple tuple) {
             return tuple.len();
         }
 
-        @Specialization(order = 5)
+        @Specialization
+        public int len(PList list) {
+            return list.len();
+        }
+
+        @Specialization
         public int len(PIterable iterable) {
             return iterable.len();
         }
