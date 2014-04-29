@@ -291,9 +291,7 @@ public abstract class PythonCallNode extends PNode {
                 if (result instanceof PyObject) {
                     PyObject pyobj = (PyObject) result;
                     logJythonRuntime(pyobj);
-                    CallJythonNode specialized = new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes);
-                    replace(specialized);
-                    return specialized.executeCall(frame, pyobj);
+                    return replace(new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes)).executeCall(frame, pyobj);
                 }
 
                 throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
@@ -361,10 +359,8 @@ public abstract class PythonCallNode extends PNode {
 
         private static void logJythonRuntime(PyObject callee) {
             if (PythonOptions.TraceJythonRuntime) {
-                // CheckStyle: stop system..print check
                 PrintStream ps = System.out;
                 ps.println("[ZipPy]: calling jython runtime function " + callee);
-                // CheckStyle: resume system..print check
             }
         }
     }

@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -89,6 +90,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      */
     public static final class DispatchFunctionNode extends CallDispatchBoxedNode {
 
+        @Child protected ShapeCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
@@ -97,6 +99,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         public DispatchFunctionNode(PythonObject primary, PFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
+            // this.check = ShapeCheckNode.create(primary, storageLayout, depth);
             this.next = next;
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
             this.cachedPrimary = primary;
