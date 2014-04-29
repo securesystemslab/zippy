@@ -61,17 +61,15 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         if (callee instanceof PFunction || callee instanceof PMethod) {
             return new DispatchFunctionNode(primary, callee, next);
-        } else if (callee instanceof PBuiltinFunction) {
-            return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) callee, next);
-        } else if (callee instanceof PythonBuiltinClass && primary instanceof PythonModule) {
-            return new DispatchBuiltinConstructorNode(primary, (PythonBuiltinClass) callee, next);
+        } else if (callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass) {
+            return new DispatchBuiltinNode(primary, callee, next);
         } else if (callee instanceof PythonClass) {
             PythonClass clazz = (PythonClass) callee;
             PythonCallable ctor = clazz.lookUpMethod("__init__");
             if (ctor instanceof PFunction) {
                 return new DispatchFunctionNode(primary, ctor, next);
             } else if (ctor instanceof PBuiltinFunction) {
-                return new DispatchBuiltinFunctionNode(primary, (PBuiltinFunction) ctor, next);
+                return new DispatchBuiltinNode(primary, ctor, next);
             }
         }
 
@@ -129,7 +127,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      * 3. A built-in {@link PythonBuiltinClass}.
      *
      */
-    public static final class DispatchBuiltinFunctionNode extends CallDispatchBoxedNode {
+    public static final class DispatchBuiltinNode extends CallDispatchBoxedNode {
 
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
@@ -137,16 +135,27 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         private final ObjectLayout cachedLayout;
         private final Assumption dispatchStable;
 
-        public DispatchBuiltinFunctionNode(PythonObject primary, PBuiltinFunction callee, UninitializedDispatchBoxedNode next) {
+        public DispatchBuiltinNode(PythonObject primary, PythonCallable callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            this.invoke = InvokeNode.create(callee, next.hasKeyword);
+            assert callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass;
+
+            if (callee instanceof PythonBuiltinClass) {
+                this.invoke = InvokeNode.create(((PythonBuiltinClass) callee).lookUpMethod("__init__"), next.hasKeyword);
+            } else {
+                this.invoke = InvokeNode.create(callee, next.hasKeyword);
+            }
+
             this.next = next;
             this.cachedLayout = primary.getObjectLayout();
 
             if (primary instanceof PythonModule) {
-                Assumption globalStable = primary.getStableAssumption();
-                Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
-                dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+                if (primary.equals(next.context.getBuiltins())) {
+                    dispatchStable = primary.getStableAssumption();
+                } else {
+                    Assumption globalStable = primary.getStableAssumption();
+                    Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
+                    dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
+                }
             } else if (primary instanceof PythonBuiltinClass) {
                 dispatchStable = AlwaysValidAssumption.INSTANCE;
             } else {
@@ -169,52 +178,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    /**
-     * The primary could be:
-     * <p>
-     * 1. The global {@link PythonModule}. <br>
-     * 2. The built-in {@link PythonModule}. <br>
-     */
-    public static final class DispatchBuiltinConstructorNode extends CallDispatchBoxedNode {
-
-        @Child protected InvokeNode invoke;
-        @Child protected CallDispatchBoxedNode next;
-
-        private final ObjectLayout cachedLayout;
-        private final Assumption dispatchStable;
-
-        public DispatchBuiltinConstructorNode(PythonObject primary, PythonBuiltinClass callee, UninitializedDispatchBoxedNode next) {
-            super(callee.getName());
-            PythonCallable constructor = callee.lookUpMethod("__init__");
-            this.invoke = InvokeNode.create(constructor, next.hasKeyword);
-            this.next = next;
-
-            assert primary instanceof PythonModule;
-            this.cachedLayout = primary.getObjectLayout();
-            if (primary.equals(next.context.getBuiltins())) {
-                dispatchStable = primary.getStableAssumption();
-            } else {
-                Assumption globalStable = primary.getStableAssumption();
-                Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
-                dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
-            }
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            try {
-                dispatchStable.check();
-                if (cachedLayout == primaryObj.getObjectLayout()) {
-                    return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } else {
-                    return next.executeCall(frame, primaryObj, arguments, keywords);
-                }
-            } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
-            }
-        }
-    }
-
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
@@ -238,6 +202,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
