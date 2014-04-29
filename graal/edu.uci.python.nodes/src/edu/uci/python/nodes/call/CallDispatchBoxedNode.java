@@ -94,31 +94,31 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final PythonObject cachedPrimary;
-        private final Assumption dispatchStable;
+        private final ObjectLayout cachedLayout;
+        private final Assumption dispatchValid;
 
         public DispatchFunctionNode(PythonObject primary, PFunction callee, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             // this.check = ShapeCheckNode.create(primary, storageLayout, depth);
             this.next = next;
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
-            this.cachedPrimary = primary;
-            this.dispatchStable = primary.getStableAssumption();
+            this.cachedLayout = primary.getObjectLayout();
+            this.dispatchValid = primary.getStableAssumption();
             assert primary instanceof PythonModule || primary instanceof PythonClass;
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            if (primaryObj == cachedPrimary) {
-                try {
-                    dispatchStable.check();
+            try {
+                dispatchValid.check();
+                if (cachedLayout == primaryObj.getObjectLayout()) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } catch (InvalidAssumptionException ex) {
-                    return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
+                } else {
+                    return next.executeCall(frame, primaryObj, arguments, keywords);
                 }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
-
-            return next.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
