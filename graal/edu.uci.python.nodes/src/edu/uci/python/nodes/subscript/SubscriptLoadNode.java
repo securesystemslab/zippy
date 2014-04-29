@@ -25,8 +25,8 @@
 package edu.uci.python.nodes.subscript;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 

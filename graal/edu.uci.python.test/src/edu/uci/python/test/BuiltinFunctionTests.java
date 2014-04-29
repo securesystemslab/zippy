@@ -268,4 +268,19 @@ public class BuiltinFunctionTests {
         assertPrints("3\n2\n1\n", source);
     }
 
+    @Test
+    public void repr0() {
+        String source = "print(repr(object()))";
+        assertPrintContains("<object object at", source);
+    }
+
+    @Test
+    public void repr1() {
+        String source = "class Foo:\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return 'foo is a fool'\n" + //
+                        "print(repr(Foo()))";
+        assertPrints("foo is a fool\n", source);
+    }
+
 }

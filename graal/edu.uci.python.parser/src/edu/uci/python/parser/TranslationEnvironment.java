@@ -31,8 +31,8 @@ import org.python.antlr.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.ScopeInfo.ScopeKind;
 import edu.uci.python.runtime.*;
@@ -175,7 +175,7 @@ public class TranslationEnvironment {
             case Function:
                 return (ReadNode) (slot != null ? factory.createReadLocal(slot) : findVariableInEnclosingOrGlobalScope(name));
             case Class:
-                return (ReadNode) (slot != null ? factory.createReadClassAttribute(name) : findVariableInEnclosingOrGlobalScope(name));
+                return (ReadNode) (slot != null ? factory.createGetAttribute(context, ReadIndexedArgumentNode.create(0), name) : findVariableInEnclosingOrGlobalScope(name));
             default:
                 throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
         }

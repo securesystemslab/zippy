@@ -44,7 +44,10 @@ public class ImportManager {
 
     private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
     private final PythonContext context;
-    private final HashMap<String, PythonModule> importedModules;
+    private final Map<String, PythonModule> importedModules;
+
+    // Unsupported Imports:
+    private final Map<String, Boolean> unsupportedImports;
 
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
@@ -61,6 +64,11 @@ public class ImportManager {
     public ImportManager(PythonContext context) {
         this.context = context;
         this.importedModules = new HashMap<>();
+        this.unsupportedImports = new HashMap<>();
+        String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools"};
+        for (String lib : unsupportedImportNames) {
+            this.unsupportedImports.put(lib, true);
+        }
     }
 
     public Object importModule(String moduleName) {
@@ -74,7 +82,7 @@ public class ImportManager {
         /**
          * Use Jython's regex module.
          */
-        if (moduleName.equals("re")) {
+        if (unsupportedImports.containsKey(moduleName)) {
             return importFromJython(moduleName);
         }
 

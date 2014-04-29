@@ -35,11 +35,11 @@ public abstract class StorageLocation {
         this.objectLayout = objectLayout;
     }
 
-    public abstract boolean isSet(PythonBasicObject object);
+    public abstract boolean isSet(PythonObject object);
 
-    public abstract Object read(PythonBasicObject object);
+    public abstract Object read(PythonObject object);
 
-    public abstract void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException;
+    public abstract void write(PythonObject object, Object value) throws GeneralizeStorageLocationException;
 
     public abstract Class getStoredClass();
 

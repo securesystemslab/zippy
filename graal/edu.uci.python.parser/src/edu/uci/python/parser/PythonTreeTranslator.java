@@ -40,15 +40,14 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.access.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
-import edu.uci.python.nodes.loop.*;
-import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
@@ -499,15 +498,12 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitCall(Call node) throws Exception {
         PNode calleeNode = (PNode) visit(node.getInternalFunc());
+
         List<PNode> arguments = walkExprList(node.getInternalArgs());
         PNode[] argumentNodes = arguments.toArray(new PNode[arguments.size()]);
+
         List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
         KeywordLiteralNode[] keywordNodes = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
-
-        if (calleeNode instanceof LoadAttributeNode) {
-            LoadAttributeNode attr = (LoadAttributeNode) calleeNode;
-            return factory.createAttributeCall(attr.extractPrimary(), attr.getAttributeId(), argumentNodes);
-        }
 
         return PythonCallNode.create(context, calleeNode, argumentNodes, keywordNodes);
     }
@@ -651,18 +647,6 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitAttribute(Attribute node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
 
-        /**
-         * Use monomorphic {@link StoreAttributeNode} in constructors. This helps to avoid unwanted
-         * polymorphic dispatch node created when initializing the
-         * {@link PythonClass#instanceObjectLayout} of the invoked class.
-         */
-        if (environment.isInConstructorScope() && node.getInternalCtx() == expr_contextType.Store) {
-            expr primaryToken = node.getInternalValue();
-            if (primaryToken instanceof Name && ((Name) primaryToken).getInternalId().equals("self")) {
-                return factory.createLoadAttribute(primary, node.getInternalAttr());
-            }
-        }
-
         if (PythonOptions.AttributeAccessInlineCaching) {
             return factory.createGetAttribute(context, primary, node.getInternalAttr());
         } else {
@@ -699,10 +683,6 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitSubscript(Subscript node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
         PNode slice = (PNode) visit(node.getInternalSlice());
-
-        if (primary instanceof StoreAttributeNode) {
-            primary = ((StoreAttributeNode) primary).makeReadNode();
-        }
 
         if (!(node.getInternalSlice() instanceof Slice)) {
             return factory.createSubscriptLoadIndex(primary, slice);
@@ -1043,4 +1023,10 @@ public class PythonTreeTranslator extends Visitor {
         StatementNode retVal = factory.createWithNode(context, withContext, asName, body);
         return retVal;
     }
+
+    @Override
+    public Object visitExec(Exec node) throws Exception {
+        throw notCovered();
+    }
+
 }

@@ -34,10 +34,11 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.literal.*;
-import edu.uci.python.nodes.loop.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.object.legacy.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.nodes.subscript.*;
 
@@ -46,9 +47,7 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.access.*;
-import edu.uci.python.nodes.attribute.*;
-import edu.uci.python.nodes.call.legacy.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryArithmeticNodeFactory.*;
@@ -83,10 +82,6 @@ public class NodeFactory {
 
     public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
         return new FunctionRootNode(context, functionName, frameDescriptor, body);
-    }
-
-    public PNode createReadClassAttribute(String attributeId) {
-        return new AddClassAttributeNode.ReadClassAttributeNode(attributeId);
     }
 
     public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
@@ -273,10 +268,6 @@ public class NodeFactory {
             default:
                 throw new RuntimeException("unexpected operation: " + operator);
         }
-    }
-
-    public PNode createAttributeCall(PNode primary, String name, PNode[] args) {
-        return CallAttributeNodeFactory.create(name, args, primary);
     }
 
     public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {

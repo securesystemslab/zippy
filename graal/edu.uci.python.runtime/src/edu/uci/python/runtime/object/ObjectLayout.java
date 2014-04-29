@@ -27,6 +27,8 @@ package edu.uci.python.runtime.object;
 import java.util.*;
 import java.util.Map.Entry;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 /**
@@ -43,6 +45,8 @@ public class ObjectLayout {
 
     private final ObjectLayout parent;
 
+    private final Assumption validAssumption;
+
     private final Map<String, StorageLocation> storageLocations = new HashMap<>();
 
     private final int primitiveIntStorageLocationsUsed;
@@ -57,13 +61,14 @@ public class ObjectLayout {
         primitiveDoubleStorageLocationsUsed = 0;
         fieldObjectStorageLocationsUsed = 0;
         arrayObjectStorageLocationsUsed = 0;
+        validAssumption = Truffle.getRuntime().createAssumption(originHint);
     }
 
-    public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent) {
-        this(originHint, context, parent, new HashMap<String, Class>());
+    public ObjectLayout(String originHint, ObjectLayout parent) {
+        this(originHint, parent, new HashMap<String, Class>());
     }
 
-    public ObjectLayout(String originHint, PythonContext context, ObjectLayout parent, Map<String, Class> storageTypes) {
+    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -97,21 +102,21 @@ public class ObjectLayout {
             if (parent == null || parent.findStorageLocation(name) == null) {
                 Class storageClass;
 
-                if (context.getUseUnsafe()) {
+                if (PythonOptions.UseUnsafe) {
                     if (type == Integer.class) {
-                        if (primitiveIntStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                        if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                             storageClass = Integer.class;
                         } else {
                             storageClass = Object.class;
                         }
                     } else if (type == Double.class) {
-                        if (primitiveDoubleStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
+                        if (primitiveDoubleStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
                             storageClass = Double.class;
                         } else {
                             storageClass = Object.class;
                         }
                     } else if (type == Boolean.class) {
-                        if (primitiveIntStorageLocationIndex + 1 <= PythonBasicObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                        if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                             storageClass = Boolean.class;
                         } else {
                             storageClass = Object.class;
@@ -136,7 +141,7 @@ public class ObjectLayout {
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else {
-                    if (fieldObjectStorageLocationIndex + 1 <= PythonBasicObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                    if (fieldObjectStorageLocationIndex + 1 <= PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
                         final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         fieldObjectStorageLocationIndex++;
@@ -153,10 +158,15 @@ public class ObjectLayout {
         primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
         fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
         arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
+        validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
     }
 
     public static final ObjectLayout empty() {
         return new ObjectLayout("(empty)");
+    }
+
+    public final Assumption getValidAssumption() {
+        return validAssumption;
     }
 
     /**
@@ -164,31 +174,37 @@ public class ObjectLayout {
      * comes from the same Python class as it did, but it's a new layout because layouts are
      * immutable, so modifications to the superclass yields a new layout.
      */
-    public ObjectLayout renew(PythonContext context, ObjectLayout newParent) {
-        return new ObjectLayout(originHint + ".renewed", context, newParent, getStorageTypes());
+    protected ObjectLayout renew(ObjectLayout newParent) {
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + ".renewed", newParent, getStorageTypes());
     }
 
     /**
      * Create a new version of this layout but with a new variable.
      */
-    public ObjectLayout withNewAttribute(PythonContext context, String name, Class type) {
+    protected ObjectLayout withNewAttribute(String name, Class type) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
-        return new ObjectLayout(originHint + ".withnew", context, parent, storageTypes);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "+" + name, parent, storageTypes);
     }
 
-    public ObjectLayout withoutAttribute(PythonContext context, String name) {
+    protected ObjectLayout withoutAttribute(String name) {
         final Map<String, Class> storageTypes = getStorageTypes();
         storageTypes.remove(name);
-        return new ObjectLayout(originHint + ".without", context, parent, storageTypes);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
     }
 
     /**
      * Create a new version of this layout but with an existing variable generalized to support any
      * type.
      */
-    public ObjectLayout withGeneralisedVariable(PythonContext context, String name) {
-        return withNewAttribute(context, name, Object.class);
+    public ObjectLayout withGeneralisedVariable(String name) {
+        final Map<String, Class> storageTypes = getStorageTypes();
+        storageTypes.put(name, Object.class);
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "!" + name, parent, storageTypes);
     }
 
     /**
@@ -251,7 +267,7 @@ public class ObjectLayout {
      * of parents? We say 'include' because all of the variables in a parent layout are available in
      * your layout as well.
      */
-    public boolean contains(ObjectLayout other) {
+    public final boolean contains(ObjectLayout other) {
         ObjectLayout layout = this;
 
         do {
@@ -270,10 +286,11 @@ public class ObjectLayout {
     }
 
     public boolean isEmpty() {
-        return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0 && //
-                        this.primitiveIntStorageLocationsUsed == 0 && //
-                        this.fieldObjectStorageLocationsUsed == 0 && //
-                        this.primitiveDoubleStorageLocationsUsed == 0;
+        return storageLocations.isEmpty() && //
+                        arrayObjectStorageLocationsUsed == 0 && //
+                        primitiveIntStorageLocationsUsed == 0 && //
+                        fieldObjectStorageLocationsUsed == 0 && //
+                        primitiveDoubleStorageLocationsUsed == 0;
     }
 
     @Override

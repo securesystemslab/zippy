@@ -39,7 +39,7 @@ public class BooleanStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
+    public Object read(PythonObject object) {
         try {
             return readBoolean(object);
         } catch (UnexpectedResultException e) {
@@ -47,7 +47,7 @@ public class BooleanStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public boolean readBoolean(PythonBasicObject object) throws UnexpectedResultException {
+    public boolean readBoolean(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
             return CompilerDirectives.unsafeGetBoolean(object, offset, true, this);
         } else {
@@ -56,7 +56,7 @@ public class BooleanStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Boolean) {
             writeBoolean(object, (boolean) value);
         } else if (value instanceof PNone) {
@@ -66,7 +66,7 @@ public class BooleanStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public void writeBoolean(PythonBasicObject object, boolean value) {
+    public void writeBoolean(PythonObject object, boolean value) {
         CompilerDirectives.unsafePutBoolean(object, offset, value, this);
         markAsSet(object);
     }

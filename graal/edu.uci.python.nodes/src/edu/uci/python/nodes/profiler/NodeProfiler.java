@@ -2,7 +2,6 @@ package edu.uci.python.nodes.profiler;
 
 import java.util.*;
 
-import edu.uci.python.nodes.loop.*;
 import edu.uci.python.nodes.statement.*;
 
 public class NodeProfiler {
@@ -10,23 +9,13 @@ public class NodeProfiler {
     private static NodeProfiler INSTANCE = new NodeProfiler();
 
     private List<IfNode> ifNodes;
-    private List<ForNode> forNodes;
 
     private NodeProfiler() {
         ifNodes = new ArrayList<>();
-        forNodes = new ArrayList<>();
     }
 
     public void addIfNode(IfNode node) {
         ifNodes.add(node);
-    }
-
-    public void addForNode(ForNode node) {
-        forNodes.add(node);
-    }
-
-    public void deleteForNode(ForNode node) {
-        forNodes.remove(node);
     }
 
     public void printProfilerResults() {

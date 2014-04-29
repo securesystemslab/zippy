@@ -42,7 +42,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
+    public Object read(PythonObject object) {
         try {
             return readDouble(object);
         } catch (UnexpectedResultException e) {
@@ -50,7 +50,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public double readDouble(PythonBasicObject object) throws UnexpectedResultException {
+    public double readDouble(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
             return CompilerDirectives.unsafeGetDouble(object, offset, true, this);
         } else {
@@ -59,7 +59,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Double) {
             writeDouble(object, (double) value);
         } else if (value instanceof PNone) {
@@ -69,7 +69,7 @@ public class FloatStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public void writeDouble(PythonBasicObject object, Double value) {
+    public void writeDouble(PythonObject object, Double value) {
         CompilerDirectives.unsafePutDouble(object, offset, value, this);
         markAsSet(object);
     }

@@ -42,7 +42,7 @@ public class IntStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
+    public Object read(PythonObject object) {
         try {
             return readInt(object);
         } catch (UnexpectedResultException e) {
@@ -50,7 +50,7 @@ public class IntStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public int readInt(PythonBasicObject object) throws UnexpectedResultException {
+    public int readInt(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
             return CompilerDirectives.unsafeGetInt(object, offset, true, this);
         } else {
@@ -59,7 +59,7 @@ public class IntStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonBasicObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
         if (value instanceof Integer) {
             writeInt(object, (int) value);
         } else if (value instanceof PNone) {
@@ -69,7 +69,7 @@ public class IntStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public void writeInt(PythonBasicObject object, int value) {
+    public void writeInt(PythonObject object, int value) {
         CompilerDirectives.unsafePutInt(object, offset, value, this);
         markAsSet(object);
     }

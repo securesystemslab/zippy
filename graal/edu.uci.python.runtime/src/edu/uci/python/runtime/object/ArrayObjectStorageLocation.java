@@ -36,12 +36,12 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
     }
 
     @Override
-    public boolean isSet(PythonBasicObject object) {
+    public boolean isSet(PythonObject object) {
         return object.arrayObjects[index] != null;
     }
 
     @Override
-    public Object read(PythonBasicObject object) {
+    public Object read(PythonObject object) {
         final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
 
         if (result == null) {
@@ -52,7 +52,7 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
     }
 
     @Override
-    public void write(PythonBasicObject object, Object value) {
+    public void write(PythonObject object, Object value) {
         ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
     }
 

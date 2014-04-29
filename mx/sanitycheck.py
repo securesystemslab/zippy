@@ -124,7 +124,10 @@ python2MicroBenchmarks = {
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
     'attribute-access'      : '0',
+    'attribute-access-polymorphic' : '0',
     'attribute-bool'        : '0',
+    'call-method-polymorphic': '0',
+    'boolean-logic'         : '0',
     'object-allocate'       : '0',
 }
 
@@ -133,7 +136,7 @@ pythonMicroBenchmarks = {
     'for-range'             : '0',
     'function-call'         : '0',
     'list-comp'             : '0',
-    'list-indexing'         : '-InlineBuiltinFunctionCalls:false',
+    'list-indexing'         : '0',
     'list-iterating'        : '0',
     'builtin-len'           : '0',
     'builtin-len-tuple'     : '0',
@@ -142,7 +145,10 @@ pythonMicroBenchmarks = {
     'generator-expression'  : '0',
     'genexp-builtin-call'   : '0',
     'attribute-access'      : '0',
+    'attribute-access-polymorphic' : '0',
     'attribute-bool'        : '0',
+    'call-method-polymorphic': '0',
+    'boolean-logic'         : '0',
     'object-allocate'       : '0',
 }
 
@@ -160,6 +166,7 @@ pythonBenchmarks = {
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
+    'bm-float-timed'  : '1000',
 }
 
 python2Benchmarks = {
@@ -176,6 +183,7 @@ python2Benchmarks = {
     'ai-nqueen-timed' : '10',
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
+    'bm-float-timed'  : '1000',
 }
 
 specjvm2008Names = [

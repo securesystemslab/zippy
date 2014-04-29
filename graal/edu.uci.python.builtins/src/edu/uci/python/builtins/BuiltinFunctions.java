@@ -400,7 +400,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class HasAttrNode extends PythonBuiltinNode {
 
         @Specialization
-        public Object hasAttr(PythonBasicObject object, String name) {
+        public Object hasAttr(PythonObject object, String name) {
             List<String> attributes = object.getAttributeNames();
             if (attributes.contains(name)) {
                 return true;
@@ -436,7 +436,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public Object isinstance(PythonBasicObject object, PythonClass clazz) {
+        public Object isinstance(PythonObject object, PythonClass clazz) {
             return isInstanceofPythonClass(object, clazz);
         }
 
@@ -445,7 +445,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return isInstanceofPythonClass(object, clazz);
         }
 
-        private static boolean isInstanceofPythonClass(PythonBasicObject object, PythonClass clazz) {
+        private static boolean isInstanceofPythonClass(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -478,8 +478,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 }
 
                 return false;
-            } else if (object instanceof PythonBasicObject && clazz instanceof PythonClass) {
-                PythonBasicObject basicObject = (PythonBasicObject) object;
+            } else if (object instanceof PythonObject && clazz instanceof PythonClass) {
+                PythonObject basicObject = (PythonObject) object;
                 PythonClass pythonClass = (PythonClass) clazz;
                 return isInstanceofPythonClass(basicObject, pythonClass);
             } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {
@@ -846,6 +846,28 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     }
 
+    // repr(object)
+    @Builtin(name = "repr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class ReprNode extends PythonBuiltinNode {
+
+        @Specialization
+        public String repr(PythonObject obj) {
+            PythonCallable callable;
+            try {
+                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute("__repr__"));
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            return (String) callable.call(null, new Object[]{obj});
+        }
+
+        @Specialization
+        public String repr(Object obj) {
+            return obj.toString();
+        }
+    }
+
     // reversed(seq)
     @Builtin(name = "reversed", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class ReversedNode extends PythonBuiltinNode {
@@ -859,7 +881,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public PIterator reversed(PSequence sequence) {
             return new PSequenceIterator.PSequenceReverseIterator(sequence);
         }
-
     }
 
     // round(number[, ndigits])
@@ -875,7 +896,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public double round(double arg) {
             return Math.round(arg);
         }
-
     }
 
     // setattr(object, name, value)
@@ -910,7 +930,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object setAttr(Object object, Object name, Object value) {
             throw new RuntimeException("setAttr is not supported for " + object + " " + object.getClass() + " name " + name + " value " + value);
         }
-
     }
 
     // sum(iterable[, start])

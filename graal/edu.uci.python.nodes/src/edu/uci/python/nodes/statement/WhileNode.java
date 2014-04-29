@@ -27,8 +27,8 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.loop.*;
 import edu.uci.python.runtime.datatype.*;
 
 public class WhileNode extends LoopNode {

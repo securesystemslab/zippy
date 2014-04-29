@@ -30,7 +30,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
-public class PDoubleArray extends PArray {
+public final class PDoubleArray extends PArray {
 
     private final double[] array;
 
