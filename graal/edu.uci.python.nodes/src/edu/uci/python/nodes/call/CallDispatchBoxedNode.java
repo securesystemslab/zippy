@@ -38,7 +38,6 @@ import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
-import static edu.uci.python.nodes.call.PythonCallUtil.*;
 
 public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
@@ -55,43 +54,29 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     protected static CallDispatchBoxedNode create(PythonContext context, PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
+        ShapeCheckNode check;
 
-        if (isNotBuiltin(callee)) {
-            ShapeCheckNode check;
-
-            if (primary instanceof PythonModule) {
-                check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
-            } else {
-                check = createCheckNodeForPythonObject(primary, calleeName);
-            }
-            assert check != null;
-
+        if (primary instanceof PythonModule) {
+            check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
+        } else if (primary instanceof PythonBuiltinClass) {
             /**
-             * Treat generator as slow path for now.
+             * Since built-in classes are immutable, there is no need to probe the exact storage
+             * object.
              */
-            if (callee instanceof PGeneratorFunction) {
-                return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
-            }
-
-            return new LinkedDispatchBoxedNode(callee, check, next);
-        } else if (isBuiltin(callee)) {
-            ShapeCheckNode check = null;
-
-            if (primary instanceof PythonModule) {
-                check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
-            } else if (primary instanceof PythonBuiltinClass) {
-                /**
-                 * Since built-in classes are immutable, there is no need to probe the exact storage
-                 * object.
-                 */
-                check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
-            }
-
-            assert check != null;
-            return new LinkedDispatchBoxedNode(callee, check, next);
+            check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
+        } else {
+            check = createCheckNodeForPythonObject(primary, calleeName);
         }
 
-        throw new UnsupportedOperationException("Unsupported callee type " + callee);
+        /**
+         * Treat generator as slow path for now.
+         */
+        if (callee instanceof PGeneratorFunction) {
+            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
+        }
+
+        assert check != null;
+        return new LinkedDispatchBoxedNode(callee, check, next);
     }
 
     protected static ShapeCheckNode createCheckNodeForPythonModule(PythonContext context, PythonModule primary, PNode calleeNode, String calleeName) {
@@ -221,14 +206,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
             CallDispatchNode current = this;
             int depth = 0;
+
             while (current.getParent() instanceof CallDispatchNode) {
                 current = (CallDispatchNode) current.getParent();
                 depth++;
             }
 
             CallDispatchBoxedNode specialized;
+
             if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
+
                 try {
                     callee = calleeNode.executePythonCallable(frame);
                 } catch (UnexpectedResultException e) {
