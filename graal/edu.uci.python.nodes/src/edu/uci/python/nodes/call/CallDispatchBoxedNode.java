@@ -57,32 +57,13 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
 
         if (isNotBuiltin(callee)) {
-            ShapeCheckNode check = null;
+            ShapeCheckNode check;
 
             if (primary instanceof PythonModule) {
                 check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
-            } else if (primary.isOwnAttribute(calleeName)) {
-                check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
             } else {
-                // class chain lookup
-                int depth = 1;
-                PythonClass current = primary.getPythonClass();
-                do {
-                    if (current.isOwnAttribute(calleeName)) {
-                        break;
-                    }
-
-                    current = current.getSuperClass();
-                    depth++;
-                } while (current != null);
-
-                if (current == null) {
-                    throw Py.AttributeError(primary + " object has no attribute " + calleeName);
-                }
-
-                check = ShapeCheckNode.create(primary, current.getObjectLayout(), depth);
+                check = createCheckNodeForPythonObject(primary, calleeName);
             }
-
             assert check != null;
 
             /**
@@ -97,6 +78,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             } else if (callee instanceof PythonClass) {
                 PythonClass clazz = (PythonClass) callee;
                 PythonCallable ctor = clazz.lookUpMethod("__init__");
+
                 if (ctor instanceof PFunction) {
                     return new DispatchFunctionNode(ctor, check, next);
                 } else if (ctor instanceof PBuiltinFunction) {
@@ -123,7 +105,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
     }
 
-    private static ShapeCheckNode createCheckNodeForPythonModule(PythonContext context, PythonModule primary, PNode calleeNode, String calleeName) {
+    protected static ShapeCheckNode createCheckNodeForPythonModule(PythonContext context, PythonModule primary, PNode calleeNode, String calleeName) {
         if (primary.isOwnAttribute(calleeName)) {
             return ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
         } else if (calleeNode instanceof ReadGlobalNode) {
@@ -135,6 +117,30 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         throw new UnsupportedOperationException();
+    }
+
+    protected static ShapeCheckNode createCheckNodeForPythonObject(PythonObject primary, String calleeName) {
+        if (primary.isOwnAttribute(calleeName)) {
+            return ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
+        } else {
+            // class chain lookup
+            int depth = 1;
+            PythonClass current = primary.getPythonClass();
+            do {
+                if (current.isOwnAttribute(calleeName)) {
+                    break;
+                }
+
+                current = current.getSuperClass();
+                depth++;
+            } while (current != null);
+
+            if (current == null) {
+                throw Py.AttributeError(primary + " object has no attribute " + calleeName);
+            }
+
+            return ShapeCheckNode.create(primary, current.getObjectLayout(), depth);
+        }
     }
 
     /**
