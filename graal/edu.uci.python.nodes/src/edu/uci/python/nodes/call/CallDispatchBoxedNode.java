@@ -93,12 +93,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
 
             if (callee instanceof PFunction || callee instanceof PMethod) {
-                return new DispatchFunctionNode(primary, callee, next);
+                return new DispatchFunctionNode(callee, check, next);
             } else if (callee instanceof PythonClass) {
                 PythonClass clazz = (PythonClass) callee;
                 PythonCallable ctor = clazz.lookUpMethod("__init__");
                 if (ctor instanceof PFunction) {
-                    return new DispatchFunctionNode(primary, ctor, next);
+                    return new DispatchFunctionNode(ctor, check, next);
                 } else if (ctor instanceof PBuiltinFunction) {
                     return new DispatchBuiltinNode(ctor, check, next);
                 }
@@ -152,24 +152,18 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final ObjectLayout cachedLayout;
-        private final Assumption dispatchValid;
-
-        public DispatchFunctionNode(PythonObject primary, PythonCallable callee, UninitializedDispatchBoxedNode next) {
+        public DispatchFunctionNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            // this.check = ShapeCheckNode.create(primary, storageLayout, depth);
+            this.check = check;
             this.next = next;
             this.invoke = InvokeNode.create(callee, next.hasKeyword);
-            this.cachedLayout = primary.getObjectLayout();
-            this.dispatchValid = primary.getStableAssumption();
             assert callee instanceof PFunction || callee instanceof PMethod;
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
-                dispatchValid.check();
-                if (cachedLayout == primaryObj.getObjectLayout()) {
+                if (check.accept(primaryObj)) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
                 } else {
                     return next.executeCall(frame, primaryObj, arguments, keywords);
