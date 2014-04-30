@@ -304,7 +304,12 @@ public class TranslationEnvironment {
     }
 
     public void storeStatementPatch(Collection<PNode> patch) {
-        this.statementPatch = patch;
+        if (this.statementPatch == null) {
+            this.statementPatch = patch;
+        } else {
+            this.statementPatch.addAll(patch);
+        }
+
     }
 
 }
