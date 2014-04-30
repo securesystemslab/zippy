@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
+import os, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
@@ -163,49 +163,124 @@ def clean(args):
         rmIfExists(mx.distribution('GRAAL').path)
 
 def export(args):
-    """create a GraalVM zip file for distribution"""
+    """create archives of builds split by vmbuild and vm"""
 
     parser = ArgumentParser(prog='mx export')
-    parser.add_argument('--omit-vm-build', action='store_false', dest='vmbuild', help='omit VM build step')
-    parser.add_argument('--omit-dist-init', action='store_false', dest='distInit', help='omit class files and IDE configurations from distribution')
-    parser.add_argument('zipfile', nargs=REMAINDER, metavar='zipfile')
-
     args = parser.parse_args(args)
 
-    tmp = tempfile.mkdtemp(prefix='tmp', dir=_graal_home)
-    if args.vmbuild:
-        # Make sure the product VM binary is up to date
-        with VM(vmbuild='product'):
-            build([])
+    # collect data about export
+    infos = dict()
+    infos['timestamp'] = time.time()
 
-    mx.log('Copying Java sources and mx files...')
-    mx.run(('hg archive -I graal -I mx -I mxtool -I mx.sh ' + tmp).split())
+    hgcfg = mx.HgConfig()
+    hgcfg.check()
+    infos['revision'] = hgcfg.tip('.') + ('+' if hgcfg.isDirty('.') else '')
+    # TODO: infos['repository']
 
-    # Copy the GraalVM JDK
-    mx.log('Copying GraalVM JDK...')
-    src = _jdk()
-    dst = join(tmp, basename(src))
-    shutil.copytree(src, dst)
-    zfName = join(_graal_home, 'graalvm-' + mx.get_os() + '.zip')
-    zf = zipfile.ZipFile(zfName, 'w')
-    for root, _, files in os.walk(tmp):
-        for f in files:
-            name = join(root, f)
-            arcname = name[len(tmp) + 1:]
-            zf.write(join(tmp, name), arcname)
+    infos['jdkversion'] = str(mx.java().version)
 
-    # create class files and IDE configurations
-    if args.distInit:
-        mx.log('Creating class files...')
-        mx.run('mx build'.split(), cwd=tmp)
-        mx.log('Creating IDE configurations...')
-        mx.run('mx ideinit'.split(), cwd=tmp)
+    infos['architecture'] = _arch()
+    infos['platform'] = mx.get_os()
 
-    # clean up temp directory
-    mx.log('Cleaning up...')
-    shutil.rmtree(tmp)
+    if mx.get_os != 'windows':
+        pass
+        # infos['ccompiler']
+        # infos['linker']
 
-    mx.log('Created distribution in ' + zfName)
+    infos['hostname'] = socket.gethostname()
+
+    def _writeJson(suffix, properties):
+        d = infos.copy()
+        for k, v in properties.iteritems():
+            assert not d.has_key(k)
+            d[k] = v
+
+        jsonFileName = 'export-' + suffix + '.json'
+        with open(jsonFileName, 'w') as f:
+            print >> f, json.dumps(d)
+        return jsonFileName
+
+
+    def _genFileName(archivtype, middle):
+        idPrefix = infos['revision'] + '_'
+        idSuffix = '.tar.gz'
+        return join(_graal_home, "graalvm_" + archivtype + "_"  + idPrefix + middle + idSuffix)
+
+    def _genFileArchPlatformName(archivtype, middle):
+        return _genFileName(archivtype, infos['platform'] + '_' + infos['architecture'] + '_' + middle)
+
+
+    # archive different build types of hotspot
+    for vmBuild in _vmbuildChoices:
+        jdkpath = join(_jdksDir(), vmBuild)
+        if not exists(jdkpath):
+            mx.logv("skipping " + vmBuild)
+            continue
+
+        tarName = _genFileArchPlatformName('basejdk', vmBuild)
+        mx.logv("creating basejdk " + tarName)
+        vmSet = set()
+        with tarfile.open(tarName, 'w:gz') as tar:
+            for root, _, files in os.walk(jdkpath):
+                if basename(root) in _vmChoices.keys():
+                    # TODO: add some assert to check path assumption
+                    vmSet.add(root)
+                    continue
+
+                for f in files:
+                    name = join(root, f)
+                    # print name
+                    tar.add(name, name)
+
+            n = _writeJson("basejdk-" + vmBuild, {'vmbuild' : vmBuild})
+            tar.add(n, n)
+
+        # create a separate archive for each VM
+        for vm in vmSet:
+            bVm = basename(vm)
+            vmTarName = _genFileArchPlatformName('vm', vmBuild + '_' + bVm)
+            mx.logv("creating vm " + vmTarName)
+
+            debugFiles = set()
+            with tarfile.open(vmTarName, 'w:gz') as tar:
+                for root, _, files in os.walk(vm):
+                    for f in files:
+                        # TODO: mac, windows, solaris?
+                        if any(map(f.endswith, [".debuginfo"])):
+                            debugFiles.add(f)
+                        else:
+                            name = join(root, f)
+                            # print name
+                            tar.add(name, name)
+
+                n = _writeJson("vm-" + vmBuild + "-" + bVm, {'vmbuild' : vmBuild, 'vm' : bVm})
+                tar.add(n, n)
+
+            if len(debugFiles) > 0:
+                debugTarName = _genFileArchPlatformName('debugfilesvm', vmBuild + '_' + bVm)
+                mx.logv("creating debugfilesvm " + debugTarName)
+                with tarfile.open(debugTarName, 'w:gz') as tar:
+                    for f in debugFiles:
+                        name = join(root, f)
+                        # print name
+                        tar.add(name, name)
+
+                    n = _writeJson("debugfilesvm-" + vmBuild + "-" + bVm, {'vmbuild' : vmBuild, 'vm' : bVm})
+                    tar.add(n, n)
+
+    # graal directory
+    graalDirTarName = _genFileName('classfiles', 'javac')
+    mx.logv("creating graal " + graalDirTarName)
+    with tarfile.open(graalDirTarName, 'w:gz') as tar:
+        for root, _, files in os.walk("graal"):
+            for f in [f for f in files if not f.endswith('.java')]:
+                name = join(root, f)
+                # print name
+                tar.add(name, name)
+
+        n = _writeJson("graal", {'javacompiler' : 'javac'})
+        tar.add(n, n)
+
 
 def _run_benchmark(args, availableBenchmarks, runBenchmark):
 

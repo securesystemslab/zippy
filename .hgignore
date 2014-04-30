@@ -87,3 +87,4 @@ graal.options
 agent/build/*
 agent/make/filelist
 agent/make/sa17.tar.gz
+export.json
