@@ -89,7 +89,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public SequenceStorage getStorage() {
+    public final SequenceStorage getStorage() {
         return store;
     }
 

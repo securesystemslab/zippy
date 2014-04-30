@@ -560,7 +560,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return tuple.len();
         }
 
-        protected static final boolean isIntStorage(PList list) {
+        protected static final boolean isBasicStorage(PList list) {
             return list.getStorage() instanceof BasicSequenceStorage;
         }
 
@@ -574,12 +574,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return 0;
         }
 
-        @Specialization(order = 4, guards = "isIntStorage")
+        @Specialization(order = 4, guards = "isBasicStorage")
         public int lenPList(PList list) {
-            return list.len();
+            return list.getStorage().length();
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 10)
         public int len(PIterable iterable) {
             return iterable.len();
         }
