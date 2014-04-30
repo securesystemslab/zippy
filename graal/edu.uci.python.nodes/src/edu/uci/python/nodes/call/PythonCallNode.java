@@ -343,6 +343,10 @@ public abstract class PythonCallNode extends PNode {
             return keywordNames;
         }
 
+        private static boolean isPrimaryBoxed(Object primary) {
+            return primary instanceof PythonObject;
+        }
+
         private boolean isPrimaryNone(Object primary) {
             return primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
         }

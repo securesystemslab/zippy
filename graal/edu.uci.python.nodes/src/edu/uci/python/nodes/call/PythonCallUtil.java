@@ -29,38 +29,14 @@ import java.io.*;
 import org.python.core.*;
 
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.standardtype.*;
 
 public class PythonCallUtil {
-
-    protected static boolean isPrimaryBoxed(Object primary) {
-        if (primary instanceof PythonModule) {
-            return true;
-        } else if (primary instanceof PythonClass) {
-            return true;
-        } else if (primary instanceof PythonObject) {
-            return true;
-        }
-
-        return false;
-    }
 
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
             PrintStream ps = System.out;
             ps.println("[ZipPy]: calling jython runtime function " + callee);
         }
-    }
-
-    protected static boolean isBuiltin(PythonCallable callee) {
-        return callee instanceof PBuiltinFunction || callee instanceof PBuiltinMethod || callee instanceof PythonBuiltinClass;
-    }
-
-    protected static boolean isNotBuiltin(PythonCallable callee) {
-        return callee instanceof PFunction || callee instanceof PMethod || callee instanceof PythonClass;
     }
 
 }
