@@ -128,6 +128,11 @@ public abstract class PythonCallNode extends PNode {
     }
 
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+
+        /**
+         * Dealing with calls into Jython runtime.
+         */
         if (callee instanceof PyObject) {
             PyObject pyobj = (PyObject) callee;
             logJythonRuntime(pyobj);
@@ -174,6 +179,7 @@ public abstract class PythonCallNode extends PNode {
         return dispatch.executeCall(frame, primary, arguments, keywords);
     }
 
+    @ExplodeLoop
     private String[] getKeywordNames() {
         String[] keywordNames = new String[keywordNodes.length];
 
@@ -213,8 +219,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 primary = primaryNode.executePythonObject(frame);
             } catch (UnexpectedResultException e) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                throw new IllegalStateException();
+                return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
@@ -257,7 +262,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePythonCallable(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, PNone.NONE, e.getResult());
             }
 
             Object[] arguments = executeArguments(frame, argumentNodes);
@@ -282,7 +287,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 primary = primaryNode.executePythonObject(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
+                return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
             PythonClass callee;
@@ -290,7 +295,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePythonClass(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, primary, e.getResult());
             }
 
             return executeCall(frame, primary, callee);
@@ -319,7 +324,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePyObject(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, PNone.NONE, e.getResult());
             }
 
             return executeCall(frame, callee);
