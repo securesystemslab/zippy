@@ -60,16 +60,21 @@ public class RandomModuleBuiltins extends PythonBuiltins {
             return PNone.NONE;
         }
 
-        // TODO: There should be a better way to seed long numbers
         @Specialization
-        public PNone seed(double inputSeed) {
-            javaRandom.setSeed((long) ((Long.MAX_VALUE - inputSeed) * 412316924));
+        public PNone seed(int inputSeed) {
+            javaRandom.setSeed(inputSeed);
             return PNone.NONE;
         }
 
         @Specialization
-        public PNone seed(int inputSeed) {
-            javaRandom.setSeed(inputSeed);
+        public PNone seed(BigInteger inputSeed) {
+            javaRandom.setSeed(inputSeed.longValue());
+            return PNone.NONE;
+        }
+
+        @Specialization
+        public PNone seed(double inputSeed) {
+            javaRandom.setSeed((long) ((Long.MAX_VALUE - inputSeed) * 412316924));
             return PNone.NONE;
         }
 
@@ -78,7 +83,6 @@ public class RandomModuleBuiltins extends PythonBuiltins {
             javaRandom.setSeed(System.identityHashCode(inputSeed));
             return PNone.NONE;
         }
-
     }
 
     @Builtin(name = "jumpahead", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
@@ -168,12 +172,9 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     @Builtin(name = "random", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
     public abstract static class RandomNode extends PythonBuiltinNode {
 
-        @SuppressWarnings("unused")
         @Specialization
-        public double random(PNone none) {
-            long a = javaRandom.nextInt() >>> 7;
-            long b = javaRandom.nextInt() >>> 3;
-            return (a * 671333224.0 + b) * (1.0 / 902292547333.0);
+        public double random() {
+            return javaRandom.nextDouble();
         }
     }
 
