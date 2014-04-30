@@ -37,6 +37,7 @@ import org.python.google.common.collect.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -66,8 +67,9 @@ public class PythonTreeTranslator extends Visitor {
     private final AssignmentTranslator assigns;
     private final PythonParseResult result;
     private final PythonModule module;
+    private final Source source;
 
-    public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module) {
+    public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module, Source source) {
         this.context = context;
         this.factory = new NodeFactory();
         this.environment = environment.reset();
@@ -75,6 +77,12 @@ public class PythonTreeTranslator extends Visitor {
         this.assigns = new AssignmentTranslator(environment, this);
         this.result = new PythonParseResult(environment.getModule());
         this.module = module;
+        this.source = source;
+    }
+
+    private void assignSource(PythonTree node, PNode truffleNode) {
+        SourceSection sourceSection = new DefaultSourceSection(source, node.getText(), node.getLine(), node.getCharPositionInLine(), node.getTokenStartIndex(), node.getText().length());
+        truffleNode.assignSourceSection(sourceSection);
     }
 
     public PythonParseResult translate(PythonTree root) {
@@ -382,8 +390,8 @@ public class PythonTreeTranslator extends Visitor {
     List<PNode> walkExprList(List<expr> exprs) throws Exception {
         List<PNode> targets = new ArrayList<>();
 
-        for (expr source : exprs) {
-            targets.add((PNode) visit(source));
+        for (expr exp : exprs) {
+            targets.add((PNode) visit(exp));
         }
 
         return targets;
@@ -392,8 +400,8 @@ public class PythonTreeTranslator extends Visitor {
     List<KeywordLiteralNode> walkKeywordList(List<keyword> keywords) throws Exception {
         List<KeywordLiteralNode> targets = new ArrayList<>();
 
-        for (keyword source : keywords) {
-            targets.add(visitKeyword(source));
+        for (keyword kw : keywords) {
+            targets.add(visitKeyword(kw));
         }
 
         return targets;

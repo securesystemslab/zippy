@@ -28,6 +28,8 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
@@ -36,7 +38,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PythonContext {
+public class PythonContext implements ExecutionContext {
 
     private PythonModule mainModule;
     private final PythonModule builtinsModule;
@@ -191,6 +193,26 @@ public class PythonContext {
 
     public void shutdown() {
         executorService.shutdown();
+    }
+
+    public String getLanguageShortName() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Instrumentation instrumentation() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Visualizer visualizer() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public void addNodeProber(ASTNodeProber nodeProber) {
+        // TODO Auto-generated method stub
+
     }
 
 }
