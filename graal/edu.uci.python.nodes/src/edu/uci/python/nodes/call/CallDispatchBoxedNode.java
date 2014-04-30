@@ -73,18 +73,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
             }
 
-            if (callee instanceof PFunction || callee instanceof PMethod) {
-                return new DispatchFunctionNode(callee, check, next);
-            } else if (callee instanceof PythonClass) {
-                PythonClass clazz = (PythonClass) callee;
-                PythonCallable ctor = clazz.lookUpMethod("__init__");
-
-                if (ctor instanceof PFunction) {
-                    return new DispatchFunctionNode(ctor, check, next);
-                } else if (ctor instanceof PBuiltinFunction) {
-                    return new DispatchBuiltinNode(ctor, check, next);
-                }
-            }
+            return new LinkedDispatchBoxedNode(callee, check, next);
         } else if (isBuiltin(callee)) {
             ShapeCheckNode check = null;
 
@@ -99,7 +88,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
 
             assert check != null;
-            return new DispatchBuiltinNode(callee, check, next);
+            return new LinkedDispatchBoxedNode(callee, check, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -149,63 +138,29 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      * 1. The global {@link PythonModule}. <br>
      * 3. A {@link PythonModule}. <br>
      * 2. A {@link PythonClass}. <br>
-     * 4. A {@link PythonObject}
+     * 4. A {@link PythonObject} <br>
      *
-     */
-    public static final class DispatchFunctionNode extends CallDispatchBoxedNode {
-
-        @Child protected ShapeCheckNode check;
-        @Child protected InvokeNode invoke;
-        @Child protected CallDispatchBoxedNode next;
-
-        public DispatchFunctionNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
-            super(callee.getName());
-            this.check = check;
-            this.next = next;
-            this.invoke = InvokeNode.create(callee, next.hasKeyword);
-            assert callee instanceof PFunction || callee instanceof PMethod;
-        }
-
-        @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
-            try {
-                if (check.accept(primaryObj)) {
-                    return invoke.invoke(frame, primaryObj, arguments, keywords);
-                } else {
-                    return next.executeCall(frame, primaryObj, arguments, keywords);
-                }
-            } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
-            }
-        }
-    }
-
-    /**
-     * The primary could be:
-     * <p>
      * 1. The global {@link PythonModule}. <br>
      * 2. A built-in {@link PythonModule}. <br>
      * 3. A built-in {@link PythonBuiltinClass}.
      *
      */
-    public static final class DispatchBuiltinNode extends CallDispatchBoxedNode {
+    public static final class LinkedDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected ShapeCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        public DispatchBuiltinNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public LinkedDispatchBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
-            assert callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass;
+            this.check = check;
+            this.next = next;
 
-            if (callee instanceof PythonBuiltinClass) {
-                this.invoke = InvokeNode.create(((PythonBuiltinClass) callee).lookUpMethod("__init__"), next.hasKeyword);
+            if (callee instanceof PythonClass) {
+                this.invoke = InvokeNode.create(((PythonClass) callee).lookUpMethod("__init__"), next.hasKeyword);
             } else {
                 this.invoke = InvokeNode.create(callee, next.hasKeyword);
             }
-
-            this.check = check;
-            this.next = next;
         }
 
         @Override
