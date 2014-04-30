@@ -29,7 +29,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
@@ -113,7 +112,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 if (ctor instanceof PFunction) {
                     return new DispatchFunctionNode(primary, ctor, next);
                 } else if (ctor instanceof PBuiltinFunction) {
-                    return new DispatchBuiltinNode(primary, ctor, storageLayout, check, next);
+                    return new DispatchBuiltinNode(ctor, check, next);
                 }
             }
         } else if (isBuiltin(callee)) {
@@ -139,7 +138,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
 
             assert storageLayout != null && check != null;
-            return new DispatchBuiltinNode(primary, callee, storageLayout, check, next);
+            return new DispatchBuiltinNode(callee, check, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -202,10 +201,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        private final ObjectLayout cachedLayout;
-        private final Assumption dispatchStable;
-
-        public DispatchBuiltinNode(PythonObject primary, PythonCallable callee, ObjectLayout storageLayout, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public DispatchBuiltinNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             assert callee instanceof PBuiltinFunction || callee instanceof PythonBuiltinClass;
 
@@ -217,28 +213,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
             this.check = check;
             this.next = next;
-            this.cachedLayout = primary.getObjectLayout();
-
-            if (primary instanceof PythonModule) {
-                if (primary.equals(next.context.getBuiltins())) {
-                    dispatchStable = primary.getStableAssumption();
-                } else {
-                    Assumption globalStable = primary.getStableAssumption();
-                    Assumption builtinStable = next.context.getBuiltins().getStableAssumption();
-                    dispatchStable = new UnionAssumption("global and builtin", globalStable, builtinStable);
-                }
-            } else if (primary instanceof PythonBuiltinClass) {
-                dispatchStable = AlwaysValidAssumption.INSTANCE;
-            } else {
-                throw new IllegalStateException("Unsupported primary type " + primary);
-            }
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
-                dispatchStable.check();
-                if (cachedLayout == primaryObj.getObjectLayout()) {
+                if (check.accept(primaryObj)) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
                 } else {
                     return next.executeCall(frame, primaryObj, arguments, keywords);
