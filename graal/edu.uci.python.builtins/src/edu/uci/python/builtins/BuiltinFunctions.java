@@ -43,6 +43,7 @@ import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 import com.oracle.truffle.api.*;
@@ -561,22 +562,36 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class LenNode extends PythonBuiltinNode {
 
-        @Specialization
+        @Specialization(order = 0)
         public int len(String arg) {
             return arg.length();
         }
 
-        @Specialization
+        @Specialization(order = 1)
         public int len(PTuple tuple) {
             return tuple.len();
         }
 
-        @Specialization
-        public int len(PList list) {
+        protected static final boolean isIntStorage(PList list) {
+            return list.getStorage() instanceof BasicSequenceStorage;
+        }
+
+        protected static final boolean isEmptyStorage(PList list) {
+            return list.getStorage() instanceof EmptySequenceStorage;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 3, guards = "isEmptyStorage")
+        public int lenPListEmpty(PList list) {
+            return 0;
+        }
+
+        @Specialization(order = 4, guards = "isIntStorage")
+        public int lenPList(PList list) {
             return list.len();
         }
 
-        @Specialization
+        @Specialization(order = 5)
         public int len(PIterable iterable) {
             return iterable.len();
         }

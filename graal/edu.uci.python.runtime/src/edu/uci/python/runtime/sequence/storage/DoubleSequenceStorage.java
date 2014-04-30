@@ -26,7 +26,7 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
-public class DoubleSequenceStorage extends BasicSequenceStorage {
+public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     private double[] values;
 
