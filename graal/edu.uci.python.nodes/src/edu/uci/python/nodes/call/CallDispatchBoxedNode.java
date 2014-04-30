@@ -57,23 +57,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
 
         if (isNotBuiltin(callee)) {
-            ObjectLayout storageLayout = null;
             ShapeCheckNode check = null;
-            if (primary instanceof PythonModule) {
-                if (primary.isOwnAttribute(calleeName)) {
-                    storageLayout = primary.getObjectLayout();
-                    check = ShapeCheckNode.create(primary, storageLayout, 0);
-                } else if (calleeNode instanceof ReadGlobalNode) {
-                    PythonModule builtinsModule = context.getBuiltins();
 
-                    if (builtinsModule.isOwnAttribute(calleeName)) {
-                        storageLayout = builtinsModule.getObjectLayout();
-                        check = ShapeCheckNode.create(primary, storageLayout, 1);
-                    }
-                }
+            if (primary instanceof PythonModule) {
+                check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
             } else if (primary.isOwnAttribute(calleeName)) {
-                storageLayout = primary.getObjectLayout();
-                check = ShapeCheckNode.create(primary, storageLayout, 0);
+                check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
             } else {
                 // class chain lookup
                 int depth = 1;
@@ -91,11 +80,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw Py.AttributeError(primary + " object has no attribute " + calleeName);
                 }
 
-                storageLayout = current.getObjectLayout();
-                check = ShapeCheckNode.create(primary, storageLayout, depth);
+                check = ShapeCheckNode.create(primary, current.getObjectLayout(), depth);
             }
 
-            assert storageLayout != null && check != null;
+            assert check != null;
 
             /**
              * Treat generator as slow path for now.
@@ -116,32 +104,37 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 }
             }
         } else if (isBuiltin(callee)) {
-            ObjectLayout storageLayout = null;
             ShapeCheckNode check = null;
 
             if (primary instanceof PythonModule) {
-                if (primary.isOwnAttribute(calleeName)) {
-                    storageLayout = primary.getObjectLayout();
-                    check = ShapeCheckNode.create(primary, storageLayout, 0);
-                } else if (calleeNode instanceof ReadGlobalNode) {
-                    PythonModule builtinsModule = context.getBuiltins();
-
-                    if (builtinsModule.isOwnAttribute(calleeName)) {
-                        storageLayout = builtinsModule.getObjectLayout();
-                        check = ShapeCheckNode.create(primary, storageLayout, 1);
-                    }
-                }
-
+                check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
             } else if (primary instanceof PythonBuiltinClass) {
-                storageLayout = primary.getObjectLayout();
-                check = ShapeCheckNode.create(primary, storageLayout, 0);
+                /**
+                 * Since built-in classes are immutable, there is no need to probe the exact storage
+                 * object.
+                 */
+                check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
             }
 
-            assert storageLayout != null && check != null;
+            assert check != null;
             return new DispatchBuiltinNode(callee, check, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
+    }
+
+    private static ShapeCheckNode createCheckNodeForPythonModule(PythonContext context, PythonModule primary, PNode calleeNode, String calleeName) {
+        if (primary.isOwnAttribute(calleeName)) {
+            return ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
+        } else if (calleeNode instanceof ReadGlobalNode) {
+            PythonModule builtinsModule = context.getBuiltins();
+
+            if (builtinsModule.isOwnAttribute(calleeName)) {
+                return ShapeCheckNode.create(primary, builtinsModule.getObjectLayout(), 1);
+            }
+        }
+
+        throw new UnsupportedOperationException();
     }
 
     /**
