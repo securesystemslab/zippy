@@ -49,4 +49,9 @@ public class BinaryComparisonTests {
         assertPrints("True\n", source);
     }
 
+    @Test
+    public void equalAndEqual() {
+        String source = "a = 11; print(3 == 3 == 3 and 11 == 11 == a)";
+        assertPrints("True\n", source);
+    }
 }
