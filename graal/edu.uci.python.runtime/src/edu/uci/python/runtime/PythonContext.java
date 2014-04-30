@@ -115,10 +115,6 @@ public class PythonContext implements ExecutionContext {
         return options.getStandardOut();
     }
 
-    public boolean getUseUnsafe() {
-        return PythonOptions.UseUnsafe;
-    }
-
     public PythonBuiltinClass getTypeClass() {
         return typeClass;
     }

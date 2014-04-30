@@ -30,4 +30,6 @@ public interface HasPrimaryNode {
 
     PNode extractPrimary();
 
+    String getAttributeId();
+
 }

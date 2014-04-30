@@ -49,7 +49,7 @@ public class PythonParserImpl implements PythonParser {
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
 
-        if (!PythonOptions.PrintFunction) {
+        if (!PythonOptions.UsePrintFunction) {
             // enable printing flag for python's builtin function (v3.x) in parser.
 
             String print = "from __future__ import print_function \n";

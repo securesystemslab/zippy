@@ -435,6 +435,6 @@ def measure(iteration):
     print("richards: " + duration)
 
 # warmup
-entry_point(4000)
+entry_point(3000)
 
 measure(int(sys.argv[1]))

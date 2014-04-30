@@ -29,8 +29,6 @@ import java.util.Map.Entry;
 
 import com.oracle.truffle.api.*;
 
-import edu.uci.python.runtime.*;
-
 /**
  * Maps names of instance variables to storage locations, which are either the offset of a primitive
  * field in <code>PythonObject</code>, or an index into an object array in <code>PythonObject</code>
@@ -102,25 +100,21 @@ public class ObjectLayout {
             if (parent == null || parent.findStorageLocation(name) == null) {
                 Class storageClass;
 
-                if (PythonOptions.UseUnsafe) {
-                    if (type == Integer.class) {
-                        if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                            storageClass = Integer.class;
-                        } else {
-                            storageClass = Object.class;
-                        }
-                    } else if (type == Double.class) {
-                        if (primitiveDoubleStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
-                            storageClass = Double.class;
-                        } else {
-                            storageClass = Object.class;
-                        }
-                    } else if (type == Boolean.class) {
-                        if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                            storageClass = Boolean.class;
-                        } else {
-                            storageClass = Object.class;
-                        }
+                if (type == Integer.class) {
+                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                        storageClass = Integer.class;
+                    } else {
+                        storageClass = Object.class;
+                    }
+                } else if (type == Double.class) {
+                    if (primitiveDoubleStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
+                        storageClass = Double.class;
+                    } else {
+                        storageClass = Object.class;
+                    }
+                } else if (type == Boolean.class) {
+                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                        storageClass = Boolean.class;
                     } else {
                         storageClass = Object.class;
                     }

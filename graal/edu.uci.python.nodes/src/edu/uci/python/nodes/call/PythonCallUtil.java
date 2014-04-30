@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,43 +22,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.shell;
+package edu.uci.python.nodes.call;
+
+import java.io.*;
+
+import org.python.core.*;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
-public class CommandLineParser {
+public class PythonCallUtil {
 
-    public static void parse(String[] args) {
-        int index = 0;
+    protected static boolean isPrimaryBoxed(Object primary) {
+        if (primary instanceof PythonModule) {
+            return true;
+        } else if (primary instanceof PythonClass) {
+            return true;
+        } else if (primary instanceof PythonObject) {
+            return true;
+        }
 
-        while (index < args.length) {
-            String arg = args[index++];
+        return false;
+    }
 
-            if (!arg.startsWith("-")) {
-                continue;
-            }
-
-            if (arg.equals("-print-ast")) {
-                PythonOptions.PrintAST = true;
-                continue;
-            }
-
-            if (arg.equals("-visualize-ast")) {
-                PythonOptions.VisualizedAST = true;
-                continue;
-            }
-
-            if (arg.equals("-print-function")) {
-                PythonOptions.UsePrintFunction = true;
-                continue;
-            }
-
-            if (arg.equals("-OptimizeGeneratorExpressions:false")) {
-                PythonOptions.OptimizeGeneratorExpressions = false;
-                continue;
-            }
-
-            throw new IllegalStateException("Unknown options " + arg);
+    protected static void logJythonRuntime(PyObject callee) {
+        if (PythonOptions.TraceJythonRuntime) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy]: calling jython runtime function " + callee);
         }
     }
+
+    protected static boolean isBuiltin(PythonCallable callee) {
+        return callee instanceof PBuiltinFunction || callee instanceof PBuiltinMethod || callee instanceof PythonBuiltinClass;
+    }
+
+    protected static boolean isNotBuiltin(PythonCallable callee) {
+        return callee instanceof PFunction || callee instanceof PMethod || callee instanceof PythonClass;
+    }
+
 }

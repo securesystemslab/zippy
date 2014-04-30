@@ -65,6 +65,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         return new ObjectLiteralNode(globalScope);
     }
 
+    @Override
     public String getAttributeId() {
         return attributeId;
     }
@@ -131,25 +132,24 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         }
     }
 
-    public static final class ReadBuiltinCachedNode extends ReadGlobalNode {
+    public static final class ReadBuiltinDirectNode extends ReadGlobalNode {
 
-        private final Assumption globalScopeStable;
-        private final Assumption builtinsModuleStable;
-        private final Object cachedBuiltin;
+        @Child protected ShapeCheckNode check;
+        @Child protected AttributeReadNode read;
+        private final PythonModule builtinsModule;
 
-        public ReadBuiltinCachedNode(PythonContext context, PythonModule globalScope, String attributeId, Object cachedBuiltin) {
+        public ReadBuiltinDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
-            this.globalScopeStable = globalScope.getStableAssumption();
-            this.builtinsModuleStable = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getStableAssumption();
-            this.cachedBuiltin = cachedBuiltin;
+            this.builtinsModule = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+            this.check = ShapeCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
+            this.read = AttributeReadNode.create(builtinsModule.getOwnValidLocation(attributeId));
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             try {
-                globalScopeStable.check();
-                builtinsModuleStable.check();
-                return cachedBuiltin;
+                check.accept(globalScope);
+                return read.getValueUnsafe(builtinsModule);
             } catch (InvalidAssumptionException e) {
                 return specializeAndExecute(frame);
             }
@@ -178,7 +178,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             if (value == PNone.NONE) {
                 value = slowPathLookup();
             } else {
-                replace(new ReadBuiltinCachedNode(context, globalScope, attributeId, value));
+                replace(new ReadBuiltinDirectNode(context, globalScope, attributeId));
             }
 
             return value;

@@ -43,6 +43,7 @@ import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 import com.oracle.truffle.api.*;
@@ -96,7 +97,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public double absObject(Object arg) {
             throw Py.TypeError("bad operand type for abs(): '" + PythonTypesUtil.getPythonTypeName(arg) + "'");
         }
-
     }
 
     // all(iterable)
@@ -179,7 +179,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public boolean any(Object object) {
             throw new RuntimeException("any does not support iterable object " + object);
         }
-
     }
 
     // callable(object)
@@ -204,7 +203,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return object instanceof PythonCallable;
         }
-
     }
 
     // chr(i)
@@ -243,7 +241,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             throw Py.TypeError("an integer is required");
         }
-
     }
 
     // dir([object])
@@ -295,7 +292,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             double q = Math.floor(a / b);
             return new PTuple(new Object[]{q, a % b});
         }
-
     }
 
     // eval(expression, globals=None, locals=None)
@@ -316,7 +312,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             Truffle.getRuntime().createCallTarget(root);
             return root.execute(frame);
         }
-
     }
 
     // filter(function, iterable)
@@ -346,7 +341,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return new PTuple(filteredElements.toArray());
         }
-
     }
 
     // getattr(object, name[, default])
@@ -392,7 +386,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object getAttr(Object object, Object name, Object defaultValue) {
             throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
         }
-
     }
 
     // hasattr(object, name)
@@ -418,7 +411,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object hasAttr(Object object, Object name) {
             throw new RuntimeException("hasAttr is not supported for " + object + " " + object.getClass() + " name " + name);
         }
-
     }
 
     // isinstance(object, classinfo)
@@ -488,7 +480,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
         }
-
     }
 
     // issubclass(class, classinfo)
@@ -531,7 +522,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object issubclass(Object clazz, Object clazzinfo) {
             throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }
-
     }
 
     // iter(object[, sentinel])
@@ -554,14 +544,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object iter(Object object, Object sentinel) {
             throw new RuntimeException("Not supported sentinel case object " + object + " sentinel " + sentinel);
         }
-
     }
 
     // len(s)
     @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class LenNode extends PythonBuiltinNode {
 
-        @Specialization
+        @Specialization(order = 0)
         public int len(String arg) {
             return arg.length();
         }
@@ -571,7 +560,26 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return tuple.len();
         }
 
-        @Specialization(order = 5)
+        protected static final boolean isBasicStorage(PList list) {
+            return list.getStorage() instanceof BasicSequenceStorage;
+        }
+
+        protected static final boolean isEmptyStorage(PList list) {
+            return list.getStorage() instanceof EmptySequenceStorage;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 3, guards = "isEmptyStorage")
+        public int lenPListEmpty(PList list) {
+            return 0;
+        }
+
+        @Specialization(order = 4, guards = "isBasicStorage")
+        public int lenPList(PList list) {
+            return list.getStorage().length();
+        }
+
+        @Specialization(order = 10)
         public int len(PIterable iterable) {
             return iterable.len();
         }
@@ -580,7 +588,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public int len(Object arg) {
             throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
-
     }
 
     // max(iterable, *[, key])
@@ -668,7 +675,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
             return (args.len() == 0 && keywordArg instanceof PNone);
         }
-
     }
 
     // min(iterable, *[, key])
@@ -747,7 +753,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
             return (args.len() == 0 && keywordArg instanceof PNone);
         }
-
     }
 
     // next(iterator[, default])
@@ -765,7 +770,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object next(Object iterator, Object defaultObject) {
             throw new RuntimeException("Unsupported iterator " + iterator);
         }
-
     }
 
     // ord(c)
@@ -780,7 +784,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return chr.charAt(0);
         }
-
     }
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
@@ -843,7 +846,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             // CheckStyle: resume system..print check
             return null;
         }
-
     }
 
     // repr(object)
@@ -957,7 +959,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
             return sum;
         }
-
     }
 
     // super([type[, object-or-type]])
@@ -974,7 +975,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object applySuperGeneric(Object type, Object object) {
             throw new RuntimeException("super is not supported for type " + type + " object " + object);
         }
-
     }
 
     // type(object)
@@ -1050,7 +1050,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object type(Object object) {
             throw new RuntimeException("type is not supported for object " + object + " " + object.getClass());
         }
-
     }
 
     // __import__(name, globals=None, locals=None, fromlist=(), level=0)
@@ -1067,7 +1066,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 return importedModule;
             }
         }
-
     }
 
     @SlowPath

@@ -46,7 +46,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         UninitializedDispatchUnboxedNode next = new UninitializedDispatchUnboxedNode(callee.getName(), calleeNode, keywords.length != 0);
 
         if (callee instanceof PBuiltinMethod) {
-            return new DispatchBuiltinMethodNode(primary, (PBuiltinMethod) callee, next);
+            return new LinkedDispatchUnboxedNode(primary, (PBuiltinMethod) callee, next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee + " calleeNode type " + calleeNode);
@@ -54,29 +54,27 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
     /**
      * The primary is an unboxed object.
-     *
      */
-    public static final class DispatchBuiltinMethodNode extends CallDispatchUnboxedNode {
+    public static final class LinkedDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
-        @Child protected InvokeNode invokeNode;
-        @Child protected CallDispatchUnboxedNode nextNode;
-
+        @Child protected InvokeNode invoke;
+        @Child protected CallDispatchUnboxedNode next;
         private final Class cachedPrimaryType;
 
-        public DispatchBuiltinMethodNode(Object primary, PBuiltinMethod callee, UninitializedDispatchUnboxedNode next) {
+        public LinkedDispatchUnboxedNode(Object primary, PBuiltinMethod callee, UninitializedDispatchUnboxedNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, next.hasKeyword);
-            nextNode = next;
-            cachedPrimaryType = primary.getClass();
+            this.invoke = InvokeNode.create(callee, next.hasKeyword);
+            this.next = next;
+            this.cachedPrimaryType = primary.getClass();
         }
 
         @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getClass() == cachedPrimaryType) {
-                return invokeNode.invoke(frame, primaryObj, arguments, keywords);
+                return invoke.invoke(frame, primaryObj, arguments, keywords);
             }
 
-            return nextNode.executeCall(frame, primaryObj, arguments, keywords);
+            return next.executeCall(frame, primaryObj, arguments, keywords);
         }
     }
 
@@ -132,12 +130,9 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 } catch (UnexpectedResultException e) {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
-
-                CallDispatchUnboxedNode direct = CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode, keywords);
-                specialized = replace(direct);
+                specialized = replace(CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode, keywords));
             } else {
-                CallDispatchUnboxedNode generic = new GenericDispatchUnboxedNode(calleeName, calleeNode);
-                specialized = current.replace(generic);
+                specialized = current.replace(new GenericDispatchUnboxedNode(calleeName, calleeNode));
             }
 
             return specialized.executeCall(frame, primaryObj, arguments, keywords);

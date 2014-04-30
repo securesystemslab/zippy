@@ -9,6 +9,7 @@ class Task(object):
         self.packet_pending = p
         self.task_waiting = w
         self.task_holding = h
+        self.link = None
 
     def isTaskHoldingOrWaiting(self):
         return self.task_holding or (not self.packet_pending and self.task_waiting)
@@ -21,13 +22,23 @@ TASK_LIST = [Task(False, False, True),
              Task(True, True, False), 
              Task(True, False, True)]
 
+def setupTaskQueue():
+    prev = None
+    for t in TASK_LIST:
+        t.link = prev
+        prev = t
+    return t
+
+TASK_QUEUE = setupTaskQueue()
+
 def dostuff():
-    task_list = TASK_LIST
     total = 0
     for i in range(iteration):
-        for t in task_list:
+        t = TASK_QUEUE
+        while t is not None:
             if (t.isTaskHoldingOrWaiting()):
                 total += 1
+            t = t.link
 
     return total
 

@@ -26,7 +26,6 @@ package edu.uci.python.test.grammar;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.*;
 import static edu.uci.python.test.PythonTests.*;
 
 public class ClassTests {
@@ -146,9 +145,6 @@ public class ClassTests {
 
     @Test
     public void keywordArgInMethod() {
-        if (!PythonOptions.AttributeAccessInlineCaching) {
-            return;
-        }
         String source = "class TestSuite():\n" + //
                         "    def assertTrue(self, arg, msg=None):\n" + //
                         "        print(\"arg\", arg)\n" + //

@@ -100,11 +100,6 @@ public class GeneratorExpressionTranslationTests {
     @Test
     public void escapeByCall() {
         PythonOptions.OptimizeGeneratorExpressions = true;
-
-        if (!PythonOptions.AttributeAccessInlineCaching) {
-            return;
-        }
-
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
                         "    n = 5\n" + //
