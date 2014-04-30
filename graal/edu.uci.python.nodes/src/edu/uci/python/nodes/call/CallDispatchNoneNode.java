@@ -26,6 +26,7 @@ package edu.uci.python.nodes.call;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -74,14 +75,22 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
     public static final class LinkedDispatchNoneNode extends CallDispatchNoneNode {
 
         @Child protected InvokeNode invokeNode;
-        @Child protected CallDispatchNoneNode nextNode;
+        @Child protected CallDispatchNoneNode next;
         private final PythonCallable cachedCallee;
 
         public LinkedDispatchNoneNode(PFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, next.hasKeyword);
-            nextNode = next;
-            cachedCallee = callee;
+            this.invokeNode = InvokeNode.create(callee, next.hasKeyword);
+            this.next = next;
+            this.cachedCallee = callee;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
         }
 
         @Override
@@ -90,10 +99,11 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
                 return invokeNode.invoke(frame, null, arguments, keywords);
             }
 
-            return nextNode.executeCall(frame, callee, arguments, keywords);
+            return next.executeCall(frame, callee, arguments, keywords);
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchNoneNode extends CallDispatchNoneNode {
 
         public GenericDispatchNoneNode(String calleeName) {
@@ -106,6 +116,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchNoneNode extends CallDispatchNoneNode {
 
         private final boolean hasKeyword;

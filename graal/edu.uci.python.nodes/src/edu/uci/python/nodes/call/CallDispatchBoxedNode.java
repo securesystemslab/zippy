@@ -149,6 +149,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
+        }
+
+        @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
                 if (check.accept(primaryObj)) {

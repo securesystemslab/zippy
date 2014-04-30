@@ -141,6 +141,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchBoxedNode extends DispatchBoxedNode {
 
         public GenericDispatchBoxedNode(String attributeId) {
@@ -193,6 +194,14 @@ public abstract class DispatchBoxedNode extends Node {
 
         private PythonObject getStorage(PythonObject primary) {
             return cachedStorage == null ? primary : cachedStorage;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
         }
 
         @Override

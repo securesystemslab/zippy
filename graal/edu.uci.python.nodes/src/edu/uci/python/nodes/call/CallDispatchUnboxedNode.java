@@ -69,6 +69,14 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
 
         @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
+        }
+
+        @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getClass() == cachedPrimaryType) {
                 return invoke.invoke(frame, primaryObj, arguments, keywords);
@@ -78,6 +86,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
         @Child protected PNode calleeNode;
@@ -100,6 +109,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
         @Child protected PNode calleeNode;
