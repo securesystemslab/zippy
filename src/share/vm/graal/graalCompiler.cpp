@@ -44,7 +44,10 @@ GraalCompiler::GraalCompiler() : AbstractCompiler(graal) {
 
 // Initialization
 void GraalCompiler::initialize() {
-  
+  if (!should_perform_init()) {
+    return;
+  }
+
   ThreadToNativeFromVM trans(JavaThread::current());
   JavaThread* THREAD = JavaThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
@@ -100,7 +103,7 @@ void GraalCompiler::initialize() {
     if (UseCompiler) {
       _external_deopt_i2c_entry = create_external_deopt_i2c();
 #ifdef COMPILERGRAAL
-      bool bootstrap = FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal;
+      bool bootstrap = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
 #else
       bool bootstrap = false;
 #endif
@@ -172,7 +175,7 @@ BufferBlob* GraalCompiler::initialize_buffer_blob() {
   return buffer_blob;
 }
 
-void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
+void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTask* task, jboolean blocking) {
   GRAAL_EXCEPTION_CONTEXT
   if (!_initialized) {
     CompilationPolicy::policy()->delay_compilation(method());
@@ -182,7 +185,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
   thread->set_is_graal_compiling(true);
-  VMToCompiler::compileMethod(method(), entry_bci, blocking);
+  VMToCompiler::compileMethod(method(), entry_bci, (jlong) (address) task, blocking);
   thread->set_is_graal_compiling(false);
 }
 

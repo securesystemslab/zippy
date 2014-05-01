@@ -88,6 +88,7 @@ void graal_compute_offsets();
     oop_field(HotSpotCompiledNmethod, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;")                                                     \
     int_field(HotSpotCompiledNmethod, entryBCI)                                                                                                                \
     int_field(HotSpotCompiledNmethod, id)                                                                                                                      \
+    long_field(HotSpotCompiledNmethod, ctask)                                                                                                                  \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompiledRuntimeStub)                                                                                                                      \
     oop_field(HotSpotCompiledRuntimeStub, stubName, "Ljava/lang/String;")                                                                                      \

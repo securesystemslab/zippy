@@ -804,7 +804,7 @@ void CompileBroker::compilation_init() {
 
 #if defined(COMPILERGRAAL)
   _compilers[1] = graal;
-  c2_count = 0;
+  c2_count = UseGraalCompilationQueue ? 0 : c2_count;
 #endif // COMPILERGRAAL
 
 #ifdef COMPILER2
@@ -1143,22 +1143,24 @@ void CompileBroker::compile_method_base(methodHandle method,
     return;
   }
 
-#if defined(COMPILERGRAAL)
-  // In tiered mode we want to only handle highest tier compiles and
-  // in non-tiered mode the default level should be
-  // CompLevel_full_optimization which equals CompLevel_highest_tier.
-  assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
-  assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
-  if (comp_level == CompLevel_full_optimization) {
-    if (!JavaThread::current()->is_graal_compiling()) {
-      bool blockingCompilation = is_compile_blocking(method, osr_bci);
-      GraalCompiler::instance()->compile_method(method, osr_bci, blockingCompilation);
-    } else {
-      // Can't enqueue this request because there would be no one to service it, so simply return.
+#ifdef COMPILERGRAAL
+  if (UseGraalCompilationQueue) {
+    // In tiered mode we want to only handle highest tier compiles and
+    // in non-tiered mode the default level should be
+    // CompLevel_full_optimization which equals CompLevel_highest_tier.
+    assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
+    assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
+    if (comp_level == CompLevel_full_optimization) {
+      if (!JavaThread::current()->is_graal_compiling()) {
+        bool blockingCompilation = is_compile_blocking(method, osr_bci);
+        GraalCompiler::instance()->compile_method(method, osr_bci, NULL, blockingCompilation);
+      } else {
+        // Can't enqueue this request because there would be no one to service it, so simply return.
+      }
+      return;
     }
-    return;
+    assert(TieredCompilation, "should only reach here in tiered mode");
   }
-  assert(TieredCompilation, "should only reach here in tiered mode");
 #endif // COMPILERGRAAL
 
   // Outputs from the following MutexLocker block:
@@ -1881,6 +1883,35 @@ static void codecache_print(bool detailed)
   tty->print(s.as_string());
 }
 
+void CompileBroker::post_compile(CompilerThread* thread, CompileTask* task, EventCompilation& event, bool success, ciEnv* ci_env) {
+
+  if (success) {
+    task->mark_success();
+    if (ci_env != NULL) {
+      task->set_num_inlined_bytecodes(ci_env->num_inlined_bytecodes());
+    }
+    if (_compilation_log != NULL) {
+      nmethod* code = task->code();
+      if (code != NULL) {
+        _compilation_log->log_nmethod(thread, code);
+      }
+    }
+  }
+
+  // simulate crash during compilation
+  assert(task->compile_id() != CICrashAt, "just as planned");
+  if (event.should_commit()) {
+    event.set_method(task->method());
+    event.set_compileID(task->compile_id());
+    event.set_compileLevel(task->comp_level());
+    event.set_succeded(task->is_success());
+    event.set_isOsr(task->osr_bci() != CompileBroker::standard_entry_bci);
+    event.set_codeSize((task->code() == NULL) ? 0 : task->code()->total_size());
+    event.set_inlinedBytes(task->num_inlined_bytecodes());
+    event.commit();
+  }
+}
+
 // ------------------------------------------------------------------
 // CompileBroker::invoke_compiler_on_method
 //
@@ -1929,6 +1960,21 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   push_jni_handle_block();
   Method* target_handle = task->method();
   int compilable = ciEnv::MethodCompilable;
+  AbstractCompiler *comp = compiler(task_level);
+
+#ifdef COMPILERGRAAL
+  if (comp != NULL && comp->is_graal()) {
+    assert(!UseGraalCompilationQueue, "should not reach here");
+    GraalCompiler* graal = (GraalCompiler*) comp;
+
+    TraceTime t1("compilation", &time);
+    EventCompilation event;
+
+    graal->compile_method(target_handle, osr_bci, task, false);
+
+    post_compile(thread, task, event, task->code() != NULL, NULL);
+  } else
+#endif // COMPILERGRAAL
   {
     int system_dictionary_modification_counter;
     {
@@ -1960,7 +2006,6 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
     TraceTime t1("compilation", &time);
     EventCompilation event;
 
-    AbstractCompiler *comp = compiler(task_level);
     if (comp == NULL) {
       ci_env.record_method_not_compilable("no compiler", !TieredCompilation);
     } else {
@@ -1988,28 +2033,9 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
             err_msg_res("COMPILE SKIPPED: %s",      ci_env.failure_reason());
         task->print_compilation(tty, msg);
       }
-    } else {
-      task->mark_success();
-      task->set_num_inlined_bytecodes(ci_env.num_inlined_bytecodes());
-      if (_compilation_log != NULL) {
-        nmethod* code = task->code();
-        if (code != NULL) {
-          _compilation_log->log_nmethod(thread, code);
-        }
-      }
     }
-    // simulate crash during compilation
-    assert(task->compile_id() != CICrashAt, "just as planned");
-    if (event.should_commit()) {
-      event.set_method(target->get_Method());
-      event.set_compileID(compile_id);
-      event.set_compileLevel(task->comp_level());
-      event.set_succeded(task->is_success());
-      event.set_isOsr(is_osr);
-      event.set_codeSize((task->code() == NULL) ? 0 : task->code()->total_size());
-      event.set_inlinedBytes(task->num_inlined_bytecodes());
-      event.commit();
-    }
+
+    post_compile(thread, task, event, !ci_env.failing(), &ci_env);
   }
   pop_jni_handle_block();
 

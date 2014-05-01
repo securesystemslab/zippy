@@ -367,7 +367,7 @@
   template(compileTheWorld_name,                  "compileTheWorld")                                                                  \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JIZ)V")                                                                           \
+  template(compileMethod_signature,               "(JIJZ)V")                                                                          \
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
   template(finalizeOptions_name,                  "finalizeOptions")                                                                  \
