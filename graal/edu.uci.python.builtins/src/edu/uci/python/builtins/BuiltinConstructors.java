@@ -45,8 +45,9 @@ import edu.uci.python.runtime.standardtype.*;
 
 /**
  * @author Gulfem
+ * @author zwei
+ *
  */
-
 public final class BuiltinConstructors extends PythonBuiltins {
 
     @Override
@@ -234,39 +235,35 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
     public abstract static class FrozenSetNode extends PythonBuiltinNode {
 
-        protected static boolean emptyArgument(Object arg) {
-            return arg.equals(PNone.NONE);
-        }
-
         @SuppressWarnings("unused")
-        @Specialization(order = 0, guards = "emptyArgument")
+        @Specialization(order = 0, guards = "emptyArguments")
         public PFrozenSet frozensetEmpty(Object arg) {
             return new PFrozenSet();
         }
 
-        @Specialization(order = 1)
+        @Specialization
         public PFrozenSet frozenset(String arg) {
             return new PFrozenSet(new PStringIterator(arg));
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public PFrozenSet frozenset(PBaseSet baseSet) {
             return new PFrozenSet(baseSet);
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public PFrozenSet frozensetSequence(PSequence sequence) {
             return new PFrozenSet(sequence.__iter__());
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public PFrozenSet frozensetIterator(PIterator iterator) {
             PFrozenSet set = new PFrozenSet(iterator);
             return set;
         }
 
         @SuppressWarnings("unused")
-        @Generic
+        @Specialization(order = 10)
         public PFrozenSet frozenset(Object arg) {
             throw new UnsupportedOperationException();
         }
@@ -500,7 +497,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PSet(iterator);
         }
 
-        @Specialization
+        @Specialization(guards = "emptyArguments")
         public PSet set(@SuppressWarnings("unused") PNone none) {
             return new PSet();
         }
