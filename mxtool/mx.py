@@ -1553,9 +1553,13 @@ class JavaConfig:
 
     def _init_classpaths(self):
         myDir = dirname(__file__)
+        outDir = join(dirname(__file__), '.jdk' + str(self.version))
+        if not exists(outDir):
+            os.makedirs(outDir)
         javaSource = join(myDir, 'ClasspathDump.java')
-        subprocess.check_call([self.javac, '-d', myDir, javaSource])
-        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', myDir, 'ClasspathDump']).split('|')]
+        if not exists(join(outDir, 'ClasspathDump.class')):
+            subprocess.check_call([self.javac, '-d', outDir, javaSource])
+        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump']).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
         self._bootclasspath = _filter_non_existant_paths(self._bootclasspath)
@@ -1790,6 +1794,131 @@ def update_file(path, content):
 
 # Builtin commands
 
+def _defaultEcjPath():
+    return get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
+
+class JavaCompileTask:
+    def __init__(self, args, proj, reason, javafilelist, jdk, outputDir, deps):
+        self.proj = proj
+        self.reason = reason
+        self.javafilelist = javafilelist
+        self.deps = deps
+        self.jdk = jdk
+        self.outputDir = outputDir
+        self.done = False
+        self.args = args
+
+    def __str__(self):
+        return self.proj.name
+
+    def logCompilation(self, compiler):
+        log('Compiling Java sources for {} with {}... [{}]'.format(self.proj.name, compiler, self.reason))
+
+    def execute(self):
+        argfileName = join(self.proj.dir, 'javafilelist.txt')
+        argfile = open(argfileName, 'wb')
+        argfile.write('\n'.join(self.javafilelist))
+        argfile.close()
+
+        processorArgs = []
+
+        aps = self.proj.annotation_processors()
+        if len(aps) > 0:
+            processorPath = classpath(aps, resolve=True)
+            genDir = self.proj.source_gen_dir()
+            if exists(genDir):
+                shutil.rmtree(genDir)
+            os.mkdir(genDir)
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir]
+        else:
+            processorArgs += ['-proc:none']
+
+        args = self.args
+        jdk = self.jdk
+        outputDir = self.outputDir
+        compliance = str(jdk.javaCompliance)
+        cp = classpath(self.proj.name, includeSelf=True)
+        toBeDeleted = [argfileName]
+
+        jdtJar = None
+        if not args.javac and args.jdt is not None:
+            if not args.jdt.endswith('.jar'):
+                abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
+            jdtJar = args.jdt
+            if not exists(jdtJar):
+                if os.path.abspath(jdtJar) == os.path.abspath(_defaultEcjPath()) and get_env('JDT', None) is None:
+                    # Silently ignore JDT if default location is used but does not exist
+                    jdtJar = None
+                else:
+                    abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
+
+        try:
+            if not jdtJar:
+                mainJava = java()
+                if not args.error_prone:
+                    self.logCompilation('javac')
+                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
+                    if jdk.debug_port is not None:
+                        javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
+                    javacCmd += processorArgs
+                    javacCmd += ['@' + argfile.name]
+
+                    if not args.warnAPI:
+                        javacCmd.append('-XDignore.symbol.file')
+                    run(javacCmd)
+                else:
+                    self.logCompilation('javac (with error-prone)')
+                    javaArgs = ['-Xmx1g']
+                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
+                    javacArgs += processorArgs
+                    javacArgs += ['@' + argfile.name]
+                    if not args.warnAPI:
+                        javacArgs.append('-XDignore.symbol.file')
+                    run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
+            else:
+                self.logCompilation('JDT')
+
+                jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
+
+                jdtArgs = ['-' + compliance,
+                         '-cp', cp, '-g', '-enableJavadoc',
+                         '-d', outputDir,
+                         '-bootclasspath', jdk.bootclasspath(),
+                         '-endorseddirs', jdk.endorseddirs(),
+                         '-extdirs', jdk.extdirs()]
+                jdtArgs += processorArgs
+
+                jdtProperties = join(self.proj.dir, '.settings', 'org.eclipse.jdt.core.prefs')
+                rootJdtProperties = join(self.proj.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
+                if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
+                    # Try to fix a missing properties file by running eclipseinit
+                    eclipseinit([], buildProcessorJars=False)
+                if not exists(jdtProperties):
+                    log('JDT properties file {0} not found'.format(jdtProperties))
+                else:
+                    with open(jdtProperties) as fp:
+                        origContent = fp.read()
+                        content = origContent
+                        if args.jdt_warning_as_error:
+                            content = content.replace('=warning', '=error')
+                        if not args.jdt_show_task_tags:
+                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
+                    if origContent != content:
+                        jdtPropertiesTmp = jdtProperties + '.tmp'
+                        with open(jdtPropertiesTmp, 'w') as fp:
+                            fp.write(content)
+                        toBeDeleted.append(jdtPropertiesTmp)
+                        jdtArgs += ['-properties', jdtPropertiesTmp]
+                    else:
+                        jdtArgs += ['-properties', jdtProperties]
+                jdtArgs.append('@' + argfile.name)
+
+                run_java(jdtVmArgs + jdtArgs)
+        finally:
+            for n in toBeDeleted:
+                os.remove(n)
+            self.done = True
+
 def build(args, parser=None):
     """compile the Java and C sources, linking the latter
 
@@ -1800,11 +1929,10 @@ def build(args, parser=None):
     if not suppliedParser:
         parser = ArgumentParser(prog='mx build')
 
-    defaultEcjPath = get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
-
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
+    parser.add_argument('-p', action='store_true', dest='parallelize', help='parallelizes Java compilation')
     parser.add_argument('--source', dest='compliance', help='Java compliance level for projects without an explicit one')
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
@@ -1815,7 +1943,7 @@ def build(args, parser=None):
     parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
     compilerSelect = parser.add_mutually_exclusive_group()
     compilerSelect.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
-    compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
+    compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler', default=_defaultEcjPath(), metavar='<path>')
     compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
 
 
@@ -1823,20 +1951,6 @@ def build(args, parser=None):
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
 
     args = parser.parse_args(args)
-
-    jdtJar = None
-    if not args.javac and args.jdt is not None:
-        if not args.jdt.endswith('.jar'):
-            abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
-        jdtJar = args.jdt
-        if not exists(jdtJar):
-            if os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
-                # Silently ignore JDT if default location is used but does not exist
-                jdtJar = None
-            else:
-                abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
-
-    built = set()
 
     if args.only is not None:
         # N.B. This build will not include dependencies including annotation processor dependencies
@@ -1870,6 +1984,7 @@ def build(args, parser=None):
                 shutil.rmtree(join(genDir, f))
         return outputDir
 
+    tasks = {}
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -1879,7 +1994,6 @@ def build(args, parser=None):
                     run([gmake_cmd(), 'clean'], cwd=p.dir)
 
                 run([gmake_cmd()], cwd=p.dir)
-                built.add(p.name)
             continue
         else:
             if not args.java:
@@ -1893,17 +2007,19 @@ def build(args, parser=None):
         if not jdk:
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, requiredCompliance))
             continue
-        compliance = str(jdk.javaCompliance)
 
         outputDir = prepareOutputDirs(p, args.clean)
 
-        cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
         buildReason = 'forced build' if args.force else None
+        taskDeps = []
         if not buildReason:
-            for dep in p.all_deps([], False):
-                if dep.name in built:
-                    buildReason = dep.name + ' rebuilt'
+            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
+                taskDep = tasks.get(dep.name)
+                if taskDep:
+                    if not buildReason:
+                        buildReason = dep.name + ' rebuilt'
+                    taskDeps.append(taskDep)
 
         jasminAvailable = None
         javafilelist = []
@@ -1959,7 +2075,6 @@ def build(args, parser=None):
                             buildReason = 'class file(s) out of date'
                             break
 
-        aps = p.annotation_processors()
         apsOutOfDate = p.update_current_annotation_processors_file()
         if apsOutOfDate:
             buildReason = 'annotation processor(s) changed'
@@ -1972,99 +2087,86 @@ def build(args, parser=None):
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
-        # Ensure that the output directories are clean
-        # prepareOutputDirs(p, True)
+        task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, taskDeps)
 
-        built.add(p.name)
-
-        argfileName = join(p.dir, 'javafilelist.txt')
-        argfile = open(argfileName, 'wb')
-        argfile.write('\n'.join(javafilelist))
-        argfile.close()
-
-        processorArgs = []
-
-        if len(aps) > 0:
-            processorPath = classpath(aps, resolve=True)
-            genDir = p.source_gen_dir()
-            if exists(genDir):
-                shutil.rmtree(genDir)
-            os.mkdir(genDir)
-            processorArgs += ['-processorpath', join(processorPath), '-s', genDir]
+        if args.parallelize:
+            # Best to initialize class paths on main process
+            jdk.bootclasspath()
+            task.proc = None
+            tasks[p.name] = task
         else:
-            processorArgs += ['-proc:none']
+            task.execute()
 
-        toBeDeleted = [argfileName]
-        try:
+    if args.parallelize:
 
-            def logCompilation(p, compiler, reason):
-                log('Compiling Java sources for {} with {}... [{}]'.format(p.name, compiler, reason))
+        def joinTasks(tasks):
+            failed = []
+            for t in tasks:
+                t.proc.join()
+                if t.proc.exitcode != 0:
+                    failed.append(t)
+            return failed
 
-            if not jdtJar:
-                mainJava = java()
-                if not args.error_prone:
-                    logCompilation(p, 'javac', buildReason)
-                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
-                    if jdk.debug_port is not None:
-                        javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
-                    javacCmd += processorArgs
-                    javacCmd += ['@' + argfile.name]
-
-                    if not args.warnAPI:
-                        javacCmd.append('-XDignore.symbol.file')
-                    run(javacCmd)
+        def checkTasks(tasks):
+            active = []
+            for t in tasks:
+                if t.proc.is_alive():
+                    active.append(t)
                 else:
-                    logCompilation(p, 'javac (with error-prone)', buildReason)
-                    javaArgs = ['-Xmx1g']
-                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
-                    javacArgs += processorArgs
-                    javacArgs += ['@' + argfile.name]
-                    if not args.warnAPI:
-                        javacArgs.append('-XDignore.symbol.file')
-                    run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
-            else:
-                logCompilation(p, 'JDT', buildReason)
+                    if t.proc.exitcode != 0:
+                        return ([], joinTasks(tasks))
+            return (active, [])
 
-                jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
-
-                jdtArgs = ['-' + compliance,
-                         '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir,
-                         '-bootclasspath', jdk.bootclasspath(),
-                         '-endorseddirs', jdk.endorseddirs(),
-                         '-extdirs', jdk.extdirs()]
-                jdtArgs += processorArgs
-
-
-                jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
-                rootJdtProperties = join(p.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
-                if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
-                    # Try to fix a missing properties file by running eclipseinit
-                    eclipseinit([], buildProcessorJars=False)
-                if not exists(jdtProperties):
-                    log('JDT properties file {0} not found'.format(jdtProperties))
+        def remainingDepsDepth(task):
+            if task._d is None:
+                incompleteDeps = [d for d in task.deps if d.proc is None or d.proc.is_alive()]
+                if len(incompleteDeps) == 0:
+                    task._d = 0
                 else:
-                    with open(jdtProperties) as fp:
-                        origContent = fp.read()
-                        content = origContent
-                        if args.jdt_warning_as_error:
-                            content = content.replace('=warning', '=error')
-                        if not args.jdt_show_task_tags:
-                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
-                    if origContent != content:
-                        jdtPropertiesTmp = jdtProperties + '.tmp'
-                        with open(jdtPropertiesTmp, 'w') as fp:
-                            fp.write(content)
-                        toBeDeleted.append(jdtPropertiesTmp)
-                        jdtArgs += ['-properties', jdtPropertiesTmp]
-                    else:
-                        jdtArgs += ['-properties', jdtProperties]
-                jdtArgs.append('@' + argfile.name)
+                    task._d = max([remainingDepsDepth(t) for t in incompleteDeps]) + 1
+            return task._d
 
-                run_java(jdtVmArgs + jdtArgs)
-        finally:
-            for n in toBeDeleted:
-                os.remove(n)
+        def sortWorklist(tasks):
+            for t in tasks:
+                t._d = None
+            return sorted(tasks, lambda x, y : remainingDepsDepth(x) - remainingDepsDepth(y))
+
+        import multiprocessing
+        cpus = multiprocessing.cpu_count()
+        worklist = sortWorklist(tasks.values())
+        active = []
+        while len(worklist) != 0:
+            while True:
+                active, failed = checkTasks(active)
+                if len(failed) != 0:
+                    assert not active, active
+                    break
+                if len(active) == cpus:
+                    # Sleep for 1 second
+                    time.sleep(1)
+                else:
+                    break
+
+            def executeTask(task):
+                task.execute()
+
+            def depsDone(task):
+                for d in task.deps:
+                    if d.proc is None or d.proc.exitcode is None:
+                        return False
+                return True
+
+            for task in worklist:
+                if depsDone(task):
+                    worklist.remove(task)
+                    task.proc = multiprocessing.Process(target=executeTask, args=(task,))
+                    task.proc.start()
+                    active.append(task)
+                if len(active) == cpus:
+                    break
+
+            worklist = sortWorklist(worklist)
+        joinTasks(active)
 
     for dist in _dists.values():
         archive(['@' + dist.name])
