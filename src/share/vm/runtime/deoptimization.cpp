@@ -359,7 +359,8 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 #ifdef ASSERT
   assert(cb->is_deoptimization_stub() ||
          cb->is_uncommon_trap_stub() ||
-         strcmp("Stub<DeoptimizationStub.uncommonTrapHandler>", cb->name()) == 0,
+         strcmp("Stub<DeoptimizationStub.deoptimizationHandler>", cb->name()) == 0 ||
+         strcmp("Stub<UncommonTrapStub.uncommonTrapHandler>", cb->name()) == 0,
          err_msg("unexpected code blob: %s", cb->name()));
 #endif
 #else
