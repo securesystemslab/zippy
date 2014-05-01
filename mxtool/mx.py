@@ -2258,7 +2258,7 @@ def _processorjars_suite(s):
         return []
 
     pnames = [p.name for p in projs]
-    build(['--projects', ",".join(pnames)])
+    build(['--jdt-warning-as-error', '--projects', ",".join(pnames)])
     return archive(pnames)
 
 def pylint(args):
