@@ -1261,13 +1261,13 @@ def gate(args, gate_body=_basic_gate_body):
 
         if mx.get_env('JDT'):
             t = Task('BuildJavaWithEcj')
-            build(['--no-native', '--jdt-warning-as-error'])
+            build(['-p', '--no-native', '--jdt-warning-as-error'])
             tasks.append(t.stop())
 
             _clean('CleanAfterEcjBuild')
 
         t = Task('BuildJavaWithJavac')
-        build(['--no-native', '--force-javac'])
+        build(['-p', '--no-native', '--force-javac'])
         tasks.append(t.stop())
 
         t = Task('Checkheaders')
