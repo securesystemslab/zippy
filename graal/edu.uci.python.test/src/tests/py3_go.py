@@ -28,11 +28,14 @@ class Square:
 
     def set_neighbours(self): 
         x, y = self.pos % SIZE, self.pos // SIZE;
+        print('x', x, 'y', y)
         self.neighbours = []
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             newx, newy = x + dx, y + dy
+            print('newx', newx, 'newy', newy)
             if 0 <= newx < SIZE and 0 <= newy < SIZE:
                 self.neighbours.append(self.board.squares[to_pos(newx, newy)])
+            print('square.neighbours', self.neighbours)
 
     def move(self, color):
         global TIMESTAMP, MOVES
@@ -143,7 +146,9 @@ class ZobristHash:
 class Board:
     def __init__(self):
         self.squares = [Square(self, pos) for pos in range(SIZE*SIZE)]
+        print('board.squares', self.squares)
         for square in self.squares:
+            print('square', square)
             square.set_neighbours()
         self.reset()
 

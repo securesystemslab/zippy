@@ -57,6 +57,7 @@ public abstract class ShapeCheckNode extends Node {
         public PythonObjectCheckNode(PythonObject python) {
             super(python.getObjectLayout());
             stableAssumption = python.getStableAssumption();
+            assert stableAssumption.isValid();
         }
 
         @Override
@@ -75,6 +76,8 @@ public abstract class ShapeCheckNode extends Node {
             super(primary.getObjectLayout());
             this.storageStableAssumption = storageLayout.getValidAssumption();
             this.objectStableAssumption = primary.getStableAssumption();
+            assert storageStableAssumption.isValid();
+            assert objectStableAssumption.isValid();
         }
 
         @Override
@@ -99,12 +102,14 @@ public abstract class ShapeCheckNode extends Node {
         public ClassChainCheckNode(PythonObject primary, ObjectLayout storageLayout, int depth) {
             super(primary.getObjectLayout());
             this.objectStableAssumption = primary.getStableAssumption();
+            assert objectStableAssumption.isValid();
 
             Assumption[] classStables = new Assumption[depth - 1];
             PythonClass current = primary.getPythonClass();
 
             for (int i = 0; i < depth - 1; i++) {
                 classStables[i] = current.getStableAssumption();
+                assert classStables[i].isValid();
                 current = current.getSuperClass();
                 assert current != null;
             }
@@ -112,6 +117,7 @@ public abstract class ShapeCheckNode extends Node {
             this.classStableAssumptions = classStables;
             this.storageStableAssumption = storageLayout.getValidAssumption();
             assert storageStableAssumption == current.getStableAssumption();
+            assert storageStableAssumption.isValid();
         }
 
         @ExplodeLoop

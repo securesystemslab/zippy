@@ -71,6 +71,15 @@ public abstract class DispatchBoxedNode extends Node {
             return newNode;
         }
 
+        /**
+         * zwei: If a PythonObject's layout is invalid, force it to update its layout from its
+         * Class's instanceLayout. This avoids infinite recursion when a PythonObject is created
+         * with an old instanceLayout and invalidates the previous dispatchNode.
+         */
+        if (!primary.getStableAssumption().isValid()) {
+            primary.syncObjectLayoutWithClass();
+        }
+
         int depth = 0;
         PythonClass current = null;
         // Plain PythonObject

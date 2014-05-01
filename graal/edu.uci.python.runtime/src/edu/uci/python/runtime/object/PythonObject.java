@@ -86,6 +86,12 @@ public class PythonObject {
         this.objectLayout = newLayout;
     }
 
+    public final void syncObjectLayoutWithClass() {
+        if (objectLayout != pythonClass.getInstanceObjectLayout()) {
+            objectLayout = pythonClass.getInstanceObjectLayout();
+        }
+    }
+
     /**
      * Does this object have an instance variable defined?
      */
