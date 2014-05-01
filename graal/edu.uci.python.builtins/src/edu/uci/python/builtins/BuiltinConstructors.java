@@ -501,6 +501,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @Specialization
+        public PSet set(@SuppressWarnings("unused") PNone none) {
+            return new PSet();
+        }
+
+        @Specialization
         public PSet set(Object arg) {
             if (!(arg instanceof Iterable<?>)) {
                 throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
