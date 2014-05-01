@@ -813,6 +813,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private Object print(PTuple values, String possibleSep, String possibleEnd) {
             String sep = possibleSep;
             String end = possibleEnd;
+
             if (values.len() == 0) {
                 getContext().getStandardOut().print(System.getProperty("line.separator"));
             } else {
@@ -826,24 +827,39 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < values.len() - 1; i++) {
-                    if (values.getItem(i) instanceof Boolean) {
-                        sb.append(((boolean) values.getItem(i) ? "True" : "False") + " ");
-                    } else {
-                        sb.append(values.getItem(i) + " ");
-                    }
+                    sb.append(stringifyElement(values.getItem(i)) + " ");
                 }
 
-                if (values.getItem(values.len() - 1) instanceof Boolean) {
-                    sb.append(((boolean) values.getItem(values.len() - 1) ? "True" : "False"));
-                } else {
-                    sb.append(values.getItem(values.len() - 1));
-                }
-
+                sb.append(stringifyElement(values.getItem(values.len() - 1)));
                 getContext().getStandardOut().print(sb.toString() + sep + end);
-
             }
+
             return PNone.NONE;
         }
+
+        private static String stringifyElement(Object element) {
+            if (element instanceof Boolean) {
+                return ((boolean) element ? "True" : "False");
+            } else if (element instanceof PythonObject) {
+                return callRepr((PythonObject) element);
+            } else {
+                return element.toString();
+            }
+        }
+    }
+
+    /**
+     * This is obviously a slow path.
+     */
+    protected static String callRepr(PythonObject obj) {
+        PythonCallable callable;
+        try {
+            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute("__repr__"));
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
+        return (String) callable.call(null, new Object[]{obj});
     }
 
     // repr(object)
@@ -852,14 +868,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public String repr(PythonObject obj) {
-            PythonCallable callable;
-            try {
-                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute("__repr__"));
-            } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
-            }
-
-            return (String) callable.call(null, new Object[]{obj});
+            return callRepr(obj);
         }
 
         @Specialization

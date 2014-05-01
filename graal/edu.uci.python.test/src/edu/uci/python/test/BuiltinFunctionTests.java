@@ -283,4 +283,13 @@ public class BuiltinFunctionTests {
         assertPrints("foo is a fool\n", source);
     }
 
+    @Test
+    public void repr2() {
+        String source = "class Foo:\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return 'foo is a fool'\n" + //
+                        "print(Foo())";
+        assertPrints("foo is a fool\n", source);
+    }
+
 }
