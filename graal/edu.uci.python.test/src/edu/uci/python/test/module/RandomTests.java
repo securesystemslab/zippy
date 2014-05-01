@@ -30,11 +30,21 @@ import static edu.uci.python.test.PythonTests.*;
 public class RandomTests {
 
     @Test
-    public void randomSeed() {
+    public void randomRandom() {
         String source = "import random\n" + //
                         "random.seed(1)\n" + //
-                        "print(random.random())\n";
-        assertPrintContains("0.", source);
+                        "print(int(random.random()))\n";
+        assertPrints("0\n", source);
+    }
+
+    @Test
+    public void randRange() {
+        String source = "import random\n" + //
+                        "random.seed(1)\n" + //
+                        "stop = 10\n" + //
+                        "ran = random.randrange(stop)\n" + //
+                        "print(ran // stop)\n";
+        assertPrints("0\n", source);
     }
 
 }

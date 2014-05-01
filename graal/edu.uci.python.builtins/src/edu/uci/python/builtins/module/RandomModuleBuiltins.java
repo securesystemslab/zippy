@@ -136,10 +136,18 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     @Builtin(name = "randrange", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class RandRangeNode extends PythonBuiltinNode {
 
-// @Specialization
-// public int randrange(int start) {
-// return javaRandom.nextInt() % start;
-// }
+        @Specialization
+        public int randrange(int start) {
+            return javaRandom.nextInt() % start;
+        }
+
+        /**
+         * zwei: returns an int instead of a BigInteger.
+         */
+        @Specialization
+        public int randrange(BigInteger start) {
+            return javaRandom.nextInt() % start.intValue();
+        }
 
         @Specialization
         public double randrange(double start) {
