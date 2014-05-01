@@ -2129,7 +2129,7 @@ def build(args, parser=None):
         def sortWorklist(tasks):
             for t in tasks:
                 t._d = None
-            return sorted(tasks, lambda x, y : remainingDepsDepth(x) - remainingDepsDepth(y))
+            return sorted(tasks, lambda x, y: remainingDepsDepth(x) - remainingDepsDepth(y))
 
         import multiprocessing
         cpus = multiprocessing.cpu_count()
