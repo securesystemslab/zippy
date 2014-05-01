@@ -256,6 +256,16 @@ public class ObjectLayout {
         return arrayObjectStorageLocationsUsed;
     }
 
+    public String findAttributeId(StorageLocation location) {
+        for (Entry entry : storageLocations.entrySet()) {
+            if (entry.getValue() == location) {
+                return entry.getKey().toString();
+            }
+        }
+
+        throw new IllegalStateException();
+    }
+
     /**
      * Does this layout include another layout? That is, is that other layout somewhere in the chain
      * of parents? We say 'include' because all of the variables in a parent layout are available in

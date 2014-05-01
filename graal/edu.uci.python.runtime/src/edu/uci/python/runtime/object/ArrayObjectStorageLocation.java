@@ -24,7 +24,9 @@
  */
 package edu.uci.python.runtime.object;
 
-import edu.uci.python.runtime.datatype.*;
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
 
 public final class ArrayObjectStorageLocation extends StorageLocation {
 
@@ -44,11 +46,12 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
     public Object read(PythonObject object) {
         final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
 
-        if (result == null) {
-            return PNone.NONE;
-        } else {
+        if (result != null) {
             return result;
         }
+
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
     }
 
     @Override
