@@ -813,7 +813,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private Object print(PTuple values, String possibleSep, String possibleEnd) {
             String sep = possibleSep;
             String end = possibleEnd;
-            // CheckStyle: stop system..print check
             if (values.len() == 0) {
                 getContext().getStandardOut().print(System.getProperty("line.separator"));
             } else {
@@ -843,8 +842,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 getContext().getStandardOut().print(sb.toString() + sep + end);
 
             }
-            // CheckStyle: resume system..print check
-            return null;
+            return PNone.NONE;
         }
     }
 

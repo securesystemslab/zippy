@@ -283,10 +283,4 @@ public class BuiltinFunctionTests {
         assertPrints("foo is a fool\n", source);
     }
 
-    @Test
-    public void setNone() {
-        String source = "set(None)";
-        assertError("TypeError: 'None' object is not iterable\n", source);
-    }
-
 }

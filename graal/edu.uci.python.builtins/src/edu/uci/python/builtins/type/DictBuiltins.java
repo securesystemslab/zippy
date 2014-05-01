@@ -36,16 +36,16 @@ import edu.uci.python.runtime.sequence.*;
  * @author zwei
  */
 
-public final class DictionaryBuiltins extends PythonBuiltins {
+public final class DictBuiltins extends PythonBuiltins {
 
     @Override
     protected List<com.oracle.truffle.api.dsl.NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
-        return DictionaryBuiltinsFactory.getFactories();
+        return DictBuiltinsFactory.getFactories();
     }
 
     // setdefault(key[, default])
     @Builtin(name = "setdefault", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionarySetDefaultNode extends PythonBuiltinNode {
+    public abstract static class SetDefaultNode extends PythonBuiltinNode {
 
         @Specialization
         public Object setDefault(PDict dict, Object arg0, Object arg1) {
@@ -60,7 +60,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // pop(key[, default])
     @Builtin(name = "pop", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryPopNode extends PythonBuiltinNode {
+    public abstract static class PopNode extends PythonBuiltinNode {
 
         @Specialization
         public Object pop(PDict dict, Object arg0, Object arg1) {
@@ -76,7 +76,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // popitem()
     @Builtin(name = "popitem", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryPopItemNode extends PythonBuiltinNode {
+    public abstract static class PopItemNode extends PythonBuiltinNode {
 
         @Specialization
         public Object popItem(PDict dict) {
@@ -90,7 +90,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // keys()
     @Builtin(name = "keys", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryKeysNode extends PythonBuiltinNode {
+    public abstract static class KeysNode extends PythonBuiltinNode {
 
         @Specialization
         public PList keys(PDict self) {
@@ -100,7 +100,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // items()
     @Builtin(name = "items", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryItemsNode extends PythonBuiltinNode {
+    public abstract static class ItemsNode extends PythonBuiltinNode {
 
         @Specialization
         public Object items(PDict self) {
@@ -110,7 +110,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // get(key[, default])
     @Builtin(name = "get", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryGetNode extends PythonBuiltinNode {
+    public abstract static class GetNode extends PythonBuiltinNode {
 
         @Specialization
         public Object get(PDict dict, Object key, Object defaultValue) {
@@ -124,7 +124,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // copy()
     @Builtin(name = "copy", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryCopyNode extends PythonBuiltinNode {
+    public abstract static class CopyNode extends PythonBuiltinNode {
 
         @Specialization
         public PDict copy(PDict dict) {
@@ -134,7 +134,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // clear()
     @Builtin(name = "clear", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryClearNode extends PythonBuiltinNode {
+    public abstract static class ClearNode extends PythonBuiltinNode {
 
         @Specialization
         public PDict copy(PDict dict) {
@@ -145,7 +145,7 @@ public final class DictionaryBuiltins extends PythonBuiltins {
 
     // values()
     @Builtin(name = "values", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonDictionaryValuesNode extends PythonBuiltinNode {
+    public abstract static class ValuesNode extends PythonBuiltinNode {
 
         @Specialization
         public PList values(PDict dict) {
