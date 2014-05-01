@@ -41,6 +41,8 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PythonCallUtil {
 
+    public static final Object[] EMPTY_ARGUMENTS = new Object[0];
+
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
             PrintStream ps = System.out;
@@ -55,7 +57,7 @@ public class PythonCallUtil {
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
         final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = new Object[length];
+        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
         final int offset;
 
         if (passPrimary) {
@@ -74,7 +76,8 @@ public class PythonCallUtil {
 
     @ExplodeLoop
     public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        Object[] evaluated = new Object[arguments.length];
+        final int length = arguments.length;
+        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
 
         for (int i = 0; i < arguments.length; i++) {
             evaluated[i] = arguments[i].execute(frame);
@@ -109,12 +112,12 @@ public class PythonCallUtil {
     @ExplodeLoop
     protected static String[] getKeywordNames(PythonCallNode node) {
         String[] keywordNames = new String[node.keywordNodes.length];
-    
+
         for (int i = 0; i < node.keywordNodes.length; i++) {
             KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) node.keywordNodes[i];
             keywordNames[i] = keywordLiteral.getName();
         }
-    
+
         return keywordNames;
     }
 
