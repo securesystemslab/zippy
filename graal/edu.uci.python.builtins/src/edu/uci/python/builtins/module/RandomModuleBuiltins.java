@@ -49,6 +49,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     protected static java.util.Random javaRandom = new java.util.Random();
+    protected static java.util.Random javaRandomRange = new java.util.Random();
 
     @Builtin(name = "seed", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class SeedNode extends PythonBuiltinNode {
@@ -138,7 +139,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
 
         @Specialization
         public int randrange(int start) {
-            return javaRandom.nextInt() % start;
+            return javaRandomRange.nextInt() % start;
         }
 
         /**
@@ -146,12 +147,13 @@ public class RandomModuleBuiltins extends PythonBuiltins {
          */
         @Specialization
         public int randrange(BigInteger start) {
-            return javaRandom.nextInt() % start.intValue();
+            int ret = javaRandomRange.nextInt() >>> 1 % start.longValue();
+            return ret;
         }
 
         @Specialization
-        public double randrange(double start) {
-            return javaRandom.nextInt() % start;
+        public int randrange(double start) {
+            return (int) (javaRandomRange.nextInt() % start);
         }
     }
 

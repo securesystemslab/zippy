@@ -38,10 +38,19 @@ public class RandomTests {
     }
 
     @Test
-    public void randRange() {
+    public void randRange0() {
         String source = "import random\n" + //
                         "random.seed(1)\n" + //
                         "stop = 10\n" + //
+                        "ran = random.randrange(stop)\n" + //
+                        "print(ran // stop)\n";
+        assertPrints("0\n", source);
+    }
+
+    @Test
+    public void randRange1() {
+        String source = "import random\n" + //
+                        "stop = 9223372036854775807\n" + //
                         "ran = random.randrange(stop)\n" + //
                         "print(ran // stop)\n";
         assertPrints("0\n", source);
