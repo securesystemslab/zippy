@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 
@@ -36,8 +37,10 @@ public class NonVoidBlockNode extends StatementNode {
         this.statements = statments;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
+        assert statements.length > 1;
         for (int i = 0; i < (statements.length - 1); i++) {
             statements[i].executeVoid(frame);
         }

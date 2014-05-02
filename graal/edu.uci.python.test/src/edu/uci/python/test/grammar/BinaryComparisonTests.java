@@ -59,7 +59,7 @@ public class BinaryComparisonTests {
 
     @Test
     public void binaryMultipleComparisionAndFunction() {
-        Path script = Paths.get("binaryMultipleComparision-test.py");
+        Path script = Paths.get("compare-multiple-test.py");
         assertPrints("a = 10\n", script);
     }
 }
