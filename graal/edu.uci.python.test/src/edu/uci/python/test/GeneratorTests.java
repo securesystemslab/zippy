@@ -77,4 +77,9 @@ public class GeneratorTests {
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
+    @Test
+    public void objectsInList() {
+        Path script = Paths.get("generator-objects-test.py");
+        assertPrints("1\n2\n10\n11\n", script);
+    }
 }
