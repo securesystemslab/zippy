@@ -137,8 +137,8 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             ShapeCheckNode check = ShapeCheckNode.create(left, current.getObjectLayout(), depth);
             CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(null, __add__, EmptyNode.INSTANCE, false);
             CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);
-            CallSpecialMethodNode specialized = new CallSpecialMethodNode(getLeftNode(), getRightNode(), __add__, dispatch);
-            return replace(specialized).executeWith(frame, left, right);
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNodeFactory.create(__add__, dispatch, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
         }
 
         // TODO: type info for operands in type error message.

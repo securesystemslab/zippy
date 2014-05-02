@@ -24,48 +24,34 @@
  */
 package edu.uci.python.nodes.call;
 
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 
-public class CallSpecialMethodNode extends PNode {
+public abstract class BinarySpecialMethodCallNode extends BinaryOpNode {
 
-    @Child protected PNode leftNode;
-    @Child protected PNode rightNode;
     @Child protected CallDispatchBoxedNode dispatch;
 
     private final String specialMethodId;
 
-    public CallSpecialMethodNode(PNode left, PNode right, String specialMethodId, CallDispatchBoxedNode dispatch) {
-        this.leftNode = left;
-        this.rightNode = right;
+    public BinarySpecialMethodCallNode(String specialMethodId, CallDispatchBoxedNode dispatch) {
         this.dispatch = dispatch;
         this.specialMethodId = specialMethodId;
+    }
+
+    protected BinarySpecialMethodCallNode(BinarySpecialMethodCallNode prev) {
+        this(prev.specialMethodId, prev.dispatch);
     }
 
     public String getSpecialMethodId() {
         return specialMethodId;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        PythonObject left;
-        PythonObject right;
-
-        try {
-            left = leftNode.executePythonObject(frame);
-            right = rightNode.executePythonObject(frame);
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
-        }
-
-        return executeWith(frame, left, right);
-    }
-
-    public Object executeWith(VirtualFrame frame, PythonObject left, PythonObject right) {
+    @Specialization
+    public Object executeCall(VirtualFrame frame, PythonObject left, PythonObject right) {
         return dispatch.executeCall(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
     }
 
