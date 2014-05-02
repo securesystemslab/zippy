@@ -33,14 +33,20 @@ import org.python.core.*;
 import com.oracle.truffle.api.ExactMath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.UninitializedDispatchBoxedNode;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
@@ -105,7 +111,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 20)
-        Object doPythonObject(PythonObject left, PythonObject right) {
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
             PythonCallable callable;
 
             try {
@@ -114,13 +120,70 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
                 throw new IllegalStateException();
             }
 
-            return callable.call(null, new Object[]{left, right});
+            final String __add__ = "__add__";
+            assert !left.isOwnAttribute(__add__);
+            int depth = 1;
+            PythonClass current = left.getPythonClass();
+
+            do {
+                if (current.isOwnAttribute(__add__)) {
+                    break;
+                }
+
+                current = current.getSuperClass();
+                depth++;
+            } while (current != null);
+
+            ShapeCheckNode check = ShapeCheckNode.create(left, current.getObjectLayout(), depth);
+            CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(null, __add__, EmptyNode.INSTANCE, false);
+            CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);
+            CallSpecialMethodNode specialized = new CallSpecialMethodNode(getLeftNode(), getRightNode(), __add__, dispatch);
+            return replace(specialized).executeWith(frame, left, right);
         }
 
         // TODO: type info for operands in type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("unsupported operand type(s) for +: " + left + " " + right);
+        }
+    }
+
+    public static class CallSpecialMethodNode extends PNode {
+
+        @Child protected PNode leftNode;
+        @Child protected PNode rightNode;
+        @Child protected CallDispatchBoxedNode dispatch;
+
+        private final String specialMethodId;
+
+        public CallSpecialMethodNode(PNode left, PNode right, String specialMethodId, CallDispatchBoxedNode dispatch) {
+            this.leftNode = left;
+            this.rightNode = right;
+            this.dispatch = dispatch;
+            this.specialMethodId = specialMethodId;
+        }
+
+        public String getSpecialMethodId() {
+            return specialMethodId;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PythonObject left;
+            PythonObject right;
+
+            try {
+                left = leftNode.executePythonObject(frame);
+                right = rightNode.executePythonObject(frame);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            return executeWith(frame, left, right);
+        }
+
+        public Object executeWith(VirtualFrame frame, PythonObject left, PythonObject right) {
+            return dispatch.executeCall(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
         }
     }
 

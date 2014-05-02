@@ -45,7 +45,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         super(calleeName);
     }
 
-    protected abstract Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords);
+    public abstract Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords);
 
     protected final Object executeCallAndRewrite(CallDispatchBoxedNode next, VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -157,7 +157,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
                 if (check.accept(primaryObj)) {
                     return invoke.invoke(frame, primaryObj, arguments, keywords);
@@ -181,7 +181,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             PythonCallable callee;
 
             try {
@@ -209,7 +209,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        protected Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+        public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchNode current = this;
