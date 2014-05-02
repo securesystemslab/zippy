@@ -38,7 +38,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallDispatchBoxedNode.UninitializedDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
@@ -145,45 +145,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Generic
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("unsupported operand type(s) for +: " + left + " " + right);
-        }
-    }
-
-    public static class CallSpecialMethodNode extends PNode {
-
-        @Child protected PNode leftNode;
-        @Child protected PNode rightNode;
-        @Child protected CallDispatchBoxedNode dispatch;
-
-        private final String specialMethodId;
-
-        public CallSpecialMethodNode(PNode left, PNode right, String specialMethodId, CallDispatchBoxedNode dispatch) {
-            this.leftNode = left;
-            this.rightNode = right;
-            this.dispatch = dispatch;
-            this.specialMethodId = specialMethodId;
-        }
-
-        public String getSpecialMethodId() {
-            return specialMethodId;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            PythonObject left;
-            PythonObject right;
-
-            try {
-                left = leftNode.executePythonObject(frame);
-                right = rightNode.executePythonObject(frame);
-            } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
-            }
-
-            return executeWith(frame, left, right);
-        }
-
-        public Object executeWith(VirtualFrame frame, PythonObject left, PythonObject right) {
-            return dispatch.executeCall(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
         }
     }
 
