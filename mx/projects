@@ -315,7 +315,7 @@ project@com.oracle.graal.lir.sparc@workingSets=Graal,LIR,SPARC
 # graal.alloc
 project@com.oracle.graal.alloc@subDir=graal
 project@com.oracle.graal.alloc@sourceDirs=src
-project@com.oracle.graal.alloc@dependencies=com.oracle.graal.nodes
+project@com.oracle.graal.alloc@dependencies=com.oracle.graal.compiler.common
 project@com.oracle.graal.alloc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.alloc@javaCompliance=1.8
 project@com.oracle.graal.alloc@workingSets=Graal
