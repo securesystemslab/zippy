@@ -841,25 +841,11 @@ public final class BuiltinFunctions extends PythonBuiltins {
             if (element instanceof Boolean) {
                 return ((boolean) element ? "True" : "False");
             } else if (element instanceof PythonObject) {
-                return callRepr((PythonObject) element);
+                return PythonBuiltinNode.callAttributeSlowPath((PythonObject) element, "__repr__");
             } else {
                 return element.toString();
             }
         }
-    }
-
-    /**
-     * This is obviously a slow path.
-     */
-    protected static String callRepr(PythonObject obj) {
-        PythonCallable callable;
-        try {
-            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute("__repr__"));
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
-        }
-
-        return (String) callable.call(null, new Object[]{obj});
     }
 
     // repr(object)
@@ -868,7 +854,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public String repr(PythonObject obj) {
-            return callRepr(obj);
+            return PythonBuiltinNode.callAttributeSlowPath(obj, "__repr__");
         }
 
         @Specialization

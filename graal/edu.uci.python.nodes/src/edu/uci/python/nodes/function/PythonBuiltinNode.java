@@ -24,12 +24,16 @@
  */
 package edu.uci.python.nodes.function;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 
 /**
  * @author Gulfem
@@ -44,6 +48,22 @@ public abstract class PythonBuiltinNode extends PNode {
     protected boolean emptyArguments(VirtualFrame frame) {
         PArguments args = frame.getArguments(PArguments.class);
         return args.getArgumentsLength() == 0;
+    }
+
+    /**
+     * This is obviously a slow path.
+     */
+    @SlowPath
+    public static String callAttributeSlowPath(PythonObject obj, String attributeId) {
+        PythonCallable callable;
+
+        try {
+            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute(attributeId));
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
+        return (String) callable.call(null, new Object[]{obj});
     }
 
 }

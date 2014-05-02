@@ -518,6 +518,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
+        public String str(PythonObject obj) {
+            return PythonBuiltinNode.callAttributeSlowPath(obj, "__str__");
+        }
+
+        @Specialization
         public String str(Object arg) {
             return arg.toString();
         }
