@@ -63,7 +63,7 @@ public abstract class PythonBuiltinNode extends PNode {
             throw new IllegalStateException();
         }
 
-        return (String) callable.call(null, new Object[]{obj});
+        return callable.call(null, new Object[]{obj}).toString();
     }
 
 }
