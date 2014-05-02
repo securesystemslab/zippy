@@ -129,6 +129,7 @@ python2MicroBenchmarks = {
     'call-method-polymorphic': '0',
     #'boolean-logic'         : '0',
     #'object-allocate'       : '0',
+    'special-add'           : '0',
 }
 
 pythonMicroBenchmarks = {
@@ -150,6 +151,7 @@ pythonMicroBenchmarks = {
     'call-method-polymorphic': '0',
     'boolean-logic'         : '0',
     'object-allocate'       : '0',
+    'special-add'           : '0',
 }
 
 pythonBenchmarks = {
