@@ -156,8 +156,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   //------------------------------------------------------------------------------------------------
 
-  set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
   set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);

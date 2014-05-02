@@ -60,8 +60,8 @@ public:
   // public static void HotSpotOptions.finalizeOptions(boolean ciTime);
   static void finalizeOptions(jboolean ciTime);
 
-  // public abstract boolean compileMethod(long vmId, int entry_bci, boolean blocking);
-  static void compileMethod(Method* method, int entry_bci, jboolean blocking);
+  // public abstract boolean compileMethod(long metaspaceMethod, int entryBCI, long ctask, boolean blocking);
+  static void compileMethod(Method* method, int entry_bci, jlong ctask, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
