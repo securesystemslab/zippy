@@ -46,7 +46,6 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
@@ -112,29 +111,16 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20)
         Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            final String __add__ = "__add__";
             PythonCallable callable;
 
             try {
-                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(left.getAttribute("__add__"));
+                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(left.getAttribute(__add__));
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException();
             }
 
-            final String __add__ = "__add__";
-            assert !left.isOwnAttribute(__add__);
-            int depth = 1;
-            PythonClass current = left.getPythonClass();
-
-            do {
-                if (current.isOwnAttribute(__add__)) {
-                    break;
-                }
-
-                current = current.getSuperClass();
-                depth++;
-            } while (current != null);
-
-            ShapeCheckNode check = ShapeCheckNode.create(left, current.getObjectLayout(), depth);
+            ShapeCheckNode check = ShapeCheckNode.create(left, __add__, left.isOwnAttribute(__add__));
             CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(null, __add__, EmptyNode.INSTANCE, false);
             CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);
             BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNodeFactory.create(__add__, dispatch, getLeftNode(), getRightNode());
