@@ -58,12 +58,18 @@ void GraalCompiler::initialize() {
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
   BufferBlob* buffer_blob = initialize_buffer_blob();
-  if (buffer_blob == NULL) {
-    // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
-    // set_state(failed);
-  } else {
-    // set_state(initialized);
+#ifdef COMPILERGRAAL
+  if (!UseGraalCompilationQueue) {
+    // This path is used for initialization both by the native queue and the graal queue
+    // but set_state acquired a lock which might not be safe during JVM_CreateJavaVM, so
+    // only update the state flag for the native queue.
+    if (buffer_blob == NULL) {
+      set_state(failed);
+    } else {
+      set_state(initialized);
+    }
   }
+#endif
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
