@@ -94,6 +94,19 @@ public class PythonClass extends PythonObject implements PythonCallable {
         return context;
     }
 
+    @Override
+    public PythonObject getValidStorageFullLookup(String attributeId) {
+        PythonObject storage = null;
+
+        if (isOwnAttribute(attributeId)) {
+            storage = this;
+        } else if (superClass != null) {
+            storage = superClass.getValidStorageFullLookup(attributeId);
+        }
+
+        return storage;
+    }
+
     public PythonCallable lookUpMethod(String methodName) {
         Object attr = getAttribute(methodName);
         assert attr != null;

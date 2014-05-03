@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.object;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -47,6 +49,45 @@ public abstract class ShapeCheckNode extends Node {
             return new PythonClassCheckNode(primary, storageLayout);
         } else {
             return new ClassChainCheckNode(primary, storageLayout, depth);
+        }
+    }
+
+    public static ShapeCheckNode create(PythonObject primary, String attributeId, boolean isAttributeInPlace) {
+        if (isAttributeInPlace) {
+            assert primary.isOwnAttribute(attributeId);
+            return new PythonObjectCheckNode(primary);
+        }
+
+        int depth = 0;
+        PythonClass current;
+
+        if (primary instanceof PythonClass) {
+            current = (PythonClass) primary;
+        } else {
+            current = primary.getPythonClass();
+            depth++;
+        }
+
+        // class chain lookup
+        do {
+            if (current.isOwnAttribute(attributeId)) {
+                break;
+            }
+
+            current = current.getSuperClass();
+            depth++;
+        } while (current != null);
+
+        if (current == null) {
+            throw Py.AttributeError(primary + " object has no attribute " + attributeId);
+        }
+
+        if (depth == 0) {
+            return new PythonObjectCheckNode(primary);
+        } else if (depth == 1) {
+            return new PythonClassCheckNode(primary, current.getObjectLayout());
+        } else {
+            return new ClassChainCheckNode(primary, current.getObjectLayout(), depth);
         }
     }
 

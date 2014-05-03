@@ -105,6 +105,18 @@ public class PythonObject {
         return location;
     }
 
+    public PythonObject getValidStorageFullLookup(String attributeId) {
+        PythonObject storage = null;
+
+        if (isOwnAttribute(attributeId)) {
+            storage = this;
+        } else if (pythonClass != null) {
+            storage = pythonClass.getValidStorageFullLookup(attributeId);
+        }
+
+        return storage;
+    }
+
     private void allocateObjectStorageLocations() {
         final int objectStorageLocationsUsed = objectLayout.getObjectStorageLocationsUsed();
 
