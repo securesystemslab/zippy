@@ -27,7 +27,9 @@ package edu.uci.python.nodes.call;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 
@@ -36,6 +38,13 @@ public abstract class BinarySpecialMethodCallNode extends BinaryOpNode {
     @Child protected CallDispatchBoxedNode dispatch;
 
     private final String specialMethodId;
+
+    public static BinarySpecialMethodCallNode create(String specialMethodId, PythonObject primary, PNode left, PNode right) {
+        RuntimeValueNode wrapper = new RuntimeValueNode(primary);
+        GetAttributeNode calleeNode = new GetAttributeNode.UninitializedGetAttributeNode(specialMethodId, wrapper);
+        CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(specialMethodId, calleeNode, false);
+        return BinarySpecialMethodCallNodeFactory.create(specialMethodId, uninitialized, left, right);
+    }
 
     public BinarySpecialMethodCallNode(String specialMethodId, CallDispatchBoxedNode dispatch) {
         this.dispatch = dispatch;

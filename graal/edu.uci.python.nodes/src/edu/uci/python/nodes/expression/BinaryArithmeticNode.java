@@ -34,16 +34,10 @@ import com.oracle.truffle.api.ExactMath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallDispatchBoxedNode.*;
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -111,22 +105,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20)
         Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            final String __add__ = "__add__";
-            PythonCallable callable;
-
-            try {
-                callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(left.getAttribute(__add__));
-            } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
-            }
-
-// RuntimeValueNode wrapper = new RuntimeValueNode(left);
-// GetAttributeNode calleeNode = new GetAttributeNode.UninitializedGetAttributeNode();
-
-            ShapeCheckNode check = ShapeCheckNode.create(left, __add__, left.isOwnAttribute(__add__));
-            CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(__add__, EmptyNode.INSTANCE, false);
-            CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNodeFactory.create(__add__, dispatch, getLeftNode(), getRightNode());
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__add__", left, getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 

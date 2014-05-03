@@ -309,7 +309,6 @@ public class TranslationEnvironment {
         } else {
             this.statementPatch.addAll(patch);
         }
-
     }
 
 }
