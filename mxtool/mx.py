@@ -1300,8 +1300,21 @@ def _waitWithTimeout(process, args, timeout):
         time.sleep(delay)
 
 # Makes the current subprocess accessible to the abort() function
-# This is a tuple of the Popen object and args.
-_currentSubprocess = (None, None)
+# This is a list of tuples of the subprocess.Popen or
+# multiprocessing.Process object and args.
+_currentSubprocesses = []
+
+def _addSubprocess(p, args):
+    entry = (p, args)
+    _currentSubprocesses.append(entry)
+    return entry
+
+def _removeSubprocess(entry):
+    if entry and entry in _currentSubprocesses:
+        try:
+            _currentSubprocesses.remove(entry)
+        except:
+            pass
 
 def waitOn(p):
     if get_os() == 'windows':
@@ -1340,8 +1353,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
-    global _currentSubprocess
-
+    sub = None
     try:
         # On Unix, the new subprocess should be in a separate group so that a timeout alarm
         # can use os.killpg() to kill the whole subprocess group
@@ -1359,7 +1371,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stdout = out if not callable(out) else subprocess.PIPE
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
-        _currentSubprocess = (p, args)
+        sub = _addSubprocess(p, args)
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
             t.daemon = True  # thread dies with the program
@@ -1382,7 +1394,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     except KeyboardInterrupt:
         abort(1)
     finally:
-        _currentSubprocess = (None, None)
+        _removeSubprocess(sub)
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -1663,21 +1675,20 @@ def expandvars_in_property(value):
     return result
 
 def _send_sigquit():
-    p, args = _currentSubprocess
+    for p, args in _currentSubprocesses:
 
-    def _isJava():
-        if args:
-            name = args[0].split(os.sep)[-1]
-            return name == "java"
-        return False
+        def _isJava():
+            if args:
+                name = args[0].split(os.sep)[-1]
+                return name == "java"
+            return False
 
-    if p is not None and _isJava():
-        if get_os() == 'windows':
-            log("mx: implement me! want to send SIGQUIT to my child process")
-        else:
-            _kill_process_group(p.pid, sig=signal.SIGQUIT)
-        time.sleep(0.1)
-
+        if p is not None and _isJava():
+            if get_os() == 'windows':
+                log("mx: implement me! want to send SIGQUIT to my child process")
+            else:
+                _kill_process_group(p.pid, sig=signal.SIGQUIT)
+            time.sleep(0.1)
 
 def abort(codeOrMessage):
     """
@@ -1692,12 +1703,14 @@ def abort(codeOrMessage):
 
     # import traceback
     # traceback.print_stack()
-    p, _ = _currentSubprocess
-    if p is not None:
-        if get_os() == 'windows':
-            p.kill()
-        else:
-            _kill_process_group(p.pid, signal.SIGKILL)
+    for p, args in _currentSubprocesses:
+        try:
+            if get_os() == 'windows':
+                p.terminate()
+            else:
+                _kill_process_group(p.pid, signal.SIGKILL)
+        except BaseException as e:
+            log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
 
     raise SystemExit(codeOrMessage)
 
@@ -2113,6 +2126,7 @@ def build(args, parser=None):
                 if t.proc.is_alive():
                     active.append(t)
                 else:
+                    _removeSubprocess(t.sub)
                     if t.proc.exitcode != 0:
                         return ([], joinTasks(tasks))
             return (active, [])
@@ -2162,6 +2176,7 @@ def build(args, parser=None):
                     task.proc = multiprocessing.Process(target=executeTask, args=(task,))
                     task.proc.start()
                     active.append(task)
+                    task.sub = _addSubprocess(task.proc, ['JavaCompileTask', str(task)])
                 if len(active) == cpus:
                     break
 
